@@ -77,11 +77,9 @@ O app tem três modos (`core.js`): **de verdade** (config.js com `SUPABASE_URL` 
 - **Correverso.** Controle de videogame no celular (`pad.js`), na cidade e na casa. Pulo. Som da cidade (`verso-som.js`). Garagem com 9 veículos próprios (`veiculos.js`). Aeroporto com voo a 5 correais.
 - **Studio Houzi.** O passo "As referências" (com imagens lidas no aparelho). "Mais alternativas" nunca repete.
 - **Testes:** 64/64 verdes (1.442 checagens). Lint: 0 erros.
+- **Produção (12/10/2026, conferido pelo conector do Supabase):** o `delta-v340.sql` já tinha rodado. As funções `instagram` (v10, Verify JWT desligado) e `imagem` (v16, Verify JWT desligado como antes) foram atualizadas pra v3.40; as que estavam no ar eram de antes da v3.38. A fila do pg_cron (`corre-studio-publica`, de 5 em 5 min) voltou a responder 200. O site 3.40 tá no Netlify desde 12/10 às 22:03 UTC.
 - **Falta do lado do Thales:**
-  - rodar o `delta-v340.sql`;
-  - dar Deploy nas funções `instagram` (Verify JWT desligado) e `imagem`;
-  - Secrets `IG_APP_ID` e `IG_APP_SECRET` no Supabase;
-  - `IG_APP_ID` no `site/config.js`, que hoje tá vazio;
-  - subir o zip.
+  - Secrets `IG_APP_ID`, `IG_APP_SECRET` e `IG_CHAVE` no Supabase (a sessão do Claude não grava secret);
+  - `IG_APP_ID` no `site/config.js`, que hoje tá vazio, e subir o site de novo.
 
   O app "Corre Instagram" na Meta já foi criado. Pra abrir pra todo mundo: Análise do app e modo Ao vivo.
