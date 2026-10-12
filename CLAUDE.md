@@ -71,7 +71,8 @@ O app tem três modos (`core.js`): **de verdade** (config.js com `SUPABASE_URL` 
 - Sem dependência nova no site (tudo roda no navegador, sem build de módulos). CDN só as que já estão no index.
 
 ## Onde parou (v3.40)
-- **No repositório (12/10/2026) só tem o `site/`**, que veio do `corre-site.zip`. Ainda faltam o `package.json`, `build.mjs`, `test/`, `supabase/`, `ferramentas/` e `LEIA-ME.txt`, que estão no computador do Thales. Sem eles não rodam build, testes, lint nem banco de teste.
+- **No repositório (12/10/2026):** o `site/` (do `corre-site.zip`), as funções `imagem` e `instagram` e o `supabase/delta-v340.sql`. Ainda faltam o `package.json`, `build.mjs`, `test/`, o `schema.sql` e os deltas antigos, as funções `push`/`banca`/`mural`, `ferramentas/` e o `LEIA-ME.txt` (estão no computador do Thales). Sem eles não rodam build, a suíte nem o lint.
+- **Banco de teste na nuvem:** `sh ferramentas/banco-nuvem/roda.sh` sobe um Postgres descartável com um Supabase de mentira mínimo, roda o delta v3.40 2x e as checagens (7 ok). Quando o `ferramentas/banco-teste/` de verdade chegar, ele manda.
 - **Instagram por conta, no jeito do mLabs.** Cada conta entra pelo login do Instagram (`ig.html` → função `instagram`, `acao: conectar`). Cada post tem "Postar em" (`corre_posts.ig_conta`). Sem conta, o post vira lembrete.
 - **Correverso.** Controle de videogame no celular (`pad.js`), na cidade e na casa. Pulo. Som da cidade (`verso-som.js`). Garagem com 9 veículos próprios (`veiculos.js`). Aeroporto com voo a 5 correais.
 - **Studio Houzi.** O passo "As referências" (com imagens lidas no aparelho). "Mais alternativas" nunca repete.
