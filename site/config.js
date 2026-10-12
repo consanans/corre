@@ -23,5 +23,5 @@ window.CORRE_CONFIG = {
      na própria conta e escolhe em qual conta cada post sai. O segredo do app NÃO vem pra cá: fica só na função
      "instagram" (IG_APP_SECRET). Vazio = o Conectar avisa que ainda não foi ligado.
      IG_REDIRECT: opcional, o endereço de volta cadastrado na Meta (padrão: este site + /ig.html). */
-  IG_APP_ID: ''
+  IG_APP_ID: '1763654311510527'
 };
