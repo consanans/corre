@@ -1,0 +1,26 @@
+/* CORRE · RESPONSIVO (v3.23)
+   Vem por último: ajusta o que já existe pro dedo e pra tela pequena, sem mexer no desenho.
+   1. Toque: no celular, o alvo do dedo fica maior que o desenho (padding pra fora, margem negativa pra dentro:
+      o layout não anda). Botão responde na hora (sem a espera do toque duplo) e mostra que foi tocado.
+   2. Letra: as etiquetas pequenas (mono, caixa alta) sobem pra 11.5px em tela de celular.
+   3. Texto comprido não vaza: nome de frame, @ e link quebram ou ganham reticências. */
+
+/* 1. toque */
+@media (pointer:coarse){
+  a,button,summary,label,input,select,textarea,[role=button],[role=tab],[data-act]{touch-action:manipulation}
+  button:not(.btn):not(:disabled):active,[role=tab]:active,summary:active,.chip-r:active{opacity:.72}
+  .fp-nm,.fp-meta a,.fp-rt a,.fp-t .h,.fc-i .h,.lnk,.pf-nums .pf-n,a.wm,.b-sites a,.empty a,.pf-meta a,.av-quem a,.av-l a,.rec-h{padding-block:9px;margin-block:-9px}
+  .fp-meta a{padding-inline:6px;margin-inline:-6px}
+  .hz-mini{min-width:36px;min-height:36px}
+  .fr{min-height:38px}
+}
+
+/* 2. letra */
+@media (max-width:480px){
+  .pp .ex,.fr small,.edge-txt,.er-cal .wd,.fp-tag,.fc-i small,.vs-when span,.vs-tag,.hz-vrow.h,.hz-vdias em,.hz-dist small,.fd-alta-i small,.mu-cat,.mu-quente,.mu-pvp small,.ct-tipo,.rf-dx h3 small{font-size:11.5px}
+  .fr .n{font-size:10.5px}
+}
+
+/* 3. texto comprido */
+.fr b{overflow-wrap:anywhere}
+.fp-t,.fp-body,.av-txt,.rec p,.mu-txt{overflow-wrap:anywhere}

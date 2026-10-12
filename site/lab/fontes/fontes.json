@@ -1,0 +1,186 @@
+[
+ {
+  "id": "inter-black",
+  "nome": "Inter Display Black",
+  "kit": "Houzi Grotesca Pesada",
+  "arquivo": "inter-black.otf",
+  "licenca": "OFL",
+  "origem": "https://rsms.me/inter/"
+ },
+ {
+  "id": "inter-bold",
+  "nome": "Inter Display Bold",
+  "kit": "Houzi Grotesca",
+  "arquivo": "inter-bold.otf",
+  "licenca": "OFL",
+  "origem": "https://rsms.me/inter/"
+ },
+ {
+  "id": "inter-light",
+  "nome": "Inter Display Light",
+  "kit": "Houzi Grotesca Fina",
+  "arquivo": "inter-light.otf",
+  "licenca": "OFL",
+  "origem": "https://rsms.me/inter/"
+ },
+ {
+  "id": "inter-regular",
+  "nome": "Inter",
+  "kit": "Houzi Texto",
+  "arquivo": "inter-regular.otf",
+  "licenca": "OFL",
+  "origem": "https://rsms.me/inter/"
+ },
+ {
+  "id": "inter-medium",
+  "nome": "Inter Medium",
+  "kit": "Houzi Texto Média",
+  "arquivo": "inter-medium.otf",
+  "licenca": "OFL",
+  "origem": "https://rsms.me/inter/"
+ },
+ {
+  "id": "poppins-bold",
+  "nome": "Poppins Bold",
+  "kit": "Houzi Geométrica",
+  "arquivo": "poppins-bold.ttf",
+  "licenca": "OFL",
+  "origem": "https://fonts.google.com/specimen/Poppins"
+ },
+ {
+  "id": "poppins-regular",
+  "nome": "Poppins",
+  "kit": "Houzi Geométrica Texto",
+  "arquivo": "poppins-regular.ttf",
+  "licenca": "OFL",
+  "origem": "https://fonts.google.com/specimen/Poppins"
+ },
+ {
+  "id": "poppins-light",
+  "nome": "Poppins Light",
+  "kit": "Houzi Geométrica Leve",
+  "arquivo": "poppins-light.ttf",
+  "licenca": "OFL",
+  "origem": "https://fonts.google.com/specimen/Poppins"
+ },
+ {
+  "id": "lora-bold",
+  "nome": "Lora Bold",
+  "kit": "Houzi Editorial",
+  "arquivo": "lora-bold.ttf",
+  "licenca": "OFL",
+  "origem": "https://fonts.google.com/specimen/Lora"
+ },
+ {
+  "id": "lora-regular",
+  "nome": "Lora",
+  "kit": "Houzi Editorial Texto",
+  "arquivo": "lora-regular.ttf",
+  "licenca": "OFL",
+  "origem": "https://fonts.google.com/specimen/Lora"
+ },
+ {
+  "id": "lora-bolditalic",
+  "nome": "Lora Bold Italic",
+  "kit": "Houzi Editorial Itálica",
+  "arquivo": "lora-bolditalic.ttf",
+  "licenca": "OFL",
+  "origem": "https://fonts.google.com/specimen/Lora"
+ },
+ {
+  "id": "adventor-bold",
+  "nome": "TeX Gyre Adventor Bold",
+  "kit": "Houzi Avant",
+  "arquivo": "adventor-bold.otf",
+  "licenca": "GUST",
+  "origem": "https://www.gust.org.pl/projects/e-foundry/tex-gyre"
+ },
+ {
+  "id": "heroscn-bold",
+  "nome": "TeX Gyre Heros Cn Bold",
+  "kit": "Houzi Condensada",
+  "arquivo": "heroscn-bold.otf",
+  "licenca": "GUST",
+  "origem": "https://www.gust.org.pl/projects/e-foundry/tex-gyre"
+ },
+ {
+  "id": "heros-regular",
+  "nome": "TeX Gyre Heros",
+  "kit": "Houzi Grotesca Texto",
+  "arquivo": "heros-regular.otf",
+  "licenca": "GUST",
+  "origem": "https://www.gust.org.pl/projects/e-foundry/tex-gyre"
+ },
+ {
+  "id": "schola-bold",
+  "nome": "TeX Gyre Schola Bold",
+  "kit": "Houzi Escolar",
+  "arquivo": "schola-bold.otf",
+  "licenca": "GUST",
+  "origem": "https://www.gust.org.pl/projects/e-foundry/tex-gyre"
+ },
+ {
+  "id": "schola-regular",
+  "nome": "TeX Gyre Schola",
+  "kit": "Houzi Escolar Texto",
+  "arquivo": "schola-regular.otf",
+  "licenca": "GUST",
+  "origem": "https://www.gust.org.pl/projects/e-foundry/tex-gyre"
+ },
+ {
+  "id": "bonum-bold",
+  "nome": "TeX Gyre Bonum Bold",
+  "kit": "Houzi Setentinha",
+  "arquivo": "bonum-bold.otf",
+  "licenca": "GUST",
+  "origem": "https://www.gust.org.pl/projects/e-foundry/tex-gyre"
+ },
+ {
+  "id": "pagella-bold",
+  "nome": "TeX Gyre Pagella Bold",
+  "kit": "Houzi Palácio",
+  "arquivo": "pagella-bold.otf",
+  "licenca": "GUST",
+  "origem": "https://www.gust.org.pl/projects/e-foundry/tex-gyre"
+ },
+ {
+  "id": "pagella-regular",
+  "nome": "TeX Gyre Pagella",
+  "kit": "Houzi Palácio Texto",
+  "arquivo": "pagella-regular.otf",
+  "licenca": "GUST",
+  "origem": "https://www.gust.org.pl/projects/e-foundry/tex-gyre"
+ },
+ {
+  "id": "chorus",
+  "nome": "TeX Gyre Chorus",
+  "kit": "Houzi Caligrafia",
+  "arquivo": "chorus.otf",
+  "licenca": "GUST",
+  "origem": "https://www.gust.org.pl/projects/e-foundry/tex-gyre"
+ },
+ {
+  "id": "cursor-bold",
+  "nome": "TeX Gyre Cursor Bold",
+  "kit": "Houzi Máquina",
+  "arquivo": "cursor-bold.otf",
+  "licenca": "GUST",
+  "origem": "https://www.gust.org.pl/projects/e-foundry/tex-gyre"
+ },
+ {
+  "id": "cursor-regular",
+  "nome": "TeX Gyre Cursor",
+  "kit": "Houzi Máquina Texto",
+  "arquivo": "cursor-regular.otf",
+  "licenca": "GUST",
+  "origem": "https://www.gust.org.pl/projects/e-foundry/tex-gyre"
+ },
+ {
+  "id": "pixel",
+  "nome": "Houzi Pixel",
+  "kit": "Houzi Pixel",
+  "arquivo": "pixel.ttf",
+  "licenca": "OFL",
+  "origem": "Corre"
+ }
+]

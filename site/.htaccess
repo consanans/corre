@@ -1,0 +1,21 @@
+# Corre · hospedagem Apache/LiteSpeed (Hostinger, Locaweb, KingHost e afins)
+Options -Indexes
+DirectoryIndex index.html
+
+# Sempre HTTPS (o login do Google exige)
+RewriteEngine On
+RewriteCond %{HTTPS} !=on
+RewriteCond %{HTTP:X-Forwarded-Proto} !=https
+RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+# config.js e o app sempre frescos; imagens e css podem ficar em cache
+<IfModule mod_headers.c>
+  <FilesMatch "(config\.js|app\.js|index\.html|sw\.js|site\.webmanifest)$">
+    Header set Cache-Control "no-cache"
+  </FilesMatch>
+  <FilesMatch "\.(jpg|png|css)$">
+    Header set Cache-Control "public, max-age=604800"
+  </FilesMatch>
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>

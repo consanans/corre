@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Conectando o Instagram · Corre</title>
+<style>
+  :root{color-scheme:light}
+  body{margin:0;min-height:100vh;display:grid;place-items:center;background:#F4EFE6;color:#141216;font:600 17px/1.4 system-ui,-apple-system,"Segoe UI",sans-serif}
+  p{margin:0;padding:24px;text-align:center}
+</style>
+</head>
+<body>
+<p id="m">Conectando o Instagram ao Corre…</p>
+<script>
+/* CORRE · a volta do login do Instagram (v3.40). O Instagram devolve ?code=…&state=… (ou ?error=…). Aqui só guarda pro
+   app (na mesma aba) e volta pro Corre: quem troca o código pela conexão é a função "instagram", no servidor. */
+(function(){
+  var q = new URLSearchParams(location.search), volta = '#/studio';
+  var o = { code: String(q.get('code') || '').replace(/#_$/, ''), state: q.get('state') || '', erro: q.get('error') || '', t: Date.now() };
+  try{ var s = JSON.parse(sessionStorage.getItem('corre-ig-state') || '{}'); if(s && /^#\//.test(s.volta || '')) volta = s.volta; }catch(e){}
+  try{ sessionStorage.setItem('corre-ig-volta', JSON.stringify(o)); }
+  catch(e){ document.getElementById('m').textContent = 'Não deu pra terminar a conexão neste navegador. Volta pro Corre e tenta de novo.'; return; }
+  location.replace('/' + volta);
+})();
+</script>
+</body>
+</html>

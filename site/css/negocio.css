@@ -1,0 +1,249 @@
+/* CORRE · v3.8 — Meu corre, catálogo, perfil que vende, Vendas, Grana de quem vende, Refs, Achar quem faz.
+   Mesmo traço: tinta, amarelo, rosa, papel. Dinheiro sempre em tinta. Sem verde. */
+.lbl-s{font-weight:800;font-size:14.5px}
+.lbl-s small,.fld label small{font-weight:600;color:var(--muted)}
+.tag.cat{background:var(--yellow);border-color:var(--ink)}
+.tag.alerta{background:var(--pink);color:#fff;border-color:var(--ink)}
+.linklike{border:0;background:none;padding:0;font:inherit;color:inherit;font-weight:800;text-decoration:underline;cursor:pointer}
+
+/* Meu corre (cadastro e Editar perfil) */
+.mc{display:flex;flex-direction:column;gap:14px;border:2.5px solid var(--ink);border-radius:18px;padding:14px 16px 16px;margin:4px 0;background:var(--yellow-tint)}
+.mc legend{font-weight:900;font-size:15px;padding:2px 10px;background:var(--yellow);border:2px solid var(--ink);border-radius:8px;transform:rotate(-1.5deg)}
+.mc-cats{gap:6px}
+.mc .hz-chip.light{min-height:32px;font-size:13px;font-weight:800}
+#f-cat-auto{color:var(--ink);font-weight:800}
+.seg3{display:inline-flex;flex-wrap:wrap;padding:4px;border-radius:999px;background:var(--paper);border:2px solid var(--line);gap:4px;align-self:flex-start}
+.seg3 label{position:relative;cursor:pointer}
+.seg3 input{position:absolute;opacity:0;pointer-events:none}
+.seg3 span{display:block;padding:7px 14px;border-radius:999px;font-weight:800;font-size:14px}
+.seg3 input:checked + span{background:var(--ink);color:var(--yellow)}
+.seg3 input:focus-visible + span{outline:3px solid var(--focus)}
+.mc-orc{align-self:end;padding-bottom:6px}
+
+/* Catálogo (Portfólio) */
+.ct-sec{display:flex;flex-direction:column;gap:12px}
+.ct-lista{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,260px),1fr));gap:14px}
+.ct-it{display:flex;flex-direction:column;gap:8px;background:var(--paper);border:2.5px solid var(--ink);border-radius:18px;padding:14px;box-shadow:4px 4px 0 var(--ink)}
+.ct-main{display:flex;flex-direction:column;gap:4px;align-items:flex-start;text-align:left;border:0;background:none;padding:0;font:inherit;color:inherit;cursor:pointer}
+.ct-main b{font-size:17px;line-height:1.2}
+.ct-tipo{font-family:var(--font-mono);font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2)}
+.ct-preco{font-family:var(--font-display);font-variation-settings:"wdth" 100;font-weight:900;font-size:22px;line-height:1.1}
+.ct-main small{color:var(--ink-2);font-size:13px}
+.ct-tags{display:flex;flex-wrap:wrap;gap:6px}
+.tag.pub{background:var(--yellow);border-color:var(--ink)}
+.ct-pe{margin:0;color:#fff;font-weight:700;font-size:13.5px;text-shadow:0 1px 8px rgb(0 0 0 / 55%)}
+.ct-vazio{display:flex;flex-direction:column;gap:10px}
+.ct-vazio p{margin:0}
+.ct-conta{display:flex;flex-direction:column;gap:6px;background:var(--paper-2);border:1.5px solid var(--line);border-radius:14px;padding:10px 12px;font-size:14px}
+.ct-conta p{margin:0}
+.mk-intro{margin:-10px 0 0;color:#fff;font-weight:600;font-size:14.5px;text-shadow:0 1px 8px rgb(0 0 0 / 55%)}
+
+/* Perfil que vende */
+.pf-faz{margin:2px 0 0;font-weight:800;font-size:16px;color:var(--ink)}
+.pf-cta{display:flex;flex-wrap:wrap;gap:10px;margin-top:4px}
+.pf-cta .btn.pri{box-shadow:3px 3px 0 var(--ink)}
+.pf-vit{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,230px),1fr));gap:14px}
+.pf-it{display:flex;flex-direction:column;gap:6px;align-items:flex-start;background:var(--paper);border:2.5px solid var(--ink);border-radius:18px;padding:14px;box-shadow:4px 4px 0 var(--ink)}
+.pf-it b{font-size:17px;line-height:1.2}
+.pf-it p{margin:0;color:var(--ink-2);font-size:14px}
+.pf-preco{font-family:var(--font-display);font-variation-settings:"wdth" 100;font-weight:900;font-size:24px;line-height:1.05}
+.pf-preco small{font-family:var(--font-body);font-size:13px;font-weight:700;color:var(--ink-2)}
+.pf-it .btn{margin-top:auto}
+.orc-itens{display:flex;flex-wrap:wrap;gap:8px}
+.orc-it{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;font:inherit;cursor:pointer;background:var(--paper);border:2px solid var(--line);border-radius:14px;padding:8px 12px;color:var(--ink)}
+.orc-it span{font-size:13px;color:var(--ink-2)}
+.orc-it[aria-pressed="true"]{background:var(--yellow);border-color:var(--ink);box-shadow:2px 2px 0 var(--ink)}
+
+/* Vendas */
+.ng{--hz-card:var(--paper);--hz-line:var(--ink);--hz-ink:var(--ink);--hz-ink-2:var(--ink-2);--hz-amber:var(--yellow)}
+.ng .hz-btn{border-width:2px}
+.ng .hz-btn.pri{box-shadow:2px 2px 0 var(--ink)}
+.ng-top{display:flex;flex-direction:column;gap:14px}
+.ng-nums{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.ng-nums > div{padding:12px 14px;border-radius:18px;background:var(--paper-2);min-width:0}
+.ng-nums span{display:block;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.ng-nums b{display:block;font-family:var(--font-display);font-style:italic;font-weight:900;font-size:clamp(19px,2.6vw,28px);line-height:1.1;overflow-wrap:anywhere}
+.ng-nums small{color:var(--ink-2);font-size:12.5px}
+.ng-nums .hl-box{background:var(--yellow);border:2.5px solid var(--ink)}
+.ng-nums .ng-alerta{background:var(--pink-tint);border:2.5px solid var(--ink)}
+@media (max-width:700px){ .ng-nums{grid-template-columns:1fr 1fr} }
+.ng-tabs .ng-q{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 5px;border-radius:999px;background:var(--ink);color:var(--yellow);font-size:11.5px}
+.ng-lista{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:12px}
+.ng-it{display:flex;flex-direction:column;gap:6px;background:var(--paper);border:2.5px solid var(--ink);border-radius:18px;padding:14px 16px;box-shadow:4px 4px 0 var(--ink)}
+.ng-it.atras{box-shadow:4px 4px 0 var(--pink);background:var(--pink-tint)}
+.ng-it.sumido{background:var(--yellow-tint)}
+.ng-it.st-perdido{opacity:.7}
+.ng-it p{margin:0}
+.ng-h{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.ng-nm{border:0;background:none;padding:0;font:inherit;color:inherit;cursor:pointer;text-align:left;min-width:0}
+.ng-nm b,.ng-h > b:first-child{font-size:17px}
+.ng-v{font-family:var(--font-display);font-style:italic;font-weight:900;font-size:22px;white-space:nowrap}
+.ng-itens{color:var(--ink-2);font-size:14px}
+.ng-tags{display:flex;flex-wrap:wrap;gap:6px}
+.ng-vazio{max-width:none}
+.ng-f .ng-rows{list-style:none;margin:0 0 8px;padding:0;display:flex;flex-direction:column;gap:6px}
+.ng-row{display:grid;grid-template-columns:minmax(0,1fr) 64px auto 104px 36px;gap:6px;align-items:center}
+.ng-row.vazio{display:block;color:var(--muted);font-size:14px;padding:8px 0}
+.ng-row .inp{min-height:42px;padding:6px 10px;font-size:15px}
+.ng-u{font-size:12.5px;font-weight:800;color:var(--ink-2);min-width:18px;text-align:center}
+.ng-cat{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+.ng-tot{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 16px;padding:10px 14px;border-radius:14px;background:var(--paper-2);border:1.5px solid var(--line)}
+.ng-total{font-weight:800}
+.ng-total b{font-family:var(--font-display);font-style:italic;font-weight:900;font-size:22px}
+@media (max-width:520px){ .ng-row{grid-template-columns:minmax(0,1fr) 56px 92px 32px} .ng-u{display:none} }
+.hcard.vendas-mini{background:var(--paper)}
+.hcard.vendas-mini .hc-name .ic,.hcard.datas-mini .hc-name .ic{width:24px;height:24px}
+.ng-mini{font-size:clamp(20px,3vw,28px)!important}
+
+/* o orçamento que o cliente abre */
+.ng-pub{max-width:720px}
+.ng-doc{display:flex;flex-direction:column;gap:14px}
+.ng-doc h1{margin:0;font-family:var(--font-display);font-variation-settings:"wdth" 90;font-weight:900;font-size:clamp(24px,4.4vw,32px);line-height:1.05}
+.ng-de{display:flex;align-items:center;gap:14px}
+.ng-de p{margin:2px 0 0;color:var(--ink-2)}
+.ng-de .av.m{border:2px solid var(--ink)}
+.ng-pra{margin:0;font-size:15px}
+.ng-tab{width:100%;border-collapse:collapse;font-size:15px}
+.ng-tab th{font-family:var(--font-mono);font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2);text-align:left;padding:6px 4px;border-bottom:2px solid var(--ink)}
+.ng-tab td{padding:10px 4px;border-bottom:1.5px solid var(--line);vertical-align:top}
+.ng-tab .r{text-align:right}
+.ng-tab td small{display:block;font-size:12px;color:var(--muted)}
+.ng-tab tfoot td{border-bottom:0}
+.ng-tt td{font-weight:900;font-size:18px;border-top:2.5px solid var(--ink)}
+.ng-cond{display:flex;flex-wrap:wrap;gap:10px}
+.ng-cond span{display:flex;flex-direction:column;padding:8px 12px;border-radius:12px;background:var(--paper-2)}
+.ng-cond small{font-size:11.5px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.ng-obs{margin:0;background:var(--paper-2);border-radius:12px;padding:10px 12px}
+.ng-st{margin:0;font-weight:800;padding:10px 12px;border-radius:12px;border:2px solid var(--ink);background:var(--yellow-tint)}
+.ng-st.st-pago{background:var(--yellow)}
+.ng-pix{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;border:2px dashed var(--ink);border-radius:14px;padding:10px 12px}
+.ng-pix code{font-family:var(--font-mono);font-size:14px;word-break:break-all;flex:1;min-width:160px}
+
+/* Grana de quem vende */
+.g-lucro{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.g-lucro .hl-box{grid-column:1/-1}
+.g-lucro > div{padding:10px 12px;border-radius:16px;background:var(--paper-2);min-width:0}
+.g-lucro span{display:block;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.g-lucro b{display:block;font-family:var(--font-display);font-style:italic;font-weight:900;font-size:clamp(17px,2.2vw,22px);white-space:nowrap}
+.g-lucro .hl-box{background:var(--yellow);border:2.5px solid var(--ink)}
+.g-marcas .nm small{font-size:11px;font-weight:800;color:var(--ink-2);text-transform:uppercase;letter-spacing:.05em}
+.g-mei{display:flex;flex-direction:column;gap:8px}
+.g-mei-top{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.g-mei-top b{font-family:var(--font-display);font-style:italic;font-weight:900;font-size:26px}
+.g-mei-top small{color:var(--ink-2);font-weight:700}
+.g-mei .note,.g-mei .fine{margin:0}
+.g-neg{display:flex;flex-direction:column;gap:12px}
+.g-lanc select.g-cat{font-size:13px;min-height:36px;padding:4px 8px}
+.g-lanc select.g-cat.palpite{color:var(--ink-2);border-style:dashed}
+
+/* Refs */
+.subnav{display:flex;gap:6px;flex-wrap:wrap;width:min(1000px,100%);margin:0 auto;padding:0 var(--gut)}
+.subnav a{font-weight:800;font-size:14px;text-decoration:none;color:var(--ink);background:var(--paper);border:2px solid var(--ink);border-radius:999px;padding:6px 14px;box-shadow:2px 2px 0 var(--ink)}
+.subnav a[aria-current="page"]{background:var(--yellow);box-shadow:2px 2px 0 var(--pink)}
+.rf-datas{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));gap:14px}
+.rf-data{display:grid;grid-template-columns:auto minmax(0,1fr);gap:12px;background:var(--paper);border:2.5px solid var(--ink);border-radius:18px;padding:14px;box-shadow:4px 4px 0 var(--ink)}
+.rf-data.agora{background:var(--yellow-tint);box-shadow:4px 4px 0 var(--pink)}
+.rf-dt{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:66px;padding:8px 6px;border-radius:12px;background:var(--ink);color:#fff;text-align:center;align-self:start}
+.rf-dt b{font-family:var(--font-display);font-variation-settings:"wdth" 80;font-weight:900;font-size:22px;color:var(--yellow)}
+.rf-dt span{font-size:11.5px;font-weight:700;line-height:1.2}
+.rf-dx{display:flex;flex-direction:column;gap:6px;min-width:0}
+.rf-dx h3{margin:0;font-size:17px}
+.rf-dx h3 small{font-family:var(--font-mono);font-size:10.5px;background:var(--ink);color:var(--yellow);padding:1px 6px;border-radius:4px;vertical-align:middle}
+.rf-dx p{margin:0;font-size:14px}
+.rf .hz-btn,.rf-av .hz-btn,.mu-pro .hz-btn{--hz-card:var(--paper);--hz-line:var(--ink);--hz-ink:var(--ink);--hz-amber:var(--yellow);border-width:2px}
+.rf .hz-btn.pri{box-shadow:2px 2px 0 var(--ink)}
+.rf-preco{display:flex;flex-direction:column;gap:10px}
+.rf-pl{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.rf-pl li{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 14px;padding:8px 0;border-bottom:1.5px solid var(--line)}
+.rf-pl b{flex:1 1 160px}
+.rf-pl small{color:var(--muted)}
+.rf-pos{font-size:12.5px;font-weight:800;border:1.5px solid var(--ink);border-radius:999px;padding:1px 9px;background:var(--paper-2)}
+.rf-pos.baixo{background:var(--yellow)}
+.rf-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,260px),1fr));gap:14px}
+.rf-ref{position:relative;display:flex;flex-direction:column;background:var(--paper);border:2.5px solid var(--ink);border-radius:18px;overflow:hidden;box-shadow:4px 4px 0 var(--ink)}
+.rf-ref img{width:100%;aspect-ratio:4/3;object-fit:cover;border-bottom:2.5px solid var(--ink)}
+.rf-ic{display:grid;place-items:center;height:80px;background:var(--yellow-tint);border-bottom:2.5px solid var(--ink)}
+.rf-ic .ic{width:30px;height:30px}
+.rf-rt{display:flex;flex-direction:column;gap:6px;padding:12px 14px 14px}
+.rf-rt a{font-size:13px;font-weight:800;color:var(--ink-2)}
+.rf-rt p{margin:0;font-size:14px}
+.rf-tags{display:flex;flex-wrap:wrap;gap:4px}
+.rf-pr{font-weight:800}
+.rf-ed{position:absolute;top:8px;right:8px;background:var(--paper)!important;border:2px solid var(--ink)!important;border-radius:50%}
+.rf-vazio{display:flex;flex-direction:column;gap:10px;align-items:flex-start}
+.rf-vazio p{margin:0}
+.rf-imgrow{display:flex;align-items:center;gap:12px}
+.rf-imgrow img{width:72px;height:72px;object-fit:cover;border-radius:12px;border:2px solid var(--ink)}
+.rf-cls{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;max-height:46vh;overflow:auto}
+.rf-cls li{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1.5px solid var(--line)}
+.rf-cls li span{display:flex;flex-direction:column;min-width:0}
+.rf-cls small{color:var(--muted);font-size:12.5px}
+.rf-cls .hz-btn.feito{background:var(--yellow)}
+.hcard.datas-mini{background:var(--pink-tint)}
+
+/* Achar quem faz (Mural) */
+.mu-pros{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,280px),1fr));gap:16px;margin-bottom:12px}
+.mu-pros > .mu-vazio,.mu-pros > .note{grid-column:1/-1}
+.mu-pro{display:flex;flex-direction:column;gap:10px;background:var(--paper);border:2.5px solid var(--ink);border-radius:18px;padding:14px;box-shadow:4px 4px 0 var(--ink)}
+.mu-pro .mu-faz{margin:0;font-weight:800;font-size:15px}
+.mu-pro .mu-pq .av.m{width:52px;height:52px;font-size:20px}
+.mu-pro .hz-row-acts{margin-top:auto}
+
+/* v3.10 · sinal pra reservar */
+.ng-v small{display:block;font-family:var(--font-body,inherit);font-style:normal;font-weight:700;font-size:12px;color:var(--ink-2);text-align:right}
+.ng-sinal{font-size:14px;padding:5px 10px;border-radius:10px;background:var(--yellow-tint);border:1.5px dashed var(--ink);align-self:flex-start}
+.ng-sinal.ok{background:var(--paper-2);border:1.5px solid var(--line)}
+.ng-sn-chips{display:flex;gap:6px;margin-top:6px}
+.ng-sn-chips .chip{cursor:pointer;font:inherit;font-size:13px;font-weight:800;color:var(--ink);background:var(--paper);border:2px solid var(--ink)}
+.ng-tot-sn{font-size:14px}
+.ng-parte{margin-bottom:4px}
+.ng-sn-tr td{border-top:1.5px dashed var(--ink)}
+.ng-sn-tr .tag{font-size:11px;margin-left:4px}
+
+/* v3.10 · foto no catálogo e na vitrine */
+.ct-th{display:block;width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:12px;border:2px solid var(--ink);margin-bottom:6px;background:var(--paper-2)}
+.ct-foto{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.ct-foto img{width:112px;height:112px;object-fit:cover;border-radius:12px;border:2.5px solid var(--ink);box-shadow:3px 3px 0 var(--ink)}
+.ct-foto-acts{display:flex;flex-direction:column;gap:6px}
+.ct-foto-add{display:flex;align-items:center;gap:12px;width:100%;text-align:left;font:inherit;color:var(--ink);cursor:pointer;background:var(--paper-2);border:2px dashed var(--ink);border-radius:14px;padding:12px 14px}
+.ct-foto-add .ic{width:28px;height:28px;flex:none}
+.ct-foto-add span{display:flex;flex-direction:column;font-weight:800}
+.ct-foto-add small{font-weight:600;color:var(--ink-2)}
+.ct-foto.subindo{opacity:.55;pointer-events:none}
+.pf-it.com-foto{overflow:hidden}
+.pf-foto{display:block;align-self:stretch;width:auto;max-width:none;margin:-14px -14px 4px;aspect-ratio:4/3;object-fit:cover;border-radius:15px 15px 0 0;border-bottom:2.5px solid var(--ink);background:var(--paper-2)}
+.orc-it.com-foto{display:grid;grid-template-columns:44px auto;column-gap:10px;align-items:center}
+.orc-it.com-foto img{grid-row:span 2;width:44px;height:44px;object-fit:cover;border-radius:8px;border:1.5px solid var(--ink)}
+
+/* v3.10 · referência no pedido de orçamento */
+.orc-fotos-f .hint{margin:0 0 6px}
+.orc-fotos{display:flex;flex-wrap:wrap;gap:12px}
+.orc-ft{position:relative}
+.orc-ft img{display:block;width:96px;height:96px;object-fit:cover;border-radius:12px;border:2.5px solid var(--ink)}
+.orc-ft .cbtn{position:absolute;top:-10px;right:-10px;width:32px;height:32px;min-height:0;border-radius:50%;background:var(--paper);border:2px solid var(--ink);padding:0}
+.orc-ft-add{width:96px;height:96px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font:inherit;font-size:13px;font-weight:800;color:var(--ink);background:var(--paper-2);border:2px dashed var(--ink);border-radius:12px;cursor:pointer}
+.orc-ft-add .ic{width:26px;height:26px}
+.orc-ft-add.subindo{opacity:.55}
+
+/* v3.10 · a referência dentro da ficha do Hórus */
+.hz-fotos{display:flex;flex-direction:column;gap:8px;padding:10px 12px;border-radius:14px;background:var(--yellow-tint);border:2px solid var(--ink)}
+.hz-fotos[hidden]{display:none}
+.hz-fotos p{margin:0}
+.hz-fotos-l{display:flex;flex-wrap:wrap;gap:10px}
+.hz-fotos figure{margin:0;display:flex;flex-direction:column;align-items:center;gap:2px}
+.hz-ft{border:0;padding:0;background:none;cursor:zoom-in}
+.hz-ft img{display:block;width:88px;height:88px;object-fit:cover;border-radius:10px;border:2px solid var(--ink)}
+.hz-fotos figure.grande{flex-basis:100%}
+.hz-fotos figure.grande .hz-ft{cursor:zoom-out;width:100%}
+.hz-fotos figure.grande img{width:100%;height:auto;max-height:70vh;object-fit:contain;background:var(--paper)}
+
+/* dinheiro nunca quebra no meio */
+.num{white-space:nowrap}
+
+/* v3.24 · Robô na Binance (Corre+) */
+.g-robo{border-color:var(--ink);background:linear-gradient(135deg,#FFF9C7,#fff 55%)}
+.g-robo-h{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px}
+.g-robo-h .ch{margin:0}
+.g-robo .tag.plus{background:var(--ink);color:var(--yellow)}
+.g-robo-l{margin:8px 0 12px;padding-left:18px;color:var(--ink-2);font-size:14px;line-height:1.5}
+.g-robo-l li{margin:2px 0}
