@@ -1,0 +1,9 @@
+# Dependências e saídas geradas (o zip pro Netlify e os logs dos testes)
+node_modules/
+saida/
+test/saida/
+*.map
+
+# Config local com chaves de produção nunca entra aqui (só as públicas, e mesmo assim no site/config.js)
+.env
+.env.*
