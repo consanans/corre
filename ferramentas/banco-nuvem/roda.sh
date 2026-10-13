@@ -1,18 +1,47 @@
 #!/bin/sh
 # Banco de teste pra sessão do Claude na nuvem (o Thales não precisa instalar nada).
-# Sobe um Postgres 16 descartável, põe o Supabase de mentira, roda cada delta 2x (tem que aguentar) e as checagens.
-# Uso: sh ferramentas/banco-nuvem/roda.sh   → cada linha "ok:" passou; qualquer "FALHOU" ou erro para tudo.
+# Sobe um Postgres 16 descartável, põe o Supabase de mentira e a semente (o que já existia antes dos deltas), roda cada
+# delta 2x (tem que aguentar) e as checagens. Depois, a virada da v3.43 com o app no meio (virada343.sh).
+# Uso: sh ferramentas/banco-nuvem/roda.sh   → cada linha "ok:" passou; qualquer "FALHOU" ou erro para tudo e diz onde.
+# Pasta e porta: /var/tmp/pgcorre e 54329. Duas rodadas ao mesmo tempo: a outra escolhe as dela
+# (CORRE_PG_DIR=/var/tmp/pgoutra CORRE_PG_PORTA=54330 sh ...). Na mesma pasta, a segunda espera a primeira acabar.
 set -e
 AQUI=$(cd "$(dirname "$0")" && pwd); RAIZ=$(cd "$AQUI/../.." && pwd)
-B=/usr/lib/postgresql/16/bin; D=/var/tmp/pgcorre
+B=/usr/lib/postgresql/16/bin; D=${CORRE_PG_DIR:-/var/tmp/pgcorre}; PORTA=${CORRE_PG_PORTA:-54329}
+exec 9>"$D.trava"; flock 9
+P="psql -X -q -h $D -p $PORTA -U postgres -d postgres -v ON_ERROR_STOP=1 -t"
 su postgres -c "$B/pg_ctl -D $D/data stop -m fast" >/dev/null 2>&1 || true
 rm -rf $D; mkdir -p $D; chown postgres $D
-su postgres -c "$B/initdb -D $D/data -A trust >/dev/null && $B/pg_ctl -D $D/data -o '-p 54329 -k $D' -l $D/log -w start >/dev/null"
-P="psql -X -q -h $D -p 54329 -U postgres -d postgres -v ON_ERROR_STOP=1 -t"
+# (o servidor não herda a trava: ele segue de pé depois da rodada, e a próxima ficaria esperando por ela pra sempre)
+su postgres -c "$B/initdb -D $D/data -A trust >/dev/null && $B/pg_ctl -D $D/data -o '-p $PORTA -k $D' -l $D/log -w start >/dev/null" 9>&-
+falha(){ echo "FALHOU: $*" | tee -a $D/saida; echo "deu FALHOU ou erro (acima)"; exit 1; }
+# um delta: os avisos (NOTICE) ficam de fora, mas um erro aparece e para tudo, e o "delta vX ok" do fim tem que sair
+delta(){
+  PGOPTIONS='-c client_min_messages=warning' $P -f "$RAIZ/supabase/$1" > $D/delta.saida 2>&1 || { cat $D/delta.saida; falha "o $1 deu erro"; }
+  grep -q "$2" $D/delta.saida || { cat $D/delta.saida; falha "o $1 não disse \"$2\""; }
+  echo "$2"
+}
+# as checagens: mostra cada "ok:", "FALHOU" ou erro do Postgres (um erro no meio de um teste também conta como falha) e
+# confere quantos "ok:" saíram, porque uma checagem que some sem dizer nada também é falha. Checagem nova: a conta muda aqui.
+testa(){
+  $P -f "$AQUI/$1" 2>&1 | sed -n 's/.*\(ok:.*\|FALHOU.*\|ERROR.*\)/\1/p' > $D/teste.saida
+  tee -a $D/saida < $D/teste.saida
+  n=$(grep -c '^ok:' $D/teste.saida || true)
+  [ "$n" = "$2" ] || falha "o $1 deu $n \"ok:\" e eram $2"
+}
 $P -f "$AQUI/supabase-de-mentira.sql"
-$P -f "$RAIZ/supabase/delta-v340.sql" 2>/dev/null
-$P -f "$RAIZ/supabase/delta-v340.sql" 2>/dev/null
-$P -f "$AQUI/teste340.sql" 2>&1 | sed -n 's/.*\(ok:.*\|FALHOU.*\)/\1/p'
-$P -f "$RAIZ/supabase/delta-v341.sql" 2>/dev/null
-$P -f "$RAIZ/supabase/delta-v341.sql" 2>/dev/null
-$P -f "$AQUI/teste341.sql" 2>&1 | sed -n 's/.*\(ok:.*\|FALHOU.*\)/\1/p'
+$P -f "$AQUI/semente.sql"
+delta delta-v340.sql 'delta v3.40 ok'
+delta delta-v340.sql 'delta v3.40 ok'
+testa teste340.sql 7
+delta delta-v341.sql 'delta v3.41 ok'
+delta delta-v341.sql 'delta v3.41 ok'
+testa teste341.sql 7
+# a foto de antes da v3.43 (igual à produção hoje), pra virada começar dela
+psql -X -q -h $D -p $PORTA -U postgres -d template1 -c "create database antes343 template postgres"
+delta delta-v343.sql 'delta v3.43 ok'
+delta delta-v343.sql 'delta v3.43 ok'
+testa teste343.sql 38
+. "$AQUI/virada343.sh"
+if grep -q 'FALHOU\|ERROR' $D/saida; then echo "deu FALHOU ou erro (acima)"; exit 1; fi
+echo "tudo ok: $(grep -c '^ok:' $D/saida) checagens"
