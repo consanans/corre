@@ -125,7 +125,7 @@
   const temPersona = p => !!p && typeof p === 'object' && Object.keys(p).some(k => cheio(p[k]));
   const junta = (base, por) => {
     const o = Object.assign({}, base);
-    if(temPersona(por)) Object.keys(base).forEach(k => { if(k === 'arquetipo' || !cheio(por[k])) return; o[k] = Array.isArray(base[k]) ? (Array.isArray(por[k]) ? por[k] : String(por[k]).split('\n')).map(s => String(s).trim()).filter(Boolean) : String(por[k]).trim(); });
+    if(temPersona(por)) Object.keys(base).forEach(k => { if(k === 'arquetipo' || !cheio(por[k])) return; o[k] = Array.isArray(base[k]) ? (Array.isArray(por[k]) ? por[k] : String(por[k]).split('\n')).map(s => String(s).trim()).filter(Boolean).slice(0, 4) : String(por[k]).trim(); });
     return o;
   };
   H.personas = m => {
@@ -536,11 +536,11 @@
     return `<fieldset class="stz-f stz-persona"><legend>Pra quem: a buyer persona</legend>
         <p class="stz-nota">O cliente ideal da marca: uma pessoa inventada que resume quem compra. É retrato, não pesquisa. Apagou um campo? Volta o do Studio.</p>
         ${f('buyer', 'nome', 'Apelido', 0, 30)}${f('buyer', 'perfil', 'Quem é (idade em faixa, rotina, onde o dia cruza com a marca)', 3, 320)}
-        ${f('buyer', 'quer', 'O que procura (uma por linha)', 3)}${f('buyer', 'dores', 'O que incomoda hoje (uma por linha)', 3)}${f('buyer', 'onde', 'Onde encontra a marca (uma por linha)', 3)}
+        ${f('buyer', 'quer', 'O que procura (uma por linha, até 4)', 3)}${f('buyer', 'dores', 'O que incomoda hoje (uma por linha, até 4)', 3)}${f('buyer', 'onde', 'Onde encontra a marca (uma por linha, até 4)', 3)}
         ${f('buyer', 'decide', 'O que faz escolher e voltar', 2, 200)}${f('buyer', 'frase', 'Uma frase que essa pessoa diria', 2, 120)}</fieldset>
       <fieldset class="stz-f stz-persona"><legend>Se a marca fosse gente: a brand persona</legend>
         <p class="stz-nota">A marca como pessoa, no arquétipo ${esc(g.arquetipo || '')}: quem seria, como age, do que gosta, como trata o cliente.</p>
-        ${f('brand', 'retrato', 'Quem seria', 3, 320)}${f('brand', 'jeito', 'Como age (uma por linha)', 3)}${f('brand', 'gosta', 'Do que gosta (uma por linha)', 3)}
+        ${f('brand', 'retrato', 'Quem seria', 3, 320)}${f('brand', 'jeito', 'Como age (uma por linha, até 4)', 3)}${f('brand', 'gosta', 'Do que gosta (uma por linha, até 4)', 3)}
         ${f('brand', 'com_o_cliente', 'Como trata o cliente', 2, 200)}${f('brand', 'frase', 'Uma frase dela, em primeira pessoa', 2, 120)}</fieldset>`;
   }
   function muda(el, fim){
@@ -549,7 +549,7 @@
     if(el.dataset.p){ /* as personas (v3.41) */
       const [q, k] = el.dataset.p.split('.'), chave = q === 'brand' ? 'brand_persona' : 'buyer_persona', atual = H.personas(B.m)[q === 'brand' ? 'brand' : 'buyer'];
       if(!atual || !(k in atual) || k === 'arquetipo') return;
-      const nova = Object.assign({}, atual, { [k]: Array.isArray(atual[k]) ? el.value.split('\n').map(s => s.trim()).filter(Boolean) : el.value });
+      const nova = Object.assign({}, atual, { [k]: Array.isArray(atual[k]) ? el.value.split('\n').map(s => s.trim()).filter(Boolean).slice(0, 4) : el.value });
       delete nova.arquetipo;
       if(!B.m.voz || !B.m.voz.conceito) B.m.voz = Object.assign({}, H.voz(B.m), B.m.voz || {});
       B.m.voz[chave] = nova;

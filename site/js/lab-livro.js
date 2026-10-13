@@ -350,14 +350,14 @@
       ${dono ? `<section class="bb-sec bb-persona-b" id="bb-publico">${cab('publico', 'Pra quem', 'Buyer persona · o cliente ideal')}
         <div class="bb-2"><div class="bb-arq"><span class="bb-k">Cliente ideal</span><b>${esc(P.buyer.nome)}</b><p>${esc(P.buyer.perfil)}</p>${P.buyer.frase ? `<p class="bb-fala">“${esc(P.buyer.frase)}”</p>` : ''}</div>
           <div><p class="bb-k">O que procura</p><ul class="bb-lista">${li(P.buyer.quer)}</ul><p class="bb-k">O que incomoda hoje</p><ul class="bb-lista">${li(P.buyer.dores)}</ul></div></div>
-        <div class="bb-2"><div><p class="bb-k">Onde encontra a marca</p><ul class="bb-lista">${li(P.buyer.onde)}</ul></div><div><p class="bb-k">O que faz escolher e voltar</p><div class="bb-txt">${pars([P.buyer.decide])}</div></div></div>
+        <div class="bb-2"><div><p class="bb-k">Onde encontra a marca</p><ul class="bb-lista">${li(P.buyer.onde)}</ul></div><div><p class="bb-k">O que faz escolher e voltar</p><div class="bb-txt bb-colado">${pars([P.buyer.decide])}</div></div></div>
         <p class="bb-nota">Uma pessoa inventada que resume quem compra: é retrato pra guiar a comunicação, não pesquisa. ${ico('lock')} Só você vê esta parte: quem abre o link do brandbook não vê o cliente ideal.</p>
       </section>` : ''}
       <section class="bb-sec bb-escuro bb-persona-g" id="bb-persona">${cab('persona', 'Se a marca fosse gente', 'Brand persona · ' + (P.brand.arquetipo || ''))}
         ${P.brand.frase ? `<blockquote class="bb-quote">${esc(P.brand.frase)}</blockquote>` : ''}
         <div class="bb-txt">${pars([P.brand.retrato])}</div>
         <div class="bb-2"><div><p class="bb-k">Como age</p><ul class="bb-lista">${li(P.brand.jeito)}</ul></div><div><p class="bb-k">Do que gosta</p><ul class="bb-lista">${li(P.brand.gosta)}</ul></div></div>
-        <p class="bb-k">Com ${esc(dono && P.buyer.nome ? P.buyer.nome : 'o cliente')}</p><div class="bb-txt">${pars([P.brand.com_o_cliente])}</div>
+        <p class="bb-k bb-com">Com ${esc(dono && P.buyer.nome ? P.buyer.nome : 'o cliente')}</p><div class="bb-txt bb-colado">${pars([P.brand.com_o_cliente])}</div>
       </section>
 
       <section class="bb-sec" id="bb-logo">${cab('logo', 'Logo')}
@@ -589,9 +589,14 @@
       els.push(...rodape(cor, n)); pgs.push(pagina(els, c.paper)); }
     /* v3.41 · pra quem (buyer persona) e se a marca fosse gente (brand persona). Todo bloco tem teto de linhas e nada
        passa do rodapé: texto da IA ou da pessoa pode vir comprido, e a letra da marca pode ser larga */
-    const P = H.personas(m), bloco = (els, tit, l, x, y, larg, cor, o) => { o = o || {}; els.push(tx(ui, String(tit).toUpperCase(), x, y, 10.5, cor, { track: 0.2 })); let yy = y + 34;
-      (l || []).forEach(s => { if(!String(s || '').trim() || yy > (o.teto || PH - 110)) return; const p = par(fs.texto, String(s), x, yy, o.tam || 12.5, larg, cor, { max: o.max || 2 }); els.push(p.el); yy += p.h + (o.gap || 12); });
+    const P = H.personas(m), teto = PH - 110, bloco = (els, tit, l, x, y, larg, cor, o) => { o = o || {};
+      /* sem lugar pro título e ao menos uma linha embaixo, o bloco não entra (título sozinho no pé da página, não) */
+      const itens = (l || []).filter(s => String(s || '').trim()).slice(0, 4); if(!itens.length || y + 34 > teto) return y;
+      els.push(tx(ui, String(tit).toUpperCase(), x, y, 10.5, cor, { track: 0.2 })); let yy = y + 34;
+      itens.forEach(s => { if(yy > teto) return; const p = par(fs.texto, String(s), x, yy, o.tam || 12.5, larg, cor, { max: o.max || 2 }); els.push(p.el); yy += p.h + (o.gap || 12); });
       return yy + 18; };
+    /* a frase grande cabe inteira: o corpo desce até caber em 4 linhas (letra larga quebrava e cortava com reticências) */
+    const encaixaPar = (f, s, larg, tam, max, piso) => { let t = tam; while(t > (piso || 16) && M.paragrafo(f, s, { tam: t, larg, entre: t * 1.43 }).linhas > max) t -= 2; return t; };
     { const cor = c.ink, els = rot(String(++n).padStart(2, '0'), 'Pra quem', cor), b = P.buyer, nome = String(b.nome || ''), tam = encaixaTam(fs.display, nome || 'x', 500, 56);
       els.push(tx(ui, 'BUYER PERSONA · O CLIENTE IDEAL', 70, 170, 11, cor, { track: 0.24 }));
       if(nome) els.push(tx(fs.display, nome, 70, 196 + tam, tam, M.contraste(c.p, c.paper) >= 3 ? c.p : cor));
@@ -602,9 +607,9 @@
       els.push(...rodape(cor, n)); pgs.push(pagina(els, c.paper)); }
     { const cor = c.paper, els = rot(String(++n).padStart(2, '0'), 'Se a marca fosse gente', cor), g = P.brand;
       els.push(tx(ui, ('Brand persona · ' + (g.arquetipo || '')).toUpperCase(), 70, 170, 11, cor, { track: 0.24 }));
-      let y = 206; if(g.frase){ const p = par(fs.display, g.frase, 70, y, 28, 520, cor, { max: 4, entre: 40 }); els.push(p.el); y += p.h + 34; }
+      let y = 232; if(g.frase){ const tf = encaixaPar(fs.display, g.frase, 520, 28, 4); const p = par(fs.display, g.frase, 70, y, tf, 520, cor, { max: 4, entre: tf * 1.43 }); els.push(p.el); y += p.h + 34; }
       if(g.retrato){ const p = par(fs.texto, g.retrato, 70, y, 14, 520, cor, { max: 8 }); els.push(p.el); }
-      let yd = bloco(els, 'Como age', g.jeito, 640, 170, 490, cor); yd = bloco(els, 'Do que gosta', g.gosta, 640, yd, 490, cor, { max: 1 }); bloco(els, 'Com ' + (P.buyer.nome || 'o cliente'), [g.com_o_cliente], 640, yd, 490, cor, { max: 3 });
+      let yd = bloco(els, 'Como age', g.jeito, 640, 170, 490, cor); yd = bloco(els, 'Do que gosta', g.gosta, 640, yd, 490, cor, { max: 2 }); bloco(els, 'Com ' + (P.buyer.nome || 'o cliente'), [g.com_o_cliente], 640, yd, 490, cor, { max: 3 });
       els.push(...rodape(cor, n)); pgs.push(pagina(els, c.ink)); }
     /* 4. logo */
     { const cor = corSobre(vPri.fundo), els = rot(String(++n).padStart(2, '0'), 'Logo', cor);
