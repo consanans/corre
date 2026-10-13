@@ -146,7 +146,7 @@
     ST.el.innerHTML = `
       <section class="card st-top">
         <div class="st-h"><div><span class="mono">${ico('magia')} Studio</span><h1>${m ? `O mês da <span class="hl">${esc(m.marca)}</span>` : ST.com.length ? 'Programa o mês. <span class="hl">O Corre posta.</span>' : 'Escolhe a marca e programa o mês'}</h1>
-          <p class="note">Sobe as artes ou manda a IA fazer, escolhe os dias e pronto: cada post sai sozinho no Instagram, no dia e na hora.</p></div>
+          <p class="note">Sobe as artes ou manda a IA fazer, escolhe os dias e pronto: ${C.ig && !C.ig.aberto() && !(C.ig.conectadas() || []).length ? 'cada post entra na agenda, e na hora o Corre te lembra de postar (a postagem automática no Instagram chega em breve).' : 'cada post sai sozinho no Instagram, no dia e na hora.'}</p></div>
           ${ST.com.length ? `<div class="st-ctas"><button type="button" class="btn pri st-novo" data-act="lt-mes">${ico('magia')} Mês com IA</button><button type="button" class="btn st-sub" data-act="lt-subir">${ico('up')} Subir artes</button><button type="button" class="btn ghost st-um" data-act="sd-novo">${ico('plus')} Um post</button></div>` : ''}</div>
         ${ST.com.length || ST.sem.length ? `<div class="st-marcas" role="tablist" aria-label="Marcas">
           ${ST.com.length > 1 ? `<button type="button" role="tab" class="st-mk todas" data-act="sd-marca" data-id="todas" aria-selected="${ST.sel === 'todas'}"><span class="sd-todas" aria-hidden="true">${ST.com.slice(0, 3).map(x => `<i style="--c:${esc(x.cor || '#FFE800')}"></i>`).join('')}</span><span><b>Todas</b><small>${ST.com.length} marcas</small></span></button>` : ''}

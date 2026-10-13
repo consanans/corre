@@ -70,7 +70,11 @@ O app tem três modos (`core.js`): **de verdade** (config.js com `SUPABASE_URL` 
 - Comentários em português, no tom da casa: dizem o porquê.
 - Sem dependência nova no site (tudo roda no navegador, sem build de módulos). CDN só as que já estão no index.
 
-## Onde parou (v3.41, no ar em 13/10/2026)
+## Onde parou (v3.42, pronta em 13/10/2026)
+- **v3.42:** enquanto o app da Meta tá em teste, `IG_ABERTO: false` no `config.js` faz o Studio dizer que a postagem automática no Instagram "chega em breve" (linha, folha de Contas, "Postar em" e o texto da porta/Studio); o botão vira "Saber mais", com a saída "Sou testador do app: conectar". Quem já tem conta conectada segue direto. Quando a Meta aprovar e o app estiver Ao vivo: `IG_ABERTO: true` e subir o site.
+- **Conta conectada em produção:** @houzirec (13/10/2026), conexão guardada cifrada, vale até 12/12 (renova sozinha).
+
+## v3.41 (no ar em 13/10/2026)
 - **v3.41, o que entrou:** o estado do Instagram à vista (linha na porta do Studio e dentro dele, motivo da última tentativa guardado por login, "Conferir a ligação" com a acao `status` da função `instagram`) e as personas no brandbook do Studio Houzi ("Pra quem", a buyer persona, e "Se a marca fosse gente", a brand persona: HTML, PDF, apresentação, kit em `textos/voz-e-personas.txt` e edição na aba Textos). Reserva sem IA em `M.personas` (lab-motor.js, tabelas PB por nicho e PM por território); `H.personas` junta o que a IA ou a pessoa escreveu em `m.voz.buyer_persona` e `m.voz.brand_persona` (sem mudar banco). A função `imagem` (acao `marca`) pede as duas personas.
 - **Buyer persona só do dono:** a marca publicada é lida por qualquer um (inclusive anon), com a voz junto. Por isso a buyer persona escrita (IA ou dono) mora em `corre_houzi_privado` (delta-v341.sql, RLS só o dono); `H.salvar` tira ela da voz e grava lá, `H.lerPrivado` devolve pro dono. O brandbook só mostra "Pra quem" pro dono. Sem o delta, a bancada avisa e o resto da marca salva.
 - **Build na nuvem:** `node ferramentas/build-nuvem/monta.mjs 3.41` refaz `corre.min.js` e `houzi.min.js` byte a byte igual ao build de verdade (esbuild 0.25.10) e põe o CSS novo (trechos `/* v3.41 ·` no fim de `site/css/*.css`) no fim do `corre.min.css`. Sem número, só confere.

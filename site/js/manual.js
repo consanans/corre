@@ -6,10 +6,11 @@
   'use strict';
   const C = window.Corre, { esc, ico } = C;
   /* sobe esse número a cada atualização: quem já viu recebe de novo, abrindo nas novidades */
-  const VERSAO = '3.41';
+  const VERSAO = '3.42';
   const K = 'corre-manual-visto';
 
   const NOVIDADES = [
+    ['ig', 'Instagram: a postagem automática chega em breve', 'O Corre já publica sozinho no Instagram, e a Meta tá liberando isso pra todo mundo. Até chegar na tua conta, o post programado vira lembrete: na hora marcada, o Corre avisa, copia a legenda e abre a arte pra você postar à mão. O Studio mostra quando liberar.'],
     ['houzi', 'Studio Houzi: o brandbook ganhou as personas', 'Duas partes novas logo depois do Conceito. Pra quem: a buyer persona, o cliente ideal da marca (quem é, o que procura, o que incomoda, onde encontra a marca, o que faz escolher e voltar, e uma frase dita por essa pessoa). Se a marca fosse gente: a brand persona, no arquétipo da marca (quem seria, como age, do que gosta, como trata o cliente). O Studio monta as duas das tuas escolhas; o Escrever com a IA escreve por cima, e dá pra mexer à mão em Textos. Vão também no PDF, na apresentação e no kit (em texto, pra copiar).'],
     ['ig', 'Instagram: dá pra ver se tá ligado', 'O Studio mostra sempre, no alto, o estado do Instagram: a conta conectada, a conexão vencida ou o motivo de não ter conectado (que fica guardado, não some com o aviso). Em Contas, o Conferir a ligação passa peça por peça: o ID do app no site, o ID e a chave secreta no Supabase, o cadeado das conexões, o endereço de volta e a conta. O que falta vem com o que fazer.'],
     ['ig', 'Instagram: cada post na conta certa', 'No jeito do mLabs: cada conta entra com o login dela, no próprio Instagram, e cada post diz em qual conta sai (o "Postar em" no editor, no lote e no post). O Corre nunca publica em conta que você não conectou: sem conta, o post vira lembrete pra postar à mão. A conexão fica cifrada no servidor, e dá pra desconectar quando quiser.'],

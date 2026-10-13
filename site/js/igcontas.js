@@ -38,6 +38,16 @@
   const foto = (c, cls) => `<span class="ig-av${cls ? ' ' + cls : ''}" data-l="${esc((((c && c.username) || '?')[0] || '?').toUpperCase())}" aria-hidden="true">${c && c.foto ? `<img src="${esc(c.foto)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">` : ''}</span>`;
   const chip = c => c ? `<span class="ig-chip${ok(c) ? '' : ' off'}">${foto(c)}<b>@${esc(c.username)}</b></span>` : '';
 
+  /* v3.42 · ENQUANTO A META NÃO LIBERA. Com o app da Meta em teste, só quem é testador conecta; o resto bate na tela da
+     Meta "função de desenvolvedor insuficiente". Com IG_ABERTO: false no config.js, o Corre avisa que chega em breve e
+     deixa o testador seguir. Sem a chave (ou true), é o caminho de sempre. */
+  const aberto = () => C.CFG.IG_ABERTO !== false;
+  function emBreve(o){
+    C.sheet(`<div class="form ig-contas"><div class="sheet-head"><h2>${ico('ig')} Instagram: em breve</h2><button type="button" class="cbtn plain" data-close aria-label="Fechar">${ico('x')}</button></div>
+      <p class="lt-lead">A postagem automática no Instagram tá em liberação pela Meta e chega em breve pra todo mundo.</p>
+      <p class="note">Até lá, o post programado vira lembrete: na hora marcada, o Corre avisa, copia a legenda e abre a arte pra você postar à mão. Quando liberar, é só conectar a conta e ele passa a sair sozinho.</p>
+      <div class="acts"><button type="button" class="btn" data-close>Beleza</button><button type="button" class="btn ghost" data-act="ig-conectar" data-testador="1"${o && o.rede ? ` data-rede="${esc(o.rede)}"` : ''}>Sou testador do app: conectar</button></div></div>`);
+  }
   /* ---------- conectar: vai pro login do Instagram ---------- */
   const ERRO = {
     sem_app: 'O login do Instagram ainda não foi ligado no Corre (falta o IG_APP_ID e o IG_APP_SECRET na função "instagram").',
@@ -52,6 +62,8 @@
   function conectar(o){
     o = o || {};
     if(!C.st.user){ C.toast('Entra no Corre primeiro.'); return; }
+    /* quem já conectou uma conta é testador: segue direto pra próxima */
+    if(!aberto() && !o.testador && !conectadas().length) return emBreve(o);
     if(C.DEMO) return demoSheet(o);
     if(!C.CFG.IG_APP_ID){ C.toast('O login do Instagram ainda não foi ligado no Corre (falta o IG_APP_ID no config.js).', 5600); return; }
     const s = aleatorio();
@@ -97,6 +109,7 @@
     const ainda = L.length ? ` Continua${L.length > 1 ? 'm' : ''} conectada${L.length > 1 ? 's' : ''}: ${L.slice(0, 3).map(c => '@' + esc(c.username)).join(', ')}${L.length > 3 ? '…' : ''}.` : '';
     if(falha) return `<span class="sd-auto-k erro">${ico('x')} ${L.length ? 'A outra conta não conectou' : 'Instagram não conectou'}</span><span><b>${esc(quando(falha.t))}:</b> ${esc(falha.msg || 'Não deu pra conectar.')}${ainda}</span><button type="button" class="btn sm pri" data-act="ig-conectar" data-rede="${rede}">${ico('ig')} Tentar de novo</button><button type="button" class="btn sm" data-act="ig-diag">${ico('check')} Conferir a ligação</button>`;
     if(!L.length && vencidas.length) return `<span class="sd-auto-k erro">${ico('x')} Conexão vencida</span><span>A conexão com ${vencidas.slice(0, 2).map(c => '@' + esc(c.username)).join(' e ')} não vale mais: os posts programados viram lembrete até você conectar de novo.</span><button type="button" class="btn sm pri" data-act="ig-conectar" data-trocar="1">${ico('ig')} Conectar de novo</button>${btn}`;
+    if(!L.length && !aberto()) return `<span class="sd-auto-k">${ico('ig')} Instagram: em breve</span><span>A postagem automática no Instagram tá em liberação pela Meta e chega em breve. Até lá, o post programado vira lembrete: na hora, o Corre avisa e você posta à mão.</span><button type="button" class="btn sm" data-act="ig-conectar" data-rede="${rede}">${ico('ig')} Saber mais</button>`;
     if(!L.length) return `<span class="sd-auto-k">${ico('ig')} Nenhuma conta conectada</span><span>Conecta o Instagram (login na conta da marca) e o que você programar sai sozinho. Sem conta, o post vira lembrete pra postar à mão.${C.DEMO ? ' <b>Demonstração:</b> a conta entra de mentira.' : ''}</span><button type="button" class="btn sm pri" data-act="ig-conectar" data-rede="${rede}">${ico('ig')} Conectar o Instagram</button><button type="button" class="btn sm" data-act="ig-diag">${ico('check')} Conferir a ligação</button>`;
     const chips = `<span class="sd-auto-k on">${L.slice(0, 3).map(c => chip(c)).join('')}${L.length > 3 ? `<b>+${L.length - 3}</b>` : ''}</span>`;
     /* uma vencida no meio das boas: os posts dela não saem, e a linha tem que dizer */
@@ -219,7 +232,7 @@
       ${falhou() ? quadroFalha(falhou()) : ''}
       ${L.length ? `<ul class="ig-lista">${L.map(c => `<li class="ig-l${ok(c) ? '' : ' off'}${c.id === novo ? ' novo' : ''}">${foto(c, 'g')}<div class="ig-l-tx"><b>@${esc(c.username)}</b>${c.nome ? `<small>${esc(c.nome)}</small>` : ''}<span class="ig-st">${esc(estado(c))}</span>${c.erro && !ok(c) ? `<span class="ig-st erro">${esc(c.erro)}</span>` : ''}</div>
         <div class="ig-l-a">${ok(c) ? '' : `<button type="button" class="btn sm pri" data-act="ig-conectar" data-trocar="1">Conectar de novo</button>`}<button type="button" class="btn sm ghost" data-act="ig-desconectar" data-id="${esc(c.id)}">Desconectar</button></div></li>`).join('')}</ul>`
-        : `<p class="note ig-vazio">Nenhuma conta conectada ainda. Sem conta, o post programado vira lembrete: na hora, você posta à mão.</p>`}
+        : `<p class="note ig-vazio">${aberto() ? 'Nenhuma conta conectada ainda. Sem conta, o post programado vira lembrete: na hora, você posta à mão.' : 'A postagem automática no Instagram tá em liberação pela Meta e chega em breve. Até lá, o post programado vira lembrete: na hora, você posta à mão.'}</p>`}
       <div class="acts"><button type="button" class="btn pri" data-act="ig-conectar">${ico('ig')} ${L.length ? 'Conectar outra conta' : 'Conectar o Instagram'}</button>${L.length && !C.DEMO ? `<button type="button" class="btn ghost" data-act="ig-conectar" data-trocar="1">Entrar com outro login</button>` : ''}${falhou() ? '' : `<button type="button" class="btn ghost" data-act="ig-diag">${ico('check')} Conferir a ligação</button>`}</div>
       <div class="ig-diag-w" id="ig-diag" aria-live="polite" hidden></div>
       <p class="fine">Precisa ser conta Profissional (Comercial ou Criador de conteúdo). O Instagram abre e pede o login: entra na conta da marca e deixa a permissão de publicar marcada. Se ele já entrar logado na conta errada, usa o "Entrar com outro login". Desconectar tira a conexão daqui na hora (e o que tava programado nela volta pra "postar à mão").</p></div>`);
@@ -240,7 +253,8 @@
     const opts = L.map(c => `<option value="${esc(c.id)}"${c.id === sel ? ' selected' : ''}>@${esc(c.username)}${c.nome ? ' · ' + esc(c.nome) : ''}</option>`).join('')
       + (atual && !ok(atual) ? `<option value="${esc(atual.id)}" selected disabled>@${esc(atual.username)} (conexão vencida)</option>` : '')
       + `<option value=""${!sel ? ' selected' : ''}>Ninguém: eu posto à mão (o Corre me lembra)</option>`;
-    const dica = !L.length ? `Nenhuma conta conectada: o post vira lembrete. <button type="button" class="lnk" data-act="ig-conectar">Conectar o Instagram</button> (login na conta) pra ele sair sozinho.`
+    const dica = !L.length && !aberto() ? `A postagem automática no Instagram chega em breve. Até lá, o post vira lembrete pra postar à mão.`
+      : !L.length ? `Nenhuma conta conectada: o post vira lembrete. <button type="button" class="lnk" data-act="ig-conectar">Conectar o Instagram</button> (login na conta) pra ele sair sozinho.`
       : !sel ? `Escolhe a conta${rede && !temMarca ? ` (a @${esc(rede)} ainda não tá conectada: <button type="button" class="lnk" data-act="ig-conectar" data-rede="${esc(rede)}">conectar</button>)` : ''}. Sem conta, não sai sozinho.`
       : `Sai sozinho nessa conta, no dia e na hora. <button type="button" class="lnk" data-act="ig-contas">Contas</button>`;
     return `<div class="fld ig-sel"><label for="${esc(id)}">${ico('ig')} Postar em</label><select class="inp" id="${esc(id)}" data-ig-sel>${opts}</select><span class="hint">${dica}</span></div>`;
@@ -249,11 +263,11 @@
 
   Object.assign(C.acts, {
     'ig-contas': () => sheet(),
-    'ig-conectar': el => conectar({ trocar: !!(el && el.dataset && el.dataset.trocar), rede: el && el.dataset && el.dataset.rede }),
+    'ig-conectar': el => conectar({ trocar: !!(el && el.dataset && el.dataset.trocar), rede: el && el.dataset && el.dataset.rede, testador: !!(el && el.dataset && el.dataset.testador) }),
     'ig-desconectar': el => desconectar(el),
     'ig-demo-ok': () => demoOk(),
     'ig-diag': () => diag()
   });
 
-  C.ig = { carrega, contas, conectadas, porId, daMarca, ok, foto, chip, conectar, volta, sheet, seletor, lido, msgErro, ultima, falhou, quando, quadroFalha, diagnostico, linha, linhas, onMuda: f => { if(typeof f === 'function' && !IG.onMuda.includes(f)) IG.onMuda.push(f); }, esquece: () => { IG.lista = null; IG.em = 0; } };
+  C.ig = { carrega, contas, conectadas, porId, daMarca, ok, foto, chip, conectar, volta, sheet, seletor, lido, msgErro, ultima, falhou, quando, quadroFalha, diagnostico, linha, linhas, aberto, onMuda: f => { if(typeof f === 'function' && !IG.onMuda.includes(f)) IG.onMuda.push(f); }, esquece: () => { IG.lista = null; IG.em = 0; } };
 })();
