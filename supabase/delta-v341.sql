@@ -21,4 +21,12 @@ create policy "houzi privado: só o dono" on public.corre_houzi_privado for all 
   using (dono = auth.uid())
   with check (dono = auth.uid() and exists (select 1 from public.corre_houzi_marcas m where m.id = marca and m.dono = auth.uid()));
 
+-- A CHAVE DE SERVIÇO DA FUNÇÃO "instagram". Neste projeto (criado em 2026) o Supabase não dá mais leitura nem escrita
+-- pro service_role nas tabelas novas. Sem isso, o login na Meta dava certo e a função não guardava a conta (erro 500), e
+-- o post publicado não passava de etapa no calendário. Só o que a função precisa: as contas e as conexões, e os posts
+-- (ler e mudar a etapa). Nada além disso, de propósito.
+grant select, insert, update, delete on public.corre_ig_contas to service_role;
+grant select, insert, update, delete on public.corre_ig_tokens to service_role;
+grant select, update on public.corre_posts to service_role;
+
 select 'delta v3.41 ok' as status;
