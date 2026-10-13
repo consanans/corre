@@ -66,9 +66,26 @@
     return l.concat(local.ler());
   };
   H.vitrine = async () => { try{ return (await C.api.q(TAB, { eq: { publica: true }, order: ['updated_at', false], limit: 12 })) || []; }catch(e){ return []; } };
+  /* v3.41 · A BUYER PERSONA É SÓ DO DONO. A marca publicada abre pra qualquer um, e a voz vai junto; então o cliente
+     ideal que a IA ou o dono escreveu não vai na voz: mora na corre_houzi_privado, que só o dono lê (delta-v341.sql).
+     Marca deste aparelho (local) guarda junto, que lá já é só dela. */
+  const PRIV = 'corre_houzi_privado', privSalvo = {};
   H.salvar = async (m, patch) => {
     if(ehLocal(m)){ const l = local.ler(), i = l.findIndex(x => x.id === m.id); if(i >= 0){ l[i] = Object.assign(l[i], patch, { updated_at: new Date().toISOString() }); local.salvar(l); } return; }
+    let bp;
+    if(patch.voz && Object.prototype.hasOwnProperty.call(patch.voz, 'buyer_persona')){ bp = patch.voz.buyer_persona || {}; const v = Object.assign({}, patch.voz); delete v.buyer_persona; patch = Object.assign({}, patch, { voz: v }); }
     await C.api.upd(TAB, { id: m.id }, patch);
+    /* só manda quando mudou (a bancada salva a cada mexida) */
+    const js = bp === undefined ? null : JSON.stringify(bp);
+    if(js === null || privSalvo[m.id] === js) return;
+    try{ await C.api.upsert(PRIV, [{ marca: m.id, dono: C.uid(), buyer: bp, updated_at: new Date().toISOString() }], 'marca'); privSalvo[m.id] = js; }
+    catch(e){ C.toast(semBanco(e) ? 'A buyer persona não salvou: falta rodar o delta-v341 no Supabase (o resto da marca salvou).' : H.erroTxt(e, 'A buyer persona não salvou agora.'), 5200); }
+  };
+  /* o dono abre a marca (bancada ou brandbook): a buyer persona dele volta pra voz, só na memória */
+  H.lerPrivado = async m => {
+    if(!m || ehLocal(m) || !C.uid() || m.dono !== C.uid()) return m;
+    try{ const r = await C.api.one(PRIV, { eq: { marca: m.id } }); if(r && r.buyer && temPersona(r.buyer)){ m.voz = Object.assign({}, m.voz || {}, { buyer_persona: r.buyer }); privSalvo[m.id] = JSON.stringify(r.buyer); } }catch(e){}
+    return m;
   };
   H.apagar = async m => { if(ehLocal(m)){ local.salvar(local.ler().filter(x => x.id !== m.id)); return; } await C.api.del(TAB, { id: m.id }); };
   H.numero = m => m && m.numero ? 'Nº ' + String(m.numero).padStart(4, '0') : 'Rascunho';
@@ -441,7 +458,7 @@
     document.title = 'Bancada · Studio Houzi';
     app.innerHTML = C.header('houzi') + `<main class="stz stz-banc"><p class="stz-carrega">Abrindo a bancada…</p></main>`;
     const rota = C.rota;
-    let m = null; try{ m = await H.ler(id); }catch(e){}
+    let m = null; try{ m = await H.ler(id); if(m) await H.lerPrivado(m); }catch(e){}
     if(rota !== C.rota) return;
     if(!m){ app.querySelector('.stz-banc').innerHTML = `<section class="stz-vazio"><h2>Essa marca não tá aqui.</h2><p>Pode ter sido apagada, ou é de outra pessoa.</p><a class="stz-btn" href="#/houzi">Voltar pro Studio</a></section>`; return; }
     if(!ehLocal(m) && m.dono !== C.uid()){ C.go('#/bb/' + m.slug); return; }

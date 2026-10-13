@@ -7,3 +7,6 @@ create table public.corre_posts (id uuid primary key default gen_random_uuid(), 
   ig_status text default '', ig_erro text default '', ig_tentativas int default 0, ig_quando timestamptz, updated_at timestamptz default now());
 create table public.corre_correal (dono uuid primary key, saldo int not null default 0);
 create function public.corre_correal_hoje(u uuid) returns int language sql stable as $$ select 0 $$;
+-- v3.41: a marca do Studio Houzi (só o que o delta v3.41 usa)
+create table public.corre_houzi_marcas (id uuid primary key default gen_random_uuid(), dono uuid references public.corre_perfis(id), publica boolean not null default false, voz jsonb not null default '{}');
+grant select on public.corre_houzi_marcas to anon, authenticated;

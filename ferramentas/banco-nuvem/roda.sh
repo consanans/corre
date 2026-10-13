@@ -1,6 +1,6 @@
 #!/bin/sh
 # Banco de teste pra sessão do Claude na nuvem (o Thales não precisa instalar nada).
-# Sobe um Postgres 16 descartável, põe o Supabase de mentira, roda o delta 2x (tem que aguentar) e as checagens.
+# Sobe um Postgres 16 descartável, põe o Supabase de mentira, roda cada delta 2x (tem que aguentar) e as checagens.
 # Uso: sh ferramentas/banco-nuvem/roda.sh   → cada linha "ok:" passou; qualquer "FALHOU" ou erro para tudo.
 set -e
 AQUI=$(cd "$(dirname "$0")" && pwd); RAIZ=$(cd "$AQUI/../.." && pwd)
@@ -13,3 +13,6 @@ $P -f "$AQUI/supabase-de-mentira.sql"
 $P -f "$RAIZ/supabase/delta-v340.sql" 2>/dev/null
 $P -f "$RAIZ/supabase/delta-v340.sql" 2>/dev/null
 $P -f "$AQUI/teste340.sql" 2>&1 | sed -n 's/.*\(ok:.*\|FALHOU.*\)/\1/p'
+$P -f "$RAIZ/supabase/delta-v341.sql" 2>/dev/null
+$P -f "$RAIZ/supabase/delta-v341.sql" 2>/dev/null
+$P -f "$AQUI/teste341.sql" 2>&1 | sed -n 's/.*\(ok:.*\|FALHOU.*\)/\1/p'

@@ -292,7 +292,7 @@
     document.title = 'Brandbook · Studio Houzi';
     document.body.classList.remove('com-lado'); document.body.classList.add('em-bb');
     app.innerHTML = `<main class="bb"><p class="stz-carrega">Abrindo o brandbook…</p></main>`;
-    let m = null; try{ m = await H.lerSlug(slug); }catch(e){}
+    let m = null; try{ m = await H.lerSlug(slug); if(m) await H.lerPrivado(m); }catch(e){}
     if(rota !== C.rota) return;
     if(!m || !m.spec || !m.spec.cores){
       app.innerHTML = `<main class="bb bb-vazio"><div><p class="stz-kick">Studio Houzi</p><h1>Esse brandbook não tá aqui.</h1><p>Ou o link mudou, ou o dono ainda não publicou a marca.</p><a class="stz-btn pri" href="#/houzi">Conhecer o Studio Houzi</a></div></main>`;
@@ -310,7 +310,8 @@
     const temNaming = !!(m.naming && m.naming.nome);
     /* v3.41: as personas (o cliente ideal e a marca como gente) vêm logo depois do conceito: a estratégia antes do desenho */
     const P = H.personas(m), li = l => (l || []).map(x => `<li>${esc(x)}</li>`).join('');
-    const secs = [['conceito', 'Conceito']].concat(temNaming ? [['naming', 'Naming']] : []).concat([['publico', 'Pra quem'], ['persona', 'Se a marca fosse gente'], ['logo', 'Logo'], ['construcao', 'Construção'], ['tipografia', 'Tipografia'], ['cores', 'Cores'], ['elementos', 'Elementos'], ['som', 'Som e movimento'], ['voz', 'Voz'], ['pratica', 'Na prática'], ['aplicacoes', 'Aplicações'], ['arquivos', 'Arquivos']]);
+    /* a buyer persona (Pra quem) só o dono vê: é estratégia, não vitrine. Quem abre o link vê a brand persona */
+    const secs = [['conceito', 'Conceito']].concat(temNaming ? [['naming', 'Naming']] : []).concat(dono ? [['publico', 'Pra quem']] : []).concat([['persona', 'Se a marca fosse gente'], ['logo', 'Logo'], ['construcao', 'Construção'], ['tipografia', 'Tipografia'], ['cores', 'Cores'], ['elementos', 'Elementos'], ['som', 'Som e movimento'], ['voz', 'Voz'], ['pratica', 'Na prática'], ['aplicacoes', 'Aplicações'], ['arquivos', 'Arquivos']]);
     const SOM = C.houziSom, mus = k.musica, PO = C.houziPost, cons = L.construcao(k), link = !H.ehLocal(m) && m.publica ? H.linkLivro(m) : '';
     const corNota = M.contraste(c.p, c.ink) >= 2 ? c.p : M.contraste(c.a, c.ink) >= 2 ? c.a : c.paper;
     const ROT_COR = { paper: 'Papel', p: 'Marca', s: 'Apoio', a: 'Acento', ink: 'Tinta' };
@@ -346,17 +347,17 @@
         <div class="bb-anat"><span>${esc(silabas(m.naming.nome))}</span><span>@${esc(hd)}</span><span>${esc(hd)}.com.br</span></div>
         <div class="bb-txt">${pars(tx.naming)}</div></section>` : ''}
 
-      <section class="bb-sec bb-persona-b" id="bb-publico">${cab('publico', 'Pra quem', 'Buyer persona · o cliente ideal')}
+      ${dono ? `<section class="bb-sec bb-persona-b" id="bb-publico">${cab('publico', 'Pra quem', 'Buyer persona · o cliente ideal')}
         <div class="bb-2"><div class="bb-arq"><span class="bb-k">Cliente ideal</span><b>${esc(P.buyer.nome)}</b><p>${esc(P.buyer.perfil)}</p>${P.buyer.frase ? `<p class="bb-fala">“${esc(P.buyer.frase)}”</p>` : ''}</div>
           <div><p class="bb-k">O que procura</p><ul class="bb-lista">${li(P.buyer.quer)}</ul><p class="bb-k">O que incomoda hoje</p><ul class="bb-lista">${li(P.buyer.dores)}</ul></div></div>
         <div class="bb-2"><div><p class="bb-k">Onde encontra a marca</p><ul class="bb-lista">${li(P.buyer.onde)}</ul></div><div><p class="bb-k">O que faz escolher e voltar</p><div class="bb-txt">${pars([P.buyer.decide])}</div></div></div>
-        <p class="bb-nota">Uma pessoa inventada que resume quem compra: é retrato pra guiar a comunicação, não pesquisa.</p>
-      </section>
+        <p class="bb-nota">Uma pessoa inventada que resume quem compra: é retrato pra guiar a comunicação, não pesquisa. ${ico('lock')} Só você vê esta parte: quem abre o link do brandbook não vê o cliente ideal.</p>
+      </section>` : ''}
       <section class="bb-sec bb-escuro bb-persona-g" id="bb-persona">${cab('persona', 'Se a marca fosse gente', 'Brand persona · ' + (P.brand.arquetipo || ''))}
         ${P.brand.frase ? `<blockquote class="bb-quote">${esc(P.brand.frase)}</blockquote>` : ''}
         <div class="bb-txt">${pars([P.brand.retrato])}</div>
         <div class="bb-2"><div><p class="bb-k">Como age</p><ul class="bb-lista">${li(P.brand.jeito)}</ul></div><div><p class="bb-k">Do que gosta</p><ul class="bb-lista">${li(P.brand.gosta)}</ul></div></div>
-        <p class="bb-k">Com ${esc(P.buyer.nome || 'o cliente')}</p><div class="bb-txt">${pars([P.brand.com_o_cliente])}</div>
+        <p class="bb-k">Com ${esc(dono && P.buyer.nome ? P.buyer.nome : 'o cliente')}</p><div class="bb-txt">${pars([P.brand.com_o_cliente])}</div>
       </section>
 
       <section class="bb-sec" id="bb-logo">${cab('logo', 'Logo')}
