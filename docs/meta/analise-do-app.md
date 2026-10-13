@@ -7,7 +7,7 @@
 ## Resumo: a ordem das coisas
 
 1. **Verificação da empresa.** É a parte que mais demora, então comece hoje.
-2. **Arrumar o Corre.** Política corrigida, ícone de 1024 e exclusão de dados mais completa: feito. Falta você passar o e-mail de contato e o nome legal + CNPJ; aí o Claude fecha o zip e você sobe. **Não suba o `saida/corre-site.zip` que está lá agora:** ele é de 13/10 às 02:13, antes da 3.42. Peça um zip novo.
+2. **Arrumar o Corre.** Política completa, ícone de 1024 e exclusão de dados mais completa: feito. Falta só você subir o zip novo da 3.42. **Não suba o `saida/corre-site.zip` que está lá agora:** ele é de 13/10 às 02:13, antes da 3.42. Peça um zip novo.
 3. **Configurações básicas e caso de uso do Instagram**, deixando só as 2 permissões.
 4. **Contas de teste.** Uma conta Google pro revisor e uma conta Instagram Profissional, que tem que ser **Testador do Instagram**.
 5. **Gravar o vídeo.** A gravação já faz as chamadas de teste que a Meta exige. Depois, espere até 2 dias pro botão de pedir ficar azul.
@@ -32,7 +32,7 @@
 A Meta exige a verificação de qualquer app com Acesso avançado, e só um **admin** do portfólio empresarial consegue fazer.
 
 **Separe antes:**
-- [ ] **Nome legal exato e CNPJ** [PREENCHER]. O mesmo nome vai no fim da política de privacidade ("Quem é responsável").
+- [x] **Nome e CNPJ:** Thales Malassise Luiz, CNPJ 28.415.207/0001-46 (já na política, em "Quem é responsável"). Na verificação, use a **razão social exatamente como está no Cartão CNPJ**: se for MEI, ela costuma começar com os números do CNPJ ("28.415.207 THALES MALASSISE LUIZ").
 - [ ] **Endereço e telefone** iguaizinhos aos do Cartão CNPJ.
 - [ ] **Site da empresa** em https. Pode ser o site da própria empresa; não precisa ser o do Corre.
 - [ ] **Documento** (só se a Meta pedir). Pro Brasil não achei a lista oficial; os terceiros citam os de baixo. **Conferir na tela da Meta.**
@@ -62,12 +62,10 @@ A Meta exige a verificação de qualquer app com Acesso avançado, e só um **ad
   - "Story do Instagram" agora diz "o Corre não posta story";
   - "Instagram como referência" deixa claro que essa consulta não usa a conta que a pessoa conectou.
 - [x] A seção `#instagram` reescrita: o que vai pro Instagram (arte, legenda, texto alternativo), o que volta e fica guardado (código e link do post), onde ficam os dados (Supabase, São Paulo) e por quanto tempo, como tirar o acesso, o que é o código de confirmação da Meta. Com um resumo em inglês pro revisor.
-- [x] **Função `instagram`:** o pedido de exclusão da Meta agora apaga também o código e o link dos posts publicados pela conta (antes ficavam no post do Studio). Testado. **O Deploy da função em produção precisa do teu ok.**
+- [x] **Função `instagram`:** o pedido de exclusão da Meta agora apaga também o código e o link dos posts publicados pela conta (antes ficavam no post do Studio). Testado e publicado (função `instagram` v15, 13/10/2026).
 - [x] **Ícone 1024x1024 (PNG):** `docs/meta/icone-1024.png`, feito do `favicon.svg`. Sem logo do Instagram.
 
-**Falta você me passar (sem isso a política fica com buraco e a Meta pode recusar):**
-- [ ] **E-mail de contato** pra política (aparece 2 vezes). Tem que ser um e-mail que você lê. Pode ser o mesmo do painel da Meta.
-- [ ] **Nome legal e CNPJ** do responsável, igual ao da verificação da empresa (1.2).
+- [x] **E-mail de contato e responsável na política:** `contato@houzirecords.com.br`; Thales Malassise Luiz, CNPJ 28.415.207/0001-46. **Confira se a caixa `contato@houzirecords.com.br` existe e recebe e-mail** (a Meta e quem usa o Corre escrevem pra ela).
 
 **Só se o painel pedir:**
 - [ ] **Termos de uso:** o Corre não tem essa página. Se a Meta pedir na hora de enviar ou de publicar, o Claude faz um `termos.html`. **Conferir na tela da Meta.**
@@ -81,7 +79,7 @@ Caminho: developers.facebook.com/apps > **Corre Instagram** > **Configurações 
 | URL da Política de Privacidade | `https://app.corresocial.com/privacidade.html` |
 | URL dos Termos de Serviço | só se pedir: `https://app.corresocial.com/termos.html` (depois de criado) |
 | Exclusão de dados do usuário | callback `https://jzjsqadcwphqzxfsxxyx.supabase.co/functions/v1/instagram?meta=apagar`. Se o campo só aceitar "URL de instruções", use `https://app.corresocial.com/privacidade.html#instagram` |
-| E-mail de contato | [PREENCHER] um e-mail que você lê. Os avisos da Análise chegam nele |
+| E-mail de contato | `contato@houzirecords.com.br` (o mesmo da política). Os avisos da Análise chegam nele |
 | Categoria | "Negócios e páginas" (Business and pages); se não tiver, "Utilidade e produtividade". **Conferir na tela da Meta** |
 | Domínios do app | `app.corresocial.com` |
 | Uso comercial | "Fornecer serviços para outras empresas", porque o Corre conecta contas que não são suas. **Conferir na tela da Meta** |
@@ -158,8 +156,8 @@ Caminho: **Casos de uso > Instagram (API com login do Instagram) > Personalizar*
 - [ ] Empresa verificada e ligada ao app.
 - [ ] Básico completo: ícone, privacidade, exclusão de dados, e-mail e categoria.
 - [ ] Só as 2 permissões no caso de uso.
-- [ ] Política de privacidade já no ar (zip novo da 3.42): sem os `[e-mail de contato]` e `[nome da empresa responsável e CNPJ]`, com a seção `#instagram` nova.
-- [ ] Função `instagram` com a exclusão nova publicada (Deploy).
+- [ ] Política de privacidade já no ar (zip novo da 3.42): abra `https://app.corresocial.com/privacidade.html#instagram` e veja o `contato@houzirecords.com.br` e o CNPJ no fim.
+- [x] Função `instagram` com a exclusão nova publicada (v15).
 - [ ] Conta Google e conta Instagram de teste funcionando; a do Instagram é **Testador do Instagram**, com o convite aceito.
 - [ ] **Estado limpo pro revisor, nesta ordem:**
   1. no Corre (conta Google de teste), **Studio > Contas > Desconectar** a conta de teste e clique de novo pra confirmar;
@@ -228,7 +226,7 @@ TEST CREDENTIALS
    Username: [PREENCHER]
    Password: [PREENCHER]
    Please use this account: until this review is approved the app is in development mode, so Instagram only lets accounts with a role on the app log in to it.
-If Google or Instagram asks for a verification code, please email [PREENCHER: e-mail de contato]. We monitor it throughout the review and reply quickly.
+If Google or Instagram asks for a verification code, please email contato@houzirecords.com.br. We monitor it throughout the review and reply quickly.
 
 LANGUAGE
 Corre's interface is in Brazilian Portuguese only. Button labels are given below in quotes, followed by the English meaning.
@@ -290,20 +288,20 @@ As perguntas aparecem depois da verificação. Responda só o que for verdade.
   - Ele é do "Puxar os últimos 9" (as referências) e não usa a conta conectada.
   - Se ele existir e for do próprio app "Corre Instagram", as imagens puxadas também são dados da Meta e vão pra OpenAI. Fale com o Claude antes de responder.
   - Se não existir, nada muda.
-- **Quem é o responsável pelos dados:** a empresa verificada [PREENCHER].
+- **Quem é o responsável pelos dados:** Thales Malassise Luiz, CNPJ 28.415.207/0001-46 (a empresa verificada).
 - **Pedidos de autoridades públicas nos últimos 12 meses:** [PREENCHER], provavelmente "Não".
 - **Políticas pra pedidos de autoridades:** marque só o que você faz de verdade.
 
 ### 2.7 Resumo em inglês pra política de privacidade
-Já está no fim da seção `#instagram` da política (13/10/2026). Quando o e-mail e o nome legal + CNPJ chegarem, o Claude troca os [ ].
+Já está no fim da seção `#instagram` da política (13/10/2026), com o e-mail preenchido.
 ```
 Instagram connection (English summary)
 When you connect an Instagram professional account in Corre's Studio, Instagram opens, you log in to the account and choose whether to allow Corre to read its basic profile (instagram_business_basic) and publish to it (instagram_business_content_publish).
 What Corre stores: the account IDs, username, name, profile picture URL, account type, connection status and expiry date (visible only to you); the access token, encrypted (AES-GCM) on our server in a table the app itself cannot read; and, for each post Corre publishes, the Instagram media ID and link, shown in your Studio.
 What it is used for: only to show which account is connected and to publish the posts you created and scheduled, to the account you chose. When publishing, Corre sends Instagram the post's image (by its URL), caption and alt text. Corre does not read your messages, followers, comments or insights, does not like, follow or comment, and does not sell this data or use it for ads.
 Where and for how long: in Corre's database on Supabase (servers in São Paulo, Brazil), while the account stays connected. The token is refreshed automatically before it expires (Meta grants 60 days).
-How to remove it: in Studio > "Contas", tap "Desconectar" (the account data and the token are deleted immediately). If you remove Corre in Instagram (Settings > Apps and websites), Meta notifies Corre and the token is deleted immediately. Data deletion requests made through Meta are fulfilled as soon as Corre receives them; the confirmation code Meta shows you identifies the request, and this section is its status page. Deleting your Corre profile also deletes connected accounts and tokens. You can also request deletion at [contact e-mail].
-Responsible: [legal name and CNPJ], Londrina, Brazil.
+How to remove it: in Studio > "Contas", tap "Desconectar" (the account data and the token are deleted immediately). If you remove Corre in Instagram (Settings > Apps and websites), Meta notifies Corre and the token is deleted immediately. Data deletion requests made through Meta are fulfilled as soon as Corre receives them; the confirmation code Meta shows you identifies the request, and this section is its status page. Deleting your Corre profile also deletes connected accounts and tokens. You can also request deletion at contato@houzirecords.com.br.
+Responsible: Thales Malassise Luiz, CNPJ 28.415.207/0001-46, Londrina, Brazil.
 ```
 
 ---
