@@ -142,7 +142,9 @@
       ${com.length ? `<div class="st-porta-l">${com.length > 1 ? `<button type="button" class="st-porta-mk todas" data-act="studio-entrar" data-id="todas"><span class="sd-todas" aria-hidden="true">${com.slice(0, 3).map(x => `<i style="--c:${esc(x.cor || '#FFE800')}"></i>`).join('')}</span><b>Todas as marcas</b><small>${com.length} marcas</small></button>` : ''}${com.map(m => `<button type="button" class="st-porta-mk" data-act="studio-entrar" data-id="${m.id}">${C.marcaLogo(m, 'l')}<b>${esc(m.marca)}</b><small>@${esc(m.rede)}</small></button>`).join('')}</div>`
         : `<p class="st-porta-v"><b>${sem.length ? 'Liga o Instagram de uma marca pra entrar.' : 'Põe a primeira marca que você trampa.'}</b> Com o @ da marca, o Studio puxa as últimas postagens dela como referência pra IA.</p>`}
       <div class="acts">${sem.slice(0, 3).map(m => `<button type="button" class="btn sm" data-act="mk-edit" data-id="${m.id}">${ico('ig')} Ligar o Insta da ${esc(m.marca)}</button>`).join('')}<button type="button" class="btn sm" data-act="mk-nova">${ico('plus')} Nova marca</button></div>
-    </section></main>`;
+    </section>${C.ig ? `<p class="sd-ig sd-auto st-porta-ig" id="st-porta-ig" data-ig-linha data-rede="${esc(com.length === 1 ? com[0].rede : '')}">${C.ig.linha()}</p>` : ''}</main>`;
+    /* v3.41: a porta também diz se o Instagram tá ligado (é aqui que a volta do login cai) */
+    if(C.ig) C.ig.carrega().then(() => C.ig.linhas(), () => {});
   }
 
   /* ---------- painel da marca ---------- */

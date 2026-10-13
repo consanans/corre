@@ -6,10 +6,11 @@
   'use strict';
   const C = window.Corre, { esc, ico } = C;
   /* sobe esse número a cada atualização: quem já viu recebe de novo, abrindo nas novidades */
-  const VERSAO = '3.40';
+  const VERSAO = '3.41';
   const K = 'corre-manual-visto';
 
   const NOVIDADES = [
+    ['ig', 'Instagram: dá pra ver se tá ligado', 'O Studio mostra sempre, no alto, o estado do Instagram: a conta conectada, a conexão vencida ou o motivo de não ter conectado (que fica guardado, não some com o aviso). Em Contas, o Conferir a ligação passa peça por peça: o ID do app no site, o ID e a chave secreta no Supabase, o cadeado das conexões, o endereço de volta e a conta. O que falta vem com o que fazer.'],
     ['ig', 'Instagram: cada post na conta certa', 'No jeito do mLabs: cada conta entra com o login dela, no próprio Instagram, e cada post diz em qual conta sai (o "Postar em" no editor, no lote e no post). O Corre nunca publica em conta que você não conectou: sem conta, o post vira lembrete pra postar à mão. A conexão fica cifrada no servidor, e dá pra desconectar quando quiser.'],
     ['verso', 'Correverso no celular: controle de videogame (e som)', 'Direcional embaixo à esquerda, Pular à direita e o botão de ação logo acima (Entrar, Sentar, Comer, Abrir…), na cidade e dentro das casas. No computador: setas ou W A S D, espaço pula, E ou Enter faz a ação, B buzina. E a cidade ganhou som: a musiquinha "Rua do Corre", passo (muda na calçada, na grama e na madeira do píer), pulo, carro passando, buzina ao longe e passarinho no verde. O botão de som troca entre música, só sons e mudo.'],
     ['carro', 'Garagem e avião no Correverso', 'Na Garagem você escolhe como anda: skate, patinete, a Magrela (bike), a Brisa 125 (scooter), a Corre 160, a Faísca 300 (naked), o Pé-Vermelho (hatch), o Palhano (SUV) e a Cafeeira (picape), na cor que quiser. De moto e de carro o botão vira buzina; de moto, vai de capacete. No Aeroporto de Londrina, o teco-teco do Corre cruza a cidade por cima e te solta de paraquedas onde você escolher, por 5 correais (o app pergunta antes).'],

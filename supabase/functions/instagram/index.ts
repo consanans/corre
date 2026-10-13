@@ -6,6 +6,7 @@
 //  3. acao "fila": o relógio do banco chama de 5 em 5 minutos. Publica os programados que venceram, cada um pela conta
 //     dele, e renova os tokens que vencem em menos de 10 dias (a Meta dá 60 dias e deixa renovar depois de 24 horas).
 //  4. acao "contas": as contas conectadas da pessoa (sem token).
+//     acao "status" (v3.41): o "Conferir a ligação" do app. Diz em sim/não o que falta (segredos, cofre, endereço de volta).
 //  5. referências (padrão): os últimos posts de um @ (Business Discovery). Só com o IG_TOKEN do Gerenciador (opcional).
 //  6. Meta: ?meta=desautorizou (a pessoa tirou o Corre no Instagram) e ?meta=apagar (pedido de exclusão de dados),
 //     com o signed_request conferido pelo segredo do app. Pra Meta conseguir chamar, a função fica sem "Verify JWT"
@@ -252,6 +253,20 @@ Deno.serve(async (req) => {
   const { data: u } = await sb.auth.getUser(jwt);
   const user = u && u.user;
   if (!user) return json({ erro: 'login' }, 401);
+
+  /* ---------- v3.41 · conferir a ligação: o que o login do Instagram precisa, só em sim/não ----------
+     Nunca devolve o valor (nem o tamanho) de um segredo. O app manda o IG_APP_ID dele (que é público) pra ver se bate. */
+  if (acao === 'status') {
+    const propria = env('IG_CHAVE');
+    let cofre = 'falta';
+    try { await chave(); cofre = propria ? 'proprio' : 'servico'; } catch (_) { cofre = propria ? 'curta' : 'falta'; }
+    const pedido = String(body?.app_id || '').trim().slice(0, 40);
+    const aceitos = [REDIRECT, ...env('IG_REDIRECTS').split(/[\s,]+/).filter(Boolean)];
+    return json({ diag: {
+      app_id: !!APP_ID, app_secret: !!APP_SECRET, mesmo_id: APP_ID && pedido ? APP_ID === pedido : null,
+      cofre, servico: !!admin, redirect: REDIRECT, redirect_ok: aceitos.includes(String(body?.redirect_uri || REDIRECT)),
+    } });
+  }
 
   /* ---------- conectar: a volta do login do Instagram ---------- */
   if (acao === 'conectar') {

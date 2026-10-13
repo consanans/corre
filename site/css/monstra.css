@@ -2476,3 +2476,32 @@ html.embed .msg-pg{height:calc(100dvh - 40px)}
 @media (max-width:640px){
   .cs-casa:not(.toque) .cs-porta{bottom:calc(126px + env(safe-area-inset-bottom,0px))}
 }
+
+/* v3.41 · O INSTAGRAM À VISTA
+   A linha do Studio diz sempre o estado da conexão; o motivo de não ter conectado fica guardado (não some com o aviso).
+   "Conferir a ligação" passa peça por peça. Nada de verde: o que tá certo é tinta, o que falta é rosa. */
+.sd-auto > .sd-auto-k.erro{border:2px solid var(--pink);border-style:solid;background:#FFE3EF;color:var(--ink)}
+.sd-auto > .sd-auto-k.erro .ic{color:var(--pink)}
+.ig-falha{margin:10px 0 4px;padding:12px 14px;border:2px solid var(--pink);border-radius:14px;background:#FFF1F7;display:grid;gap:6px}
+.ig-falha > b{display:flex;align-items:center;gap:7px;font-size:15px}
+.ig-falha > b .ic{width:18px;height:18px;color:var(--pink);flex:none}
+.ig-falha p{margin:0;font-size:14px;line-height:1.4;overflow-wrap:anywhere}
+.ig-falha-a{display:flex;flex-wrap:wrap;gap:6px;margin-top:2px}
+.ig-diag-w{margin-top:12px;padding:12px 14px;border:2px solid var(--ink);border-radius:14px;background:var(--paper)}
+.ig-diag-w[hidden]{display:none}
+.ig-diag-h{margin:0 0 8px;display:flex;align-items:center;gap:7px;font-weight:800;font-size:15px}
+.ig-diag-h .ic{width:18px;height:18px}
+.ig-diag-h small{font-weight:600;color:var(--muted)}
+.ig-diag{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.ig-diag li{display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px;align-items:start}
+.ig-diag li > div{display:flex;flex-direction:column;gap:2px;min-width:0}
+.ig-diag li b{font-size:14px}
+.ig-diag li span:not(.ig-diag-m){font-size:13px;line-height:1.4;color:var(--ink-2);overflow-wrap:anywhere}
+.ig-diag-m{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;border:2px solid var(--ink);background:var(--ink);color:var(--yellow)}
+.ig-diag-m .ic{width:14px;height:14px}
+.ig-diag li.falta .ig-diag-m{background:#FFE3EF;border-color:var(--pink);color:var(--pink)}
+.ig-diag li.falta b{color:var(--ink)}
+@media (max-width:640px){ .sd-auto > span:not(.sd-auto-k){min-width:0;flex-basis:100%} }
+/* a porta do Studio: a linha do Instagram embaixo do cartão escuro, na mesma largura */
+.st-porta-w{flex-direction:column;align-items:center;gap:14px}
+.st-porta-ig{width:min(860px,100%);box-sizing:border-box;background:var(--paper);border:2px solid var(--ink);box-shadow:4px 4px 0 var(--ink)}

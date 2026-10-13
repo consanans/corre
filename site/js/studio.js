@@ -68,7 +68,9 @@
   function autoLinha(){
     const mk = ST.com.find(x => x.id === ST.sel), L = C.ig ? C.ig.conectadas() : [], btn = `<button type="button" class="btn sm" data-act="ig-contas">${ico('ig')} Contas</button>`;
     if(ST.contas === null) return `<span class="sd-auto-k">${ico('ig')} Instagram</span><span>Vendo as contas conectadas…</span>`;
-    if(!L.length) return `<span class="sd-auto-k">${ico('ig')} Nenhuma conta conectada</span><span>Conecta o Instagram (login na conta da marca) e o que você programar sai sozinho. Sem conta, o post vira lembrete pra postar à mão.${C.DEMO ? ' <b>Demonstração:</b> a conta entra de mentira.' : ''}</span><button type="button" class="btn sm pri" data-act="ig-conectar" data-rede="${esc(mk ? mk.rede : '')}">${ico('ig')} Conectar o Instagram</button>`;
+    /* v3.41: sem conta (nenhuma, vencida ou a última tentativa falhou), a linha é a mesma da porta do Studio
+       (igcontas.js): o estado e o motivo ficam aqui, não só no aviso que some */
+    if(!L.length) return C.ig ? C.ig.linha({ rede: mk ? mk.rede : '' }) : '';
     if(mk){ const c = C.ig.daMarca(mk); return c ? `<span class="sd-auto-k on">${C.ig.chip(c)}</span><span>Os posts da ${esc(mk.marca)} saem sozinhos no @${esc(c.username)}, no dia e na hora (dá pra trocar a conta em cada post).</span>${btn}`
       : `<span class="sd-auto-k">${ico('ig')} @${esc(mk.rede)} não conectada</span><span>Em cada post você escolhe em qual conta sai, ou conecta a @${esc(mk.rede)}.</span><button type="button" class="btn sm pri" data-act="ig-conectar" data-rede="${esc(mk.rede)}">Conectar @${esc(mk.rede)}</button>${btn}`; }
     return `<span class="sd-auto-k on">${L.slice(0, 3).map(c => C.ig.chip(c)).join('')}${L.length > 3 ? `<b>+${L.length - 3}</b>` : ''}</span><span>${L.length === 1 ? 'Conta conectada' : L.length + ' contas conectadas'}: cada post mostra em qual sai.</span>${btn}`;
@@ -124,7 +126,10 @@
     ST.sel = id === 'todas' ? 'todas' : ST.com.some(m => m.id === id) ? id : (!id && ST.com.some(m => m.id === guardada)) ? guardada : 'todas';
     if(id && id !== ST.sel) history.replaceState(null, '', '#/studio');
     ST.mes = hoje().slice(0, 7); ST.semana = weekOf(hoje());
+    ST.contas = null;
     topo();
+    /* v3.41: as contas carregam mesmo sem marca ligada, pra linha do Instagram dizer o estado */
+    contas().then(() => { const l = C.$('sd-ig'); if(l) l.innerHTML = autoLinha(); if(vivo()) corpo(); });
     if(!ST.com.length) return;
     C.$('sd-corpo').innerHTML = '<p class="note">Abrindo a agenda…</p>';
     carregar().then(async () => {
@@ -132,8 +137,6 @@
       if(await fila()){ try{ await carregar(); }catch(e){} corpo(); }
       relogio();
     }).catch(e => { const c = C.$('sd-corpo'); if(c) c.innerHTML = `<p class="note">${esc(C.errMsg(e, 'Não deu pra abrir os posts.'))}</p>`; });
-    ST.contas = null;
-    contas().then(() => { const l = C.$('sd-ig'); if(l) l.innerHTML = autoLinha(); if(vivo()) corpo(); });
     if(C.lote) C.lote.barra();
   }
   function topo(){
@@ -150,7 +153,7 @@
           ${ST.sem.map(x => `<button type="button" class="st-mk off" data-act="mk-edit" data-id="${x.id}" title="Liga o Instagram dessa marca pra trampar nela no Studio">${C.marcaLogo(x, 's')}<span><b>${esc(x.marca)}</b><small>ligar o Insta</small></span></button>`).join('')}
           <button type="button" class="st-mk add" data-act="mk-nova">${ico('plus')}<span><b>Nova marca</b><small>pra trampar</small></span></button>
         </div>` : ''}
-        ${ST.com.length ? `<p class="sd-ig sd-auto" id="sd-ig">${autoLinha()}</p><div class="lt-barra" id="lt-barra" hidden></div>` : ''}
+        <p class="sd-ig sd-auto" id="sd-ig">${autoLinha()}</p>${ST.com.length ? `<div class="lt-barra" id="lt-barra" hidden></div>` : ''}
       </section>
       ${ST.com.length ? `<section class="card sd-cal" aria-label="Agenda">
         <div class="sd-bar">
@@ -443,8 +446,11 @@
 
   /* conectou ou desconectou uma conta: a linha, o calendário e o painel aberto redesenham */
   if(C.ig) C.ig.onMuda(async () => {
-    if(!vivo()) return;
+    if(!ST.el || !ST.el.isConnected) return;
     ST.contas = C.ig.contas();
+    /* a linha do Instagram muda na hora, com ou sem agenda na tela (v3.41) */
+    const l0 = C.$('sd-ig'); if(l0) l0.innerHTML = autoLinha();
+    if(!vivo()) return;
     try{ await carregar(); }catch(e){}
     const l = C.$('sd-ig'); if(l) l.innerHTML = autoLinha();
     corpo();
