@@ -1,5 +1,6 @@
 /* CORRE · STUDIO HOUZI · O BRANDBOOK (v3.37).
-   #/bb/endereço: o brandbook vivo da marca (naming, conceito, logo, tipografia, cores, elementos, voz e aplicações),
+   #/bb/endereço: o brandbook vivo da marca (conceito, naming, pra quem, se a marca fosse gente, logo, tipografia, cores,
+   elementos, voz e aplicações),
    cada parte com o texto que explica o conceito. Rascunho só o dono vê; publicada, abre pra qualquer um.
    Daqui também saem o PDF do brandbook (vetor, em curvas) e o kit da marca (ZIP: logos em SVG, PNG e PDF, redes,
    favicon, paleta pra Photoshop/Illustrator/GIMP/CSS, as letras com as licenças, o padrão e o PDF).
@@ -307,7 +308,9 @@
     const svgLogo = (lg, v, o) => M.logoSvg(lg, v, Object.assign({ titulo: m.nome }, o || {}));
     const pars = l => (l || []).map(p => `<p>${esc(p)}</p>`).join('');
     const temNaming = !!(m.naming && m.naming.nome);
-    const secs = [['conceito', 'Conceito']].concat(temNaming ? [['naming', 'Naming']] : []).concat([['logo', 'Logo'], ['construcao', 'Construção'], ['tipografia', 'Tipografia'], ['cores', 'Cores'], ['elementos', 'Elementos'], ['som', 'Som e movimento'], ['voz', 'Voz'], ['pratica', 'Na prática'], ['aplicacoes', 'Aplicações'], ['arquivos', 'Arquivos']]);
+    /* v3.41: as personas (o cliente ideal e a marca como gente) vêm logo depois do conceito: a estratégia antes do desenho */
+    const P = H.personas(m), li = l => (l || []).map(x => `<li>${esc(x)}</li>`).join('');
+    const secs = [['conceito', 'Conceito']].concat(temNaming ? [['naming', 'Naming']] : []).concat([['publico', 'Pra quem'], ['persona', 'Se a marca fosse gente'], ['logo', 'Logo'], ['construcao', 'Construção'], ['tipografia', 'Tipografia'], ['cores', 'Cores'], ['elementos', 'Elementos'], ['som', 'Som e movimento'], ['voz', 'Voz'], ['pratica', 'Na prática'], ['aplicacoes', 'Aplicações'], ['arquivos', 'Arquivos']]);
     const SOM = C.houziSom, mus = k.musica, PO = C.houziPost, cons = L.construcao(k), link = !H.ehLocal(m) && m.publica ? H.linkLivro(m) : '';
     const corNota = M.contraste(c.p, c.ink) >= 2 ? c.p : M.contraste(c.a, c.ink) >= 2 ? c.a : c.paper;
     const ROT_COR = { paper: 'Papel', p: 'Marca', s: 'Apoio', a: 'Acento', ink: 'Tinta' };
@@ -342,6 +345,19 @@
         <div class="bb-nome" style="font-family:var(--bb-fd)">${esc(m.naming.nome)}</div>
         <div class="bb-anat"><span>${esc(silabas(m.naming.nome))}</span><span>@${esc(hd)}</span><span>${esc(hd)}.com.br</span></div>
         <div class="bb-txt">${pars(tx.naming)}</div></section>` : ''}
+
+      <section class="bb-sec bb-persona-b" id="bb-publico">${cab('publico', 'Pra quem', 'Buyer persona · o cliente ideal')}
+        <div class="bb-2"><div class="bb-arq"><span class="bb-k">Cliente ideal</span><b>${esc(P.buyer.nome)}</b><p>${esc(P.buyer.perfil)}</p>${P.buyer.frase ? `<p class="bb-fala">“${esc(P.buyer.frase)}”</p>` : ''}</div>
+          <div><p class="bb-k">O que procura</p><ul class="bb-lista">${li(P.buyer.quer)}</ul><p class="bb-k">O que incomoda hoje</p><ul class="bb-lista">${li(P.buyer.dores)}</ul></div></div>
+        <div class="bb-2"><div><p class="bb-k">Onde encontra a marca</p><ul class="bb-lista">${li(P.buyer.onde)}</ul></div><div><p class="bb-k">O que faz escolher e voltar</p><div class="bb-txt">${pars([P.buyer.decide])}</div></div></div>
+        <p class="bb-nota">Uma pessoa inventada que resume quem compra: é retrato pra guiar a comunicação, não pesquisa.</p>
+      </section>
+      <section class="bb-sec bb-escuro bb-persona-g" id="bb-persona">${cab('persona', 'Se a marca fosse gente', 'Brand persona · ' + (P.brand.arquetipo || ''))}
+        ${P.brand.frase ? `<blockquote class="bb-quote">${esc(P.brand.frase)}</blockquote>` : ''}
+        <div class="bb-txt">${pars([P.brand.retrato])}</div>
+        <div class="bb-2"><div><p class="bb-k">Como age</p><ul class="bb-lista">${li(P.brand.jeito)}</ul></div><div><p class="bb-k">Do que gosta</p><ul class="bb-lista">${li(P.brand.gosta)}</ul></div></div>
+        <p class="bb-k">Com ${esc(P.buyer.nome || 'o cliente')}</p><div class="bb-txt">${pars([P.brand.com_o_cliente])}</div>
+      </section>
 
       <section class="bb-sec" id="bb-logo">${cab('logo', 'Logo')}
         ${tela(k.logo, vPri, 'grande')}
@@ -435,6 +451,7 @@
           <li><b>Impressos</b>Cartão de visita com sangria e papel timbrado, em PDF vetor.</li>
           <li><b>Cores e letras</b>Paleta pra Photoshop, Illustrator, Figma (CSS e JSON) e GIMP; as letras com as licenças.</li>
           <li><b>Redes</b>Avatar, capa e favicon.</li>
+          <li><b>Textos</b>A voz e as personas em texto, pra copiar na legenda, no site e no briefing.</li>
           <li><b>Brandbook</b>Este manual em PDF, com QR que abre a versão viva.</li>
         </ul>
         ${link && M.qrSvg ? `<div class="bb-qr"><span>${M.qrSvg(link, { titulo: 'QR do brandbook' })}</span><p>Aponta a câmera: abre este brandbook, com o filme, o som e o gerador de post. Vai também no PDF e no cartão de visita.</p></div>` : `<p class="bb-nota">Publica a marca pra ganhar o QR que abre este brandbook (ele vai no PDF e no cartão).</p>`}` : `<p class="bb-nota">Esse brandbook foi feito no Studio Houzi, dentro do Corre.</p><a class="stz-btn pri" href="#/houzi">Fazer a minha marca</a>`}
@@ -569,6 +586,25 @@
       els.push(tx(ui, (L.silabas(nm) + '   ·   @' + M.handleDe(nm) + '   ·   ' + ((M.ESTRATEGIAS[m.naming.estrategia] || {}).n || '')).toUpperCase(), 70, 220 + tam, 12, cor, { track: 0.2 }));
       els.push(...pars(fs.texto, tx2.naming, 70, 300 + tam, 14, 960, cor).els);
       els.push(...rodape(cor, n)); pgs.push(pagina(els, c.paper)); }
+    /* v3.41 · pra quem (buyer persona) e se a marca fosse gente (brand persona). Todo bloco tem teto de linhas e nada
+       passa do rodapé: texto da IA ou da pessoa pode vir comprido, e a letra da marca pode ser larga */
+    const P = H.personas(m), bloco = (els, tit, l, x, y, larg, cor, o) => { o = o || {}; els.push(tx(ui, String(tit).toUpperCase(), x, y, 10.5, cor, { track: 0.2 })); let yy = y + 34;
+      (l || []).forEach(s => { if(!String(s || '').trim() || yy > (o.teto || PH - 110)) return; const p = par(fs.texto, String(s), x, yy, o.tam || 12.5, larg, cor, { max: o.max || 2 }); els.push(p.el); yy += p.h + (o.gap || 12); });
+      return yy + 18; };
+    { const cor = c.ink, els = rot(String(++n).padStart(2, '0'), 'Pra quem', cor), b = P.buyer, nome = String(b.nome || ''), tam = encaixaTam(fs.display, nome || 'x', 500, 56);
+      els.push(tx(ui, 'BUYER PERSONA · O CLIENTE IDEAL', 70, 170, 11, cor, { track: 0.24 }));
+      if(nome) els.push(tx(fs.display, nome, 70, 196 + tam, tam, M.contraste(c.p, c.paper) >= 3 ? c.p : cor));
+      let y = 236 + tam; if(b.perfil){ const p = par(fs.texto, b.perfil, 70, y, 14, 500, cor, { max: 6 }); els.push(p.el); y += p.h + 26; }
+      if(b.frase){ const p = par(fs.display, '“' + b.frase + '”', 70, y, 18, 500, cor, { max: 3, entre: 28 }); els.push(p.el); y += p.h + 34; }
+      bloco(els, 'Onde encontra a marca', b.onde, 70, Math.max(y, 560), 500, cor);
+      let yd = bloco(els, 'O que procura', b.quer, 640, 170, 490, cor); yd = bloco(els, 'O que incomoda hoje', b.dores, 640, yd, 490, cor); bloco(els, 'O que faz escolher e voltar', [b.decide], 640, yd, 490, cor, { max: 3 });
+      els.push(...rodape(cor, n)); pgs.push(pagina(els, c.paper)); }
+    { const cor = c.paper, els = rot(String(++n).padStart(2, '0'), 'Se a marca fosse gente', cor), g = P.brand;
+      els.push(tx(ui, ('Brand persona · ' + (g.arquetipo || '')).toUpperCase(), 70, 170, 11, cor, { track: 0.24 }));
+      let y = 206; if(g.frase){ const p = par(fs.display, g.frase, 70, y, 28, 520, cor, { max: 4, entre: 40 }); els.push(p.el); y += p.h + 34; }
+      if(g.retrato){ const p = par(fs.texto, g.retrato, 70, y, 14, 520, cor, { max: 8 }); els.push(p.el); }
+      let yd = bloco(els, 'Como age', g.jeito, 640, 170, 490, cor); yd = bloco(els, 'Do que gosta', g.gosta, 640, yd, 490, cor, { max: 1 }); bloco(els, 'Com ' + (P.buyer.nome || 'o cliente'), [g.com_o_cliente], 640, yd, 490, cor, { max: 3 });
+      els.push(...rodape(cor, n)); pgs.push(pagina(els, c.ink)); }
     /* 4. logo */
     { const cor = corSobre(vPri.fundo), els = rot(String(++n).padStart(2, '0'), 'Logo', cor);
       M.logoNaCaixa(k.logo, vPri, 150, 150, 900, 320, vPri.fundo).forEach(e => els.push(e));
@@ -719,6 +755,15 @@
       C.toast('Gravando o logo animado com o som (uns 10 segundos: deixa esta aba aberta)…', 11000);
       for(const [f2, nome] of [['quadrado', 'feed'], ['vertical', 'story']]){ try{ const v = await FI.grava(k, f2, som); if(v.blob.size > 1000){ add(`video/logo-animado-${nome}.${v.ext}`, v.blob); videos++; } }catch(e){} }
     }
+    /* v3.41: a voz e as personas em texto, pra quem for escrever legenda, site ou briefing */
+    { const voz = k.voz || {}, P = H.personas(m), b = P.buyer, g = P.brand, l = (t, x) => (x || []).length ? [t, ...(x || []).map(s => '  - ' + s), ''] : [];
+      add('textos/voz-e-personas.txt', [`${m.nome} · voz e personas`, '='.repeat(40), '', 'CONCEITO', voz.conceito || '', '', 'MANIFESTO', voz.manifesto || '', '',
+        ...l('A MARCA É', voz.e), ...l('A MARCA NÃO É', voz.nao_e), ...l('FALA ASSIM', voz.fala), ...l('NUNCA FALA ASSIM', voz.nao_fala), ...l('FRASES', voz.taglines),
+        'BIO DO INSTAGRAM', voz.bio || '', '', 'BOAS-VINDAS DO WHATSAPP', voz.wa || '', '',
+        'PRA QUEM: A BUYER PERSONA (o cliente ideal, uma pessoa inventada que resume quem compra)', `${b.nome || ''}. ${b.perfil || ''}`.trim(), b.frase ? `"${b.frase}"` : '', '',
+        ...l('O que procura', b.quer), ...l('O que incomoda hoje', b.dores), ...l('Onde encontra a marca', b.onde), 'O que faz escolher e voltar', '  ' + (b.decide || ''), '',
+        `SE A MARCA FOSSE GENTE: A BRAND PERSONA (${g.arquetipo || ''})`, g.retrato || '', g.frase ? `"${g.frase}"` : '', '',
+        ...l('Como age', g.jeito), ...l('Do que gosta', g.gosta), 'Com o cliente', '  ' + (g.com_o_cliente || ''), ''].join('\n')); }
     add('brandbook.pdf', await L.pdfBlob(m));
     add('LEIA-ME.txt', [`${m.nome} · kit da marca`, '='.repeat(40), '', 'Feito no Studio Houzi (Corre).', '',
       'logo/svg   os logos em vetor (pra site e pra quem for editar). principal = a assinatura principal; simbolo = só o símbolo; nome = só o nome.',
@@ -732,6 +777,7 @@
       'impressos  cartão de visita 90 x 50 mm com 3 mm de sangria (frente e verso) e papel timbrado A4, em PDF vetor.',
       'qr         o QR que abre o brandbook vivo (quando a marca tá publicada).',
       'cores      a paleta em CSS, JSON, texto, GIMP (.gpl) e Photoshop/Illustrator (.ase).',
+      'textos     a voz da marca e as personas (o cliente ideal e a marca como gente), em texto pra copiar.',
       'fontes     as letras da marca e as licenças (leia antes de usar).', 'padrao.svg o símbolo repetido, pra fundo e embalagem.', 'brandbook.pdf  o manual inteiro, com o porquê de cada escolha.', '',
       'Regra de bolso: no claro, a versão principal; no escuro, a negativa; em cima de foto, a de uma cor só. Respiro em volta do logo do tamanho da letra maiúscula do nome.'].join('\n'));
     const zip = await M.zip(arqs);

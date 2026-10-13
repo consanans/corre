@@ -96,8 +96,26 @@
   H.escreveIA = async m => {
     const r = await C.iaFn({ acao: 'marca', ctx: H.ctxIA(m) }, { oque: 'os textos da marca' });
     const v = Object.assign({}, H.voz(m), { conceito: r.conceito, manifesto: r.manifesto, taglines: r.taglines, e: r.e, nao_e: r.nao_e, fala: r.fala, nao_fala: r.nao_fala, bio: r.bio, wa: r.wa, textos: r.textos, ia: true });
-    return { voz: v, restam: r.restam };
+    /* v3.41: as personas só entram se vierem com conteúdo (a função antiga não manda; aí fica a que a marca já tinha) */
+    if(temPersona(r.buyer_persona)) v.buyer_persona = r.buyer_persona;
+    if(temPersona(r.brand_persona)) v.brand_persona = r.brand_persona;
+    return { voz: v, restam: r.restam, personas: temPersona(r.buyer_persona) || temPersona(r.brand_persona) };
   };
+  /* v3.41 · AS PERSONAS do brandbook: o cliente ideal (buyer) e a marca como se fosse gente (brand). O Studio monta as
+     duas na hora, das escolhas (acompanham o nicho, a cidade e o território quando mudam); o que a IA ou a pessoa
+     escreveu (m.voz.buyer_persona e m.voz.brand_persona) vai por cima, campo por campo. Campo apagado volta pro do Studio. */
+  const cheio = x => Array.isArray(x) ? x.some(s => String(s == null ? '' : s).trim()) : String(x == null ? '' : x).trim() !== '';
+  const temPersona = p => !!p && typeof p === 'object' && Object.keys(p).some(k => cheio(p[k]));
+  const junta = (base, por) => {
+    const o = Object.assign({}, base);
+    if(temPersona(por)) Object.keys(base).forEach(k => { if(k === 'arquetipo' || !cheio(por[k])) return; o[k] = Array.isArray(base[k]) ? (Array.isArray(por[k]) ? por[k] : String(por[k]).split('\n')).map(s => String(s).trim()).filter(Boolean) : String(por[k]).trim(); });
+    return o;
+  };
+  H.personas = m => {
+    const base = M.personas(m.spec), v = m.voz || {};
+    return { buyer: junta(base.buyer, v.buyer_persona), brand: junta(base.brand, v.brand_persona), escrita: temPersona(v.buyer_persona) || temPersona(v.brand_persona) };
+  };
+  H.temPersona = temPersona;
   const erroIA = e => e && e.code === 'limite' ? C.limiteMsg(e, 'Studio Houzi') : e && (e.code === 'nofn' || e.code === 'sem_chave' || e.status === 404) ? 'A IA ainda não tá ligada aqui. Os textos do Studio continuam valendo.' : 'A IA não respondeu agora. Tenta de novo daqui a pouco.';
   H.erroIA = erroIA;
 
@@ -493,9 +511,33 @@
   };
   /* mexeu no desenho: os textos de conceito da IA ficam velhos (o Studio refaz os dele sozinho) */
   const mexeu = (desenho, aba) => { if(desenho && B.m.voz && B.m.voz.textos) B.m.voz.textos = null; redesenha(); salvaLogo(); if(aba) desenhaAba(); };
+  /* v3.41 · as personas na aba Textos: cada campo grava a persona inteira (a do Studio + a mudança), pra uma marca antiga
+     não ficar só com o campo mexido. Lista é uma por linha. */
+  function personasCampos(){
+    const P = H.personas(B.m), b = P.buyer, g = P.brand;
+    const f = (q, k, rot, rows, max) => { const v = (q === 'buyer' ? b : g)[k], lista = Array.isArray(v); return rows ? `<label class="stz-f"><span>${rot}</span><textarea class="stz-in" rows="${rows}" data-p="${q}.${k}"${max ? ` maxlength="${max}"` : ''}>${esc(lista ? v.join('\n') : v || '')}</textarea></label>` : `<label class="stz-f"><span>${rot}</span><input class="stz-in" data-p="${q}.${k}" value="${esc(v || '')}"${max ? ` maxlength="${max}"` : ''}></label>`; };
+    return `<fieldset class="stz-f stz-persona"><legend>Pra quem: a buyer persona</legend>
+        <p class="stz-nota">O cliente ideal da marca: uma pessoa inventada que resume quem compra. É retrato, não pesquisa. Apagou um campo? Volta o do Studio.</p>
+        ${f('buyer', 'nome', 'Apelido', 0, 30)}${f('buyer', 'perfil', 'Quem é (idade em faixa, rotina, onde o dia cruza com a marca)', 3, 320)}
+        ${f('buyer', 'quer', 'O que procura (uma por linha)', 3)}${f('buyer', 'dores', 'O que incomoda hoje (uma por linha)', 3)}${f('buyer', 'onde', 'Onde encontra a marca (uma por linha)', 3)}
+        ${f('buyer', 'decide', 'O que faz escolher e voltar', 2, 200)}${f('buyer', 'frase', 'Uma frase que essa pessoa diria', 2, 120)}</fieldset>
+      <fieldset class="stz-f stz-persona"><legend>Se a marca fosse gente: a brand persona</legend>
+        <p class="stz-nota">A marca como pessoa, no arquétipo ${esc(g.arquetipo || '')}: quem seria, como age, do que gosta, como trata o cliente.</p>
+        ${f('brand', 'retrato', 'Quem seria', 3, 320)}${f('brand', 'jeito', 'Como age (uma por linha)', 3)}${f('brand', 'gosta', 'Do que gosta (uma por linha)', 3)}
+        ${f('brand', 'com_o_cliente', 'Como trata o cliente', 2, 200)}${f('brand', 'frase', 'Uma frase dela, em primeira pessoa', 2, 120)}</fieldset>`;
+  }
   function muda(el, fim){
     if(!B || !el || !el.dataset) return;
     const sp = B.m.spec;
+    if(el.dataset.p){ /* as personas (v3.41) */
+      const [q, k] = el.dataset.p.split('.'), chave = q === 'brand' ? 'brand_persona' : 'buyer_persona', atual = H.personas(B.m)[q === 'brand' ? 'brand' : 'buyer'];
+      if(!atual || !(k in atual) || k === 'arquetipo') return;
+      const nova = Object.assign({}, atual, { [k]: Array.isArray(atual[k]) ? el.value.split('\n').map(s => s.trim()).filter(Boolean) : el.value });
+      delete nova.arquetipo;
+      if(!B.m.voz || !B.m.voz.conceito) B.m.voz = Object.assign({}, H.voz(B.m), B.m.voz || {});
+      B.m.voz[chave] = nova;
+      salvaLogo(); return;
+    }
     if(el.dataset.v){ /* textos (voz) */
       const k = el.dataset.v, v = H.voz(B.m); let val = el.value;
       if(/\.(\d+)$/.test(k)){ const [kk, i] = k.split('.'); const l = (v[kk] || []).slice(); l[Number(i)] = val; val = l; poe(B.m, 'voz.' + kk, val); }
@@ -593,7 +635,8 @@
         <button type="button" class="stz-btn" data-act="stz-ia">${ico('magia')} Escrever com a IA</button>
         ${tx('conceito', 'Conceito (uma frase)', 2)}${tx('manifesto', 'Manifesto', 6)}
         <fieldset class="stz-f"><legend>Frases</legend>${(v.taglines || []).slice(0, 5).map((t, i) => `<input class="stz-in" data-v="taglines.${i}" value="${esc(t)}" maxlength="60">`).join('')}</fieldset>
-        ${tx('e', 'A marca é (separado por vírgula)', 2)}${tx('nao_e', 'A marca não é', 2)}${tx('fala', 'Fala assim (uma por linha)', 3)}${tx('nao_fala', 'Nunca fala assim', 3)}${tx('bio', 'Bio do Instagram', 2)}${tx('wa', 'Boas-vindas do WhatsApp', 3)}`;
+        ${tx('e', 'A marca é (separado por vírgula)', 2)}${tx('nao_e', 'A marca não é', 2)}${tx('fala', 'Fala assim (uma por linha)', 3)}${tx('nao_fala', 'Nunca fala assim', 3)}${tx('bio', 'Bio do Instagram', 2)}${tx('wa', 'Boas-vindas do WhatsApp', 3)}
+        ${personasCampos()}`;
     } else if(a === 'dados'){
       const nm = B.m.naming || {};
       box.innerHTML = `<label class="stz-f"><span>Nome da marca</span><input class="stz-in" data-k="nome" value="${esc(B.m.nome)}" maxlength="40"></label>
@@ -636,7 +679,7 @@
     'stz-ia': async el => {
       if(!B) return; const m = B.m;
       await ocupado(el, 'Escrevendo…', async () => {
-        try{ const r = await H.escreveIA(m); m.voz = r.voz; salvaLogo(); desenhaAba(); C.toast('Pronto: a voz e os textos do brandbook foram escritos com a IA.' + (r.restam != null ? ` Ainda dá pra pedir ${r.restam} hoje.` : ''), 4200); }
+        try{ const r = await H.escreveIA(m); m.voz = r.voz; salvaLogo(); desenhaAba(); C.toast((r.personas ? 'Pronto: a voz, as personas e os textos do brandbook foram escritos com a IA.' : 'Pronto: a voz e os textos do brandbook foram escritos com a IA.') + (r.restam != null ? ` Ainda dá pra pedir ${r.restam} hoje.` : ''), 4200); }
         catch(e){ C.toast(erroIA(e), 4200); }
       });
     },

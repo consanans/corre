@@ -64,13 +64,20 @@
   /* v3.41: a última tentativa de conectar fica guardada neste aparelho. O aviso some em segundos; o motivo, não:
      o Studio e as Contas mostram até a próxima tentativa (ou uma semana) */
   const ULT_K = 'corre-ig-ultima';
-  function guardaUltima(x){ try{ localStorage.setItem(ULT_K, JSON.stringify(Object.assign({ uid: C.uid() || '', t: Date.now() }, x))); }catch(e){} }
+  /* só guarda com login: o motivo é da pessoa, não do aparelho (outro login no mesmo celular não vê) */
+  function guardaUltima(x){ const uid = C.uid(); if(!uid) return; try{ localStorage.setItem(ULT_K, JSON.stringify(Object.assign({ uid, t: Date.now() }, x))); }catch(e){} }
   function ultima(){
     let u = null; try{ u = JSON.parse(localStorage.getItem(ULT_K) || 'null'); }catch(e){}
-    if(!u || typeof u !== 'object' || (u.uid && u.uid !== C.uid()) || Date.now() - (Number(u.t) || 0) > 7 * 864e5) return null;
+    if(!u || typeof u !== 'object' || !u.uid || u.uid !== C.uid() || Date.now() - (Number(u.t) || 0) > 7 * 864e5) return null;
     return u;
   }
-  const falhou = () => { const u = ultima(); return u && !u.ok ? u : null; };
+  /* a falha vale enquanto for a novidade: conectou uma conta depois (aqui ou em outro aparelho), ela sai de cena.
+     Com outra conta já conectada ela continua valendo (era a tentativa de ligar mais uma) */
+  const falhou = () => {
+    const u = ultima(); if(!u || u.ok) return null;
+    const depois = contas().some(c => ok(c) && Date.parse(c.conectada_em || c.updated_at || 0) > Number(u.t));
+    return depois ? null : u;
+  };
   /* "hoje às 21:20" / "12/10 às 21:20", no horário de Brasília */
   const quando = t => {
     const d = new Date(Number(t) || 0); if(isNaN(d)) return '';
@@ -86,11 +93,15 @@
     o = o || {};
     const rede = esc(o.rede || ''), btn = `<button type="button" class="btn sm" data-act="ig-contas">${ico('ig')} Contas</button>`;
     if(IG.lista === null) return `<span class="sd-auto-k">${ico('ig')} Instagram</span><span>Vendo as contas conectadas…</span>`;
-    const L = conectadas(), falha = !L.length && falhou(), vencidas = contas().filter(c => !ok(c));
-    if(falha) return `<span class="sd-auto-k erro">${ico('x')} Instagram não conectou</span><span><b>${esc(quando(falha.t))}:</b> ${esc(falha.msg || 'Não deu pra conectar.')}</span><button type="button" class="btn sm pri" data-act="ig-conectar" data-rede="${rede}">${ico('ig')} Tentar de novo</button><button type="button" class="btn sm" data-act="ig-diag">${ico('check')} Conferir a ligação</button>`;
+    const L = conectadas(), falha = falhou(), vencidas = contas().filter(c => !ok(c));
+    const ainda = L.length ? ` Continua${L.length > 1 ? 'm' : ''} conectada${L.length > 1 ? 's' : ''}: ${L.slice(0, 3).map(c => '@' + esc(c.username)).join(', ')}${L.length > 3 ? '…' : ''}.` : '';
+    if(falha) return `<span class="sd-auto-k erro">${ico('x')} ${L.length ? 'A outra conta não conectou' : 'Instagram não conectou'}</span><span><b>${esc(quando(falha.t))}:</b> ${esc(falha.msg || 'Não deu pra conectar.')}${ainda}</span><button type="button" class="btn sm pri" data-act="ig-conectar" data-rede="${rede}">${ico('ig')} Tentar de novo</button><button type="button" class="btn sm" data-act="ig-diag">${ico('check')} Conferir a ligação</button>`;
     if(!L.length && vencidas.length) return `<span class="sd-auto-k erro">${ico('x')} Conexão vencida</span><span>A conexão com ${vencidas.slice(0, 2).map(c => '@' + esc(c.username)).join(' e ')} não vale mais: os posts programados viram lembrete até você conectar de novo.</span><button type="button" class="btn sm pri" data-act="ig-conectar" data-trocar="1">${ico('ig')} Conectar de novo</button>${btn}`;
     if(!L.length) return `<span class="sd-auto-k">${ico('ig')} Nenhuma conta conectada</span><span>Conecta o Instagram (login na conta da marca) e o que você programar sai sozinho. Sem conta, o post vira lembrete pra postar à mão.${C.DEMO ? ' <b>Demonstração:</b> a conta entra de mentira.' : ''}</span><button type="button" class="btn sm pri" data-act="ig-conectar" data-rede="${rede}">${ico('ig')} Conectar o Instagram</button><button type="button" class="btn sm" data-act="ig-diag">${ico('check')} Conferir a ligação</button>`;
-    return `<span class="sd-auto-k on">${L.slice(0, 3).map(c => chip(c)).join('')}${L.length > 3 ? `<b>+${L.length - 3}</b>` : ''}</span><span>${L.length === 1 ? 'Conta conectada' : L.length + ' contas conectadas'}: o que você programar sai sozinho, na conta escolhida em cada post.</span>${btn}`;
+    const chips = `<span class="sd-auto-k on">${L.slice(0, 3).map(c => chip(c)).join('')}${L.length > 3 ? `<b>+${L.length - 3}</b>` : ''}</span>`;
+    /* uma vencida no meio das boas: os posts dela não saem, e a linha tem que dizer */
+    if(vencidas.length) return `${chips}<span>${L.length === 1 ? 'Conta conectada' : L.length + ' contas conectadas'}, mas <b>a conexão com ${vencidas.slice(0, 2).map(c => '@' + esc(c.username)).join(' e ')} venceu</b>: os posts dela viram lembrete até você conectar de novo.</span><button type="button" class="btn sm pri" data-act="ig-conectar" data-trocar="1">${ico('ig')} Conectar de novo</button>${btn}`;
+    return `${chips}<span>${L.length === 1 ? 'Conta conectada' : L.length + ' contas conectadas'}: o que você programar sai sozinho, na conta escolhida em cada post.</span>${btn}`;
   }
   /* quem mostra a linha sem ter o próprio redesenho (a porta do Studio) marca o elemento com data-ig-linha */
   const linhas = () => document.querySelectorAll('[data-ig-linha]').forEach(el => { el.innerHTML = linha({ rede: el.dataset.rede }); });
@@ -126,7 +137,12 @@
     if(C.DEMO) d = { app_id: true, app_secret: true, mesmo_id: true, cofre: 'proprio', servico: true, redirect: redirect(), redirect_ok: true };
     else{
       try{ const r = await C.api.fn('instagram', { acao: 'status', app_id: C.CFG.IG_APP_ID || '', redirect_uri: redirect() }, true); d = r && r.diag; }
-      catch(e){ if(e && e.code === 'login') throw e; }
+      catch(e){
+        /* a função antiga responde sem_chave (503) ou usuario (400) pro "status"; 404 é função que nem existe.
+           Sem resposta (sem sinal) ou erro do servidor não é função velha: é pra conferir de novo daqui a pouco */
+        if(e && e.code === 'login') throw e;
+        if(!(e && (e.code === 'sem_chave' || e.code === 'usuario' || e.status === 404 || e.status === 400))) throw { code: 'diag_rede' };
+      }
       if(!d || typeof d !== 'object') semFuncao = true;
     }
     await carrega(true);
@@ -143,7 +159,8 @@
         d.mesmo_id !== false ? 'Os dois apontam pro mesmo app.' : 'O IG_APP_ID dos Secrets não é o mesmo do config.js. Tem que ser o "ID do app do Instagram", nos dois lugares.'));
       itens.push(it('cofre', 'O cadeado das conexões (IG_CHAVE)', d.cofre === 'proprio' || d.cofre === 'servico',
         d.cofre === 'proprio' ? 'A IG_CHAVE tá salva: as conexões ficam trancadas com ela.'
-          : d.cofre === 'servico' ? 'Sem IG_CHAVE: as conexões trancam com a chave de serviço do Supabase. Funciona, mas se essa chave for trocada as contas caem. Vale criar a IG_CHAVE (40 caracteres ou mais) antes de conectar.'
+          : d.cofre === 'servico' ? (L.length ? 'Sem IG_CHAVE: as conexões trancam com a chave de serviço do Supabase, e tá funcionando. Não cria a IG_CHAVE agora: as contas já conectadas teriam que conectar de novo. Só quando for trocar a chave de serviço (aí cria a IG_CHAVE e conecta as contas de novo).'
+            : 'Sem IG_CHAVE: as conexões trancariam com a chave de serviço do Supabase. Funciona, mas se essa chave for trocada as contas caem. Cria a IG_CHAVE (40 caracteres ou mais) antes de conectar a primeira conta.')
             : d.cofre === 'curta' ? 'A IG_CHAVE tá curta demais: precisa de pelo menos 24 caracteres (melhor 40 ou mais). Troca nos Secrets.'
               : 'Falta a IG_CHAVE nos Secrets (uma senha longa que você inventa, com 40 caracteres ou mais).'));
       itens.push(it('volta', 'O endereço de volta', !!d.redirect_ok,
@@ -161,7 +178,7 @@
     w.innerHTML = '<p class="note">Conferindo a ligação…</p>';
     let itens = null;
     try{ itens = await diagnostico(); }
-    catch(e){ w.innerHTML = `<p class="note">${esc(msgErro(e))}</p>`; return; }
+    catch(e){ w.innerHTML = `<p class="note">${esc(e && e.code === 'diag_rede' ? 'Não deu pra falar com o Supabase agora (sem sinal ou servidor ocupado). Confere de novo daqui a pouco.' : msgErro(e))}</p>`; return; }
     const W = C.$('ig-diag'); if(!W) return;
     const falta = itens.filter(x => !x.bom).length;
     W.innerHTML = `<p class="ig-diag-h">${falta ? `${ico('x')} Falta ${falta === 1 ? '1 coisa' : falta + ' coisas'}` : `${ico('check')} Tudo ligado`}${C.DEMO ? ' <small>(demonstração)</small>' : ''}</p>
@@ -199,11 +216,11 @@
     const L = contas();
     C.sheet(`<div class="form ig-contas"><div class="sheet-head"><h2>${ico('ig')} Contas do Instagram</h2><button type="button" class="cbtn plain" data-close aria-label="Fechar">${ico('x')}</button></div>
       <p class="lt-lead">Cada conta entra com o login dela, no próprio Instagram. O Corre só publica o que você programar, na conta que você escolher no post.</p>
-      ${!L.some(ok) && falhou() ? quadroFalha(falhou()) : ''}
+      ${falhou() ? quadroFalha(falhou()) : ''}
       ${L.length ? `<ul class="ig-lista">${L.map(c => `<li class="ig-l${ok(c) ? '' : ' off'}${c.id === novo ? ' novo' : ''}">${foto(c, 'g')}<div class="ig-l-tx"><b>@${esc(c.username)}</b>${c.nome ? `<small>${esc(c.nome)}</small>` : ''}<span class="ig-st">${esc(estado(c))}</span>${c.erro && !ok(c) ? `<span class="ig-st erro">${esc(c.erro)}</span>` : ''}</div>
         <div class="ig-l-a">${ok(c) ? '' : `<button type="button" class="btn sm pri" data-act="ig-conectar" data-trocar="1">Conectar de novo</button>`}<button type="button" class="btn sm ghost" data-act="ig-desconectar" data-id="${esc(c.id)}">Desconectar</button></div></li>`).join('')}</ul>`
         : `<p class="note ig-vazio">Nenhuma conta conectada ainda. Sem conta, o post programado vira lembrete: na hora, você posta à mão.</p>`}
-      <div class="acts"><button type="button" class="btn pri" data-act="ig-conectar">${ico('ig')} ${L.length ? 'Conectar outra conta' : 'Conectar o Instagram'}</button>${L.length && !C.DEMO ? `<button type="button" class="btn ghost" data-act="ig-conectar" data-trocar="1">Entrar com outro login</button>` : ''}${!L.some(ok) && falhou() ? '' : `<button type="button" class="btn ghost" data-act="ig-diag">${ico('check')} Conferir a ligação</button>`}</div>
+      <div class="acts"><button type="button" class="btn pri" data-act="ig-conectar">${ico('ig')} ${L.length ? 'Conectar outra conta' : 'Conectar o Instagram'}</button>${L.length && !C.DEMO ? `<button type="button" class="btn ghost" data-act="ig-conectar" data-trocar="1">Entrar com outro login</button>` : ''}${falhou() ? '' : `<button type="button" class="btn ghost" data-act="ig-diag">${ico('check')} Conferir a ligação</button>`}</div>
       <div class="ig-diag-w" id="ig-diag" aria-live="polite" hidden></div>
       <p class="fine">Precisa ser conta Profissional (Comercial ou Criador de conteúdo). O Instagram abre e pede o login: entra na conta da marca e deixa a permissão de publicar marcada. Se ele já entrar logado na conta errada, usa o "Entrar com outro login". Desconectar tira a conexão daqui na hora (e o que tava programado nela volta pra "postar à mão").</p></div>`);
   }

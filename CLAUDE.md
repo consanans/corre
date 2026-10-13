@@ -70,7 +70,13 @@ O app tem três modos (`core.js`): **de verdade** (config.js com `SUPABASE_URL` 
 - Comentários em português, no tom da casa: dizem o porquê.
 - Sem dependência nova no site (tudo roda no navegador, sem build de módulos). CDN só as que já estão no index.
 
-## Onde parou (v3.40)
+## Onde parou (v3.41, ainda não publicada)
+- **v3.41, o que entrou:** o estado do Instagram à vista (linha na porta do Studio e dentro dele, motivo da última tentativa guardado por login, "Conferir a ligação" com a acao `status` da função `instagram`) e as personas no brandbook do Studio Houzi ("Pra quem", a buyer persona, e "Se a marca fosse gente", a brand persona: HTML, PDF, apresentação, kit em `textos/voz-e-personas.txt` e edição na aba Textos). Reserva sem IA em `M.personas` (lab-motor.js, tabelas PB por nicho e PM por território); `H.personas` junta o que a IA ou a pessoa escreveu em `m.voz.buyer_persona` e `m.voz.brand_persona` (sem mudar banco). A função `imagem` (acao `marca`) pede as duas personas.
+- **Build na nuvem:** `node ferramentas/build-nuvem/monta.mjs 3.41` refaz `corre.min.js` e `houzi.min.js` byte a byte igual ao build de verdade (esbuild 0.25.10) e põe o CSS novo (trechos `/* v3.41 ·` no fim de `site/css/*.css`) no fim do `corre.min.css`. Sem número, só confere.
+- **Conhecido, de antes:** a 320px, dentro do Studio, o botão "Nova marca" e a barra do calendário passam 4px da tela.
+- **Falta do lado do Thales:** publicar a função `instagram` (Verify JWT desligado) e a `imagem` da v3.41, subir o zip e conferir os Secrets (`IG_APP_ID`, `IG_APP_SECRET`, `IG_CHAVE`) pelo "Conferir a ligação".
+
+## Antes (v3.40)
 - **No repositório (12/10/2026):** o `site/` (do `corre-site.zip`), as funções `imagem` e `instagram` e o `supabase/delta-v340.sql`. Ainda faltam o `package.json`, `build.mjs`, `test/`, o `schema.sql` e os deltas antigos, as funções `push`/`banca`/`mural`, `ferramentas/` e o `LEIA-ME.txt` (estão no computador do Thales). Sem eles não rodam build, a suíte nem o lint.
 - **Banco de teste na nuvem:** `sh ferramentas/banco-nuvem/roda.sh` sobe um Postgres descartável com um Supabase de mentira mínimo, roda o delta v3.40 2x e as checagens (7 ok). Quando o `ferramentas/banco-teste/` de verdade chegar, ele manda.
 - **Instagram por conta, no jeito do mLabs.** Cada conta entra pelo login do Instagram (`ig.html` → função `instagram`, `acao: conectar`). Cada post tem "Postar em" (`corre_posts.ig_conta`). Sem conta, o post vira lembrete.

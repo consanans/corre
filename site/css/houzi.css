@@ -434,3 +434,11 @@ body.em-bb #stickers,body.em-bb .halftone{display:none}
 .stz-entendeu{display:flex;flex-direction:column;gap:4px;padding:14px 16px;border-radius:14px;border:1.5px solid var(--z-line);background:var(--z-bg2,transparent);font-size:14px}
 .stz-entendeu b{font-family:'lab-inter-medium',system-ui;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--z-tx3)}
 .stz-entendeu p{margin:0}
+
+/* v3.41 · AS PERSONAS no brandbook e na bancada.
+   A fala da buyer persona vem na letra da marca, com o fio na cor dela (a cor da marca nem sempre lê bem no papel);
+   na bancada, cada persona é um bloco com respiro. */
+.bb-fala{margin:16px 0 0;padding-left:14px;border-left:4px solid var(--bb-p);font-family:var(--bb-fd),system-ui;font-size:clamp(19px,2vw,24px);line-height:1.25;opacity:1;max-width:28ch}
+.stz-persona{margin:22px 0 0;padding:14px 16px 4px;border:1.5px solid var(--z-line);border-radius:14px;min-width:0}
+.stz-persona legend{padding:0 6px;font-family:'lab-inter-medium',system-ui;font-size:12px;letter-spacing:.08em;text-transform:uppercase}
+.stz-persona .stz-nota{margin:0 0 10px}

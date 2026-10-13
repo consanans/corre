@@ -41,9 +41,18 @@ if(versao){
   writeFileSync(idx, readFileSync(idx, 'utf8').replace(/\?v=\d+\.\d+/g, '?v=' + versao));
   console.log('index.html: ?v=' + versao);
   /* o CSS novo da versão (ver o comentário do topo) */
-  const CSS = join(RAIZ, 'site', 'css'), marca = `/* v${versao} ·`;
-  const blocos = readdirSync(CSS).filter(n => n.endsWith('.css') && !n.endsWith('.min.css')).sort()
-    .map(n => readFileSync(join(CSS, n), 'utf8')).filter(t => t.includes(marca)).map(t => t.slice(t.lastIndexOf(marca)));
+  /* todo trecho que começa com o comentário "/* vX.YY ·" (ou "/* vX.YY:"), até o próximo comentário de OUTRA versão ou
+     o fim do arquivo; comentários seguidos da mesma versão ficam num trecho só (não duplica) */
+  const CSS = join(RAIZ, 'site', 'css'), re = /\/\* v(\d+\.\d+)\s*[·:]/g, blocos = [];
+  for(const n of readdirSync(CSS).filter(n => n.endsWith('.css') && !n.endsWith('.min.css')).sort()){
+    const t = readFileSync(join(CSS, n), 'utf8'), mk = [...t.matchAll(re)];
+    mk.forEach((x, i) => {
+      if(x[1] !== versao || (i > 0 && mk[i - 1][1] === versao)) return;
+      const prox = mk.slice(i + 1).find(y => y[1] !== versao);
+      blocos.push(t.slice(x.index, prox ? prox.index : t.length));
+    });
+  }
+  if(!blocos.length) console.log(`corre.min.css: nenhum trecho "/* v${versao} ·" nas origens (ok se a versão não mexeu em CSS)`);
   if(blocos.length){
     const tmp = join(mkdtempSync(join(tmpdir(), 'corre-')), 'novo.css');
     writeFileSync(tmp, blocos.join('\n'));

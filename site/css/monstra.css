@@ -2505,3 +2505,10 @@ html.embed .msg-pg{height:calc(100dvh - 40px)}
 /* a porta do Studio: a linha do Instagram embaixo do cartão escuro, na mesma largura */
 .st-porta-w{flex-direction:column;align-items:center;gap:14px}
 .st-porta-ig{width:min(860px,100%);box-sizing:border-box;background:var(--paper);border:2px solid var(--ink);box-shadow:4px 4px 0 var(--ink)}
+/* no celular a pílula das contas quebra linha e o @ comprido vira reticências: com 3 contas ela passava da tela */
+@media (max-width:640px){
+  .sd-auto > .sd-auto-k{flex:0 1 auto;max-width:100%;white-space:normal}
+  .sd-auto > .sd-auto-k.on{flex-wrap:wrap}
+  .sd-auto-k .ig-chip{min-width:0;max-width:100%}
+  .sd-auto-k .ig-chip b{min-width:0;overflow:hidden;text-overflow:ellipsis}
+}

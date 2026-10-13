@@ -70,7 +70,8 @@
     if(ST.contas === null) return `<span class="sd-auto-k">${ico('ig')} Instagram</span><span>Vendo as contas conectadas…</span>`;
     /* v3.41: sem conta (nenhuma, vencida ou a última tentativa falhou), a linha é a mesma da porta do Studio
        (igcontas.js): o estado e o motivo ficam aqui, não só no aviso que some */
-    if(!L.length) return C.ig ? C.ig.linha({ rede: mk ? mk.rede : '' }) : '';
+    /* falha guardada ou conta vencida também mandam a linha pra lá, mesmo com outra conta conectada */
+    if(!L.length || (C.ig && (C.ig.falhou() || C.ig.contas().some(c => !C.ig.ok(c))))) return C.ig ? C.ig.linha({ rede: mk ? mk.rede : '' }) : '';
     if(mk){ const c = C.ig.daMarca(mk); return c ? `<span class="sd-auto-k on">${C.ig.chip(c)}</span><span>Os posts da ${esc(mk.marca)} saem sozinhos no @${esc(c.username)}, no dia e na hora (dá pra trocar a conta em cada post).</span>${btn}`
       : `<span class="sd-auto-k">${ico('ig')} @${esc(mk.rede)} não conectada</span><span>Em cada post você escolhe em qual conta sai, ou conecta a @${esc(mk.rede)}.</span><button type="button" class="btn sm pri" data-act="ig-conectar" data-rede="${esc(mk.rede)}">Conectar @${esc(mk.rede)}</button>${btn}`; }
     return `<span class="sd-auto-k on">${L.slice(0, 3).map(c => C.ig.chip(c)).join('')}${L.length > 3 ? `<b>+${L.length - 3}</b>` : ''}</span><span>${L.length === 1 ? 'Conta conectada' : L.length + ' contas conectadas'}: cada post mostra em qual sai.</span>${btn}`;

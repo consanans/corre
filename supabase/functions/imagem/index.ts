@@ -21,7 +21,8 @@
 // Hórus (acao: "abordagem" ou "resposta"): escreve a mensagem de WhatsApp sob medida pra empresa
 // Hórus 4 (acao: "montar"): monta o radar inteiro (nichos, filtros do mapa, faro e mensagens) a partir de uma frase
 // e lê a resposta do cliente (o que ele quis dizer, a etapa, quando retomar e a réplica pronta).
-// Studio Houzi (acao: "marca"): escreve os textos da marca e do brandbook; (acao: "nomes"): sugere nomes com o porquê.
+// Studio Houzi (acao: "marca"): escreve os textos da marca e do brandbook, e (v3.41) a buyer persona e a brand persona;
+// (acao: "nomes"): sugere nomes com o porquê.
 // Studio (acao: "pauta", v3.38): a pauta do mês inteiro de uma vez (tema, título da arte e cena), conta como uma legenda.
 // Correal (v3.38): acabou o grátis do dia, o pedido com "correal: true" gasta a moeda do Correverso (imagem 10, legenda e
 // pauta 2, Hórus 2, Studio Houzi 3; os preços ficam no banco). acao "cotas": o que já foi usado hoje e a carteira.
@@ -423,16 +424,26 @@ Você recebe as escolhas de uma marca: o nome, o negócio, a cidade, o territór
 - bio: bio de Instagram, até 150 caracteres.
 - wa: a mensagem de boas-vindas do WhatsApp, até 200 caracteres.
 - Se vierem referências (o clima, o que a marca não pode parecer, o que inspira), use o clima no tom do texto e fuja do que a pessoa não quer; nunca cite nem imite marca que apareça nas referências.
-- textos: o texto do brandbook, que explica o conceito de cada parte em 2 parágrafos curtos (até 520 caracteres por parte): naming (só se o contexto tiver naming; senão string vazia), logo, tipografia, cores, elementos, aplicacoes. Ligue cada escolha ao negócio e ao território e use os nomes das cores e da letra exatamente como vieram.`;
+- textos: o texto do brandbook, que explica o conceito de cada parte em 2 parágrafos curtos (até 520 caracteres por parte): naming (só se o contexto tiver naming; senão string vazia), logo, tipografia, cores, elementos, aplicacoes. Ligue cada escolha ao negócio e ao território e use os nomes das cores e da letra exatamente como vieram.
+- buyer_persona: o cliente ideal da marca, uma pessoa INVENTADA que resume quem compra. É retrato pra guiar a comunicação: não é cliente real, nem depoimento, nem pesquisa. nome: um apelido curto e neutro (até 20 caracteres), nunca nome com sobrenome. perfil (até 240): faixa de idade (sempre faixa), a rotina e onde o dia dessa pessoa cruza com o negócio, na cidade do contexto. quer e dores: 3 frases cada (até 80): o que procura e o que incomoda hoje, concreto, do ramo. onde: 3 lugares ou momentos em que encontra a marca (até 60): Instagram, WhatsApp ou a vida real (rua, bairro, indicação, evento). decide (até 160): o que faz escolher a marca e voltar. frase (até 100): uma frase que essa pessoa diria, em primeira pessoa, coloquial.
+- brand_persona: a marca como se fosse gente, no arquétipo e na personalidade que vieram (não troque o arquétipo) e coerente com e/nao_e. Não dê nome próprio: o nome dela é o da marca. retrato (até 240): começa com "Se <nome da marca> fosse gente," e diz quem seria, a idade que aparenta, como se veste, que tipo de som escuta (gênero, nunca artista), onde anda. jeito: 3 frases (até 90) de como age. gosta: 3 coisas que curte (até 60), do mundo do território. com_o_cliente (até 160): como trata a buyer_persona. frase (até 100): uma frase da marca em primeira pessoa, no jeito do território.
+- Nas duas personas: gênero neutro (sem adjetivo que marque gênero); nada de nome de pessoa real, celebridade, artista, influenciador, personagem, time, marca, app ou rede social fora Instagram e WhatsApp; nada de número inventado (renda, porcentagem, quantos clientes), dado sensível (religião, política, saúde, orientação) ou estereótipo; nada de emoji.`;
 const MARCA_SCHEMA = {
   type: 'object', additionalProperties: false,
-  required: ['conceito', 'manifesto', 'taglines', 'e', 'nao_e', 'fala', 'nao_fala', 'bio', 'wa', 'textos'],
+  required: ['conceito', 'manifesto', 'taglines', 'e', 'nao_e', 'fala', 'nao_fala', 'bio', 'wa', 'textos', 'buyer_persona', 'brand_persona'],
   properties: {
     conceito: { type: 'string' }, manifesto: { type: 'string' },
     taglines: { type: 'array', items: { type: 'string' } }, e: { type: 'array', items: { type: 'string' } }, nao_e: { type: 'array', items: { type: 'string' } },
     fala: { type: 'array', items: { type: 'string' } }, nao_fala: { type: 'array', items: { type: 'string' } }, bio: { type: 'string' }, wa: { type: 'string' },
     textos: { type: 'object', additionalProperties: false, required: ['naming', 'logo', 'tipografia', 'cores', 'elementos', 'aplicacoes'],
       properties: { naming: { type: 'string' }, logo: { type: 'string' }, tipografia: { type: 'string' }, cores: { type: 'string' }, elementos: { type: 'string' }, aplicacoes: { type: 'string' } } },
+    /* v3.41: as personas do brandbook (o tamanho vai no prompt e no corte do txt/lista, como o resto) */
+    buyer_persona: { type: 'object', additionalProperties: false, required: ['nome', 'perfil', 'quer', 'dores', 'onde', 'decide', 'frase'],
+      properties: { nome: { type: 'string' }, perfil: { type: 'string' }, quer: { type: 'array', items: { type: 'string' } }, dores: { type: 'array', items: { type: 'string' } },
+        onde: { type: 'array', items: { type: 'string' } }, decide: { type: 'string' }, frase: { type: 'string' } } },
+    brand_persona: { type: 'object', additionalProperties: false, required: ['retrato', 'jeito', 'gosta', 'com_o_cliente', 'frase'],
+      properties: { retrato: { type: 'string' }, jeito: { type: 'array', items: { type: 'string' } }, gosta: { type: 'array', items: { type: 'string' } },
+        com_o_cliente: { type: 'string' }, frase: { type: 'string' } } },
   },
 };
 const NOMES_SIS = `Você cria nomes de marca pra pequeno negócio brasileiro, no Studio Houzi. Recebe o negócio, a cidade, a personalidade (5 eixos de 0 a 1: clássica→moderna, séria→divertida, sofisticada→popular, calma→energia, artesanal→tech) e palavras que a pessoa gosta.
@@ -470,7 +481,8 @@ async function houzi(sb: any, user: any, body: any, KEY: string, X: Extra) {
     model: LEG_MODELO,
     messages: [{ role: 'system', content: nomes ? NOMES_SIS : MARCA_SIS }, { role: 'user', content: (nomes ? 'O negócio:\n' : 'A marca:\n') + JSON.stringify(ctx, null, 1) }],
     response_format: { type: 'json_schema', json_schema: { name: nomes ? 'nomes' : 'marca', strict: true, schema: nomes ? NOMES_SCHEMA : MARCA_SCHEMA } },
-    max_completion_tokens: 6000,
+    /* v3.41: a marca ganhou as personas; com 6000 o JSON podia sair cortado (e virar "resposta vazia") */
+    max_completion_tokens: nomes ? 6000 : 9000,
   };
   if (/^(gpt-5|o\d)/.test(LEG_MODELO)) payload.reasoning_effort = 'low'; else payload.temperature = 0.85;
   let out: any = null, resp: Response;
@@ -485,11 +497,14 @@ async function houzi(sb: any, user: any, body: any, KEY: string, X: Extra) {
     return json({ nomes: r.nomes.slice(0, 12).map((n: any) => ({ nome: txt(n.nome, 26), estrategia: txt(n.estrategia, 20), porque: txt(n.porque, 260) })).filter((n: any) => n.nome), restam });
   }
   if (!r || !r.conceito) return json({ erro: 'provedor', detalhe: 'resposta vazia' }, 502);
-  const t = r.textos || {};
+  const t = r.textos || {}, bp = r.buyer_persona || {}, gp = r.brand_persona || {};
   return json({
     conceito: txt(r.conceito, 200), manifesto: txt(r.manifesto, 800), taglines: lista(r.taglines, 6, 60), e: lista(r.e, 4, 30), nao_e: lista(r.nao_e, 4, 30),
     fala: lista(r.fala, 4, 120), nao_fala: lista(r.nao_fala, 4, 120), bio: txt(r.bio, 160), wa: txt(r.wa, 240),
-    textos: Object.fromEntries(['naming', 'logo', 'tipografia', 'cores', 'elementos', 'aplicacoes'].map((k) => [k, txt(t[k], 700)])), restam,
+    textos: Object.fromEntries(['naming', 'logo', 'tipografia', 'cores', 'elementos', 'aplicacoes'].map((k) => [k, txt(t[k], 700)])),
+    buyer_persona: { nome: txt(bp.nome, 30), perfil: txt(bp.perfil, 320), quer: lista(bp.quer, 4, 110), dores: lista(bp.dores, 4, 110), onde: lista(bp.onde, 4, 80), decide: txt(bp.decide, 210), frase: txt(bp.frase, 130) },
+    brand_persona: { retrato: txt(gp.retrato, 320), jeito: lista(gp.jeito, 4, 120), gosta: lista(gp.gosta, 4, 80), com_o_cliente: txt(gp.com_o_cliente, 210), frase: txt(gp.frase, 130) },
+    restam,
   });
 }
 
