@@ -35,6 +35,9 @@
   const pontos = txt => { const t = String(txt || ''); return CATS.filter(c => c[2]).map(([k, , re], i) => ({ k, i, n: (t.match(new RegExp(re.source, 'gi')) || []).length * (k === 'eventos' ? 0.5 : 1) })).filter(x => x.n).sort((a, b) => b.n - a.n || a.i - b.i); };
   const catDe = txt => (pontos(txt)[0] || {}).k || '';
   const catsDe = txt => pontos(txt).map(x => x.k);
+  /* v3.43 · quando a busca não acha ninguém: o Corre tá começando, e a pessoa precisa saber que o vazio é de agora, não pra sempre */
+  const CRESCE = 'A gente tá no começo e crescendo todo dia: logo mais aparece quem faz o que você procura.';
+  const CRESCE_MURAL = 'O Mural tá no começo e crescendo todo dia: logo mais aparece o que você procura.';
   const QUANDO = [['urgente', 'Urgente'], ['semana', 'Essa semana'], ['mes', 'Esse mês'], ['sem_pressa', 'Sem pressa']];
   const QN = Object.fromEntries(QUANDO);
   const VERBA = [['ate_300', 'Até R$ 300'], ['300_1000', 'R$ 300 a 1 mil'], ['1000_3000', 'R$ 1 a 3 mil'], ['3000_10000', 'R$ 3 a 10 mil'], ['mais_10000', 'Mais de R$ 10 mil'], ['combinar', 'A combinar']];
@@ -184,7 +187,7 @@
     M.rows = rows;
     const w = C.$('mu-wall'); if(!w) return;
     w.innerHTML = rows.length ? rows.map(p => cardHTML(p, pf)).join('')
-      : `<div class="mu-vazio"><p><b>${M.tab === 'pra' ? 'Nenhum pedido pro teu corre por aqui agora.' : 'Nada fixado com esse filtro.'}</b></p><p>${M.tab === 'pra' ? 'Abre "Tudo" pra ver o mural inteiro, ou amplia a área em Ajustar.' : 'Tira um filtro ou fixa o teu pedido: quem faz, chega.'}</p><a class="btn" href="#/mural/novo">${ico('tacha')} Fixar um pedido</a></div>`;
+      : `<div class="mu-vazio"><p><b>${M.tab === 'pra' ? 'Nenhum pedido pro teu corre por aqui agora.' : 'Nada fixado com esse filtro.'}</b></p><p>${M.tab === 'pra' ? 'Abre "Tudo" pra ver o mural inteiro, ou amplia a área em Ajustar.' : `${CRESCE_MURAL} Tira um filtro ou fixa o teu pedido: quem faz, chega.`}</p><a class="btn" href="#/mural/novo">${ico('tacha')} Fixar um pedido</a></div>`;
   }
   /* ---------------- PERGUNTA: o chat aberto do Mural ---------------- */
   const CHAT_K = 'corre-mural-chat-meus', COLS = 'id,nome,cidade,uf,pergunta,resposta,indicados,categoria,pedido,created_at';
@@ -210,7 +213,7 @@
     const top = cands.map(c => ({ c, s: nota(c) })).filter(x => x.s > 0).sort((a, b) => b.s - a.s).slice(0, 3).map(x => x.c);
     const onde = cidade ? ` em ${cidade}` : '';
     return {
-      resposta: top.length ? `Achei ${top.length === 1 ? 'uma pessoa' : top.length + ' pessoas'} no Corre pra isso${onde}. Dá uma olhada no perfil e no que cada um vende.` : `Ainda não tem ninguém no Mural pra isso${onde}. Fixa um pedido: quem faz recebe e te manda proposta.`,
+      resposta: top.length ? `Achei ${top.length === 1 ? 'uma pessoa' : top.length + ' pessoas'} no Corre pra isso${onde}. Dá uma olhada no perfil e no que cada um vende.` : `Ainda não achei ninguém no Corre pra isso${onde}.`,
       indicados: top.map(c => ({ handle: c.handle, motivo: String(c.faz || CAT[c.categoria] || '').slice(0, 110) })),
       pedido: !top.length, categoria: cat
     };
@@ -233,7 +236,7 @@
       <div class="mu-qa-p"><span class="av s">${esc(C.initials(q.nome || '?'))}</span><div class="mu-bolha eu"><span class="mu-qa-h"><b>${esc(q.nome || 'Alguém')}</b>${q.cidade ? ` · ${esc(q.cidade)}${q.uf ? '/' + esc(q.uf) : ''}` : ''} · ${q.created_at ? C.rel(q.created_at) : 'agora'}${meu ? ` <button type="button" class="linklike" data-act="mu-qa-apagar" data-id="${esc(q.id)}">apagar</button>` : ''}</span><p>${esc(q.pergunta)}</p></div></div>
       <div class="mu-qa-r"><span class="mu-ia-av" aria-hidden="true">${ico('tacha')}</span><div class="mu-bolha ia"><span class="mu-qa-h"><b>Mural</b>${opt.local ? ' · resposta rápida' : ''}</span>
         ${opt.pensando ? '<p class="mu-pensa"><i></i><i></i><i></i> procurando quem faz…</p>' : `<p>${esc(q.resposta || '')}</p>
-        ${ind.length ? `<div class="mu-inds">${ind.map(indHTML).join('')}</div>` : ''}
+        ${ind.length ? `<div class="mu-inds">${ind.map(indHTML).join('')}</div>` : `<p>${CRESCE} Enquanto isso, fixa um pedido: quem faz recebe e te manda proposta.</p>`}
         ${q.pedido ? `<button type="button" class="btn sm mu-qa-fixar" data-act="mu-qa-fixar" data-id="${esc(q.id || '')}">${ico('tacha')} Fixar isso como pedido</button>` : ''}`}
       </div></div>
     </article>`;
@@ -324,7 +327,7 @@
     let l = [];
     try{ l = await C.api.rpc('corre_quem_faz', { p_cat: M.qcat, p_uf: M.quf, p_cidade: M.quf ? M.qcid : '', p_q: M.qq }) || []; }catch(e){ const b = C.$('mu-pros'); if(b) b.innerHTML = `<p class="note">${esc(C.errMsg(e))}</p>`; return; }
     const b = C.$('mu-pros'); if(!b) return;
-    b.innerHTML = l.length ? l.map(proHTML).join('') : `<div class="mu-vazio"><p><b>Ninguém com esse filtro ainda.</b></p><p>Tira um filtro, ou fixa o teu pedido no Mural: quem faz recebe e manda proposta.</p><a class="btn" href="#/mural/novo">${ico('tacha')} Fixar um pedido</a></div>`;
+    b.innerHTML = l.length ? l.map(proHTML).join('') : `<div class="mu-vazio"><p><b>Ainda não tem ninguém com esse filtro.</b></p><p>${CRESCE} Enquanto isso, tira um filtro ou fixa o teu pedido no Mural: quem faz recebe e manda proposta.</p><a class="btn" href="#/mural/novo">${ico('tacha')} Fixar um pedido</a></div>`;
   }
   function proHTML(f){
     const t = tom(f.handle);
