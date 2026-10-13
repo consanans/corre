@@ -211,8 +211,11 @@ async function chamadoDaMeta(req: Request, admin: any, tipo: string) {
     const ids = (L || []).map((x: any) => x.id);
     if (ids.length) {
       await admin.from('corre_ig_tokens').delete().in('conta', ids);
-      if (tipo === 'apagar') await admin.from('corre_ig_contas').delete().in('id', ids);
-      else await admin.from('corre_ig_contas').update({ status: 'revogada', erro: 'A conta tirou a permissão do Corre no Instagram.', updated_at: agora() }).in('id', ids);
+      if (tipo === 'apagar') {
+        // antes de apagar a conta (o post perde o vínculo depois): o código e o link do post no Instagram também são dado que veio da Meta
+        await admin.from('corre_posts').update({ ig_media_id: '', ig_link: '' }).in('ig_conta', ids);
+        await admin.from('corre_ig_contas').delete().in('id', ids);
+      } else await admin.from('corre_ig_contas').update({ status: 'revogada', erro: 'A conta tirou a permissão do Corre no Instagram.', updated_at: agora() }).in('id', ids);
     }
   }
   if (tipo === 'apagar') return json({ url: `${SITE}/privacidade.html#instagram`, confirmation_code: crypto.randomUUID().replace(/-/g, '').slice(0, 16) });
