@@ -2914,7 +2914,8 @@
     const ia = { imagem: 'Imagem com IA', legenda: 'Legenda ou pauta com IA', abordagem: 'Hórus com IA', marca: 'Studio Houzi com IA' }[a] || 'IA';
     return tipo === 'volta' ? `${ia}: devolvido (a IA falhou)` : ia;
   };
-  /* a carteira (abre daqui da cidade e do perfil) */
+  /* a carteira (abre daqui da cidade, do perfil e do Financeiro no menu). v3.43: morando no Financeiro, ela diz com
+     todas as letras que correal não é dinheiro, que é a regra da casa */
   async function carteiraSheet(){
     await C.correalCarrega();
     let L = []; try{ L = await C.api.q('corre_correal_log', { eq: { dono: C.uid() }, order: ['created_at', false], limit: 10 }); }catch(e){}
@@ -2926,7 +2927,7 @@
       <p class="cart-p">Fazendo tarefa no Correverso: abre o Trampo, escolhe o uniforme (o boneco troca na hora) e pega uma tarefa. Cada ponto da tarefa vira 1 correal, até ${w.teto} por dia.</p>
       <h3 class="cart-h">Onde usa</h3>
       <ul class="cart-precos"><li><span>Imagem com IA (Studio)</span><b class="num">${P.imagem}</b></li><li><span>Legenda ou pauta com IA</span><b class="num">${P.legenda}</b></li><li><span>Mensagem ou leitura do Hórus</span><b class="num">${P.abordagem}</b></li><li><span>Textos e nomes do Studio Houzi</span><b class="num">${P.marca}</b></li></ul>
-      <p class="fine">Só depois que o grátis do dia acaba, e o Corre sempre pergunta antes. Se a IA falhar, o correal volta.</p>
+      <p class="fine">Correal é a moeda do Correverso, não é dinheiro: não compra, não vende e não passa pra ninguém. Só entra depois que o grátis do dia acaba, e o Corre sempre pergunta antes. Se a IA falhar, o correal volta.</p>
       ${L.length ? `<h3 class="cart-h">Extrato</h3><ul class="cart-ext">${L.map(l => `<li><span>${esc(rotuloCorreal(l.motivo))}</span><small>${esc(C.rel(l.created_at))}</small><b class="num${l.valor > 0 ? ' mais' : ''}">${l.valor > 0 ? '+' : ''}${l.valor}</b></li>`).join('')}</ul>` : ''}
       <div class="acts">${naCidade ? `<button type="button" class="btn pri" data-act="cvr-trampo">${ico('raio')} Pegar tarefa</button>` : `<a class="btn pri" href="#/verso">${ico('verso')} Ir pro Correverso</a>`}</div></div>`);
   }
@@ -3288,6 +3289,8 @@
     if(C.casa && C.casa.aberta()){ V.teclas.clear(); return; }
     const alvo = e.target, digitando = alvo && (alvo.tagName === 'INPUT' || alvo.tagName === 'TEXTAREA' || alvo.tagName === 'SELECT' || alvo.isContentEditable);
     const sh = C.$('sheet'); if(digitando || (sh && !sh.hidden)){ V.teclas.clear(); return; }
+    /* v3.43: Espaço ou Enter num grupo do menu (ou na Carteira, no sino) que a pessoa alcançou pelo Tab abre ele, não pula */
+    if(C.teclaDoMenu && C.teclaDoMenu(e)) return;
     const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
     if(TECLAS.has(k)){ e.preventDefault(); if(e.type === 'keydown') V.teclas.add(k); else V.teclas.delete(k); }
     /* v3.40: espaço pula (de moto e de carro, buzina); B buzina (ou toca a campainha da bike) */

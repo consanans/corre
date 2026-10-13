@@ -113,7 +113,11 @@
     /* v3.40: a garagem (veículos) e o avião do Correverso */
     carro: '<path d="M3.5 16.5v-4.2l2.1-4.4a2 2 0 0 1 1.8-1.1h9.2a2 2 0 0 1 1.8 1.1l2.1 4.4v4.2z"/><path d="M3.5 12.3h17"/><circle cx="7.5" cy="16.8" r="1.7"/><circle cx="16.5" cy="16.8" r="1.7"/>',
     aviao: '<path d="M12 2.8c.9 0 1.5 1 1.5 2.4v4.9l7.2 4v2l-7.2-2.1v4.2l2.1 1.6v1.6L12 20.3l-3.6 1.1v-1.6l2.1-1.6V14L3.3 16.1v-2l7.2-4V5.2c0-1.4.6-2.4 1.5-2.4z"/>',
-    buzina: '<path d="M3.5 10h3l7-4.5v13l-7-4.5h-3z"/><path d="M17 9.5l2.5-1.5M17.5 12h3M17 14.5l2.5 1.5"/>'
+    buzina: '<path d="M3.5 10h3l7-4.5v13l-7-4.5h-3z"/><path d="M17 9.5l2.5-1.5M17.5 12h3M17 14.5l2.5 1.5"/>',
+    /* v3.43: os grupos do menu têm ícone próprio (o frasco do Laboratório e a banca com toldo), pra não repetir o de
+       um item de dentro quando o menu é só ícone */
+    lab: '<path d="M9.5 3.5h5"/><path d="M10.5 3.5v5.4L5.2 18.2a1.6 1.6 0 0 0 1.4 2.3h10.8a1.6 1.6 0 0 0 1.4-2.3L13.5 8.9V3.5"/><path d="M7.6 14.5h8.8"/>',
+    toldo: '<path d="M3.5 9 5.2 4.5h13.6L20.5 9"/><path d="M3.5 9a2.83 2.83 0 0 0 5.67 0 2.83 2.83 0 0 0 5.66 0 2.83 2.83 0 0 0 5.67 0"/><path d="M5 11.6v8.9h14v-8.9"/><path d="M10 20.5v-5h4v5"/>'
   };
   const ico = (k, cls) => `<svg class="ic${cls ? ' ' + cls : ''}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${I[k] || ''}</svg>`;
 

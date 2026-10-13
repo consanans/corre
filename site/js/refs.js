@@ -94,7 +94,7 @@
     const ds = proximas(cat, 6);
     const app = C.$('app');
     app.innerHTML = C.header('refs') + `<main class="wrap rf">
-      <div class="hello"><h1><span class="hl">Referências</span></h1><p>${cat ? `Do teu corre: <b>${esc(catN)}</b>.` : `Diz o que você vende em <a href="#/editar">Editar perfil</a> e as datas e a Banca se ajustam ao teu nicho.`} Na aba do Rolo 360, junto da sala de projeção e da Banca.</p></div>
+      <div class="hello"><h1><span class="hl">Referências</span></h1><p>${cat ? `Do teu corre: <b>${esc(catN)}</b>.` : `Diz o que você vende em <a href="#/editar">Editar perfil</a> e as datas e a Banca se ajustam ao teu nicho.`} Mora na Banca do menu, com a Banca do dia e o Rolo 360.</p></div>
       <div class="sec-row"><h2 class="sec-t"><span class="hl">Datas que vendem</span></h2></div>
       <div class="rf-datas">${ds.map(dataHTML).join('')}</div>
       <div class="sec-row"><h2 class="sec-t"><span class="hl">Preço de mercado</span></h2></div>

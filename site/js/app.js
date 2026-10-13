@@ -16,17 +16,17 @@
   }
 
   /* ---------------- moldura ---------------- */
-  /* v3.19: o menu é a cidade e o dinheiro. Correverso no meio (maior), Mural e Corre do lado, Início e Perfil nas pontas.
-     Studio e Hórus moram no Perfil (Ferramentas, com atalho no Início). v3.38: o Rolo 360 abre pra todo mundo. */
+  /* v3.19: o menu é a cidade e o dinheiro. v3.38: no jeito do X (lista no computador, barra e gaveta no celular).
+     v3.43: em grupos, como o Thales pediu: o Laboratório (Studio e Studio Houzi), o Financeiro (Vendas e Grana e a
+     carteira de correal) e a Banca (Banca do dia, Do teu nicho e Rolo 360). O Correverso e o Mural ficam juntos no
+     meio, em destaque: a praça. */
   const FUNDADOR = 'd1e9f6ac-f5d7-4723-8b02-eb0d1d7137b0';
   C.ehFundador = () => !!st.me && (st.me.id === FUNDADOR || (!!C.DEMO && st.me.handle === 'consanans'));
   /* a casa do fundador (o loft) é dele por id, mesmo que o @ mude */
   C.fundadorId = () => FUNDADOR;
   /* ferramentas ligadas no perfil (corre_perfis.ferramentas): o Hórus liga e desliga; o Studio tá sempre na porta */
   C.ferr = k => { const f = (st.me && st.me.ferramentas && typeof st.me.ferramentas === 'object') ? st.me.ferramentas : {}; if(k === 'studio') return f.studio !== false; return f[k] === undefined ? !!C.DEMO : f[k] === true; };
-  /* v3.38 · o menu no jeito do X; v3.39 · por prioridade. Um ranking só manda em tudo: no computador, os 9 primeiros vão
-     pra lista (o Correverso é o 5º, o do meio, como o Grok) e o resto pro Mais, na mesma ordem; no celular, a barra leva
-     os 4 que mais se usam com o Correverso no meio, e a gaveta da tua foto leva o resto, na mesma ordem. */
+  /* cada lugar do menu: [endereço, nome, ícone]. Sem endereço é botão (o sino abre os avisos; a carteira abre por cima) */
   const DEST = me => ({
     inicio: ['#/', 'Início', 'home'], msg: ['#/msg', 'Mensagens', 'send'], avisos: ['', 'Avisos', 'bell'], studio: ['#/studio', 'Studio', 'magia'],
     verso: ['#/verso', 'Correverso', 'verso'], corre: ['#/corre', 'Vendas e Grana', 'grana'], mural: ['#/mural', 'Mural', 'tacha'],
@@ -34,17 +34,27 @@
     horus: ['#/horus', 'Hórus', 'eye'], rolo: ['#/rolo', 'Rolo 360', 'rolo'], carteira: ['', 'Carteira de correal', 'correal'],
     marcas: ['#/marcas', 'Portfólio e catálogo', 'marcas'], salvos: ['#/salvos', 'Salvos', 'save'], banca: ['#/banca', 'Banca do dia', 'banca'], refs: ['#/refs', 'Do teu nicho', 'cal']
   });
-  /* a prioridade: o dia (Início), a conversa (Mensagens e Avisos), o trampo de todo dia (Studio), a cidade no meio,
-     o dinheiro (Vendas e Grana), onde chega trampo (Mural), a marca (Studio Houzi) e a vitrine (Perfil); depois o resto */
-  const PRIORIDADE = ['inicio', 'msg', 'avisos', 'studio', 'verso', 'corre', 'mural', 'houzi', 'perfil', 'grupos', 'horus', 'rolo', 'carteira', 'marcas', 'salvos', 'banca', 'refs'];
-  const NA_LISTA = 9, BARRA = ['inicio', 'studio', 'verso', 'avisos', 'msg'];
-  const destinos = me => { const D = DEST(me); return PRIORIDADE.filter(k => (k !== 'horus' || C.ferr('horus')) && (k !== 'houzi' || C.views.houzi) && (k !== 'grupos' || C.views.grupos)).map(k => [k].concat(D[k])); };
-  const navDe = me => destinos(me).slice(0, NA_LISTA);
-  const maisDe = me => destinos(me).slice(NA_LISTA);
-  /* de qual item do menu cada página é (e pra onde a setinha de voltar leva) */
-  const DONO = { corre: 'corre', vendas: 'corre', grana: 'corre', estilo: 'corre', banca: 'inicio', refs: 'inicio', studio: 'studio', 'studio-dentro': 'studio', houzi: 'houzi', editar: 'perfil' };
-  const VOLTA = { banca: ['#/', 'Início'], refs: ['#/', 'Início'], estilo: ['#/corre', 'Vendas e Grana'], horus: ['perfil', 'Perfil'], marcas: ['perfil', 'Perfil'], salvos: ['perfil', 'Perfil'] };
-  const itemSimples = ([k, h, l, i], cls) => h ? `<a${cls ? ` class="${cls}-${k}"` : ''} href="${esc(h)}"${cls ? ' role="menuitem"' : ''}>${ico(i)}${l}</a>` : `<button type="button"${cls ? ` class="${cls}-${k}" role="menuitem"` : ''} data-act="${k === 'avisos' ? 'sino' : k}">${ico(i)}${l}</button>`;
+  /* os grupos: [nome, ícone, o que mora dentro]. No computador cada um abre ali mesmo, no menu; no celular a gaveta
+     da tua foto já mostra eles abertos */
+  const GRUPOS = { lab: ['Laboratório', 'lab', ['studio', 'houzi']], fin: ['Financeiro', 'calc', ['corre', 'carteira']], banca: ['Banca', 'toldo', ['banca', 'refs', 'rolo']] };
+  const GRUPO_DE = {}; Object.keys(GRUPOS).forEach(g => GRUPOS[g][2].forEach(k => { GRUPO_DE[k] = g; }));
+  /* a lista do computador: a conversa em cima, o Laboratório onde o Studio morava, a praça no meio */
+  const LISTA = ['inicio', 'msg', 'avisos', 'g:lab', 'praca', 'g:fin', 'g:banca', 'perfil'], PRACA = ['verso', 'mural'];
+  const MAIS = ['grupos', 'horus', 'marcas', 'salvos'];
+  /* a barra do celular: o Studio fica onde o dedo já sabe e a praça vai pro meio; o sino sobe pro alto, do lado do olho */
+  const BARRA = ['inicio', 'studio', 'verso', 'mural', 'msg'];
+  /* o que depende do perfil ou do módulo carregado: o Hórus liga e desliga, o Studio Houzi e os Grupos podem não vir */
+  const tem = k => (k !== 'horus' || C.ferr('horus')) && (k !== 'houzi' || C.views.houzi) && (k !== 'grupos' || C.views.grupos);
+  /* de qual item do menu cada página é (e pra onde a setinha de voltar leva). Banca e Nicho não são mais filhas do
+     Início: moram na Banca, e o grupo aberto no menu já diz onde você tá */
+  const DONO = { vendas: 'corre', grana: 'corre', estilo: 'corre', 'studio-dentro': 'studio', editar: 'perfil' };
+  const VOLTA = { estilo: ['#/corre', 'Vendas e Grana'], horus: ['perfil', 'Perfil'], marcas: ['perfil', 'Perfil'], salvos: ['perfil', 'Perfil'] };
+  /* onde o Postar redondo do celular aparece: no Início, no teu perfil e nas páginas de ler (Banca do dia e Do teu
+     nicho), como até a v3.42, quando elas eram do Início. O Editar perfil acende o Perfil, mas ali ninguém posta */
+  const POSTAR = ['inicio', 'perfil', 'banca', 'refs'];
+  /* um item sem enfeite (o Mais e a gaveta). O da página aberta ganha aria-current; a carteira avisa que abre por cima */
+  const itemSimples = ([k, h, l, i], cls, ativo) => h ? `<a${cls ? ` class="${cls}-${k}"` : ''} href="${esc(h)}"${cls ? ' role="menuitem"' : ''}${ativo ? ' aria-current="page"' : ''}>${ico(i)}${l}</a>`
+    : `<button type="button"${cls ? ` class="${cls}-${k}" role="menuitem"` : ''} data-act="${k === 'avisos' ? 'sino' : k}"${k === 'carteira' ? ' aria-haspopup="dialog"' : ''}>${ico(i)}${l}</button>`;
   /* o sino, as mensagens e a conta aparecem duas vezes (no computador e no celular): o id fica com o que tá na tela */
   const MQ = matchMedia('(min-width: 901px)');
   const idSe = (desk, id) => (MQ.matches === desk ? ` id="${id}"` : '');
@@ -57,28 +67,65 @@
   const itemMenu = (k, h, l, i, cls, ativo, desk) => {
     const n = k === 'avisos' ? `<span class="sino-n num" hidden></span>` : k === 'msg' ? `<span class="msg-n num" hidden></span>` : '';
     const dados = k === 'avisos' ? ` data-sino${idSe(desk, 'sino')}` : k === 'msg' ? ` data-msg${idSe(desk, 'msg-btn')}` : '';
-    const ic = k === 'verso' ? `<span class="tb-bola">${ico(i)}</span>` : `<span class="mi-ic">${ico(i)}${n}</span>`, c = `${cls} ${desk ? 'lado' : 'tb'}-${k}`;
+    /* a praça: o Correverso é a noite com estrela, o Mural é a cortiça (a mesma forma, cada um com a sua cara) */
+    const ic = k === 'verso' ? `<span class="tb-bola">${ico(i)}</span>` : k === 'mural' ? `<span class="tb-bola tb-cortica">${ico(i)}</span>` : `<span class="mi-ic">${ico(i)}${n}</span>`, c = `${cls} ${desk ? 'lado' : 'tb'}-${k}`;
     return h ? `<a class="${c}" href="${esc(h)}" title="${l}" aria-label="${l}"${dados}${ativo ? ' aria-current="page"' : ''}>${ic}<span class="mi-t">${l}</span></a>`
       : `<button type="button" class="${c}" data-act="${k === 'avisos' ? 'sino' : k}" title="${l}" aria-label="${l}"${dados}>${ic}<span class="mi-t">${l}</span></button>`;
   };
-  /* a conta (o mesmo menu no computador e no celular; no celular ele vira a gaveta) */
-  const contaHTML = (me, gaveta) => `${gaveta ? `<div class="gv-topo"><a href="#/@${esc(me.handle)}" aria-label="Teu perfil">${avatar(me, 'm')}</a><b>${esc(me.nome || '')}</b><small>@${esc(me.handle)}</small></div>
-      ${(() => { const l = destinos(me).filter(x => !BARRA.includes(x[0])), p = l.findIndex(x => x[0] === 'perfil'), topo = [l[p]].concat(l.filter((x, i) => i !== p).slice(0, 4)), resto = l.filter(x => !topo.includes(x));
-        return topo.filter(Boolean).map(x => itemSimples(x)).join('') + (resto.length ? `<span class="gv-k">Mais</span>${resto.map(x => itemSimples(x)).join('')}` : ''); })()}
+  /* um item dentro do grupo (computador): link, ou botão (a carteira abre por cima) */
+  const filho = (k, [h, l, i], ativo) => h ? `<a class="lado-gi lado-gi-${k}" href="${esc(h)}" title="${l}" aria-label="${l}"${ativo ? ' aria-current="page"' : ''}>${ico(i)}<span class="mi-t">${l}</span></a>`
+    : `<button type="button" class="lado-gi lado-gi-${k}" data-act="${k}" title="${l}" aria-label="${l}" aria-haspopup="dialog">${ico(i)}<span class="mi-t">${l}</span></button>`;
+  /* o grupo no computador. Abre o da página aberta; fora dos grupos, o Laboratório (o Studio fica a 1 clique). Um por
+     vez: o name do details faz isso sozinho. Não guarda nada: o menu se redesenha a cada página e a regra decide de
+     novo. Grupo com um item só vira item solto. O aberto/fechado o leitor de tela já ouve do próprio details (nada de
+     aria-expanded escrito à mão, que ficaria velho no primeiro clique) */
+  const grupoLado = (g, D, active) => {
+    const [t, i, ks] = GRUPOS[g], itens = ks.filter(tem);
+    if(itens.length < 2) return itens.map(k => itemMenu(k, D[k][0], D[k][1], D[k][2], 'lado-i', k === active, true)).join('');
+    const aqui = itens.includes(active), aberto = aqui || (!GRUPO_DE[active] && g === 'lab');
+    return `<details class="lado-g${aqui ? ' aqui' : ''}" data-g="${g}" name="lado-g"${aberto ? ' open' : ''}><summary class="lado-i lado-gs" title="${t}" aria-label="${t}"><span class="mi-ic">${ico(i)}</span><span class="mi-t">${t}</span>${ico('next', 'lado-g-seta')}</summary>
+      <div class="lado-g-m" role="group" aria-label="${t}">${itens.map(k => filho(k, D[k], k === active)).join('')}</div></details>`;
+  };
+  /* a gaveta do celular: o Perfil, os três grupos já abertos (tudo a 2 toques) e o Mais. O que tá na barra também
+     aparece no grupo dele, pro grupo ficar inteiro */
+  const gavetaHTML = (me, active) => {
+    const D = DEST(me), um = k => tem(k) ? itemSimples([k].concat(D[k]), '', k === active) : '';
+    const bloco = (id, t, i, ks) => { const l = ks.filter(tem); return l.length ? `<div class="gv-g" role="group" aria-labelledby="gv-g-${id}"><span class="gv-k" id="gv-g-${id}">${i ? ico(i) : ''}${t}</span>${l.map(um).join('')}</div>` : ''; };
+    return um('perfil') + Object.keys(GRUPOS).map(g => bloco(g, GRUPOS[g][0], GRUPOS[g][1], GRUPOS[g][2])).join('') + bloco('mais', 'Mais', '', MAIS);
+  };
+  /* em tela baixa a lista do menu rola: o item da página aberta (e o grupo que acabou de abrir) aparece inteiro.
+     Mexe só no scrollTop da lista, nunca na página */
+  const aVista = el => { const n = el && el.closest('.lado-nav'); if(!n) return; const r = el.getBoundingClientRect(), N = n.getBoundingClientRect();
+    if(r.bottom > N.bottom) n.scrollTop += r.bottom - N.bottom + 8; else if(r.top < N.top) n.scrollTop -= N.top - r.top + 8; };
+  /* a cidade usa o Espaço (pula) e o Enter (porta). Quem chegou no menu pelo Tab (um grupo, a Carteira, o sino) usa as
+     duas pra abrir o que tá no foco, como em qualquer página; quem clicou com o mouse e voltou pro jogo segue pulando.
+     Por isso o app lembra se o último foco veio do teclado (o :focus-visible não serve: o Chrome liga ele em qualquer
+     tecla, até na seta do jogo) */
+  let focoTeclado = false;
+  addEventListener('keydown', e => { if(e.key === 'Tab') focoTeclado = true; }, true);
+  addEventListener('pointerdown', () => { focoTeclado = false; }, true);
+  C.teclaDoMenu = e => focoTeclado && (e.key === ' ' || e.key === 'Enter') && !!(e.target && e.target.closest && e.target.closest('.lado, .hdr, .tabbar, .migalha'));
+  /* a conta (o mesmo menu no computador e no celular; no celular ele vira a gaveta, com o menu inteiro em cima) */
+  const contaHTML = (me, gaveta, active) => `${gaveta ? `<div class="gv-topo"><a href="#/@${esc(me.handle)}" aria-label="Teu perfil">${avatar(me, 'm')}</a><b>${esc(me.nome || '')}</b><small>@${esc(me.handle)}</small></div>
+      ${gavetaHTML(me, active)}
       <span class="gv-k">Conta</span>` : `<a href="#/@${esc(me.handle)}">${ico('eu')}Meu perfil</a><a href="#/salvos">${ico('save')}Salvos</a>`}
       <a href="#/editar">${ico('edit')}Editar perfil</a><button type="button" data-act="st-novo">${ico('plus')}Postar story</button>${C.push ? `<button type="button" data-act="push-ajustes">${ico('bell')}Avisos no celular</button>` : ''}<button type="button" data-act="manual">${ico('manual')}Manual do Corre</button>
       <a href="privacidade.html">${ico('lock')}Privacidade</a><button type="button" data-act="sair">${ico('prev')}Sair</button>`;
   /* o menu da esquerda (computador) */
-  const lado = (active, me) => `<aside class="lado" aria-label="Menu do Corre">
+  const lado = (active, me) => {
+    const D = DEST(me), mais = MAIS.filter(tem), um = k => itemMenu(k, D[k][0], D[k][1], D[k][2], 'lado-i', k === active, true);
+    const nav = LISTA.map(x => x === 'praca' ? `<div class="lado-praca">${PRACA.map(um).join('')}</div>` : x.startsWith('g:') ? grupoLado(x.slice(2), D, active) : tem(x) ? um(x) : '').join('');
+    return `<aside class="lado" aria-label="Menu do Corre">
       <a class="wm lado-wm" href="#/" aria-label="Corre, início"><span class="lado-wm-t">Corre</span><span class="lado-wm-c" aria-hidden="true">C</span><span class="wm-tag" aria-hidden="true">rede</span></a>
-      <nav class="lado-nav" aria-label="Navegação">${navDe(me).map(([k, h, l, i]) => itemMenu(k, h, l, i, 'lado-i', k === active, true)).join('')}
-        <details class="lado-mais"><summary class="lado-i" title="Mais"${maisDe(me).some(x => x[0] === active) ? ' aria-current="page"' : ''}><span class="mi-ic">${ico('dots')}</span><span class="mi-t">Mais</span></summary>
-          <div class="lado-mais-m" role="menu">${maisDe(me).map(x => itemSimples(x, 'lado')).join('')}</div></details>
+      <nav class="lado-nav" aria-label="Navegação">${nav}
+        <details class="lado-mais"><summary class="lado-i" title="Mais"${mais.includes(active) ? ' aria-current="page"' : ''}><span class="mi-ic">${ico('dots')}</span><span class="mi-t">Mais</span></summary>
+          <div class="lado-mais-m" role="menu">${mais.map(k => itemSimples([k].concat(D[k]), 'lado')).join('')}</div></details>
       </nav>
       <button type="button" class="btn pri lado-post" data-act="lado-postar" title="Postar no feed">${ico('plus')}<span>Postar</span></button>
       <details class="me lado-conta"${idSe(true, 'me')}><summary class="lado-eu" aria-label="Tua conta">${avatar(me, 's')}<span><b>${esc(me.nome || '')}</b><small>@${esc(me.handle)}</small></span>${ico('dots')}</summary>
-        <div class="me-menu">${contaHTML(me, false)}</div></details>
+        <div class="me-menu">${contaHTML(me, false, active)}</div></details>
     </aside>`;
+  };
   C.header = function(cru){
     const me = st.me;
     let active = DONO[cru] || cru;
@@ -99,14 +146,17 @@
     if(logged && C.push) setTimeout(() => C.push.sync(), 1500);
     /* o manual abre sozinho na primeira entrada e a cada atualização */
     if(logged && C.manual) setTimeout(() => C.manual.talvez(), 900);
+    /* em tela baixa a lista do menu rola: o item aceso aparece (depois de a página ir pra tela) */
+    if(logged) setTimeout(() => aVista(document.querySelector('.lado-nav [aria-current="page"]')), 0);
     const v = logged && VOLTA[cru], volta = v ? (v[0] === 'perfil' ? ['#/@' + me.handle, 'Perfil'] : v) : null;
     return `<header class="hdr">
       ${logged ? `<details class="me hdr-eu"${idSe(false, 'me')}><summary aria-label="Abrir o menu: teu perfil e o teu corre">${avatar(me, 's')}</summary>
-        <div class="gv-scrim" data-act="gaveta-x" aria-hidden="true"></div><div class="me-menu gaveta" aria-label="Teu menu">${contaHTML(me, true)}</div></details>` : ''}
+        <div class="gv-scrim" data-act="gaveta-x" aria-hidden="true"></div><div class="me-menu gaveta" aria-label="Teu menu">${contaHTML(me, true, active)}</div></details>` : ''}
       <nav class="topnav" aria-label="Navegação">
         <a class="wm" href="#/" aria-label="Corre, início">Corre<span class="wm-tag" aria-hidden="true">rede</span></a>
         ${!st.user ? `<a class="hl" href="#/">Entrar</a>` : ''}
       </nav>
+      ${logged ? `<button type="button" class="sino hdr-sino" data-act="sino" data-sino${idSe(false, 'sino')} aria-label="Avisos e agenda" title="Avisos">${ico('bell')}<span class="sino-n num" hidden></span></button>` : ''}
       ${logged ? `<button type="button" class="oculto-btn" data-act="oculto" aria-pressed="${C.oculto}" aria-label="${C.oculto ? 'Mostrar valores' : 'Esconder valores'}" title="${C.oculto ? 'Mostrar valores' : 'Esconder valores'}">${ico(C.oculto ? 'eyeoff' : 'eye')}</button>` : ''}
       ${st.user && !me ? `<details class="me" id="me">
         <summary aria-label="Menu da conta">${avatar({ nome: st.user.email }, 's')}</summary>
@@ -115,8 +165,8 @@
     </header>
     ${volta ? `<nav class="migalha" aria-label="Voltar"><a href="${esc(volta[0])}">${ico('prev')} ${esc(volta[1])}</a></nav>` : ''}
     ${logged ? lado(active, me) : ''}
-    ${logged ? `<nav class="tabbar tbx" aria-label="Navegação">${BARRA.map(k => destinos(me).find(x => x[0] === k)).filter(Boolean).map(([k, h, l, i]) => itemMenu(k, h, l, i, 'tb-i', k === active, false)).join('')}</nav>
-      ${active === 'inicio' || active === 'perfil' ? `<button type="button" class="tb-postar" data-act="lado-postar" aria-label="Postar no feed">${ico('plus')}</button>` : ''}` : ''}`;
+    ${logged ? `<nav class="tabbar tbx" aria-label="Navegação">${BARRA.filter(tem).map(k => { const [h, l, i] = DEST(me)[k]; return itemMenu(k, h, l, i, 'tb-i', k === active, false); }).join('')}</nav>
+      ${POSTAR.includes(cru || active) ? `<button type="button" class="tb-postar" data-act="lado-postar" aria-label="Postar no feed">${ico('plus')}</button>` : ''}` : ''}`;
   };
 
   /* Corre: vendas e grana na mesma página, sem abas. #/vendas e #/grana caem aqui, na seção certa */
@@ -238,7 +288,8 @@
     bindForm(true);
   }
   function viewEdit(){
-    app.innerHTML = C.header('') + `<main class="wrap">
+    /* 'editar' (e não ''): o DONO leva pro Perfil, que acende no menu e na gaveta */
+    app.innerHTML = C.header('editar') + `<main class="wrap">
       <h2 class="sec-t"><span class="hl">Editar perfil</span></h2>
       <section class="card">${profileForm(st.me, false)}</section>
       <section class="card danger"><h2 class="ch">Apagar meu perfil</h2><p class="note">Apaga perfil, catálogo, vendas e orçamentos, clientes do Hórus, pedidos e propostas do Mural, referências, portfólio, stories, destaques, vitrine, contas e lançamentos. Não dá pra desfazer.</p>
@@ -380,9 +431,10 @@
   async function viewHome(){
     const me = st.me;
     const cards = C.home.slice().sort((a, b) => a.o - b.o);
+    /* v3.43: os atalhos seguem a ordem dos grupos do menu (Laboratório, Financeiro, Banca), pro olho achar no mesmo lugar */
     app.innerHTML = C.header('inicio') + `<main class="wrap home">
       <div class="hello"><h1><span class="hl">E aí, ${esc(C.firstName(me.nome))}.</span></h1><p>Teu corre tá <b>${me.visibilidade === 'mocado' ? 'mocado' : 'na vitrine'}</b>. <a href="#/@${esc(me.handle)}">Ver meu perfil</a></p></div>
-      <nav class="atalhos" aria-label="Tuas ferramentas"><a class="atalho" href="#/studio">${ico('magia')}<span>Studio</span></a><a class="atalho" href="#/corre">${ico('grana')}<span>Vendas e Grana</span></a>${C.views.houzi ? `<a class="atalho" href="#/houzi">${ico('houzi')}<span>Studio Houzi</span></a>` : ''}${C.ferr('horus') ? `<a class="atalho" href="#/horus">${ico('eye')}<span>Hórus</span></a>` : ''}<a class="atalho" href="#/rolo">${ico('rolo')}<span>Rolo 360</span></a><a class="atalho" href="#/banca">${ico('banca')}<span>Banca do dia</span></a><a class="atalho" href="#/refs">${ico('cal')}<span>Do teu nicho</span></a><a class="atalho ghost" href="#/@${esc(me.handle)}">${ico('plus')}<span>Teu corre</span></a></nav>
+      <nav class="atalhos" aria-label="Tuas ferramentas"><a class="atalho" href="#/studio">${ico('magia')}<span>Studio</span></a>${C.views.houzi ? `<a class="atalho" href="#/houzi">${ico('houzi')}<span>Studio Houzi</span></a>` : ''}<a class="atalho" href="#/corre">${ico('grana')}<span>Vendas e Grana</span></a><a class="atalho" href="#/banca">${ico('banca')}<span>Banca do dia</span></a><a class="atalho" href="#/refs">${ico('cal')}<span>Do teu nicho</span></a><a class="atalho" href="#/rolo">${ico('rolo')}<span>Rolo 360</span></a>${C.ferr('horus') ? `<a class="atalho" href="#/horus">${ico('eye')}<span>Hórus</span></a>` : ''}<a class="atalho ghost" href="#/@${esc(me.handle)}">${ico('plus')}<span>Teu corre</span></a></nav>
       <section class="card sbar-card" aria-label="Stories" id="h-stories"><div class="sbar"><p class="sb-empty">Carregando stories…</p></div></section>
       <div id="h-grupos" class="h-grupos"></div>
       <div class="feed-grid">
@@ -699,6 +751,12 @@
     m.style.bottom = sobe ? Math.round(Math.max(12, innerHeight - r.bottom - 6)) + 'px' : 'auto';
   });
   addEventListener('resize', () => document.querySelectorAll('details.lado-mais[open], details.lado-conta[open]').forEach(m => { m.open = false; }));
+  /* abriu um grupo do menu (clique, Enter ou Espaço viram clique): se a lista rola, o último item dele aparece inteiro.
+     Os grupos não entram nas listas de cima (fechar ao tocar fora ou com o Esc): não ficam por cima de nada */
+  document.addEventListener('click', e => {
+    const s = e.target.closest('.lado-g > summary'); if(!s) return;
+    setTimeout(() => { const d = s.parentElement; if(d.open) aVista(d.querySelector('.lado-g-m > :last-child')); }, 0);
+  });
   /* tocar em "Correverso" já estando em #/verso não muda o endereço, então o navegador não avisa ninguém:
      se a cidade tiver parada (voltou pelo botão voltar, aba restaurada...), abre de novo */
   document.addEventListener('click', e => {
