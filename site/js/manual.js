@@ -6,10 +6,11 @@
   'use strict';
   const C = window.Corre, { esc, ico } = C;
   /* sobe esse número a cada atualização: quem já viu recebe de novo, abrindo nas novidades */
-  const VERSAO = '3.44';
+  const VERSAO = '3.45';
   const K = 'corre-manual-visto';
 
   const NOVIDADES = [
+    ['verso', 'Correverso: a Casa do Hórus', 'Na Feira, a barraca do Hórus virou porta: toca em "Entrar na Casa do Hórus" e você entra num templo egípcio 3D, do jeito dos templos rosacruzes (piso de terracota, o tablado de dentes de serra, colunas, o Oriente com o púlpito), no mesmo estilo do teu boneco. O altar do meio é o radar: chega perto e toca pra abrir o Hórus ali dentro. Quem tá lá ao mesmo tempo aparece junto. É a primeira; as outras ferramentas da Feira vêm no mesmo jeito.'],
     ['lab', 'Menu ainda mais junto', 'A Rede junta o Início, as Mensagens, os Grupos e os Avisos (o número de não lidos aparece lá dentro, e um pontinho rosa no grupo fechado avisa que tem coisa nova). O Hórus e o Portfólio foram pro Laboratório, do lado do Studio e do Studio Houzi. O teu perfil e os Salvos ficam juntos no Perfil. Com isso o Mais sumiu: tudo tem lugar.'],
     ['verso', 'Correverso: o minimapa', 'No canto da cidade agora tem um mapinha ao vivo: você é o quadradinho rosa piscando e quem tá na cidade aparece em branco. Toca nele pra abrir o mapa grande e viajar.'],
     ['lab', 'Menu em grupos: Laboratório, Financeiro e Banca', 'O menu agora é em grupos. No Laboratório: o Studio e o Studio Houzi. No Financeiro: Vendas e Grana e a carteira de correal. Na Banca: a Banca do dia, o Do teu nicho e o Rolo 360. No computador, toca no nome do grupo pra abrir ali mesmo; o grupo da página aberta já vem aberto (nas outras páginas, o Laboratório). O Correverso e o Mural ficam em destaque, juntos no meio. No celular, a barra de baixo é Início, Studio, Correverso, Mural e Mensagens; o sino dos avisos subiu pro alto, do lado do olho, e o resto mora na tua foto, já separado por grupo.'],

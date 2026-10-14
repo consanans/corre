@@ -1045,7 +1045,7 @@
   const BARRACAS = [
     { id: 'feed', titulo: 'Feed', placa: 'FEED', rota: '#/', ico: 'chat', botao: 'Abrir o feed', cor: ROSA, fundo: '#2B2F38', coisa: 'cartaz' },
     { id: 'studio', titulo: 'Studio', placa: 'STUDIO', rota: '#/studio', ico: 'magia', botao: 'Entrar no Studio', cor: AMARELO, fundo: '#F4F1EA', coisa: 'cavalete' },
-    { id: 'horus', titulo: 'Hórus', placa: 'HORUS', rota: '#/horus', ico: 'eye', botao: 'Abrir o Hórus', cor: INK, fundo: '#1B1D22', coisa: 'olho', pf: INK, pc: AMARELO },
+    { id: 'horus', titulo: 'Hórus', placa: 'HORUS', rota: '#/horus', ico: 'eye', botao: 'Entrar na Casa do Hórus', cor: INK, fundo: '#1B1D22', coisa: 'olho', pf: INK, pc: AMARELO, lugar: 'horus' },
     { id: 'vendas', titulo: 'Vendas', placa: 'VENDAS', rota: '#/vendas', ico: 'recibo', botao: 'Abrir as vendas', cor: LARANJA, fundo: '#F4F1EA', coisa: 'recibos' },
     { id: 'grana', titulo: 'Grana', placa: 'GRANA', rota: '#/grana', ico: 'grana', botao: 'Abrir a grana', cor: AZUL, fundo: '#F4F1EA', coisa: 'moedas' },
     { id: 'estilo', titulo: 'Estilo de vida', placa: 'ESTILO', rota: '#/estilo', ico: 'calc', botao: 'Estilo de vida', cor: LILAS, fundo: '#F4F1EA', coisa: 'casinha' },
@@ -3162,7 +3162,7 @@
     el.style.setProperty('--toldo', d.cor || AMARELO);
     C.$('cvr-bc-t').textContent = d.titulo;
     /* de dentro de casa, o botão volta pra casa (não pra rua) */
-    const emCasa = !!(C.casa && C.casa.aberta()), lb = el.querySelector('.cvr-bc-volta .cvr-bc-l'), ls = el.querySelector('.cvr-bc-volta .cvr-bc-s'); if(lb) lb.textContent = emCasa ? 'Voltar pra casa' : 'Voltar pra rua'; if(ls) ls.textContent = emCasa ? 'Casa' : 'Rua';
+    const emCasa = !!(C.casa && C.casa.aberta()), noLugar = emCasa && C.casa.lugar && C.casa.lugar(), lb = el.querySelector('.cvr-bc-volta .cvr-bc-l'), ls = el.querySelector('.cvr-bc-volta .cvr-bc-s'); if(lb) lb.textContent = noLugar ? 'Voltar pra sala' : emCasa ? 'Voltar pra casa' : 'Voltar pra rua'; if(ls) ls.textContent = noLugar ? 'Sala' : emCasa ? 'Casa' : 'Rua';
     if(novo) BC.titulo = document.title;
     document.title = d.titulo + ' · Correverso';
     el.hidden = false;
@@ -3507,7 +3507,11 @@
     if(V.eu && V.eu.sit){ V.eu.sit = false; V.eu.pesca = null; portaUI(); enviaPos(true); return; }
     const p = V.porta; if(!p) return;
     if(p.tipo === 'aeroporto'){ aeroportoSheet(); return; }
-    if(p.tipo === 'barraca'){ if(p.b.id === 'manual'){ if(C.manual) C.manual.abrir(); return; } abreBalcao(p.b); return; }
+    /* v3.45: barraca com lugar (o Hórus) é porta: entra na construção 3D, e a ferramenta tá lá dentro. Desligada, segue
+       pro balcão de sempre (que manda ligar) */
+    if(p.tipo === 'barraca'){ if(p.b.id === 'manual'){ if(C.manual) C.manual.abrir(); return; }
+      if(p.b.lugar && aberta(p.b) && C.casa && C.casa.LUGARES && C.casa.LUGARES[p.b.lugar]){ if(C.versoSom) C.versoSom.porta(); C.casa.abrir({ lugar: p.b.lugar }); return; }
+      abreBalcao(p.b); return; }
     if(p.tipo === 'mural'){ abreBalcao(BC_MURAL); return; }
     if(p.tipo === 'banca'){ abreBalcao(BC_BANCA); return; }
     if(p.tipo === 'banco'){ const b = p.b; V.alvo = null; V.eu.x = b.x; V.eu.y = b.y + (b.degrau ? 0 : 2); V.eu.sit = true; V.eu.mov = false; V.eu.dir = 'baixo'; V.eu.pesca = p.pesca ? { ate: Date.now() + 3500 + Math.random() * 3500 } : null; portaUI(); enviaPos(true); if(p.pesca) C.toast('Jogou a linha. Espera que uma hora fisga.', 2800); return; }

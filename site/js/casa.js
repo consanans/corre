@@ -167,9 +167,141 @@
   const plantaDe = dono => (ehDoFundador(dono) ? PLANTA_LOFT : PLANTA_PADRAO);
   function usaPlanta(pl){ PL = pl; W = pl.W; D = pl.D; ALT = pl.ALT; COMODOS = pl.comodos; PAREDES = pl.paredes; ENTRADA = pl.entrada; PADRAO = pl.padrao; }
   usaPlanta(PLANTA_PADRAO);
+
+  /* ---------- v3.45 · os lugares: as ferramentas da Feira viram construção onde a gente entra ----------
+     Cada barraca vira a porta de um lugar 3D, no mesmo jeito de blocos da casa, onde a ferramenta mora (o Thales pediu:
+     "o cara entra numa casa personalizada do Hórus e vê a ferramenta lá dentro"). Lugar é público: todo mundo que
+     entra se vê lá dentro (a sala da presença é "lugar-<id>") e ninguém decora. O primeiro é o Hórus, por dentro um
+     templo egípcio do jeito rosacruz (a foto que o Thales mandou): piso de terracota, no meio o tablado de mosaico com
+     a borda de dentes de serra preto e branco, a passadeira vermelha, o cordão dourado e um poste de lótus em cada
+     canto; colunas de papiro, bancos dourados nas laterais, os degraus do Oriente com o púlpito, paredes creme com
+     gente e deuses pintados e o friso azul com o sol alado. O altar do meio é o radar: o triângulo de ouro com as
+     três velas em volta da tela, e tocar nele abre o Hórus no balcão. Nada de verde: terracota, creme, ouro, preto,
+     o vermelho da passadeira e o azul egípcio */
+  const CREME = '#E6D7B4', CREME2 = '#DCCAA2', TERRA = '#7E3A28', MARMORE = '#EEE8DA', PRETO = '#15161A', VINHO = '#8E1B2C', SOL = '#B4152E';
+  const AZUL_EG = '#2F5DA8', FRISO = '#1C2350', PELE = '#A4532F', LINHO = '#F4EFE6', BANCO = '#C9A24E', BANCO2 = '#B08A3E', BANCO_P = '#4A2E1E', TELA = '#0E2238';
+  /* o chão do templo: polígonos desenhados logo depois do piso, na ordem (o mosaico não briga com nada) */
+  const ret = (x0, z0, x1, z1, c) => ({ pts: [[x0, z0], [x1, z0], [x1, z1], [x0, z1]], c });
+  function serra(x0, z0, x1, z1, alt){
+    /* dentes pretos com a base na beirada de fora da faixa branca, apontando pra dentro */
+    const out = [], lado = (a, b, dir, fixo, n) => { const s = (b - a) / n; for(let i = 0; i < n; i++){ const p = a + i * s; out.push(dir === 'x' ? { pts: [[p, fixo], [p + s, fixo], [p + s / 2, fixo + alt]], c: PRETO } : { pts: [[fixo, p], [fixo, p + s], [fixo + alt, p + s / 2]], c: PRETO }); } };
+    const nx = Math.round((x1 - x0) / .55), nz = Math.round((z1 - z0) / .55);
+    lado(x0, x1, 'x', z0, nx); lado(x0, x1, 'x', z1, nx); out.slice(-nx).forEach(t => { t.pts[2][1] = z1 - alt; });
+    lado(z0, z1, 'z', x0, nz); lado(z0, z1, 'z', x1, nz); out.slice(-nz).forEach(t => { t.pts[2][0] = x1 - alt; });
+    return out;
+  }
+  const CHAO_HORUS = [
+    ret(3.6, 3.6, 10.4, 9.6, PRETO), ret(3.7, 3.7, 10.3, 9.5, MARMORE), ...serra(3.7, 3.7, 10.3, 9.5, .42), ret(4.2, 4.2, 9.8, 9, '#1E1F25'),
+    /* a passadeira vermelha: da porta até o pé dos degraus do Oriente, com borda de ouro */
+    ret(6.45, 2.4, 7.55, 13.95, VINHO), ret(6.45, 2.4, 6.53, 13.95, OURO), ret(7.47, 2.4, 7.55, 13.95, OURO)
+  ];
+  /* o altar do meio (é a estação do radar): degrau preto, pedestal de mármore e, em cima, a tela do radar dentro
+     do triângulo de ouro, com uma vela em cada ponta (a ponta mira o Oriente) */
+  const anel = (x0, z0, t, y, c) => [B(x0, y, z0, t, .012, .04, c), B(x0, y, z0 + t - .04, t, .012, .04, c), B(x0, y, z0, .04, .012, t, c), B(x0 + t - .04, y, z0, .04, .012, t, c)];
+  const vela = (x, z, y) => [B(x - .05, y, z - .05, .1, .3, .1, LINHO), B(x - .03, y + .3, z - .03, .06, .1, .06, AMARELO), B(x - .015, y + .4, z - .015, .03, .05, .03, LARANJA)];
+  const traco = (ax, az, bx, bz, y, c) => { const L = Math.hypot(bx - ax, bz - az), mx = (ax + bx) / 2, mz = (az + bz) / 2; return Object.assign(B(mx - L / 2, y, mz - .025, L, .015, .05, c), { yaw: Math.atan2(-(bz - az), bx - ax) }); };
+  const TRI = [[1.4, .78], [.73, 1.94], [2.07, 1.94]];
+  const RADAR = [
+    B(.2, 0, .2, 2.4, .14, 2.4, PRETO), B(.45, .14, .45, 1.9, .12, 1.9, '#2A2B31'),
+    B(.75, .26, .75, 1.3, .36, 1.3, MARMORE), B(.72, .62, .72, 1.36, .06, 1.36, OURO), B(.75, .68, .75, 1.3, .14, 1.3, MARMORE),
+    B(.62, .82, .62, 1.56, .06, 1.56, MARMORE), B(.72, .88, .72, 1.36, .01, 1.36, TELA),
+    ...anel(.8, .8, 1.2, .89, '#B39A2E'), ...anel(1.1, 1.1, .6, .89, '#B39A2E'),
+    B(.8, .891, 1.38, 1.2, .012, .04, '#6E5E22'), B(1.38, .891, .8, .04, .012, 1.2, '#6E5E22'),
+    Object.assign(B(1.4, .9, 1.36, .55, .012, .07, ROSA), { yaw: .65 }), B(1.35, .9, 1.35, .1, .03, .1, AMARELO),
+    B(.95, .9, 1.05, .08, .03, .08, PAPEL), B(1.75, .9, 1.15, .08, .03, .08, ROSA), B(1.8, .9, 1.7, .08, .03, .08, PAPEL), B(1.05, .9, 1.75, .08, .03, .08, ROSA),
+    traco(TRI[0][0], TRI[0][1], TRI[1][0], TRI[1][1], .905, OURO), traco(TRI[0][0], TRI[0][1], TRI[2][0], TRI[2][1], .905, OURO), traco(TRI[1][0], TRI[1][1], TRI[2][0], TRI[2][1], .905, OURO),
+    ...TRI.flatMap(([x, z]) => vela(x, z, .88))
+  ];
+  /* os postes de lótus dos cantos do tablado, os pedestais do cordão e o cordão (com a passagem na frente) */
+  const poste = (x, z) => [B(x - .16, 0, z - .16, .32, .08, .32, PRETO), B(x - .05, .08, z - .05, .1, 2.7, .1, PRETO), B(x - .09, 2.78, z - .09, .18, .1, .18, PRETO),
+    B(x - .12, 2.88, z - .12, .24, .12, .24, MARMORE), B(x - .17, 3, z - .17, .34, .14, .34, MARMORE), B(x - .22, 3.14, z - .22, .44, .14, .44, MARMORE), B(x - .13, 3.28, z - .13, .26, .04, .26, AMARELO)];
+  const pino = (x, z) => [B(x - .09, 0, z - .09, .18, .03, .18, OURO), B(x - .03, .03, z - .03, .06, .62, .06, OURO), B(x - .05, .65, z - .05, .1, .07, .1, OURO)];
+  const CORDA = '#7A1F2E', cordaX = (x0, x1, z) => B(x0, .56, z - .02, x1 - x0, .045, .04, CORDA), cordaZ = (z0, z1, x) => B(x - .02, .56, z0, .04, .045, z1 - z0, CORDA);
+  /* coluna de papiro: base preta, fuste de mármore com faixas, capitel que abre em leque e o ábaco escuro */
+  const colunaEg = () => [B(0, 0, 0, .8, .18, .8, PRETO), B(.12, .18, .12, .56, .27, .56, MARMORE), B(.1, .45, .1, .6, .07, .6, PRETO), B(.1, .52, .1, .6, .04, .6, OURO),
+    B(.12, .56, .12, .56, 2.19, .56, MARMORE), B(.1, 2.75, .1, .6, .06, .6, AZUL_EG), B(.1, 2.81, .1, .6, .05, .6, SOL), B(.1, 2.86, .1, .6, .04, .6, OURO),
+    B(.06, 2.9, .06, .68, .18, .68, MARMORE), B(0, 3.08, 0, .8, .2, .8, MARMORE), B(-.04, 3.28, -.04, .88, .05, .88, AZUL_EG), B(-.06, 3.33, -.06, .92, .14, .92, '#2A2B31')];
+  /* gente e deuses pintados na parede, de perfil, andando pro Oriente (pro fundo). [u, v, w, h, cor] em metros */
+  const CORPO = [[.2, 0, .07, .48, PELE], [.33, 0, .07, .48, PELE], [.15, .48, .32, .28, LINHO], [.15, .76, .32, .05, OURO], [.2, .81, .22, .34, PELE], [.13, .82, .07, .33, PELE],
+    [.42, .98, .18, .07, PELE], [.16, 1.15, .3, .09, AZUL_EG], [.6, .2, .04, 1.4, OURO], [.56, 1.6, .12, .05, OURO]];
+  const CABECA = {
+    farao: [[.26, 1.24, .16, .22, PELE], [.42, 1.3, .03, .05, PELE], [.16, 1.24, .1, .3, PRETO], [.16, 1.46, .26, .08, PRETO], [.2, 1.54, .16, .12, SOL]],
+    horus: [[.2, 1.24, .22, .12, PRETO], [.2, 1.36, .12, .05, PRETO], [.32, 1.36, .05, .05, AMARELO], [.37, 1.36, .05, .05, PRETO], [.2, 1.41, .22, .09, PRETO], [.42, 1.31, .07, .06, OURO], [.2, 1.5, .22, .2, SOL]],
+    sacerdote: [[.26, 1.24, .16, .24, PELE], [.42, 1.3, .03, .05, PELE], [.2, 1.24, .06, .24, PELE], [.2, 1.48, .22, .05, PRETO]]
+  };
+  const GLIFOS = [[.04, .1, AZUL_EG], [.12, .06, PRETO], [.08, .12, SOL], [.12, .05, OURO], [.06, .1, PRETO], [.1, .08, AZUL_EG]];
+  /* u corre ao longo da parede, espelhado (todos olham pro fundo); o hieróglifo vai numa coluna logo atrás de cada um */
+  function pintura(z0, tipo){
+    const out = [], poe = (u, v, w, h, c) => out.push(B(0, 1.3 + v, z0 + (.7 - u - w), .02, h, w, c));
+    CORPO.concat(CABECA[tipo]).forEach(q => poe(...q));
+    GLIFOS.forEach(([w, h, c], i) => poe(-.35 + (.18 - w) / 2, .2 + i * .24, w, h, c));
+    return out;
+  }
+  /* o friso azul do alto das laterais; os quadradinhos ficam na frente da faixa (esq = pra dentro é +x) */
+  const friso = esq => {
+    const out = [B(0, 3.55, .2, .03, .6, 13.6, FRISO), B(0, 3.48, .2, .03, .05, 13.6, OURO)];
+    for(let i = 0; i < 30; i++) out.push(B(esq ? .03 : -.015, 3.7, .32 + i * .45, .015, .26, .2, [OURO, SOL, OURO, AZUL_EG][i % 4]));
+    return out;
+  };
+  /* bancos dourados no tablado de cada lateral (entre as colunas), encosto na parede */
+  const TRECHOS = [[.5, 2.4], [3.6, 6], [7.2, 9.6], [10.8, 13.3]];
+  const bancos = esq => {
+    const out = [], X = esq ? .15 : 12.65, sx = esq ? .35 : 13.05, bx = esq ? .15 : 13.65;
+    out.push(B(X, 0, .3, 1.2, .16, 13.2, '#5E2A1E'));
+    TRECHOS.forEach(([a, b]) => { const L = b - a; out.push(B(sx, .16, a, .6, .3, L, BANCO_P), B(sx, .46, a, .6, .07, L, BANCO), B(bx, .16, a, .2, 1, L, BANCO2), B(bx, 1.16, a, .2, .05, L, BANCO_P)); });
+    return out;
+  };
+  const falcao = () => [B(0, 0, 0, 1, .95, 1, PRETO), B(.05, .95, .05, .9, .06, .9, OURO), B(.3, 1.01, .32, .4, .7, .42, '#2A2B31'), B(.32, 1.71, .38, .36, .32, .34, '#2A2B31'),
+    B(.44, 1.74, .72, .14, .1, .16, OURO), B(.33, 1.86, .7, .06, .05, .02, AMARELO), B(.61, 1.86, .7, .06, .05, .02, AMARELO), B(.2, 1.1, .3, .12, .5, .4, PRETO), B(.68, 1.1, .3, .12, .5, .4, PRETO), B(.32, 2.03, .45, .36, .2, .2, SOL)];
+  const castical = r => [B(r - .12, .3, .6, .24, .06, .24, OURO), B(r - .03, .36, .69, .06, 1.1, .06, OURO), B(r - .1, 1.46, .62, .2, .05, .2, OURO), ...vela(r, .72, 1.51)];
+  const HORUS_DECOR = [
+    /* o Oriente: degrau e estrado de mármore, o púlpito com o pano vermelho (a cruz de ouro e a rosa) e dois castiçais */
+    { x: 3.4, z: .2, bl: [B(0, 0, 0, 7.2, .3, 1.7, MARMORE), B(.6, 0, 1.7, 6, .15, .55, MARMORE), B(1.4, 0, 2.25, 4.4, .06, .2, CREME2),
+      B(3.2, .3, .45, .8, 1, .5, MARMORE), B(3.15, 1.3, .4, .9, .07, .6, OURO), B(3.35, .55, .95, .5, .6, .02, VINHO),
+      B(3.57, .66, .97, .06, .4, .01, OURO), B(3.45, .8, .97, .3, .06, .01, OURO), B(3.565, .79, .98, .07, .08, .01, ROSA),
+      ...castical(1), ...castical(6.2)] },
+    /* o olho de Hórus num nicho azul com moldura de ouro, na parede do fundo */
+    { x: 3.8, z: .15, parede: true, bl: [B(0, 1.45, 0, 6.4, 2.05, .04, FRISO), B(0, 3.44, .04, 6.4, .06, .02, OURO), B(0, 1.45, .04, 6.4, .06, .02, OURO), B(0, 1.51, .04, .06, 1.93, .02, OURO), B(6.34, 1.51, .04, .06, 1.93, .02, OURO),
+      ...[[.7, 3.05, 4.6, .16], [.9, 2.7, 4.2, .14], [1.3, 2.1, 3.2, .12], [.75, 2.22, .55, .12], [.85, 2.34, .14, .3], [4.95, 2.32, .8, .12], [4.5, 2.22, .5, .45],
+        [2.6, 1.6, .16, .5], [2.6, 1.6, .72, .12], [3.18, 1.6, .14, .3], [4.35, 1.85, .14, .37], [4.35, 1.73, .95, .12], [5.16, 1.73, .14, .4]].map(([x, y, w, h]) => B(x, y, .04, w, h, .02, OURO)),
+      B(2.25, 2.22, .04, 1.3, .48, .02, MARMORE), B(2.62, 2.28, .06, .56, .36, .01, PRETO), B(2.7, 2.48, .07, .14, .1, .01, PAPEL)] },
+    /* o friso azul do alto, com o sol alado em cima do Oriente */
+    { x: 0, z: .15, parede: true, bl: [B(.2, 3.55, 0, 13.6, .6, .03, FRISO), B(.2, 3.48, 0, 13.6, .05, .03, OURO),
+      B(6.72, 3.66, .03, .56, .4, .02, SOL), B(4.6, 3.84, .03, 2.1, .14, .02, OURO), B(5, 3.72, .03, 1.7, .1, .02, OURO), B(5.5, 3.62, .03, 1.2, .08, .02, OURO),
+      B(7.3, 3.84, .03, 2.1, .14, .02, OURO), B(7.3, 3.72, .03, 1.7, .1, .02, OURO), B(7.3, 3.62, .03, 1.2, .08, .02, OURO),
+      ...Array.from({ length: 10 }, (_, i) => B(.5 + i * .4, 3.74, .03, .2, .22, .015, [OURO, SOL, OURO, AZUL_EG][i % 4])), ...Array.from({ length: 10 }, (_, i) => B(9.7 + i * .4, 3.74, .03, .2, .22, .015, [AZUL_EG, OURO, SOL, OURO][i % 4]))] },
+    { x: .15, z: 0, parede: true, bl: friso(true) }, { x: 13.82, z: 0, parede: true, bl: friso(false) },
+    /* as pinturas das laterais, entre as colunas */
+    { x: .15, z: 0, parede: true, bl: [...pintura(1.2, 'farao'), ...pintura(4.6, 'horus'), ...pintura(8.2, 'sacerdote'), ...pintura(11.7, 'horus')] },
+    { x: 13.82, z: 0, parede: true, bl: [...pintura(1.2, 'horus'), ...pintura(4.6, 'sacerdote'), ...pintura(8.2, 'horus'), ...pintura(11.7, 'farao')] },
+    /* as colunas de papiro (três de cada lado) e os bancos */
+    ...[2.6, 6.2, 9.8].flatMap(z => [{ x: 1.55, z, bl: colunaEg() }, { x: 11.65, z, bl: colunaEg() }]),
+    { x: 0, z: 0, bl: bancos(true) }, { x: 0, z: 0, bl: bancos(false) },
+    /* os falcões de Hórus, um de cada lado do Oriente */
+    { x: 2.2, z: .45, bl: falcao() }, { x: 10.8, z: .45, bl: falcao() },
+    /* o tablado: os quatro postes de lótus nos cantos e o cordão dourado em volta, aberto na frente pra passadeira */
+    { x: 0, z: 0, bl: [...poste(3.3, 3.3), ...poste(10.7, 3.3), ...poste(3.3, 9.9), ...poste(10.7, 9.9),
+      ...[[5.15, 3.3], [7, 3.3], [8.85, 3.3], [3.3, 5.5], [3.3, 7.7], [10.7, 5.5], [10.7, 7.7], [4.7, 9.9], [6.1, 9.9], [7.9, 9.9], [9.3, 9.9]].flatMap(([x, z]) => pino(x, z)),
+      cordaX(3.3, 10.7, 3.3), cordaZ(3.3, 9.9, 3.3), cordaZ(3.3, 9.9, 10.7), cordaX(3.3, 6.1, 9.9), cordaX(7.9, 10.7, 9.9)] }
+  ];
+  const PLANTA_HORUS = {
+    k: 'lugar-horus', W: 14, D: 14, ALT: 4.2,
+    comodos: [{ k: 'templo', nome: 'O templo', x0: 0, z0: 0, x1: 14, z1: 14, piso: TERRA, linha: 'rgba(25,8,3,.32)' }],
+    paredes: [
+      { a: [0, 14], b: [14, 14], ext: [0, 1], portas: [[6.4, 7.6]], entrada: true, cor: CREME },
+      { a: [14, 0], b: [14, 14], ext: [1, 0], cor: CREME },
+      { a: [0, 0], b: [0, 14], ext: [-1, 0], cor: CREME },
+      { a: [0, 0], b: [14, 0], ext: [0, -1], cor: CREME2 }
+    ],
+    entrada: { x: 7, z: 14 }, tapete: { x: 6.3, z: 12.8, w: 1.4, d: 1 }, decor: HORUS_DECOR, chao: CHAO_HORUS, padrao: []
+  };
+  const LUGARES = {
+    horus: { titulo: 'Casa do Hórus', planta: PLANTA_HORUS, ola: 'Casa do Hórus. O radar é o altar do meio: chega e toca.',
+      estacoes: () => [{ id: 'radar', liga: 'horus', titulo: 'Radar do Hórus', rota: '#/horus', cor: INK, x: 5.6, z: 5, w: 2.8, d: 2.8, bl: RADAR, tag: [1.4, 1.75, 1.4], y: 0 }] }
+  };
   /* a estação que é só do fundador aparece na casa do fundador (pra ele e pra quem visita) */
   const paraDono = (e, dono) => e.so !== 'fundador' || ehDoFundador(dono);
-  const estAberta = e => e.id !== 'horus' || !C.ferr || C.ferr('horus');
+  const estAberta = e => (e.id !== 'horus' && e.liga !== 'horus') || !C.ferr || C.ferr('horus');
 
   /* ---------- 3D: caixas, câmera e projeção ---------- */
   const FACES = [[0, 1, 2, 3], [4, 5, 6, 7], [0, 1, 5, 4], [3, 2, 6, 7], [0, 3, 7, 4], [1, 2, 6, 5]];
@@ -317,7 +449,7 @@
   function cena(ctx, cv, cam, pisos, solidos, hit, foco){
     const poly = q => { ctx.beginPath(); q.forEach((v, i) => i ? ctx.lineTo(v[0], v[1]) : ctx.moveTo(v[0], v[1])); ctx.closePath(); };
     pisos.forEach(p => {
-      const q = projPoly(cam, [[p.x0, 0, p.z0], [p.x1, 0, p.z0], [p.x1, 0, p.z1], [p.x0, 0, p.z1]]);
+      const q = projPoly(cam, p.pts ? p.pts.map(v => [v[0], 0, v[1]]) : [[p.x0, 0, p.z0], [p.x1, 0, p.z0], [p.x1, 0, p.z1], [p.x0, 0, p.z1]]);
       if(!q) return;
       poly(q); ctx.fillStyle = p.c; ctx.fill();
       if(p.linha){
@@ -494,7 +626,7 @@
   }
 
   /* ---------- estado ---------- */
-  const S = { aberta: false, el: null, cv: null, ctx: null, raf: 0, tAnt: 0, meu: false, dono: null, itens: [], outras: {}, modo: 'andar', sel: -1, ghost: null, disco: null, discoAtual: '',
+  const S = { aberta: false, lugar: '', el: null, cv: null, ctx: null, raf: 0, tAnt: 0, meu: false, dono: null, itens: [], outras: {}, modo: 'andar', sel: -1, ghost: null, disco: null, discoAtual: '',
     cam: { th: 0, ph: .95, dist: 15, tx: 10, ty: 0, tz: 16, fov: 0 }, eu: null, alvo: null, acao: null, teclas: new Set(), hit: [], hist: false, ignora: 0,
     fixos: [], decor: [], cacheItens: null, grades: [null, null], rota: [], salvaT: 0, sujo: false, pointer: null, pinch: null, tags: new Map(), titulo: '', ultOnde: '', corUlt: {} };
   const comodoDe = (x, z, n) => COMODOS.find(c => (c.n || 0) === (n || 0) && x >= c.x0 && x < c.x1 && z >= c.z0 && z < c.z1) || null;
@@ -628,7 +760,7 @@
       const cxm = (ax + bx) / 2, czm = (az + bz) / 2;
       const ladoC = nx * (cam.pos[0] - cxm) + nz * (cam.pos[2] - czm), ladoE = eu ? nx * (eu.x - cxm) + nz * (eu.z - czm) : -ladoC;
       const separa = ladoC * ladoE < 0, mureta = separa && p.ext, vidroFraco = separa && !p.ext;
-      const gaps = (p.portas || []), jans = p.janelas || [], altas = p.altas || [], altP = p.alt || ALT, COR = p.tijolo ? TIJ : PAREDE;
+      const gaps = (p.portas || []), jans = p.janelas || [], altas = p.altas || [], altP = p.alt || ALT, COR = p.cor || (p.tijolo ? TIJ : PAREDE);
       let cortes = [0, L]; gaps.forEach(gp => cortes.push(gp[0], gp[1])); jans.forEach(j => cortes.push(j[0], j[1])); altas.forEach(j => cortes.push(j[0], j[1]));
       for(let t = 1; t < L; t++) cortes.push(t);
       cortes = [...new Set(cortes)].sort((a, b) => a - b);
@@ -823,6 +955,8 @@
     const pisos = [{ x0: -14, z0: -14, x1: W + 14, z1: D + 14, c: '#20242F' }, { x0: -1.6, z0: -1.6, x1: W + 1.6, z1: D + 1.6, c: '#3A3E45', linha: 'rgba(0,0,0,.18)' },
       { x0: ENTRADA.x - 1, z0: D + 1.6, x1: ENTRADA.x + 1, z1: D + 4, c: '#3A3E45' }];
     COMODOS.forEach(c => { if(!c.n) pisos.push({ x0: c.x0, z0: c.z0, x1: c.x1, z1: c.z1, c: c.piso, c2: c.piso2, xadrez: c.xadrez, linha: c.linha }); });
+    /* v3.45: o mosaico do chão de um lugar (polígonos, por cima do piso, na ordem) */
+    if(PL.chao) pisos.push(...PL.chao);
     return pisos;
   }
   function tamanho(){
@@ -861,9 +995,9 @@
       el.hidden = false; el.style.transform = `translate(${Math.round(q[0] * esc2)}px,${Math.round(q[1] * esc2)}px) translate(-50%,-100%)`;
       const perto = S.eu && Math.hypot(S.eu.x - p[0], S.eu.z - p[2]) < 2.6; el.classList.toggle('perto', !!perto);
     };
-    const cm = S.eu && comodoDe(S.eu.x, S.eu.z, nivelDe(S.eu.y)), noEsc = !!(cm && cm.k === 'escritorio');
-    if(S.meu && S.modo === 'andar') S.fixos.forEach(e => { const el = S.tags.get('est:' + e.id); if(!noEsc && !(S.eu && nivelDe(S.eu.y) === (e.y > 1.5 ? 1 : 0) && Math.hypot(S.eu.x - e.x - e.w / 2, S.eu.z - e.z - e.d / 2) < 5)){ if(el) el.hidden = true; return; } poe('est:' + e.id, [e.x + e.tag[0], (e.y || 0) + e.tag[1], e.z + e.tag[2]], e.trava ? e.titulo + ' · em breve' : e.id === 'horus' && !estAberta(e) ? 'Hórus desligado' : e.agente ? AGENTE[agenteDe(S.dono)].nome : e.titulo, e.trava ? 'trava' : e.id === 'horus' && !estAberta(e) ? 'off' : e.agente ? 'agente' : ''); });
-    poe('saida', [ENTRADA.x, .25, ENTRADA.z - .25], S.meu ? 'Sair pra rua' : 'Sair', 'saida');
+    const cm = S.eu && comodoDe(S.eu.x, S.eu.z, nivelDe(S.eu.y)), noEsc = !!(cm && cm.k === 'escritorio') || !!S.lugar;
+    if((S.meu || S.lugar) && S.modo === 'andar') S.fixos.forEach(e => { const el = S.tags.get('est:' + e.id); if(!noEsc && !(S.eu && nivelDe(S.eu.y) === (e.y > 1.5 ? 1 : 0) && Math.hypot(S.eu.x - e.x - e.w / 2, S.eu.z - e.z - e.d / 2) < 5)){ if(el) el.hidden = true; return; } poe('est:' + e.id, [e.x + e.tag[0], (e.y || 0) + e.tag[1], e.z + e.tag[2]], e.trava ? e.titulo + ' · em breve' : e.id === 'horus' && !estAberta(e) ? 'Hórus desligado' : e.agente ? AGENTE[agenteDe(S.dono)].nome : e.titulo, e.trava ? 'trava' : e.id === 'horus' && !estAberta(e) ? 'off' : e.agente ? 'agente' : ''); });
+    poe('saida', [ENTRADA.x, .25, ENTRADA.z - .25], S.meu ? 'Sair pra rua' : S.lugar ? 'Sair pra Feira' : 'Sair', 'saida');
     if(S.modo === 'andar') acoes().forEach(a => { if(!acaoPraMim(a)) return; const cx = a.x + a.w / 2, cz = a.z + a.d / 2, n = a.y > 1.5 ? 1 : 0; if(!(S.eu && nivelDe(S.eu.y) === n && Math.hypot(S.eu.x - cx, S.eu.z - cz) < 4.5)){ const el = S.tags.get('acao:' + a.id); if(el) el.hidden = true; return; } poe('acao:' + a.id, [cx, a.y + a.topo + .35, cz], rotuloAcao(a), a.a === 'discos' && S.discoAtual ? 'acao som' : 'acao'); });
     const peers = C.verso.peers ? C.verso.peers() : new Map();
     gente().forEach(r => { const p = peers.get(r.sid), vivo = p && p.estado === 'aovivo'; poe('gente:' + r.sid, [r.hxv, (r.hyv || 0) + 1.78, r.hzv], (r.handle ? '@' + r.handle : r.nome || 'visitante') + (vivo ? ' · ao vivo' : r.mic ? ' · mic' : ''), vivo ? 'gente vivo' : 'gente'); });
@@ -937,10 +1071,10 @@
     const e = S.eu; if(!e || S.modo !== 'andar') return null;
     const n = nivelDe(e.y); let melhor = null, md = 1.6;
     const ve = (d, o) => { if(d < md){ md = d; melhor = o; } };
-    if(S.meu) S.fixos.forEach(f => { if((f.y > 1.5 ? 1 : 0) !== n) return; const nome = f.trava ? f.titulo + ' · em breve' : f.agente ? AGENTE[agenteDe(S.dono)].nome : f.id === 'horus' && !estAberta(f) ? 'Hórus desligado' : f.titulo; ve(Math.hypot(e.x - f.x - f.w / 2, e.z - f.z - f.d / 2) - Math.max(f.w, f.d) / 2, { t: 'est', e: f, nome: 'Abrir: ' + nome }); });
+    if(S.meu || S.lugar) S.fixos.forEach(f => { if((f.y > 1.5 ? 1 : 0) !== n) return; const nome = f.trava ? f.titulo + ' · em breve' : f.agente ? AGENTE[agenteDe(S.dono)].nome : f.id === 'horus' && !estAberta(f) ? 'Hórus desligado' : f.titulo; ve(Math.hypot(e.x - f.x - f.w / 2, e.z - f.z - f.d / 2) - Math.max(f.w, f.d) / 2, { t: 'est', e: f, nome: 'Abrir: ' + nome }); });
     acoes().forEach(a => { if(!acaoPraMim(a) || (a.y > 1.5 ? 1 : 0) !== n) return; ve(Math.hypot(e.x - a.x - a.w / 2, e.z - a.z - a.d / 2) - Math.max(a.w, a.d) / 2, { t: 'acao', a, nome: rotuloAcao(a) }); });
     if(PL.escada){ const es = PL.escada, cx = (es.x0 + es.x1) / 2; ve(n === 1 ? Math.hypot(e.x - cx, e.z - (es.z0 - .7)) - .4 : Math.hypot(e.x - cx, e.z - (es.z1 + .9)) - .4, { t: 'escada', nome: n === 1 ? 'Descer a escada' : 'Subir a escada' }); }
-    if(n === 0) ve(Math.hypot(e.x - ENTRADA.x, e.z - (ENTRADA.z - .4)) - .3, { t: 'saida', nome: S.meu ? 'Sair pra rua' : 'Sair' });
+    if(n === 0) ve(Math.hypot(e.x - ENTRADA.x, e.z - (ENTRADA.z - .4)) - .3, { t: 'saida', nome: S.meu ? 'Sair pra rua' : S.lugar ? 'Sair pra Feira' : 'Sair' });
     return melhor;
   }
   function portaCasa(){
@@ -977,7 +1111,7 @@
 
   /* ---------- as ferramentas do escritório abrem o balcão por cima da casa ---------- */
   function abreEstacao(e){
-    if(!S.meu || !e) return;
+    if(!(S.meu || S.lugar) || !e) return;
     if(e.id === 'manual'){ if(C.manual) C.manual.abrir(); return; }
     if(e.agente){ agenteSheet(); return; }
     if(e.trava){ iaSheet(); return; }
@@ -1284,7 +1418,7 @@
   function monta(){
     const el = document.createElement('div'); el.className = 'cs-casa'; el.id = 'cs-casa';
     el.innerHTML = `<canvas id="cs-cv" aria-label="Por dentro da casa. Toca onde quer ir; arrasta pra girar a câmera."></canvas><div class="cs-tags" id="cs-tags"></div>
-      <div class="cs-top"><span class="cs-titulo"><b id="cs-titulo"></b><small id="cs-onde"></small></span><span class="cs-top-r"><b class="cs-live" id="cs-live" hidden></b><button type="button" class="cvr-bc-b cs-disco-b" id="cs-disco-b" data-act="cs-disco-b" hidden></button><button type="button" class="cvr-bc-b cvr-som cs-som" id="cs-som" data-act="cvr-som" aria-pressed="false" hidden></button><button type="button" class="cvr-bc-b cs-mic" id="cs-mic" data-act="cs-mic" aria-pressed="false">${ico('micoff')}<span>Mic desligado</span></button><button type="button" class="cvr-bc-b cs-sair" data-act="cs-sair">${ico('prev')}<span>Sair pra rua</span></button></span></div>
+      <div class="cs-top"><span class="cs-titulo"><b id="cs-titulo"></b><small id="cs-onde"></small></span><span class="cs-top-r"><b class="cs-live" id="cs-live" hidden></b><button type="button" class="cvr-bc-b cs-disco-b" id="cs-disco-b" data-act="cs-disco-b" hidden></button><button type="button" class="cvr-bc-b cvr-som cs-som" id="cs-som" data-act="cvr-som" aria-pressed="false" hidden></button><button type="button" class="cvr-bc-b cs-mic" id="cs-mic" data-act="cs-mic" aria-pressed="false">${ico('micoff')}<span>Mic desligado</span></button><button type="button" class="cvr-bc-b cs-sair" data-act="cs-sair">${ico('prev')}<span id="cs-sair-t">Sair pra rua</span></button></span></div>
       <div class="cs-cam"><button type="button" data-act="cs-cam" data-k="esq" title="Girar (Q)" aria-label="Girar a câmera pra esquerda">${ico('prev')}</button><button type="button" data-act="cs-cam" data-k="dir" title="Girar (E)" aria-label="Girar a câmera pra direita">${ico('next')}</button><button type="button" data-act="cs-cam" data-k="perto" aria-label="Aproximar">${ico('plus')}</button><button type="button" data-act="cs-cam" data-k="longe" aria-label="Afastar">${ico('down')}</button></div>
       <div class="cs-bar" id="cs-bar"></div>
       <button type="button" class="cs-porta" id="cs-porta" data-act="cs-porta" hidden></button>`;
@@ -1306,16 +1440,19 @@
   async function abrirMesmo(o){
     o = o || {}; if(S.aberta) fechar(true);
     if(!C.st.me || !C.verso) return;
-    const meu = !o.id || o.id === C.st.me.id;
+    /* v3.45: um lugar (a Casa do Hórus) não é de ninguém: o "dono" é o próprio lugar, e a sala da presença leva o nome dele */
+    const L = o.lugar && LUGARES[o.lugar] ? LUGARES[o.lugar] : null;
+    const meu = !L && (!o.id || o.id === C.st.me.id);
     let dono = C.st.me;
-    if(!meu){
+    if(L) dono = { id: 'lugar-' + o.lugar, handle: '', casa: null };
+    else if(!meu){
       try{ dono = await comTempo(C.api.one('corre_perfis', { eq: { id: o.id } }), 6000); }catch(e){ dono = null; }
       if(!dono){ C.toast('Não deu pra abrir essa casa agora.'); return; }
     } else if(C.recarregaMe){ try{ await comTempo(C.recarregaMe(), 4000); dono = C.st.me; }catch(e){} }
-    S.meu = meu; S.dono = dono; S.sujo = false;
-    usaPlanta(plantaDe(dono)); S.decor = PL.decor || [];
-    S.fixos = ESTACOES.filter(e => paraDono(e, dono)).map(e => Object.assign({ y: 0 }, e, (PL.estacoes || {})[e.id] || {}));
-    S.itens = lerCasa(dono.casa); S.outras = outrasPlantas(dono.casa);
+    S.meu = meu; S.lugar = L ? o.lugar : ''; S.dono = dono; S.sujo = false;
+    usaPlanta(L ? L.planta : plantaDe(dono)); S.decor = PL.decor || [];
+    S.fixos = L ? L.estacoes() : ESTACOES.filter(e => paraDono(e, dono)).map(e => Object.assign({ y: 0 }, e, (PL.estacoes || {})[e.id] || {}));
+    S.itens = L ? [] : lerCasa(dono.casa); S.outras = L ? {} : outrasPlantas(dono.casa);
     S.modo = 'andar'; S.sel = -1; S.ghost = null; S.cacheItens = null; S.alvo = null; S.acao = null; S.rota = []; S.teclas.clear(); S.tags.clear(); S.ultOnde = ''; S.disco = null; S.discoAtual = ''; S.avisouErro = false;
     const emPe = innerWidth < innerHeight * .85; S.emPe = emPe; S.arrastou = 0;
     /* terceira pessoa: a câmera fica logo atrás e um pouco acima do boneco (pinça, roda ou os botões afastam) */
@@ -1326,19 +1463,21 @@
     S.eu = { x: nasce[0], z: nasce[1], y: 0, yaw: Math.PI, passo: 0, andando: false, av };
     if(!S.el || !S.el.isConnected) monta(); else { S.el.hidden = false; C.$('cs-tags').innerHTML = ''; tamanho(); if(C.versoSom && C.versoSom.botao) C.versoSom.botao(C.$('cs-som')); }
     const pc = C.$('cs-porta'); if(pc){ pc.hidden = true; pc.dataset.txt = ''; }
-    C.$('cs-titulo').textContent = meu ? 'Tua casa' : 'Casa de @' + (dono.handle || '');
-    S.titulo = document.title; document.title = (meu ? 'Tua casa' : 'Casa de @' + (dono.handle || '')) + ' · Correverso';
+    const nomeC = L ? L.titulo : meu ? 'Tua casa' : 'Casa de @' + (dono.handle || '');
+    C.$('cs-titulo').textContent = nomeC;
+    const st = C.$('cs-sair-t'); if(st) st.textContent = L ? 'Sair pra Feira' : 'Sair pra rua';
+    S.titulo = document.title; document.title = nomeC + ' · Correverso';
     barra();
     S.aberta = true; S.tAnt = 0;
     if(!S.hist){ try{ history.pushState({ cvrCasa: 1 }, ''); S.hist = true; }catch(e){} }
     if(C.verso.anunciar) C.verso.anunciar();
     cancelAnimationFrame(S.raf); S.raf = requestAnimationFrame(laco);
-    C.toast(meu ? (PL.mezanino ? 'O escritório é lá em cima: sobe pela escada.' : 'Bem-vindo em casa. No escritório, cada móvel é uma ferramenta do Corre.') : `Casa de @${dono.handle || ''}. Só pra olhar.`, 3400);
+    C.toast(L ? L.ola : meu ? (PL.mezanino ? 'O escritório é lá em cima: sobe pela escada.' : 'Bem-vindo em casa. No escritório, cada móvel é uma ferramenta do Corre.') : `Casa de @${dono.handle || ''}. Só pra olhar.`, L ? 5200 : 3400);
   }
   function fechar(semHist){
     if(!S.aberta) return;
     if(S.modo === 'colocar') cancelaGhost();
-    S.aberta = false; cancelAnimationFrame(S.raf); S.raf = 0; S.teclas.clear(); S.padTh = null; S.perto = null; if(S.pad) S.pad.solta();
+    S.aberta = false; S.lugar = ''; cancelAnimationFrame(S.raf); S.raf = 0; S.teclas.clear(); S.padTh = null; S.perto = null; if(S.pad) S.pad.solta();
     S.disco = null; S.discoAtual = ''; if(C.beats) C.beats.para();
     clearTimeout(S.salvaT); if(S.sujo) salva();
     if(S.el){ S.el.hidden = true; }
@@ -1407,5 +1546,5 @@
     finally{ usaPlanta(guarda.PL); S.fixos = guarda.fixos; S.decor = guarda.decor; S.itens = guarda.itens; S.eu = guarda.eu; S.cacheItens = guarda.cache; S.cacheFraco = guarda.cacheFraco; S.cam = guarda.cam; S.ghost = guarda.ghost; }
   }
   C.casa = { abrir, fechar, aberta: () => S.aberta, estado: () => S, ITENS, CAT, ESTACOES, encosta, alturaItem: (it, i) => alturaItem(it, i), COMODOS: () => COMODOS, planta: () => PL, plantaDe, lerCasa, miniatura, tela, serial, previa, acoes, disco: () => S.disco, discoAtual: () => S.discoAtual, poeDisco, AGENTES, agenteDe: () => agenteDe(S.dono),
-    sala: () => (S.aberta && S.dono ? String(S.dono.id || '') : ''), pos: () => (S.aberta && S.eu ? { x: S.eu.x, y: S.eu.y || 0, z: S.eu.z, yaw: S.eu.yaw, andando: !!S.eu.andando } : null), gente };
+    sala: () => (S.aberta && S.dono ? String(S.dono.id || '') : ''), lugar: () => (S.aberta ? S.lugar || '' : ''), LUGARES, pos: () => (S.aberta && S.eu ? { x: S.eu.x, y: S.eu.y || 0, z: S.eu.z, yaw: S.eu.yaw, andando: !!S.eu.andando } : null), gente };
 })();

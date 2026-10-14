@@ -1,6 +1,6 @@
 # Corre: guia pro Claude Code
 
-O Corre (app.corresocial.com) é a rede social e a ferramenta de trabalho do Thales (@consanans, Londrina). É pra quem vive do próprio corre: feed, mensagens, grupos, Studio (programa e posta no Instagram), Vendas e Grana, Hórus (caça de clientes), Mural, Rolo 360, Correverso (cidade em pixel com casa 3D) e Studio Houzi (branding). Versão atual: **3.40** (12/10/2026).
+O Corre (app.corresocial.com) é a rede social e a ferramenta de trabalho do Thales (@consanans, Londrina). É pra quem vive do próprio corre: feed, mensagens, grupos, Studio (programa e posta no Instagram), Vendas e Grana, Hórus (caça de clientes), Mural, Rolo 360, Correverso (cidade em pixel com casa 3D) e Studio Houzi (branding). Versão atual: **3.45** (14/10/2026).
 
 **Com o Thales:** português, curto e direto. Ele não é programador: explica o que muda pra ele, não o código.
 
@@ -70,7 +70,11 @@ O app tem três modos (`core.js`): **de verdade** (config.js com `SUPABASE_URL` 
 - Comentários em português, no tom da casa: dizem o porquê.
 - Sem dependência nova no site (tudo roda no navegador, sem build de módulos). CDN só as que já estão no index.
 
-## Onde parou (v3.44, 14/10/2026)
+## Onde parou (v3.45, 14/10/2026)
+- **v3.45, a Casa do Hórus (zip entregue):** na Feira do Correverso, a barraca do Hórus (`BARRACAS` em verso.js, `lugar: 'horus'`) vira porta: `C.casa.abrir({ lugar: 'horus' })`. Lugar é o motor da casa (casa.js) com uma planta própria e sem dono: `LUGARES` (titulo, planta, ola, estacoes), sala da presença `lugar-horus` (todo mundo que tá lá se vê), ninguém decora, a saída diz "Sair pra Feira" e o balcão "Voltar pra sala". Por dentro é um templo egípcio do jeito rosacruz (o Thales mandou a foto de um templo da AMORC): piso de terracota, tablado de mosaico com dentes de serra preto e branco (polígonos em `PL.chao`, desenhados logo depois do piso), passadeira vermelha, cordão dourado com a passagem na frente, postes de lótus, colunas de papiro, bancos dourados, o Oriente com degraus, púlpito (cruz de ouro e rosa no pano) e castiçais, o olho de Hórus num nicho azul, o friso com o sol alado e gente e deuses pintados nas laterais. O altar do meio é a estação `radar` (triângulo de ouro com três velas em volta da tela) e abre `#/horus` no balcão. Teste: scratchpad/v345/horus3d.cjs (passa a pasta das fotos como argumento).
+- **Próximos lugares (a fila do Thales):** as outras ferramentas da Feira no mesmo molde (`LUGARES`), pesca no Igapó, largada de moto e de patinete, quadras 3D com desafio.
+
+## Antes (v3.44, 14/10/2026)
 - **v3.44 (zip entregue, junto com o que falta da 3.43):**
   - **Menu ainda mais junto:** grupos Rede (Início, Mensagens, Grupos, Avisos), Laboratório (Studio, Studio Houzi, Hórus, Portfólio), Financeiro, Banca e Perfil (Meu perfil, Salvos); o Mais sumiu. Com a Rede fechada e algo não lido, um pontinho rosa no grupo (CSS `:has`). Hórus e Portfólio sem migalha.
   - **Minimapa do Correverso:** `miniMapa()` em verso.js (o `desenhaMapa` numa tela escondida, recortado em volta de você, de 330 em 330 ms), botão `.cvr-mapinha` no canto de cima à esquerda; tocou, abre o Mapa. (O nome `cvr-mini` já é dos bonequinhos do Trampo.)
