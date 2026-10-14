@@ -3406,7 +3406,7 @@
     C.toast(`${COMIDAS[k][1]}: 1 minuto de turbo na caminhada.`, 3000);
   }
   /* ---------- v3.40 · o avião: sai do Aeroporto de Londrina, cruza a cidade por cima e te solta de paraquedas ----------
-     O voo é passeio: sai por meio correal (o preço é do banco: corre_correal_preco('voo'), 0,50 desde a v3.43), e o app
+     O voo é passeio: sai por uns centavos de correal (o preço é do banco: corre_correal_preco('voo'), 0,05 desde a v3.45), e o app
      sempre pergunta antes.
      Fases: embarca (a hélice liga) → taxi (até a pista) → corrida (acelera e tira as rodas do chão) → cruzeiro (em linha
      reta até o destino) → para (você pula de paraquedas; o avião segue subindo e some) → no chão, onde você escolheu.
@@ -3415,7 +3415,7 @@
   const emVoo = o => !!(o && (o === V.eu ? !!V.voo : (o.vo || o.pq)));
   const emParaquedas = o => !!(o && (o === V.eu ? V.voo && V.voo.fase === 'para' : o.pq));
   function altVoo(o){ if(!o) return 0; if(o === V.eu){ const v = V.voo; return v ? v.alt : 0; } return o.vo === 1 ? VOO_ALT * .9 : o.pq ? 70 : 0; }
-  const precoVoo = () => Number(C.correal && C.correal.precos && C.correal.precos.voo) || 0.5;
+  const precoVoo = () => Number(C.correal && C.correal.precos && C.correal.precos.voo) || 0.05;
   const destinosVoo = () => { const vistos = new Set(['Aeroporto']); return lugares().filter(l => { if(vistos.has(l.nome)) return false; vistos.add(l.nome); return true; }); };
   function aeroportoSheet(){
     const preco = precoVoo(), saldo = C.correal.saldo, L = destinosVoo();

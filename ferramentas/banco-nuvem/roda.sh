@@ -1,7 +1,8 @@
 #!/bin/sh
 # Banco de teste pra sessão do Claude na nuvem (o Thales não precisa instalar nada).
 # Sobe um Postgres 16 descartável, põe o Supabase de mentira e a semente (o que já existia antes dos deltas), roda cada
-# delta 2x (tem que aguentar) e as checagens. Depois, a virada da v3.43 com o app no meio (virada343.sh).
+# delta 2x (tem que aguentar) e as checagens (a v3.45 baixa os preços do correal). Depois, a virada da v3.43 com o app
+# no meio (virada343.sh).
 # Uso: sh ferramentas/banco-nuvem/roda.sh   → cada linha "ok:" passou; qualquer "FALHOU" ou erro para tudo e diz onde.
 # Pasta e porta: /var/tmp/pgcorre e 54329. Duas rodadas ao mesmo tempo: a outra escolhe as dela
 # (CORRE_PG_DIR=/var/tmp/pgoutra CORRE_PG_PORTA=54330 sh ...). Na mesma pasta, a segunda espera a primeira acabar.
@@ -42,6 +43,9 @@ psql -X -q -h $D -p $PORTA -U postgres -d template1 -c "create database antes343
 delta delta-v343.sql 'delta v3.43 ok'
 delta delta-v343.sql 'delta v3.43 ok'
 testa teste343.sql 38
+delta delta-v345.sql 'delta v3.45 ok'
+delta delta-v345.sql 'delta v3.45 ok'
+testa teste345.sql 8
 . "$AQUI/virada343.sh"
 if grep -q 'FALHOU\|ERROR' $D/saida; then echo "deu FALHOU ou erro (acima)"; exit 1; fi
 echo "tudo ok: $(grep -c '^ok:' $D/saida) checagens"

@@ -164,8 +164,9 @@
   /* v3.38 · CORREAL: os preços da IA em correal (os mesmos do banco; quem manda é o banco) */
   /* v3.40: o voo do Aeroporto de Londrina (Correverso) também sai em correal */
   /* v3.43: o correal tem centavos (delta-v343.sql). Os preços caíram na mesma conta da carteira (divididos por 10) e
-     nenhum passa de 1. Estes são só a reserva pra quando o banco não responder: o que vale é o corre_correal_meu */
-  const CORREAL_PRECO = { imagem: 1.00, legenda: 0.20, abordagem: 0.20, marca: 0.30, voo: 0.50 };
+     nenhum passa de 1. Estes são só a reserva pra quando o banco não responder: o que vale é o corre_correal_meu.
+     v3.45 (delta-v345.sql): caíram 10 vezes de novo, porque o Thales quer que 1 correal renda meio dia de trabalho */
+  const CORREAL_PRECO = { imagem: 0.10, legenda: 0.02, abordagem: 0.02, marca: 0.03, voo: 0.05 };
   /* quanto vale um ponto de tarefa e o máximo que a tarefa paga por dia (corre_correal_ponto e corre_correal_teto) */
   const CORREAL_PONTO = 0.03, CORREAL_TETO = 1.00;
   /* toda conta de correal é em centavos inteiros: em número quebrado, 0,1 + 0,2 dá 0,30000000000000004 e 0,90 - 0,20
@@ -1449,7 +1450,8 @@
      servidor e, se a IA falhar, devolve.
      v3.43: com centavos. Cada ponto de tarefa vale 3 centavos de correal (uma tarefa paga de 0,06 a 0,15) e o teto do
      dia em tarefa é 1,00, umas 10 tarefas. Nenhum preço passa de 1. Os números vêm do banco (corre_correal_meu: ponto,
-     teto e precos); os daqui são a reserva. */
+     teto e precos); os daqui são a reserva. v3.45: imagem 0,10 e o resto de 0,02 a 0,05, então 1,00 rende meio dia
+     de trabalho além do grátis. */
   C.correal = { saldo: null, hoje: 0, teto: CORREAL_TETO, ponto: CORREAL_PONTO, precos: Object.assign({}, CORREAL_PRECO) };
   /* um jeito só de escrever correal, em todo lugar: sempre 2 casas, com vírgula ("0,90", "12,40", "1.250,00").
      A conta é em centavos inteiros, então nunca aparece 0,30000000000000004 nem "0.9" */

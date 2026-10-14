@@ -25,7 +25,7 @@
 // (acao: "nomes"): sugere nomes com o porquê.
 // Studio (acao: "pauta", v3.38): a pauta do mês inteiro de uma vez (tema, título da arte e cena), conta como uma legenda.
 // Correal (v3.38): acabou o grátis do dia, o pedido com "correal: true" gasta a moeda do Correverso (desde a v3.43 com
-// centavos: imagem 1,00, legenda e pauta 0,20, Hórus 0,20, Studio Houzi 0,30; os preços ficam no banco). acao "cotas":
+// centavos; na v3.45 imagem 0,10, legenda e pauta 0,02, Hórus 0,02, Studio Houzi 0,03; os preços ficam no banco). acao "cotas":
 // o que já foi usado hoje e a carteira.
 // A devolução (quando a IA falha depois do desconto) usa a SUPABASE_SERVICE_ROLE_KEY, que o Supabase já põe sozinho.
 import { createClient } from 'npm:@supabase/supabase-js@2';
