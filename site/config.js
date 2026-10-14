@@ -26,5 +26,8 @@ window.CORRE_CONFIG = {
   IG_APP_ID: '1763654311510527',
   /* IG_ABERTO (v3.42): false enquanto o app da Meta tá em teste (só testador conecta; o resto vê "em breve" no Studio).
      Quando a Meta aprovar a Análise do app e ele estiver Ao vivo, muda pra true e sobe o site. */
-  IG_ABERTO: false
+  IG_ABERTO: false,
+  /* APPLE_LOGIN (v3.44): o botão "Continuar com a Apple" no login. Fica false até a Apple estar ligada no Supabase
+     (Authentication > Providers > Apple, com o Services ID e a chave da conta Apple Developer). Depois: true e sobe o site. */
+  APPLE_LOGIN: false
 };

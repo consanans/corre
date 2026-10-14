@@ -173,3 +173,9 @@ fieldset.fld{border:0;margin:0;padding:0}
   .cover{height:120px;margin:-16px -16px 0}
 }
 @media (prefers-reduced-motion:reduce){ .stk{animation:none} .btn,.btn-google{transition:none} }
+/* v3.44 · o "Continuar com a Apple": preto com a maçã branca, como a Apple pede, no mesmo formato do botão do Google */
+.btn-apple{display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:56px;margin-top:10px;padding:0 22px;border-radius:999px;border:3px solid var(--ink);background:#000;color:#fff;font-weight:800;font-size:16px;cursor:pointer}
+.btn-apple svg{width:22px;height:22px;flex:none}
+.btn-apple:hover{transform:translateY(-1px);box-shadow:0 6px 0 var(--ink)}
+.btn-apple:active{transform:translateY(4px);box-shadow:0 1px 0 var(--ink)}
+.btn-apple[disabled]{opacity:.6;cursor:progress}

@@ -261,8 +261,10 @@
         const u = data.session ? data.session.user : null; uid = u && u.id; return u;
       },
       onAuth(cb){ sb.auth.onAuthStateChange((ev, s) => { const novo = s && s.user ? s.user.id : null; if(novo !== uid) limpa(); uid = novo; cb(s ? s.user : null, ev); }); },
-      async login(){
-        const r = await sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: location.origin + location.pathname, queryParams: { prompt: 'select_account' } } });
+      /* v3.44: login("apple") entra pela Apple (o Supabase precisa do provedor Apple ligado; no site, CFG.APPLE_LOGIN) */
+      async login(prov){
+        const apple = prov === 'apple';
+        const r = await sb.auth.signInWithOAuth({ provider: apple ? 'apple' : 'google', options: Object.assign({ redirectTo: location.origin + location.pathname }, apple ? {} : { queryParams: { prompt: 'select_account' } }) });
         if(r.error) throw r.error;
       },
       /* desenha o botão do Google em "alvo". o.entrando: tocou e escolheu a conta; o.falhou(erro): não entrou.
