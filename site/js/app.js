@@ -30,17 +30,25 @@
   const DEST = me => ({
     inicio: ['#/', 'Início', 'home'], msg: ['#/msg', 'Mensagens', 'send'], avisos: ['', 'Avisos', 'bell'], studio: ['#/studio', 'Studio', 'magia'],
     verso: ['#/verso', 'Correverso', 'verso'], corre: ['#/corre', 'Vendas e Grana', 'grana'], mural: ['#/mural', 'Mural', 'tacha'],
-    houzi: ['#/houzi', 'Studio Houzi', 'houzi'], perfil: ['#/@' + me.handle, 'Perfil', 'eu'], grupos: ['#/grupos', 'Grupos', 'gente'],
+    houzi: ['#/houzi', 'Studio Houzi', 'houzi'], perfil: ['#/@' + me.handle, 'Meu perfil', 'eu'], grupos: ['#/grupos', 'Grupos', 'gente'],
     horus: ['#/horus', 'Hórus', 'eye'], rolo: ['#/rolo', 'Rolo 360', 'rolo'], carteira: ['', 'Carteira de correal', 'correal'],
     marcas: ['#/marcas', 'Portfólio e catálogo', 'marcas'], salvos: ['#/salvos', 'Salvos', 'save'], banca: ['#/banca', 'Banca do dia', 'banca'], refs: ['#/refs', 'Do teu nicho', 'cal']
   });
   /* os grupos: [nome, ícone, o que mora dentro]. No computador cada um abre ali mesmo, no menu; no celular a gaveta
-     da tua foto já mostra eles abertos */
-  const GRUPOS = { lab: ['Laboratório', 'lab', ['studio', 'houzi']], fin: ['Financeiro', 'calc', ['corre', 'carteira']], banca: ['Banca', 'toldo', ['banca', 'refs', 'rolo']] };
+     da tua foto já mostra eles abertos. v3.44 (o Thales pediu pra juntar o tanto que der): a Rede junta o Início, as
+     Mensagens, os Grupos e os Avisos; o Hórus e o Portfólio vão pro Laboratório; o Perfil e os Salvos ficam juntos.
+     Com isso o Mais some (não sobra nada nele) */
+  const GRUPOS = {
+    rede: ['Rede', 'chat', ['inicio', 'msg', 'grupos', 'avisos']],
+    lab: ['Laboratório', 'lab', ['studio', 'houzi', 'horus', 'marcas']],
+    fin: ['Financeiro', 'calc', ['corre', 'carteira']],
+    banca: ['Banca', 'toldo', ['banca', 'refs', 'rolo']],
+    eu: ['Perfil', 'eu', ['perfil', 'salvos']]
+  };
   const GRUPO_DE = {}; Object.keys(GRUPOS).forEach(g => GRUPOS[g][2].forEach(k => { GRUPO_DE[k] = g; }));
-  /* a lista do computador: a conversa em cima, o Laboratório onde o Studio morava, a praça no meio */
-  const LISTA = ['inicio', 'msg', 'avisos', 'g:lab', 'praca', 'g:fin', 'g:banca', 'perfil'], PRACA = ['verso', 'mural'];
-  const MAIS = ['grupos', 'horus', 'marcas', 'salvos'];
+  /* a lista do computador: a Rede em cima, o Laboratório onde o Studio morava, a praça no meio, o Perfil no fim */
+  const LISTA = ['g:rede', 'g:lab', 'praca', 'g:fin', 'g:banca', 'g:eu'], PRACA = ['verso', 'mural'];
+  const MAIS = [];
   /* a barra do celular: o Studio fica onde o dedo já sabe e a praça vai pro meio; o sino sobe pro alto, do lado do olho */
   const BARRA = ['inicio', 'studio', 'verso', 'mural', 'msg'];
   /* o que depende do perfil ou do módulo carregado: o Hórus liga e desliga, o Studio Houzi e os Grupos podem não vir */
@@ -48,7 +56,8 @@
   /* de qual item do menu cada página é (e pra onde a setinha de voltar leva). Banca e Nicho não são mais filhas do
      Início: moram na Banca, e o grupo aberto no menu já diz onde você tá */
   const DONO = { vendas: 'corre', grana: 'corre', estilo: 'corre', 'studio-dentro': 'studio', editar: 'perfil' };
-  const VOLTA = { estilo: ['#/corre', 'Vendas e Grana'], horus: ['perfil', 'Perfil'], marcas: ['perfil', 'Perfil'], salvos: ['perfil', 'Perfil'] };
+  /* (v3.44: o Hórus e o Portfólio moram no Laboratório, e o grupo aberto no menu já diz onde você tá: sem migalha) */
+  const VOLTA = { estilo: ['#/corre', 'Vendas e Grana'], salvos: ['perfil', 'Perfil'] };
   /* onde o Postar redondo do celular aparece: no Início, no teu perfil e nas páginas de ler (Banca do dia e Do teu
      nicho), como até a v3.42, quando elas eram do Início. O Editar perfil acende o Perfil, mas ali ninguém posta */
   const POSTAR = ['inicio', 'perfil', 'banca', 'refs'];
@@ -73,8 +82,14 @@
       : `<button type="button" class="${c}" data-act="${k === 'avisos' ? 'sino' : k}" title="${l}" aria-label="${l}"${dados}>${ic}<span class="mi-t">${l}</span></button>`;
   };
   /* um item dentro do grupo (computador): link, ou botão (a carteira abre por cima) */
-  const filho = (k, [h, l, i], ativo) => h ? `<a class="lado-gi lado-gi-${k}" href="${esc(h)}" title="${l}" aria-label="${l}"${ativo ? ' aria-current="page"' : ''}>${ico(i)}<span class="mi-t">${l}</span></a>`
-    : `<button type="button" class="lado-gi lado-gi-${k}" data-act="${k}" title="${l}" aria-label="${l}" aria-haspopup="dialog">${ico(i)}<span class="mi-t">${l}</span></button>`;
+  /* v3.44: dentro da Rede, os Avisos (o sino) e as Mensagens levam o número de não lidos, como na lista de antes */
+  const filho = (k, [h, l, i], ativo) => {
+    const n = k === 'avisos' ? `<span class="sino-n num" hidden></span>` : k === 'msg' ? `<span class="msg-n num" hidden></span>` : '';
+    const dados = k === 'avisos' ? ` data-sino${idSe(true, 'sino')}` : k === 'msg' ? ` data-msg${idSe(true, 'msg-btn')}` : '';
+    const ic = n ? `<span class="lado-gi-ic">${ico(i)}${n}</span>` : ico(i);
+    return h ? `<a class="lado-gi lado-gi-${k}" href="${esc(h)}" title="${l}" aria-label="${l}"${dados}${ativo ? ' aria-current="page"' : ''}>${ic}<span class="mi-t">${l}</span></a>`
+      : `<button type="button" class="lado-gi lado-gi-${k}" data-act="${k === 'avisos' ? 'sino' : k}" title="${l}" aria-label="${l}"${dados} aria-haspopup="dialog">${ic}<span class="mi-t">${l}</span></button>`;
+  };
   /* o grupo no computador. Abre o da página aberta; fora dos grupos, o Laboratório (o Studio fica a 1 clique). Um por
      vez: o name do details faz isso sozinho. Não guarda nada: o menu se redesenha a cada página e a regra decide de
      novo. Grupo com um item só vira item solto. O aberto/fechado o leitor de tela já ouve do próprio details (nada de
@@ -91,7 +106,7 @@
   const gavetaHTML = (me, active) => {
     const D = DEST(me), um = k => tem(k) ? itemSimples([k].concat(D[k]), '', k === active) : '';
     const bloco = (id, t, i, ks) => { const l = ks.filter(tem); return l.length ? `<div class="gv-g" role="group" aria-labelledby="gv-g-${id}"><span class="gv-k" id="gv-g-${id}">${i ? ico(i) : ''}${t}</span>${l.map(um).join('')}</div>` : ''; };
-    return um('perfil') + Object.keys(GRUPOS).map(g => bloco(g, GRUPOS[g][0], GRUPOS[g][1], GRUPOS[g][2])).join('') + bloco('mais', 'Mais', '', MAIS);
+    return Object.keys(GRUPOS).map(g => bloco(g, GRUPOS[g][0], GRUPOS[g][1], GRUPOS[g][2])).join('') + bloco('mais', 'Mais', '', MAIS);
   };
   /* em tela baixa a lista do menu rola: o item da página aberta (e o grupo que acabou de abrir) aparece inteiro.
      Mexe só no scrollTop da lista, nunca na página. v3.43: com folga do degradê que avisa que a lista rola (36px + um
@@ -144,8 +159,8 @@
     return `<aside class="lado" aria-label="Menu do Corre">
       <a class="wm lado-wm" href="#/" aria-label="Corre, início"><span class="lado-wm-t">Corre</span><span class="lado-wm-c" aria-hidden="true">C</span><span class="wm-tag" aria-hidden="true">rede</span></a>
       <nav class="lado-nav" aria-label="Navegação">${nav}
-        <details class="lado-mais"><summary class="lado-i" title="Mais"${mais.includes(active) ? ' aria-current="page"' : ''}><span class="mi-ic">${ico('dots')}</span><span class="mi-t">Mais</span></summary>
-          <div class="lado-mais-m" role="menu">${mais.map(k => itemSimples([k].concat(D[k]), 'lado')).join('')}</div></details>
+        ${mais.length ? `<details class="lado-mais"><summary class="lado-i" title="Mais"${mais.includes(active) ? ' aria-current="page"' : ''}><span class="mi-ic">${ico('dots')}</span><span class="mi-t">Mais</span></summary>
+          <div class="lado-mais-m" role="menu">${mais.map(k => itemSimples([k].concat(D[k]), 'lado')).join('')}</div></details>` : ''}
       </nav>
       <i class="lado-trilho" aria-hidden="true"></i>
       <button type="button" class="btn pri lado-post" data-act="lado-postar" title="Postar no feed">${ico('plus')}<span>Postar</span></button>

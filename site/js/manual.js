@@ -6,10 +6,12 @@
   'use strict';
   const C = window.Corre, { esc, ico } = C;
   /* sobe esse número a cada atualização: quem já viu recebe de novo, abrindo nas novidades */
-  const VERSAO = '3.43';
+  const VERSAO = '3.44';
   const K = 'corre-manual-visto';
 
   const NOVIDADES = [
+    ['lab', 'Menu ainda mais junto', 'A Rede junta o Início, as Mensagens, os Grupos e os Avisos (o número de não lidos aparece lá dentro, e um pontinho rosa no grupo fechado avisa que tem coisa nova). O Hórus e o Portfólio foram pro Laboratório, do lado do Studio e do Studio Houzi. O teu perfil e os Salvos ficam juntos no Perfil. Com isso o Mais sumiu: tudo tem lugar.'],
+    ['verso', 'Correverso: o minimapa', 'No canto da cidade agora tem um mapinha ao vivo: você é o quadradinho rosa piscando e quem tá na cidade aparece em branco. Toca nele pra abrir o mapa grande e viajar.'],
     ['lab', 'Menu em grupos: Laboratório, Financeiro e Banca', 'O menu agora é em grupos. No Laboratório: o Studio e o Studio Houzi. No Financeiro: Vendas e Grana e a carteira de correal. Na Banca: a Banca do dia, o Do teu nicho e o Rolo 360. No computador, toca no nome do grupo pra abrir ali mesmo; o grupo da página aberta já vem aberto (nas outras páginas, o Laboratório). O Correverso e o Mural ficam em destaque, juntos no meio. No celular, a barra de baixo é Início, Studio, Correverso, Mural e Mensagens; o sino dos avisos subiu pro alto, do lado do olho, e o resto mora na tua foto, já separado por grupo.'],
     ['correal', 'Correal em centavos', 'Dá pra usar o Corre quase o dia todo sem correal; quando precisar, precisa de pouco. Cada tarefa do Correverso paga de 0,06 a 0,15 (a mais difícil paga mais) e umas 10 tarefas fecham o dia em 1,00 correal, o teto. Nada custa mais que 1,00: imagem 1,00, Studio Houzi 0,30, legenda, pauta ou Hórus 0,20, voo 0,50. O que você já tinha foi dividido por 10, junto com os preços: 9 viraram 0,90 e pagam as mesmas coisas. Ganhar ficou mais devagar de propósito. E correal continua não sendo dinheiro.'],
     ['houzi', 'Studio Houzi: o logo ficou mais esperto', 'O símbolo agora sai do nome e do ofício da marca, não de um ícone qualquer do nicho: a laje com a caixa d\'água num selo chamado Laje, o coador numa cafeteria chamada Coado. O letreiro ganhou acabamento de estúdio, cada alternativa tenta um caminho diferente e o "Mais 6 caminhos" não mostra de novo o que você já viu. As marcas que você já salvou reabrem com o desenho novo: dá uma olhada nelas.'],

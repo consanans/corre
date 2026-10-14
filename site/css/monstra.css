@@ -2656,3 +2656,22 @@ html.embed .msg-pg{height:calc(100dvh - 40px)}
   .lado-trilho{position:absolute;right:3px;top:var(--trilho-t,0px);z-index:2;width:3px;height:var(--trilho-h,0px);border-radius:3px;background:rgb(247 245 239 / 30%);pointer-events:none;opacity:0}
   .lado.rola .lado-trilho{opacity:1}
 }
+/* v3.44 · o minimapa do Correverso: no canto de cima, à esquerda (o Thales pediu), embaixo da faixa de cima da cidade. Moldura de pixel
+   (borda de tinta e sombra dura, como os botões da cidade); tocou, abre o Mapa grande. No celular ele encolhe e desce
+   um pouco (a faixa de cima quebra em duas linhas lá). O aviso do meio (cvr-hint) passa por cima dele, que é recado */
+.cvr-mapinha{position:absolute;left:10px;top:58px;z-index:1;padding:0;border:3px solid var(--ink);background:#2B2F38;box-shadow:3px 3px 0 var(--ink);cursor:pointer;line-height:0}
+.cvr-mapinha canvas{display:block;width:140px;height:104px;margin:0;image-rendering:pixelated;image-rendering:crisp-edges}
+.cvr-mapinha:hover{box-shadow:3px 3px 0 var(--pink)}
+.cvr-mapinha:focus-visible{outline:3px solid var(--yellow);outline-offset:2px}
+.cvr-hint{z-index:2}
+/* (o nome cvr-mini já é dos bonequinhos do Trampo: por isso "mapinha") */
+.cvr-stage.toque .cvr-mapinha{top:var(--mini-t,108px)}
+@media (max-width:640px){ .cvr-mapinha canvas{width:105px;height:78px} }
+/* v3.44 · o menu mais junto: a Rede (Início, Mensagens, Grupos, Avisos) é um grupo. Os números do sino e das Mensagens
+   moram nos itens de dentro; com a Rede fechada, um pontinho rosa no ícone do grupo avisa que tem coisa nova lá dentro
+   (o :has olha os números que tão à vista: nada de JavaScript a mais) */
+@media (min-width:901px){
+  .lado-gi-ic{position:relative;display:grid;place-items:center}
+  .lado-gi .sino-n,.lado-gi .msg-n{top:-9px;right:-12px;border-color:var(--night)}
+  .lado-g:not([open]):has(.sino-n:not([hidden]),.msg-n:not([hidden])) > .lado-gs .mi-ic::after{content:"";position:absolute;top:-3px;right:-5px;width:10px;height:10px;border-radius:50%;background:var(--pink);border:2px solid var(--night)}
+}

@@ -2513,6 +2513,19 @@
     cv.addEventListener('click', ev => { const r = cv.getBoundingClientRect(), x = (ev.clientX - r.left) / r.width * mw * S, y = TOPO - RUA + (ev.clientY - r.top) / r.height * mh * S, p = pertoLivre(x, y); if(p) teleporta(p.x, p.y); });
     const pisca = () => { if(!cv.isConnected || !V.vivo) return; desenhaMapa(cv, S); setTimeout(pisca, 400); }; setTimeout(pisca, 400);
   }
+  /* v3.43 · o minimapa: a cidade em miniatura no canto da tela, ao vivo (você piscando em rosa, quem tá na cidade em
+     branco). É o mesmo desenho do Mapa (desenhaMapa), feito numa tela escondida e recortado em volta de você; perto da
+     borda da cidade o recorte para na borda (você sai do meio, mas o mapa não mostra o vazio). Tocou, abre o Mapa grande */
+  function miniMapa(){
+    const cv = C.$('cvr-mapinha-cv'); if(!cv || !V.cid || !V.eu) return;
+    const c = V.cid, S = 16, mw = Math.ceil(c.W / S), mh = Math.ceil((c.H - TOPO + RUA) / S);
+    if(!V.miniTudo || V.miniTudo.width !== mw || V.miniTudo.height !== mh){ V.miniTudo = document.createElement('canvas'); V.miniTudo.width = mw; V.miniTudo.height = mh; }
+    desenhaMapa(V.miniTudo, S);
+    const ctx = cv.getContext('2d'), w = cv.width, h = cv.height, px = V.eu.x / S, py = (V.eu.y - (TOPO - RUA)) / S;
+    const sx = mw <= w ? (mw - w) / 2 : clamp(Math.round(px - w / 2), 0, mw - w), sy = mh <= h ? (mh - h) / 2 : clamp(Math.round(py - h / 2), 0, mh - h);
+    ctx.imageSmoothingEnabled = false; ctx.fillStyle = '#2B2F38'; ctx.fillRect(0, 0, w, h);
+    ctx.drawImage(V.miniTudo, Math.round(sx), Math.round(sy), w, h, 0, 0, w, h);
+  }
   function falando(o, eu){ if(eu) return V.mic && V.nivelEu > .035; const p = V.peers.get(o.sid); return !!p && (p.bot ? Math.sin(performance.now() / 260) > .2 : (p.nivel || 0) > .03); }
   function boneco(ctx, o, t, eu){
     const m = ctx.getTransform(), ix = Math.round(m.a * o.x + m.e), iy = Math.round(m.d * o.y + m.f);
@@ -2654,6 +2667,7 @@
       V.raf = requestAnimationFrame(laco); return;
     }
     passo(dt, t); quadro(t);
+    if(ts - (V.miniT || 0) > 330){ V.miniT = ts; miniMapa(); }
     V.raf = requestAnimationFrame(laco);
   }
   function bots(dt){
@@ -3241,6 +3255,7 @@
     st.innerHTML = `<canvas id="cvr-cv" aria-label="A cidade do Correverso. Anda com as setas ou W A S D, ou toca onde quer ir."></canvas>
       <div class="cvr-top"><span class="cvr-tt">${ico('verso')} Correverso</span><span class="cvr-on" id="cvr-on"></span><button type="button" class="cvr-live" id="cvr-live" data-act="cvr-gente" hidden></button><span class="cvr-zona" id="cvr-zona" hidden></span><button type="button" class="cvr-tarefa" id="cvr-tarefa" data-act="cvr-trampo" hidden></button><button type="button" class="cvr-correal" id="cvr-correal" data-act="carteira" title="Carteira de correal" aria-label="Carteira de correal">${ico('correal')}<b class="num" data-correal-saldo>${C.correal.saldo == null ? '…' : C.correalFmt(C.correal.saldo)}</b></button><button type="button" class="cvr-som" id="cvr-som" data-act="cvr-som" aria-pressed="false" hidden></button></div>
       <p class="cvr-hint" id="cvr-hint" hidden></p>
+      <button type="button" class="cvr-mapinha" id="cvr-mapinha" data-act="cvr-mapa" title="Mapa" aria-label="Minimapa: onde você tá na cidade. Toca pra abrir o mapa grande e viajar"><canvas id="cvr-mapinha-cv" width="140" height="104" aria-hidden="true"></canvas></button>
       <button type="button" class="cvr-porta" id="cvr-porta" data-act="cvr-porta" hidden></button>
       <div class="cvr-bar"><button type="button" class="cvr-b mic" id="cvr-mic" data-act="cvr-mic" aria-pressed="false"></button><button type="button" class="cvr-b" data-act="cvr-avatar" title="Avatar" aria-label="Avatar">${ico('eu')}<span>Avatar</span></button><button type="button" class="cvr-b" data-act="cvr-garagem" title="Garagem: como você anda pela cidade" aria-label="Garagem">${ico('carro')}<span>Garagem</span></button><button type="button" class="cvr-b" data-act="cvr-casa" title="Voltar pra casa" aria-label="Voltar pra casa">${ico('home')}<span>Pra casa</span></button><button type="button" class="cvr-b" data-act="cvr-mapa" title="Mapa" aria-label="Mapa">${ico('mapa')}<span>Mapa</span></button><button type="button" class="cvr-b" data-act="cvr-falar" title="Falar uma frase" aria-label="Falar uma frase" aria-expanded="false">${ico('chat')}<span>Falar</span></button><button type="button" class="cvr-b" data-act="cvr-gente" title="Quem tá na cidade" aria-label="Quem tá na cidade">${ico('gente')}<span>Gente</span></button><button type="button" class="cvr-b" data-act="cvr-trampo" title="Trampo: as tarefas do teu uniforme" aria-label="Trampo">${ico('raio')}<span>Trampo</span></button></div>
       <div class="cvr-falas" id="cvr-falas" hidden>${FALAS.map((f, i) => `<button type="button" data-act="cvr-fala" data-i="${i}">${esc(f)}</button>`).join('')}</div>`;
