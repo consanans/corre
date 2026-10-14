@@ -295,9 +295,147 @@
     ],
     entrada: { x: 7, z: 14 }, tapete: { x: 6.3, z: 12.8, w: 1.4, d: 1 }, decor: HORUS_DECOR, chao: CHAO_HORUS, padrao: []
   };
+  /* ---------- v3.46 · mais lugares da Feira: cada ferramenta vira uma construção com a cara dela ----------
+     O Estúdio (Studio), o Balcão (Vendas), o Cofre (Grana) e a Galeria (Portfólio e catálogo). O mesmo motor do templo:
+     planta, decoração fixa e a estação que abre a ferramenta no balcão; e agora também móveis do catálogo da casa
+     (itens, no formato da casa: [k, x, z, giro, andar, cor]), que aparecem do mesmo jeito pra todo mundo */
+  const salaDe = o => ({ k: 'lugar-' + o.k, W: o.W, D: o.D, ALT: o.ALT || 3.6,
+    comodos: [{ k: o.k, nome: o.nome, x0: 0, z0: 0, x1: o.W, z1: o.D, piso: o.piso, piso2: o.piso2, xadrez: !!o.piso2, linha: o.linha }],
+    paredes: [
+      { a: [0, o.D], b: [o.W, o.D], ext: [0, 1], portas: [[o.W / 2 - .6, o.W / 2 + .6]], entrada: true, cor: o.parede },
+      { a: [o.W, 0], b: [o.W, o.D], ext: [1, 0], cor: o.parede, altas: o.altasD },
+      { a: [0, 0], b: [0, o.D], ext: [-1, 0], cor: o.parede, altas: o.altasE },
+      { a: [0, 0], b: [o.W, 0], ext: [0, -1], cor: o.fundo || o.parede }
+    ],
+    entrada: { x: o.W / 2, z: o.D }, decor: o.decor || [], chao: o.chao, padrao: [] });
+  /* um quadro de pintura na parede: [u, v, w, h, cor] a partir do canto de baixo; fundo = a tela. Na parede do fundo
+     (eixo x) ou numa lateral (eixo z, com o lado que olha pra dentro: +1 na esquerda, -1 na direita) */
+  const pintaTela = (u0, v0, w, h, fundo, formas, eixo, lado) => {
+    const out = [], poe = (u, v, ww, hh, c, prof, d0) => out.push(eixo === 'z'
+      ? B(lado > 0 ? d0 : -d0 - prof, v0 + v, u0 + u, prof, hh, ww, c)
+      : B(u0 + u, v0 + v, d0, ww, hh, prof, c));
+    poe(0, 0, w, h, fundo, .06, 0);
+    formas.forEach(([u, v, ww, hh, c]) => poe(u, v, ww, hh, c, .01, .06));
+    return out;
+  };
+  const LUZ_S = '#FFF6CF', CYC = '#F7F5F0', ACO = '#B8BEC6', ACO_E = '#8F96A0', LASER = '#FF3B3B';
+
+  /* o Estúdio: parede de tijolo, o fundo infinito branco com dois softboxes e a câmera no tripé, e a mesa de criação
+     (a grade do feed numa tela, o calendário do mês na outra e o quadro de post-its na parede) */
+  const softbox = yaw => { const pv = [0, 1.75, 0]; return [B(-.18, 0, -.18, .36, .04, .36, INK), B(-.03, .04, -.03, .06, 1.4, .06, INK),
+    Object.assign(B(-.42, 1.35, -.2, .84, .8, .28, '#2B2F38'), { yaw, piv: pv }), Object.assign(B(-.38, 1.39, .08, .76, .72, .03, LUZ_S), { yaw, piv: pv })]; };
+  const ESTUDIO_DECOR = [
+    { x: .3, z: .15, parede: true, bl: [B(0, 0, 0, 5, 3.1, .08, CYC)] },
+    { x: .3, z: .23, piso: true, bl: [B(0, 0, 0, 5, .02, 3.3, CYC)] },
+    { x: .3, z: .23, bl: [B(0, 0, 0, 5, .3, .1, CYC), B(0, 0, .1, 5, .12, .14, CYC)] },
+    { x: .9, z: 3.8, bl: softbox(2.43) }, { x: 4.7, z: 3.8, bl: softbox(-2.43) },
+    /* a câmera no tripé, olhando pro fundo */
+    { x: 2.8, z: 5.2, bl: [Object.assign(B(-.025, 0, -.025, .05, 1.24, .05, INK), { roll: .3, piv: [0, 1.22, 0] }), Object.assign(B(-.025, 0, -.025, .05, 1.24, .05, INK), { roll: -.3, piv: [0, 1.22, 0] }),
+      Object.assign(B(-.025, 0, -.025, .05, 1.24, .05, INK), { pitch: .3, piv: [0, 1.22, 0] }), B(-.1, 1.2, -.1, .2, .08, .2, INK),
+      B(-.18, 1.28, -.12, .36, .24, .22, '#1B1D22'), B(-.09, 1.31, -.3, .18, .18, .18, '#3A3E45'), B(-.06, 1.34, -.31, .12, .12, .01, '#5C7BD9'), B(-.06, 1.52, -.06, .12, .06, .12, INK), B(.1, 1.36, .1, .05, .05, .01, ROSA)] },
+    /* o quadro do mês: post-its em cima da mesa de criação */
+    { x: 7.4, z: .15, parede: true, bl: [B(0, 2, 0, 4.2, 1.3, .05, '#F4F1EA'), B(0, 3.25, .05, 4.2, .05, .01, INK),
+      ...Array.from({ length: 28 }, (_, i) => B(.18 + (i % 7) * .56, 2.12 + Math.floor(i / 7) * .27, .05, .4, .2, .01, [AMARELO, ROSA, CEU, PAPEL, LILAS, AMARELO, LARANJA][(i * 3 + Math.floor(i / 7)) % 7]))] },
+    /* fotos analógicas na parede da esquerda */
+    { x: .15, z: 1.2, parede: true, bl: [0, 1, 2, 3].flatMap(i => [B(0, 1.5 + (i % 2) * .15, i * 1.05, .04, .62, .82, INK), B(.04, 1.56 + (i % 2) * .15, i * 1.05 + .06, .01, .5, .7, ['#C9B79C', '#7F8A96', ROSA, '#D9C9A6'][i])]) }
+  ];
+  const ESTUDIO_MESA = [B(0, .74, 0, 4.2, .06, 1.1, MAD), ...[[.1, .1], [4.02, .1], [.1, .92], [4.02, .92]].map(([x, z]) => B(x, 0, z, .08, .74, .08, INK)),
+    B(.95, .8, .35, .1, .25, .1, INK), B(.4, 1.05, .25, 1.2, .75, .06, INK),
+    ...Array.from({ length: 9 }, (_, i) => B(.5 + (i % 3) * .34, 1.12 + Math.floor(i / 3) * .21, .31, .3, .17, .01, [ROSA, AMARELO, AZUL, LARANJA, LILAS, CEU, PAPEL, ROSA, AMARELO][i])),
+    B(2.65, .8, .35, .1, .25, .1, INK), B(2, 1.05, .25, 1.4, .75, .06, INK),
+    ...Array.from({ length: 28 }, (_, i) => B(2.08 + (i % 7) * .185, 1.13 + Math.floor(i / 7) * .15, .31, .16, .12, .01, (i * 5) % 7 < 2 ? AMARELO : '#3A3E45')),
+    B(1.1, .8, .6, 1, .03, .3, '#2B2F38'), B(2.3, .8, .7, .1, .03, .15, INK), B(3.6, .8, .4, .14, .16, .14, AMARELO), B(3.15, .8, .7, .3, .01, .25, PAPEL)];
+  const PLANTA_ESTUDIO = salaDe({ k: 'studio', nome: 'O estúdio', W: 13, D: 12, ALT: 3.8, piso: '#9EA3AA', linha: 'rgba(20,24,30,.12)', parede: '#EFEAE2', fundo: TIJ, altasE: [[6, 10]], decor: ESTUDIO_DECOR });
+
+  /* o Balcão: piso xadrez de mercadinho, o balcão comprido com a caixa registradora (o rolo de nota desce até o chão),
+     prateleiras cheias no fundo, geladeira e máquina de refri na lateral e o cavalete de promoção na porta */
+  /* produto de mercadinho: caixa, duas latas, duas garrafas, pote e caixa de novo; a fita amarela de preço na beira */
+  const PRODUTOS = [[.3, .22, .26], [.12, .17, .12], [.12, .17, .12], [.08, .34, .08], [.08, .34, .08], [.18, .16, .18], [.28, .26, .22]];
+  const gondola = x0 => [B(x0, 0, .15, .08, 2.6, .5, MAD), B(x0 + 1.72, 0, .15, .08, 2.6, .5, MAD),
+    ...[.4, 1, 1.6, 2.2].flatMap((y, k) => { const out = [B(x0, y, .15, 1.8, .05, .5, MAD), B(x0 + .08, y - .05, .65, 1.64, .05, .01, AMARELO)]; let x = x0 + .12;
+      PRODUTOS.forEach(([w, h, d], i) => { out.push(B(x, y + .05, .4 - d / 2 + .02, w, h, d, [LARANJA, '#E2412E', '#E2412E', PAPEL, PAPEL, AZUL, AMARELO, ROSA, LILAS][(i + k * 3) % 9])); x += w + .04; }); return out; })];
+  const BALCAO_DECOR = [
+    { x: 2, z: 3.4, bl: [B(0, 0, 0, 8, .95, .8, MAD_E), B(0, .55, .8, 8, .14, .015, LARANJA), B(-.05, .95, -.05, 8.1, .06, .9, CINZA)] },
+    { x: 0, z: 0, bl: [...gondola(.6), ...gondola(2.6), ...gondola(7.6), ...gondola(9.6)] },
+    /* o rolo de nota fiscal que desce do caixa e enrola no chão */
+    { x: 0, z: 0, bl: [B(5.55, .1, 4.255, .18, .84, .01, PAPEL), B(5.55, 0, 4.27, .18, .01, .75, PAPEL), B(5.55, .01, 4.95, .18, .08, .08, PAPEL)] },
+    { x: 7.6, z: 8.6, bl: [B(0, 0, 0, .08, 1.05, .08, MAD), B(.66, 0, 0, .08, 1.05, .08, MAD), B(0, .3, .04, .74, .7, .05, '#2B2F38'), B(.12, .82, .09, .5, .05, .01, PAPEL), B(.12, .66, .09, .36, .05, .01, LARANJA), B(.12, .5, .09, .44, .05, .01, PAPEL)] }
+  ];
+  const BALCAO_CAIXA = [B(.1, 1.01, .05, 1.2, .32, .6, '#3A3E45'), B(.15, 1.33, .35, 1.1, .08, .3, '#2B2F38'),
+    ...Array.from({ length: 12 }, (_, i) => B(.22 + (i % 4) * .26, 1.41, .38 + Math.floor(i / 4) * .085, .2, .02, .06, i === 3 ? LARANJA : PAPEL)),
+    B(.35, 1.33, .05, .7, .3, .08, INK), B(.42, 1.39, .13, .56, .16, .01, LARANJA), B(.15, 1.05, .65, 1.1, .14, .01, '#4A4E56'), B(.6, 1.1, .66, .2, .04, .01, CINZA), B(.25, 1.33, .18, .18, .04, .2, PAPEL)];
+  const PLANTA_BALCAO = salaDe({ k: 'vendas', nome: 'O balcão', W: 12, D: 11, ALT: 3.4, piso: '#EEE8DA', piso2: '#D9C9A6', linha: 'rgba(60,50,40,.1)', parede: '#F2D8A7', fundo: '#F4F1EA', decor: BALCAO_DECOR });
+
+  /* o Cofre: a porta redonda de aço no fundo (é a estação), as caixas de depósito nas laterais, as barras de ouro no
+     meio com o laser em volta e a Capi de ouro de guarda na porta */
+  function portaCofre(){
+    const out = [], cx = 1.8, cy = 1.85, R = 1.6, r = 1.25;
+    for(let y = cy - R + .1; y < cy + R - .05; y += .2){ const dy = y + .1 - cy, h = Math.sqrt(Math.max(0, R * R - dy * dy)); out.push(B(cx - h, y, 0, h * 2, .2, .12, ACO)); }
+    for(let y = cy - r + .1; y < cy + r - .05; y += .2){ const dy = y + .1 - cy, h = Math.sqrt(Math.max(0, r * r - dy * dy)); out.push(B(cx - h, y, .12, h * 2, .2, .08, '#C9CDD3')); }
+    out.push(B(cx - .26, cy - .26, .2, .52, .52, .06, ACO_E), B(cx - .9, cy - .05, .26, 1.8, .1, .05, OURO), B(cx - .05, cy - .9, .26, .1, 1.8, .05, OURO));
+    [[-.9, 0], [.9, 0], [0, -.9], [0, .9]].forEach(([dx, dy]) => out.push(B(cx + dx - .08, cy + dy - .08, .3, .16, .16, .06, OURO)));
+    for(let i = 0; i < 12; i++){ const a = i / 12 * Math.PI * 2; out.push(B(cx + Math.cos(a) * 1.42 - .05, cy + Math.sin(a) * 1.42 - .05, .12, .1, .1, .04, OURO)); }
+    out.push(B(cx - R - .12, cy - .8, 0, .22, 1.6, .2, '#5C6470'));
+    return out;
+  }
+  const caixasDeposito = esq => { const out = []; for(let i = 0; i < 6; i++) for(let j = 0; j < 4; j++){ const z = 2.2 + i * 1.2, y = .5 + j * .55;
+    out.push(B(esq ? 0 : -.05, y, z, .05, .48, 1.1, ACO), B(esq ? .05 : -.08, y + .2, z + .48, .03, .08, .14, OURO)); } return out; };
+  const barras = () => { const out = [B(0, 0, 0, 2.8, .15, 2, MAD_E)]; [[5, .2, .15], [4, .42, .45], [3, .64, .75]].forEach(([n, x0, y], k) => {
+    for(let i = 0; i < n; i++) out.push(B(x0 + i * .48, y, .2 + k * .2, .44, .3, 1.6 - k * .4, i % 2 ? '#F2C94C' : OURO)); }); return out; };
+  const cercaLaser = (x0, z0, x1, z1) => { const out = [], pino2 = (x, z) => [B(x - .06, 0, z - .06, .12, .9, .12, ACO), B(x - .08, .9, z - .08, .16, .06, .16, ACO_E)];
+    [[x0, z0], [x1, z0], [x0, z1], [x1, z1]].forEach(([x, z]) => out.push(...pino2(x, z)));
+    [.35, .7].forEach(y => out.push(B(x0, y, z0 - .01, x1 - x0, .015, .02, LASER), B(x0, y, z1 - .01, x1 - x0, .015, .02, LASER), B(x0 - .01, y, z0, .02, .015, z1 - z0, LASER), B(x1 - .01, y, z0, .02, .015, z1 - z0, LASER)));
+    return out; };
+  const COFRE_DECOR = [
+    { x: .15, z: 0, parede: true, bl: caixasDeposito(true) }, { x: 11.85, z: 0, parede: true, bl: caixasDeposito(false) },
+    { x: 4.6, z: 5.4, bl: barras() }, { x: 0, z: 0, bl: cercaLaser(4.2, 5, 7.8, 7.8) },
+    /* o tapete de veludo da porta até a porta do cofre */
+    { x: 5.4, z: 2.2, piso: true, bl: [B(0, 0, 0, 1.2, .02, 2.6, '#5A1830')] }, { x: 5.4, z: 8.2, piso: true, bl: [B(0, 0, 0, 1.2, .02, 3.6, '#5A1830')] }
+  ];
+  const PLANTA_COFRE = salaDe({ k: 'grana', nome: 'O cofre', W: 12, D: 12, ALT: 3.8, piso: '#2B2F38', linha: 'rgba(231,183,52,.16)', parede: '#9AA1AB', fundo: '#7F8792', decor: COFRE_DECOR });
+
+  /* a Galeria: paredes brancas com telas originais (formas e cores do Corre, sem copiar artista nenhum), plaquinha
+     embaixo de cada uma, pedestais com peças (o tênis, a escultura de blocos, o produto) e, no meio, o catálogo aberto */
+  const pedestal = topo => [B(0, 0, 0, .7, .9, .7, PAPEL), B(-.03, .9, -.03, .76, .04, .76, '#E6E2DA'), ...topo];
+  const plaquinha = (x, y, z, eixo, lado) => eixo === 'z' ? [B(lado > 0 ? 0 : -.02, y, z, .02, .12, .22, PAPEL), B(lado > 0 ? .02 : -.03, y + .04, z + .04, .01, .02, .14, INK)] : [B(x, y, 0, .22, .12, .02, PAPEL), B(x + .04, y + .04, .02, .14, .02, .01, INK)];
+  const GALERIA_DECOR = [
+    { x: 0, z: .15, parede: true, bl: [
+      ...pintaTela(1.2, .75, 3, 2, PAPEL, [[.3, .4, 1.1, 1.2, ROSA], [.5, .6, .7, .8, '#E2412E'], [1.6, .3, 1.1, .5, AZUL], [1.6, .9, .25, .9, INK], [2.05, .9, .7, .25, AMARELO], [2.3, 1.3, .3, .3, INK]]),
+      ...plaquinha(2.6, .5), ...pintaTela(5.5, .75, 3, 2, '#1B1D22', [[.3, .25, 2.4, .25, AMARELO], [.6, .5, 1.8, .25, AMARELO], [.9, .75, 1.2, .25, AMARELO], [1.2, 1, .6, .25, AMARELO], [1.95, 1.4, .35, .35, ROSA], [.25, 1.6, .5, .1, PAPEL]]),
+      ...plaquinha(6.9, .5), ...pintaTela(9.8, .75, 3, 2, AMARELO, [[.2, .2, 2.6, .1, INK], [.2, .2, .1, 1.6, INK], [1.3, .2, .1, 1.6, INK], [.2, 1.1, 2.6, .1, INK], [.35, .35, .85, .7, ROSA], [1.45, 1.25, 1.2, .5, AZUL], [2.3, .4, .35, .55, PAPEL]]),
+      ...plaquinha(11.2, .5), ...[2.6, 6.9, 11.2].map(x => B(x - .05, 3.2, .05, .3, .1, .35, INK))] },
+    { x: .15, z: 0, parede: true, bl: [...pintaTela(3.2, 1.3, 1.8, 1.4, LILAS, [[.2, .2, .6, 1, PAPEL], [.9, .5, .7, .7, INK], [1.1, .7, .3, .3, AMARELO]], 'z', 1), ...plaquinha(0, 1.05, 4, 'z', 1),
+      ...pintaTela(7, 1.3, 1.8, 1.4, ROSA, [[.15, .15, 1.5, .2, INK], [.15, .5, 1, .2, PAPEL], [.15, .85, 1.3, .2, AMARELO], [1.3, .4, .3, .7, AZUL]], 'z', 1), ...plaquinha(0, 1.05, 7.8, 'z', 1)] },
+    { x: 13.85, z: 0, parede: true, bl: [...pintaTela(3.2, 1.3, 1.8, 1.4, AZUL, [[.2, .2, 1.4, 1, PAPEL], [.4, .4, 1, .6, ROSA], [.7, .55, .4, .3, AMARELO]], 'z', -1), ...plaquinha(0, 1.05, 4, 'z', -1),
+      ...pintaTela(7, 1.3, 1.8, 1.4, PAPEL, [[.2, .2, .2, 1, INK], [.5, .2, .2, .7, INK], [.8, .2, .2, .4, INK], [1.1, .2, .5, .5, '#E2412E']], 'z', -1), ...plaquinha(0, 1.05, 7.8, 'z', -1)] },
+    /* o tênis, a escultura de blocos e o produto */
+    { x: 2.2, z: 5.4, bl: pedestal([B(.1, .94, .25, .5, .06, .22, PAPEL), B(.14, 1, .25, .32, .16, .22, ROSA), B(.46, 1, .25, .14, .09, .22, ROSA), B(.16, 1.06, .26, .12, .05, .2, PAPEL), B(.48, .97, .25, .02, .05, .22, INK)]) },
+    { x: 10.9, z: 5.4, bl: pedestal([B(.2, .94, .2, .3, .3, .3, AZUL), Object.assign(B(.24, 1.24, .24, .22, .22, .22, AMARELO), { yaw: .6 }), B(.29, 1.46, .29, .12, .12, .12, ROSA)]) },
+    { x: 2.2, z: 8.6, bl: pedestal([B(.12, .94, .2, .3, .38, .3, PAPEL), B(.12, 1.12, .5, .3, .08, .01, '#E2412E'), B(.5, .94, .3, .12, .3, .12, '#3A3E45'), B(.52, 1.24, .32, .08, .08, .08, '#3A3E45')]) },
+    { x: 10.9, z: 8.6, bl: pedestal([B(.15, .94, .15, .4, .04, .4, INK), B(.25, .98, .25, .2, .5, .2, ROSA), B(.2, 1.48, .2, .3, .06, .3, AMARELO)]) }
+  ];
+  const GALERIA_CATALOGO = [B(.5, 0, .3, 1, .9, .6, PAPEL), B(.3, .9, .15, 1.4, .05, .9, '#E2412E'), B(.38, .95, .2, .6, .04, .8, PAPEL), B(1.02, .95, .2, .6, .04, .8, PAPEL), B(.98, .95, .2, .04, .05, .8, '#B4152E'),
+    ...Array.from({ length: 8 }, (_, i) => B(.44 + (i % 4) * .29 + (i % 4 > 1 ? .06 : 0), .991, .27 + Math.floor(i / 4) * .36, .22, .005, .28, [ROSA, AZUL, AMARELO, INK, LILAS, '#E2412E', CEU, LARANJA][i]))];
+  const PLANTA_GALERIA = salaDe({ k: 'marcas', nome: 'A galeria', W: 14, D: 12, ALT: 4, piso: '#E6E2DA', linha: 'rgba(60,50,40,.08)', parede: '#F7F5F0', decor: GALERIA_DECOR });
+
   const LUGARES = {
     horus: { titulo: 'Casa do Hórus', planta: PLANTA_HORUS, ola: 'Casa do Hórus. O radar é o altar do meio: chega e toca.',
-      estacoes: () => [{ id: 'radar', liga: 'horus', titulo: 'Radar do Hórus', rota: '#/horus', cor: INK, x: 5.6, z: 5, w: 2.8, d: 2.8, bl: RADAR, tag: [1.4, 1.75, 1.4], y: 0 }] }
+      estacoes: () => [{ id: 'radar', liga: 'horus', titulo: 'Radar do Hórus', rota: '#/horus', cor: INK, x: 5.6, z: 5, w: 2.8, d: 2.8, bl: RADAR, tag: [1.4, 1.75, 1.4], y: 0 }] },
+    studio: { titulo: 'O Estúdio', planta: PLANTA_ESTUDIO, ola: 'O Estúdio. A mesa de criação abre o Studio: chega e toca.',
+      estacoes: () => [{ id: 'studio', titulo: 'Mesa de criação', rota: '#/studio', cor: AMARELO, x: 7.4, z: .9, w: 4.2, d: 1.2, bl: ESTUDIO_MESA, tag: [2.1, 2.05, .6], y: 0 }],
+      itens: [['cadeira_gamer', 10.4, 2.3, 2, 0, 2], ['banqueta', 2.4, 1.4, 0, 0, 2], ['mic_pedestal', 6, 4.4, 0, 0, 0], ['cabine_foto', 11.6, 6, 0, 0, 0], ['pufe', 8.6, 8.6, 0, 0, 0],
+        ['bean_bag', 9.8, 8.4, 0, 0, 1], ['luminaria', .4, 10, 0, 0, 2], ['neon_raio', 5.9, .15, 0, 0, 0], ['varal_luzes', 8.4, 9.6, 0, 0, 0], ['tapete', 8.6, 7.6, 1, 0, 2]] },
+    vendas: { titulo: 'O Balcão', planta: PLANTA_BALCAO, ola: 'O Balcão. A caixa registradora abre as tuas vendas: chega e toca.',
+      estacoes: () => [{ id: 'vendas', titulo: 'Caixa registradora', rota: '#/vendas', cor: LARANJA, x: 5.3, z: 3.45, w: 1.4, d: .8, bl: BALCAO_CAIXA, tag: [.7, 1.95, .35], y: 0 }],
+      itens: [['banqueta', 5.5, 2.2, 0, 0, 4], ['maquina_refri', .3, 5.4, 1, 0, 0], ['geladeira_bebidas', .3, 6.6, 1, 0, 0], ['vaso', .4, 9.4, 0, 0, 0], ['vaso', 10.6, 9.4, 0, 0, 1],
+        ['carrinho_bar', 10.7, 5.6, 3, 0, 0], ['relogio', 5.5, .15, 0, 0, 0]] },
+    grana: { titulo: 'O Cofre', planta: PLANTA_COFRE, ola: 'O Cofre. A porta do cofre abre a tua grana: chega e toca.',
+      estacoes: () => [{ id: 'grana', titulo: 'Porta do cofre', rota: '#/grana', cor: AZUL, parede: true, x: 4.2, z: .15, w: 3.6, d: .1, bl: portaCofre(), tag: [1.8, 2.3, .6], y: 0 }],
+      itens: [['cofre', .4, .6, 0, 0, 0], ['cofre', 10.6, .6, 0, 0, 0], ['capivara_ouro', 1, 10.2, 0, 0, 0], ['estatua', 10, 10.2, 0, 0, 0]] },
+    marcas: { titulo: 'A Galeria', planta: PLANTA_GALERIA, ola: 'A Galeria. O catálogo aberto no meio é o teu portfólio: chega e toca.',
+      estacoes: () => [{ id: 'marcas', titulo: 'O catálogo', rota: '#/marcas', cor: '#E2412E', x: 6, z: 6.2, w: 2, d: 1.2, bl: GALERIA_CATALOGO, tag: [1, 1.8, .6], y: 0 }],
+      itens: [['banco_madeira', 1, 2.8, 0, 0, 3], ['banco_madeira', 11, 2.8, 0, 0, 3], ['estatua', 12.3, 10.4, 0, 0, 0], ['vaso', .6, 10.4, 0, 0, 0],
+        ['pendente', 3, 3.4, 0, 0, 2], ['pendente', 7, 3.4, 0, 0, 2], ['pendente', 11, 3.4, 0, 0, 2]] }
   };
   /* a estação que é só do fundador aparece na casa do fundador (pra ele e pra quem visita) */
   const paraDono = (e, dono) => e.so !== 'fundador' || ehDoFundador(dono);
@@ -1100,9 +1238,39 @@
   }
   /* o caminho até um ponto de outro andar passa pela escada: pé da escada → topo → o ponto (e, descendo, sai do pé
      pro lado antes de seguir, pra não voltar pela rampa de viés) */
+  /* v3.46: o caminho desvia do que tá no meio (o laser do Cofre, a cadeira na frente da mesa). Com a linha livre vai
+     reto, como sempre; senão procura na grade da casa (de 25 em 25 cm, 8 vizinhos, sem cortar quina) e enxuga a rota
+     só pros cantos. Sem caminho nenhum, vai reto e para onde bater (o jeito de antes) */
+  const livreReto = (x0, z0, x1, z1, n) => { const L = Math.hypot(x1 - x0, z1 - z0), k = Math.max(1, Math.ceil(L / .12)); for(let i = 1; i <= k; i++){ const t = i / k; if(bate(x0 + (x1 - x0) * t, z0 + (z1 - z0) * t, n)) return false; } return true; };
+  function desvia(x, z, n){
+    const e = S.eu; if(!e || livreReto(e.x, e.z, x, z, n)) return null;
+    const cw = Math.ceil(W * G), cd = Math.ceil(D * G), cel = v => (v + .5) / G, de = new Int32Array(cw * cd).fill(-1), vis = new Uint8Array(cw * cd);
+    const ci = (v, m) => Math.max(0, Math.min(m - 1, Math.floor(v * G))), ini = ci(e.z, cd) * cw + ci(e.x, cw), fim = ci(z, cd) * cw + ci(x, cw);
+    const livre = k => { if(k === fim) return true; if(!vis[k]) vis[k] = bate(cel(k % cw), cel(Math.floor(k / cw)), n) ? 2 : 1; return vis[k] === 1; };
+    /* o mais curto de verdade (diagonal custa 1,41), com um montinho binário pra ir sempre pelo mais perto */
+    const custo = new Float32Array(cw * cd).fill(1e9), feito = new Uint8Array(cw * cd), H = [];
+    const sobeH = (k, c) => { H.push([c, k]); let i = H.length - 1; while(i > 0){ const p = (i - 1) >> 1; if(H[p][0] <= H[i][0]) break; [H[p], H[i]] = [H[i], H[p]]; i = p; } };
+    const tiraH = () => { const t = H[0], u = H.pop(); if(H.length){ H[0] = u; let i = 0; for(;;){ const l = i * 2 + 1, r = l + 1; let m = i; if(l < H.length && H[l][0] < H[m][0]) m = l; if(r < H.length && H[r][0] < H[m][0]) m = r; if(m === i) break; [H[m], H[i]] = [H[i], H[m]]; i = m; } } return t; };
+    custo[ini] = 0; de[ini] = ini; sobeH(ini, 0);
+    while(H.length){
+      const [c, k] = tiraH(); if(feito[k]) continue; feito[k] = 1; if(k === fim) break;
+      const i = k % cw, j = Math.floor(k / cw);
+      for(let di = -1; di <= 1; di++) for(let dj = -1; dj <= 1; dj++){
+        const ii = i + di, jj = j + dj; if((!di && !dj) || ii < 0 || jj < 0 || ii >= cw || jj >= cd) continue;
+        const kk = jj * cw + ii; if(feito[kk] || !livre(kk)) continue;
+        if(di && dj && (!livre(j * cw + ii) || !livre(jj * cw + i))) continue;
+        const nc = c + (di && dj ? 1.414 : 1); if(nc < custo[kk]){ custo[kk] = nc; de[kk] = k; sobeH(kk, nc); }
+      }
+    }
+    if(de[fim] < 0) return null;
+    const pts = []; for(let k = fim; k !== ini; k = de[k]) pts.push([cel(k % cw), cel(Math.floor(k / cw))]); pts.reverse(); pts[pts.length - 1] = [x, z];
+    const out = []; let ox = e.x, oz = e.z, i = 0;
+    while(i < pts.length){ let j = pts.length - 1; while(j > i && !livreReto(ox, oz, pts[j][0], pts[j][1], n)) j--; out.push({ x: pts[j][0], z: pts[j][1], n }); ox = pts[j][0]; oz = pts[j][1]; i = j + 1; }
+    return out;
+  }
   function tracaRota(x, z, n){
     const atual = S.eu ? nivelDe(S.eu.y) : 0, e = PL.escada;
-    if(!e || n === atual) return [{ x, z, n }];
+    if(!e || n === atual) return desvia(x, z, n) || [{ x, z, n }];
     const cx = (e.x0 + e.x1) / 2, pe = { x: cx, z: e.z1 + .9, n: 0 }, topo = { x: cx, z: e.z0 - .7, n: 1 };
     if(n === 1) return [pe, topo, { x, z, n }];
     const lado = x < e.x0 - .5 ? [{ x: e.x0 - 1, z: e.z1 + .9, n: 0 }] : [];
@@ -1452,7 +1620,7 @@
     S.meu = meu; S.lugar = L ? o.lugar : ''; S.dono = dono; S.sujo = false;
     usaPlanta(L ? L.planta : plantaDe(dono)); S.decor = PL.decor || [];
     S.fixos = L ? L.estacoes() : ESTACOES.filter(e => paraDono(e, dono)).map(e => Object.assign({ y: 0 }, e, (PL.estacoes || {})[e.id] || {}));
-    S.itens = L ? [] : lerCasa(dono.casa); S.outras = L ? {} : outrasPlantas(dono.casa);
+    S.itens = L ? lerCasa({ pl: PL.k, i: L.itens || [] }) : lerCasa(dono.casa); S.outras = L ? {} : outrasPlantas(dono.casa);
     S.modo = 'andar'; S.sel = -1; S.ghost = null; S.cacheItens = null; S.alvo = null; S.acao = null; S.rota = []; S.teclas.clear(); S.tags.clear(); S.ultOnde = ''; S.disco = null; S.discoAtual = ''; S.avisouErro = false;
     const emPe = innerWidth < innerHeight * .85; S.emPe = emPe; S.arrastou = 0;
     /* terceira pessoa: a câmera fica logo atrás e um pouco acima do boneco (pinça, roda ou os botões afastam) */

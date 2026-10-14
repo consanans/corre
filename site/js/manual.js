@@ -6,10 +6,11 @@
   'use strict';
   const C = window.Corre, { esc, ico } = C;
   /* sobe esse número a cada atualização: quem já viu recebe de novo, abrindo nas novidades */
-  const VERSAO = '3.45';
+  const VERSAO = '3.46';
   const K = 'corre-manual-visto';
 
   const NOVIDADES = [
+    ['verso', 'Correverso: Estúdio, Balcão, Cofre e Galeria', 'Mais quatro barracas da Feira viraram lugar de entrar, em 3D. O Estúdio (Studio): fundo infinito, softbox, câmera no tripé e a mesa de criação, que abre o Studio. O Balcão (Vendas): mercadinho com prateleira cheia e a caixa registradora, que abre as tuas vendas. O Cofre (Grana): a porta redonda de aço abre a tua grana, com as barras de ouro no laser e a Capi de ouro de guarda. A Galeria (Portfólio e catálogo): telas na parede, peças nos pedestais e o catálogo aberto no meio. E o boneco agora desvia do que tá no caminho até a ferramenta.'],
     ['correal', 'Correal rende 10 vezes mais', 'Com 1,00 correal agora dá pra trabalhar meio dia. Os preços caíram 10 vezes: imagem 0,10, Studio Houzi 0,03, legenda, pauta ou Hórus 0,02 e o voo 0,05. Dá, por exemplo, 3 imagens, 10 legendas, 15 mensagens do Hórus e 2 textos do Studio Houzi com 1 correal, e isso só depois que o grátis do dia acaba. O ganho segue igual (umas 10 tarefas fecham o dia em 1,00) e o que você já tem na carteira passa a render 10 vezes mais.'],
     ['verso', 'Correverso: a Casa do Hórus', 'Na Feira, a barraca do Hórus virou porta: toca em "Entrar na Casa do Hórus" e você entra num templo egípcio 3D, do jeito dos templos rosacruzes (piso de terracota, o tablado de dentes de serra, colunas, o Oriente com o púlpito), no mesmo estilo do teu boneco. O altar do meio é o radar: chega perto e toca pra abrir o Hórus ali dentro. Quem tá lá ao mesmo tempo aparece junto. É a primeira; as outras ferramentas da Feira vêm no mesmo jeito.'],
     ['lab', 'Menu ainda mais junto', 'A Rede junta o Início, as Mensagens, os Grupos e os Avisos (o número de não lidos aparece lá dentro, e um pontinho rosa no grupo fechado avisa que tem coisa nova). O Hórus e o Portfólio foram pro Laboratório, do lado do Studio e do Studio Houzi. O teu perfil e os Salvos ficam juntos no Perfil. Com isso o Mais sumiu: tudo tem lugar.'],

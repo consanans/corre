@@ -1044,12 +1044,12 @@
      cidade (o próprio Corre, sem menu) e você continua na rua, de barraca em barraca. O Rolo 360 só aparece pro @consanans. */
   const BARRACAS = [
     { id: 'feed', titulo: 'Feed', placa: 'FEED', rota: '#/', ico: 'chat', botao: 'Abrir o feed', cor: ROSA, fundo: '#2B2F38', coisa: 'cartaz' },
-    { id: 'studio', titulo: 'Studio', placa: 'STUDIO', rota: '#/studio', ico: 'magia', botao: 'Entrar no Studio', cor: AMARELO, fundo: '#F4F1EA', coisa: 'cavalete' },
+    { id: 'studio', titulo: 'Studio', placa: 'STUDIO', rota: '#/studio', ico: 'magia', botao: 'Entrar no Estúdio', cor: AMARELO, fundo: '#F4F1EA', coisa: 'cavalete', lugar: 'studio' },
     { id: 'horus', titulo: 'Hórus', placa: 'HORUS', rota: '#/horus', ico: 'eye', botao: 'Entrar na Casa do Hórus', cor: INK, fundo: '#1B1D22', coisa: 'olho', pf: INK, pc: AMARELO, lugar: 'horus' },
-    { id: 'vendas', titulo: 'Vendas', placa: 'VENDAS', rota: '#/vendas', ico: 'recibo', botao: 'Abrir as vendas', cor: LARANJA, fundo: '#F4F1EA', coisa: 'recibos' },
-    { id: 'grana', titulo: 'Grana', placa: 'GRANA', rota: '#/grana', ico: 'grana', botao: 'Abrir a grana', cor: AZUL, fundo: '#F4F1EA', coisa: 'moedas' },
+    { id: 'vendas', titulo: 'Vendas', placa: 'VENDAS', rota: '#/vendas', ico: 'recibo', botao: 'Entrar no Balcão', cor: LARANJA, fundo: '#F4F1EA', coisa: 'recibos', lugar: 'vendas' },
+    { id: 'grana', titulo: 'Grana', placa: 'GRANA', rota: '#/grana', ico: 'grana', botao: 'Entrar no Cofre', cor: AZUL, fundo: '#F4F1EA', coisa: 'moedas', lugar: 'grana' },
     { id: 'estilo', titulo: 'Estilo de vida', placa: 'ESTILO', rota: '#/estilo', ico: 'calc', botao: 'Estilo de vida', cor: LILAS, fundo: '#F4F1EA', coisa: 'casinha' },
-    { id: 'marcas', titulo: 'Portfólio e catálogo', placa: 'MARCAS', rota: '#/marcas', ico: 'marcas', botao: 'Portfólio e catálogo', cor: '#E2412E', fundo: '#F4F1EA', coisa: 'pastas' },
+    { id: 'marcas', titulo: 'Portfólio e catálogo', placa: 'MARCAS', rota: '#/marcas', ico: 'marcas', botao: 'Entrar na Galeria', cor: '#E2412E', fundo: '#F4F1EA', coisa: 'pastas', lugar: 'marcas' },
     { id: 'nicho', titulo: 'Do teu nicho', placa: 'NICHO', rota: '#/refs', ico: 'marcador', botao: 'Do teu nicho', cor: '#8F86E8', fundo: '#F2D8A7', coisa: 'revistas' },
     { id: 'manual', titulo: 'Manual', placa: 'MANUAL', rota: '', ico: 'manual', botao: 'Abrir o manual', cor: '#9CC9F0', fundo: PAPEL, coisa: 'duvida' },
     { id: 'rolo', titulo: 'Rolo 360', placa: 'ROLO 360', rota: '#/rolo', ico: 'rolo', botao: 'Rolo 360', cor: '#8E4B2B', fundo: '#1B1D22', coisa: 'filme', so: 'fundador', pf: INK, pc: AMARELO }
