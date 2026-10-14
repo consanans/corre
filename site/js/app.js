@@ -94,9 +94,35 @@
     return um('perfil') + Object.keys(GRUPOS).map(g => bloco(g, GRUPOS[g][0], GRUPOS[g][1], GRUPOS[g][2])).join('') + bloco('mais', 'Mais', '', MAIS);
   };
   /* em tela baixa a lista do menu rola: o item da página aberta (e o grupo que acabou de abrir) aparece inteiro.
-     Mexe só no scrollTop da lista, nunca na página */
+     Mexe só no scrollTop da lista, nunca na página. v3.43: com folga do degradê que avisa que a lista rola (36px + um
+     respiro), pra ele nunca ficar por cima do item aceso. Na ponta da lista o degradê some e o scrollTop para sozinho */
+  const FOLGA = 40;
   const aVista = el => { const n = el && el.closest('.lado-nav'); if(!n) return; const r = el.getBoundingClientRect(), N = n.getBoundingClientRect();
-    if(r.bottom > N.bottom) n.scrollTop += r.bottom - N.bottom + 8; else if(r.top < N.top) n.scrollTop -= N.top - r.top + 8; };
+    if(r.bottom > N.bottom - FOLGA) n.scrollTop += r.bottom - N.bottom + FOLGA; else if(r.top < N.top + FOLGA) n.scrollTop -= N.top + FOLGA - r.top; };
+  /* v3.43 · o menu mostra que rola. Num notebook de tela baixa (1366x768: janela de 643px) a lista rola até ~184px, e a
+     barra de rolagem fica escondida (ela comeria a largura do menu de ícone): sem sinal, os itens de cima e de baixo
+     sumiam calados. Aqui só mede a lista e liga as classes do lado que tem mais (rola-cima, rola-baixo); o degradê, a
+     setinha e o trilho fino são do CSS (monstra.css, no fim do bloco da v3.43: "o menu mostra que rola"). Os ouvintes
+     ficam no documento, uma vez só (o scroll e o toggle não sobem, mas a captura pega): o menu se redesenha a cada
+     página e nada se acumula */
+  const sinalRola = () => {
+    const n = document.querySelector('.lado-nav'), l = n && n.closest('.lado'); if(!l) return;
+    const h = n.clientHeight, sobra = n.scrollHeight - h, y = n.scrollTop, rola = h > 0 && sobra > 4;
+    /* o degradê só quando tem um item inteiro escondido (mais de 24px); rolando 3 ou 15px, ele apagava o Início e o Mais,
+       que estavam quase inteiros na tela. O trilho aparece sempre que a lista rola */
+    l.classList.toggle('rola', rola);
+    l.classList.toggle('rola-cima', rola && y > 24);
+    l.classList.toggle('rola-baixo', rola && sobra - y > 24);
+    if(!rola) return;
+    const t = Math.max(24, Math.round(h * h / n.scrollHeight)), px = v => Math.round(v) + 'px';
+    l.style.setProperty('--nav-t', px(n.offsetTop)); l.style.setProperty('--nav-h', px(h));
+    l.style.setProperty('--trilho-t', px(n.offsetTop + 2 + (h - 4 - t) * Math.min(1, Math.max(0, y / sobra)))); l.style.setProperty('--trilho-h', px(t));
+  };
+  document.addEventListener('scroll', e => { if(e.target && e.target.classList && e.target.classList.contains('lado-nav')) sinalRola(); }, { capture: true, passive: true });
+  document.addEventListener('toggle', e => { if(e.target && e.target.closest && e.target.closest('.lado-nav')) sinalRola(); }, true);
+  window.addEventListener('resize', sinalRola);
+  /* as letras de verdade chegam depois e mudam a altura dos itens */
+  if(document.fonts && document.fonts.ready) document.fonts.ready.then(sinalRola, () => {});
   /* a cidade usa o Espaço (pula) e o Enter (porta). Quem chegou no menu pelo Tab (um grupo, a Carteira, o sino) usa as
      duas pra abrir o que tá no foco, como em qualquer página; quem clicou com o mouse e voltou pro jogo segue pulando.
      Por isso o app lembra se o último foco veio do teclado (o :focus-visible não serve: o Chrome liga ele em qualquer
@@ -121,6 +147,7 @@
         <details class="lado-mais"><summary class="lado-i" title="Mais"${mais.includes(active) ? ' aria-current="page"' : ''}><span class="mi-ic">${ico('dots')}</span><span class="mi-t">Mais</span></summary>
           <div class="lado-mais-m" role="menu">${mais.map(k => itemSimples([k].concat(D[k]), 'lado')).join('')}</div></details>
       </nav>
+      <i class="lado-trilho" aria-hidden="true"></i>
       <button type="button" class="btn pri lado-post" data-act="lado-postar" title="Postar no feed">${ico('plus')}<span>Postar</span></button>
       <details class="me lado-conta"${idSe(true, 'me')}><summary class="lado-eu" aria-label="Tua conta">${avatar(me, 's')}<span><b>${esc(me.nome || '')}</b><small>@${esc(me.handle)}</small></span>${ico('dots')}</summary>
         <div class="me-menu">${contaHTML(me, false, active)}</div></details>
@@ -147,7 +174,7 @@
     /* o manual abre sozinho na primeira entrada e a cada atualização */
     if(logged && C.manual) setTimeout(() => C.manual.talvez(), 900);
     /* em tela baixa a lista do menu rola: o item aceso aparece (depois de a página ir pra tela) */
-    if(logged) setTimeout(() => aVista(document.querySelector('.lado-nav [aria-current="page"]')), 0);
+    if(logged) setTimeout(() => { aVista(document.querySelector('.lado-nav [aria-current="page"]')); sinalRola(); }, 0);
     const v = logged && VOLTA[cru], volta = v ? (v[0] === 'perfil' ? ['#/@' + me.handle, 'Perfil'] : v) : null;
     return `<header class="hdr">
       ${logged ? `<details class="me hdr-eu"${idSe(false, 'me')}><summary aria-label="Abrir o menu: teu perfil e o teu corre">${avatar(me, 's')}</summary>
@@ -477,7 +504,7 @@
     return `<section class="card ferr" aria-label="Teu corre">
       <div class="ferr-h"><h2 class="ch">Teu corre</h2><span class="mono">só você vê</span></div>
       <div class="ferr-l">
-        <div class="ferr-i ferr-cart"><span class="ferr-ico">${ico('correal')}</span><div class="ferr-tx"><b>Correal: <span class="num" data-correal-saldo>${C.correal.saldo == null ? '…' : C.correal.saldo}</span></b><small>A moeda do Correverso. Tarefa feita na cidade vira correal (até 40 por dia); correal paga a IA do Studio, do Studio Houzi e do Hórus quando acaba o grátis do dia.</small></div><button type="button" class="btn sm" data-act="carteira">Carteira</button></div>
+        <div class="ferr-i ferr-cart"><span class="ferr-ico">${ico('correal')}</span><div class="ferr-tx"><b>Correal: <span class="num" data-correal-saldo>${C.correal.saldo == null ? '…' : C.correalFmt(C.correal.saldo)}</span></b><small>A moeda do Correverso (não é dinheiro). Cada tarefa feita na cidade vale centavos de correal, até ${C.correalFmt(C.correal.teto)} por dia; correal paga a IA do Studio, do Studio Houzi e do Hórus quando acaba o grátis do dia.</small></div><button type="button" class="btn sm" data-act="carteira">Carteira</button></div>
         <div class="ferr-i"><span class="ferr-ico">${ico('magia')}</span><div class="ferr-tx"><b>Studio</b><small>Programa o mês das marcas que você toca: a IA faz as artes e as legendas, e cada post sai sozinho no Instagram.</small></div><a class="btn sm pri" href="#/studio">${ico('next')} Entrar no Studio</a></div>
         <div class="ferr-i"><span class="ferr-ico">${ico('grana')}</span><div class="ferr-tx"><b>Vendas e Grana</b><small>Do orçamento ao dinheiro na conta: vendas, o que tem pra receber, o extrato e o mês.</small></div><a class="btn sm pri" href="#/corre">${ico('next')} Abrir</a></div>
         ${C.views.houzi ? `<div class="ferr-i"><span class="ferr-ico">${ico('houzi')}</span><div class="ferr-tx"><b>Studio Houzi</b><small>Marca com conceito, do naming ao brandbook: logo em vetor, cores, letra, kit e PDF.</small></div><a class="btn sm" href="#/houzi">Abrir</a></div>` : ''}

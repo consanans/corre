@@ -625,7 +625,7 @@
         ${tipo === 'ideia' ? `<div class="stz-ideias" role="group" aria-label="As ideias">${Object.entries(M.IDEIAS).map(([k, x]) => `<button type="button" class="stz-ideia${S.ideia === k ? ' on' : ''}" data-act="stz-ideia" data-k="${k}" aria-pressed="${S.ideia === k}" title="${esc(x.n)}">${M.svg(M.pinta({ els: M.ideia(k, S.estilo) }, { marca: 'currentColor', acento: 'currentColor', texto: 'currentColor', sec: 'currentColor', furo: '#000', tinta: '#000', papel: '#fff' }), { vb: { x: -6, y: -6, w: 112, h: 112 } })}<span>${esc(x.n)}</span></button>`).join('')}</div>
           ${sel('simbolo.estilo', [['', 'Cheio'], ['linha', 'Em linha']], 'Desenho')}` : ''}
         ${tipo === 'letra' ? sel('simbolo.detalhe', [['barra', 'Faixa embaixo'], ['corte', 'Corte na diagonal'], ['fatia', 'Fatiada'], ['sombra', 'Sombra'], ['ponto', 'Ponto']], 'Detalhe da inicial') : ''}
-        ${tipo === 'monograma' || tipo === 'emblema' ? `${sel('simbolo.forma', Object.entries(M.FORMAS).map(([k, f]) => [k, f.n]), 'Forma')}${campo('simbolo.letras', 'Letras', { max: 3, ph: M.iniciais(sp.nome) })}${tipo === 'monograma' ? sel('simbolo.estilo', [['', 'Cheio'], ['contorno', 'Contorno']], 'Desenho') : ''}` : ''}
+        ${tipo === 'monograma' || tipo === 'emblema' ? `${sel('simbolo.forma', Object.entries(M.FORMAS).map(([k, f]) => [k, f.n]), 'Forma')}${campo('simbolo.letras', 'Letras', { max: 3, ph: M.iniciais(sp.nome) })}${tipo === 'monograma' ? sel('simbolo.estilo', [['', 'Cheio'], ['contorno', 'Contorno'], ['liga', 'Sobreposto']], 'Desenho') : ''}` : ''}
         ${tipo === 'icone' ? `${sel('simbolo.icone', Object.entries(M.ICONES).map(([k, f]) => [k, f.n]), 'Ícone')}${sel('simbolo.forma', [['nenhuma', 'Sem forma']].concat(Object.entries(M.FORMAS).map(([k, f]) => [k, f.n])), 'Dentro de')}` : ''}
         ${tipo === 'pixel' ? `${sel('simbolo.icone', Object.entries(M.ICONES).map(([k, f]) => [k, f.n]), 'Desenho')}${sel('simbolo.forma', [['', 'Solto'], ['moldura', 'Com moldura']], 'Moldura')}` : ''}
         ${tipo === 'geo' ? `<button type="button" class="stz-btn sm" data-act="stz-geo">Embaralhar as peças</button>` : ''}
@@ -685,7 +685,8 @@
     'stz-versao': el => { if(!B) return; B.versao = el.dataset.k; redesenha(); },
     'stz-arranjo': el => { if(!B) return; B.arranjo = el.dataset.k === B.m.spec.logo.arranjo ? '' : el.dataset.k; redesenha(); },
     'stz-outra': () => { if(B) mudaTerritorio(B.m.spec.territorio, true); },
-    'stz-ideia': el => { if(!B) return; const S = B.m.spec.simbolo; S.ideia = el.dataset.k; if(S.tipo !== 'ideia') S.tipo = 'ideia'; mexeu(true, true); },
+    /* a ideia escolhida à mão não "sai do próprio nome": o brandbook não pode contar a origem da amostra antiga */
+    'stz-ideia': el => { if(!B) return; const S = B.m.spec.simbolo; S.ideia = el.dataset.k; if(S.tipo !== 'ideia') S.tipo = 'ideia'; delete S.de; delete S.palavra; mexeu(true, true); },
     'stz-geo': () => { if(!B) return; B.m.spec.simbolo.seed = Math.floor(Math.random() * 99999); mexeu(true, false); },
     'stz-fonte': el => { if(!B) return; const sp = B.m.spec; sp.tipo.display = el.dataset.k; sp.tipo.texto = M.parTexto(el.dataset.k); document.querySelectorAll('[data-act="stz-fonte"]').forEach(b => { const on = b === el; b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); }); mexeu(true, false); },
     'stz-receita': el => {

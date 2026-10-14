@@ -179,7 +179,11 @@
     const furos = els.filter(e => e.furo), cheios = els.filter(e => !e.furo);
     const clips = [];
     const corpo = cheios.map(e => { if(!e.clip) return `<path d="${dDe(e.d)}" ${attrs(e)}/>`; const cid = id + 'c' + clips.length; clips.push(`<clipPath id="${cid}"><path d="${dDe(e.clip)}"${e.clipEo ? ' clip-rule="evenodd"' : ''}/></clipPath>`); return `<path d="${dDe(e.d)}" ${attrs(e)} clip-path="url(#${cid})"/>`; }).join('');
-    const mask = furos.length ? `<defs><mask id="${id}" maskUnits="userSpaceOnUse" x="${r3(vb.x - 10)}" y="${r3(vb.y - 10)}" width="${r3(vb.w + 20)}" height="${r3(vb.h + 20)}"><rect x="${r3(vb.x - 10)}" y="${r3(vb.y - 10)}" width="${r3(vb.w + 20)}" height="${r3(vb.h + 20)}" fill="#fff"/>${furos.map(e => `<path d="${dDe(e.d)}" ${attrs(Object.assign({}, e, { f: e.f ? '#000' : 'none', s: e.s ? '#000' : null }))}/>`).join('')}</mask></defs>` : '';
+    /* v3.43: o furo com recorte (a onda e os riscos da grelha dentro do círculo) fica dentro do recorte também na máscara;
+       sem isso ele vazava e furava a letra do lado */
+    const mclips = [];
+    const furoSvg = e => { const p = `<path d="${dDe(e.d)}" ${attrs(Object.assign({}, e, { f: e.f ? '#000' : 'none', s: e.s ? '#000' : null }))}/>`; if(!e.clip) return p; const cid = id + 'm' + mclips.length; mclips.push(`<clipPath id="${cid}"><path d="${dDe(e.clip)}"${e.clipEo ? ' clip-rule="evenodd"' : ''}/></clipPath>`); return `<g clip-path="url(#${cid})">${p}</g>`; };
+    const mask = furos.length ? (() => { const fx = furos.map(furoSvg).join(''); return `<defs><mask id="${id}" maskUnits="userSpaceOnUse" x="${r3(vb.x - 10)}" y="${r3(vb.y - 10)}" width="${r3(vb.w + 20)}" height="${r3(vb.h + 20)}">${mclips.length ? `<defs>${mclips.join('')}</defs>` : ''}<rect x="${r3(vb.x - 10)}" y="${r3(vb.y - 10)}" width="${r3(vb.w + 20)}" height="${r3(vb.h + 20)}" fill="#fff"/>${fx}</mask></defs>`; })() : '';
     const fundo = (clips.length ? `<defs>${clips.join('')}</defs>` : '') + (o.fundo ? `<rect x="${r3(vb.x)}" y="${r3(vb.y)}" width="${r3(vb.w)}" height="${r3(vb.h)}" fill="${o.fundo}"/>` : '');
     const wh = o.w ? ` width="${r3(o.w)}" height="${r3(o.h || o.w * vb.h / vb.w)}"` : '';
     return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${r3(vb.x)} ${r3(vb.y)} ${r3(vb.w)} ${r3(vb.h)}"${wh}${o.cls ? ` class="${o.cls}"` : ''}${o.titulo ? ` role="img" aria-label="${String(o.titulo).replace(/"/g, '&quot;')}"` : ' aria-hidden="true"'}>${o.titulo ? `<title>${String(o.titulo).replace(/</g, '&lt;')}</title>` : ''}${mask}${fundo}${furos.length ? `<g mask="url(#${id})">${corpo}</g>` : corpo}${o.extra || ''}</svg>`;
@@ -229,7 +233,7 @@
   /* o par de texto de cada letra de logo */
   const PAR = { 'inter-black': 'inter-regular', 'inter-bold': 'inter-regular', 'inter-light': 'inter-regular', 'poppins-bold': 'poppins-regular', 'poppins-light': 'poppins-regular',
     'adventor-bold': 'inter-regular', 'heroscn-bold': 'heros-regular', 'lora-bold': 'lora-regular', 'lora-bolditalic': 'lora-regular', 'schola-bold': 'schola-regular',
-    'bonum-bold': 'inter-regular', 'pagella-bold': 'pagella-regular', chorus: 'pagella-regular', 'cursor-bold': 'cursor-regular', pixel: 'inter-medium' };
+    'bonum-bold': 'schola-regular', 'pagella-bold': 'pagella-regular', chorus: 'pagella-regular', 'cursor-bold': 'cursor-regular', pixel: 'inter-medium' };
   M.FONTES = FONTES; M.fonteInfo = id => POR_ID[id] || POR_ID['inter-black']; M.parTexto = id => PAR[id] || 'inter-regular';
 
   const cache = {};
@@ -267,12 +271,23 @@
   }
   M.glifo = glifo;
   const kern = (f, a, b) => (f.k && (f.k[semAcento(a) + semAcento(b)] || 0)) || 0;
+  /* v3.43: a sigla que a pessoa escreveu toda em maiúscula (KVRA, GP, MV) continua em maiúscula na caixa baixa e na de
+     título: sigla em minúscula vira outra palavra ("kvra", "Mv") */
+  const SIGLA = /^(?=.*\p{Lu})[\p{Lu}\p{N}]{2,5}$/u;
+  M.SIGLA = SIGLA;
   M.caixaAlta = (s, caixa) => {
     s = String(s || '');
     if(caixa === 'alta') return s.toLocaleUpperCase('pt-BR');
-    if(caixa === 'baixa') return s.toLocaleLowerCase('pt-BR');
-    if(caixa === 'titulo') return s.toLocaleLowerCase('pt-BR').replace(/(^|[\s\-/])(\p{L}+)/gu, (m, a, w, i) => a + (i > 0 && /^(da|de|do|das|dos|e|em|na|no|nas|nos|à|a|o|of|the)$/.test(w) ? w : w[0].toLocaleUpperCase('pt-BR') + w.slice(1)));
-    return s;
+    if(caixa !== 'baixa' && caixa !== 'titulo') return s;
+    let primeira = true;
+    return s.split(/(\s+)/).map(tk => {
+      if(!tk || /^\s+$/.test(tk)) return tk;
+      const era = primeira; primeira = false;
+      if(SIGLA.test(tk)) return tk;
+      const lo = tk.toLocaleLowerCase('pt-BR');
+      if(caixa === 'baixa') return lo;
+      return lo.replace(/(^|[\-/])(\p{L}+)/gu, (m, a, w, i) => a + (!(era && i === 0) && /^(da|de|do|das|dos|e|em|na|no|nas|nos|à|a|o|of|the)$/.test(w) ? w : w[0].toLocaleUpperCase('pt-BR') + w.slice(1)));
+    }).join('');
   };
   /* texto em curvas. tam = altura da maiúscula (em unidades); track em eme; x,y = começo da linha de base */
   M.texto = (f, str, o) => {
@@ -286,7 +301,7 @@
       if(!g){ x += 300 * esc; return; }
       const lc = g.cmds.length ? tr(g.cmds, [esc, 0, 0, esc, (o.x || 0) + x, o.y || 0]) : [];
       lc.forEach(c => cmds.push(c));
-      letras.push({ ch, x: (o.x || 0) + x, w: g.adv * esc, cmds: lc });
+      letras.push({ ch, i, x: (o.x || 0) + x, w: g.adv * esc, cmds: lc });
       x += g.adv * esc + (i < s.length - 1 ? track * esc : 0);
     });
     return { cmds, w: x, letras, esc, cap: (f.cap || 700) * esc, xh: (f.xh || 500) * esc, asc: (f.asc || 900) * esc, desc: (f.desc || 250) * esc, x: o.x || 0, y: o.y || 0 };
@@ -298,6 +313,41 @@
     s.forEach((ch, i) => { if(i) x += kern(f, s[i - 1], ch) * esc; const g = f.g[ch] || f.g[semAcento(ch)] || f.g['?']; x += (g ? g[0] : 300) * esc + (i < s.length - 1 ? track * esc : 0); });
     return x;
   };
+  /* v3.43 · MEDIR A LETRA. corteH: achata o contorno (as curvas em 12 passos) e devolve, em ordem, os x onde a linha y
+     corta. É a régua de tudo que precisa saber onde tem tinta: a haste, a largura de dentro do emblema, a fatia */
+  M.corteH = (cmds, y) => {
+    const xs = []; let px = 0, py = 0, sx = 0, sy = 0;
+    const seg = (x1, y1, x2, y2) => { if((y1 <= y && y2 > y) || (y2 <= y && y1 > y)) xs.push(x1 + (y - y1) * (x2 - x1) / (y2 - y1)); };
+    for(const c of parse(cmds)){
+      if(c[0] === 'M'){ if(px !== sx || py !== sy) seg(px, py, sx, sy); px = sx = c[1]; py = sy = c[2]; }
+      else if(c[0] === 'L'){ seg(px, py, c[1], c[2]); px = c[1]; py = c[2]; }
+      else if(c[0] === 'C' || c[0] === 'Q'){
+        let ax = px, ay = py;
+        for(let i = 1; i <= 12; i++){
+          const t = i / 12, u = 1 - t; let x, yy;
+          if(c[0] === 'C'){ x = u * u * u * px + 3 * u * u * t * c[1] + 3 * u * t * t * c[3] + t * t * t * c[5]; yy = u * u * u * py + 3 * u * u * t * c[2] + 3 * u * t * t * c[4] + t * t * t * c[6]; }
+          else { x = u * u * px + 2 * u * t * c[1] + t * t * c[3]; yy = u * u * py + 2 * u * t * c[2] + t * t * c[4]; }
+          seg(ax, ay, x, yy); ax = x; ay = yy;
+        }
+        px = c[0] === 'C' ? c[5] : c[3]; py = c[0] === 'C' ? c[6] : c[4];
+      } else if(c[0] === 'Z'){ seg(px, py, sx, sy); px = sx; py = sy; }
+    }
+    if(px !== sx || py !== sy) seg(px, py, sx, sy);
+    return xs.sort((a, b) => a - b);
+  };
+  /* a tinta de uma linha: a soma das corridas cheias (entre um corte e o próximo) */
+  M.tintaH = (cmds, y) => { const xs = M.corteH(cmds, y); let s = 0; for(let i = 0; i + 1 < xs.length; i += 2) s += xs[i + 1] - xs[i]; return s; };
+  /* haste: a corrida de tinta do "I" cortado na meia altura da maiúscula, com a maiúscula em 100. Todo traço e sinal do
+     logo (fio, sublinhado, colchete, o traço do símbolo em linha) sai dela: é ela que diz se a letra é fina ou gorda */
+  M.haste = f => {
+    if(!f) return 14;
+    if(f._haste) return f._haste;
+    const t = M.texto(f, 'I', { tam: 100 }), xs = M.corteH(t.cmds, -50); let h = 0;
+    for(let i = 0; i + 1 < xs.length; i += 2) h = Math.max(h, xs[i + 1] - xs[i]);
+    f._haste = h > 1 ? h : 14;
+    return f._haste;
+  };
+
   /* parágrafo: quebra em linhas que cabem em "larg"; alinha à esquerda, ao centro ou à direita */
   M.paragrafo = (f, str, o) => {
     o = o || {}; const tam = o.tam || 12, larg = o.larg || 400, entre = o.entre || tam * 1.9;
@@ -376,7 +426,16 @@
   /* verde fica fora do que o Studio sugere sozinho (se a pessoa escolher verde pra marca dela, pode) */
   /* no OKLCH o amarelo puro fica perto de 105-110; daí até ~178 é amarelo-esverdeado, verde e verde-água */
   /* v3.40: a borda de cima foi pra 186 (no 178 a cor ainda lia como verde-petróleo) */
-  const semVerde = h => { h = ((h % 360) + 360) % 360; if(h > 116 && h < 186) return h < 145 ? 106 : 196; return h; };
+  /* v3.43: a faixa proibida depende da luz (l, opcional; sem ela a cor conta como escura). No lado amarelo, amarelo
+     escuro vira oliva: abaixo de l .85 a faixa começa em 100, e a cor desviada vai pro ocre (85); clara, começa em 116 e
+     vai pro amarelo limpo (106). No lado azul, de 196 a 205 ainda sai verde-água e petróleo: a faixa vai até 210 em
+     qualquer luz e a cor desviada vai pro azul (222) */
+  const semVerde = (h, l) => {
+    h = ((h % 360) + 360) % 360;
+    const claro = l !== undefined && l >= 0.85;
+    if(h > (claro ? 116 : 100) && h < 210) return h < 150 ? (claro ? 106 : 85) : 222;
+    return h;
+  };
   M.semVerde = semVerde;
 
   /* matiz de partida por nicho (graus no OKLCH) */
@@ -388,14 +447,15 @@
   /* p: personalidade 0..1 [moderno, divertido, popular, energia, tech] */
   M.paleta = (o) => {
     const p = o.pers || [.5, .5, .5, .5, .5], r = M.rng(o.seed || 1);
-    let h;
-    const base = o.cor ? lch(o.cor) : null;
-    if(base && base.c > 0.03) h = base.h; else h = semVerde(M.pega(r, MATIZ[o.nicho] || MATIZ.outro) + (r() - 0.5) * 16 + (o.giro || 0));
     const [mod, div, pop, ene, tec] = p;
     const sof = 1 - pop;
     /* croma: energia e diversão acendem; sofisticado e calmo apagam */
     const cp = cl(0.08 + 0.13 * ene + 0.05 * div - 0.04 * sof, 0.05, 0.24);
+    /* a luz vem antes da matiz: a faixa sem verde depende dela */
     const lp = cl(0.66 - 0.2 * sof + 0.06 * div - 0.06 * (1 - mod) * sof, 0.38, 0.8);
+    let h;
+    const base = o.cor ? lch(o.cor) : null;
+    if(base && base.c > 0.03) h = base.h; else h = semVerde(M.pega(r, MATIZ[o.nicho] || MATIZ.outro) + (r() - 0.5) * 16 + (o.giro || 0), lp);
     let P = base && o.manter ? o.cor.toUpperCase() : deLch(lp, cp, h);
     const hp = base && o.manter ? base.h : h;
     /* o esquema de cores pela personalidade */
@@ -403,14 +463,15 @@
     if(!esq) esq = ene < 0.35 ? 'analoga' : (sof > 0.65 && div < 0.45) ? 'mono' : tec > 0.65 ? 'dividida' : (div > 0.6 && ene > 0.55) ? 'complementar' : 'triade';
     const H2 = { analoga: [hp + 32, hp - 38], mono: [hp, hp], dividida: [hp + 150, hp + 210], complementar: [hp + 180, hp + 40], triade: [hp + 120, hp + 240] }[esq] || [hp + 120, hp + 240];
     /* as cores que o Studio deriva nunca caem no verde; só a cor que a própria pessoa escolheu pode ser verde */
-    const livre = h2 => semVerde(h2);
+    const livre = (h2, l2) => semVerde(h2, l2);
     let S, A;
     if(esq === 'mono'){
       S = deLch(cl(lp + 0.2, 0, 0.92), cp * 0.45, hp);
       A = deLch(0.78, 0.12, 82); /* um ouro pra dar o detalhe */
     } else {
-      S = deLch(cl(lp + (div > 0.5 ? 0.1 : -0.12), 0.3, 0.86), cp * 0.8, livre(H2[0]));
-      A = deLch(cl(0.82 - 0.1 * sof, 0.55, 0.9), cl(cp + 0.03, 0.08, 0.22), livre(H2[1]));
+      const ls = cl(lp + (div > 0.5 ? 0.1 : -0.12), 0.3, 0.86), la = cl(0.82 - 0.1 * sof, 0.55, 0.9);
+      S = deLch(ls, cp * 0.8, livre(H2[0], ls));
+      A = deLch(la, cl(cp + 0.03, 0.08, 0.22), livre(H2[1], la));
     }
     const INK = deLch(cl(0.17 + 0.05 * div, 0.12, 0.26), Math.min(0.035, cp * 0.22), hp);
     const quente = tec < 0.45 || (MATIZ[o.nicho] && ['comida', 'cafe', 'doces', 'agro', 'arte'].includes(o.nicho));
@@ -422,6 +483,17 @@
       if(melhor < 3.2){ const c0 = lch(P); cores.p = deLch(c0.l > 0.6 ? c0.l + 0.1 : c0.l - 0.12, c0.c, c0.h); }
     }
     cores.esquema = esq;
+    return M.tiraVerde(cores, o.pessoa ? base : null);
+  };
+  /* v3.43 · a checagem final das cores que o Studio gera (apoio e acento): o croma ou a volta pra dentro do sRGB podem
+     empurrar a matiz pra perto do verde; aí ela volta pela regra. Fica de fora o que é da pessoa: a cor que ela escolheu
+     e os tons dela (mesma matiz), que podem ser verdes porque foi ela que quis */
+  M.tiraVerde = (cores, daPessoa) => {
+    ['s', 'a'].forEach(q => {
+      const x = cores[q] && lch(cores[q]); if(!x || x.c < 0.05) return;
+      if(daPessoa && daPessoa.c > 0.03){ const d = Math.abs(x.h - daPessoa.h); if(Math.min(d, 360 - d) < 8) return; }
+      const h2 = semVerde(x.h, x.l); if(h2 !== x.h) cores[q] = deLch(x.l, x.c, h2);
+    });
     return cores;
   };
   /* tira as cores de um logo antigo (rebranding): agrupa os pixels no OKLab e devolve as mais presentes */
@@ -593,17 +665,20 @@
   M.encaixa = encaixa;
 
   /* GEOMÉTRICO: grade 2x2 com peças (quarto de círculo, meio círculo, triângulo, quadrado, círculo, anel) */
+  /* v3.43: as peças em células de 47 com junta de 6 (em uma cor só elas continuam separadas), no máximo dois tipos de
+     peça (a composição fica um sistema, não um sorteio) e a célula vazia nunca na diagonal principal */
   function geo(seed, pers){
-    const r = M.rng(seed), s = 50, els = [];
+    const r = M.rng(seed), s = 47, passo = 53, els = [];
     const curvo = pers ? (1 - pers[4]) * 0.6 + (1 - pers[0]) * 0.4 : 0.5;
     const pecas = r() < curvo ? ['q', 'q', 'h', 'c', 'a', 's'] : ['t', 't', 'q', 's', 'h', 'c'];
+    const duas = [M.pega(r, pecas)]; for(let k = 0; k < 6 && duas.length < 2; k++){ const p = M.pega(r, pecas); if(!duas.includes(p)) duas.push(p); }
     const papeis = ['marca', 'marca', 'sec', 'acento'];
     const celulas = [[0, 0], [1, 0], [0, 1], [1, 1]];
     let vazias = 0;
     celulas.forEach(([i, j], n) => {
-      const x = i * s, y = j * s, o = Math.floor(r() * 4);
-      let p = M.pega(r, pecas);
-      if(r() < 0.12 && vazias < 1){ vazias++; return; }
+      const x = i * passo, y = j * passo, o = Math.floor(r() * 4);
+      const p = M.pega(r, duas);
+      if(r() < 0.12 && vazias < 1 && i !== j){ vazias++; return; }
       let d;
       if(p === 'q'){ const cx = x + (o === 1 || o === 2 ? s : 0), cy = y + (o >= 2 ? s : 0); const sx = cx === x ? 1 : -1, sy = cy === y ? 1 : -1; d = parse(`M${cx} ${cy} L${cx + sx * s} ${cy} A${s} ${s} 0 0 ${sx * sy > 0 ? 1 : 0} ${cx} ${cy + sy * s} Z`); }
       else if(p === 'h'){ const lado = o; d = lado === 0 ? parse(`M${x} ${y + s} A${s / 2} ${s / 2} 0 0 1 ${x + s} ${y + s} Z`) : lado === 1 ? parse(`M${x} ${y} A${s / 2} ${s / 2} 0 0 0 ${x + s} ${y} Z`) : lado === 2 ? parse(`M${x} ${y} A${s / 2} ${s / 2} 0 0 1 ${x} ${y + s} Z`) : parse(`M${x + s} ${y} A${s / 2} ${s / 2} 0 0 0 ${x + s} ${y + s} Z`); }
@@ -658,54 +733,135 @@
     return els;
   }
   /* IDEIAS: marcas mínimas, cada uma é um conceito (caixa 100x100, desenhadas a régua e compasso).
-     Sólida: forma cheia e o detalhe vazado. Linha: o mesmo desenho em traço (o vazado vira linha). */
+     Sólida: forma cheia e o detalhe vazado. Linha: o mesmo desenho em traço (o vazado vira linha).
+     redonda = lê como um O dentro da palavra (grelha, onda, lua, vinil); o sol tem uma versão própria pra isso (noO) */
   const P = d => M.parse(d), rot = (cmds, g) => tr(cmds, mx.r(g, 50, 50));
   const IDEIAS = {
-    grelha: { n: 'Grelha', redonda: true, t: 'um círculo cortado por três riscos na diagonal: a marca da grelha, o selo de quem leva a brasa a sério', el: () => { const c = F.elipse(50, 50, 46); return [{ d: c, papel: 'marca' }].concat([-17, 0, 17].map(o => ({ d: rot(F.linha(10, 50 + o, 90, 50 + o), -45), papel: 'furo', traco: 7.5, clip: c }))); } },
+    /* os três riscos passam do disco e são cortados por ele, com ponta reta: morrem juntos na borda, como a marca da grelha */
+    grelha: { n: 'Grelha', redonda: true, t: 'um círculo cortado por três riscos na diagonal: a marca da grelha, o selo de quem leva a brasa a sério', el: () => { const c = F.elipse(50, 50, 46); return [{ d: c, papel: 'marca' }].concat([-17, 0, 17].map(o => ({ d: rot(F.linha(-10, 50 + o, 110, 50 + o), -45), papel: 'furo', traco: 7.5, clip: c, ponta: 'butt' }))); } },
     chama: { n: 'Chama', t: 'uma chama dentro da outra: o fogo de fora e o calor de dentro', el: () => [{ d: P('M54 3 C58 20 74 30 81 46 C89 64 84 82 70 91 C63 95 57 97 50 97 C33 97 17 85 17 65 C17 50 25 40 33 31 C33 41 37 47 43 50 C39 33 44 16 54 3 Z'), papel: 'marca' }, { d: P('M51 54 C57 62 64 68 64 77 A14 14 0 0 1 36 77 C36 71 39 67 43 63 C45 67 47 68 49 69 C47 64 48 59 51 54 Z'), papel: 'furo' }] },
-    grao: { n: 'Grão', redonda: true, t: 'o grão de café desenhado com duas curvas: o começo de tudo, antes da torra', el: () => [{ d: rot(F.elipse(50, 50, 31, 46), 32), papel: 'marca' }, { d: rot(P('M50 6 C37 30 63 70 50 94'), 32), papel: 'furo', traco: 6 }] },
-    xicara: { n: 'Xícara', t: 'a xícara reduzida a três formas e um fio de vapor: a pausa do dia num desenho só', el: () => [{ d: P('M12 34 H76 V54 C76 73 62 86 44 86 C26 86 12 73 12 54 Z'), papel: 'marca' }, { d: F.anel(78, 52, 13, 6.5), papel: 'marca' }, { d: P('M44 6 C37 14 51 19 44 27'), papel: 'acento', traco: 5 }, { d: F.ret(4, 90, 80, 6, 3), papel: 'marca' }] },
+    grao: { n: 'Grão', t: 'o grão de café desenhado com duas curvas: o começo de tudo, antes da torra', el: () => [{ d: rot(F.elipse(50, 50, 31, 46), 32), papel: 'marca' }, { d: rot(P('M50 6 C37 30 63 70 50 94'), 32), papel: 'furo', traco: 6 }] },
+    xicara: { n: 'Xícara', slot: [17, 38, 54, 30], tira: [2], t: 'a xícara reduzida a três formas e um fio de vapor: a pausa do dia num desenho só', el: () => [{ d: P('M12 34 H76 V54 C76 73 62 86 44 86 C26 86 12 73 12 54 Z'), papel: 'marca' }, { d: F.anel(78, 52, 13, 6.5), papel: 'marca' }, { d: P('M44 6 C37 14 51 19 44 27'), papel: 'acento', traco: 5 }, { d: F.ret(4, 90, 80, 6, 3), papel: 'marca' }] },
     bala: { n: 'Bala', t: 'a bala embrulhada: um círculo e duas pontas de papel torcido. É doce antes de ser marca', el: () => { const c = F.elipse(50, 50, 25); return [{ d: c, papel: 'marca' }, { d: F.poli([[28, 50], [5, 31], [5, 69]]), papel: 'marca' }, { d: F.poli([[72, 50], [95, 31], [95, 69]]), papel: 'marca' }, { d: P('M39 57 A13 13 0 0 1 61 43'), papel: 'furo', traco: 5, clip: c }]; } },
-    coracao: { n: 'Coração', t: 'um coração feito de dois círculos e um ponto: o desenho mais simples do cuidado', el: () => [{ d: P('M50 88 L16.5 50.5 A20 20 0 1 1 50 28 A20 20 0 1 1 83.5 50.5 Z'), papel: 'marca' }] },
+    coracao: { n: 'Coração', slot: [27, 32, 46, 30], t: 'um coração feito de dois círculos e um ponto: o desenho mais simples do cuidado', el: () => [{ d: P('M50 88 L16.5 50.5 A20 20 0 1 1 50 28 A20 20 0 1 1 83.5 50.5 Z'), papel: 'marca' }] },
     onda: { n: 'Onda', redonda: true, t: 'o sol sobre o mar: um círculo cortado por duas ondas', el: () => { const c = F.elipse(50, 50, 46); return [{ d: c, papel: 'marca' }, { d: P('M0 56 C16 47 34 47 50 56 S84 65 100 56'), papel: 'furo', traco: 6.5, clip: c }, { d: P('M0 74 C16 65 34 65 50 74 S84 83 100 74'), papel: 'furo', traco: 6.5, clip: c }]; } },
-    sol: { n: 'Sol no horizonte', t: 'meio sol nascendo atrás de uma linha, com os raios abrindo: começo de dia, terra e trabalho', el: () => { const o = [{ d: P('M22 68 A28 28 0 0 1 78 68 Z'), papel: 'marca' }, { d: F.ret(6, 74, 88, 7, 3.5), papel: 'marca' }]; [-162, -126, -90, -54, -18].forEach(g => { const a = g * Math.PI / 180; o.push({ d: F.linha(50 + 36 * Math.cos(a), 68 + 36 * Math.sin(a), 50 + 47 * Math.cos(a), 68 + 47 * Math.sin(a)), papel: 'acento', traco: 5.5 }); }); return o; } },
+    /* v3.43: sem os raios em cima da meia-lua (liam como campainha de balcão de hotel): o sol inteiro, cortado por baixo
+       pelas faixas do horizonte, como sol de cartaz */
+    sol: { n: 'Sol no horizonte', redonda: true, noO: () => { const c = F.elipse(50, 50, 46); return [{ d: c, papel: 'marca' }, { d: F.ret(0, 60, 100, 7, 0), papel: 'furo', clip: c }, { d: F.ret(0, 75, 100, 7, 0), papel: 'furo', clip: c }]; }, t: 'o sol inteiro, cortado por baixo pelas faixas do horizonte: começo de dia, calor e trabalho', el: () => { const c = F.elipse(50, 50, 46); return [{ d: c, papel: 'marca' }].concat([[56, 5], [68, 6.5], [81, 8]].map(([y, h]) => ({ d: F.ret(-2, y, 104, h, 0), papel: 'furo', clip: c }))); } },
     lua: { n: 'Lua', redonda: true, solida: true, t: 'uma lua crescente e uma faísca: a noite começando', el: () => [{ d: F.elipse(46, 52, 41), papel: 'marca' }, { d: F.elipse(63, 41, 34), papel: 'furo' }, { d: P('M80 62 Q81.5 72.5 92 74 Q81.5 75.5 80 86 Q78.5 75.5 68 74 Q78.5 72.5 80 62 Z'), papel: 'acento' }] },
     estrela4: { n: 'Brilho', t: 'um brilho de quatro pontas: o instante em que alguma coisa fica bonita', el: () => [{ d: P('M50 4 Q56 44 96 50 Q56 56 50 96 Q44 56 4 50 Q44 44 50 4 Z'), papel: 'marca' }, { d: P('M84 6 Q85.5 14.5 94 16 Q85.5 17.5 84 26 Q82.5 17.5 74 16 Q82.5 14.5 84 6 Z'), papel: 'acento' }] },
     estrela: { n: 'Estrela', t: 'uma estrela de cinco pontas, cheia: nota máxima, sem explicação', el: () => [{ d: F.estrela(50, 53, 47, 20, 5, -90), papel: 'marca' }] },
     cursor: { n: 'Cursor', t: 'o sinal de "maior que" e o cursor piscando: a linha de comando, onde tudo começa a ser feito', el: () => [{ d: P('M16 24 L44 50 L16 76'), papel: 'marca', traco: 11, ponta: 'square' }, { d: F.ret(54, 66, 32, 11, 2), papel: 'acento' }] },
     grade: { n: 'Grade', t: 'uma grade de nove pontos com um aceso: dado organizado e o que importa em destaque', el: () => { const o = []; [22, 50, 78].forEach((y, j) => [22, 50, 78].forEach((x, i) => o.push({ d: F.elipse(x, y, 8.5), papel: i === 2 && j === 0 ? 'acento' : 'marca' }))); return o; } },
-    avanco: { n: 'Avanço', t: 'duas setas de avanço, uma na frente da outra: movimento sem precisar de palavra', el: () => [{ d: P('M8 18 H32 L58 50 L32 82 H8 L34 50 Z'), papel: 'marca' }, { d: P('M44 18 H68 L94 50 L68 82 H44 L70 50 Z'), papel: 'acento' }] },
-    faixas: { n: 'Faixas', t: 'três faixas inclinadas, cada uma mais curta: a velocidade deixando rastro', el: () => [[24, 92], [46, 72], [68, 52]].map(([y, w], i) => ({ d: F.poli([[96 - w + 8, y], [96, y], [88, y + 12], [96 - w, y + 12]]), papel: i ? 'marca' : 'acento' })) },
+    avanco: { n: 'Avanço', so: ['auto'], t: 'duas setas de avanço, uma na frente da outra: movimento sem precisar de palavra', el: () => [{ d: P('M8 18 H32 L58 50 L32 82 H8 L34 50 Z'), papel: 'marca' }, { d: P('M44 18 H68 L94 50 L68 82 H44 L70 50 Z'), papel: 'acento' }] },
+    faixas: { n: 'Faixas', so: ['auto'], t: 'três faixas inclinadas, cada uma mais curta: a velocidade deixando rastro', el: () => [[24, 92], [46, 72], [68, 52]].map(([y, w], i) => ({ d: F.poli([[96 - w + 8, y], [96, y], [88, y + 12], [96 - w, y + 12]]), papel: i ? 'marca' : 'acento' })) },
     diamante: { n: 'Lapidado', t: 'uma pedra lapidada em poucas faces: valor que se vê de longe', el: () => [{ d: P('M24 16 H76 L95 40 L50 90 L5 40 Z'), papel: 'marca' }, { d: P('M5 40 H95 M30 40 L50 90 L70 40 M24 16 L30 40 L50 16 L70 40 L76 16'), papel: 'furo', traco: 3.6 }] },
     coroa: { n: 'Coroa', t: 'uma coroa de três pontas: quem manda no próprio bairro', el: () => [{ d: P('M10 74 L10 28 L32 50 L50 18 L68 50 L90 28 L90 74 Z'), papel: 'marca' }, { d: F.ret(10, 81, 80, 8, 2), papel: 'marca' }, { d: F.elipse(50, 9, 6), papel: 'acento' }] },
-    cone: { n: 'Cone', t: 'o cone de obra: a rua em construção, o aviso de que tem coisa acontecendo', el: () => { const c = P('M40 8 H60 L80 82 H20 Z'); return [{ d: c, papel: 'marca' }, { d: F.ret(10, 30, 80, 11, 0), papel: 'furo', clip: c }, { d: F.ret(10, 54, 80, 11, 0), papel: 'furo', clip: c }, { d: F.ret(8, 84, 84, 9, 2), papel: 'marca' }]; } },
+    cone: { n: 'Cone', so: ['casa', 'auto'], t: 'o cone de obra: a rua em construção, o aviso de que tem coisa acontecendo', el: () => { const c = P('M40 8 H60 L80 82 H20 Z'); return [{ d: c, papel: 'marca' }, { d: F.ret(10, 30, 80, 11, 0), papel: 'furo', clip: c }, { d: F.ret(10, 54, 80, 11, 0), papel: 'furo', clip: c }, { d: F.ret(8, 84, 84, 9, 2), papel: 'marca' }]; } },
     seta: { n: 'Seta', t: 'a seta pintada no asfalto, virando: o caminho certo, mesmo quando faz curva', el: () => [{ d: P('M22 94 V48 A22 22 0 0 1 44 26 H60 V8 L92 37 L60 66 V48 H48 A4 4 0 0 0 44 52 V94 Z'), papel: 'marca' }] },
     vinil: { n: 'Vinil', redonda: true, t: 'o disco de vinil: o sulco, o selo no meio e o furo do eixo. O som antes de tocar', el: () => [{ d: F.elipse(50, 50, 46), papel: 'marca' }, { d: F.elipse(50, 50, 33), papel: 'furo', traco: 2.6, vazio: true }, { d: F.elipse(50, 50, 15), papel: 'acento' }, { d: F.elipse(50, 50, 3.4), papel: 'furo' }] },
     ondas: { n: 'Ondas', t: 'um ponto e três ondas saindo dele: o som indo longe', el: () => { const o = [{ d: F.elipse(20, 50, 9), papel: 'acento' }]; [24, 44, 64].forEach(r => o.push({ d: P(`M${20 + r * Math.cos(-0.8)} ${50 + r * Math.sin(-0.8)} A${r} ${r} 0 0 1 ${20 + r * Math.cos(0.8)} ${50 + r * Math.sin(0.8)}`), papel: 'marca', traco: 8 })); return o; } },
-    cruz: { n: 'Cruz', redonda: true, t: 'a cruz de cuidado vazada num círculo: saúde sem drama, de perto', el: () => [{ d: F.elipse(50, 50, 46), papel: 'marca' }, { d: F.ret(42, 22, 16, 56, 4), papel: 'furo' }, { d: F.ret(22, 42, 56, 16, 4), papel: 'furo' }] },
+    cruz: { n: 'Cruz', t: 'a cruz de cuidado vazada num círculo: saúde sem drama, de perto', el: () => [{ d: F.elipse(50, 50, 46), papel: 'marca' }, { d: F.ret(42, 22, 16, 56, 4), papel: 'furo' }, { d: F.ret(22, 42, 56, 16, 4), papel: 'furo' }] },
     folha: { n: 'Folha', t: 'uma folha em duas curvas e o veio no meio: o que nasce da terra', el: () => [{ d: P('M16 84 C16 40 46 14 88 14 C88 58 58 84 16 84 Z'), papel: 'marca' }, { d: P('M24 76 C44 58 62 40 80 22'), papel: 'furo', traco: 4.5 }] },
     pata: { n: 'Pata', t: 'a pata de bicho em cinco formas: carinho que se reconhece de longe', el: () => [{ d: F.elipse(50, 67, 23, 19), papel: 'marca' }, { d: F.elipse(20, 42, 9, 11), papel: 'marca' }, { d: F.elipse(37, 23, 9.5, 12), papel: 'marca' }, { d: F.elipse(63, 23, 9.5, 12), papel: 'marca' }, { d: F.elipse(80, 42, 9, 11), papel: 'marca' }] },
-    taca: { n: 'Taça', t: 'a taça de coquetel em linhas puras e a azeitona no ponto: a noite servida', el: () => [{ d: P('M12 14 H88 L50 54 Z'), papel: 'marca' }, { d: F.ret(47, 52, 6, 30, 0), papel: 'marca' }, { d: F.ret(30, 82, 40, 6, 3), papel: 'marca' }, { d: F.elipse(66, 24, 7), papel: 'acento' }] },
+    taca: { n: 'Taça', so: ['bebidas', 'eventos'], t: 'a taça de coquetel em linhas puras e a azeitona no ponto: a noite servida', el: () => [{ d: P('M12 14 H88 L50 54 Z'), papel: 'marca' }, { d: F.ret(47, 52, 6, 30, 0), papel: 'marca' }, { d: F.ret(30, 82, 40, 6, 3), papel: 'marca' }, { d: F.elipse(66, 24, 7), papel: 'acento' }] },
     cabide: { n: 'Cabide', t: 'o cabide em uma linha só: a roupa que ainda vai encontrar um dono', el: () => [{ d: P('M50 34 V27 A9 9 0 1 1 59 18'), papel: 'marca', traco: 5.5 }, { d: P('M50 34 L8 68 H92 Z'), papel: 'marca', traco: 5.5, vazio: true }] },
-    casa: { n: 'Casa', t: 'a casa reduzida a cinco linhas e uma porta: o lugar onde a gente chega', el: () => [{ d: P('M50 8 L92 44 V92 H8 V44 Z'), papel: 'marca' }, { d: F.ret(40, 58, 20, 34, 0), papel: 'furo' }] },
+    casa: { n: 'Casa', slot: [22, 50, 56, 36], tira: [1], t: 'a casa reduzida a cinco linhas e uma porta: o lugar onde a gente chega', el: () => [{ d: P('M50 8 L92 44 V92 H8 V44 Z'), papel: 'marca' }, { d: F.ret(40, 58, 20, 34, 0), papel: 'furo' }] },
     quadro: { n: 'Enquadramento', t: 'os quatro cantos do visor e o ponto de foco no meio: o olhar que escolhe o que mostrar', el: () => ['M8 30 V8 H30', 'M70 8 H92 V30', 'M92 70 V92 H70', 'M30 92 H8 V70'].map(d => ({ d: P(d), papel: 'marca', traco: 8, ponta: 'square' })).concat([{ d: F.elipse(50, 50, 9), papel: 'acento' }]) },
     livro: { n: 'Livro aberto', t: 'o livro aberto em duas páginas: aprender como quem conversa', el: () => [{ d: P('M6 22 L47 29 V88 L6 81 Z'), papel: 'marca' }, { d: P('M94 22 L53 29 V88 L94 81 Z'), papel: 'marca' }] },
-    check: { n: 'Feito', redonda: true, t: 'o sinal de feito vazado num círculo: o serviço resolvido de primeira', el: () => [{ d: F.elipse(50, 50, 46), papel: 'marca' }, { d: P('M28 52 L43 67 L73 35'), papel: 'furo', traco: 9 }] },
+    check: { n: 'Feito', t: 'o sinal de feito vazado num círculo: o serviço resolvido de primeira', el: () => [{ d: F.elipse(50, 50, 46), papel: 'marca' }, { d: P('M28 52 L43 67 L73 35'), papel: 'furo', traco: 9 }] },
     sacola: { n: 'Sacola', t: 'a sacola e a alça: a compra indo pra casa', el: () => [{ d: P('M34 40 V30 A16 16 0 0 1 66 30 V40'), papel: 'marca', traco: 6.5 }, { d: F.ret(14, 38, 72, 54, 5), papel: 'marca' }] },
-    gota: { n: 'Gota', t: 'uma gota de tinta com o brilho de quem acabou de cair: o começo de qualquer desenho', el: () => [{ d: P('M50 6 C50 6 84 44 84 64 A34 34 0 0 1 16 64 C16 44 50 6 50 6 Z'), papel: 'marca' }, { d: P('M33 64 A17 17 0 0 0 45 80'), papel: 'furo', traco: 4.5 }] }
+    gota: { n: 'Gota', slot: [29, 50, 42, 34], tira: [1], t: 'uma gota de tinta com o brilho de quem acabou de cair: o começo de qualquer desenho', el: () => [{ d: P('M50 6 C50 6 84 44 84 64 A34 34 0 0 1 16 64 C16 44 50 6 50 6 Z'), papel: 'marca' }, { d: P('M33 64 A17 17 0 0 0 45 80'), papel: 'furo', traco: 4.5 }] },
+    /* v3.43 · as ideias que saem do nome e do ofício. Mesma gramática: caixa 100, forma cheia e o detalhe vazado (todo
+       vazado com 6 ou mais, pra ainda ler a 32 px); a versão em linha sai do M.ideia */
+    prumo: { n: 'Prumo', slot: [35, 39, 30, 24], tira: [3], t: 'o prumo de pedreiro: um fio descendo reto e o peso que não deixa mentir. É a régua de quem faz direito', el: () => { const corpo = P('M34 36 H66 Q72 36 72 42 V50 L52.5 93 Q50 98 47.5 93 L28 50 V42 Q28 36 34 36 Z'); return [{ d: F.ret(48.5, 3, 3, 26, 0), papel: 'marca' }, { d: F.ret(42, 26, 16, 8, 2), papel: 'marca' }, { d: corpo, papel: 'marca' }, { d: F.ret(10, 50, 80, 6.5, 0), papel: 'furo', clip: corpo }]; } },
+    /* v3.43: o pilar em cima do bloco lia como carimbo. O alicerce é a base de tijolo em três fiadas, cada uma mais curta,
+       com as juntas desencontradas como na obra de verdade */
+    base: { n: 'Alicerce', t: 'três fiadas de tijolo, a de baixo mais larga, com as juntas desencontradas como na obra: o que segura a casa antes de qualquer parede', slot: null, el: () => { const o = [{ d: F.ret(30, 20, 40, 24, 1.5), papel: 'marca' }, { d: F.ret(17, 48, 66, 22, 1.5), papel: 'marca' }, { d: F.ret(4, 74, 92, 22, 1.5), papel: 'marca' }];
+      [[50, 20, 24], [39, 48, 22], [61, 48, 22], [27, 74, 22], [50, 74, 22], [73, 74, 22]].forEach(([x, y, h]) => o.push({ d: F.ret(x - 2, y - 1, 4, h + 2, 0), papel: 'furo' })); return o; } },
+    fresta: { n: 'Fresta', t: 'a luz entrando pela porta entreaberta: um feixe que sai de uma fenda e abre no chão', el: () => { const q = F.ret(8, 8, 84, 84, 6); return [{ d: q, papel: 'marca' }, { d: F.poli([[46, 8], [54, 8], [74, 92], [30, 92]]), papel: 'furo', clip: q }]; } },
+    morro: { n: 'Morro', slot: [14, 52, 42, 24], t: 'dois morros, um atrás do outro, em cima da linha do chão: o lugar de onde a marca vem', el: () => { const fr = 'M2 80 C5 55 19 38 36 38 C53 38 67 55 70 80'; return [{ d: P('M34 80 C37 47 51 20 66 20 C81 20 95 47 98 80 Z'), papel: 'acento' }, { d: P(fr), papel: 'furo', traco: 7 }, { d: P(fr + ' Z'), papel: 'marca' }, { d: F.ret(2, 84, 96, 7, 0), papel: 'marca' }]; } },
+    /* v3.43: a agulha de tatuagem (não a de costura): o grip com três frisos, a ponta afinando e a gota de tinta saindo dela.
+       É a fusão do ofício com o que ele deixa */
+    agulha: { n: 'Agulha e tinta', t: 'a agulha de tatuagem na diagonal, com o grip de frisos e a gota de tinta saindo da ponta: o traço que fica pra sempre', el: () => { const g = 28, o = [{ d: F.ret(41, 2, 18, 38, 5), papel: 'marca' }, { d: F.poli([[42.5, 42], [57.5, 42], [51.4, 79], [48.6, 79]]), papel: 'marca' }, { d: P('M50 82 C50 82 57.5 90.5 57.5 94.5 A7.5 7.5 0 0 1 42.5 94.5 C42.5 90.5 50 82 50 82 Z'), papel: 'acento' }];
+      [12, 21, 30].forEach(y => o.push({ d: F.ret(38, y, 24, 3.4, 0), papel: 'furo' })); return o.map(e => Object.assign(e, { d: rot(e.d, g) })); } },
+    laje: { n: 'Laje', slot: [22, 50, 56, 38], tira: [5, 6], t: 'a casa de bloco com a laje passando dos lados, a caixa-d\'água em cima e o ferro esperando o próximo andar', el: () => [{ d: F.ret(16, 44, 68, 50, 0), papel: 'marca' }, { d: F.ret(6, 34, 88, 10, 0), papel: 'marca' }, { d: F.ret(58, 16, 22, 16, 3), papel: 'acento' }, { d: F.linha(22, 33, 22, 18), papel: 'marca', traco: 4, ponta: 'butt' }, { d: F.linha(32, 33, 32, 22), papel: 'marca', traco: 4, ponta: 'butt' }, { d: F.ret(28, 64, 15, 30, 0), papel: 'furo' }, { d: F.ret(54, 58, 18, 13, 0), papel: 'furo' }] },
+    /* v3.43: o nó na cor da faixa (de outra cor ele virava laço de presente), separado por um vão; as pontas caindo abertas e
+       os dois graus de faixa na ponta da direita */
+    faixa: { n: 'Faixa', t: 'a faixa amarrada: a tira, o nó no meio, as duas pontas caindo e os graus na ponta. É o tempo de quem treinou', el: () => { const pe = F.poli([[45, 52], [55, 52], [37, 95], [27, 90]]), pd = F.poli([[45, 52], [55, 52], [73, 90], [63, 95]]);
+      return [{ d: F.ret(2, 32, 96, 17, 3), papel: 'marca' }, { d: pe, papel: 'marca' }, { d: pd, papel: 'marca' }, { d: F.ret(35.5, 22, 4, 36, 0), papel: 'furo' }, { d: F.ret(60.5, 22, 4, 36, 0), papel: 'furo' }, { d: F.ret(36, 53.5, 28, 4, 0), papel: 'furo' }, { d: F.ret(40, 25, 20, 30, 4), papel: 'marca' }
+      ].concat([[63, 80.5], [65.4, 86.5]].map(([x, y]) => ({ d: tr(F.ret(x - 20, y - 1.8, 40, 3.6, 0), mx.r(-24, x, y)), papel: 'furo', clip: pd }))); } },
+    focinho: { n: 'Focinho', noO: () => [{ d: P('M14 26 H86 Q100 26 92 40 L60 80 Q50 92 40 80 L8 40 Q0 26 14 26 Z'), papel: 'marca' }, { d: F.elipse(32, 40, 8, 6), papel: 'furo' }], t: 'o focinho de frente: o nariz com brilho e a boca em um traço só. Alegria de quem chega abanando', el: () => [{ d: P('M24 24 H76 Q90 24 82 37 L58 66 Q50 75 42 66 L18 37 Q10 24 24 24 Z'), papel: 'marca' }, { d: F.elipse(34, 35, 7, 5), papel: 'furo' }, { d: P('M50 68 V80 M24 76 Q37 94 50 80 Q63 94 76 76'), papel: 'marca', traco: 7 }] },
+    balao: { n: 'Prosa', slot: [12, 40, 52, 32], t: 'dois balões de conversa, um por cima do outro: a prosa que faz o cliente voltar', el: () => { const fr = P('M18 34 H58 Q70 34 70 46 V66 Q70 78 58 78 H34 L18 92 V78 Q6 76 6 66 V46 Q6 34 18 34 Z'); return [{ d: P('M42 8 H82 Q94 8 94 20 V40 Q94 52 82 52 H82 V66 L68 52 H42 Q30 52 30 40 V20 Q30 8 42 8 Z'), papel: 'acento' }, { d: fr, papel: 'furo', traco: 8 }, { d: fr, papel: 'marca' }]; } },
+    coador: { n: 'Coador', slot: [27, 26, 46, 26], tira: [2], t: 'o coador de pano: o aro, o cone e a primeira gota caindo. O café no tempo dele', el: () => [{ d: F.ret(10, 14, 80, 9, 4.5), papel: 'marca' }, { d: P('M16 23 H84 C80 46 64 64 50 68 C36 64 20 46 16 23 Z'), papel: 'marca' }, { d: P('M30 36 Q50 44 70 36'), papel: 'furo', traco: 6 }, { d: P('M50 75 C50 75 58 85 58 89 A8 8 0 0 1 42 89 C42 85 50 75 50 75 Z'), papel: 'acento' }] },
+    navalha: { n: 'Navalha', t: 'a navalha aberta: a lâmina de fio reto, o pino e o cabo. O corte de quem faz há anos', el: () => [{ d: P('M20 31 Q50 23 84 24 C94 25 98 34 95 42 L93 48 H20 Z'), papel: 'marca' }, { d: tr(F.ret(17, 34, 74, 13, 6.5), mx.r(35, 25, 40.5)), papel: 'marca' }, { d: F.elipse(25, 40.5, 4.5), papel: 'furo' }] },
+    dente: { n: 'Dente', slot: [26, 15, 48, 30], tira: [1], t: 'o dente desenhado em duas curvas e duas raízes, com o brilho de quem acabou de sair do consultório', el: () => [{ d: P('M18 24 C18 8 36 6 50 15 C64 6 82 8 82 24 C82 38 76 48 73 60 L67 89 C65 96 57 96 56 89 L53 68 C52 63 48 63 47 68 L44 89 C43 96 35 96 33 89 L27 60 C24 48 18 38 18 24 Z'), papel: 'marca' }, { d: P('M29 28 Q30 19 39 18'), papel: 'furo', traco: 6.5 }] },
+    coluna: { n: 'Coluna', t: 'a coluna de pé: capitel, três caneluras e a base. O que sustenta sem precisar aparecer', el: () => [{ d: F.ret(12, 8, 76, 12, 2), papel: 'marca' }, { d: F.ret(22, 23, 56, 55, 0), papel: 'marca' }, { d: F.ret(12, 81, 76, 11, 2), papel: 'marca' }].concat([33, 50, 67].map(x => ({ d: F.ret(x - 3.5, 29, 7, 43, 3.5), papel: 'furo' }))) },
+    tesoura: { n: 'Tesoura', t: 'a tesoura aberta: duas argolas e as lâminas cruzando no pino. O ofício na mão', el: () => [{ d: F.poli([[38, 62], [46, 66], [86, 8], [80, 6]]), papel: 'marca' }, { d: F.poli([[62, 62], [54, 66], [14, 8], [20, 6]]), papel: 'marca' }, { d: F.anel(30, 76, 16, 8.5), papel: 'marca' }, { d: F.anel(70, 76, 16, 8.5), papel: 'marca' }, { d: F.elipse(50, 47, 4), papel: 'furo' }] },
+    /* v3.43 · AS FUSÕES: duas ideias num desenho só (o que vem do nome com o que vem do ofício). É a fusão que faz o logo
+       virar de autor; o motor só cai no pictograma sozinho quando não tem par */
+    tigela: { n: 'Tigela do morro', t: 'a tigela de açaí servida em dois morros, um atrás do outro: o pote e o lugar de onde a marca vem, num desenho só', slot: [24, 68, 52, 20], el: () => { const fr = 'M6 58 C9 42 21 31 36 31 C51 31 61 42 64 58'; return [{ d: P('M30 58 C33 35 47 17 64 17 C81 17 92 36 95 58 Z'), papel: 'acento' }, { d: P(fr), papel: 'furo', traco: 7 }, { d: P(fr + ' Z'), papel: 'marca' }, { d: P('M3 64 H97 C95 82 76 95 50 95 C24 95 5 82 3 64 Z'), papel: 'marca' }]; } },
+    solpauta: { n: 'Sol na pauta', t: 'o sol atrás das cinco linhas da pauta: onde as linhas passam, ele abre. A música e a luz no mesmo desenho', noO: () => { const c = F.elipse(50, 50, 46); return [{ d: c, papel: 'marca' }].concat([[52, 5], [63, 6], [75, 7.5]].map(([y, h]) => ({ d: F.ret(-2, y, 104, h, 0), papel: 'furo', clip: c }))); },
+      el: () => { const c = F.elipse(50, 44, 37), ys = [46, 56, 66, 76, 86]; return [{ d: c, papel: 'acento' }].concat(ys.map(y => ({ d: F.ret(0, y, 100, 4.4, 0), papel: 'marca' })), ys.map(y => ({ d: F.ret(-2, y - 0.5, 104, 5.4, 0), papel: 'furo', clip: c }))); } },
+    paoprosa: { n: 'Pão de prosa', t: 'o pão de pontas finas, com os três cortes da fornada, ganhando o rabinho do balão de conversa: o pão que sai do forno junto com a prosa', slot: [20, 32, 60, 26], tira: [1, 2, 3],
+      el: () => [{ d: P('M2 47 C10 29 30 20 52 20 C74 20 92 29 98 44 C94 59 76 67 56 68 H42 L22 86 L27 67 C14 64 5 57 2 47 Z'), papel: 'marca' }].concat([[20, 50], [41, 47], [62, 45]].map(([x, y]) => ({ d: F.linha(x, y, x + 15, y - 17), papel: 'furo', traco: 6.5 }))) },
+    /* o tatame visto de cima: quatro placas em roda em volta da meia placa do centro, como se monta o chão do dojo */
+    tatame: { n: 'Tatame', t: 'o tatame visto de cima: quatro placas em roda em volta do quadrado do centro, do jeito que se monta o chão do dojo', slot: [38, 38, 24, 24], tira: [4],
+      el: () => [{ d: F.ret(2, 2, 62, 30, 2), papel: 'marca' }, { d: F.ret(68, 2, 30, 62, 2), papel: 'marca' }, { d: F.ret(36, 68, 62, 30, 2), papel: 'marca' }, { d: F.ret(2, 36, 30, 62, 2), papel: 'marca' }, { d: F.ret(36, 36, 28, 28, 2), papel: 'acento' }],
+      cheio: () => [{ d: F.ret(2, 2, 62, 30, 2), papel: 'marca' }, { d: F.ret(68, 2, 30, 62, 2), papel: 'marca' }, { d: F.ret(36, 68, 62, 30, 2), papel: 'marca' }, { d: F.ret(2, 36, 30, 62, 2), papel: 'marca' }, { d: F.ret(36, 36, 28, 28, 2), papel: 'marca' }] },
+    /* a chapa que dá nome à casa, com o calor subindo dela: a grelha e o "quente" num desenho só */
+    chapaquente: { n: 'Chapa quente', t: 'a marca da grelha num disco e o calor subindo dela em três fios: a chapa e o quente num desenho só', el: () => { const c = F.elipse(50, 64, 33); return [{ d: c, papel: 'marca' }].concat([-13, 0, 13].map(o => ({ d: rot(F.linha(4, 64 + o, 96, 64 + o), -45), papel: 'furo', traco: 6.5, clip: c, ponta: 'butt' })), [32, 50, 68].map(x => ({ d: P(`M${x} 26 C${x - 7} 20 ${x + 7} 14 ${x} 6`), papel: 'acento', traco: 6 }))); } },
+    dentluz: { n: 'Dente de luz', t: 'o dente com uma fresta de luz entrando por cima e abrindo pra baixo: o sorriso que acende', el: () => [{ d: P('M18 24 C18 8 36 6 50 15 C64 6 82 8 82 24 C82 38 76 48 73 60 L67 89 C65 96 57 96 56 89 L53 68 C52 63 48 63 47 68 L44 89 C43 96 35 96 33 89 L27 60 C24 48 18 38 18 24 Z'), papel: 'marca' }, { d: F.poli([[48.4, 25], [51.6, 25], [58, 66], [42, 66]]), papel: 'furo' }] }
   };
   M.IDEIAS = IDEIAS;
   /* a ideia desenhada: sólida ou em linha (o cheio vira contorno, o vazado vira linha) */
-  M.ideia = (k, estilo) => {
-    const i = IDEIAS[k] || IDEIAS.estrela4, els = i.el();
+  /* k = o traço da linha na caixa 100 (v3.43: sai da haste da letra do nome, pelo M.logo; sem ele, 4,5 como antes) */
+  M.ideia = (k, estilo, noO, traco) => {
+    const i = IDEIAS[k] || IDEIAS.estrela4, els = noO && i.noO ? i.noO() : i.el(), tk = traco || 4.5;
     if(estilo !== 'linha' || i.solida) return els;
     /* em linha: o cheio vira contorno; o risco vazado vira risco; a forma vazada vira forma cheia por dentro */
     return els.map(e => {
       if(e.papel === 'acento') return e;
-      if(e.papel === 'furo') return e.traco ? Object.assign({}, e, { papel: 'marca', traco: Math.max(3.5, e.traco * 0.62) }) : Object.assign({}, e, { papel: 'marca' });
-      return e.traco ? e : Object.assign({}, e, { traco: 4.5, vazio: true });
+      if(e.papel === 'furo') return e.traco ? Object.assign({}, e, { papel: 'marca', traco: traco ? Math.max(3.5, tk * 0.65) : Math.max(3.5, e.traco * 0.62) }) : Object.assign({}, e, { papel: 'marca' });
+      if(e.traco) return Object.assign({}, e, traco && e.papel === 'marca' ? { traco: tk } : {});
+      /* forma que já é fina (menos de 3 traços de largura) não vira contorno: com o traço da letra ela entupiria. Fica cheia,
+         e lê como linha do mesmo peso */
+      const b = caixa(e.d); if(Math.min(b.w, b.h) < tk * 3.2) return e;
+      return Object.assign({}, e, { traco: tk, vazio: true });
     });
   };
+  /* v3.43 · A LETRA DENTRO DA IDEIA: a ideia vira o recipiente e a inicial do próprio entra vazada nela (o P dentro do
+     prumo, o M na tigela, o L na laje, P&P no pão). É a fusão de letra com objeto: o lugar do escudo com monograma,
+     mas o escudo é o conceito da marca. Só nas ideias que têm um "miolo" grande o bastante (slot); o que atrapalharia a
+     letra (a porta, o brilho, a cinta) sai. O alicerce é ao contrário: a inicial em pé sobre as fiadas de tijolo */
+  M.cabeLetra = k => !!(IDEIAS[k] && (IDEIAS[k].slot || k === 'base'));
+  M.ideiaLetra = (s, f, nome) => {
+    /* (o número do nome, quando tem, é a "inicial" que entra: Tatame 43 leva o 43 no centro do tatame) */
+    const num = (M.partes(nome).palavras.find(x => x.c === 'numero' && x.w.length <= 3) || {}).w;
+    const id = IDEIAS[s.ideia], letras = [...(s.letras || num || M.iniciais(nome))].slice(0, 3).join(''), linha = s.estilo === 'linha';
+    const t = M.texto(f, letras, { tam: 100, caixa: 'alta', track: [...letras].length > 1 ? 0.02 : 0 });
+    if(s.ideia === 'base'){
+      const d = encaixa(t, 50, 36, 76, 64), b = caixa(d), y0 = b.y + b.h + 6, w = Math.max(b.w + 34, 70), x0 = 50 - w / 2, out = [{ d, papel: 'marca' }];
+      /* duas fiadas, juntas desencontradas: a de cima com junta no meio, a de baixo nos terços */
+      out.push({ d: F.ret(x0 + 8, y0, w - 16, 12, 1), papel: 'marca' }, { d: F.ret(x0, y0 + 15, w, 12, 1), papel: 'marca' });
+      [[50, y0], [x0 + w / 3, y0 + 15], [x0 + 2 * w / 3, y0 + 15]].forEach(([x, y]) => out.push({ d: F.ret(x - 1.8, y - 1, 3.6, 14, 0), papel: 'furo' }));
+      return out;
+    }
+    /* a versão cheia (quando a ideia tem uma) já vem pronta pra receber a letra; da comum sai o que atrapalha (tira) */
+    const [sx, sy, sw, sh] = id.slot, cheia = !linha && id.cheio, base = linha ? M.ideia(s.ideia, 'linha', false, s.traco) : cheia ? id.cheio() : id.el();
+    const els = cheia ? base : base.filter((e, i) => !(id.tira || []).includes(i));
+    els.push({ d: encaixa(t, sx + sw / 2, sy + sh / 2, sw, sh), papel: linha ? 'marca' : 'furo' });
+    return els;
+  };
+  /* v3.43 · o molde só onde a letra aguenta: a fatia só em letra de estrutura horizontal ou redonda; o corte diagonal só em
+     letra de haste reta. Fora disso a letra ganha a barra embaixo (que não quebra letra nenhuma) */
+  M.detalheLetra = (detalhe, letra) => { const L0 = String(letra || '').normalize('NFD')[0] || '';
+    if(detalhe === 'fatia' && !/[BCDEGOPQRS38]/.test(L0)) return 'barra';
+    if(detalhe === 'corte' && !/[ILTHEFNMU]/.test(L0)) return 'barra';
+    return detalhe; };
+  /* a órbita só em inicial redonda (ou no nicho de tecnologia): é a letra que pede o anel em volta */
+  /* v3.43: só em tecnologia (fora dela, anel com bolinha em volta da inicial é o carimbo de gerador) */
+  M.orbitaCabe = (letra, nicho) => nicho === 'tech' && !!String(letra || '');
   /* o símbolo inteiro (caixa 100x100). fs = { display, texto: fontes carregadas }; s = spec.simbolo */
   M.simbolo = (s, fs, nome, spec) => {
     const f = fs.display, tipo = s.tipo || 'monograma', els = [];
@@ -713,24 +869,40 @@
     if(tipo === 'nenhum') return [];
     if(tipo === 'geo') return geo(s.seed || M.hash(nome), s.pers);
     if(tipo === 'pixel') return pixel(s);
-    if(tipo === 'ideia') return M.ideia(s.ideia, s.estilo);
+    if(tipo === 'ideia') return s.letra && M.cabeLetra(s.ideia) ? M.ideiaLetra(s, f, nome) : M.ideia(s.ideia, s.estilo, false, s.traco);
     /* EMBLEMA: a forma cheia, um fio por dentro, as iniciais vazadas e o ano (ou três estrelas) embaixo */
     if(tipo === 'emblema'){
       const forma = FORMAS[s.forma] || FORMAS.escudo, fd = forma.d(), k = 0.86;
       els.push({ d: fd, papel: 'marca' }, { d: tr(fd, [k, 0, 0, k, 50 * (1 - k), 50 * (1 - k)]), papel: 'furo', traco: 2.4, vazio: true });
       const t = M.texto(f, letras, { tam: 100, caixa: 'alta', track: letras.length > 1 ? 0.02 : 0 }), lado = 100 * forma.dentro * 0.82;
-      els.push({ d: encaixa(t, 50, s.forma === 'escudo' ? 41 : 43, lado, lado * (letras.length > 1 ? 0.5 : 0.6)), papel: 'furo' });
+      /* sem ano, a inicial fica no centro ótico da forma e cresce (não sobra um buraco embaixo dela) */
+      const temAno = !!(spec && String(spec.desde || '').replace(/\D/g, '').length >= 4 && fs.texto);
+      const iniD = encaixa(t, 50, temAno ? (s.forma === 'escudo' ? 39 : 42) : (s.forma === 'escudo' ? 45 : 50), lado, lado * (letras.length > 1 ? (temAno ? 0.5 : 0.56) : (temAno ? 0.6 : 0.7))), bIni = caixa(iniD);
+      els.push({ d: iniD, papel: 'furo' });
+      /* v3.43: só o ano, espaçado, encaixado na largura de dentro da forma naquela altura (medida no fio de dentro, menos os
+         dois fios e com folga): ele nunca encosta no fio. Sem ano, ou se não couber com a maiúscula de 10, dois fios curtos */
       const ano = spec && spec.desde ? String(spec.desde).replace(/\D/g, '').slice(0, 4) : '', yb = s.forma === 'escudo' ? 68 : 70;
-      if(ano.length === 4 && fs.texto){ const tt = M.texto(fs.texto, 'EST. ' + ano, { tam: 7, caixa: 'alta', track: 0.22 }); els.push({ d: tr(tt.cmds, mx.t(50 - tt.w / 2, yb + 7)), papel: 'furo' }); }
-      else [-10, 0, 10].forEach(dx => els.push({ d: F.estrela(50 + dx, yb + 3.5, 4.2, 1.8, 5, -90), papel: 'furo' }));
+      const fio = tr(fd, [k, 0, 0, k, 50 * (1 - k), 50 * (1 - k)]), dentroEm = y => { const xs = M.corteH(fio, y); return xs.length >= 2 ? xs[xs.length - 1] - xs[0] : 0; };
+      let poe = false;
+      if(ano.length === 4 && fs.texto){
+        const tt = M.texto(fs.texto, ano, { tam: 100, caixa: 'alta', track: 0.3 }), bt = caixa(tt.cmds);
+        for(let cap = 16; cap >= 10 && !poe; cap -= 1){
+          const e = cap / (bt.h || 100), y0 = bIni.y + bIni.h + 7, y1 = y0 + cap, larg = (Math.min(dentroEm(y0), dentroEm(y1)) - 2 * 2.4) * 0.8;
+          if(bt.w * e <= larg){ els.push({ d: tr(tt.cmds, mx.x(mx.t(50 - bt.w * e / 2, y1), mx.x(mx.s(e), mx.t(-bt.x, -(bt.y + bt.h))))), papel: 'furo' }); poe = true; }
+        }
+      }
+      /* v3.43: sem ano, nada embaixo (os dois fios curtos liam como dois olhos debaixo da letra) */
       return els;
     }
     /* ÓRBITA: um anel aberto com um ponto na ponta e a inicial no centro (sinal, radar, rota) */
     if(tipo === 'orbita'){
-      const R = 40, a0 = -60, a1 = 210, pt = a => [50 + R * Math.cos(a * Math.PI / 180), 50 + R * Math.sin(a * Math.PI / 180)];
-      const [x0, y0] = pt(a0), [x1, y1] = pt(a1);
-      els.push({ d: M.parse(`M${x0} ${y0} A${R} ${R} 0 1 1 ${x1} ${y1}`), papel: 'marca', traco: 7.5 }, { d: F.elipse(x0, y0, 8), papel: 'acento' });
-      els.push({ d: encaixa(M.texto(f, letras.slice(0, 1), { tam: 100, caixa: 'alta' }), 50, 50, 34, 34), papel: 'marca' });
+      /* v3.43: a abertura do anel fica do lado aberto da letra (C e G abrem pra direita; as outras, em cima à direita), o ponto
+         pousa num de quatro lugares do anel, pela semente, e a letra ocupa 52 da caixa */
+      const L0 = letras.slice(0, 1).toLocaleUpperCase('pt-BR'), gc = /[CG]/.test(L0) ? 0 : -45, rr = M.rng((s.seed || M.hash(nome)) + 11), R = 41;
+      const pt = a => [50 + R * Math.cos(a * Math.PI / 180), 50 + R * Math.sin(a * Math.PI / 180)];
+      const [x0, y0] = pt(gc + 40), [x1, y1] = pt(gc + 320), ap = [gc + 40, gc + 320, gc + 130, gc + 230][Math.floor(rr() * 4)], [xp, yp] = pt(ap);
+      els.push({ d: M.parse(`M${x0} ${y0} A${R} ${R} 0 1 1 ${x1} ${y1}`), papel: 'marca', traco: s.haste ? s.haste * (s.escTraco || 100 / 130) : 7.5 }, { d: F.elipse(xp, yp, 8), papel: 'acento' });
+      els.push({ d: encaixa(M.texto(f, L0, { tam: 100, caixa: 'alta' }), 50, 50, 52, 52), papel: 'marca' });
       return els;
     }
     if(tipo === 'icone'){
@@ -746,20 +918,39 @@
       return els;
     }
     if(tipo === 'letra'){
-      const t = M.texto(f, letras.slice(0, 1), { tam: 100, caixa: 'alta' });
-      const d = encaixa(t, 46, 52, 84, 84), b = caixa(d);
-      /* fatiada: a letra em três faixas, a do meio desliza e troca de cor (gesto de cartaz moderno) */
-      if(s.detalhe === 'fatia'){
-        const gap = 3.4, hb = (b.h - 2 * gap) / 3, desl = [-4.5, 5.5, -4.5];
-        for(let i = 0; i < 3; i++){ const m = mx.t(desl[i] + 4, 0); els.push({ d: tr(d, m), clip: tr(F.ret(b.x - 30, b.y + i * (hb + gap), b.w + 60, hb, 0), m), papel: i === 1 ? 'sec' : 'marca' }); }
+      const L0 = letras.slice(0, 1), t = M.texto(f, L0, { tam: 100, caixa: 'alta' });
+      const d = encaixa(t, 46, 52, 84, 84), b = caixa(d), det = M.detalheLetra(s.detalhe, L0.toLocaleUpperCase('pt-BR'));
+      const hasteB = (s.haste || 18) * b.h / 100;
+      /* a tinta da letra linha a linha (de 2 em 2), pra saber onde ela é fina (onde a fatia corta) e onde é cheia (onde o corte passa) */
+      const linhas = []; for(let y = b.y + b.h * 0.12; y <= b.y + b.h * 0.88; y += 2) linhas.push({ y, t: M.tintaH(d, y) });
+      /* fatiada: a letra em três faixas cortadas nas linhas de menos tinta dela; a do meio desliza um quarto da haste.
+         Tudo na mesma cor (trocar a cor de uma faixa fica pra bancada) e o recorte passa 1 pra fora (sem costura) */
+      if(det === 'fatia'){
+        const ord = linhas.slice().sort((p, q) => p.t - q.t), c1 = ord[0], c2 = ord.find(x => Math.abs(x.y - c1.y) >= b.h * 0.25) || ord[1];
+        const ys = [c1.y, c2.y].sort((p, q) => p - q), gap = 3.4, dz = Math.min(0.25 * hasteB, 6);
+        const faixas = [[b.y - 1, ys[0] - gap / 2], [ys[0] + gap / 2, ys[1] - gap / 2], [ys[1] + gap / 2, b.y + b.h + 1]];
+        faixas.forEach(([a, z], i) => { const m = mx.t(i === 1 ? dz : 0, 0); els.push({ d: tr(d, m), clip: tr(F.ret(b.x - 30, a, b.w + 60, z - a, 0), m), papel: 'marca' }); });
         return els;
       }
-      if(s.detalhe === 'sombra') els.push({ d: tr(d, mx.t(6, 6)), papel: 'acento' });
+      if(det === 'sombra') els.push({ d: tr(d, mx.t(6, 6)), papel: 'acento' });
       els.push({ d, papel: 'marca' });
-      if(s.detalhe === 'barra') els.push({ d: F.ret(b.x, b.y + b.h + 6, b.w, 9, 4.5), papel: 'acento' });
-      else if(s.detalhe === 'corte') els.push({ d: F.linha(b.x - 6, b.y + b.h * 0.72, b.x + b.w + 6, b.y + b.h * 0.28), papel: 'furo', traco: 7 });
-      else if(s.detalhe !== 'sombra') els.push({ d: F.elipse(Math.min(98, b.x + b.w + 9), b.y + 9, 9), papel: 'acento' });
+      if(det === 'barra') els.push({ d: F.ret(b.x, b.y + b.h + 6, b.w, 9, 4.5), papel: 'acento' });
+      /* o corte diagonal passa pela linha de mais tinta da letra (a barra do H, os braços do E), como estêncil de verdade */
+      else if(det === 'corte'){ const cheia = linhas.reduce((m, x) => x.t > m.t ? x : m, linhas[0] || { y: b.y + b.h / 2 }), cx = b.x + b.w / 2, inc = b.h * 0.44 / (b.w + 12); els.push({ d: F.linha(b.x - 6, cheia.y + (cx - b.x + 6) * inc, b.x + b.w + 6, cheia.y - (b.x + b.w + 6 - cx) * inc), papel: 'furo', traco: 7 }); }
+      else if(det !== 'sombra') els.push({ d: F.elipse(Math.min(98, b.x + b.w + 9), b.y + 9, 9), papel: 'acento' });
       return els;
+    }
+    /* v3.43 · MONOGRAMA SOBREPOSTO: as duas iniciais (sem o "&") uma por cima da outra, a segunda entrando na primeira
+       com um vão em volta (o contorno dela na cor do fundo), como monograma de alfaiate e de escritório antigo. Sem
+       moldura: a ligação das duas letras é o desenho */
+    if(tipo === 'monograma' && s.estilo === 'liga'){
+      const duas = [...letras].filter(c => c !== '&' && c.trim()).slice(0, 2);
+      if(duas.length === 2){
+        const tA = M.texto(f, duas[0], { tam: 100, caixa: 'alta' }).cmds, tB = M.texto(f, duas[1], { tam: 100, caixa: 'alta' }).cmds, bA = caixa(tA), bB = caixa(tB);
+        const B = tr(tB, mx.t(bA.x + bA.w * 0.6 - bB.x, bA.h * 0.24)), tudo = M.juntaCaixas([bA, caixa(B)]), e = 96 / Math.max(tudo.w, tudo.h);
+        const m = mx.x(mx.t(50, 50), mx.x(mx.s(e), mx.t(-(tudo.x + tudo.w / 2), -(tudo.y + tudo.h / 2)))), vao = Math.max(5, (s.haste || 18) * 0.38) * e;
+        return [{ d: tr(tA, m), papel: 'marca' }, { d: tr(B, m), papel: 'fundo', traco: vao * 2 }, { d: tr(B, m), papel: 'marca' }];
+      }
     }
     /* monograma */
     const forma = FORMAS[s.forma] || FORMAS.circulo;
@@ -772,13 +963,56 @@
     els.push({ d: encaixa(t, 50, 50 + dy, lado, lado * (letras.length > 1 ? 0.62 : 0.8)), papel: contorno ? 'marca' : 'furo' });
     return els;
   };
-  /* as iniciais: sigla que já é sigla fica (GP Burger -> GP); duas palavras -> duas letras; uma palavra -> uma letra */
+  /* v3.43 · A ANATOMIA DO NOME: o motor lê o nome antes de desenhar. Cada palavra ganha uma classe: liga (de, do, &...),
+     número, sigla (como a pessoa escreveu: KVRA, GP), descritor (o ofício ou o produto: Advogados, Barbearia, Records,
+     Açaí) ou nome. O "próprio" é o que a marca tem de só dela (Tonho, Lumi, Sol Maior, Moraes & Valente); o descritor
+     diz o que ela faz. É o próprio que leva o peso, a letra em destaque, a inicial e o símbolo.
+     A lista de descritores é própria do logo (copiada do naming, mais os ofícios): o naming soma palavra na dele em
+     tempo de uso, e o logo não pode depender do que o naming rodou antes. Casa a palavra inteira ("Bar" não pega Barbara) */
+  const semAc = w => String(w).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  const LIGA = /^(de|da|do|das|dos|e|&|em|na|no|nas|nos)$/, SIGLA = M.SIGLA;
+  const DESCR = /^(advogad\w*|advocacia|associad[oa]s|imoveis|imobiliaria|contabilidade|contabil|consultoria|assessoria|records|escola|musica|studio|estudio|barbearia|barber|salao|clinica|odonto\w*|academia|padaria|cafeteria|cafe|confeitaria|doceria|doces|lanchonete|lanches?|burger|hamburgueria|grill|bar|boteco|drinks|pet|petshop|shop|store|loja|emporio|atelie|tattoo|estetica|cursos?|aula|produtora|producoes|solucoes|servicos|engenharia|arquitetura|construtora|obras|auto|center|express|garagem|oficina|moda|modas|beauty|hair|spa|bistro|pizzaria|restaurante|acougue|mercado|mercearia|farmacia|otica|eventos|festas|buffet|fotografia|filmes|labs?|tech|sistemas|saude|fisioterapia|nutricao|psicologia|veterinaria|vet|club|treino|crossfit|agro|sementes|som|arte|acai|pao|paes|pizza|sorvete|sorveteria|casa|co\.?)$/;
+  M.partes = nome => {
+    const str = String(nome || ''), ps = [...str.matchAll(/\S+/g)].map(m => ({ w: m[0], i0: m.index, i1: m.index + m[0].length }));
+    ps.forEach(x => { const s0 = semAc(x.w).replace(/[.,;:!?]+$/, ''); x.c = LIGA.test(s0) ? 'liga' : /^\d+$/.test(s0) ? 'numero' : SIGLA.test(x.w) ? 'sigla' : DESCR.test(s0) ? 'descr' : 'nome'; });
+    const bl = [], tipo = c => c === 'sigla' ? 'nome' : c;
+    for(let i = 0; i < ps.length; i++){
+      const ult = bl[bl.length - 1], c = ps[i].c;
+      /* número gruda no bloco de antes (Tatame 43) */
+      if(c === 'numero' && ult){ ult.fim = i + 1; continue; }
+      /* "X & Y", uma palavra de cada lado: um bloco de nome (Pão & Prosa, Moraes & Valente) */
+      if(ps[i].w === '&' && ult && ult.fim - ult.ini === 1 && ps[i + 1] && ps[i + 1].c !== 'liga'){ ult.fim = i + 2; ult.t = 'nome'; ult.e = true; i++; continue; }
+      if(c === 'liga'){
+        /* a liga gruda na palavra seguinte; fica dentro do bloco quando junta duas da mesma classe (Escola de Música) */
+        let j = i; while(j < ps.length && ps[j].c === 'liga') j++;
+        if(j >= ps.length){ if(ult) ult.fim = ps.length; else bl.push({ ini: i, fim: ps.length, t: 'nome' }); break; }
+        const t = tipo(ps[j].c);
+        if(ult && ult.t === t) ult.fim = j + 1; else bl.push({ ini: i, fim: j + 1, t, liga: true });
+        i = j; continue;
+      }
+      if(ult && ult.t === tipo(c)) ult.fim = i + 1; else bl.push({ ini: i, fim: i + 1, t: tipo(c) });
+    }
+    const letras = b => ps.slice(b.ini, b.fim).reduce((n, x) => n + (x.c === 'liga' ? 0 : [...x.w].length), 0);
+    const nomes = bl.filter(b => b.t === 'nome'), forte = nomes.length ? nomes.reduce((m, b) => letras(b) > letras(m) ? b : m, nomes[0]) : null;
+    bl.forEach(b => { b.txt = str.slice(ps[b.ini].i0, ps[b.fim - 1].i1); });
+    if(!forte) return { palavras: ps, blocos: bl, iP: -1, proprio: str.trim(), pi0: ps.length ? ps[0].i0 : 0, pi1: ps.length ? ps[ps.length - 1].i1 : 0, descritor: '', lado: 'depois' };
+    /* o próprio sem a liga da frente ("do Tonho" -> Tonho) */
+    let k = forte.ini; while(k < forte.fim - 1 && ps[k].c === 'liga' && ps[k].w !== '&') k++;
+    const iP = bl.indexOf(forte);
+    return { palavras: ps, blocos: bl, iP, proprio: str.slice(ps[k].i0, ps[forte.fim - 1].i1), pi0: ps[k].i0, pi1: ps[forte.fim - 1].i1,
+      descritor: bl.filter(b => b.t === 'descr').map(b => b.txt).join(' '), lado: iP === 0 ? 'depois' : 'antes' };
+  };
+  /* as iniciais saem só do próprio (Barbearia do Tonho -> T; Escola de Música Sol Maior -> SM); "X & Y" -> X&Y;
+     a sigla curta fica como a pessoa escreveu, menos a que lê como palavra (AI, EM, OK...), que cai pra uma letra */
+  const LE_PALAVRA = /^(AI|IA|EM|OK|UP|PC|OI|EU|OU|AO|NO|NA|DA|DE|DO|SE|SO|UM|ME|TE)$/;
   M.iniciais = nome => {
-    const p = String(nome || '?').replace(/[^\p{L}\p{N}\s&]/gu, ' ').trim().split(/\s+/).filter(Boolean);
-    if(p[0] && /^[\p{Lu}\p{N}]{2,3}$/u.test(p[0])) return p[0];
-    const sem = p.filter(w => !/^(de|da|do|das|dos|e|the|of|&|a|o)$/i.test(w) && (w.length > 1 || /\p{N}/u.test(w)));
-    const q = sem.length ? sem : p;
-    return (q.length > 1 ? [...q[0]][0] + [...q[1]][0] : [...(q[0] || '?')][0]).toLocaleUpperCase('pt-BR');
+    const pt = M.partes(nome), p = pt.proprio.replace(/[^\p{L}\p{N}\s&]/gu, ' ').trim().split(/\s+/).filter(Boolean);
+    const alta = s => s.toLocaleUpperCase('pt-BR'), sai = s => LE_PALAVRA.test(semAc(s).toUpperCase()) ? [...s][0] : s;
+    if(p.length === 1 && /^[\p{Lu}\p{N}]{2,3}$/u.test(p[0])) return sai(p[0]);
+    if(p.length === 3 && p[1] === '&') return alta([...p[0]][0] + '&' + [...p[2]][0]);
+    const sem = p.filter(w => !LIGA.test(semAc(w)) && !/^\d+$/.test(w) && w.length > 1);
+    const q = sem.length ? sem : p.filter(w => w !== '&');
+    return sai(alta(q.length > 1 ? [...q[0]][0] + [...q[1]][0] : [...(q[0] || '?')][0]));
   };
 })();
 
@@ -790,44 +1024,232 @@
   'use strict';
   const C = window.Corre, M = C.labMotor;
   const { tr, caixa, mx } = M, F = M.forma;
-  const TAG = { tam: 22, track: 0.2, gap: 44 };
+  /* v3.43: a frase nasce com 0,25 da maiúscula (com 0,22 ela sumia no logo pequeno) */
+  const TAG = { tam: 25, track: 0.18, gap: 44 };
   M.GESTOS = { '': 'Nenhum', hierarquia: 'Hierarquia', pesos: 'Dois pesos', separador: 'Separador', bolha: 'Bolha', destaque: 'Letra em destaque', troca: 'O vira forma', empilha: 'Empilhado', estencil: 'Estêncil', recorte: 'Recorte de bilhete', pulo: 'Pulo',
-    velocidade: 'Velocidade', fios: 'Fios de revista', colchetes: 'Colchetes', ponto: 'Ponto final', sublinha: 'Sublinhado' };
+    velocidade: 'Velocidade', fios: 'Fios de revista', colchetes: 'Colchetes', ponto: 'Ponto final', sublinha: 'Sublinhado',
+    encosta: 'Letras encostadas', corte: 'Corte de navalha', pendente: 'O conceito pendurado', versalete: 'Versalete', fiolado: 'Fio ao lado' };
   const temDescida = s => /[gjpqyç,;Ç]/.test(s);
+  /* v3.43 · O GESTO TEM QUE CABER. Gesto anunciado que não aparece no desenho (hierarquia num nome de uma palavra, troca
+     sem "O", dois pesos com a letra fina por cima da gorda) é promessa quebrada: o território passa pro próximo gesto
+     da lista dele, e "nenhum" só no fim. o = { caixa, cores } */
+  const PESO_PAR = ['inter-black', 'inter-bold', 'poppins-bold', 'lora-bold', 'lora-bolditalic', 'pagella-bold', 'schola-bold', 'cursor-bold'];
+  const COM_MIOLO = /[ABDOPQRÁÀÂÃÄÓÒÔÕÖabdegopqáàâãäéêóôõö0689]/, CORTE_HASTE = /[EFHKLÉÊ]/;
+  /* a largura média de cada letra de logo (maiúscula, minúscula, espaço; maiúscula em 100), medida nas fontes: pra saber
+     antes de carregar a fonte se o nome cabe numa linha */
+  const LARG_MEDIA = { 'inter-black': [96, 78, 25], 'inter-bold': [93, 73, 29], 'inter-light': [88, 66, 33], 'poppins-bold': [97, 84, 30], 'poppins-light': [89, 79, 39],
+    'adventor-bold': [86, 74, 38], 'heroscn-bold': [79, 62, 32], 'lora-bold': [99, 77, 38], 'lora-bolditalic': [98, 74, 38], 'schola-bold': [107, 82, 40], 'bonum-bold': [107, 86, 50],
+    'pagella-bold': [105, 78, 37], chorus: [106, 69, 38], 'cursor-bold': [103, 103, 103], pixel: [86, 86, 57] };
+  M.largEst = (fonte, str, caixa, track) => { const m = LARG_MEDIA[fonte] || LARG_MEDIA['inter-black'], cs = [...M.caixaAlta(String(str || ''), caixa)];
+    return cs.reduce((w, ch) => w + (/\s/.test(ch) ? m[2] : ch !== ch.toLocaleLowerCase('pt-BR') ? m[0] * 0.94 : m[1]), 0) + Math.max(0, cs.length - 1) * (track || 0) * 143; };
+  M.cabeGesto = (g, partes, nome, fonte, o) => {
+    o = o || {};
+    if(!g) return true;
+    const pt = partes || M.partes(nome), ps = pt.palavras, nomeC = M.caixaAlta(String(nome || ''), o.caixa), letras = [...nomeC.replace(/\s/g, '')];
+    const ehLiga = w => /^(de|da|do|das|dos|e|&|em|na|no|nas|nos)$/i.test(String(w).normalize('NFD').replace(/[\u0300-\u036f]/g, ''));
+    if(g === 'hierarquia') return !!pt.descritor && pt.blocos.length >= 2;
+    if(g === 'pesos') return !!pt.descritor && pt.blocos.length >= 2 && PESO_PAR.includes(fonte);
+    if(g === 'separador'){
+      /* o "&" pintado de outra cor é piscadela: marca séria não pisca */
+      if(ps.some(x => x.w === '&')) return !(o.pers && o.pers[1] < 0.3);
+      /* v3.43: o sinal só vale numa linha. Se o nome com o sinal não cabe, o separador não cabe (o travessão, que vira fio
+         entre as duas linhas, é a exceção) */
+      if(o.sep !== '—' && M.largEst(fonte, nome + ' / ', o.caixa, o.track) > (o.arranjo === 'horizontal' ? 900 : 800)) return false;
+      const bl = pt.blocos, k = pt.iP;
+      return k >= 0 && [k - 1, k + 1].some(j => bl[j] && bl[j].t === 'descr' && !ehLiga(ps[Math.min(k, j) === k ? bl[k].fim - 1 : bl[j].fim - 1].w) && !ehLiga(ps[Math.max(k, j) === k ? bl[k].ini : bl[j].ini].w));
+    }
+    if(g === 'empilha') return ps.length >= 2;
+    /* v3.43 · o gesto passa pela personalidade e pelo sentido: rastro de velocidade só em marca que é de velocidade
+       (frete, moto, corrida, "express"); estêncil é letra de caixote e de muro, não de pet shop alegre nem de clínica */
+    if(g === 'velocidade' && !o.veloz) return false;
+    /* o pulo (as letras saltando da linha) só na marca muito divertida: é alegria de bicho, de doce, de festa */
+    if(g === 'pulo' && !(o.pers && o.pers[1] >= 0.8)) return false;
+    /* o sublinhado é o traço de assinatura: só na letra escrita à mão (embaixo de letra de forma ele é só um risco) */
+    if(g === 'sublinha') return fonte === 'chorus';
+    /* os gestos de letreiro desenhado (v3.43) */
+    if(g === 'versalete') return !['chorus', 'pixel', 'cursor-bold'].includes(fonte) && ps.some(x => [...x.w].length >= 3) && !ps.every(x => x.c === 'sigla');
+    if(g === 'fiolado') return !!pt.descritor && pt.iP === 0 && pt.blocos.length >= 2 && !['chorus', 'pixel'].includes(fonte);
+    /* fora do sorteio até ter um teste de legibilidade: no teste cego, as letras encostadas viraram bloco ilegível
+       ("focnho feiz", "aguha preta"). O desenho continua aqui pra voltar quando o teste existir */
+    if(g === 'encosta') return false;
+    if(g === 'corte') return !!o.corte && !['chorus', 'pixel'].includes(fonte);
+    /* o pendente pendura na última linha: o próprio tem que estar nela (Prumo em cima de Contabilidade não segura fio) */
+    if(g === 'pendente') return !!o.pende && !['pixel'].includes(fonte) && (M.largEst(fonte, nome, o.caixa, o.track) <= 700 || pt.iP === pt.blocos.length - 1);
+    if(g === 'estencil' && o.pers && (o.pers[1] > 0.7 || o.pers[2] < 0.35)) return false;
+    if(g === 'troca'){ const cs = [...nomeC]; return cs.some((ch, i) => /[oO0]/.test(ch) && i >= pt.pi0 && i < pt.pi1 && !(i && /[ãõÃÕ]/.test(cs[i - 1])) && !ehLiga((ps.find(x => i >= x.i0 && i < x.i1) || {}).w || '')); }
+    if(g === 'colchetes' || g === 'recorte') return letras.length <= 14;
+    if(g === 'estencil') return letras.length && letras.filter(ch => COM_MIOLO.test(ch) || CORTE_HASTE.test(ch)).length >= letras.length * 0.4;
+    if(g === 'destaque' && o.cores){ const v = M.versaoPrincipal({ cores: o.cores }); return M.contraste(v.acento, v.texto) >= 1.6; }
+    return true;
+  };
+  /* os miolos de uma letra: o subcaminho cuja caixa fica dentro da caixa de outro (o buraco do A, do P, do o) */
+  M.miolos = cmds => {
+    const partes = []; let cur = null;
+    M.parse(cmds).forEach(c => { if(c[0] === 'M'){ cur = [c]; partes.push(cur); } else if(cur) cur.push(c); });
+    const bs = partes.map(p => caixa(p)), dentro = (a, b) => a.x >= b.x - 0.5 && a.y >= b.y - 0.5 && a.x + a.w <= b.x + b.w + 0.5 && a.y + a.h <= b.y + b.h + 0.5 && a.w * a.h < b.w * b.h;
+    return bs.filter(a => a.w > 1 && bs.some(b => b !== a && dentro(a, b)));
+  };
+  /* ESTÊNCIL de verdade (v3.43, desenhado por letra): a ponte fica onde o molde de estêncil teria. Letra de haste (B D E F
+     H K L M N P R) ganha o corte rente à haste, de cima a baixo, que solta a barriga e os braços; O e Q, as duas pontes no
+     meio (em cima e embaixo); o A, a ponte na barra (o ápice cortado deixava duas orelhas, lia como trema); V e U, o corte
+     no pé, pelo ritmo. As outras ficam inteiras, como no molde. A ponte tem 0,055 da maiúscula (ou 0,28 da haste) */
+  const pontesEstencil = (ls, haste, cap, anda) => {
+    const w = Math.max(cap * 0.055, haste * 0.28), out = [];
+    const corte = (x, y0, y1) => out.push({ d: F.ret(x - w / 2, y0, w, y1 - y0, 0), papel: 'furo' });
+    ls.forEach(l => {
+      const d = anda ? tr(l.cmds, mx.t(anda, 0)) : l.cmds, b = caixa(d), ch = String(l.ch).normalize('NFD')[0];
+      const runs = y => { const xs = M.corteH(d, y), r = []; for(let i = 0; i + 1 < xs.length; i += 2) r.push([xs[i], xs[i + 1]]); return r; };
+      if(/[BDEFHKLMNPRbhkmnpr]/.test(ch)){
+        /* a 0,22 do pé a corrida da esquerda é a haste (acima da serifa, abaixo da barriga) */
+        const r = runs(b.y + b.h * 0.78)[0];
+        if(r && r[1] - r[0] < haste * 2) corte(r[1] + w / 2 - 0.6, b.y - 2, b.y + b.h + 2);
+      } else if(/[OQ0o]/.test(ch)){ const mi = M.miolos(d)[0], cx = b.x + b.w / 2; if(mi){ corte(cx, b.y - 2, mi.y + 1.2); corte(cx, mi.y + mi.h - 1.2, b.y + b.h + 2); } }
+      else if(ch === 'A'){ const mi = M.miolos(d)[0]; if(mi) corte(mi.x + mi.w / 2, mi.y + mi.h - 1.2, b.y + b.h + 2); }
+      else if(/[VUvu]/.test(ch)) corte(b.x + b.w / 2, b.y + b.h * 0.78, b.y + b.h + 2);
+      else M.miolos(d).forEach(m => { const cx = m.x + m.w / 2; corte(cx, b.y - 2, m.y + 1.2); corte(cx, m.y + m.h - 1.2, b.y + b.h + 2); });
+    });
+    return out;
+  };
+  /* v3.43 · O PERFIL DA LETRA: onde a tinta começa e termina em cada altura (de 3 em 3, da maiúscula com acento à
+     descendente). É a régua do kerning ótico: o vão entre duas letras é o menor vão entre os perfis na mesma altura */
+  /* (a grade de alturas é a mesma pras duas letras: começa num múltiplo de 3 e cobre as duas caixas, em qualquer linha) */
+  const vaoEntre = (ca, cb) => { const ba = caixa(ca), bb = caixa(cb), y0 = Math.floor(Math.max(ba.y, bb.y) / 3) * 3, y1 = Math.min(ba.y + ba.h, bb.y + bb.h); let m = Infinity;
+    for(let y = y0 + 1.5; y <= y1; y += 3){ const a = M.corteH(ca, y), b = M.corteH(cb, y); if(a.length >= 2 && b.length >= 2) m = Math.min(m, b[0] - a[a.length - 1]); }
+    return m; };
+  /* ENCOSTA: as letras da mesma palavra chegam até se tocar (o vão ótico vai a "alvo"), como letreiro cortado num bloco
+     só; entre palavras fica o espaço da fonte. Cada linha recentra depois */
+  const encostaLetras = (ls, nomeC, alvo, centra) => {
+    const linhas = new Map(); ls.forEach(l => { const k = l.linha || 0; if(!linhas.has(k)) linhas.set(k, []); linhas.get(k).push(l); });
+    const out = [];
+    linhas.forEach(lin => {
+      let anda = 0; const nov = [];
+      lin.forEach((l, k) => {
+        if(k && !/\s/.test(nomeC.slice(lin[k - 1].i + 1, l.i))){ const v = vaoEntre(nov[k - 1].cmds, anda ? tr(l.cmds, mx.t(anda, 0)) : l.cmds); if(isFinite(v)) anda += alvo - v; }
+        nov.push(Object.assign({}, l, { x: l.x + anda, cmds: anda ? tr(l.cmds, mx.t(anda, 0)) : l.cmds }));
+      });
+      out.push(nov);
+    });
+    if(out.length < 2) return out.flat();
+    const bs = out.map(lin => M.juntaCaixas(lin.map(l => caixa(l.cmds)))), W = Math.max(...bs.map(b => b.w)), x0 = Math.min(...bs.map(b => b.x));
+    return out.flatMap((lin, i) => { const dx = (centra ? x0 + (W - bs[i].w) / 2 : x0) - bs[i].x; return lin.map(l => Object.assign({}, l, { x: l.x + dx, cmds: tr(l.cmds, mx.t(dx, 0)) })); });
+  };
+  /* PENDENTE: o conceito pendurado na letra. O prumo desce num fio da haste do P; a gota do coado pinga do pé da letra
+     redonda; a tinta escorre do pé da haste da Agulha. Só entra quando a ideia do nome tem o que pendurar (o mapa PEND,
+     em aplicaTerritorio) */
+  const PENDE = {
+    prumo: { ancora: 'haste', fio: 0.3, el: () => [{ d: F.ret(42, 26, 16, 8, 2), papel: 'acento' }, { d: M.parse('M34 36 H66 Q72 36 72 42 V50 L52.5 93 Q50 98 47.5 93 L28 50 V42 Q28 36 34 36 Z'), papel: 'acento' }], alto: 0.62, topo: 26 },
+    gota: { ancora: 'pe', fio: 0, el: () => [{ d: M.parse('M50 0 C50 0 64 18 64 27 A14 14 0 0 1 36 27 C36 18 50 0 50 0 Z'), papel: 'acento' }], alto: 0.36, topo: 0 },
+    /* a gota de tinta da agulha: na cor da marca (preta, na Agulha Preta), saindo do pé da haste */
+    tinta: { ancora: 'haste', fio: 0.2, largFio: 0.42, el: () => [{ d: M.parse('M50 0 C50 0 64 18 64 27 A14 14 0 0 1 36 27 C36 18 50 0 50 0 Z'), papel: 'marca' }], alto: 0.44, topo: 0 }
+  };
+  M.PENDE = PENDE;
+  /* a letra que segura: "haste" = a primeira com um pé reto na linha de base (o P, o r, o h); "pe" = a primeira redonda
+     (o C, o o, o a), pelo meio do pé */
+  const ancoraPende = (ls, tipo, haste, ok) => {
+    for(const l of ls){
+      if(!ok(l)) continue;
+      const b = caixa(l.cmds), xs = M.corteH(l.cmds, -18);
+      /* a 0,18 da maiúscula a serifa do pé já ficou pra trás: a corrida que sobra é a haste */
+      if(tipo === 'haste'){ if(xs.length === 2 && xs[1] - xs[0] >= haste * 0.55 && xs[1] - xs[0] <= haste * 1.8 && !/[CcOoGgQqSsUuaeod]/.test(l.ch.normalize('NFD')[0])) return { x: (xs[0] + xs[1]) / 2, y: b.y + b.h, w: xs[1] - xs[0] }; }
+      /* a gota não pinga do C nem do S (vira "Ç" e "Ş"), nem do G e do Q, que já têm rabo embaixo */
+      else if(/[OoUuaeod]/.test(l.ch.normalize('NFD')[0])) return { x: b.x + b.w * 0.5, y: b.y + b.h, w: 0 };
+    }
+    return null;
+  };
   /* a palavra com o gesto: devolve elementos com papel e a caixa */
-  function wordmark(spec, fs){
-    const L = spec.logo || {}, g = L.gesto || '', f = fs.display;
+  function wordmark(spec, fs, arranjo){
+    const L = spec.logo || {}, g = L.gesto || '', f = fs.display, centra = arranjo !== 'horizontal';
     const papel = L.corTexto === 'marca' ? 'marca' : 'texto', corG = L.corGesto || 'acento';
     const nome = String(spec.nome || 'Marca').trim() || 'Marca';
-    const op = { tam: 100, caixa: L.caixa, track: L.track || 0 };
-    let els = [];
-    /* empilhado: as palavras em duas linhas da mesma largura (a de baixo cresce ou encolhe pra casar) */
-    const ws = nome.split(/\s+/);
-    /* HIERARQUIA: a palavra forte grande; o resto embaixo (ou em cima), fino, em caixa alta, espaçado até ter a mesma largura */
-    if(g === 'hierarquia' && ws.length >= 2){
-      const iM = ws.reduce((m, w, i) => [...w].length > [...ws[m]].length ? i : m, 0), resto = ws.filter((w, i) => i !== iM).join(' ');
-      const t1 = M.texto(f, ws[iM], op), W = t1.w, ft = fs.texto;
-      let tam2 = 100 * 0.27, n = [...M.caixaAlta(resto, 'alta')].length;
-      let w0 = M.largura(ft, resto, { tam: tam2, caixa: 'alta' });
-      if(w0 > W * 0.92){ tam2 *= W * 0.92 / w0; w0 = M.largura(ft, resto, { tam: tam2, caixa: 'alta' }); }
-      const esc2 = tam2 / (ft.cap || 700), tk = n > 1 ? Math.min(0.55, Math.max(0, (W - w0) / ((n - 1) * 1000 * esc2))) : 0;
-      const emCima = iM > 0, perna = !emCima && temDescida(M.caixaAlta(ws[iM], L.caixa)) ? t1.desc * 0.9 : 0;
-      const t2 = M.texto(ft, resto, { tam: tam2, caixa: 'alta', track: tk }), gap = 100 * 0.2 + perna, x2 = (W - t2.w) / 2;
-      els.push({ d: emCima ? t1.cmds : t1.cmds, papel }, { d: tr(t2.cmds, emCima ? mx.t(x2, -100 - gap) : mx.t(x2, gap + tam2)), papel: L.cor2 || papel });
+    /* v3.43: a caixa vale pro nome inteiro antes de partir (o "do" sozinho virava "Do"); as partes saem já na caixa */
+    const nomeC = M.caixaAlta(nome, L.caixa), pt = M.partes(nome), ps = pt.palavras;
+    const op = { tam: 100, caixa: '', track: L.track || 0 };
+    const antesP = nomeC.slice(0, pt.pi0).trim(), proprioC = nomeC.slice(pt.pi0, pt.pi1), depoisP = nomeC.slice(pt.pi1).trim();
+    const ehLiga = w => /^(de|da|do|das|dos|e|&|em|na|no|nas|nos)$/i.test(String(w).normalize('NFD').replace(/[̀-ͯ]/g, ''));
+    let els = [], gg = g;
+    /* v3.43 · NOME COMPRIDO EM DUAS LINHAS. Passou de 7 maiúsculas de largura, o nome quebra entre blocos (ou palavras), no
+       ponto que deixa as duas linhas mais parecidas, e a liga e o "&" descem. A entrelinha é medida na tinta (0,14 da
+       maiúscula entre a cedilha de cima e o acento de baixo), a linha de baixo fica na base e o alinhamento segue o
+       arranjo: à esquerda do lado do símbolo, ao centro no resto. grupos = pedaços que não se separam, na ordem */
+    const LARG_MAX = 700;
+    /* v3.43 · A ENTRELINHA se mede duas vezes e fica a que der mais ar: na tinta (do pé da cedilha e da descendente de cima
+       até o acento de baixo, 0,18 da maiúscula) e na linha de base (da base de cima até a maiúscula de baixo). Caixa alta
+       pede mais: 0,22 na letra pesada (o bloco ainda lê como bloco) e 0,34 na serifa e na fina, que sem ar viram uma
+       linha só. É ela que separa letreiro de etiqueta espremida */
+    const hasteF = M.haste(f), haste0 = hasteF, serifaF = (f.info && f.info.e) === 'serifa';
+    const altaN = L.caixa === 'alta' || !/[a-zà-ÿ]/.test(nomeC);
+    const gBase = altaN ? (serifaF || hasteF < 16 ? 34 : 22) : L.caixa === 'titulo' ? 22 : 18;
+    const entreL = (b1, b2) => Math.min(b2.y - 18 - (b1.y + b1.h), -100 - gBase);
+    const empilhaGrupos = (grupos, lim) => {
+      const bx = gr => M.juntaCaixas(gr.map(e => caixa(e.d)));
+      const tudo = bx(grupos.flat()); if(tudo.w <= (lim || LARG_MAX) || grupos.length < 2) return grupos.flat();
+      let melhor = 1, dif = Infinity;
+      for(let k = 1; k < grupos.length; k++){ const a = bx(grupos.slice(0, k).flat()), b = bx(grupos.slice(k).flat()); const d = Math.abs(a.w - b.w); if(d < dif){ dif = d; melhor = k; } }
+      const l1 = grupos.slice(0, melhor).flat(), l2 = grupos.slice(melhor).flat(), b1 = bx(l1), b2 = bx(l2), W = Math.max(b1.w, b2.w);
+      const y1 = entreL(b1, b2);
+      const m1 = mx.t((centra ? (W - b1.w) / 2 : 0) - b1.x + tudo.x, y1), m2 = mx.t((centra ? (W - b2.w) / 2 : 0) - b2.x + tudo.x, 0);
+      return l1.map(e => Object.assign({}, e, { d: tr(e.d, m1) })).concat(l2.map(e => Object.assign({}, e, { d: tr(e.d, m2) })));
+    };
+    /* HIERARQUIA: o próprio vem grande; o descritor (com a liga) vem pequeno, na ordem do nome (em cima quando vem antes),
+       na letra de texto, em caixa alta e centrado. Ele não estica até a largura do próprio: o tamanho é que separa */
+    if(g === 'hierarquia' && pt.descritor && (antesP || depoisP)){
+      /* o próprio comprido (Moraes & Valente) quebra em duas linhas centradas, com o "&" descendo */
+      const pw = proprioC.split(/\s+/), t1 = M.texto(f, proprioC, op), ft = fs.texto;
+      let grandes = [t1.cmds];
+      if(t1.w > LARG_MAX && pw.length >= 2){
+        let melhor = 1, dif = Infinity;
+        for(let k = 1; k < pw.length; k++){ if(ehLiga(pw[k - 1])) continue; const d = Math.abs(M.largura(f, pw.slice(0, k).join(' '), op) - M.largura(f, pw.slice(k).join(' '), op)); if(d < dif){ dif = d; melhor = k; } }
+        const a = M.texto(f, pw.slice(0, melhor).join(' '), op).cmds, z = M.texto(f, pw.slice(melhor).join(' '), op).cmds, ba = caixa(a), bz = caixa(z), W = Math.max(ba.w, bz.w);
+        grandes = [tr(a, mx.t((W - ba.w) / 2 - ba.x, entreL(ba, bz))), tr(z, mx.t((W - bz.w) / 2 - bz.x, 0))];
+      }
+      const b1 = M.juntaCaixas(grandes.map(caixa));
+      grandes.forEach(d => els.push({ d, papel }));
+      [[antesP, true], [depoisP, false]].forEach(([str, emCima]) => {
+        if(!str) return;
+        /* v3.43: o descritor nasce com 0,34 da maiúscula (no logo a 96 px ele ainda lê) e só encolhe até 0,24 */
+        const s2 = M.caixaAlta(str, 'alta'); let tam2 = 34, tk = 0.2;
+        const larg = () => M.largura(ft, s2, { tam: tam2, track: tk });
+        while(larg() > b1.w * 0.98 && tk > 0.08) tk -= 0.02;
+        while(larg() > b1.w * 0.98 && tam2 > 24) tam2 -= 1;
+        const t2 = M.texto(ft, s2, { tam: tam2, track: tk }), b2 = caixa(t2.cmds), gap = 20 + tam2 * 0.1;
+        const y2 = emCima ? b1.y - gap - (b2.y + b2.h) : b1.y + b1.h + gap - b2.y, x2 = b1.x + (b1.w - b2.w) / 2 - b2.x;
+        els.push({ d: tr(t2.cmds, mx.t(x2, y2)), papel: L.cor2 || papel });
+      });
     }
-    /* DOIS PESOS: a primeira palavra na letra forte, a(s) outra(s) na letra de texto, coladas: o peso separa as palavras */
-    else if(g === 'pesos' && ws.length >= 2){
-      const t1 = M.texto(f, ws[0], op), ft = fs.texto, junto = ws.length === 2 && (L.caixa === 'alta' || L.caixa === 'baixa');
-      const t2 = M.texto(ft, (junto ? '' : ' ') + ws.slice(1).join(' '), Object.assign({}, op, { track: Math.max(op.track || 0, 0) }));
-      els.push({ d: t1.cmds, papel }, { d: tr(t2.cmds, mx.t(t1.w + (junto ? 100 * 0.04 : 0), 0)), papel: L.cor2 || papel });
+    /* DOIS PESOS: o próprio na letra forte, o resto na letra de texto, onde ele estiver. Só cola as partes em caixa baixa
+       e nome curto; em caixa alta fica o espaço normal (colado, vira uma palavra que não existe) */
+    else if(g === 'pesos' && pt.descritor && (antesP || depoisP)){
+      const ft = fs.texto, segs = [[antesP, ft, L.cor2 || papel], [proprioC, f, papel], [depoisP, ft, L.cor2 || papel]].filter(x => x[0]);
+      const letrasN = [...nomeC.replace(/\s/g, '')].length, junto = L.caixa === 'baixa' && letrasN <= 12 && !ehLiga(antesP.split(/\s+/).pop() || '') && !ehLiga((depoisP.split(/\s+/)[0]) || '');
+      let x = 0; const grupos = [];
+      segs.forEach(([str, fo, pp], i) => {
+        const t = M.texto(fo, str, op);
+        if(i){ x += (op.track || 0) * 1000 * t.esc; if(!junto) x += M.largura(fo, ' ', op); }
+        grupos.push([{ d: tr(t.cmds, mx.t(x, 0)), papel: pp }]); x += t.w;
+      });
+      empilhaGrupos(grupos).forEach(e => els.push(e));
     }
-    /* SEPARADOR: o espaço vira um sinal com sentido (/ rua, _ código, . afirmação, · noite, — editorial, + colagem) */
-    else if(g === 'separador' && ws.length >= 2){
-      const sep = L.sep || '/', cap = 100, xh = M.texto(f, 'x', op).xh || 52;
-      let x = 0;
-      ws.forEach((w, i) => {
-        const t = M.texto(f, w, op); els.push({ d: tr(t.cmds, mx.t(x, 0)), papel }); x += t.w;
-        if(i === ws.length - 1) return;
+    /* SEPARADOR: um sinal só, entre o próprio e o descritor, nunca encostado em liga ou "&". Quando o nome já tem "&",
+       o "&" é o separador: o gesto só pinta ele na cor do gesto */
+    else if(g === 'separador' && ps.some(x => x.w === '&')) gg = 'e-comercial';
+    else if(g === 'separador' && (() => { const bl = pt.blocos, k = pt.iP; return k >= 0 && [k - 1, k + 1].some(j => bl[j] && bl[j].t === 'descr' && !ehLiga(ps[Math.min(k, j) === k ? bl[k].fim - 1 : bl[j].fim - 1].w) && !ehLiga(ps[Math.max(k, j) === k ? bl[k].ini : bl[j].ini].w)); })()){
+      const bl = pt.blocos, k = pt.iP, j = [k - 1, k + 1].find(j2 => bl[j2] && bl[j2].t === 'descr' && !ehLiga(ps[Math.min(k, j2) === k ? bl[k].fim - 1 : bl[j2].fim - 1].w) && !ehLiga(ps[Math.max(k, j2) === k ? bl[k].ini : bl[j2].ini].w));
+      const corte = ps[bl[Math.max(k, j)].ini].i0, partesS = [nomeC.slice(0, corte).trim(), nomeC.slice(corte).trim()];
+      const sep = L.sep || '/', cap = 100, xh = M.texto(f, 'x', op).xh || 52, tE = M.texto(f, ' ', op);
+      /* o sinal é o elo entre as duas partes: antes de quebrar, o espaço aberto entre as letras fecha (até 0,02). Se ainda
+         passar (8 maiúsculas, ou 9 do lado do símbolo), quebra: o sinal fecha a linha de cima, como etiqueta; o travessão fica
+         sozinho entre as duas linhas, como fio de capa */
+      const largS = M.largura(f, partesS.join(' '), op), nS = [...partesS.join(' ')].length;
+      const opS = (largS > 800 && (op.track || 0) > 0.02) ? Object.assign({}, op, { track: Math.max(0.02, op.track - (largS - 800) / (nS * 1000 * tE.esc)) }) : op;
+      const folga = (opS.track || 0) * 1000 * tE.esc + 0.3 * M.largura(f, ' ', { tam: 100 });
+      /* nas maiúsculas, o ponto do meio, o travessão e o mais sobem pro meio da maiúscula (a fonte desenha no meio do x) */
+      const sobe = (L.caixa === 'alta' && /[·—+]/.test(sep)) ? -(cap - xh) / 2 : 0;
+      let x = 0; const g1 = [], g2 = [];
+      partesS.forEach((w, i) => {
+        const t = M.texto(f, w, opS); (i ? g2 : g1).push({ d: tr(t.cmds, mx.t(x, 0)), papel }); x += t.w;
+        if(i) return;
+        const g = M.glifo(f, sep);
+        if(g && g.cmds.length){ const tg = M.texto(f, sep, { tam: 100 }); g1.push({ d: tr(tg.cmds, mx.t(x + folga, sobe)), papel: corG }); x += folga * 2 + tg.w; return; }
         const pad = cap * (sep === '/' ? 0.06 : 0.1), alto = L.caixa === 'alta' || L.caixa === 'titulo' ? cap : xh;
         let d, w2;
         if(sep === '/'){ const sw = cap * 0.13, inc = cap * 0.42; w2 = inc + sw; d = F.poli([[x + pad + inc, -cap - 4], [x + pad + inc + sw, -cap - 4], [x + pad + sw, 6], [x + pad, 6]]); }
@@ -836,37 +1258,146 @@
         else if(sep === '·'){ const r = cap * 0.075; w2 = 2 * r; d = F.elipse(x + pad + r, -alto / 2, r); }
         else if(sep === '+'){ const a2 = cap * 0.34, e = cap * 0.09; w2 = a2; d = F.ret(x + pad, -alto / 2 - e / 2, a2, e, 0).concat(F.ret(x + pad + a2 / 2 - e / 2, -alto / 2 - a2 / 2, e, a2, 0)); }
         else { w2 = cap * 0.5; d = F.ret(x + pad, -alto / 2 - cap * 0.035, w2, cap * 0.07, 0); }
-        els.push({ d, papel: corG }); x += pad * 2 + w2;
+        g1.push({ d, papel: corG }); x += pad * 2 + w2;
       });
+      const limS = arranjo === 'horizontal' ? 900 : 800, todo = M.juntaCaixas(g1.concat(g2).map(e => caixa(e.d)));
+      if(todo.w > limS && sep === '—' && g1.length > 1){
+        /* três andares: a parte de cima, o sinal e a parte de baixo, com 0,2 da maiúscula de ar em volta do sinal */
+        const sinalE = g1.pop(), bA = M.juntaCaixas(g1.map(e => caixa(e.d))), bS = caixa(sinalE.d), bB = M.juntaCaixas(g2.map(e => caixa(e.d))), W = Math.max(bA.w, bB.w);
+        const ar = Math.max(26, gBase), yS = (bB.y - ar) - (bS.y + bS.h), yA = yS + bS.y - ar - (bA.y + bA.h), al = (w, b) => (centra ? (W - w) / 2 : 0) - b.x;
+        g1.forEach(e => els.push(Object.assign({}, e, { d: tr(e.d, mx.t(al(bA.w, bA), yA)) })));
+        els.push(Object.assign({}, sinalE, { d: tr(sinalE.d, mx.t(al(bS.w, bS), yS)) }));
+        g2.forEach(e => els.push(Object.assign({}, e, { d: tr(e.d, mx.t(al(bB.w, bB), 0)) })));
+      } else if(todo.w > limS){
+        /* v3.43: sinal que não seja o travessão não desce de linha: barra ou ponto pendurado no fim da linha de cima é resto de
+           montagem. Quando o nome quebra, a própria quebra separa as partes, e o sinal sai */
+        const a = M.texto(f, partesS[0], opS), z = M.texto(f, partesS[1], opS);
+        empilhaGrupos([[{ d: a.cmds, papel }], [{ d: z.cmds, papel }]], 0).forEach(e => els.push(e));
+      } else empilhaGrupos([g1, g2], limS).forEach(e => els.push(e));
     }
-    else if(g === 'empilha' && ws.length >= 2){
-      let melhor = 1, dif = Infinity;
-      for(let k = 1; k < ws.length; k++){ const a = M.largura(f, ws.slice(0, k).join(' '), op), b = M.largura(f, ws.slice(k).join(' '), op); if(Math.abs(a - b) < dif){ dif = Math.abs(a - b); melhor = k; } }
-      const t1 = M.texto(f, ws.slice(0, melhor).join(' '), op), t2 = M.texto(f, ws.slice(melhor).join(' '), op);
-      const W = Math.max(t1.w, t2.w), s1 = W / t1.w, s2 = W / t2.w, gap = 16;
-      const h1 = t1.cap * s1, h2 = t2.cap * s2;
-      els.push({ d: tr(t1.cmds, [s1, 0, 0, s1, 0, -(h2 + gap)]), papel }, { d: tr(t2.cmds, [s2, 0, 0, s2, 0, 0]), papel: L.destaque === 'linha2' ? 'acento' : papel });
-      void h1;
-    } else {
-      const t = M.texto(f, nome, op);
-      const ls = t.letras.filter(l => l.cmds.length);
-      const cap = t.cap, xh = t.xh;
-      const idxO = ls.findIndex(l => /^[oO0ºÓÒÔÕÖóòôõö]$/.test(l.ch));
-      const vog = ls.findIndex(l => /[aeiouáéíóúâêôãõAEIOUÁÉÍÓÚÂÊÔÃÕ]/.test(l.ch));
-      let gg = g;
+    /* EMPILHADO: o corte cai entre blocos (Moraes & Valente / Advogados); num bloco só, entre palavras, e a liga e o "&"
+       descem junto com a palavra deles (PÃO / & PROSA). As duas linhas ficam no mesmo corpo: a de baixo casa a largura
+       primeiro abrindo o espaço entre as letras, depois crescendo até 1,1x (mais que isso a haste engorda e as linhas
+       deixam de ser da mesma letra); o que sobrar, centra. A entrelinha é medida
+       na tinta: da cedilha de cima ao acento de baixo */
+    else if(g === 'empilha' && ps.length >= 2){
+      const cortes = pt.blocos.length >= 2 ? pt.blocos.slice(1).map(b => b.ini) : ps.map((x, k) => k).filter(k => k > 0 && !ehLiga(ps[k - 1].w));
+      const linhas = k => [nomeC.slice(0, ps[k].i0).trim(), nomeC.slice(ps[k].i0).trim()];
+      let melhor = cortes[0] || 1, dif = Infinity;
+      cortes.forEach(k => { const [a, b] = linhas(k), d = Math.abs(M.largura(f, a, op) - M.largura(f, b, op)); if(d < dif){ dif = d; melhor = k; } });
+      const [l1, l2] = linhas(melhor), w1 = M.largura(f, l1, op), w2 = M.largura(f, l2, op);
+      const casa = (str, w, W) => {
+        const n = [...str].length, esc = 100 / (f.cap || 700);
+        let tk = op.track || 0, s2 = 1;
+        /* v3.43: linha curta (até 3 sinais, como o "43") não abre o espaço entre as letras ("4 3" vira nota de rodapé): ela
+           cresce até 1,5x e vira o número do cartaz */
+        const curta = [...str.replace(/\s/g, '')].length <= 3;
+        if(w < W && n > 1 && !curta){ tk += Math.min(0.08, (W - w) / ((n - 1) * 1000 * esc)); }
+        const t = M.texto(f, str, Object.assign({}, op, { track: tk })), b = caixa(t.cmds);
+        if(b.w < W) s2 = Math.min(curta ? 1.5 : 1.1, W / Math.max(1, b.w));
+        return { t, s2 };
+      };
+      const W = Math.max(w1, w2), A = casa(l1, w1, W), B = casa(l2, w2, W);
+      const bA = caixa(tr(A.t.cmds, mx.s(A.s2))), bB = caixa(tr(B.t.cmds, mx.s(B.s2))), Wt = Math.max(bA.w, bB.w);
+      const yA = entreL(bA, bB);
+      els.push({ d: tr(A.t.cmds, [A.s2, 0, 0, A.s2, (Wt - bA.w) / 2 - bA.x, yA]), papel }, { d: tr(B.t.cmds, [B.s2, 0, 0, B.s2, (Wt - bB.w) / 2 - bB.x, 0]), papel: L.destaque === 'linha2' ? 'acento' : papel });
+    }
+    /* VERSALETE (v3.43): cada palavra em maiúscula, com a primeira letra inteira e as outras em versalete (0,78 da
+       maiúscula, um pouco mais abertas, como a letra pede quando encolhe). A liga entra toda em versalete e o "&" inteiro.
+       É o letreiro de placa de bronze e de capa de livro: nobre sem precisar de enfeite */
+    else if(g === 'versalete'){
+      const kv = 0.78, esp = M.largura(f, ' ', op), tkV = (op.track || 0) * 1000 * (100 / (f.cap || 700));
+      const ws = nome.split(/\s+/).filter(Boolean), grupos = []; let x = 0, junta = false;
+      ws.forEach((w, i) => {
+        const liga = ehLiga(w), cs = [...w.toLocaleUpperCase('pt-BR')], gr = [];
+        if(i) x += esp;
+        cs.forEach((ch, j) => {
+          const peq = (j > 0 || liga) && /\p{L}/u.test(ch), tam = peq ? 100 * kv : 100, t = M.texto(f, ch, { tam });
+          if(j){ const a = cs[j - 1]; x += M.largura(f, a + ch, { tam }) - M.largura(f, a, { tam }) - M.largura(f, ch, { tam }) + (peq ? tkV + 0.035 * 1000 * (100 / (f.cap || 700)) * kv : tkV); }
+          gr.push({ d: tr(t.cmds, mx.t(x, 0)), papel }); x += t.w;
+        });
+        /* a liga e o "&" descem junto com a palavra seguinte */
+        if(junta) grupos[grupos.length - 1].push(...gr); else grupos.push(gr);
+        junta = liga;
+      });
+      empilhaGrupos(grupos).forEach(e => els.push(e));
+    }
+    /* FIO AO LADO (v3.43): o próprio grande à esquerda, um fio em pé e, à direita, o ofício em caixa alta pequena com a
+       cidade ou o ano embaixo. É a assinatura de escritório e de editora: alinhada à esquerda, sem centralizar tudo */
+    else if(g === 'fiolado' && pt.descritor && pt.iP === 0 && depoisP){
+      const ft = fs.texto, pw = proprioC.split(/\s+/), t1 = M.texto(f, proprioC, op);
+      let grandes = [t1.cmds];
+      if(t1.w > 560 && pw.length >= 2){
+        let melhor = 1, dif = Infinity;
+        for(let k = 1; k < pw.length; k++){ if(ehLiga(pw[k - 1])) continue; const d = Math.abs(M.largura(f, pw.slice(0, k).join(' '), op) - M.largura(f, pw.slice(k).join(' '), op)); if(d < dif){ dif = d; melhor = k; } }
+        const a = M.texto(f, pw.slice(0, melhor).join(' '), op).cmds, z = M.texto(f, pw.slice(melhor).join(' '), op).cmds, ba = caixa(a), bz = caixa(z);
+        grandes = [tr(a, mx.t(-ba.x, entreL(ba, bz))), tr(z, mx.t(-bz.x, 0))];
+      }
+      const bP = M.juntaCaixas(grandes.map(caixa)), esp = Math.max(2.5, haste0 * 0.26), xF = bP.x + bP.w + 38;
+      grandes.forEach(d => els.push({ d, papel }));
+      els.push({ d: F.ret(xF, bP.y - 6, esp, bP.h + 12, 0), papel });
+      const s2 = M.caixaAlta(depoisP, 'alta'), ws2 = s2.split(/\s+/);
+      let tam2 = Math.min(40, Math.max(30, bP.h * 0.2)), linhas2 = [s2];
+      if(ws2.length >= 2 && M.largura(ft, s2, { tam: tam2, track: 0.14 }) > bP.w * 0.55){ let m2 = 1, d2 = Infinity; for(let k = 1; k < ws2.length; k++){ if(ehLiga(ws2[k - 1])) continue; const d = Math.abs(M.largura(ft, ws2.slice(0, k).join(' '), { tam: tam2 }) - M.largura(ft, ws2.slice(k).join(' '), { tam: tam2 })); if(d < d2){ d2 = d; m2 = k; } } linhas2 = [ws2.slice(0, m2).join(' '), ws2.slice(m2).join(' ')]; }
+      const sub = M.linhaFios(spec), blocos = linhas2.map(l => ({ t: M.texto(ft, l, { tam: tam2, caixa: 'alta', track: 0.14 }), tam: tam2 })).concat(sub ? [{ t: M.texto(ft, sub, { tam: 26, caixa: 'alta', track: 0.16 }), tam: 26, sub: true }] : []);
+      const passo = b => b.tam * 1.62, hB = blocos.reduce((h, b, i) => h + (i ? passo(b) : b.tam), 0) + (sub ? 6 : 0);
+      let y = bP.y + (bP.h - hB) / 2 + blocos[0].tam;
+      blocos.forEach((b, i) => { if(i) y += passo(b) + (b.sub ? 6 : 0); const bt = caixa(b.t.cmds); els.push({ d: tr(b.t.cmds, mx.t(xF + esp + 30 - bt.x, y)), papel: b.sub ? (L.cor2 || papel) : papel }); });
+    }
+    if(!els.length){
+      if(['hierarquia', 'pesos', 'separador', 'empilha', 'versalete', 'fiolado'].includes(gg)) gg = '';
+      let t = M.texto(f, nomeC, op);
+      const cap = t.cap, xh = t.xh, haste = M.haste(f);
+      /* nome que não quebra (uma palavra, ou palavra e número) e ficou mais de 8 vezes mais largo que alto: o espaço aberto
+         entre as letras fecha até caber (nunca abaixo de 0,02) */
+      const cortaveis = (pt.blocos.length >= 2 ? pt.blocos.slice(1).map(b => b.ini) : ps.map((x, k) => k).filter(k => k > 0 && !ehLiga(ps[k - 1].w) && ps[k].c !== 'numero'));
+      const altT = Math.max(100, caixa(t.cmds).h), limL = 7.8 * altT - (gg === 'velocidade' ? 1.5 * cap : 0), largo = t.w > limL;
+      if(largo && !cortaveis.length && (op.track || 0) > -0.01){ const n = [...nomeC].length - 1, tk = Math.max(Math.min(op.track, 0.02) - 0.03, op.track - (t.w - limL) / (n * 1000 * t.esc)); t = M.texto(f, nomeC, Object.assign({}, op, { track: tk })); }
+      let ls = t.letras.filter(l => l.cmds.length);
+      /* nome comprido: as letras das duas linhas entram na mesma lista (o destaque, a troca, o estêncil e o recorte
+         continuam valendo), com a linha de baixo na base */
+      const nLetras = [...nomeC.replace(/\s/g, '')].length;
+      if(t.w > LARG_MAX && cortaveis.length && (pt.blocos.length >= 2 || nLetras > 16 || largo) && !['recorte', 'pulo'].includes(gg)){
+        const cortes = cortaveis;
+        let melhor = cortes[0], dif = Infinity;
+        cortes.forEach(k => { const a = M.largura(f, nomeC.slice(0, ps[k].i0).trim(), op), b = M.largura(f, nomeC.slice(ps[k].i0), op); if(Math.abs(a - b) < dif){ dif = Math.abs(a - b); melhor = k; } });
+        const c = ps[melhor].i0, t1 = M.texto(f, nomeC.slice(0, c).replace(/\s+$/, ''), op), t2 = M.texto(f, nomeC.slice(c), op);
+        const l1 = t1.letras.filter(l => l.cmds.length), l2 = t2.letras.filter(l => l.cmds.length).map(l => Object.assign({}, l, { i: l.i + c }));
+        const b1 = M.juntaCaixas(l1.map(l => caixa(l.cmds))), b2 = M.juntaCaixas(l2.map(l => caixa(l.cmds))), W = Math.max(b1.w, b2.w);
+        const y1 = entreL(b1, b2), dx1 = (centra ? (W - b1.w) / 2 : 0) - b1.x, dx2 = (centra ? (W - b2.w) / 2 : 0) - b2.x;
+        ls = l1.map(l => Object.assign({}, l, { x: l.x + dx1, cmds: tr(l.cmds, mx.t(dx1, y1)), linha: 0 })).concat(l2.map(l => Object.assign({}, l, { x: l.x + dx2, cmds: tr(l.cmds, mx.t(dx2, 0)), linha: 1 })));
+      }
+      /* ENCOSTA (v3.43): o kerning ótico leva as letras da palavra até se tocarem */
+      if(gg === 'encosta') ls = encostaLetras(ls, nomeC, -Math.max(0.6, haste * 0.03), centra);
+      /* a letra do próprio: o destaque e o "O" que vira forma moram nele, nunca no descritor nem na liga */
+      const palDe = i => ps.find(x => i >= x.i0 && i < x.i1), doProprio = l => l.i >= pt.pi0 && l.i < pt.pi1 && !(palDe(l.i) && palDe(l.i).c === 'liga');
+      /* o "O" que pode virar forma: sem acento, no próprio, nunca depois de ã ou õ (o "ão" não é um O) */
+      const oOk = (l, k) => /^[oO0]$/.test(l.ch) && doProprio(l) && !(k && /[ãõÃÕ]/.test(ls[k - 1].ch) && ls[k - 1].i === l.i - 1);
+      let idxO = L.trocaEm !== undefined ? ls.findIndex((l, k) => l.i >= L.trocaEm && oOk(l, k)) : -1;
+      if(idxO < 0) idxO = ls.findIndex(oOk);
+      const doP = ls.map((l, k) => k).filter(k => doProprio(ls[k])), daVez = doP.length ? doP : ls.map((l, k) => k);
+      const vog = daVez.find(k => /[aeiouáéíóúâêôãõAEIOUÁÉÍÓÚÂÊÔÃÕ]/.test(ls[k].ch));
+      const iDest = L.destaque === 'vogal' && vog !== undefined ? vog : L.destaque === 'ultima' ? daVez[daVez.length - 1] : daVez[0];
       if(gg === 'troca' && idxO < 0) gg = 'destaque';
       if(gg === 'recorte' && ls.length > 14) gg = 'destaque';
+      /* v3.43: o "O" que vira forma ocupa a tinta do O (a altura dele, e no máximo 6% mais largo); as letras de depois
+         andam essa diferença. Letra fina (haste abaixo de 14) ganha anel da espessura da haste, não disco */
+      let anda = 0;
       ls.forEach((l, i) => {
-        let d = l.cmds, pp = papel;
-        if(gg === 'destaque' && i === (L.destaque === 'vogal' && vog >= 0 ? vog : L.destaque === 'ultima' ? ls.length - 1 : 0)) pp = 'acento';
+        const andaAqui = anda && (ls[idxO] || {}).linha === l.linha ? anda : 0;
+        let d = andaAqui ? tr(l.cmds, mx.t(andaAqui, 0)) : l.cmds, pp = papel;
+        if(gg === 'destaque' && i === iDest) pp = 'acento';
+        if(gg === 'e-comercial' && l.ch === '&') pp = corG;
         if(gg === 'troca' && i === idxO){
-          const b = caixa(d), grande = /[O0ÓÒÔÕÖ]/.test(l.ch), diam = grande ? cap * 0.98 : xh * 1.02, cx = b.x + b.w / 2, cy = -diam / 2 - (grande ? 0 : 0);
+          const b = caixa(d), diam = Math.min(b.h, b.w * 1.06), cx = b.x + diam / 2, cy = b.y + b.h / 2;
           const por = L.trocaPor || 'circulo';
-          if(por === 'anel') els.push({ d: F.anel(cx, cy, diam / 2, diam / 2 * 0.55), papel: 'acento' });
+          if(por === 'anel') els.push({ d: F.anel(cx, cy, diam / 2, diam / 2 - Math.max(haste, diam * 0.16)), papel: 'acento' });
           else if(por === 'alvo') els.push({ d: F.anel(cx, cy, diam / 2, diam / 2 * 0.72), papel: 'acento' }, { d: F.elipse(cx, cy, diam / 2 * 0.4), papel: 'acento' });
-          else if(por === 'ideia' && spec.simbolo && M.IDEIAS[spec.simbolo.ideia]){ const dd = diam * (grande ? 1.04 : 1.16), yy = grande ? cy : -xh * 0.5; poeSimbolo(M.ideia(spec.simbolo.ideia), cx - dd / 2, yy - dd / 2, dd).forEach(e => els.push(e)); }
+          else if(por === 'ideia' && spec.simbolo && M.IDEIAS[spec.simbolo.ideia]){ const dd = diam * 1.08; poeSimbolo(M.ideia(spec.simbolo.ideia, spec.simbolo.estilo, true, haste * 100 / dd), cx - dd / 2, cy - dd / 2, dd).forEach(e => els.push(e)); }
           else if(por === 'icone' && spec.simbolo && M.ICONES[spec.simbolo.icone]){ els.push({ d: F.elipse(cx, cy, diam / 2), papel: 'acento' }); const ic = M.icone(spec.simbolo.icone, cx - diam * 0.33, cy - diam * 0.33, diam * 0.66); els.push({ d: ic.cmds, papel: 'furo', traco: ic.w * 1.15 }); }
+          else if(haste < 14) els.push({ d: F.anel(cx, cy, diam / 2, diam / 2 - haste), papel: 'acento' });
           else els.push({ d: F.elipse(cx, cy, diam / 2), papel: 'acento' });
+          anda += diam - b.w;
           return;
         }
         if(gg === 'pulo'){ const b = caixa(d), sobe = i % 2 ? -7 : 5, gira = i % 2 ? -5 : 4; d = tr(d, mx.x(mx.t(0, sobe), mx.r(gira, b.x + b.w / 2, -cap / 2))); }
@@ -879,32 +1410,79 @@
         }
         els.push({ d, papel: pp });
       });
-      const x0 = ls.length ? caixa(ls[0].cmds).x : 0, ult = ls[ls.length - 1], x1 = ult ? ult.x + ult.w : t.w;
-      if(gg === 'ponto'){ const r = cap * 0.11, cx = x1 + r + cap * 0.06; els.push({ d: f.info && f.info.e === 'pixel' ? F.ret(cx - r, -2 * r, 2 * r, 2 * r, 0) : F.elipse(cx, -r, r), papel: corG }); }
-      if(gg === 'sublinha'){
-        const y = temDescida(nome) ? t.desc * 0.95 + 10 : 22;
-        if(f.info && f.info.e === 'manuscrita'){
-          /* traço de assinatura: grosso no meio, fino nas pontas */
-          const a = x0 - 6, b = x1 + 10, m = (a + b) / 2;
-          els.push({ d: M.parse(`M${a} ${y + 12} Q${m} ${y - 14} ${b} ${y + 2} Q${m} ${y + 9} ${a} ${y + 12}Z`), papel: corG });
-        } else els.push({ d: F.ret(x0, y, x1 - x0, cap * 0.09, 0), papel: corG });
+      /* v3.43: tudo que acompanha o nome se mede na TINTA das letras (sem a pontuação), não no avanço da última letra */
+      const tinta = M.juntaCaixas(ls.filter(l => !/[.,;:!?'"’]/.test(l.ch)).map((l, k) => { const b = caixa(l.cmds); return gg === 'troca' && l.i > (ls[idxO] || {}).i && (ls[idxO] || {}).linha === l.linha ? Object.assign({}, b, { x: b.x + anda }) : b; }));
+      const x0 = tinta.x, x1 = tinta.x + tinta.w, fundoT = tinta.y + tinta.h, topoT = tinta.y;
+      /* um sinal da própria fonte (ponto, barra, colchete): pesa igual à letra porque é desenhado por quem desenhou a letra */
+      const glifoEm = (ch, x, y, e) => { const g = M.glifo(f, ch); if(!g || !g.cmds.length) return null; const tt = M.texto(f, ch, { tam: 100 * (e || 1) }), m = mx.t(x || 0, y || 0); return { d: tr(tt.cmds, m), w: tt.w, b: caixa(tr(tt.cmds, m)) }; };
+      if(gg === 'ponto'){
+        /* o ponto da fonte, 15% maior, encostado com o kerning dela */
+        const ult = ls[ls.length - 1], kx = ult ? (f.k && (f.k[(ult.ch.normalize('NFD')[0]) + '.'] || 0)) * t.esc : 0;
+        const g = glifoEm('.', 0, 0, 1.15);
+        if(g){ const xp = (ult ? ult.x + ult.w + (gg === 'troca' && (ls[idxO] || {}).linha === ult.linha ? anda : 0) : x1) + kx; els.push({ d: tr(g.d, mx.t(xp, 0)), papel: corG }); }
+        else { const r = cap * 0.11, cx = x1 + r + cap * 0.06; els.push({ d: F.elipse(cx, -r, r), papel: corG }); }
       }
-      if(gg === 'estencil') els.push({ d: F.ret(x0 - 4, -cap * 0.54, x1 - x0 + 8, cap * 0.075, 0), papel: 'furo' });
-      if(gg === 'velocidade') els.push({ d: F.ret(x0 - 30 - cap * 1.3, -cap * 0.56, cap * 1.3, cap * 0.12, cap * 0.06), papel: corG });
+      if(gg === 'sublinha'){
+        /* a espessura sai da haste e o fio passa abaixo da descendente (nunca encostando no g, no p, no ç) */
+        const esp = Math.max(4, haste * 0.8), y = fundoT + Math.max(6, haste * 0.6) + (f.info && f.info.e === 'manuscrita' ? esp * 1.3 : 0);
+        if(f.info && f.info.e === 'manuscrita'){
+          /* traço de assinatura: grosso no meio, fino nas pontas (v3.43: ele sobe no meio, então desce o que sobe: nunca
+             encosta na descendente) */
+          const a = x0 - 6, b = x1 + 10, m = (a + b) / 2;
+          els.push({ d: M.parse(`M${a} ${y + esp} Q${m} ${y - esp * 2.2} ${b} ${y} Q${m} ${y + esp * 0.6} ${a} ${y + esp}Z`), papel: corG });
+        } else els.push({ d: F.ret(x0, y, x1 - x0, esp, 0), papel: corG });
+      }
+      if(gg === 'estencil') pontesEstencil(ls, haste, cap, 0).forEach(e => els.push(e));
+      /* CORTE (v3.43): um risco fino atravessa o próprio na diagonal, como a navalha passando. Ele só aparece onde corta
+         letra: o nome leva o corte que dá nome ao ofício */
+      if(gg === 'corte'){
+        const lp = ls.filter(doProprio), bp = M.juntaCaixas((lp.length ? lp : ls).map(l => caixa(l.cmds))), ext = 30;
+        const inc = Math.min(Math.tan(16 * Math.PI / 180), bp.h * 0.5 / (bp.w + 2 * ext)), yc = bp.y + bp.h * 0.54, cx = bp.x + bp.w / 2;
+        els.push({ d: F.linha(bp.x - ext, yc + (cx - bp.x + ext) * inc, bp.x + bp.w + ext, yc - (bp.x + bp.w + ext - cx) * inc), papel: 'furo', traco: Math.max(3.5, haste * 0.3), ponta: 'butt' });
+      }
+      /* PENDENTE (v3.43): o conceito do nome pendurado na letra (o prumo no fio da haste do P, a gota pingando do C) */
+      /* (na bancada, quem escolhe o gesto à mão leva o pendente da ideia do símbolo) */
+      const pd = gg === 'pendente' && PENDE[L.pende || ({ prumo: 'prumo', coador: 'gota', agulha: 'tinta', gota: 'gota' })[(spec.simbolo || {}).ideia]];
+      if(pd){
+        const ult = Math.max(...ls.map(l => l.linha || 0)), an = ancoraPende(ls.filter(l => (l.linha || 0) === ult), pd.ancora, haste, doProprio);
+        if(an){
+          const forma = pd.el(), bf = M.juntaCaixas(forma.map(e => caixa(e.d))), k = pd.alto * cap / bf.h, y0 = an.y + (pd.fio ? pd.fio * cap : cap * 0.07);
+          const lf = Math.max(2.2, an.w * (pd.largFio || 0.28));
+          if(pd.fio) els.push({ d: F.ret(an.x - lf / 2, an.y - 3, lf, y0 - an.y + (pd.largFio ? 8 : 4), 0), papel: pd.largFio ? forma[0].papel : papel });
+          forma.forEach(e => els.push({ d: tr(e.d, [k, 0, 0, k, an.x - (bf.x + bf.w / 2) * k, y0 - bf.y * k]), papel: e.papel }));
+        }
+      }
+      /* VELOCIDADE: três rastros com a grossura da letra, do mais comprido (em cima) ao mais curto, parando meia haste antes
+         da primeira letra. No horizontal com símbolo, o M.logo leva os rastros pra trás do símbolo (rastro: true) */
+      if(gg === 'velocidade'){
+        /* num nome que já é comprido os rastros encurtam (até 60%), pra marca não passar de 8 vezes a altura */
+        const e = haste * 0.55, xf = x0 - haste * 0.5, sobra = 7.8 * Math.max(100, tinta.h) - (x1 - x0) - haste * 0.5, enc = Math.max(0.6, Math.min(1, sobra / (1.4 * cap)));
+        [[1.4, -0.78], [1.0, -0.5], [0.6, -0.22]].forEach(([c, y]) => els.push({ d: F.ret(xf - c * enc * cap, y * cap - e / 2, c * enc * cap, e, e / 2), papel: corG, rastro: true }));
+      }
       if(gg === 'bolha'){ const r = cap * 0.2, cx = x1 + r + cap * 0.08; els.push({ d: F.elipse(cx, -r * 1.1, r), papel: corG }); }
       if(gg === 'fios'){
-        const y1 = -cap - 30, y2 = (temDescida(nome) ? t.desc : 0) + 26, linha = M.linhaFios(spec);
-        els.push({ d: F.ret(x0, y1, x1 - x0, 3.5, 0), papel });
-        if(linha){
-          const lt = M.texto(fs.texto, linha, { tam: 15, caixa: 'alta', track: 0.24 }), lx = x0 + (x1 - x0 - lt.w) / 2;
-          els.push({ d: F.ret(x0, y2, Math.max(0, lx - 14 - x0), 3.5, 0), papel }, { d: F.ret(lx + lt.w + 14, y2, Math.max(0, x1 - lx - lt.w - 14), 3.5, 0), papel });
-          els.push({ d: tr(lt.cmds, mx.t(lx, y2 + 8)), papel });
-        } else els.push({ d: F.ret(x0, y2, x1 - x0, 3.5, 0), papel });
+        /* dois fios a 0,24 da maiúscula da tinta, com a espessura tirada da haste; o texto do fio só entra se couber grande */
+        /* v3.43: o texto do fio nasce com 0,3 da maiúscula (no tamanho de uso ele ainda lê) e o fio de baixo desce o que o
+           texto precisa pra não encostar na base do nome */
+        const esp = Math.max(2.5, haste * 0.3), linha = M.linhaFios(spec), lt = linha ? M.texto(fs.texto, linha, { tam: 34, caixa: 'alta', track: 0.14 }) : null;
+        const cabeT = lt && lt.w + 2 * 30 <= x1 - x0, y1 = topoT - cap * 0.26 - esp, y2 = fundoT + cap * 0.26 + (cabeT ? 17 : 0);
+        els.push({ d: F.ret(x0, y1, x1 - x0, esp, 0), papel });
+        if(cabeT){
+          const lx = x0 + (x1 - x0 - lt.w) / 2, gap = 16;
+          els.push({ d: F.ret(x0, y2, Math.max(0, lx - gap - x0), esp, 0), papel }, { d: F.ret(lx + lt.w + gap, y2, Math.max(0, x1 - lx - lt.w - gap), esp, 0), papel });
+          els.push({ d: tr(lt.cmds, mx.t(lx, y2 + esp / 2 + 17)), papel });
+        } else els.push({ d: F.ret(x0, y2, x1 - x0, esp, 0), papel });
       }
       if(gg === 'colchetes'){
-        const y1 = -cap - 14, y2 = (temDescida(nome) ? t.desc * 0.7 : 0) + 14, w = 7, perna = 22;
-        els.push({ d: M.parse(`M${x0 - 20} ${y1} H${x0 - 20 - perna}V${y2}H${x0 - 20}`), papel: corG, traco: w, ponta: 'butt' },
-          { d: M.parse(`M${x1 + 20} ${y1} H${x1 + 20 + perna}V${y2}H${x1 + 20}`), papel: corG, traco: w, ponta: 'butt' });
+        /* os colchetes da própria fonte, a 0,25 da maiúscula da tinta, dos dois lados igual */
+        /* (nome em duas linhas: os colchetes são desenhados na altura do bloco, com a espessura da haste) */
+        const ga = glifoEm('['), gb = glifoEm(']'), folga = cap * 0.25, duas = ls.some(l => l.linha === 1);
+        if(ga && gb && !duas){ els.push({ d: tr(ga.d, mx.t(x0 - folga - (ga.b.x + ga.b.w), 0)), papel: corG }, { d: tr(gb.d, mx.t(x1 + folga - gb.b.x, 0)), papel: corG }); }
+        else {
+          const w = Math.max(5, haste * 0.8), y1 = topoT - 14 + w / 2, y2 = fundoT + 14 - w / 2, perna = Math.max(22, haste * 1.6);
+          els.push({ d: M.parse(`M${x0 - folga} ${y1} H${x0 - folga - perna}V${y2}H${x0 - folga}`), papel: corG, traco: w, ponta: 'butt' },
+            { d: M.parse(`M${x1 + folga} ${y1} H${x1 + folga + perna}V${y2}H${x1 + folga}`), papel: corG, traco: w, ponta: 'butt' });
+        }
       }
     }
     /* os efeitos valem pra tudo que é letra */
@@ -920,26 +1498,48 @@
     if(L.efeito === 'sombra'){ const sombra = els.filter(e => letra(e) && !e.traco).map(e => ({ d: tr(e.d, mx.t(8, 8)), papel: 'sombra' })); els = sombra.concat(els); }
     if(L.efeito === 'contorno') els = els.map(e => e.papel === papel ? Object.assign({}, e, { traco: 5.5, vazio: true }) : e);
     const b = M.juntaCaixas(els.filter(e => e.papel !== 'furo').map(e => caixa(e.d)));
-    return { els, b, cap: 100, xh: M.texto(f, 'x', { tam: 100 }).xh };
+    /* bN: a caixa só do nome (sem os rastros de velocidade), pra encaixar símbolo e frase na tinta */
+    const bN = M.juntaCaixas(els.filter(e => e.papel !== 'furo' && !e.rastro).map(e => caixa(e.d)));
+    return { els, b, bN, cap: 100, xh: M.texto(f, 'x', { tam: 100 }).xh };
   }
   M.wordmark = wordmark;
-  function tagline(spec, fs){
+  /* a frase: alinha pela tinta das letras (sem a pontuação), inclina junto quando o nome inclina e nunca fica mais larga que
+     o nome (primeiro fecha o espaço entre as letras até 0,08, depois diminui até 18) */
+  function tagline(spec, fs, larg, inclina){
     const L = spec.logo || {};
     if(!L.tagline || !String(spec.tagline || '').trim()) return null;
-    const t = M.texto(fs.texto, spec.tagline, { tam: TAG.tam, caixa: 'alta', track: TAG.track });
-    return { d: t.cmds, w: t.w, b: caixa(t.cmds) };
+    let tam = TAG.tam, track = TAG.track, t;
+    const tinta = () => M.juntaCaixas(t.letras.filter(l => l.cmds.length && !/[.,;:!?'"’…]/.test(l.ch)).map(l => caixa(l.cmds)));
+    const monta = () => { t = M.texto(fs.texto, spec.tagline, { tam, caixa: 'alta', track }); };
+    monta();
+    while(larg && tinta().w > larg && track > 0.08){ track = Math.max(0.08, track - 0.02); monta(); }
+    while(larg && tinta().w > larg && tam > 18){ tam -= 1; monta(); }
+    const d = inclina ? tr(t.cmds, mx.k(-12)) : t.cmds, bi = tinta(), b = inclina ? caixa(tr(F.ret(bi.x, bi.y, bi.w, bi.h, 0), mx.k(-12))) : bi;
+    return { d, w: b.w, b, tam };
   }
   const poeSimbolo = (els, x, y, tam) => els.map(e => Object.assign({}, e, { d: tr(e.d, [tam / 100, 0, 0, tam / 100, x, y]), clip: e.clip ? tr(e.clip, [tam / 100, 0, 0, tam / 100, x, y]) : e.clip, traco: e.traco ? e.traco * tam / 100 : e.traco }));
   M.poeSimbolo = poeSimbolo;
 
   /* o texto do fio de baixo (gesto "fios"): o ano de fundação; se o emblema já mostra o ano, a cidade (nunca o ano duas vezes) */
   M.anoNoSimbolo = spec => !!(spec && spec.simbolo && spec.simbolo.tipo === 'emblema' && String(spec.desde || '').replace(/\D/g, '').length >= 4);
-  M.linhaFios = spec => { const cid = String(spec.cidade || '').split(',')[0].trim(); return String(spec.desde && !M.anoNoSimbolo(spec) ? 'est. ' + spec.desde : cid).trim(); };
+  M.linhaFios = spec => { const cid = String(spec.cidade || '').split(',')[0].trim(); return String(spec.desde && !M.anoNoSimbolo(spec) ? 'desde ' + spec.desde : cid).trim(); };
   M.logo = (spec, fs, arranjo) => {
     arranjo = arranjo || (spec.logo && spec.logo.arranjo) || 'horizontal';
     const s = spec.simbolo || {};
     const temSimb = s.tipo && s.tipo !== 'nenhum';
-    const simb = temSimb ? M.simbolo(Object.assign({ pers: spec.pers }, s), fs, spec.nome, spec) : [];
+    /* v3.43: o traço do símbolo em linha sai da haste da letra do nome (130 = o tamanho de referência do símbolo do lado
+       do nome): o símbolo pesa igual à letra, e o valor é o mesmo em todo arranjo */
+    const haste = M.haste(fs.display);
+    /* a referência é o tamanho do símbolo no horizontal desta marca (1,3 maiúscula, ou a altura do nome em duas linhas):
+       lá o traço fica com 0,9 da haste. O mesmo valor vale pra todos os arranjos (o símbolo é um só) */
+    let tracoS = haste * 0.9 * 100 / 130, alvoR = 130;
+    if(temSimb){
+      const s0 = M.simbolo(Object.assign({ pers: spec.pers }, s, { traco: tracoS, haste }), fs, spec.nome, spec);
+      const t0 = M.juntaCaixas(s0.filter(e => e.papel !== 'furo').map(e => caixa(e.d))), wmR = wordmark(spec, fs, 'horizontal');
+      alvoR = Math.max(130, (wmR.bN.w ? wmR.bN : wmR.b).h);
+      if(t0.h > 1) tracoS = haste * 0.9 * t0.h / alvoR;
+    }
+    const simb = temSimb ? M.simbolo(Object.assign({ pers: spec.pers }, s, { traco: tracoS, haste, escTraco: tracoS / (haste * 0.9) }), fs, spec.nome, spec) : [];
     const out = [];
     let x = 100, guia = null;
     /* v3.39: cada pedaço sabe o que é (símbolo, nome ou frase): o filme da marca monta um de cada vez */
@@ -950,31 +1550,52 @@
       if(temSimb){ poeSimbolo(simb, 0, 0, 300).forEach(e => out.push(Object.assign(e, { parte: 'simbolo' }))); x = 75; guia = { simb: { x: 0, y: 0, w: 300, h: 300 } }; }
       else { const t = M.texto(fs.display, M.iniciais(spec.nome), { tam: 100, caixa: 'alta' }); out.push({ d: M.encaixa(t, 150, 150, 260, 260), papel: (spec.logo && spec.logo.corTexto) === 'marca' ? 'marca' : 'texto', parte: 'nome' }); x = 75; }
     } else {
-      const wm = wordmark(spec, fs), tg = tagline(spec, fs);
-      const topo = Math.min(-100, wm.b.y), fundo = Math.max(0, wm.b.y + wm.b.h);
-      const tgY = fundo + TAG.gap + TAG.tam - 22 * 0 + (fundo > 30 ? 0 : 0);
-      const base = tg ? tgY : 0;
-      const blocoH = base - topo;
+      /* v3.43: com o símbolo do lado (horizontal e empilhado), o "O" que vira símbolo volta a ser letra: o símbolo aparece
+         uma vez só. No "só o nome" a fusão continua: lá o O é o símbolo */
+      const Lg = spec.logo || {}, dobra = temSimb && (arranjo === 'horizontal' || arranjo === 'vertical') && Lg.gesto === 'troca' && (Lg.trocaPor === 'ideia' || Lg.trocaPor === 'icone');
+      let specW = dobra ? Object.assign({}, spec, { logo: Object.assign({}, Lg, { gesto: '' }) }) : spec;
+      /* v3.43: sem capitular. A inicial do lado do nome que começa com ela (K + KVRA, C + HAPA) lê como letra dobrada ou
+         nome quebrado; o motor não põe mais a inicial do lado do nome (aplicaTerritorio troca pelo outro molde) */
+      const wm = wordmark(specW, fs, temSimb ? arranjo : 'wordmark'), nb = wm.bN.w ? wm.bN : wm.b;
+      const inclina = Lg.efeito === 'inclinado', tg = tagline(spec, fs, nb.w, inclina);
+      const fundo = Math.max(0, nb.y + nb.h), tgY = fundo + TAG.gap + (tg ? tg.tam : TAG.tam);
+      const blocoT = nb.y, blocoB = tg ? tgY + tg.b.y + tg.b.h : nb.y + nb.h;
       const centro = (spec.logo && spec.logo.alinha) || (arranjo === 'vertical' ? 'centro' : 'esq');
+      /* o nome entra com a TINTA dele em dx; a frase alinha pela tinta dela */
       const textoEls = (dx, dy) => {
-        const o = wm.els.map(e => Object.assign({}, e, { d: tr(e.d, mx.t(dx - wm.b.x, dy)), parte: 'nome' }));
-        if(tg){ const tx = centro === 'centro' ? dx + (wm.b.w - tg.w) / 2 : dx; o.push({ d: tr(tg.d, mx.t(tx, dy + tgY)), papel: 'tagline', parte: 'frase' }); }
-        /* a construção (v3.39): a linha de base do nome, a altura da maiúscula (a medida x = 100) e a do "x" */
+        const o = wm.els.map(e => Object.assign({}, e, { d: tr(e.d, mx.t(dx - nb.x, dy)), parte: e.rastro ? 'rastro' : 'nome' }));
+        if(tg){ const tx = (centro === 'centro' ? dx + (nb.w - tg.b.w) / 2 : dx) - tg.b.x; o.push({ d: tr(tg.d, mx.t(tx, dy + tgY)), papel: 'tagline', parte: 'frase' }); }
+        /* a construção (v3.39): a linha de base do nome (a última, se ele quebra), a altura da maiúscula (a medida x = 100) e a do "x" */
         guia = { base: dy, cap: dy - 100, xh: dy - (wm.xh || 52), unidade: 100 };
         return o;
       };
-      if(arranjo === 'vertical' && temSimb){
-        const larg = Math.max(wm.b.w, tg ? tg.w : 0);
-        const S = Math.max(170, Math.min(300, larg * 0.5));
-        poeSimbolo(simb, (larg - S) / 2, 0, S).forEach(e => out.push(Object.assign(e, { parte: 'simbolo' })));
-        textoEls((larg - wm.b.w) / 2, S + 58 - topo).forEach(e => out.push(e));
-        guia.simb = { x: (larg - S) / 2, y: 0, w: S, h: S };
-      } else if(arranjo === 'horizontal' && temSimb){
-        const S = Math.max(140, blocoH * 1.1);
-        const cy = topo + blocoH / 2;
-        poeSimbolo(simb, 0, cy - S / 2, S).forEach(e => out.push(Object.assign(e, { parte: 'simbolo' })));
-        textoEls(S + 30 + S * 0.08 + (wm.b.x < 0 ? 0 : 0), 0).forEach(e => out.push(e));
-        guia.simb = { x: 0, y: cy - S / 2, w: S, h: S };
+      /* a TINTA do símbolo na caixa 100 (com meio traço e sem os furos): é ela que encaixa, não a caixa */
+      const tintaS = M.juntaCaixas(simb.filter(e => e.papel !== 'furo').map(e => { const b = caixa(e.d), w = e.traco ? e.traco / 2 : 0; return { x: b.x - w, y: b.y - w, w: b.w + 2 * w, h: b.h + 2 * w }; }));
+      const ponta = s.tipo === 'ideia' && ['avanco', 'faixas', 'chama', 'estrela', 'agulha'].includes(s.ideia) ? 1.06 : 1;
+      const emLinha = s.estilo === 'linha' || s.tipo === 'orbita';
+      if(arranjo === 'vertical' && temSimb && tintaS.w){
+        /* empilhado: a tinta do símbolo até metade da largura do nome, entre 1,4 e 2,6 maiúsculas de altura (o de traço fino
+           com a altura que ele tem do lado do nome, pra o traço continuar com o peso da letra); 0,6 de vão até a tinta do nome */
+        const larg = Math.max(nb.w, tg ? tg.b.w : 0);
+        let k = emLinha ? Math.min(260, Math.max(140, alvoR)) / tintaS.h : Math.min(0.5 * nb.w / tintaS.w, 260 / tintaS.h); k = Math.max(k, 140 / tintaS.h) * ponta;
+        const sx = larg / 2 - (tintaS.x + tintaS.w / 2) * k, sy = -tintaS.y * k;
+        poeSimbolo(simb, sx, sy, 100 * k).forEach(e => out.push(Object.assign(e, { parte: 'simbolo' })));
+        textoEls((larg - nb.w) / 2, tintaS.h * k + 60 - nb.y).forEach(e => out.push(e));
+        guia.simb = { x: larg / 2 - tintaS.w * k / 2, y: 0, w: tintaS.w * k, h: tintaS.h * k };
+      } else if(arranjo === 'horizontal' && temSimb && tintaS.w){
+        /* horizontal: a tinta do símbolo com a altura do bloco (1,3 maiúscula sem frase), centrada nele, e meia maiúscula de
+           vão até a tinta do nome. Forma de ponta ganha 6% de correção ótica */
+        const alvo = tg ? blocoB - blocoT : Math.max(130, nb.h);
+        let k = Math.min(alvo / tintaS.h, 1.5 * alvo / tintaS.w) * ponta;
+        const cyB = (blocoT + blocoB) / 2, sy = cyB - (tintaS.y + tintaS.h / 2) * k;
+        const sx = -tintaS.x * k, simbEls = poeSimbolo(simb, sx, sy, 100 * k).map(e => Object.assign(e, { parte: 'simbolo' }));
+        const tx = textoEls(tintaS.w * k + 50, 0);
+        /* os rastros de velocidade saem de trás do símbolo, terminando meia haste antes da tinta dele */
+        const rastros = tx.filter(e => e.parte === 'rastro');
+        if(rastros.length){ const rb = M.juntaCaixas(rastros.map(e => caixa(e.d))), dxr = -haste * 0.5 - (rb.x + rb.w); rastros.forEach(e => { e.d = tr(e.d, mx.t(dxr, 0)); out.push(e); }); }
+        simbEls.forEach(e => out.push(e));
+        tx.filter(e => e.parte !== 'rastro').forEach(e => out.push(e));
+        guia.simb = { x: 0, y: cyB - tintaS.h * k / 2, w: tintaS.w * k, h: tintaS.h * k };
       } else {
         textoEls(0, 0).forEach(e => out.push(e));
       }
@@ -987,11 +1608,11 @@
   /* PLACA: o nome numa placa de cor sólida com um fio por dentro, como placa de rua (lê de longe, vira sinalização) */
   function placa(spec, fs){
     const L = Object.assign({}, spec.logo, { gesto: '', efeito: spec.logo && spec.logo.efeito === 'inclinado' ? 'inclinado' : '' });
-    const wm = wordmark(Object.assign({}, spec, { logo: L }), fs), tg = tagline(spec, fs);
+    const wm = wordmark(Object.assign({}, spec, { logo: L }), fs, 'placa'), tg = tagline(spec, fs, wm.b.w + 104);
     const px = 52, py = 38, x0 = wm.b.x - px, y0 = wm.b.y - py, w = wm.b.w + 2 * px, h = wm.b.h + 2 * py, out = [];
     out.push({ d: F.ret(x0, y0, w, h, 16), papel: 'marca' }, { d: F.ret(x0 + 13, y0 + 13, w - 26, h - 26, 8), papel: 'auto', sobre: 'marca', traco: 6, vazio: true });
     wm.els.forEach(e => out.push(Object.assign({}, e, e.papel === 'furo' ? {} : { papel: 'auto', sobre: 'marca' })));
-    if(tg) out.push({ d: tr(tg.d, mx.t(x0 + (w - tg.w) / 2, y0 + h + 30 + TAG.tam)), papel: 'tagline' });
+    if(tg) out.push({ d: tr(tg.d, mx.t(x0 + (w - tg.w) / 2 - tg.b.x, y0 + h + 30 + tg.tam)), papel: 'tagline' });
     const vb = M.juntaCaixas(out.map(e => caixa(e.d)));
     return { els: out, vb: { x: vb.x - 4, y: vb.y - 4, w: vb.w + 8, h: vb.h + 8 }, x: 60, arranjo: 'placa' };
   }
@@ -1001,7 +1622,7 @@
     out.push({ d: F.anel(0, 0, R, R - 11), papel: 'marca' });
     const nome = String(spec.nome || 'Marca'), cid = spec.cidade ? String(spec.cidade).split(',')[0].trim() : '', ano = String(spec.desde || '').trim(), tg = String(spec.tagline || '').trim();
     /* as linhas em volta, sem repetir nada: no selo simples, o nome em cima; na fita (o nome tá nela), a cidade ou o ano em cima */
-    const linhaCima = fita ? (cid || (ano ? 'est. ' + ano : '')) : nome;
+    const linhaCima = fita ? (cid || (ano ? 'desde ' + ano : '')) : nome;
     const linhaBaixo = tg || (fita ? (cid && ano ? 'desde ' + ano : '') : [ano ? 'desde ' + ano : '', cid].filter(Boolean).join(' · '));
     const fCima = fita ? fs.texto : fs.display;
     /* sem nada pra escrever num arco: três estrelas no lugar */
@@ -1063,11 +1684,13 @@
     else cor = e.papel === 'furo' ? '#000' : (v[e.papel] || v.marca);
     const furo = e.papel === 'furo';
     const base = { d: e.d, furo, cf: furo ? v.furo : null, clip: e.clip, clipEo: e.clipEo, parte: e.parte };
+    /* v3.43: o papel "fundo" pinta com a cor do fundo (o vão do monograma sobreposto); no mockup vira a cor de lá */
+    if(e.papel === 'fundo') base.vao = true;
     if(e.traco) return Object.assign(base, { f: e.vazio || furo || e.papel !== 'furo' ? null : null, s: cor, w: e.traco, cap: e.ponta || 'round' });
     return Object.assign(base, { f: cor });
   });
   /* pinta sobre um fundo conhecido (mockup): o furo vira a cor do que tá embaixo */
-  M.pintaSobre = (lg, v, fundoLocal) => M.pinta(lg, v).map(e => e.furo ? Object.assign({}, e, { furo: false, f: e.f ? fundoLocal : null, s: e.s ? fundoLocal : null }) : e);
+  M.pintaSobre = (lg, v, fundoLocal) => M.pinta(lg, v).map(e => e.furo || e.vao ? Object.assign({}, e, { furo: false, f: e.f ? fundoLocal : null, s: e.s ? fundoLocal : null }) : e);
   /* o SVG pronto de um logo numa versão (fundo opcional) */
   M.logoSvg = (lg, v, o) => { o = o || {}; const m = o.margem === undefined ? lg.x * 0.6 : o.margem; const vb = { x: lg.vb.x - m, y: lg.vb.y - m, w: lg.vb.w + 2 * m, h: lg.vb.h + 2 * m }; return M.svg(M.pinta(lg, v), Object.assign({ vb, fundo: o.fundo ? v.fundo : null }, o)); };
   /* encaixa um logo numa caixa (pra mockup): els já pintados e posicionados */
@@ -1218,8 +1841,8 @@
   const T = M.TERRITORIOS = {
     rua: { n: 'Rua', frase: 'A marca que nasce no muro.', v: [.75, .62, .86, .92, .42], ni: ['comida', 'moda', 'bebidas', 'musica', 'fitness', 'arte', 'auto'],
       fontes: ['heroscn-bold', 'inter-black'], caixa: 'alta', track: -0.005, efeitos: [''], arranjos: ['horizontal', 'vertical'],
-      gestos: [['separador', { sep: '/' }], ['hierarquia'], ['estencil'], ['empilha']],
-      simbs: [{ tipo: 'ideia' }, { tipo: 'ideia' }, { tipo: 'letra', detalhe: 'corte' }, { tipo: 'nenhum' }], pal: { esquema: 'complementar', mais: 0.12 }, textura: 'xerox', fundo: 'paper',
+      gestos: [['separador', { sep: '/' }], ['hierarquia'], ['estencil'], ['empilha'], ['encosta'], ['corte']],
+      simbs: [{ tipo: 'ideia' }, { tipo: 'ideia', letra: true }, { tipo: 'nenhum' }], pal: { esquema: 'complementar', mais: 0.12 }, textura: 'xerox', fundo: 'paper',
       receitas: [{ n: 'Lambe-lambe', p: '#E4322B', s: '#F2D43D', a: '#2A57E6', ink: '#151413', paper: '#F1ECE1', h: 'o vermelho e o amarelo dos cartazes de show colados um em cima do outro no tapume' },
         { n: 'Muro de Cal', p: '#F5C518', s: '#E4322B', a: '#2A57E6', ink: '#151413', paper: '#EFEBE3', fundo: 'p', h: 'o amarelo de pintura de muro de esquina, aquele que anuncia de longe' },
         { n: 'Spray Azul', p: '#2B50E8', s: '#FF5A36', a: '#F5C518', ink: '#12131A', paper: '#F2EFE8', h: 'o azul de lata de spray, com o laranja de cone de obra pra esquentar' },
@@ -1230,8 +1853,8 @@
       elem: 'Os elementos de apoio vêm do muro: o grão de xerox por cima das cores, o corte de estêncil virando faixa e o nome repetido como lambe.',
       porque: { letra: 'Condensada e pesada, como letreiro pintado em porta de aço: cabe grande em qualquer muro e lê do outro lado da rua.', cor: 'Contraste de cartaz: {p} pra chamar, {ink} pra segurar. Sobrevive a xerox, a sol e a tela de celular com brilho no mínimo.' } },
     zine: { n: 'Zine', frase: 'Faz você mesmo. Faz bem feito.', v: [.5, .72, .8, .74, .3], ni: ['musica', 'arte', 'moda', 'criativo', 'bebidas', 'educacao'],
-      fontes: ['inter-bold', 'poppins-bold'], caixa: 'baixa', track: -0.02, efeitos: [''], arranjos: ['horizontal', 'vertical'],
-      gestos: [['separador', { sep: '+' }], ['colchetes'], ['sublinha']],
+      fontes: ['cursor-bold', 'inter-bold'], caixa: 'baixa', track: -0.02, efeitos: [''], arranjos: ['horizontal', 'vertical'],
+      gestos: [['empilha'], ['encosta'], ['separador', { sep: '+' }], ['']],
       simbs: [{ tipo: 'nenhum' }, { tipo: 'ideia', estilo: 'linha' }], pal: { fluor: true }, textura: 'xerox', fundo: 'paper',
       receitas: [{ n: 'Xerox Rosa', p: '#141414', s: '#D9D6CE', a: '#FF2E93', ink: '#141414', paper: '#F4F1EA', h: 'preto de fotocópia com um rosa fluorescente de marca-texto' },
         { n: 'Xerox Amarelo', p: '#141414', s: '#D9D6CE', a: '#F2E94E', ink: '#141414', paper: '#F4F1EA', h: 'preto de fotocópia com o amarelo de bloquinho adesivo e de fita de aviso' },
@@ -1244,7 +1867,7 @@
       porque: { letra: 'Letra de máquina de escrever: cara de recado datilografado, de fanzine grampeado, de coisa feita com a mão e com intenção.', cor: 'Preto de xerox e uma cor fluorescente ({a}) que grita no meio do cinza. Dá pra imprimir em qualquer copiadora e continua sendo a marca.' } },
     arcade: { n: 'Arcade', frase: 'Aperta start.', v: [.96, .88, .7, .84, .96], ni: ['tech', 'musica', 'bebidas', 'eventos', 'criativo'],
       fontes: ['pixel'], caixa: 'alta', track: 0.02, efeitos: [''], arranjos: ['horizontal', 'vertical'],
-      gestos: [['ponto'], ['separador', { sep: '_' }]],
+      gestos: [['separador', { sep: '_' }], ['']],
       simbs: [{ tipo: 'pixel' }, { tipo: 'pixel' }, { tipo: 'nenhum' }], pal: { esquema: 'dividida', mais: 0.08 }, textura: 'scan', fundo: 'ink',
       receitas: [{ n: 'Fliperama', p: '#FF2E88', s: '#3A1F7A', a: '#FFE14D', ink: '#0E0B1F', paper: '#F4F1FF', h: 'o magenta e o amarelo das luzes de fliperama num salão escuro' },
         { n: 'Tubo de Imagem', p: '#38E1FF', s: '#7B2CFF', a: '#FF4FA3', ink: '#0B0F1C', paper: '#EEF6FF', h: 'o ciano e o violeta de tela de tubo ligada no escuro' },
@@ -1256,20 +1879,20 @@
       porque: { letra: 'A Houzi Pixel foi desenhada no Studio Houzi, casa por casa, numa grade de 5x7: memória de fliperama, de videogame portátil, de letreiro de painel. É uma letra que só existe aqui.', cor: 'Fundo escuro de tela e {p} acendendo em cima, com {a} de brilho: a paleta já nasce com cara de neon.' } },
     gp: { n: 'Grand Prix', frase: 'Rápido no nome, rápido na entrega.', v: [.8, .55, .72, 1, .62], ni: ['comida', 'auto', 'fitness', 'moda', 'servicos'],
       fontes: ['inter-black', 'heroscn-bold'], caixa: 'alta', track: -0.01, efeitos: ['inclinado'], arranjos: ['horizontal'],
-      gestos: [['velocidade'], ['pesos'], ['separador', { sep: '/' }]],
+      gestos: [['velocidade'], ['pesos'], ['encosta'], ['separador', { sep: '/' }], ['']],
       simbs: [{ tipo: 'ideia' }, { tipo: 'ideia' }, { tipo: 'nenhum' }], pal: { corrida: true }, textura: 'xadrez', fundo: 'paper',
       receitas: [{ n: 'Largada', p: '#E3170A', s: '#141414', a: '#F2D43D', ink: '#141414', paper: '#FAF7F0', h: 'o vermelho do semáforo de largada, com o preto do asfalto e a faixa amarela da pista' },
         { n: 'Pit Lane', p: '#FF6B00', s: '#1B1E24', a: '#2F6BFF', ink: '#15171B', paper: '#F5F3EE', h: 'o laranja de macacão de equipe de box, com o azul da telemetria' },
         { n: 'Pódio', p: '#1446E0', s: '#F2D43D', a: '#E3170A', ink: '#10131C', paper: '#F6F4EE', h: 'o azul de carro de corrida antigo, com o amarelo e o vermelho do pódio' }],
       aplic: ['bone', 'adesivo', 'camiseta', 'copo', 'instagram', 'fachada'],
-      ideia: 'A marca como carro de corrida: inclinada pra frente, com um único risco de velocidade saindo de trás. Ela já aparece andando, porque o assunto é chegar antes.',
+      ideia: 'A marca como carro de corrida: inclinada pra frente, pesada e sem enfeite. Ela já aparece andando, porque o assunto é chegar antes.',
       vive: 'Vive em movimento: boné, adesivo, copo, camiseta, fachada e embalagem pra viagem. O quadriculado aparece como fita de apoio, nunca no lugar do logo.',
       elem: 'Os elementos de apoio vêm da pista: o quadriculado da bandeira de chegada, faixas de velocidade, numeração de carro e a inclinação de 12 graus que vale pra tudo.',
       porque: { letra: 'Pesada e inclinada pra frente, como número pintado na lateral do carro: a marca já parece estar andando.', cor: '{p} de largada, {ink} de asfalto e {a} de faixa de pódio. O quadriculado entra como apoio, nunca no lugar do logo.' } },
     editorial: { n: 'Editorial', frase: 'Feita pra ser lida devagar.', v: [.4, .3, .22, .34, .28], ni: ['cafe', 'beleza', 'moda', 'educacao', 'criativo', 'saude'],
       fontes: ['lora-bolditalic', 'pagella-bold', 'lora-bold'], caixa: 'titulo', track: 0.005, efeitos: [''], arranjos: ['vertical', 'horizontal'],
-      gestos: [['hierarquia'], ['fios'], ['destaque', { destaque: 'vogal' }], ['separador', { sep: '—' }]],
-      simbs: [{ tipo: 'nenhum' }, { tipo: 'ideia', estilo: 'linha' }], pal: { esquema: 'mono' }, textura: 'papel', fundo: 'paper',
+      gestos: [['hierarquia'], ['fios'], ['versalete'], ['pendente'], ['fiolado'], ['separador', { sep: '—' }], ['corte'], ['']],
+      simbs: [{ tipo: 'nenhum' }, { tipo: 'ideia', estilo: 'linha' }, { tipo: 'monograma', estilo: 'liga' }], pal: { esquema: 'mono' }, textura: 'papel', fundo: 'paper',
       receitas: [{ n: 'Tinta Azul', p: '#1F3A93', s: '#C9D2EA', a: '#C79A3B', ink: '#1A1C24', paper: '#F7F4EC', h: 'o azul de tinta de caneta-tinteiro em papel bom, com um fio de ouro' },
         { n: 'Bordô', p: '#7A1F2B', s: '#E7D3D0', a: '#B88A3E', ink: '#1E1617', paper: '#F8F3EC', h: 'o bordô de capa de livro de biblioteca, com o dourado da letra gravada' },
         { n: 'Grafite e Ouro', p: '#2B2B2E', s: '#D8D4CB', a: '#B8913A', ink: '#161618', paper: '#F6F2EA', h: 'grafite de lápis bom e ouro de título gravado em capa dura' }],
@@ -1279,9 +1902,9 @@
       elem: 'Os elementos de apoio vêm da diagramação: fios finos, numeração de página, capitulares, grade de colunas e a textura de papel encorpado.',
       porque: { letra: 'Uma serifa com ritmo de revista: tem contraste, tem respiro e tem calma. A marca fala baixo e todo mundo escuta.', cor: 'Uma cor principal ({p}) em vários tons, com {a} de detalhe: a elegância vem do que fica de fora.' } },
     noir: { n: 'Noir', frase: 'Toda marca tem sua cena.', v: [.36, .14, .14, .56, .36], ni: ['bebidas', 'beleza', 'moda', 'criativo', 'musica', 'arte'],
-      fontes: ['pagella-bold', 'inter-light'], caixa: 'alta', track: 0.14, efeitos: [''], arranjos: ['vertical', 'horizontal'],
-      gestos: [['troca', { trocaPor: 'anel' }], ['hierarquia'], ['separador', { sep: '·' }]],
-      simbs: [{ tipo: 'nenhum' }, { tipo: 'ideia', estilo: 'linha' }], pal: { esquema: 'mono', escuro: true }, textura: 'grao', fundo: 'ink',
+      fontes: ['pagella-bold', 'lora-bold'], caixa: 'alta', track: 0.14, efeitos: [''], arranjos: ['vertical', 'horizontal'],
+      gestos: [['hierarquia'], ['versalete'], ['corte'], ['separador', { sep: '·' }], ['']],
+      simbs: [{ tipo: 'nenhum' }, { tipo: 'ideia', estilo: 'linha' }, { tipo: 'monograma', estilo: 'liga' }], pal: { esquema: 'mono', escuro: true }, textura: 'grao', fundo: 'ink',
       receitas: [{ n: 'Luz Vermelha', p: '#E0364B', s: '#2A2224', a: '#E8C07A', ink: '#0F0C0D', paper: '#F2ECE4', h: 'a única luz vermelha acesa num corredor escuro' },
         { n: 'Azul de Cinema', p: '#5B7BFF', s: '#22263A', a: '#E9D8A6', ink: '#0C0E16', paper: '#EEF0F6', h: 'o azul da luz do projetor atravessando a fumaça da sala' },
         { n: 'Âmbar', p: '#F2A541', s: '#2A2016', a: '#F4E9D8', ink: '#110D09', paper: '#F3EEE6', h: 'o âmbar de lâmpada de filamento num bar de porta fechada' }],
@@ -1316,19 +1939,19 @@
       porque: { letra: 'Caligrafia de quem escreve o nome do cliente no bilhete: cada letra tem mão, tem pressa boa e tem carinho.', cor: '{p} suave com {s}: tons que parecem papel bom, laço e luz de tarde.' } },
     bauhaus: { n: 'Bauhaus de Bairro', frase: 'Forma, cor e função, do jeito do bairro.', v: [.72, .62, .55, .56, .62], ni: ['casa', 'criativo', 'educacao', 'tech', 'varejo', 'arte'],
       fontes: ['adventor-bold', 'poppins-bold'], caixa: 'baixa', track: -0.02, efeitos: [''], arranjos: ['horizontal', 'vertical'],
-      gestos: [['troca', { trocaPor: 'circulo' }], ['pesos'], ['destaque']],
-      simbs: [{ tipo: 'geo' }, { tipo: 'ideia' }, { tipo: 'letra', detalhe: 'fatia' }], pal: { esquema: 'triade', mais: 0.04 }, textura: 'grade', fundo: 'paper',
+      gestos: [['pesos'], ['empilha'], ['encosta'], ['']],
+      simbs: [{ tipo: 'ideia', letra: true }, { tipo: 'ideia' }, { tipo: 'nenhum' }], pal: { esquema: 'triade', mais: 0.04 }, textura: 'grade', fundo: 'paper',
       receitas: [{ n: 'Primárias', p: '#E63025', s: '#1F4FD8', a: '#F5C21B', ink: '#141414', paper: '#F3EFE6', h: 'as três primárias de cartaz de escola de arte, sem meio-termo' },
         { n: 'Laranja e Anil', p: '#F0642A', s: '#233C8E', a: '#F2C14E', ink: '#17171A', paper: '#F4F0E8', h: 'o laranja de tijolo com o anil de azulejo e um ouro de sol' },
         { n: 'Rosa e Cobalto', p: '#E94E8B', s: '#2348C9', a: '#F5B92E', ink: '#151418', paper: '#F5F1EA', h: 'o rosa de neon com azul cobalto e o amarelo do giz' }],
       aplic: ['cartaz', 'fachada', 'sacola', 'instagram', 'camiseta', 'cartao'],
       ideia: 'A marca como peça de montar: círculo, quadrado e triângulo, cada um com sua cor e sua função. Forma segue função, do jeito do bairro: moderna, mas sem frieza.',
       vive: 'Vive em cartaz e fachada: cada aplicação é uma composição nova com as mesmas peças. Sacola, camiseta, cartão e post viram variações do mesmo jogo.',
-      elem: 'Os elementos de apoio são as próprias peças do símbolo: quartos de círculo, meias-luas e quadrados numa grade, que viram padrão, borda, ícone e animação.',
+      elem: 'Os elementos de apoio são peças de geometria pura em volta da marca (quartos de círculo, meias-luas e quadrados numa grade), que viram padrão, borda e animação. O símbolo é a ideia; as peças são o jogo.',
       porque: { letra: 'Geométrica, de círculo e régua, em caixa baixa: moderna sem ser fria, como cartaz de escola de arte colado na padaria.', cor: 'Três cores puras ({p}, {s}, {a}) que se revezam nas peças do símbolo: a marca vira um jogo de montar.' } },
     sinal: { n: 'Sinal', frase: 'Menos ruído, mais sinal.', v: [.9, .2, .2, .3, .86], ni: ['tech', 'saude', 'servicos', 'casa', 'educacao'],
       fontes: ['inter-light', 'poppins-light'], caixa: 'alta', track: 0.2, efeitos: [''], arranjos: ['horizontal', 'vertical'],
-      gestos: [['ponto'], ['separador', { sep: '.' }], ['pesos']],
+      gestos: [['separador', { sep: '·' }], ['pesos'], ['fiolado'], ['pendente'], ['']],
       simbs: [{ tipo: 'ideia', estilo: 'linha' }, { tipo: 'orbita' }], pal: { esquema: 'mono', frio: true }, textura: 'limpo', fundo: 'paper',
       receitas: [{ n: 'Cobalto', p: '#2F5BFF', s: '#DCE4FF', a: '#FF6B4A', ink: '#10131A', paper: '#F7F8FB', h: 'o azul de interface em que todo mundo confia, com um coral pra chamar atenção' },
         { n: 'Grafite', p: '#22252B', s: '#E3E6EA', a: '#3D7BFF', ink: '#111317', paper: '#F6F7F8', h: 'o grafite de aparelho bem feito, com um azul só onde precisa' },
@@ -1336,12 +1959,12 @@
       aplic: ['app', 'cartao', 'instagram', 'fachada', 'sacola', 'camiseta'],
       ideia: 'A marca como sinal: menos ruído, mais clareza. Letra fina, espaço aberto e um ponto que diz "é aqui". Funciona igual num ícone de 16 pixels e numa placa de vidro.',
       vive: 'Vive na tela e na recepção: ícone de app, cartão, post, fachada de vidro, sacola e crachá. Pede muito branco em volta e cor só onde importa.',
-      elem: 'Os elementos de apoio vêm da interface: a órbita do símbolo, pontos de status, linhas finas de grade e ícones de traço único.',
+      elem: 'Os elementos de apoio vêm da interface: pontos de status, linhas finas de grade e ícones de traço único, do mesmo peso da letra.',
       porque: { letra: 'Fina, aberta e espaçada: a marca não precisa gritar pra ser lembrada. Funciona igual num ícone de app e numa placa de vidro.', cor: '{p} com muito branco em volta e {a} só onde precisa de atenção.' } },
     classico: { n: 'Clássico de Bairro', frase: 'O bairro inteiro conhece.', v: [.1, .26, .56, .36, .14], ni: ['servicos', 'casa', 'saude', 'educacao', 'auto', 'varejo', 'pet'],
       fontes: ['schola-bold', 'pagella-bold'], caixa: 'titulo', track: 0.01, efeitos: [''], arranjos: ['vertical', 'horizontal'],
-      gestos: [['fios', { fiosTexto: true }], ['hierarquia']],
-      simbs: [{ tipo: 'emblema', formas: ['escudo', 'circulo'] }, { tipo: 'ideia' }], pal: { esquema: 'mono', profundo: true }, textura: 'papel', fundo: 'paper',
+      gestos: [['fios', { fiosTexto: true }], ['hierarquia'], ['fiolado'], ['versalete'], ['pendente']],
+      simbs: [{ tipo: 'ideia', letra: true }, { tipo: 'ideia' }, { tipo: 'monograma', estilo: 'liga' }, { tipo: 'emblema', formas: ['escudo', 'circulo'] }], pal: { esquema: 'mono', profundo: true }, textura: 'papel', fundo: 'paper',
       receitas: [{ n: 'Marinho e Ouro', p: '#1C2E5A', s: '#D8DDE8', a: '#C59B3E', ink: '#141824', paper: '#F7F4EC', h: 'o marinho de uniforme e o ouro de placa de bronze na porta' },
         { n: 'Vinho de Família', p: '#6E1E2A', s: '#EAD9D3', a: '#C59B3E', ink: '#1E1416', paper: '#F8F3EA', h: 'o vinho de cortina de cartório antigo, com o dourado da moldura' },
         { n: 'Petróleo', p: '#1D4E63', s: '#D5E3EA', a: '#D9A441', ink: '#12202A', paper: '#F6F4EE', h: 'o azul petróleo de tinta de fachada antiga, com a mostarda do letreiro' }],
@@ -1352,8 +1975,8 @@
       porque: { letra: 'Serifa de livro escolar e de placa de consultório: séria sem ser fria, a letra de quem tá ali há anos.', cor: '{p} profundo com {a} de detalhe: as cores da confiança, que não saem de moda.' } },
     chiclete: { n: 'Chiclete', frase: 'Dá vontade de morder.', v: [.7, .96, .86, .76, .4], ni: ['doces', 'comida', 'pet', 'varejo', 'eventos', 'bebidas'],
       fontes: ['poppins-bold', 'bonum-bold'], caixa: 'baixa', track: -0.03, efeitos: [''], arranjos: ['horizontal', 'vertical'],
-      gestos: [['bolha'], ['pesos'], ['troca', { trocaPor: 'circulo' }]],
-      simbs: [{ tipo: 'ideia' }, { tipo: 'nenhum' }], pal: { esquema: 'complementar', claro: true }, textura: 'reticula', fundo: 'paper',
+      gestos: [['pesos'], ['empilha'], ['encosta'], ['pendente'], ['pulo'], ['']],
+      simbs: [{ tipo: 'ideia' }, { tipo: 'ideia', letra: true }, { tipo: 'nenhum' }], pal: { esquema: 'complementar', claro: true }, textura: 'reticula', fundo: 'paper',
       receitas: [{ n: 'Tutti-frutti', p: '#FF4F9A', s: '#FFD84D', a: '#4D6BFF', ink: '#2A1630', paper: '#FFF6F9', h: 'o rosa de chiclete, o amarelo de bala e o azul de pirulito' },
         { n: 'Algodão-doce', p: '#8E7CFF', s: '#FFC4E1', a: '#FF7A3D', ink: '#24183A', paper: '#FBF7FF', h: 'o lilás e o rosa de algodão-doce de parque, com laranja de picolé' },
         { n: 'Picolé', p: '#FF6B3D', s: '#FFE08A', a: '#2E8CFF', ink: '#2B1A14', paper: '#FFF8F0', h: 'o laranja de picolé, o creme de baunilha e o azul da embalagem' }],
@@ -1372,12 +1995,15 @@
   const SIMB_TXT = {
     icone: s => { const i = ic(s.icone); if(s.forma && s.forma !== 'nenhuma'){ const f = fo(s.forma); return `${i.A} ${i.n} vazad${i.fim} dentro ${f.de} ${f.n} ${i.pl ? 'viram' : 'vira'} um adesivo que se segura sozinho: do avatar do Instagram à tampa do copo.`; } return `${i.A} ${i.n} em traço único, sem moldura, ${i.pl ? 'contam' : 'conta'} o que a marca faz antes de qualquer palavra.`; },
     geo: () => 'Peças de geometria pura (quarto de círculo, meia-lua, triângulo, quadrado) montadas numa grade 2x2: dá pra animar, recortar, virar padrão e trocar a cor de cada peça.',
-    monograma: (s, sp) => { const f = fo(s.forma); return `As iniciais ${M.iniciais(sp.nome)} viram carimbo dentro ${f.de} ${f.n}: assinam embalagem, avatar, bordado e etiqueta.`; },
-    letra: (s, sp) => { const L0 = [...M.iniciais(sp.nome)][0]; return s.detalhe === 'fatia' ? `A inicial ${L0} cortada em três faixas, com a do meio deslizando e trocando de cor: uma letra que parece estar em movimento, como cartaz moderno.` : `A inicial ${L0} sozinha segura a marca, com um detalhe ${s.detalhe === 'barra' ? 'de faixa embaixo, como risco de pista' : s.detalhe === 'corte' ? 'de corte na diagonal, como estêncil' : s.detalhe === 'sombra' ? 'de sombra deslocada' : 'de ponto, como assinatura'}.`; },
+    monograma: (s, sp) => { if(s.estilo === 'liga') return `As iniciais ${[...M.iniciais(sp.nome)].filter(c => c !== '&').join(' e ')} entram uma na outra, com um vão em volta da segunda: monograma de alfaiate e de escritório antigo, sem moldura. A ligação das duas letras é o desenho.`; const f = fo(s.forma); return `As iniciais ${M.iniciais(sp.nome)} viram carimbo dentro ${f.de} ${f.n}: assinam embalagem, avatar, bordado e etiqueta.`; },
+    letra: (s, sp) => { const L0 = [...(s.letras || M.iniciais(sp.nome))][0]; s = Object.assign({}, s, { detalhe: M.detalheLetra(s.detalhe, L0) }); return s.detalhe === 'fatia' ? `A inicial ${L0} cortada em três faixas, nas linhas onde ela é mais fina, com a do meio deslizando: uma letra que parece estar em movimento, como cartaz moderno.` : `A inicial ${L0} sozinha segura a marca, com um detalhe ${s.detalhe === 'barra' ? 'de faixa embaixo, como risco de pista' : s.detalhe === 'corte' ? 'de corte na diagonal, como estêncil' : s.detalhe === 'sombra' ? 'de sombra deslocada' : 'de ponto, como assinatura'}.`; },
     pixel: s => { const i = ic(s.icone); return `${i.A} ${i.n} redesenhad${i.fim} em pixel, casa por casa, como personagem de jogo antigo${s.forma === 'moldura' ? ', dentro de uma moldura de pixels' : ''}: lê em 16 pixels e fica enorme numa parede.`; },
-    emblema: (s, sp) => { const f = fo(s.forma || 'escudo'); return `Um emblema: ${f.a} ${f.n} chei${f.fim}, um fio fino por dentro, as iniciais ${M.iniciais(sp.nome)} vazadas e ${String(sp.desde || '').replace(/\D/g, '').length === 4 ? 'o ano de fundação embaixo' : 'três estrelas embaixo'}. É o desenho de quem tem tradição pra mostrar.`; },
-    ideia: s => { const id = M.IDEIAS[s.ideia] || M.IDEIAS.estrela4; return `${id.t[0].toUpperCase() + id.t.slice(1)}.${s.estilo === 'linha' ? ' Em traço fino, do mesmo peso da letra: o desenho fala baixo, como o resto da marca.' : ' Uma forma cheia, sem enfeite: funciona do tamanho de um botão até o tamanho de uma fachada.'}`; },
-    orbita: (s, sp) => `Um anel aberto, com um ponto na ponta e a inicial ${[...M.iniciais(sp.nome)][0]} no centro: é sinal, é radar, é rota. Mostra movimento sem precisar de seta.`,
+    emblema: (s, sp) => { const f = fo(s.forma || 'escudo'); return `Um emblema: ${f.a} ${f.n} chei${f.fim}, um fio fino por dentro, as iniciais ${M.iniciais(sp.nome)} vazadas e ${String(sp.desde || '').replace(/\D/g, '').length === 4 ? 'o ano de fundação embaixo' : 'dois fios curtos embaixo'}. É o desenho de quem tem tradição pra mostrar.`; },
+    ideia: (s, sp) => { const id = M.IDEIAS[s.ideia] || M.IDEIAS.estrela4, ini = [...(s.letras || M.iniciais((sp && sp.nome) || ''))].join('');
+      const base = `${s.de === 'nome' ? 'Sai do próprio nome: ' + id.t : id.t[0].toUpperCase() + id.t.slice(1)}.`;
+      if(s.letra && M.cabeLetra(s.ideia)) return s.ideia === 'base' ? `${base} A inicial ${ini} fica em pé sobre as fiadas, como prédio no alicerce: a letra é a casa, o tijolo é a promessa.` : `${base} A inicial ${ini} entra vazada dentro do desenho: é monograma de quem tem história, mas o escudo aqui é a própria ideia da marca.`;
+      return `${base}${s.estilo === 'linha' ? ' Em traço fino, do mesmo peso da letra: o desenho fala baixo, como o resto da marca.' : ' Uma forma cheia, sem enfeite: funciona do tamanho de um botão até o tamanho de uma fachada.'}`; },
+    orbita: (s, sp) => `Um anel aberto, com um ponto pousado nele e a inicial ${[...(s.letras || M.iniciais(sp.nome))][0]} no centro: é sinal, é radar, é rota. Mostra movimento sem precisar de seta.`,
     nenhum: () => 'Sem símbolo: o nome é a marca. A força tá inteira na letra, no espaço e na cor.',
     selo: () => 'Selo de origem: o nome em volta, a promessa embaixo e o desenho no meio. É o formato que sai bonito em carimbo, adesivo, etiqueta e embalagem.'
   };
@@ -1402,11 +2028,11 @@
     { k: 'doce', n: 'doce', re: /(doce|a[cç][uú]car|\bbalas?\b|\bmel\b|choco|brigad|\bbolo|cupcake|confeit|cereja|morang|sorvet|gelat|cacau|caramel|candy|sugar|sweet|docinh|\btorta|pudim|beijinho|trufa)/, t: { chiclete: 2, manuscrito: 2, selo: 1, editorial: 1, noir: -9, gp: -9, sinal: -9, arcade: -1, rua: -1 }, h: [[330, 360], [0, 32], [285, 330]], id: ['bala', 'coracao'] },
     { k: 'cafe', n: 'café', re: /(caf[eé]|gr[aã]o|torra|coado|x[ií]car|expres|barist|coffee|\bbean|moka|cappucc)/, t: { editorial: 2, selo: 1, manuscrito: 1, classico: 1, noir: 1, zine: 0, arcade: -9, gp: -9, chiclete: -1 }, h: [[28, 75]], id: ['grao', 'xicara'] },
     { k: 'mar', n: 'mar', re: /(\bmar\b|praia|\bonda|oceano|peixe|\bsurf|\bilha|\bporto|barco|[aá]gua|maresia|litoral|baleia|[aâ]ncora)/, t: { sinal: 1, editorial: 1, rua: 1, zine: 1, bauhaus: 1, gp: -1 }, h: [[195, 258]], id: ['onda', 'sol'] },
-    { k: 'noite', n: 'noite', re: /(noite|\blua\b|neon|\bclube?\b|night|\bdose|\bgin\b|drink|\bbar\b|boate|\bdark|black|preto|sombra|madrug)/, t: { noir: 2, arcade: 1, rua: 1, manuscrito: -1, selo: -1, classico: -1, chiclete: -1 }, h: [[270, 360], [200, 265]], id: ['lua', 'taca'] },
+    { k: 'noite', n: 'noite', re: /(noite|\blua\b|neon|\bclube?\b|night|\bdose|\bgin\b|drink|\bbar\b|boate|\bdark|\bblack\b|preto|sombra|madrug)/, t: { noir: 2, arcade: 1, rua: 1, manuscrito: -1, selo: -1, classico: -1, chiclete: -1 }, h: [[270, 360], [200, 265]], id: ['lua', 'taca'] },
     { k: 'tech', n: 'tecnologia', re: /(\bdados?\b|c[oó]dig|\bbits?\b|pixel|nuvem|\brede\b|\bapps?\b|tech|digit|sistem|\blabs?\b|\bdata\b|cloud|\bnet\b|smart|\bia\b|rob[oô]|byte|\bcode|soft|\bnexo|vetor|algoritm)/, t: { sinal: 2, arcade: 1, bauhaus: 1, noir: 1, editorial: -1, selo: -9, manuscrito: -9, classico: -1, chiclete: -1 }, h: [[215, 300]], id: ['cursor', 'grade'] },
-    { k: 'veloz', n: 'velocidade', re: /(turbo|r[aá]pid|express|flash|\bmotos?\b|frete|pista|corrid|\bgp\b|motor|speed|\bfast|veloz|\bjato|foguet|\braio|\brun\b|delivery|entrega|largada|\bpole\b)/, t: { gp: 2, rua: 1, sinal: 1, manuscrito: -9, selo: -1, editorial: -1 }, h: [[0, 45]], id: ['avanco', 'faixas'] },
+    { k: 'veloz', n: 'velocidade', re: /(turbo|r[aá]pid|express|flash|\bmotos?\b|frete|pista|corrid|\bgp\b|motor|speed|\bfast|veloz|\bjato|foguet|\braio|\brun\b|largada|\bpole\b)/, t: { gp: 2, rua: 1, sinal: 1, manuscrito: -9, selo: -1, editorial: -1 }, h: [[0, 45]], id: ['avanco', 'faixas'] },
     { k: 'luxo', n: 'luxo', re: /(\bouro|gold|diamant|nobre|premium|royal|\brei\b|rainha|coroa|luxo|\blux|prime|elite|\bvip\b|crown|king|queen|majest|imperial|grife)/, t: { noir: 2, editorial: 2, classico: 1, chiclete: -1, zine: -1, arcade: -1, rua: -1 }, h: [[70, 95], [290, 360], [0, 20]], id: ['diamante', 'coroa'] },
-    { k: 'rua', n: 'rua', re: /(\brua\b|quebrad|\bmuro|esquina|bairro|skate|spray|grafit|graffit|street|favela|\bbeco|\bbonde|underground|\bvila\b|periferi)/, t: { rua: 2, zine: 2, classico: -1, editorial: -1, manuscrito: -1 }, h: [], id: ['cone', 'seta'] },
+    { k: 'rua', n: 'rua', re: /(\brua\b|quebrad|\bmuro|esquina|skate|spray|grafit|graffit|street|favela|\bbeco|\bbonde|underground|periferi)/, t: { rua: 2, zine: 2, classico: -1, editorial: -1, manuscrito: -1 }, h: [], id: ['cone', 'seta'] },
     { k: 'som', n: 'som', re: /(\bsom\b|\bbeats?\b|vinil|\bdisco|m[uú]sic|records|\brec\b|faixa|\bgrave\b|batida|r[aá]dio|sound|[aá]udio|\bdj\b|groove|hip.?hop|\brap\b|samba|\bfunk)/, t: { zine: 2, rua: 1, noir: 1, arcade: 1, classico: -1, selo: -1 }, h: [], id: ['vinil', 'ondas'] },
     { k: 'cuidado', n: 'cuidado', re: /(cuid|sa[uú]de|\bvida|cl[ií]nic|\bbem\b|vital|\bcare\b|health|odont|dentist|dental|\bdentes?\b|fisio|terap|psic|nutri|sorriso|derma)/, t: { sinal: 2, classico: 1, manuscrito: 1, editorial: 1, rua: -9, zine: -9, arcade: -9, gp: -9, noir: -1 }, h: [[180, 265], [330, 360]], id: ['cruz', 'coracao'] },
     { k: 'natureza', n: 'natureza', re: /(folha|\bflor|jardim|\bra[ií]z|\bterra\b|\bmata\b|verde|semente|org[aâ]nic|natur|\beco\b|planta|\bcampo|\bro[cç]a\b|horta|colheit|safra|bosque|\bserra\b)/, t: { selo: 2, editorial: 1, manuscrito: 1, classico: 1, arcade: -9, gp: -1, noir: -1, chiclete: -1 }, h: [[25, 90]], id: ['folha', 'sol'] },
@@ -1415,23 +2041,54 @@
     { k: 'pet', n: 'bicho', re: /(\bpets?\b|\bpata|\bc[aã]o\b|cachorr|\bgatos?\b|latid|\bdogs?\b|\bcats?\b|focinh|bicho|\bvet\b)/, t: { chiclete: 1, bauhaus: 1, classico: 1, noir: -9 }, h: [], id: ['pata'] }
   ];
   M.CAMPOS = CAMPOS;
-  const IDEIA_NICHO = { comida: ['grelha', 'chama'], cafe: ['grao', 'xicara'], doces: ['bala', 'coracao'], bebidas: ['taca', 'lua'], beleza: ['estrela4', 'gota'], moda: ['cabide', 'estrela4'],
-    fitness: ['avanco', 'faixas'], saude: ['cruz', 'coracao'], pet: ['pata', 'coracao'], casa: ['casa', 'grade'], tech: ['cursor', 'grade'], criativo: ['quadro', 'estrela4'], musica: ['vinil', 'ondas'],
-    educacao: ['livro', 'estrela'], agro: ['sol', 'folha'], auto: ['avanco', 'seta'], servicos: ['check', 'seta'], varejo: ['sacola', 'estrela'], eventos: ['estrela4', 'taca'], arte: ['gota', 'quadro'], outro: ['estrela4', 'check'] };
+  /* v3.43: sem os clichês (o "feito" de serviço, o brilho de beleza): nicho sem ideia boa fica vazio, e aí o símbolo
+     sai do nome, do ofício ou de outro molde do território */
+  const IDEIA_NICHO = { comida: ['grelha', 'chama'], cafe: ['grao', 'xicara'], doces: ['bala', 'coracao'], bebidas: ['taca', 'lua'], beleza: [], moda: ['cabide'],
+    fitness: [], saude: ['cruz', 'coracao'], pet: ['pata', 'coracao'], casa: ['base', 'casa'], tech: ['cursor', 'grade'], criativo: ['quadro'], musica: ['vinil', 'ondas'],
+    educacao: ['livro', 'estrela'], agro: ['sol', 'folha'], auto: ['avanco', 'seta'], servicos: [], varejo: ['sacola', 'estrela'], eventos: ['taca'], arte: [], outro: [] };
+  /* v3.43 · o símbolo sai primeiro do NOME: a palavra inteira do próprio, sem acento (Prumo, Lumi, Laje, Focinho, Coado...).
+     Nunca prefixo solto: Clara não acende luz, Soldado não acende sol, Barbara não acende barba */
+  const NOME_IDEIA = [[/^prumo$/, 'prumo'], [/^(alicerce|base|pilar|esteio)$/, 'base'], [/^(lumi|lume|luz|brilho|farol)$/, 'fresta'], [/^(sol|solar|aurora)$/, 'sol'], [/^(lua|luar)$/, 'lua'],
+    [/^(morro|serra|monte|colina|ladeira)$/, 'morro'], [/^laje$/, 'laje'], [/^agulha$/, 'agulha'], [/^(tatame|dojo)$/, 'tatame'], [/^focinho$/, 'focinho'], [/^(pata|patinha)$/, 'pata'],
+    [/^(prosa|papo|resenha|conversa)$/, 'balao'], [/^(coado|coador|filtro)$/, 'coador'], [/^(navalha|barba)$/, 'navalha'], [/^(dente|sorriso)$/, 'dente'], [/^coluna$/, 'coluna'], [/^tesoura$/, 'tesoura'],
+    [/^(brasa|chapa|grelha)$/, 'grelha'], [/^(chama|fogo)$/, 'chama'], [/^(onda|mar|mare)$/, 'onda'], [/^grao$/, 'grao'], [/^(coroa|rei|rainha)$/, 'coroa'], [/^(folha|flor|raiz|semente)$/, 'folha'],
+    [/^(disco|vinil)$/, 'vinil'], [/^livro$/, 'livro'], [/^bala$/, 'bala'], [/^(casa|lar)$/, 'casa']];
+  /* depois, do OFÍCIO (o descritor e a descrição): só palavra de ofício, nunca de clima */
+  const OFICIO = [[/\b(barbearia|barbeiro|navalha)/, 'navalha'], [/\b(odonto|dentista|dental|implante)/, 'dente'], [/\b(advogad|advocacia|juridic)/, 'coluna'], [/\b(tatuage|tattoo)/, 'agulha'],
+    [/\b(jiu|judo|karate|muay|boxe|luta)/, 'faixa'], [/\b(salao|cabeleireir|cabelo)/, 'tesoura'], [/\bacai/, 'tigela'], [/\b(alvenaria|construtora|obras?|pedreiro)\b/, 'base']];
+  /* v3.43 · AS FUSÕES: quando a ideia do nome encontra o ofício, as duas viram um desenho só, que vem antes de cada uma
+     sozinha (o sol do nome com a pauta da escola de música; o balão da prosa com o pão da padaria; a luz do Lumi com o dente
+     da clínica; o morro com a tigela do açaí) */
+  const FUSOES = [['sol', /\b(music|musica|canto|piano|violao|bateria|coral|orquestra|banda)/, 'solpauta'], ['balao', /\b(pao|paes|padaria|panific|fornada|forno)/, 'paoprosa'],
+    ['fresta', /\b(odonto|dentist|dental|implante|sorriso)/, 'dentluz'], ['morro', /\bacai/, 'tigela'], ['grelha', /\b(quente|brasa|fogo|smash|burger|hamburg)/, 'chapaquente']];
+  /* v3.43 · o pictograma óbvio do nicho (a coluna do advogado, a tesoura do salão, o dente, a xícara, a pata, a chama) é a
+     primeira solução que qualquer um teria: fica de RESERVA. Só entra quando não há ideia do nome, do ofício ou de fusão, e
+     nunca nas primeiras versões. Vindo do próprio nome (uma doceria chamada Coração), ele vale */
+  const CLICHE = new Set(['coluna', 'tesoura', 'dente', 'cruz', 'coracao', 'pata', 'xicara', 'grao', 'chama', 'cabide', 'livro', 'casa', 'gota', 'bala', 'quadro', 'estrela', 'estrela4', 'check', 'sacola', 'taca', 'avanco', 'faixas', 'seta', 'cone', 'ondas', 'grade', 'cursor', 'vinil', 'diamante', 'coroa']);
+  M.CLICHE = CLICHE;
+  const semAcI = w => String(w || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
   /* os campos de sentido de um texto (nome, frase, palavras) */
   M.sentido = (...txt) => { const s = txt.filter(Boolean).join(' ').toLocaleLowerCase('pt-BR'); return CAMPOS.filter(c => c.re.test(s)); };
   const dist = (a, b) => a.reduce((s, v, i) => s + (v - b[i]) ** 2, 0);
   /* o gosto do Studio: entre os que fazem sentido, primeiro os mais refinados (letra boa, espaço, uma ideia só) */
   const REFINO = { sinal: 1.2, editorial: 1.2, noir: 1, rua: 0.8, gp: 0.6, bauhaus: 0.4, classico: 0, chiclete: 0, zine: -0.3, manuscrito: -0.7, selo: -0.7, arcade: -0.7 };
-  M.ranking = (pers, nicho, campos, refT) => {
-    const lin = COER[nicho] || COER.outro, rt = refT || {};
+  /* v3.43: a personalidade pesa mais (2,4 no lugar de 1,4) e o gosto do Studio vira só desempate (x0,25). E ganha o "longe":
+     o território que briga com a personalidade em sério x divertido ou em calma x energia (escritório sério não vira
+     Chiclete, pet shop alegre não vira Sinal). Não é veto: a bancada e o naming seguem vendo; só as amostras cortam.
+     abre = o quanto o leque já abriu ("Mais alternativas"), que afrouxa o corte aos poucos */
+  M.ranking = (pers, nicho, campos, refT, abre) => {
+    const lin = COER[nicho] || COER.outro, rt = refT || {}, ab = abre || 0;
     return Object.entries(T).map(([k, t]) => {
       const cn = lin[ORDEM.indexOf(k)] ?? 0;
       let sem = 0, veta = cn <= -9;
       (campos || []).forEach(c => { const v = c.t[k]; if(v === undefined) return; if(v <= -9) veta = true; else sem += v; });
       /* v3.40: o que as referências da pessoa puxam (palavras, o que não quer, imagens); -9 ou menos é "não quero isso" */
       const ref = rt[k] || 0; if(ref <= -9) veta = true;
-      return { k, veta, coer: cn, sem, ref, nota: cn + Math.min(4, sem) * 1.1 + Math.max(-4, Math.min(4, ref)) * 0.9 - dist(pers, t.v) * 1.4 + (REFINO[k] || 0) };
+      /* v3.43: e a marca sóbria (séria e sem pressa: escritório, imobiliária, contabilidade) não vira cartaz de escola de arte
+         nem lambe; a muito calma (cafeteria de coado) não vira nada de energia alta */
+      const sobria = pers[1] <= 0.3 && pers[3] < 0.45, quieta = pers[3] < 0.2;
+      const longe = Math.abs(pers[1] - t.v[1]) > 0.45 + 0.1 * ab || Math.abs(pers[3] - t.v[3]) > 0.5 + 0.1 * ab || (sobria && t.v[1] > 0.55 + 0.1 * ab) || (quieta && t.v[3] > 0.55 + 0.1 * ab);
+      return { k, veta, longe, coer: cn, sem, ref, nota: cn + Math.min(4, sem) * 1.1 + Math.max(-4, Math.min(4, ref)) * 0.9 - dist(pers, t.v) * 2.4 + (REFINO[k] || 0) * 0.25 };
     }).sort((a, b) => (a.veta - b.veta) || (b.nota - a.nota));
   };
   /* ---------- v3.40 · REFERÊNCIAS: o clima em palavras, o que não pode parecer, as cores, o peso da letra, onde a marca
@@ -1450,6 +2107,8 @@
     { re: /(noturn|escur|sombri|misteri|\bdark|noir|\bpret[oa])/, t: { noir: 3, chiclete: -2 } },
     { re: /(\bgames?\b|8.?bits?|pixel|arcade|fliper)/, t: { arcade: 3 } },
     { re: /(\bselo|carimbo|emblema|bras[aã]o|de origem|desde \d)/, t: { selo: 2, classico: 1 } },
+    /* v3.43: no "não pode parecer", corporativo frio e genérico tira o Sinal (a letra fina de interface) do caminho */
+    { re: /(corporativ|\bfri[oa]s?\b|gen[eé]ric|sem alma|engessad)/, t: { sinal: 2, bauhaus: 1 } },
     { re: /(sinaliza|\bplacas?\b|metr[oô]|aeroporto|transporte|sistema|informa)/, t: { sinal: 3 } },
     { re: /(grafit|graffit|pixa[cç]|muro|\bspray|lambe|skate|hip.?hop|\brap\b|quebrada)/, t: { rua: 3, zine: 1, classico: -2, editorial: -1 } }
   ];
@@ -1520,10 +2179,43 @@
   /* paleta de cada território. Sem cor da pessoa: uma das receitas do Studio (escolhidas a dedo, com nome e história),
      a que mais combina com o sentido do nome e com o nicho. Com a cor da pessoa: a paleta sai da cor dela */
   const ESQUEMAS = ['analoga', 'triade', 'complementar', 'dividida', 'mono'];
+  /* v3.43 · A COR QUE O NOME JÁ TEM. Agulha Preta é preta, Sol Maior é amarela, Lumi é luz: quando uma palavra do próprio
+     diz a cor, ela entra. Preto vira a cor principal; cor de verdade puxa a escolha da paleta e, se nem a principal nem o
+     acento são dela, vira o acento (o sol, a luz). Palavra inteira, sem acento, e só no próprio (não no ofício) */
+  const NOME_COR = [[/^(preta|preto|negra|negro|black|noir|breu|carvao|nanquim)$/, { escuro: true }], [/^(sol|solar|ouro|dourada|dourado|amarela|amarelo|girassol|aurora|mel|gema)$/, { h: [70, 95] }],
+    [/^(lumi|lume|luz|brilho|farol|clarao|candeia|lampiao)$/, { h: [72, 90], luz: true }], [/^(vermelha|vermelho|rubi|rubra|rubro|sangue)$/, { h: [18, 36] }], [/^(brasa|fogo|chama)$/, { h: [28, 48] }],
+    [/^(azul|anil|celeste|mar|ceu|oceano|marinho)$/, { h: [228, 262] }], [/^(roxa|roxo|acai|uva|violeta|lilas|ameixa|jabuticaba)$/, { h: [292, 318] }], [/^(rosa|pink|flamingo)$/, { h: [348, 8] }],
+    [/^(laranja|tangerina|abobora|cobre|ferrugem)$/, { h: [44, 60] }], [/^(cafe|coado|cacau|chocolate|torra|canela|barro|terra)$/, { h: [48, 66] }]];
+  M.corDoNome = nome => { const pt = M.partes(nome); let out = null; pt.palavras.filter(x => x.i0 >= pt.pi0 && x.i1 <= pt.pi1).forEach(x => { const w = semAcI(x.w).replace(/[^a-z]/g, ''); NOME_COR.forEach(([re, v]) => { if(!out && re.test(w)) out = Object.assign({ palavra: x.w }, v); }); }); return out; };
+  const meioFx = f => { const a = n360(f[0]), b = n360(f[1]); return a <= b ? (a + b) / 2 : n360((a + b + 360) / 2); };
+  const corNome = (c, nc) => {
+    if(!nc) return c;
+    if(nc.escuro) return Object.assign({}, c, { p: c.ink, fundo: c.fundo === 'p' ? 'paper' : c.fundo });
+    const em = cor => { const l = M.lch(cor); return l.c >= 0.06 && naFaixa(l.h, nc.h); };
+    if(em(c.p)) return c;
+    const la = M.lch(c.a), c2 = em(c.a) ? c : Object.assign({}, c, { a: M.deLch(Math.max(0.74, Math.min(0.84, la.l)), Math.max(0.12, Math.min(0.16, la.c)), meioFx(nc.h)) });
+    /* a cor do nome que some no papel (o amarelo do Sol em cima do creme) vai pro fundo escuro, onde ela acende */
+    return !nc.luz && c2.fundo === 'paper' && M.contraste(c2.a, c2.paper) < 1.6 ? Object.assign({}, c2, { fundo: 'ink' }) : c2;
+  };
+  /* v3.43 · O ACENTO FICA NA FAMÍLIA. Na paleta gerada, o ciano que a tríade do roxo e do bordô dava (a matiz caía no verde e a
+     regra empurrava pro azul-piscina) e o acento de outro mundo em marca séria ou calma viram o ouro, ou, se a principal já é
+     quente e clara, um tom fundo dela. Paleta de receita fica como o Studio escolheu */
+  const acentoNaFamilia = (c, r, t) => {
+    const lp = M.lch(c.p), la = M.lch(c.a); if(la.c < 0.06) return c;
+    const dh = (() => { const x = Math.abs(n360(lp.h) - n360(la.h)); return Math.min(x, 360 - x); })();
+    const ciano = la.h >= 192 && la.h <= 240 && la.l > 0.66 && la.c > 0.08 && r.nicho !== 'tech';
+    const sobria = (r.pers[1] < 0.4 || r.pers[3] < 0.4) && ![T.bauhaus, T.chiclete, T.zine, T.arcade].includes(t);
+    if(!((ciano && (lp.c < 0.06 || dh > 25 && (sobria || dh > 50))) || (sobria && lp.c >= 0.06 && dh > 70))) return c;
+    const quente = lp.c >= 0.06 && lp.h > 40 && lp.h < 110;
+    /* (o complemento do rosa é o próprio ciano: fora da marca sóbria, o acento vira o vizinho quente da principal) */
+    const viz = M.semVerde(lp.h + 48, 0.8), vizCiano = viz >= 192 && viz <= 240;
+    return Object.assign({}, c, { a: quente ? M.deLch(0.4, Math.min(0.1, lp.c), lp.h - 25) : sobria || vizCiano ? M.deLch(0.76, 0.12, 80) : M.deLch(0.8, 0.15, viz) });
+  };
   function paletaDe(t, r, seed, campos, variante){
     const rf = r.rf || {}, vv = variante || 0, evita = rf.evita || [];
     const evitada = cor => { const l = M.lch(cor); return l.c >= 0.06 && evita.some(f => naFaixa(l.h, f)); };
-    const hs = faixas(campos, r.nicho, rf);
+    const nc = r.cor ? null : M.corDoNome(r.nome);
+    const hs = nc && nc.h && !nc.luz ? [nc.h].concat(rf.gosta || []) : faixas(campos, r.nicho, rf);
     let tom = '';
     if(!r.cor && t.receitas && t.receitas.length){
       /* a cor da marca manda; o acento e o apoio também contam (barra azul em marca de brasa não passa) */
@@ -1535,14 +2227,14 @@
       let rc = null;
       if(vv < boas.length) rc = boas[(i0 + vv) % boas.length];
       else if(vv < boas.length + resto.length) rc = resto[vv - boas.length];
-      if(rc) return { p: rc.p, s: rc.s, a: rc.a, ink: rc.ink, paper: rc.paper, fundo: rc.fundo || t.fundo || 'paper', esquema: 'receita', receita: rc.n };
+      if(rc) return corNome({ p: rc.p, s: rc.s, a: rc.a, ink: rc.ink, paper: rc.paper, fundo: rc.fundo || t.fundo || 'paper', esquema: 'receita', receita: rc.n }, nc);
     }
     /* paleta gerada: sem cor da pessoa, a matiz sai de uma faixa que faz sentido (as das referências primeiro), nunca verde */
-    if(!r.cor && hs.length){ const rr2 = M.rng(seed + 31 + vv * 7), f = hs[(Math.floor(rr2() * hs.length) + vv) % hs.length], a0 = n360(f[0]), a1 = n360(f[1]), larg = a0 <= a1 ? a1 - a0 : a1 + 360 - a0; let h = M.semVerde(a0 + rr2() * larg); if(evita.some(x => naFaixa(h, x))) h = M.semVerde(h + 150); tom = M.deLch(0.62, 0.15, h); }
+    if(!r.cor && hs.length){ const rr2 = M.rng(seed + 31 + vv * 7), f = hs[(Math.floor(rr2() * hs.length) + vv) % hs.length], a0 = n360(f[0]), a1 = n360(f[1]), larg = a0 <= a1 ? a1 - a0 : a1 + 360 - a0; let h = M.semVerde(a0 + rr2() * larg, 0.62); if(evita.some(x => naFaixa(h, x))) h = M.semVerde(h + 150, 0.62); tom = M.deLch(0.62, 0.15, h); }
     const pm = t.pal || {};
     const persCor = r.pers.map((v, i) => (v + t.v[i]) / 2);
     if(pm.mais) persCor[3] = Math.min(1, persCor[3] + pm.mais);
-    let c = M.paleta({ nicho: r.nicho, pers: persCor, cor: r.cor || tom, manter: !!r.cor && r.manterCor, esquema: vv ? ESQUEMAS[(vv + seed % 5) % 5] : pm.esquema, seed });
+    let c = M.paleta({ nicho: r.nicho, pers: persCor, cor: r.cor || tom, pessoa: !!r.cor, manter: !!r.cor && r.manterCor, esquema: vv ? ESQUEMAS[(vv + seed % 5) % 5] : pm.esquema, seed });
     const base = M.lch(c.p);
     if(pm.fluor && !r.manterCor){
       const fl = r.cor ? c.p : (base.h > 30 && base.h < 200 ? '#F2EC54' : '#FF2E93');
@@ -1559,11 +2251,33 @@
     if(r.cor && r.manterCor && vv){ c.fundo = ['paper', 'p', 'ink'][vv % 3]; if(vv % 2) c.paper = M.deLch(0.965, 0.018, 85); }
     /* amarelo e cor clara de marca não seguram o logo em cima do papel: aí a versão principal é na cor */
     if(c.fundo === 'paper' && M.contraste(c.p, c.paper) < 1.7) c.fundo = 'p';
-    return c;
+    /* os ajustes do território (flúor, profundo, claro) também passam pela regra do verde */
+    c = acentoNaFamilia(M.tiraVerde(c, r.cor ? M.lch(r.cor) : null), r, t);
+    return M.tiraVerde(corNome(c, nc), r.cor ? M.lch(r.cor) : null);
   }
   M.receitaDe = sp => { const t = T[sp.territorio]; return (t && t.receitas || []).find(x => x.n === (sp.cores && sp.cores.receita)) || null; };
   /* as ideias de símbolo que fazem sentido: as do sentido do nome primeiro, depois as do nicho */
-  M.ideiasDe = (campos, nicho) => { const out = [], dn = IDEIA_NICHO[nicho] || [], cs = (campos || []).slice().sort((a, b) => b.id.filter(k => dn.includes(k)).length - a.id.filter(k => dn.includes(k)).length); cs.forEach(c => c.id.forEach(k => { if(!out.includes(k)) out.push(k); })); (IDEIA_NICHO[nicho] || IDEIA_NICHO.outro).forEach(k => { if(!out.includes(k)) out.push(k); }); return out; };
+  /* v3.43: as ideias na ordem de força: do próprio nome, do ofício, do sentido do próprio (e da frase e das palavras) e do
+     nicho. Cada uma guarda de onde veio (out.de) e, a do nome, a palavra que acendeu (out.palavra: { w, i0 }).
+     Ideia com "so" (taça, cone, avanço, faixas) só entra pelos campos e pelo nicho quando o nicho é dela */
+  M.ideiasDe = (o, nicho0) => {
+    if(!o || Array.isArray(o)) o = { campos: o, nicho: nicho0 };
+    const nicho = o.nicho, out = [], de = {}, palavra = {}, reserva = [];
+    const poe = (k, d, filtra, w) => { const id = M.IDEIAS[k]; if(!id || out.includes(k)) return; if(filtra && id.so && !id.so.includes(nicho)) return;
+      if(CLICHE.has(k) && d !== 'nome'){ if(!reserva.includes(k)){ reserva.push(k); de[k] = de[k] || d; } return; }
+      out.push(k); de[k] = d; if(w) palavra[k] = w; };
+    if(o.nome){ const pt = M.partes(o.nome); pt.palavras.filter(x => x.i0 >= pt.pi0 && x.i1 <= pt.pi1 && x.c !== 'liga').forEach(x => { const w = semAcI(x.w).replace(/[^a-z0-9]/g, ''); NOME_IDEIA.forEach(([re, k]) => { if(re.test(w)) poe(k, 'nome', false, x); }); }); }
+    /* a fusão entra na frente da ideia do nome que ela funde */
+    const txO = semAcI([o.oficio, o.nome].filter(Boolean).join(' '));
+    FUSOES.forEach(([a, re, k]) => { const i = out.indexOf(a); if(i < 0 || !re.test(txO) || out.includes(k)) return; out.splice(i, 0, k); de[k] = 'nome'; if(palavra[a]) palavra[k] = palavra[a]; });
+    if(o.oficio){ const tx = semAcI(o.oficio); OFICIO.forEach(([re, k]) => { if(re.test(tx)) poe(k, 'oficio'); }); }
+    /* a velocidade (as setas e os rastros) só vem do sentido de velocidade, nunca do nicho */
+    const dn = IDEIA_NICHO[nicho] || [], cs = (o.campos || []).slice().sort((a, b) => b.id.filter(k => dn.includes(k)).length - a.id.filter(k => dn.includes(k)).length);
+    cs.forEach(c => c.id.forEach(k => poe(k, 'campo', c.k !== 'veloz')));
+    (IDEIA_NICHO[nicho] || IDEIA_NICHO.outro).forEach(k => poe(k, 'nicho', true));
+    out.de = de; out.palavra = palavra; out.reserva = reserva;
+    return out;
+  };
   /* as 6 amostras: r = respostas { nome, tagline, nicho, pers, cor, manterCor, letra, cidade, desde, palavras }.
      Só entram territórios coerentes; se forem menos de 6, os melhores aparecem em outra versão (outra receita, outro gesto) */
   /* v3.40: cada rodada gera bem mais candidatas do que mostra (todos os territórios que fazem sentido, em várias versões),
@@ -1573,40 +2287,86 @@
   M.amostras = (r, rodada, vistos) => {
     rodada = rodada || 0;
     const ja = vistos instanceof Set ? vistos : new Set(Array.isArray(vistos) ? vistos : []);
-    const rf = r.rf || M.lerRefs(r.refs); r = Object.assign({}, r, { rf });
+    const rf = r.rf || M.lerRefs(r.refs); r = Object.assign({}, r, { rf, rodada });
     const campos = M.sentido(r.nome, r.tagline, r.palavras, r.descr).concat(rf.campos.filter(c => !M.sentido(r.nome, r.tagline, r.palavras, r.descr).some(x => x.k === c.k)));
-    const rank = M.ranking(r.pers, r.nicho, campos, rf.t);
     const abre = Math.min(3, Math.floor(rodada / 2));
-    let ks = rank.filter(x => !x.veta && x.coer + x.sem + Math.min(0, x.ref || 0) >= -abre * .5 && x.nota > -1.6 - abre * 1.1).map(x => x.k);
+    const rank = M.ranking(r.pers, r.nicho, campos, rf.t, abre), notaT = Object.fromEntries(rank.map(x => [x.k, x.nota]));
+    let ks = rank.filter(x => !x.veta && !x.longe && x.coer + x.sem + Math.min(0, x.ref || 0) >= -abre * .5 && x.nota > -1.6 - abre * 1.1).map(x => x.k);
+    if(ks.length < 2) ks = rank.filter(x => !x.veta && !x.longe).slice(0, 3).map(x => x.k);
     if(ks.length < 2) ks = rank.filter(x => !x.veta).slice(0, 3).map(x => x.k);
     if(!ks.length) ks = rank.slice(0, 3).map(x => x.k);
     if(r.letra){ const ok = k => T[k].fontes.some(f => M.fonteInfo(f).e === r.letra); ks = ks.filter(ok).concat(ks.filter(k => !ok(k))); }
     ks = ks.slice(0, 8 + abre * 2);
-    const cand = [], aqui = new Set(), nv = 3 + Math.min(10, rodada * 2);
-    ks.forEach((k, ti) => { for(let v = 0; v < nv; v++){
+    /* com poucos territórios (personalidade extrema), cada um gera mais versões: o leque precisa de saída pra não repetir ideia */
+    /* v3.43: mais versões por território (os gestos novos e as formas do conceito precisam de vaga pra aparecer) */
+    const cand = [], aqui = new Set(), nv = Math.max(5, Math.ceil(30 / Math.max(1, ks.length))) + Math.min(10, rodada * 2);
+    const gera = (de, ate) => ks.forEach((k, ti) => { for(let v = de; v < ate; v++){
       const vr = v + rodada, sp = M.aplicaTerritorio(k, r, M.hash(r.nome + ':' + k + ':' + rodada + ':' + v), 0, campos, vr, ti === 0 && v === 0 && !rodada), a = M.assinatura(sp);
       if(aqui.has(a)) continue; aqui.add(a); cand.push({ sp, a, ti, v, novo: !ja.has(a) });
     } });
+    gera(0, nv);
+    /* v3.43: depois de umas rodadas, a fila acaba ficando só com o que já passou e o "Mais 6 caminhos" repetia logo.
+       Antes de aceitar repetir, gera mais versões dos mesmos territórios (até 4 vezes o tanto) atrás de novas */
+    for(let extra = 1; extra <= 3 && cand.filter(c => c.novo).length < 9; extra++) gera(nv * extra, nv * (extra + 1));
     /* escolhe uma por vez: a nova vale mais que a repetida, o território mais coerente vale mais, e parecer com uma já
        escolhida tira ponto (no máximo duas do mesmo território, se der) */
+    /* v3.43: o território vale pelo quanto ele fica atrás do melhor (não pela posição na fila), e a alternativa cujo
+       símbolo sai do nome (ou do ofício) sobe: é o conceito que só essa marca tem */
+    const topo = notaT[ks[0]] || 0, origem = { nome: 4.5, oficio: 1.5 };
+    const finaAberta = sp => sp.logo.caixa === 'alta' && (Number(sp.logo.track) || 0) > 0.1 && PESO_F.leve.includes(sp.tipo.display);
     const out = [], usados = {};
     for(let n = 0; n < 6 && cand.length; n++){
       let melhor = null, mn = -Infinity;
-      cand.forEach(c => {
+      /* a mesma ideia de símbolo duas vezes, ou duas caixas altas finas e espaçadas, só quando não sobra outra saída */
+      /* (e o mesmo desenho com outra roupa: mesmo território, mesmo gesto e o mesmo símbolo, só mudando cor ou arranjo) */
+      const gemeo = (a, b) => a.territorio === b.territorio && a.logo.gesto === b.logo.gesto && (a.simbolo || {}).tipo === (b.simbolo || {}).tipo && (a.simbolo || {}).ideia === (b.simbolo || {}).ideia;
+      /* v3.43: a mesma ideia pode voltar em outra forma (do lado do nome, com a inicial dentro, pendurada na letra, no lugar
+         do O): é o conceito da marca atravessando o conjunto. O mesmo desenho na mesma forma, nunca */
+      const mesmaIdeia = (a, b) => (a.simbolo || {}).tipo === 'ideia' && (b.simbolo || {}).tipo === 'ideia' && a.simbolo.ideia === b.simbolo.ideia && formaC(a) === formaC(b);
+      /* v3.43: e o mesmo gesto duas vezes (dois colchetes, dois "SALÃO DA / Neide"), dois emblemas ou dois selos: a rodada
+         gasta a vaga com variação de enfeite, não de ideia */
+      const mesmoGesto = c => !!c.sp.logo.gesto && out.some(o => o.logo.gesto === c.sp.logo.gesto && (cara(o) === cara(c.sp) || o.territorio === c.sp.territorio || ['versalete', 'fiolado', 'pendente', 'corte', 'troca', 'fios'].includes(o.logo.gesto)));
+      const molde = sp => ['emblema', 'monograma'].includes((sp.simbolo || {}).tipo) ? 'emblema' : sp.logo.arranjo === 'selo' ? 'selo' : '';
+      const repete = c => { return out.some(o => mesmaIdeia(o, c.sp)) || (finaAberta(c.sp) && out.some(finaAberta)) || out.some(o => gemeo(o, c.sp)) || mesmoGesto(c) || (!!molde(c.sp) && out.some(o => molde(o) === molde(c.sp))); };
+      /* v3.43: um desenho que já passou numa rodada anterior só volta quando não sobra NENHUM novo. Antes disso as regras
+         de variedade afrouxam (gesto e molde repetidos), mas o "Mais 6 caminhos" não mostra de novo o que a pessoa já viu */
+      const fila = cand.some(c => !c.usado && c.novo) ? cand.filter(c => c.novo) : cand;
+      let livres = fila.filter(c => !c.usado && !repete(c));
+      /* sem saída: primeiro afrouxa o gesto e o molde repetidos (nunca o mesmo desenho duas vezes) */
+      if(!livres.length) livres = fila.filter(c => !c.usado && !out.some(o => gemeo(o, c.sp) || mesmaIdeia(o, c.sp)) && !(!!molde(c.sp) && out.some(o => molde(o) === molde(c.sp))));
+      if(!livres.length) livres = fila.filter(c => !c.usado && !out.some(o => gemeo(o, c.sp) || mesmaIdeia(o, c.sp)));
+      /* sem saída (nome com uma ideia só e poucos territórios): a candidata que repetiria a ideia troca pelo outro molde
+         do território (ou fica sem símbolo), em vez de mostrar o mesmo desenho duas vezes */
+      if(!livres.length) livres = fila.filter(c => !c.usado && c.sp.simbolo && c.sp.simbolo.tipo === 'ideia').map(c => {
+        const sp = JSON.parse(JSON.stringify(c.sp)), t = T[sp.territorio], alt = t.simbs.find(x => x.tipo !== 'ideia' && (x.tipo !== 'orbita' || M.orbitaCabe(M.iniciais(r.nome), r.nicho)));
+        if(alt && alt.tipo !== 'nenhum') sp.simbolo = Object.assign({}, sp.simbolo, { tipo: alt.tipo, ideia: undefined, de: undefined, detalhe: alt.detalhe, estilo: alt.estilo, forma: alt.formas ? alt.formas[0] : undefined });
+        else { sp.simbolo = { tipo: 'nenhum', seed: sp.simbolo.seed }; sp.logo.arranjo = 'wordmark'; }
+        if(sp.logo.gesto === 'troca' && sp.logo.trocaPor === 'ideia') sp.logo.trocaPor = 'circulo';
+        const a = M.assinatura(sp); return Object.assign({}, c, { sp, a, novo: !ja.has(a), gemea: c });
+      }).filter(c => !repete(c));
+      (livres.length ? livres : fila).forEach(c => {
         if(c.usado) return;
-        let nota = (c.novo ? 20 : 0) - c.ti * .55 - c.v * .18 + (rodada === 0 && n === 0 && c.ti === 0 && c.v === 0 ? 8 : 0);
+        const S = c.sp.simbolo || {};
+        let nota = (c.novo ? 20 : 0) - Math.max(0, topo - (notaT[c.sp.territorio] || 0)) * 0.8 - c.v * .18 + (rodada === 0 && n === 0 && c.ti === 0 && c.v === 0 && S.tipo !== 'emblema' ? 8 : 0) + (S.tipo === 'ideia' ? origem[S.de] || 0 : 0) + (c.sp.logo.gesto === 'corte' ? 3 : 0) + (c.sp.logo.gesto ? 1.5 : 0);
         out.forEach(o => { nota -= parecida(c.sp, o) * 1.35; });
+        /* o O virando símbolo é ideia forte: uma vez por rodada basta */
+        const funde = sp => sp.logo.gesto === 'troca' && sp.logo.trocaPor === 'ideia';
+        if(funde(c.sp) && out.some(funde)) nota -= 10;
         if((usados[c.sp.territorio] || 0) >= 2) nota -= 6;
+        /* (quando falta saída e o gesto repete, cada repetição custa: três versaletes numa rodada não) */
+        if(c.sp.logo.gesto) nota -= 4 * out.filter(o => o.logo.gesto === c.sp.logo.gesto).length;
+        /* o escudo com monograma e ano é a resposta automática do clássico: entra, mas atrás do que tem conceito */
+        if(S.tipo === 'emblema') nota -= 2.5;
         if(nota > mn){ mn = nota; melhor = c; }
       });
       if(!melhor) break;
-      melhor.usado = true; usados[melhor.sp.territorio] = (usados[melhor.sp.territorio] || 0) + 1; out.push(melhor.sp);
+      melhor.usado = true; if(melhor.gemea) melhor.gemea.usado = true; usados[melhor.sp.territorio] = (usados[melhor.sp.territorio] || 0) + 1; out.push(melhor.sp);
     }
     out.forEach((sp, i) => { sp.amostra = i + 1; });
     return out;
   };
   /* um território aplicado a uma marca. campos = o sentido do nome; variante = a outra versão do mesmo território */
-  M.aplicaTerritorio = (k, r, seed, i, campos, variante, forcaO) => {
+  M.aplicaTerritorio = (k, r, seed, i, campos, variante, forcaNome) => {
     const t = T[k], rr = M.rng(seed), pega = arr => arr[Math.floor(rr() * arr.length) % arr.length], vv = variante || 0;
     if(!r.rf && r.refs) r = Object.assign({}, r, { rf: M.lerRefs(r.refs) });
     const rf = r.rf || {};
@@ -1618,28 +2378,83 @@
     if(r.letra && M.fonteInfo(fonte).e !== r.letra){ const alts = M.FONTES.filter(f => f.d && f.e === r.letra).sort((a, b) => dist(a.v, t.v) - dist(b.v, t.v)); if(alts.length) fonte = alts[(Math.floor(rr() * Math.min(alts.length, 1 + vv))) % alts.length].id; }
     /* o peso de letra que a pessoa pediu (leve, no meio, pesada) */
     if(rf.peso && !(r.letra && r.letra !== 'sem' && r.letra !== 'serifa')){ const ok = PESO_F[rf.peso] || []; if(!ok.includes(fonte)){ const cand = fontesT.concat(irmas).filter(id => ok.includes(id)), daLetra = r.letra ? ok.filter(id => M.fonteInfo(id).e === r.letra) : ok; const lista = cand.length ? cand : daLetra.slice().sort((a, b) => dist(M.fonteInfo(a).v, t.v) - dist(M.fonteInfo(b).v, t.v)); if(lista.length) fonte = lista[vv % lista.length]; } }
-    const ideias = M.ideiasDe(campos, r.nicho), icones = (M.NICHOS[r.nicho] || M.NICHOS.outro).ic;
-    const s0 = t.simbs[(Math.floor(rr() * t.simbs.length) + vv) % t.simbs.length];
-    const ideia = ideias[(Math.floor(rr() * Math.min(2 + Math.floor(vv / 2), ideias.length)) + vv) % ideias.length];
-    const icCampo = { grelha: 'chama', chama: 'chama', grao: 'xicara', xicara: 'xicara', bala: 'coracao', coracao: 'coracao', vinil: 'fone', ondas: 'onda', cursor: 'codigo', grade: 'codigo', avanco: 'raio', faixas: 'raio', cruz: 'coracao', folha: 'folha', sol: 'sol', pata: 'pata', taca: 'taca', lua: 'estrela', coroa: 'coroa', diamante: 'diamante', casa: 'casa', livro: 'livro', sacola: 'sacola', quadro: 'camera', gota: 'pincel', cone: 'raio', seta: 'raio', onda: 'onda', estrela: 'estrela', estrela4: 'estrela', check: 'chave', cabide: 'camiseta' }[ideia];
+    /* v3.43: o símbolo sai do nome e do ofício; o que a descrição e as referências puxam pesa no território e na cor,
+       mas não vira desenho (palavra solta da descrição dava taça em salão e seta em pet shop) */
+    const pt = M.partes(r.nome);
+    const ideias = M.ideiasDe({ nome: r.nome, oficio: [pt.descritor, r.descr].join(' '), campos: M.sentido(pt.proprio, r.tagline, r.palavras), nicho: r.nicho }), icones = (M.NICHOS[r.nicho] || M.NICHOS.outro).ic;
+    let s0 = t.simbs[(Math.floor(rr() * t.simbs.length) + vv) % t.simbs.length];
+    const ri = rr(), doNome = ideias.filter(x => ideias.de[x] === 'nome');
+    /* v3.43: sem ideia de nome, de ofício ou de fusão, o pictograma do nicho (a reserva) só entra depois das primeiras versões */
+    const lista = ideias.length ? ideias : (r.rodada || 0) >= 1 && vv >= 2 ? ideias.reserva : [];
+    let ideia = lista.length ? lista[(Math.floor(ri * Math.min(4 + Math.floor(vv / 2), lista.length)) + vv) % lista.length] : undefined;
+    /* v3.43: a primeira alternativa do território mais coerente mostra o conceito que sai do nome, do lado dele */
+    const vaiNome = !!(forcaNome && doNome.length && t.simbs.some(x => x.tipo === 'ideia'));
+    if(vaiNome){ s0 = t.simbs.find(x => x.tipo === 'ideia'); ideia = doNome[0]; }
+    /* sem ideia que faça sentido, o molde "ideia" do território vira o outro molde dele (ou nenhum): nada de símbolo genérico */
+    if(s0.tipo === 'ideia' && !ideia) s0 = t.simbs.find(x => x.tipo !== 'ideia') || { tipo: 'nenhum' };
+    /* a órbita é rara: só com inicial redonda ou em tecnologia; fora disso, o outro molde do território */
+    if(s0.tipo === 'orbita' && !M.orbitaCabe(M.iniciais(r.nome), r.nicho)){ const alt = t.simbs.find(x => x.tipo !== 'orbita' && (x.tipo !== 'ideia' || ideia)); s0 = alt || { tipo: 'nenhum' }; }
+    /* o monograma sobreposto só com duas iniciais (Moraes & Valente, Sol Maior); com uma, fica o outro molde */
+    const duasIni = [...M.iniciais(r.nome)].filter(c => c !== '&');
+    if(s0.tipo === 'monograma' && s0.estilo === 'liga' && (duasIni.length < 2 || semAcI(duasIni[0]) === semAcI(duasIni[1]))){ const alt = t.simbs.find(x => !(x.tipo === 'monograma' && x.estilo === 'liga') && (x.tipo !== 'ideia' || ideia)); s0 = alt || { tipo: 'nenhum' }; }
+    /* v3.43: o desenho em pixel também só sai de uma ideia de verdade (o pictograma do nicho em pixel é o mesmo clichê) */
+    if(s0.tipo === 'pixel' && !ideia) s0 = { tipo: 'nenhum' };
+    const icCampo = { grelha: 'chama', chama: 'chama', grao: 'xicara', xicara: 'xicara', bala: 'coracao', coracao: 'coracao', vinil: 'fone', ondas: 'onda', cursor: 'codigo', grade: 'codigo', avanco: 'raio', faixas: 'raio', cruz: 'coracao', folha: 'folha', sol: 'sol', pata: 'pata', taca: 'taca', lua: 'estrela', coroa: 'coroa', diamante: 'diamante', casa: 'casa', livro: 'livro', sacola: 'sacola', quadro: 'camera', gota: 'pincel', cone: 'raio', seta: 'raio', onda: 'onda', estrela: 'estrela', estrela4: 'estrela', check: 'chave', cabide: 'camiseta',
+      dente: 'dente', tesoura: 'tesoura', navalha: 'tesoura', focinho: 'pata', laje: 'casa', base: 'casa', fresta: 'sol', agulha: 'pincel', morro: 'montanha', coador: 'xicara',
+      tigela: 'cupcake', solpauta: 'sol', paoprosa: 'pao', dentluz: 'dente', chapaquente: 'chama', tatame: 'haltere' }[ideia];
     const simbolo = { tipo: s0.tipo, forma: s0.formas ? pega(s0.formas) : undefined, icone: s0.icone || icCampo || pega(icones), ideia: s0.tipo === 'ideia' || s0.tipo === 'icone' ? ideia : undefined, detalhe: s0.detalhe, estilo: s0.estilo, seed: seed % 100000 };
-    if(simbolo.tipo === 'ideia') simbolo.ideia = ideia;
+    if(simbolo.tipo === 'ideia'){ simbolo.ideia = ideia; simbolo.de = ideias.de[ideia]; if((s0.letra || ideia === 'base') && M.cabeLetra(ideia)) simbolo.letra = true; }
+    /* a fatia e o corte só onde a letra aguenta (senão, a barra) */
+    if(simbolo.tipo === 'letra') simbolo.detalhe = M.detalheLetra(simbolo.detalhe, [...M.iniciais(r.nome)][0]);
     let arranjo = simbolo.tipo === 'nenhum' ? 'wordmark' : t.arranjos[(Math.floor(rr() * t.arranjos.length) + vv) % t.arranjos.length];
     /* o gesto tipográfico do território (empilhado só com duas palavras ou mais; recorte só em nome curto) */
-    const nome = String(r.nome || '').trim(), palavras = nome.split(/\s+/).length, gs = t.gestos || [['']];
-    let g = gs[(Math.floor(rr() * gs.length) + vv) % gs.length];
-    if((g[0] === 'empilha' && palavras < 2) || (g[0] === 'recorte' && [...nome].length > 14)) g = gs.find(x => x[0] !== g[0]) || [''];
-    /* a ideia mais forte: quando o nome tem um "O" e o símbolo é redondo, o O vira o símbolo (e o nome sozinho já é a marca) */
-    const temO = /[oO0ÓÒÔÕÖóòôõö]/.test(nome), FUSAO = ['rua', 'gp', 'bauhaus', 'sinal', 'editorial', 'chiclete', 'zine', 'classico', 'noir'];
-    const redondas = ideias.slice(0, 3).filter(x => M.IDEIAS[x] && M.IDEIAS[x].redonda);
-    if(temO && FUSAO.includes(k) && redondas.length && (forcaO || (simbolo.tipo === 'ideia' && M.IDEIAS[simbolo.ideia].redonda && rr() < 0.45))){
-      if(!(simbolo.tipo === 'ideia' && M.IDEIAS[simbolo.ideia].redonda)) Object.assign(simbolo, { tipo: 'ideia', ideia: redondas[0], estilo: ['sinal', 'editorial', 'noir', 'zine'].includes(k) ? 'linha' : undefined });
-      g = ['troca', { trocaPor: 'ideia' }]; arranjo = 'wordmark';
+    const nome = String(r.nome || '').trim(), gs = t.gestos || [['']];
+    const cores = paletaDe(t, r, seed, campos, vv);
+    /* v3.43: a partir do gesto sorteado, fica o primeiro da lista que cabe no nome, na letra e nas cores */
+    /* v3.43: o corte de navalha só onde ele é o ofício (salão, barbearia, luta); o pendente só quando a ideia do nome tem o que
+       pendurar (o prumo, a gota do coado) */
+    const corteOk = r.nicho === 'beleza' || /\b(corte|navalha|barb|cabel|tesoura|luta|jiu|muay|boxe|karate|judo)/.test(semAcI([r.nome, r.descr, pt.descritor].join(' ')));
+    const PEND = { prumo: 'prumo', coador: 'gota', agulha: 'tinta' }, pende = PEND[ideias.find(x => ideias.de[x] === 'nome' && PEND[x])] || '';
+    const ig = (Math.floor(rr() * gs.length) + vv) % gs.length;
+    let g = [''];
+    /* v3.43: entre os gestos que cabem, um sorteado (antes era o primeiro da lista depois do sorteio, e o gesto do começo da
+       lista ganhava quase sempre: rua era sempre empilhado, grand prix sempre encostado) */
+    const cabem = gs.filter(c => M.cabeGesto(c[0], pt, nome, fonte, { caixa: t.caixa, cores, arranjo, sep: (c[1] || {}).sep, track: t.track, pers: r.pers, veloz: r.nicho === 'auto' || M.sentido(r.nome, r.tagline, r.palavras, r.descr).some(x => x.k === 'veloz'), corte: corteOk, pende }));
+    if(cabem.length) g = cabem[(ig + vv) % cabem.length];
+    /* O "O" VIRA O SÍMBOLO só quando o conceito vem do nome: a ideia saiu de uma palavra do próprio, essa palavra tem um O
+       de verdade (sem acento, fora do "ão") e o desenho lê como O (grelha, onda, lua, vinil, o sol no horizonte). Aí o nome
+       sozinho já é a marca. Nunca na primeira alternativa (ela mostra o conceito do lado do nome) e só de vez em quando */
+    const FUSAO = ['rua', 'gp', 'bauhaus', 'sinal', 'editorial', 'chiclete', 'zine', 'classico', 'noir'];
+    const temOde = w => { const cs = w ? [...w.w] : []; return cs.some((ch, j) => /[oO0]/.test(ch) && !(j && /[ãõÃÕ]/.test(cs[j - 1]))); };
+    const fundiveis = doNome.filter(x => M.IDEIAS[x] && (M.IDEIAS[x].redonda || M.IDEIAS[x].noO) && temOde(ideias.palavra[x]));
+    if(!vaiNome && FUSAO.includes(k) && fundiveis.length && vv >= 1 && rr() < 0.35){
+      Object.assign(simbolo, { tipo: 'ideia', ideia: fundiveis[0], de: 'nome', forma: undefined, detalhe: undefined, estilo: ['sinal', 'editorial', 'noir', 'zine'].includes(k) ? 'linha' : undefined });
+      g = ['troca', { trocaPor: 'ideia', trocaEm: ideias.palavra[fundiveis[0]].i0 }]; arranjo = 'wordmark';
     }
     if(arranjo === 'placa' && [...nome].length > 18) arranjo = 'horizontal';
-    const cores = paletaDe(t, r, seed, campos, vv);
-    const logo = Object.assign({ arranjo, caixa: t.caixa, track: t.track, efeito: pega(t.efeitos), gesto: g[0], tagline: !!String(r.tagline || '').trim(), corTexto: k === 'gp' ? 'marca' : 'texto' }, g[1] || {});
-    if(k === 'selo') logo.selo = '';
+    /* v3.43: nome com ofício que não cabe numa linha e ficou sem gesto vira hierarquia: quebrado em duas linhas do mesmo
+       tamanho, o ofício (Contabilidade) ficava maior que o próprio (Prumo) */
+    if(!g[0] && pt.descritor && M.largEst(fonte, nome, t.caixa, t.track) > 760 && M.cabeGesto('hierarquia', pt, nome, fonte)) g = ['hierarquia'];
+    /* v3.43 · um gesto por marca: com símbolo do lado, o enfeite do nome (sublinhado, colchete, ponto, letra pintada) sai.
+       Símbolo + letra em destaque + sublinhado é três ideias brigando; fica o símbolo */
+    if(simbolo.tipo !== 'nenhum' && ['sublinha', 'colchetes', 'ponto', 'destaque', 'bolha', 'corte'].includes(g[0])) g = [''];
+    /* o pendente é o símbolo morando no letreiro: a assinatura principal fica só o nome (o desenho continua no avatar) */
+    if(g[0] === 'pendente' && pende){ const k2 = ideias.find(x => ideias.de[x] === 'nome' && PEND[x]); Object.assign(simbolo, { tipo: 'ideia', ideia: k2, de: 'nome', letra: undefined, forma: undefined, detalhe: undefined }); arranjo = 'wordmark'; }
+    /* v3.43: a inicial sozinha do lado do nome nunca: ela já está no nome (K + KVRA lê "KKVRA", M + açaí do morro lê
+       "Maçaí"). O molde "letra" vira o outro molde do território; a inicial fica pro avatar */
+    if(simbolo.tipo === 'letra'){
+      const alt = t.simbs.find(x => x.tipo !== 'letra' && (x.tipo !== 'ideia' || ideia) && (x.tipo !== 'orbita' || M.orbitaCabe(M.iniciais(r.nome), r.nicho)));
+      if(alt && alt.tipo !== 'nenhum') Object.assign(simbolo, { tipo: alt.tipo, detalhe: alt.detalhe, estilo: alt.estilo, forma: alt.formas ? pega(alt.formas) : undefined, ideia: alt.tipo === 'ideia' ? ideia : undefined, de: alt.tipo === 'ideia' ? ideias.de[ideia] : undefined });
+      else { simbolo.tipo = 'nenhum'; arranjo = 'wordmark'; }
+    }
+    /* v3.43: o espaço aberto entre letras encolhe com o tamanho do nome (o 0,2 do Sinal fica 0,2 em KVRA e cai pra perto de
+       0,08 num nome de 26 letras); letra fina em caixa alta com mais de 12 letras não passa de 0,1 */
+    const nL = [...nome].length, fina = PESO_F.leve.includes(fonte) && t.caixa === 'alta';
+    const track = t.track > 0 ? Math.round(Math.min(t.track * Math.max(0.35, Math.min(1, 11 / Math.max(1, nL))), fina && nL > 12 ? 0.1 : 9) * 1000) / 1000 : t.track;
+    const logo = Object.assign({ arranjo, caixa: t.caixa, track, efeito: pega(t.efeitos), gesto: g[0], tagline: !!String(r.tagline || '').trim(), corTexto: k === 'gp' ? 'marca' : 'texto' }, g[1] || {});
+    if(g[0] === 'pendente') logo.pende = pende;
+    /* v3.43: o selo alterna entre o anel com o nome em volta e a fita atravessando (o mesmo molde em toda marca vira carimbo de gerador) */
+    if(k === 'selo') logo.selo = (seed >> 3) % 2 ? 'fita' : '';
     if(k === 'manuscrito') logo.corGesto = 'marca';
     /* o gesto (barra, ponto, bolha, fio) sai na cor do acento; se o acento foge do sentido e a cor da marca não, o gesto vai na cor da marca */
     { const hs = faixas(campos, r.nicho), la = M.lch(cores.a), lp = M.lch(cores.p);
@@ -1650,9 +2465,28 @@
     };
   };
   /* v3.40 · a assinatura de uma amostra: o que faz duas parecerem a mesma (território, letra, cores, gesto, símbolo, arranjo) */
-  M.assinatura = sp => [sp.territorio, sp.tipo && sp.tipo.display, sp.cores && (sp.cores.receita || sp.cores.p + sp.cores.a), sp.cores && sp.cores.fundo, sp.logo && sp.logo.gesto, sp.simbolo ? sp.simbolo.tipo + ':' + (sp.simbolo.ideia || sp.simbolo.icone || sp.simbolo.forma || '') : '', sp.logo && sp.logo.arranjo].join('|');
+  /* v3.43: só o que se DESENHA (letra, caixa, gesto, símbolo e o molde do arranjo). Com a cor, o fundo e o território na
+     conta, a mesma letra com o mesmo símbolo voltava no "Mais 6 caminhos" como se fosse nova, só trocando a bolinha de
+     cor ou o deitado pelo empilhado. Símbolo "nenhum" não carrega a ideia que ficou guardada nele */
+  const MOLDE_ARR = { horizontal: 'trava', vertical: 'trava' };
+  M.assinatura = sp => {
+    const s = sp.simbolo || {}, sem = !s.tipo || s.tipo === 'nenhum', arr = (sp.logo && sp.logo.arranjo) || '';
+    const simb = sem ? '' : s.tipo + ':' + (s.ideia || s.icone || s.forma || '') + (s.letra ? '+letra' : '') + (s.detalhe ? ':' + s.detalhe : '') + (s.tipo === 'geo' || (s.tipo === 'pixel' && !s.icone && !s.ideia) ? ':' + s.seed : '');
+    return [sp.tipo && sp.tipo.display, sp.logo && sp.logo.caixa, sp.logo && sp.logo.gesto, simb, sem ? '' : (MOLDE_ARR[arr] || arr)].join('|');
+  };
   /* o quanto duas amostras se parecem (0 = nada a ver) */
-  const parecida = (a, b) => (a.territorio === b.territorio ? 2 : 0) + (a.tipo.display === b.tipo.display ? 2 : 0) + ((a.cores.receita || a.cores.p) === (b.cores.receita || b.cores.p) ? 2.2 : M.contraste(a.cores.p, b.cores.p) < 1.25 ? 1.2 : 0) + (a.logo.gesto === b.logo.gesto ? 1 : 0) + (a.logo.arranjo === b.logo.arranjo ? .5 : 0) + (a.simbolo && b.simbolo && a.simbolo.tipo === b.simbolo.tipo && (a.simbolo.ideia || a.simbolo.icone) === (b.simbolo.ideia || b.simbolo.icone) ? 1 : 0);
+  /* v3.43: a "cara da letra" (estilo, classe de peso, caixa e se é espaçada) conta no lugar da fonte exata: Grotesca Fina e
+     Geométrica Leve em caixa alta espaçada são a mesma cara. Mesma ideia de símbolo pesa muito (o leque mostra conceitos
+     diferentes) e o mesmo molde (letra, órbita, emblema, geo, monograma) também */
+  const pesoF = id => PESO_F.leve.includes(id) ? 'leve' : PESO_F.pesada.includes(id) ? 'pesada' : 'media';
+  /* (v3.43: grotesca média e pesada em caixa baixa são a mesma cara pra quem olha a folha: o peso conta só leve x cheia) */
+  const cara = sp => [M.fonteInfo(sp.tipo.display).e, pesoF(sp.tipo.display) === 'leve' ? 'leve' : 'cheia', sp.logo.caixa || '', (Number(sp.logo.track) || 0) > 0.1].join('|');
+  const MOLDES = ['letra', 'orbita', 'emblema', 'geo', 'monograma'];
+  /* a forma em que a ideia aparece: do lado do nome, com a inicial dentro, pendurada na letra ou no lugar do O */
+  const formaC = sp => (sp.simbolo || {}).letra ? 'letra' : sp.logo.gesto === 'pendente' ? 'pende' : sp.logo.gesto === 'troca' && sp.logo.trocaPor === 'ideia' ? 'troca' : 'lado';
+  const parecida = (a, b) => { const A = a.simbolo || {}, B = b.simbolo || {};
+    return (a.territorio === b.territorio ? 2 : 0) + (cara(a) === cara(b) ? 3 : 0) + (a.tipo.display === b.tipo.display ? 2.5 : 0) + ((a.cores.receita || a.cores.p) === (b.cores.receita || b.cores.p) ? 2.2 : M.contraste(a.cores.p, b.cores.p) < 1.25 ? 1.2 : 0) + (a.logo.gesto === b.logo.gesto ? (a.logo.gesto ? 3 : 1) : 0) + (a.logo.arranjo === b.logo.arranjo ? .5 : 0)
+      + (A.tipo === 'ideia' && B.tipo === 'ideia' && A.ideia === B.ideia ? (formaC(a) === formaC(b) ? 5 : 2) : 0) + (A.tipo === B.tipo && MOLDES.includes(A.tipo) ? 2.5 : 0) + (A.tipo === B.tipo && (A.tipo === 'icone' || A.tipo === 'pixel') && A.icone === B.icone ? 1 : 0); };
   M.parecida = parecida;
   /* o porquê de cada escolha (vai na abertura do brandbook e na prancha da amostra) */
   M.porque = sp => {
@@ -1971,18 +2805,23 @@
       return `O "O" do nome vira ${por === 'anel' ? 'um anel, como um holofote aceso no meio da palavra' : por === 'alvo' ? 'um alvo, círculo dentro de círculo' : por === 'icone' ? 'o próprio ícone da marca, dentro de um círculo' : 'um círculo perfeito, cheio, na cor de acento'}: a palavra continua lendo igual, mas ganha um símbolo escondido dentro dela.`;
     },
     empilha: () => 'As palavras sobem uma em cima da outra, na mesma largura, como letreiro pintado: o bloco vira um carimbo compacto que cabe em qualquer canto.',
-    estencil: () => 'Um corte atravessa as letras, como molde de estêncil: a marca já nasce com cara de spray, de caixote de feira, de pintura de muro.',
+    estencil: () => 'As letras ganham as pontes do molde de estêncil onde ele cortaria de verdade: no miolo do A, do P e do O, e rente à haste do E e do H. Cada letra fica de pé, e a marca já nasce com cara de spray, de caixote de feira, de pintura de muro.',
     recorte: () => 'Cada letra vem num pedaço de papel recortado, de cor e ângulo diferentes, como bilhete montado com letra de revista: impossível confundir com outra marca.',
     pulo: () => 'As letras pulam fora da linha, uma pra cima, outra pra baixo: a marca tem ritmo, parece que tá dançando.',
     bolha: () => 'Uma bolha de cor estoura no fim do nome, como chiclete: a marca termina num sorriso.',
-    hierarquia: () => 'A palavra que carrega o nome vem grande; a outra vem fina, em caixa alta, espaçada até ter exatamente a mesma largura. É hierarquia de capa de revista: o bloco vira assinatura.',
-    pesos: () => 'O nome vem em dois pesos: a primeira palavra forte, a segunda leve, coladas. A troca de peso faz o papel do espaço e o nome vira uma palavra só, com ritmo.',
-    separador: sp => ({ '/': 'Uma barra no lugar do espaço, como em placa de rua e etiqueta de roupa: o nome vira endereço.', '_': 'Um sublinhado no lugar do espaço, como nome de arquivo e de comando: a marca fala a língua de quem programa.', '.': 'Um ponto no lugar do espaço: cada palavra vira uma afirmação.', '·': 'Um ponto no meio, como letreiro de bar e crédito de filme: a separação vira charme.', '—': 'Um travessão no lugar do espaço, como título de capítulo: a marca ganha pausa e respiro.', '+': 'Um sinal de mais entre as palavras, como colagem: a marca é uma soma.' })[(sp.logo && sp.logo.sep) || '/'] || 'Um sinal no lugar do espaço, com sentido.',
-    velocidade: () => 'Um risco de velocidade sai de trás do nome: a marca já aparece andando, como carro passando na reta.',
-    fios: sp => { const l = M.linhaFios(sp); return `Dois fios finos seguram o nome${l ? `, com ${/^est\. /.test(l) ? 'o ano de fundação' : 'a cidade'} no meio do fio de baixo` : ''}, como cabeçalho de revista: é o desenho de quem tem história pra contar.`; },
+    hierarquia: sp => { const pt = M.partes(sp.nome || ''); return `O nome próprio (${pt.proprio}) vem grande; o que a marca faz (${pt.descritor ? pt.descritor.toLowerCase() : 'o resto'}) vem pequeno, em caixa alta, na letra de texto. É hierarquia de capa de revista: o olho guarda o nome e entende o ofício de passagem.`; },
+    pesos: sp => { const pt = M.partes(sp.nome || ''); return `O nome vem em dois pesos da mesma família: o próprio (${pt.proprio}) na letra forte, o resto na leve. A troca de peso diz o que é nome e o que é ofício sem precisar de mais nada.`; },
+    separador: sp => /(^|\s)&(\s|$)/.test(sp.nome || '') ? 'O "&" do nome vira o sinal da marca, pintado na cor de destaque: é ele que junta os dois lados, e o olho para ali.' : ({ '/': 'Uma barra entre o nome e o ofício, como em placa de rua e etiqueta de roupa: o nome vira endereço.', '_': 'Um sublinhado entre o nome e o ofício, como nome de arquivo e de comando: a marca fala a língua de quem programa.', '.': 'Um ponto entre o nome e o ofício: cada parte vira uma afirmação.', '·': 'Um ponto no meio entre o nome e o ofício, como letreiro de bar e crédito de filme: a separação vira charme.', '—': 'Um travessão entre o nome e o ofício, como título de capítulo: a marca ganha pausa e respiro.', '+': 'Um sinal de mais entre o nome e o ofício, como colagem: a marca é uma soma.' })[(sp.logo && sp.logo.sep) || '/'] + ' O sinal é o da própria letra, então pesa igual a ela.',
+    velocidade: () => 'Três rastros saem de trás do nome, do mais comprido ao mais curto, com a grossura da própria letra: a marca já aparece andando, como carro passando na reta.',
+    fios: sp => { const l = M.linhaFios(sp); return `Dois fios finos seguram o nome${l ? `, com ${/^desde /.test(l) ? 'o ano de fundação' : 'a cidade'} no meio do fio de baixo` : ''}, como cabeçalho de revista: é o desenho de quem tem história pra contar.`; },
     colchetes: () => 'Colchetes abraçam o nome, como anotação de quem edita: a marca parece um destaque marcado à mão no meio do texto.',
     ponto: () => 'Um ponto final fecha o nome: a marca termina a frase. É afirmação, não pergunta.',
-    sublinha: () => 'Um traço sublinha o nome, como assinatura: é o gesto de quem escreve à mão e confirma o que escreveu.'
+    sublinha: () => 'Um traço sublinha o nome, como assinatura: é o gesto de quem escreve à mão e confirma o que escreveu.',
+    encosta: () => 'As letras se encostam umas nas outras, no kerning ótico (medido na tinta, letra a letra): o nome vira um bloco só, como letreiro recortado numa chapa. Lê de longe e não parece fonte digitada.',
+    corte: sp => `Um risco fino atravessa ${M.partes(sp.nome || '').proprio} na diagonal, como a navalha passando: o nome leva o corte que dá nome ao ofício, e só aparece onde corta letra.`,
+    pendente: sp => ({ prumo: 'O prumo desce num fio da haste da letra: o nome vira a ferramenta que dá nome à marca, e a régua de quem faz direito fica pendurada nele.', tinta: 'Uma gota de tinta escorre do pé da letra, como da ponta da agulha: o nome já sai tatuado.' })[sp.logo && sp.logo.pende] || 'Uma gota pinga do pé da letra, como o café passando no coador: o conceito mora no próprio letreiro.',
+    versalete: () => 'Cada palavra em maiúscula, com a primeira letra inteira e as outras em versalete: o letreiro de placa de bronze e de capa de livro. Nobre sem precisar de enfeite.',
+    fiolado: () => 'O nome grande à esquerda, um fio em pé e o ofício pequeno do outro lado, com a cidade embaixo: a assinatura de escritório e de editora, alinhada como placa na porta.'
   };
   M.gestoTxt = sp => (GESTO[(sp.logo && sp.logo.gesto) || ''] || GESTO[''])(sp);
   const ARRANJO = {

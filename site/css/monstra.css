@@ -2633,3 +2633,26 @@ html.embed .msg-pg{height:calc(100dvh - 40px)}
 @media (max-width:350px){ .tabbar.tbx .tb-bola{width:52px} .tabbar.tbx .tb-cortica{width:44px} }
 /* de carona, no Do teu nicho a 320 com as fontes de verdade: o "+ Referência" passava 16px da tela; agora desce de linha */
 .rf .sec-row{flex-wrap:wrap}
+/* correal em centavos (ainda v3.43): na carteira, cada preço leva a palavra certa ("0,20 correal", "2,40 correais") escrita
+   pelo app, do lado do número. O " correais" fixo do ::after (v3.38) saía errado no singular */
+.cart-precos li b::after{content:none}
+.cart-precos li small{margin-left:-6px;font-weight:600;font-size:12.5px;color:var(--muted)}
+.cart-p + .cart-p{margin-top:6px}
+.cart-conta{font-weight:650;color:var(--ink)}
+/* o menu mostra que rola (ainda v3.43). Em notebook de tela baixa (1366x768 de verdade é uma janela de 643px; 1280x610) a
+   lista do menu rola até ~184px, com a barra de rolagem escondida: os itens de cima e de baixo sumiam sem sinal. Agora,
+   só quando tem um item inteiro escondido naquela direção (mais de 24px), um degradê da cor do menu apaga a borda da
+   lista (no alto e/ou no pé), e um trilho fino, na beira direita, mostra onde a lista tá sempre que ela rola. Sem
+   rolagem (1366x900), nada aparece. Sem setinha: ela parecia botão, e o clique caía no item escondido embaixo. Sem
+   transição: o menu se redesenha a cada página e o degradê piscava. O app.js liga as classes e mede a lista (--nav-t e
+   --nav-h: onde ela começa e a altura; --trilho-t e --trilho-h). O item aceso fica fora do degradê: o aVista deixa
+   folga (40px), e o scroll-padding faz o mesmo pro foco do Tab */
+@media (min-width:901px){
+  .lado-nav{scroll-padding-block:40px}
+  .lado::before,.lado::after{content:"";position:absolute;left:0;right:0;z-index:1;height:28px;pointer-events:none;opacity:0}
+  .lado::before{top:var(--nav-t,0px);background:linear-gradient(var(--night) 15%,rgb(12 10 15 / 0))}
+  .lado::after{top:calc(var(--nav-t,0px) + var(--nav-h,0px) - 28px);background:linear-gradient(rgb(12 10 15 / 0),var(--night) 85%)}
+  .lado.rola-cima::before,.lado.rola-baixo::after{opacity:1}
+  .lado-trilho{position:absolute;right:3px;top:var(--trilho-t,0px);z-index:2;width:3px;height:var(--trilho-h,0px);border-radius:3px;background:rgb(247 245 239 / 30%);pointer-events:none;opacity:0}
+  .lado.rola .lado-trilho{opacity:1}
+}

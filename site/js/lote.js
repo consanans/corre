@@ -62,6 +62,8 @@
       datas: datas.map(d => ({ data: d, dia: DOWL[new Date(msDe(d)).getUTCDay()] })), datas_comerciais: (C.refs && C.refs.proximas ? C.refs.proximas(catDe(mk), 12) : []).map(c => ({ nome: c.nome, data: c.data })),
       anteriores: S().posts().filter(p => p.marca_id === mk.id && p.titulo).slice(-12).map(p => p.titulo) };
     const r = await C.iaFn({ acao: 'pauta', ctx, marca_id: mk.id }, { oque: 'uma pauta' });
+    /* a pauta paga entra na conta do mês (o "Usou X correal" do fim), já que a promessa da folha conta com ela */
+    if(F && r && r.pago) F.pautaPago = (F.pautaPago || 0) + C.correalCent(r.pago);
     const L = (r && Array.isArray(r.itens) ? r.itens : []).filter(x => x && x.titulo);
     if(L.length < Math.ceil(datas.length / 2)) throw { code: 'pauta' };
     const base = pautaLocal(mk, datas, assunto);
@@ -99,6 +101,7 @@
   const blobUrl = b => new Promise(ok => { const fr = new FileReader(); fr.onload = () => ok(String(fr.result || '')); fr.onerror = () => ok(''); fr.readAsDataURL(b); });
 
   /* ---------- o trabalho: cada item vira post programado ---------- */
+  /* job.gastou é em centavos inteiros (v3.43: o correal tem centavos; somar 0,20 dez vezes em número quebrado não dá 2) */
   function novoJob(tipo, mk, itens, hora, o){ return Object.assign({ tipo, mk, itens: itens.map(x => Object.assign({ st: 'fila' }, x)), hora, i: 0, feitos: 0, falhas: 0, semIA: '', semLeg: false, fim: false, parar: false, iaImg: tipo === 'ia', iaLeg: true, usaCorreal: false, gastou: 0 }, o || {}); }
   async function roda(job){
     JOB = job; barra(); pinta();
@@ -119,7 +122,7 @@
     /* 1. a imagem */
     let foto = it.arquivo || null, fotoUrl = '';
     if(!foto && job.iaImg){
-      try{ const r = await C.iaFn({ prompt: promptDe(mk, it.cena), refs: Array.isArray(mk.refs) ? mk.refs.slice(0, 9) : [], marca_id: mk.id }, { auto: !!job.usaCorreal }); foto = b64Blob(r.b64, r.mime); if(r.restam != null) job.restam = r.restam; if(r.pago) job.gastou += r.pago; }
+      try{ const r = await C.iaFn({ prompt: promptDe(mk, it.cena), refs: Array.isArray(mk.refs) ? mk.refs.slice(0, 9) : [], marca_id: mk.id }, { auto: !!job.usaCorreal }); foto = b64Blob(r.b64, r.mime); if(r.restam != null) job.restam = r.restam; if(r.pago) job.gastou += C.correalCent(r.pago); }
       catch(e){
         if(e && e.code === 'nofn' && C.DEMO) foto = await fotoFake(mk, it.titulo + it.data);
         else { job.iaImg = false; job.semIA = e && e.code === 'limite' ? 'limite' : (e && (/credit|quota|billing/i.test(String(e.detalhe || '')) || e.code === 'sem_credito')) ? 'credito' : 'off'; }
@@ -140,7 +143,7 @@
       try{
         const peq = await C.shrink(new File([arte], 'arte.jpg', { type: 'image/jpeg' }), 768, .8);
         leg = await C.iaFn({ acao: 'legenda', marca_id: mk.id, arte: await blobUrl(peq), ctx: { marca: mk.marca, segmento: mk.segmento || '', rede: mk.rede || '', cidade: (C.st.me && C.st.me.cidade) || '', modelo: desenho ? desenho.modelo : 'imagem', kicker: desenho ? desenho.kicker : '', titulo: it.titulo || '', texto: '', numero: '', cena: it.cena || '', tema: it.tema || '', data: it.data, anteriores: [] } }, { auto: !!job.usaCorreal });
-        if(leg && leg.pago) job.gastou += leg.pago;
+        if(leg && leg.pago) job.gastou += C.correalCent(leg.pago);
       }catch(e){ if(!(e && e.code === 'nofn' && C.DEMO)) { job.iaLeg = false; job.semLeg = e && e.code === 'limite' ? 'limite' : true; } }
     }
     if(!leg || !(leg.gancho || leg.corpo)) leg = legendaFake(mk, it);
@@ -179,7 +182,7 @@
     if(JOB.semLeg === 'limite') avisos.push('Acabou o grátis de legenda de hoje: as próximas saem de um modelo pronto (dá pra trocar no Editar).');
     else if(JOB.semLeg) avisos.push('A IA de legenda não respondeu: as legendas saem de um modelo pronto (dá pra trocar no Editar).');
     box.innerHTML = `<div class="lt-run">
-      <p class="lt-st">${JOB.fim ? `<b>${JOB.feitos} ${JOB.feitos === 1 ? 'post programado' : 'posts programados'}.</b> ${JOB.feitos ? 'Já tão no calendário, cada um no seu dia.' : ''}${JOB.gastou ? ` Usou ${JOB.gastou} correais.` : ''}` : `${JOB.tipo === 'ia' ? 'Desenhando' : 'Programando'} ${Math.min(n, JOB.feitos + JOB.falhas + 1)} de ${n}… ${JOB.tipo === 'ia' ? 'Cada arte leva uns 20 segundos.' : ''} Pode fechar: continua aqui em cima do calendário.`}</p>
+      <p class="lt-st">${JOB.fim ? `<b>${JOB.feitos} ${JOB.feitos === 1 ? 'post programado' : 'posts programados'}.</b> ${JOB.feitos ? 'Já tão no calendário, cada um no seu dia.' : ''}${JOB.gastou ? ` Usou ${C.correalTxt(JOB.gastou / 100)}.` : ''}` : `${JOB.tipo === 'ia' ? 'Desenhando' : 'Programando'} ${Math.min(n, JOB.feitos + JOB.falhas + 1)} de ${n}… ${JOB.tipo === 'ia' ? 'Cada arte leva uns 20 segundos.' : ''} Pode fechar: continua aqui em cima do calendário.`}</p>
       <div class="lt-b-bar" aria-hidden="true"><i style="width:${Math.round((JOB.feitos + JOB.falhas) / Math.max(1, n) * 100)}%"></i></div>
       ${avisos.map(a => `<p class="lt-aviso">${esc(a)}</p>`).join('')}
       <ol class="lt-grade">${JOB.itens.map(x => `<li class="lt-t ${x.st}">${x.thumb ? `<img src="${esc(x.thumb)}" alt="">` : x.st === 'indo' ? '<span class="lt-sk"></span>' : x.st === 'erro' ? `<span class="lt-x">${ico('x')}</span>` : '<span class="lt-sk off"></span>'}<span class="lt-tl"><b class="num">${esc(curto(x.data))}</b>${esc(x.titulo || '')}</span>${x.erro ? `<small class="lt-e">${esc(x.erro)}</small>` : ''}</li>`).join('')}</ol>
@@ -205,18 +208,52 @@
       <div class="lt-cota" id="lt-cota">${cotaHTML()}</div>
     </div>`;
   }
-  /* quanto do grátis de hoje sobra, o que o mês precisa e o correal (só gasta com o "usar correal" ligado) */
+  /* quanto do grátis de hoje sobra, o que o mês precisa e o correal (só gasta com o "usar correal" ligado).
+     v3.43: o correal tem centavos; preço, custo e saldo são contados em centavos inteiros e escritos com vírgula */
+  /* quanto o saldo cobre do que passa do grátis, na ordem em que o mês gasta: a pauta (no Mês com IA) e depois, post a
+     post, a imagem e a legenda. Igual ao trabalho (umPost): a primeira imagem que o correal não cobre desliga a IA de
+     imagem do resto do mês, e o mesmo com a legenda. Sem as cotas (sem a função), só dá pra dizer quanto o saldo paga */
+  function cobre(saldoC, n, livImg, livLeg, ia, iaLeg, P){
+    const pi = C.correalCent(P.imagem), pl = C.correalCent(P.legenda);
+    let s = saldoC, img = 0, leg = 0, li = livImg, ll = livLeg, comImg = ia, comLeg = ia || iaLeg;
+    const paga = p => { if(p > 0 && s >= p){ s -= p; return true; } return false; };
+    if(ia){ if(ll > 0) ll--; else if(paga(pl)) leg++; }
+    for(let i = 0; i < n; i++){
+      if(comImg){ if(li > 0) li--; else if(paga(pi)) img++; else comImg = false; }
+      if(comLeg){ if(ll > 0) ll--; else if(paga(pl)) leg++; else comLeg = false; }
+    }
+    return { img, leg };
+  }
+  const qts = (n, um, varios) => `${n} ${n === 1 ? um : varios}`;
   function cotaHTML(){
     if(!F) return '';
-    const c = F.cotas, w = C.correal, P = w.precos, ia = F.tipo === 'ia', n = ia ? F.n : F.arqs.length;
+    const c = F.cotas, w = C.correal, P = w.precos, ia = F.tipo === 'ia', n = ia ? F.n : F.arqs.length, Fm = C.correalFmt;
     const precImg = ia ? n : 0, precLeg = ia ? n + 1 : (F.iaLeg ? n : 0);
     const livImg = c && c.imagem ? Math.max(0, c.imagem.lim - c.imagem.usados) : null, livLeg = c && c.legenda ? Math.max(0, c.legenda.lim - c.legenda.usados) : null;
-    const xImg = livImg == null ? 0 : Math.max(0, precImg - livImg), xLeg = livLeg == null ? 0 : Math.max(0, precLeg - livLeg), custo = xImg * P.imagem + xLeg * P.legenda;
-    const saldo = w.saldo == null ? null : w.saldo;
-    const linha = c ? (xImg || xLeg ? `Hoje sobram <b>${livImg}</b> ${livImg === 1 ? 'imagem grátis' : 'imagens grátis'}${precLeg ? ` e <b>${livLeg}</b> ${livLeg === 1 ? 'legenda' : 'legendas'}` : ''}. Pro que falta (${[xImg ? `${xImg} ${xImg === 1 ? 'imagem' : 'imagens'}` : '', xLeg ? `${xLeg} ${xLeg === 1 ? 'legenda' : 'legendas'}` : ''].filter(Boolean).join(' e ')}): <b>${custo} correais</b>.` : `O grátis de hoje dá pro mês inteiro${ia ? ` (sobram ${livImg} imagens)` : ''}.`) : '';
+    const xImg = livImg == null ? 0 : Math.max(0, precImg - livImg), xLeg = livLeg == null ? 0 : Math.max(0, precLeg - livLeg);
+    const custo = xImg * C.correalCent(P.imagem) + xLeg * C.correalCent(P.legenda);
+    const saldo = w.saldo == null ? null : C.correalCent(w.saldo);
+    const linha = c ? (xImg || xLeg ? `Hoje sobram <b>${livImg}</b> ${livImg === 1 ? 'imagem grátis' : 'imagens grátis'}${precLeg ? ` e <b>${livLeg}</b> ${livLeg === 1 ? 'legenda' : 'legendas'}` : ''}. Pro que falta (${[xImg ? qts(xImg, 'imagem', 'imagens') : '', xLeg ? qts(xLeg, 'legenda', 'legendas') : ''].filter(Boolean).join(' e ')}): <b>${C.correalTxt(custo / 100)}</b>.` : `O grátis de hoje dá pro mês inteiro${ia ? ` (sobram ${livImg} imagens)` : ''}.`) : '';
     if(c && !xImg && !xLeg) return `<p class="lt-cota-l">${ico('check')} ${linha}</p>`;
+    let alcance = '';
+    if(saldo != null && c){
+      if(custo <= saldo) alcance = '. O saldo cobre tudo.';
+      else {
+        const k = cobre(saldo, n, livImg, livLeg, ia, F.iaLeg, P);
+        /* o "sem foto" só quando falta imagem de verdade; faltando só legenda, a foto sai e a legenda vem do modelo pronto */
+        const faltaImg = xImg > k.img, faltaLeg = xLeg > k.leg;
+        const resto = faltaImg && faltaLeg ? 'as imagens que passarem saem no modelo da marca, sem foto, e as legendas, de um modelo pronto'
+          : faltaImg ? 'o que passar sai no modelo da marca, sem foto' : 'as legendas que passarem saem de um modelo pronto';
+        alcance = `. Não dá pra tudo: o saldo cobre ${[xImg ? `${k.img} de ${qts(xImg, 'imagem', 'imagens')}` : '', xLeg ? `${k.leg} de ${qts(xLeg, 'legenda', 'legendas')}` : ''].filter(Boolean).join(' e ')}; ${resto}.`;
+      }
+    } else if(saldo != null){
+      /* sem as cotas: quanto o saldo paga, de cada coisa */
+      const pi = C.correalCent(P.imagem), pl = C.correalCent(P.legenda), ni = pi > 0 ? Math.floor(saldo / pi) : 0, nl = pl > 0 ? Math.floor(saldo / pl) : 0;
+      alcance = !nl ? ' (ainda não dá pra nenhuma)' : !ia ? ` (dá pra ${qts(nl, 'legenda', 'legendas')})`
+        : ni ? ` (dá pra ${qts(ni, 'imagem', 'imagens')} ou ${qts(nl, 'legenda', 'legendas')})` : ` (dá pra ${qts(nl, 'legenda', 'legendas')}; imagem, ainda não)`;
+    }
     return `${linha ? `<p class="lt-cota-l">${linha}</p>` : ''}
-      <label class="switch"><input type="checkbox" id="lt-correal"${F.usaCorreal ? ' checked' : ''}><span class="sw"></span><span><b>Quando acabar o grátis, usar correal</b><small>imagem ${P.imagem} · legenda ${P.legenda} · você tem ${saldo == null ? '…' : saldo}${c && saldo != null && custo > saldo ? '. Não dá pra tudo: o que passar sai no modelo da marca' + (ia ? ', sem foto' : '') + '.' : ''}</small></span></label>`;
+      <label class="switch"><input type="checkbox" id="lt-correal"${F.usaCorreal ? ' checked' : ''}><span class="sw"></span><span><b>Quando acabar o grátis, usar correal</b><small>imagem ${Fm(P.imagem)} · legenda ${Fm(P.legenda)} · você tem <span class="num">${saldo == null ? '…' : Fm(saldo / 100)}</span>${alcance}</small></span></label>`;
   }
   const pintaCota = () => {
     const el = C.$('lt-cota'); if(!el || !F) return;
@@ -225,7 +262,7 @@
   };
   async function carregaCotas(){
     const f = F; if(!f) return;
-    try{ const c = await C.api.fn('imagem', { acao: 'cotas' }); f.cotas = c; if(c && c.correal){ Object.assign(C.correal.precos, c.correal.precos || {}); C.correalSet(c.correal.saldo, c.correal.hoje); } }
+    try{ const c = await C.api.fn('imagem', { acao: 'cotas' }); f.cotas = c; if(c && c.correal) C.correalLe(c.correal); }
     catch(e){ f.cotas = null; await C.correalCarrega(); }
     if(F === f) pintaCota();
   }
@@ -316,7 +353,7 @@
     'lt-tira': el => { F.pauta.splice(Number(el.dataset.i), 1); pautaTela(); },
     'lt-gera': () => {
       if(!F || !F.pauta || !F.pauta.length) return;
-      const job = novoJob('ia', F.mk, F.pauta.filter(x => String(x.titulo || '').trim()), F.hora, { usaCorreal: !!F.usaCorreal, conta: F.conta || '' });
+      const job = novoJob('ia', F.mk, F.pauta.filter(x => String(x.titulo || '').trim()), F.hora, { usaCorreal: !!F.usaCorreal, conta: F.conta || '', gastou: F.pautaPago || 0 });
       F = null; roda(job);
     },
     'lt-subir-ok': () => {

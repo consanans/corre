@@ -2898,9 +2898,26 @@
     let r = null; try{ r = await C.api.rpc('corre_tarefa_termina', { p_id: T.vez }); }catch(e){ return; }
     if(r && r.motivo === 'rapido' && tent < 6){ setTimeout(() => pagaTarefa(T, tent + 1), Math.max(1, r.falta || 3) * 1000 + 400); return; }
     if(!r || !r.ok) return;
-    C.correalSet(r.saldo, r.hoje); correalUI(true);
-    C.toast(r.ganhou ? `+${r.ganhou} ${r.ganhou === 1 ? 'correal' : 'correais'} na carteira · hoje ${r.hoje} de ${r.teto}` : `Bateu o teto de hoje (${r.teto} correais). A carteira tá com ${r.saldo}; amanhã tem mais.`, 4200);
+    C.correalLe({ saldo: r.saldo, hoje: r.hoje, teto: r.teto }); correalUI(true);
+    /* v3.43: em centavos. A tarefa que fecha o dia pode pagar só o que faltava pro teto (0,04 de uma de 0,15) */
+    const F = C.correalFmt, ganhou = C.correalCent(r.ganhou), bateu = C.correalCent(r.hoje) >= C.correalCent(r.teto);
+    C.toast(!ganhou ? `Bateu o teto de hoje (${C.correalTxt(r.teto)}). A carteira tá com ${F(r.saldo)}; amanhã tem mais.`
+      : bateu ? `+${C.correalTxt(r.ganhou)} na carteira · bateu o teto de hoje (${F(r.teto)}). Amanhã tem mais.`
+      : `+${C.correalTxt(r.ganhou)} na carteira · hoje ${F(r.hoje)} de ${F(r.teto)}`, 4200);
   }
+  /* v3.43 · quanto uma tarefa vale em correal: os pontos dela x o ponto do banco (3 centavos), em centavos inteiros,
+     a mesma conta do corre_tarefa_termina. Se o dia já bateu o teto, ela vale patente, mas não paga */
+  const valorTarefa = pontos => Math.round((Number(pontos) || 0) * (Number(C.correal.ponto) || 0.03) * 100) / 100;
+  const bateuTeto = () => C.correal.saldo != null && C.correalCent(C.correal.hoje) >= C.correalCent(C.correal.teto);
+  /* o jeito de ganhar, em 2 linhas sem jargão (a carteira). As contas saem do próprio Trampo, pra não mentir se o banco
+     mudar o ponto ou o teto: a tarefa mais barata e a mais cara, e "umas 10 tarefas" é o teto dividido pela média */
+  const comoGanha = () => {
+    const L = Object.keys(TAREFAS).reduce((a, k) => a.concat((TAREFAS[k] || []).map(t => Number(t.pontos) || 0)), []).filter(Boolean);
+    const min = L.length ? Math.min.apply(null, L) : 2, max = L.length ? Math.max.apply(null, L) : 5, media = L.length ? L.reduce((a, b) => a + b, 0) / L.length : 3.5;
+    const F = C.correalFmt, n = Math.max(1, Math.round((Number(C.correal.teto) || 1) / ((Number(C.correal.ponto) || 0.03) * media)));
+    return [`Cada tarefa paga de ${F(valorTarefa(min))} a ${F(valorTarefa(max))} de correal: a mais difícil paga mais.`,
+      `Umas ${n} tarefas fecham o dia em ${C.correalTxt(C.correal.teto)}, o teto; amanhã começa de novo.`];
+  };
   /* a moedinha no alto da cidade */
   function correalUI(pula){
     const b = C.$('cvr-correal'); if(!b) return;
@@ -2911,7 +2928,8 @@
   const rotuloCorreal = m => {
     const [tipo, a, b] = String(m || '').split(':');
     if(tipo === 'tarefa'){ const t = (TAREFAS[a] || []).find(x => x.k === b); return t ? t.nome : 'Tarefa'; }
-    const ia = { imagem: 'Imagem com IA', legenda: 'Legenda ou pauta com IA', abordagem: 'Hórus com IA', marca: 'Studio Houzi com IA' }[a] || 'IA';
+    const ia = { imagem: 'Imagem com IA', legenda: 'Legenda ou pauta com IA', abordagem: 'Hórus com IA', marca: 'Studio Houzi com IA', voo: 'Voo no Aeroporto' }[a] || 'IA';
+    if(a === 'voo') return tipo === 'volta' ? 'Voo no Aeroporto: devolvido' : ia;
     return tipo === 'volta' ? `${ia}: devolvido (a IA falhou)` : ia;
   };
   /* a carteira (abre daqui da cidade, do perfil e do Financeiro no menu). v3.43: morando no Financeiro, ela diz com
@@ -2919,16 +2937,19 @@
   async function carteiraSheet(){
     await C.correalCarrega();
     let L = []; try{ L = await C.api.q('corre_correal_log', { eq: { dono: C.uid() }, order: ['created_at', false], limit: 10 }); }catch(e){}
-    const w = C.correal, P = w.precos, naCidade = !!C.$('cvr-stage');
+    const w = C.correal, P = w.precos, naCidade = !!C.$('cvr-stage'), F = C.correalFmt, cm = comoGanha();
+    /* v3.43: tudo em centavos ("0,90", "+0,15"), escrito pelo C.correalFmt; a barra do dia também conta em centavos */
+    const preco = (t, v) => `<li><span>${t}</span><b class="num">${F(v)}</b><small>${C.correalUnid(v)}</small></li>`;
     C.sheet(`<div class="form cvr-cart"><div class="sheet-head"><h2>${ico('correal')} Carteira</h2><button type="button" class="cbtn plain" data-close aria-label="Fechar">${ico('x')}</button></div>
-      <div class="cart-topo"><div class="cart-saldo"><b class="num" data-correal-saldo>${w.saldo == null ? 0 : w.saldo}</b><span>correais</span></div>
-        <div class="cart-hoje"><span>Hoje: <b class="num">${w.hoje || 0}</b> de ${w.teto}</span><i aria-hidden="true"><i style="width:${Math.min(100, Math.round((w.hoje || 0) / (w.teto || 40) * 100))}%"></i></i></div></div>
+      <div class="cart-topo"><div class="cart-saldo"><b class="num" data-correal-saldo>${F(w.saldo || 0)}</b><span data-correal-unid>${C.correalUnid(w.saldo || 0)}</span></div>
+        <div class="cart-hoje"><span>Hoje, em tarefa: <b class="num">${F(Math.min(C.correalCent(w.hoje || 0), C.correalCent(w.teto)) / 100)}</b> de ${F(w.teto)}</span><i aria-hidden="true"><i style="width:${Math.min(100, Math.round(C.correalCent(w.hoje) / Math.max(1, C.correalCent(w.teto)) * 100))}%"></i></i></div></div>
       <h3 class="cart-h">Como ganha</h3>
-      <p class="cart-p">Fazendo tarefa no Correverso: abre o Trampo, escolhe o uniforme (o boneco troca na hora) e pega uma tarefa. Cada ponto da tarefa vira 1 correal, até ${w.teto} por dia.</p>
+      <p class="cart-p">Fazendo tarefa no Correverso: abre o Trampo, escolhe o uniforme (o boneco troca na hora) e pega uma tarefa.</p>
+      <p class="cart-p cart-conta">${esc(cm[0])}<br>${esc(cm[1])}</p>
       <h3 class="cart-h">Onde usa</h3>
-      <ul class="cart-precos"><li><span>Imagem com IA (Studio)</span><b class="num">${P.imagem}</b></li><li><span>Legenda ou pauta com IA</span><b class="num">${P.legenda}</b></li><li><span>Mensagem ou leitura do Hórus</span><b class="num">${P.abordagem}</b></li><li><span>Textos e nomes do Studio Houzi</span><b class="num">${P.marca}</b></li></ul>
-      <p class="fine">Correal é a moeda do Correverso, não é dinheiro: não compra, não vende e não passa pra ninguém. Só entra depois que o grátis do dia acaba, e o Corre sempre pergunta antes. Se a IA falhar, o correal volta.</p>
-      ${L.length ? `<h3 class="cart-h">Extrato</h3><ul class="cart-ext">${L.map(l => `<li><span>${esc(rotuloCorreal(l.motivo))}</span><small>${esc(C.rel(l.created_at))}</small><b class="num${l.valor > 0 ? ' mais' : ''}">${l.valor > 0 ? '+' : ''}${l.valor}</b></li>`).join('')}</ul>` : ''}
+      <ul class="cart-precos">${preco('Imagem com IA (Studio)', P.imagem)}${preco('Legenda ou pauta com IA', P.legenda)}${preco('Mensagem ou leitura do Hórus', P.abordagem)}${preco('Textos e nomes do Studio Houzi', P.marca)}${P.voo ? preco('Voo no Aeroporto (Correverso)', P.voo) : ''}</ul>
+      <p class="fine">Correal é a moeda do Correverso, não é dinheiro: não compra, não vende e não passa pra ninguém. Na IA, só entra depois que o grátis do dia acaba; o voo cobra sempre. O Corre pergunta antes de gastar, e se a IA falhar, o correal volta.</p>
+      ${L.length ? `<h3 class="cart-h">Extrato</h3><ul class="cart-ext">${L.map(l => `<li><span>${esc(rotuloCorreal(l.motivo))}</span><small>${esc(C.rel(l.created_at))}</small><b class="num${l.valor > 0 ? ' mais' : ''}">${l.valor > 0 ? '+' : ''}${F(l.valor)}</b></li>`).join('')}</ul>` : ''}
       <div class="acts">${naCidade ? `<button type="button" class="btn pri" data-act="cvr-trampo">${ico('raio')} Pegar tarefa</button>` : `<a class="btn pri" href="#/verso">${ico('verso')} Ir pro Correverso</a>`}</div></div>`);
   }
   C.acts.carteira = () => carteiraSheet();
@@ -3016,7 +3037,7 @@
     const unis = SKINS.map(([k, n]) => { const on = !souPers && k === u, f = !on && k && k === foco;
       return `<button type="button" class="cvr-uni${on ? ' on' : ''}${f ? ' foco' : ''}" data-act="cvr-uni" data-u="${esc(k)}" aria-pressed="${on}" title="${esc(k ? 'Vestir: ' + n : 'Tirar o uniforme (a tua roupa)')}"><canvas class="cvr-mini" data-av="${avDe(k)}" width="18" height="28" aria-hidden="true"></canvas><b>${esc(k ? n : 'Minha roupa')}</b><small>${k ? (feitas[k] ? esc(patenteDe(k, feitas[k])) : `${(TAREFAS[k] || []).length} tarefas`) : 'sem uniforme'}</small></button>`; }).join('');
     const tarefa = (t, i) => { const ativa = T && T.u === foco && T.k === t.k;
-      return `<li class="cvr-tf${ativa ? ' on' : ''}"><div><b>${esc(t.nome)}</b><small>${esc(t.desc)}</small><span class="tag">+${t.pontos} ${t.pontos === 1 ? 'correal' : 'correais'}${t.tempo ? ` · ${t.tempo} s` : ''}</span>${!ativa && lista.length > 1 && t.k === ultima ? '<span class="tag cvr-tf-ult">a última que você pegou</span>' : ''}</div>${ativa ? `<button type="button" class="btn sm ghost" data-act="cvr-larga-tarefa">Largar</button>` : `<button type="button" class="btn sm${i === 0 ? ' pri' : ''}" data-act="cvr-pega-tarefa" data-u="${esc(foco)}" data-k="${esc(t.k)}">${u === foco ? 'Pegar' : 'Vestir e pegar'}</button>`}</li>`; };
+      return `<li class="cvr-tf${ativa ? ' on' : ''}"><div><b>${esc(t.nome)}</b><small>${esc(t.desc)}</small><span class="tag">+${C.correalTxt(valorTarefa(t.pontos))}${t.tempo ? ` · ${t.tempo} s` : ''}</span>${!ativa && lista.length > 1 && t.k === ultima ? '<span class="tag cvr-tf-ult">a última que você pegou</span>' : ''}</div>${ativa ? `<button type="button" class="btn sm ghost" data-act="cvr-larga-tarefa">Largar</button>` : `<button type="button" class="btn sm${i === 0 ? ' pri' : ''}" data-act="cvr-pega-tarefa" data-u="${esc(foco)}" data-k="${esc(t.k)}">${u === foco ? 'Pegar' : 'Vestir e pegar'}</button>`}</li>`; };
     const carteira = Object.keys(PATENTES).filter(k => feitas[k] > 0).map(k => `<span class="tag">${esc(nomeUni(k))}: ${feitas[k]} · ${esc(patenteDe(k, feitas[k]))}</span>`).join('');
     C.sheet(`<div class="form cvr-trampo"><div class="sheet-head"><h2>${ico('raio')} ${c ? esc(c.nome) : 'Trampo'}</h2><button type="button" class="cbtn plain" data-close aria-label="Fechar">${ico('x')}</button></div>
       <div class="cvr-unis-w"><span class="lbl-s">Uniforme: toca e o boneco troca na hora</span><div class="cvr-unis" role="group" aria-label="Uniforme">${unis}</div></div>
@@ -3025,7 +3046,7 @@
       ${c && u !== c.u ? `<div class="acts"><button type="button" class="btn" data-act="cvr-veste" data-u="${esc(c.u)}">${ico('eu')} ${esc(c.veste)}</button></div>` : ''}
       ${lista.length ? `<ul class="cvr-tfs">${lista.map(tarefa).join('')}</ul>` : ''}
       ${T && (!foco || T.u !== foco) ? `<p class="note">Em andamento: ${esc(T.def.nome)} (${esc(nomeUni(T.u))}). <button type="button" class="btn sm ghost" data-act="cvr-larga-tarefa">Largar</button></p>` : ''}
-      <p class="fine">Patentes: ${carteira || 'nenhuma tarefa feita ainda'}. Uma tarefa por vez; a seta rosa mostra o alvo, e a que você pegou vai pro fim da fila, pra variar. A patente aparece na tua plaquinha pra quem passa. Cada ponto vira 1 correal (até 40 por dia): <button type="button" class="lnk" data-act="carteira">ver a carteira (${C.correal.saldo == null ? '…' : C.correal.saldo})</button>.</p></div>`);
+      <p class="fine">Patentes: ${carteira || 'nenhuma tarefa feita ainda'}. Uma tarefa por vez; a seta rosa mostra o alvo, e a que você pegou vai pro fim da fila, pra variar. A patente aparece na tua plaquinha pra quem passa. Cada tarefa paga centavos de correal, até ${C.correalFmt(C.correal.teto)} por dia${bateuTeto() ? ' (hoje já bateu: as tarefas seguem valendo patente)' : ''}: <button type="button" class="lnk" data-act="carteira">ver a carteira (${C.correal.saldo == null ? '…' : C.correalFmt(C.correal.saldo)})</button>.</p></div>`);
     document.querySelectorAll('.cvr-trampo .cvr-mini').forEach(cv => { try{ miniAvatar(cv, avLimpo(JSON.parse(cv.dataset.av))); }catch(e){} });
     const sel = document.querySelector('.cvr-unis .cvr-uni.foco') || document.querySelector('.cvr-unis .cvr-uni.on'), fila = sel && sel.parentElement;
     if(sel && fila) fila.scrollLeft = Math.max(0, sel.offsetLeft - (fila.clientWidth - sel.offsetWidth) / 2);
@@ -3059,7 +3080,7 @@
     const meu = p.tipo === 'casa' && p.c.id === (C.st.me && C.st.me.id);
     if(p.tipo === 'tarefa'){ const T = V.tarefa, ag = T && T.fase === 'agindo'; b.innerHTML = `${ico('raio')} ${esc(p.et.acao)}${ag ? '…' : ''}`; b.disabled = !!ag; return; }
     b.disabled = false;
-    b.innerHTML = p.tipo === 'aeroporto' ? `${ico('aviao')} Voar (${precoVoo()} correais)` : p.tipo === 'civico' ? `${ico('raio')} ${esc(CIVICOS[p.k].entra)}` : p.tipo === 'barraca' ? (aberta(p.b) ? `${ico(p.b.ico)} ${esc(p.b.botao)}` : `${ico('eye')} Hórus desligado: ligar`) : p.tipo === 'comida' ? `${ico('banca')} ${esc(COMIDAS[p.k][0])}` : p.tipo === 'aquario' ? `${ico('play')} Jogar ${esc(JOGOS[p.jogo].titulo)}` : p.tipo === 'banco' ? (p.pesca ? `${ico('gente')} Pescar no ${p.b.lugar.startsWith('Deck') ? 'deck' : 'píer'}` : `${ico('gente')} Sentar ${p.b.degrau ? 'na Concha' : 'no banco'}`) : p.tipo === 'mural' ? `${ico('tacha')} Abrir o Mural` : p.tipo === 'banca' ? `${ico('banca')} Banca do dia` : p.tipo === 'lote' ? `${ico('plus')} Lote livre` : meu ? `${ico('home')} Tua casa` : `${ico('home')} Bater na porta de @${esc(p.c.handle)}`;
+    b.innerHTML = p.tipo === 'aeroporto' ? `${ico('aviao')} Voar (${C.correalTxt(precoVoo())})` : p.tipo === 'civico' ? `${ico('raio')} ${esc(CIVICOS[p.k].entra)}` : p.tipo === 'barraca' ? (aberta(p.b) ? `${ico(p.b.ico)} ${esc(p.b.botao)}` : `${ico('eye')} Hórus desligado: ligar`) : p.tipo === 'comida' ? `${ico('banca')} ${esc(COMIDAS[p.k][0])}` : p.tipo === 'aquario' ? `${ico('play')} Jogar ${esc(JOGOS[p.jogo].titulo)}` : p.tipo === 'banco' ? (p.pesca ? `${ico('gente')} Pescar no ${p.b.lugar.startsWith('Deck') ? 'deck' : 'píer'}` : `${ico('gente')} Sentar ${p.b.degrau ? 'na Concha' : 'no banco'}`) : p.tipo === 'mural' ? `${ico('tacha')} Abrir o Mural` : p.tipo === 'banca' ? `${ico('banca')} Banca do dia` : p.tipo === 'lote' ? `${ico('plus')} Lote livre` : meu ? `${ico('home')} Tua casa` : `${ico('home')} Bater na porta de @${esc(p.c.handle)}`;
   }
   function tamanhoTela(){
     const st = C.$('cvr-stage'); if(!st || !V.cv) return;
@@ -3218,7 +3239,7 @@
     V.cid = montaCidade(lista); V.sol = solidos(); V.portas = portas(); V.carros = montaCarros(V.cid); V.bolas = novasBolas(V.cid);
     const st = C.$('cvr-stage');
     st.innerHTML = `<canvas id="cvr-cv" aria-label="A cidade do Correverso. Anda com as setas ou W A S D, ou toca onde quer ir."></canvas>
-      <div class="cvr-top"><span class="cvr-tt">${ico('verso')} Correverso</span><span class="cvr-on" id="cvr-on"></span><button type="button" class="cvr-live" id="cvr-live" data-act="cvr-gente" hidden></button><span class="cvr-zona" id="cvr-zona" hidden></span><button type="button" class="cvr-tarefa" id="cvr-tarefa" data-act="cvr-trampo" hidden></button><button type="button" class="cvr-correal" id="cvr-correal" data-act="carteira" title="Carteira de correal" aria-label="Carteira de correal">${ico('correal')}<b class="num" data-correal-saldo>${C.correal.saldo == null ? '…' : C.correal.saldo}</b></button><button type="button" class="cvr-som" id="cvr-som" data-act="cvr-som" aria-pressed="false" hidden></button></div>
+      <div class="cvr-top"><span class="cvr-tt">${ico('verso')} Correverso</span><span class="cvr-on" id="cvr-on"></span><button type="button" class="cvr-live" id="cvr-live" data-act="cvr-gente" hidden></button><span class="cvr-zona" id="cvr-zona" hidden></span><button type="button" class="cvr-tarefa" id="cvr-tarefa" data-act="cvr-trampo" hidden></button><button type="button" class="cvr-correal" id="cvr-correal" data-act="carteira" title="Carteira de correal" aria-label="Carteira de correal">${ico('correal')}<b class="num" data-correal-saldo>${C.correal.saldo == null ? '…' : C.correalFmt(C.correal.saldo)}</b></button><button type="button" class="cvr-som" id="cvr-som" data-act="cvr-som" aria-pressed="false" hidden></button></div>
       <p class="cvr-hint" id="cvr-hint" hidden></p>
       <button type="button" class="cvr-porta" id="cvr-porta" data-act="cvr-porta" hidden></button>
       <div class="cvr-bar"><button type="button" class="cvr-b mic" id="cvr-mic" data-act="cvr-mic" aria-pressed="false"></button><button type="button" class="cvr-b" data-act="cvr-avatar" title="Avatar" aria-label="Avatar">${ico('eu')}<span>Avatar</span></button><button type="button" class="cvr-b" data-act="cvr-garagem" title="Garagem: como você anda pela cidade" aria-label="Garagem">${ico('carro')}<span>Garagem</span></button><button type="button" class="cvr-b" data-act="cvr-casa" title="Voltar pra casa" aria-label="Voltar pra casa">${ico('home')}<span>Pra casa</span></button><button type="button" class="cvr-b" data-act="cvr-mapa" title="Mapa" aria-label="Mapa">${ico('mapa')}<span>Mapa</span></button><button type="button" class="cvr-b" data-act="cvr-falar" title="Falar uma frase" aria-label="Falar uma frase" aria-expanded="false">${ico('chat')}<span>Falar</span></button><button type="button" class="cvr-b" data-act="cvr-gente" title="Quem tá na cidade" aria-label="Quem tá na cidade">${ico('gente')}<span>Gente</span></button><button type="button" class="cvr-b" data-act="cvr-trampo" title="Trampo: as tarefas do teu uniforme" aria-label="Trampo">${ico('raio')}<span>Trampo</span></button></div>
@@ -3370,7 +3391,8 @@
     C.toast(`${COMIDAS[k][1]}: 1 minuto de turbo na caminhada.`, 3000);
   }
   /* ---------- v3.40 · o avião: sai do Aeroporto de Londrina, cruza a cidade por cima e te solta de paraquedas ----------
-     O voo é passeio: sai por uns correais (o preço é do banco: corre_correal_preco('voo')), e o app sempre pergunta antes.
+     O voo é passeio: sai por meio correal (o preço é do banco: corre_correal_preco('voo'), 0,50 desde a v3.43), e o app
+     sempre pergunta antes.
      Fases: embarca (a hélice liga) → taxi (até a pista) → corrida (acelera e tira as rodas do chão) → cruzeiro (em linha
      reta até o destino) → para (você pula de paraquedas; o avião segue subindo e some) → no chão, onde você escolheu.
      Quem tá na cidade vê o avião passando (e o paraquedas), com o teu nome em cima. */
@@ -3378,23 +3400,23 @@
   const emVoo = o => !!(o && (o === V.eu ? !!V.voo : (o.vo || o.pq)));
   const emParaquedas = o => !!(o && (o === V.eu ? V.voo && V.voo.fase === 'para' : o.pq));
   function altVoo(o){ if(!o) return 0; if(o === V.eu){ const v = V.voo; return v ? v.alt : 0; } return o.vo === 1 ? VOO_ALT * .9 : o.pq ? 70 : 0; }
-  const precoVoo = () => Number(C.correal && C.correal.precos && C.correal.precos.voo) || 5;
+  const precoVoo = () => Number(C.correal && C.correal.precos && C.correal.precos.voo) || 0.5;
   const destinosVoo = () => { const vistos = new Set(['Aeroporto']); return lugares().filter(l => { if(vistos.has(l.nome)) return false; vistos.add(l.nome); return true; }); };
   function aeroportoSheet(){
     const preco = precoVoo(), saldo = C.correal.saldo, L = destinosVoo();
     C.sheet(`<div class="form cvr-aero"><div class="sheet-head"><h2>${ico('aviao')} Aeroporto de Londrina</h2><button type="button" class="cbtn plain" data-close aria-label="Fechar">${ico('x')}</button></div>
-      <p>O teco-teco do Corre decola daqui, cruza a cidade por cima e te solta de paraquedas onde você escolher. Cada voo sai por <b>${preco} correais</b>; você tem <b class="num" data-correal-saldo>${saldo == null ? '…' : saldo}</b>.</p>
+      <p>O teco-teco do Corre decola daqui, cruza a cidade por cima e te solta de paraquedas onde você escolher. Cada voo sai por <b>${C.correalTxt(preco)}</b>; você tem <b class="num" data-correal-saldo>${saldo == null ? '…' : C.correalFmt(saldo)}</b>.</p>
       <p class="lbl-s">Pra onde?</p>
       <div class="cvr-lugares cvr-aero-l">${L.map((l, i) => `<button type="button" class="btn sm" data-act="cvr-voar" data-i="${i}">${ico('aviao')} ${esc(l.nome)}</button>`).join('')}</div>
-      <p class="fine">Correal não é dinheiro: se ganha fazendo trampo no Correverso (até 40 por dia). O voo é passeio; o app sempre pergunta antes de descontar.</p></div>`);
+      <p class="fine">Correal não é dinheiro: se ganha fazendo trampo no Correverso (centavos por tarefa, até ${C.correalFmt(C.correal.teto)} por dia). O voo é passeio; o app sempre pergunta antes de descontar.</p></div>`);
     C.correalCarrega().catch(() => {});
   }
   async function voar(i){
     const d = destinosVoo()[i]; if(!d || V.voo || !V.vivo) return;
     await C.correalCarrega().catch(() => {});
     const preco = precoVoo(), saldo = Number(C.correal.saldo) || 0;
-    if(saldo < preco){ C.toast(`O voo sai por ${preco} correais e você tem ${saldo}. Faz um trampo no Correverso e volta.`, 4200); return; }
-    const sim = await C.confirma({ ico: 'aviao', titulo: 'Voo pra ' + d.nome, texto: `Sai por <b>${preco} correais</b>. Você tem <b>${saldo}</b>.`, sim: `Pagar ${preco} e voar`, nao: 'Agora não' });
+    if(!C.correalCobre(saldo, preco)){ C.toast(`O voo sai por ${C.correalTxt(preco)} e você tem ${C.correalFmt(saldo)}. Faz um trampo no Correverso e volta.`, 4200); return; }
+    const sim = await C.confirma({ ico: 'aviao', titulo: 'Voo pra ' + d.nome, texto: `Sai por <b>${C.correalTxt(preco)}</b>. Você tem <b>${C.correalFmt(saldo)}</b>.`, sim: `Pagar ${C.correalFmt(preco)} e voar`, nao: 'Agora não' });
     if(!sim || !V.vivo || V.voo) return;
     let r = null; try{ r = await C.api.rpc('corre_correal_gasta', { p_tipo: 'voo' }); }catch(e){ C.toast(C.errMsg(e, 'Não deu pra pagar o voo agora.')); return; }
     if(!r || !r.ok){ if(r && r.saldo != null) C.correalSet(r.saldo); C.toast(r && r.preco == null ? 'O voo ainda não tá liberado no servidor.' : 'Não deu: o saldo não cobre o voo.', 3600); return; }

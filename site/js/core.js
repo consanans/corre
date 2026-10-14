@@ -163,7 +163,14 @@
 
   /* v3.38 · CORREAL: os preços da IA em correal (os mesmos do banco; quem manda é o banco) */
   /* v3.40: o voo do Aeroporto de Londrina (Correverso) também sai em correal */
-  const CORREAL_PRECO = { imagem: 10, legenda: 2, abordagem: 2, marca: 3, voo: 5 };
+  /* v3.43: o correal tem centavos (delta-v343.sql). Os preços caíram na mesma conta da carteira (divididos por 10) e
+     nenhum passa de 1. Estes são só a reserva pra quando o banco não responder: o que vale é o corre_correal_meu */
+  const CORREAL_PRECO = { imagem: 1.00, legenda: 0.20, abordagem: 0.20, marca: 0.30, voo: 0.50 };
+  /* quanto vale um ponto de tarefa e o máximo que a tarefa paga por dia (corre_correal_ponto e corre_correal_teto) */
+  const CORREAL_PONTO = 0.03, CORREAL_TETO = 1.00;
+  /* toda conta de correal é em centavos inteiros: em número quebrado, 0,1 + 0,2 dá 0,30000000000000004 e 0,90 - 0,20
+     dá 0,7000000000000001; em centavos, 10 + 20 dá 30 e 90 - 20 dá 70. O banco guarda numeric(12,2), que é isso */
+  const centDe = v => { const n = Number(v); return isFinite(n) ? Math.round(n * 100) : 0; };
   /* erros do banco em português de gente */
   function errMsg(e, fallback){
     const m = (e && (e.message || '')) + ' ' + (e && (e.hint || ''));
@@ -400,6 +407,14 @@
       try{ d = JSON.parse(localStorage.getItem(KEY)); }catch(e){}
       d = d || mem.d || seed();
       T.forEach(t => { if(!d.t[t]) d.t[t] = []; });
+      /* v3.43: o correal ganhou centavos e o que já existia foi dividido por 10, como no banco (delta-v343.sql): quem
+         tinha 9 na demonstração fica com 0,90, que compra o mesmo que os 9 compravam */
+      if(!d.v343){
+        d.v343 = true;
+        const div = v => Math.round((Number(v) || 0) * 10) / 100;
+        d.t.corre_correal.forEach(w => { w.saldo = div(w.saldo); w.ganho = div(w.ganho); w.gasto = div(w.gasto); });
+        d.t.corre_correal_log.forEach(l => { l.valor = div(l.valor); });
+      }
       if(!d.v337){
         d.v337 = true;
         /* Studio Houzi (v3.37): uma marca de exemplo, publicada, da Luiza */
@@ -1164,12 +1179,16 @@
       },
       async rpc(n, a){
         const d = read();
-        /* ---- v3.38: o correal (mesma conta do delta-v338.sql: 20 segundos no mínimo, teto de 40 por dia) ---- */
+        /* ---- v3.38: o correal (mesma conta do delta-v338.sql: 20 segundos no mínimo). v3.43 (delta-v343.sql): em
+           centavos. A tarefa paga 3 centavos por ponto, cortado no teto de 1,00 por dia; o gasto tira o preço inteiro
+           ou não tira nada. As contas aqui dentro são em centavos inteiros e só viram número com vírgula na saída,
+           igual ao numeric do banco (nada de 0,30000000000000004 guardado na carteira) ---- */
         if(/^corre_(correal|tarefa)_/.test(n)){
           const eu = uidOf(d); if(!eu) throw { message: 'login', code: '42501' };
-          const ini = Date.parse(hojeBR() + 'T03:00:00Z'), hojeG = () => d.t.corre_correal_log.filter(l => l.dono === eu && l.valor > 0 && /^tarefa:/.test(l.motivo) && Date.parse(l.created_at) >= ini).reduce((x, l) => x + l.valor, 0);
+          const real = c => c / 100, PONTO = centDe(CORREAL_PONTO), TETO = centDe(CORREAL_TETO);
+          const ini = Date.parse(hojeBR() + 'T03:00:00Z'), hojeC = () => d.t.corre_correal_log.filter(l => l.dono === eu && l.valor > 0 && /^tarefa:/.test(l.motivo) && Date.parse(l.created_at) >= ini).reduce((x, l) => x + centDe(l.valor), 0);
           const cart = () => { let w = d.t.corre_correal.find(x => x.dono === eu); if(!w){ w = { dono: eu, saldo: 0, ganho: 0, gasto: 0, updated_at: now() }; d.t.corre_correal.push(w); } return w; };
-          const meu = () => ({ saldo: cart().saldo, hoje: hojeG(), teto: 40, precos: Object.assign({}, CORREAL_PRECO) });
+          const meu = () => ({ saldo: real(centDe(cart().saldo)), hoje: real(hojeC()), teto: real(TETO), ponto: real(PONTO), precos: Object.assign({}, CORREAL_PRECO) });
           if(n === 'corre_correal_meu') return meu();
           if(n === 'corre_tarefa_comeca'){
             if(!(CORREAL_TAREFA[a.p_u] && CORREAL_TAREFA[a.p_u][a.p_k])) throw { message: 'tarefa', hint: 'tarefa', code: 'P0001' };
@@ -1182,13 +1201,15 @@
             if(seg < 20) return { ok: false, motivo: 'rapido', falta: Math.ceil(20 - seg) };
             d.t.corre_tarefa_vez = d.t.corre_tarefa_vez.filter(x => x !== t);
             if(seg > 1800){ write(d); return { ok: false, motivo: 'velha' }; }
-            const v = CORREAL_TAREFA[t.u][t.k], hoje = hojeG(), ganhou = Math.max(0, Math.min(v, 40 - hoje)), w = cart();
-            if(ganhou){ d.t.corre_correal_log.push({ id: rid(), dono: eu, valor: ganhou, motivo: `tarefa:${t.u}:${t.k}`, created_at: now() }); w.saldo += ganhou; w.ganho += ganhou; w.updated_at = now(); }
-            write(d); return { ok: true, ganhou, valia: v, saldo: w.saldo, hoje: hoje + ganhou, teto: 40 };
+            const pts = CORREAL_TAREFA[t.u][t.k], v = pts * PONTO, hoje = hojeC(), ganhou = Math.max(0, Math.min(v, TETO - hoje)), w = cart();
+            if(ganhou){ d.t.corre_correal_log.push({ id: rid(), dono: eu, valor: real(ganhou), motivo: `tarefa:${t.u}:${t.k}`, created_at: now() }); w.saldo = real(centDe(w.saldo) + ganhou); w.ganho = real(centDe(w.ganho) + ganhou); w.updated_at = now(); }
+            write(d); return { ok: true, ganhou: real(ganhou), valia: real(v), pontos: pts, saldo: real(centDe(w.saldo)), hoje: real(hoje + ganhou), teto: real(TETO) };
           }
           if(n === 'corre_correal_gasta'){
-            const p = CORREAL_PRECO[a.p_tipo], w = cart(); if(!p || w.saldo < p) return { ok: false, saldo: w.saldo, preco: p || null };
-            w.saldo -= p; w.gasto += p; d.t.corre_correal_log.push({ id: rid(), dono: eu, valor: -p, motivo: 'gasto:' + a.p_tipo, created_at: now() }); write(d); return { ok: true, saldo: w.saldo, preco: p };
+            /* tipo que o banco não conhece não tem preço: não mexe em nada (e o saldo volta 0, como lá) */
+            const p = centDe(CORREAL_PRECO[a.p_tipo]); if(!p) return { ok: false, saldo: 0, preco: null };
+            const w = cart(), s = centDe(w.saldo); if(s < p) return { ok: false, saldo: real(s), preco: real(p) };
+            w.saldo = real(s - p); w.gasto = real(centDe(w.gasto) + p); d.t.corre_correal_log.push({ id: rid(), dono: eu, valor: real(-p), motivo: 'gasto:' + a.p_tipo, created_at: now() }); write(d); return { ok: true, saldo: w.saldo, preco: real(p) };
           }
           throw { message: 'permission denied', code: '42501' };
         }
@@ -1421,17 +1442,45 @@
   C.uid = () => C.st.user && C.st.user.id;
 
   /* ---------- v3.38 · CORREAL: a moeda do Correverso ----------
-     Ganha fazendo tarefa na cidade (1 ponto = 1 correal, até 40 por dia, o banco confere). A IA do Corre (Studio, Studio
-     Houzi, Hórus) tem um limite grátis por dia; acabou, dá pra continuar gastando correal: o app pergunta antes, a função
-     desconta no servidor e, se a IA falhar, devolve. */
-  C.correal = { saldo: null, hoje: 0, teto: 40, precos: Object.assign({}, CORREAL_PRECO) };
+     Ganha fazendo tarefa na cidade (o banco confere o tempo e paga). A IA do Corre (Studio, Studio Houzi, Hórus) tem
+     um limite grátis por dia; acabou, dá pra continuar gastando correal: o app pergunta antes, a função desconta no
+     servidor e, se a IA falhar, devolve.
+     v3.43: com centavos. Cada ponto de tarefa vale 3 centavos de correal (uma tarefa paga de 0,06 a 0,15) e o teto do
+     dia em tarefa é 1,00, umas 10 tarefas. Nenhum preço passa de 1. Os números vêm do banco (corre_correal_meu: ponto,
+     teto e precos); os daqui são a reserva. */
+  C.correal = { saldo: null, hoje: 0, teto: CORREAL_TETO, ponto: CORREAL_PONTO, precos: Object.assign({}, CORREAL_PRECO) };
+  /* um jeito só de escrever correal, em todo lugar: sempre 2 casas, com vírgula ("0,90", "12,40", "1.250,00").
+     A conta é em centavos inteiros, então nunca aparece 0,30000000000000004 nem "0.9" */
+  C.correalCent = centDe;
+  C.correalFmt = v => {
+    const c = centDe(v), a = Math.abs(c);
+    return (c < 0 ? '-' : '') + String(Math.floor(a / 100)).replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ',' + String(a % 100).padStart(2, '0');
+  };
+  /* com a palavra: "0,90 correal", "1,50 correal", "2,40 correais" (plural a partir de 2, como "1,5 milhão"; e no zero,
+     como "zero reais": "0,00 correais") */
+  C.correalUnid = v => { const c = Math.abs(centDe(v)); return c === 0 || c >= 200 ? 'correais' : 'correal'; };
+  C.correalTxt = v => `${C.correalFmt(v)} ${C.correalUnid(v)}`;
+  /* pode pagar? (saldo e preço em centavos: 0,90 nunca paga 1,00, e 0,20 + 0,10 paga 0,30) */
+  C.correalCobre = (saldo, preco) => centDe(saldo) >= centDe(preco);
   C.correalSet = (saldo, hoje) => {
-    if(saldo != null && !isNaN(saldo)) C.correal.saldo = Number(saldo);
-    if(hoje != null && !isNaN(hoje)) C.correal.hoje = Number(hoje);
-    document.querySelectorAll('[data-correal-saldo]').forEach(el => { el.textContent = C.correal.saldo == null ? '…' : String(C.correal.saldo); });
+    if(saldo != null && !isNaN(saldo)) C.correal.saldo = centDe(saldo) / 100;
+    if(hoje != null && !isNaN(hoje)) C.correal.hoje = centDe(hoje) / 100;
+    const s = C.correal.saldo;
+    document.querySelectorAll('[data-correal-saldo]').forEach(el => { el.textContent = s == null ? '…' : C.correalFmt(s); });
+    document.querySelectorAll('[data-correal-unid]').forEach(el => { el.textContent = C.correalUnid(s || 0); });
+  };
+  /* lê a carteira que o banco devolve (corre_correal_meu, ou a "cotas" da função imagem): teto, ponto, preços e saldo */
+  C.correalLe = w => {
+    if(!w || typeof w !== 'object') return;
+    if(Number(w.teto) > 0) C.correal.teto = centDe(w.teto) / 100;
+    /* o ponto fica como o banco manda (0,025 seria 0,025): a tarefa faz pontos x ponto e só então arredonda, na mesma
+       ordem do corre_tarefa_termina */
+    if(Number(w.ponto) > 0) C.correal.ponto = Number(w.ponto);
+    if(w.precos && typeof w.precos === 'object') Object.keys(w.precos).forEach(k => { const v = Number(w.precos[k]); if(v > 0) C.correal.precos[k] = centDe(v) / 100; });
+    C.correalSet(w.saldo, w.hoje);
   };
   C.correalCarrega = async () => {
-    try{ const w = await C.api.rpc('corre_correal_meu', {}); if(w){ Object.assign(C.correal, { teto: w.teto || 40, precos: Object.assign({}, CORREAL_PRECO, w.precos || {}) }); C.correalSet(w.saldo, w.hoje); } }catch(e){}
+    try{ C.correalLe(await C.api.rpc('corre_correal_meu', {})); }catch(e){}
     return C.correal;
   };
   /* uma pergunta por cima de tudo (até de uma folha aberta): devolve true ou false */
@@ -1449,20 +1498,21 @@
     try{ return lido(await C.api.fn('imagem', body)); }
     catch(e){
       if(e && e.correal != null) C.correalSet(e.correal);
-      if(!(e && e.code === 'limite' && e.preco) || o.auto === false) throw e;
+      if(!(e && e.code === 'limite' && centDe(e.preco) > 0) || o.auto === false) throw e;
       const saldo = Number(e.correal) || 0, preco = Number(e.preco);
-      if(saldo < preco){ e.semCorreal = true; throw e; }
+      if(!C.correalCobre(saldo, preco)){ e.semCorreal = true; throw e; }
       if(o.auto !== true){
-        const sim = await C.confirma({ ico: 'correal', titulo: 'Acabou o grátis de hoje', texto: `${o.oque ? `${esc(o.oque[0].toUpperCase() + o.oque.slice(1))} a mais` : 'Continuar'} sai por <b>${preco} correais</b>. Você tem <b>${saldo}</b>.`, sim: `Usar ${preco} correais`, nao: 'Agora não' });
+        const sim = await C.confirma({ ico: 'correal', titulo: 'Acabou o grátis de hoje', texto: `${o.oque ? `Gerar ${esc(o.oque)}` : 'Continuar'} sai por <b>${C.correalTxt(preco)}</b>. Você tem <b>${C.correalFmt(saldo)}</b>.`, sim: `Usar ${C.correalTxt(preco)}`, nao: 'Agora não' });
         if(!sim){ e.recusou = true; throw e; }
       }
-      return lido(await C.api.fn('imagem', Object.assign({}, body, { correal: true })));
+      try{ return lido(await C.api.fn('imagem', Object.assign({}, body, { correal: true }))); }
+      catch(e2){ if(e2 && e2.correal != null) C.correalSet(e2.correal); throw e2; }
     }
   };
   /* a mensagem do limite: com o preço e o saldo quando a função já fala correal */
   C.limiteMsg = (e, oque) => {
     if(e && e.recusou) return 'Tudo bem. O grátis de hoje acabou; amanhã tem mais (ou usa correal quando quiser).';
-    if(e && e.preco != null) return `Acabou o grátis de hoje${oque ? ` (${oque})` : ''}. Mais um sai por ${e.preco} correais e você tem ${Number(e.correal) || 0}. Correal se ganha fazendo tarefa no Correverso, até 40 por dia.`;
+    if(e && e.preco != null) return `Acabou o grátis de hoje${oque ? ` (${oque})` : ''}. Cada pedido a mais sai por ${C.correalTxt(e.preco)} e você tem ${C.correalFmt(Number(e.correal) || 0)}. Correal se ganha fazendo tarefa no Correverso: centavos por tarefa, até ${C.correalFmt(C.correal.teto)} por dia.`;
     return `Hoje já deu o limite${oque ? ` de ${oque}` : ''}. Amanhã tem mais.`;
   };
   /* salva um pedaço do meu perfil e mantém o estado em dia */

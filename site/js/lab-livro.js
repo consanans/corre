@@ -272,7 +272,7 @@
     }
     if(g.simb){ medidas.push([vx(g.simb.h / 100), 'o símbolo']); if(g.nome){ const gap = lg.arranjo === 'vertical' ? g.nome.y - (g.simb.y + g.simb.h) : g.nome.x - (g.simb.x + g.simb.w); if(gap > 0) medidas.push([vx(gap / 100), 'entre o símbolo e o nome']); } }
     if(g.frase) medidas.push([vx(22 / 100), 'a frase (altura da letra)']);
-    medidas.push([vx(vb.w / 100) + ' × ' + vx(vb.h / 100), 'o logo inteiro'], ['1x', 'de respiro em volta, sempre']);
+    medidas.push([vx(vb.w / 100) + ' por ' + vx(vb.h / 100), 'o logo inteiro'], ['1x', 'de respiro em volta, sempre']);
     texto.push('A medida de tudo é o x: a altura da letra maiúscula do nome. Com ela o logo se reconstrói em qualquer tamanho, de um favicon a uma fachada, sem ninguém precisar adivinhar proporção.');
     if(g.simb) texto.push(`O símbolo cabe num quadrado de ${vx(g.simb.h / 100)}, com o círculo de dentro e as diagonais marcando o centro; ${lg.arranjo === 'vertical' ? 'o nome fica embaixo, centrado nele' : 'o nome começa depois de um respiro e se apoia na linha de base, com a maiúscula na mesma altura em todas as letras'}.`);
     else texto.push('O nome se apoia na linha de base; a maiúscula bate sempre na mesma altura e as minúsculas na linha do x. A grade é de um quarto de x.');
