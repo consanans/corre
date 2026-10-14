@@ -418,13 +418,136 @@
     ...Array.from({ length: 8 }, (_, i) => B(.44 + (i % 4) * .29 + (i % 4 > 1 ? .06 : 0), .991, .27 + Math.floor(i / 4) * .36, .22, .005, .28, [ROSA, AZUL, AMARELO, INK, LILAS, '#E2412E', CEU, LARANJA][i]))];
   const PLANTA_GALERIA = salaDe({ k: 'marcas', nome: 'A galeria', W: 14, D: 12, ALT: 4, piso: '#E6E2DA', linha: 'rgba(60,50,40,.08)', parede: '#F7F5F0', decor: GALERIA_DECOR });
 
+  /* ---------- v3.47 · o resto da Feira: o Beco (Feed), a Biblioteca (Do teu nicho), a Vitrine (Estilo de vida), a
+     Escolinha (Manual) e o Cineclube (Rolo 360, só do fundador, como a barraca) ---------- */
+  const sorte = n => { const v = Math.sin(n * 12.9898 + 78.233) * 43758.5453; return v - Math.floor(v); };
+  /* um disco em pé (no plano x-y), de fatias de 10 cm: a bobina do projetor */
+  const discoEmPe = (cx, cy, R, z, prof, c) => { const out = []; for(let y = cy - R; y < cy + R - .02; y += .1){ const dy = y + .05 - cy, h = Math.sqrt(Math.max(0, R * R - dy * dy)); if(h > .02) out.push(B(cx - h, y, z, h * 2, .1, prof, c)); } return out; };
+
+  /* o Beco: viela de tijolo, asfalto molhado, grafite, escada de incêndio, varal de luz e, no fundo, o paredão de
+     lambe-lambe, que é o feed (cada lambe é um post: a foto, duas linhas e, de vez em quando, o coração) */
+  const PAREDAO = (() => { const out = [B(-.1, .5, -.02, 8.2, 3.2, .02, '#9AA1AB')];
+    for(let j = 0; j < 3; j++) for(let i = 0; i < 6; i++){
+      const n = i + j * 6, u = .1 + i * 1.33 + (sorte(n) - .5) * .12, v = .7 + j * 1 + (sorte(n + 9) - .5) * .12, base = [PAPEL, '#F4F1EA', AMARELO, PAPEL, ROSA, '#EAD9A8'][n % 6], foto = [AZUL, ROSA, LARANJA, LILAS, INK, CEU, AMARELO][(n * 3) % 7];
+      out.push(B(u, v, 0, 1.15, .82, .02, base), B(u + .08, v + .3, .02, .99, .44, .01, foto === base ? INK : foto), B(u + .08, v + .18, .02, .7, .05, .01, INK), B(u + .08, v + .08, .02, .45, .05, .01, '#4A4E56'));
+      if(n % 3 === 1) out.push(B(u + .95, v + .08, .02, .12, .1, .01, ROSA));
+    }
+    return out; })();
+  /* o grafite da parede da esquerda, em camadas (cada uma 1,2 cm pra fora da outra): contorno, fundo, letras, brilho, escorrido e a coroa */
+  const GRAFITE = [[0, .45, 5.2, 2.05, INK], [.1, .55, 5, 1.85, ROSA], [.4, .8, .9, 1.3, AMARELO], [1.5, .8, .9, 1.45, AMARELO], [2.6, .8, .9, 1.1, AMARELO], [3.7, .8, .9, 1.35, AMARELO],
+    [.7, 1.1, .3, .5, INK], [1.8, 1.3, .3, .4, INK], [2.9, 1, .3, .45, INK], [4, 1.2, .3, .5, INK], [.5, 1.95, .2, .07, PAPEL], [1.6, 2.1, .2, .07, PAPEL], [3.8, 2, .2, .07, PAPEL],
+    [.9, .15, .06, .4, AZUL], [2.2, .2, .06, .35, AZUL], [3.3, .1, .06, .45, AZUL], [1.9, 2.55, .22, .3, AMARELO], [2.3, 2.62, .22, .32, AMARELO], [2.7, 2.55, .22, .3, AMARELO]];
+  const BECO_DECOR = [
+    { x: .15, z: 0, parede: true, bl: GRAFITE.map(([u, v, w, h, c], i) => B((i < 1 ? 0 : i < 2 ? .012 : .024), v, 6 + u, .012, h, w, c)) },
+    /* a escada de incêndio da direita, com a janela atrás */
+    { x: 9.85, z: 0, parede: true, bl: [B(-.03, 2.35, 3.3, .03, 1.05, 1, '#1B2A5A'), B(-.04, 2.3, 3.25, .04, .05, 1.1, INK), B(-.8, 2.2, 2.5, .8, .06, 3, '#2B2F38'), B(-.8, 2.95, 2.5, .04, .04, 3, '#2B2F38'),
+      ...[2.5, 3.5, 4.5, 5.46].map(z => B(-.8, 2.26, z, .04, .7, .04, '#2B2F38')), B(-.8, 2.26, 2.5, .8, .04, .04, '#2B2F38'), B(-.8, 2.26, 5.46, .8, .04, .04, '#2B2F38'),
+      B(-.7, .95, 2.65, .04, 1.25, .04, '#2B2F38'), B(-.7, .95, 3.05, .04, 1.25, .04, '#2B2F38'), ...[1.1, 1.4, 1.7, 2].map(y => B(-.7, y, 2.65, .04, .03, .44, '#2B2F38'))] },
+    /* poças e o bueiro */
+    { x: 2.4, z: 9, piso: true, bl: [B(0, 0, 0, 1.6, .012, .9, '#2B3550'), B(.3, 0, .9, .9, .012, .4, '#2B3550')] }, { x: 6.6, z: 3.2, piso: true, bl: [B(0, 0, 0, 1, .012, .7, '#2B3550')] },
+    { x: 4.6, z: 11, piso: true, bl: [B(0, 0, 0, .7, .015, .7, '#2B2F38'), Object.assign(B(0, .015, 0, .7, .01, .7, '#4A4E56'), { yaw: Math.PI / 4 })] }
+  ];
+  const PLANTA_BECO = salaDe({ k: 'feed', nome: 'O beco', W: 10, D: 14, ALT: 4.2, piso: '#3A3E45', parede: TIJ, fundo: '#7F8A96', decor: BECO_DECOR });
+
+  /* a Biblioteca: estantes até o teto com a escada de correr, a mesa comprida de referências com os abajures âmbar,
+     o canto de leitura e o quadro de cortiça com as referências presas por fio vermelho (o jeito de quem investiga) */
+  const LIVROS_C = ['#8E1B2C', '#2F5DA8', '#C9A24E', '#E6D7B4', '#4A2E1E', ROSA, '#1C2350', LARANJA, '#7A1F3D', PAPEL];
+  const livrosRun = (x0, y, w, k) => { const out = []; let x = x0, i = 0; while(x < x0 + w - .12){ const ww = Math.min(x0 + w - x, .22 + sorte(k * 7 + i) * .36), h = .28 + sorte(k * 13 + i) * .16; out.push(B(x, y, .08, ww - .02, h, .3, LIVROS_C[(k + i * 3) % LIVROS_C.length])); x += ww; i++; } return out; };
+  const estanteAlta = (x0, w, k) => [B(x0, 0, 0, .08, 3.6, .42, MAD_E), B(x0 + w - .08, 0, 0, .08, 3.6, .42, MAD_E), B(x0, 3.55, 0, w, .08, .42, MAD_E),
+    ...[.1, .8, 1.5, 2.2, 2.9].flatMap((y, j) => [B(x0, y, 0, w, .05, .42, MAD_E), ...livrosRun(x0 + .1, y + .05, w - .2, k * 5 + j)])];
+  const CORTICA = (() => { const out = [B(-.04, 1.2, 7, .04, 1.6, 3.2, '#B5824A'), B(-.05, 1.15, 6.95, .05, .05, 3.3, MAD_E), B(-.05, 2.8, 6.95, .05, .05, 3.3, MAD_E)];
+    const cards = [[7.2, 2.15], [8, 2.3], [8.9, 2.1], [9.6, 2.25], [7.4, 1.4], [8.4, 1.5], [9.3, 1.35]];
+    cards.forEach(([z, y], i) => out.push(B(-.05, y, z, .01, .42, .52, PAPEL), B(-.06, y + .06, z + .05, .01, .26, .42, [ROSA, AZUL, AMARELO, LARANJA, LILAS, '#E2412E', CEU][i]), B(-.065, y + .36, z + .23, .01, .05, .05, '#E2412E')));
+    [[7.45, 2.5, .8], [8.25, 2.6, .9], [7.65, 1.75, 1.0], [8.65, 1.85, .9]].forEach(([z, y, l]) => out.push(B(-.07, y, z, .005, .015, l, '#E2412E')));
+    return out; })();
+  const BIBLIO_DECOR = [
+    { x: .2, z: .15, bl: [...estanteAlta(0, 4.1, 1), ...estanteAlta(4.3, 4.1, 2), ...estanteAlta(8.5, 4.1, 3)] },
+    { x: 0, z: 0, bl: [B(.2, 3.45, .6, 12.6, .04, .04, OURO), B(5.8, 0, .72, .05, 3.45, .05, MAD), B(6.35, 0, .72, .05, 3.45, .05, MAD), ...[.4, .75, 1.1, 1.45, 1.8, 2.15, 2.5, 2.85, 3.2].map(y => B(5.8, y, .72, .6, .04, .05, MAD))] },
+    { x: 12.85, z: 0, parede: true, bl: CORTICA }
+  ];
+  const abajur = x => [B(x - .08, .83, .55, .16, .03, .16, OURO), B(x - .02, .86, .61, .04, .35, .04, OURO), B(x - .25, 1.18, .5, .5, .12, .26, '#C98A1E'), B(x - .2, 1.17, .52, .4, .01, .22, LUZ_S)];
+  const BIBLIO_MESA = [B(0, .76, 0, 5.8, .07, 1.4, MAD_E), ...[[.1, .1], [5.6, .1], [.1, 1.2], [5.6, 1.2]].map(([x, z]) => B(x, 0, z, .1, .76, .1, MAD_E)), ...abajur(1.3), ...abajur(4.5),
+    B(.4, .83, .3, .7, .02, .5, PAPEL), B(.45, .85, .35, .3, .005, .4, ROSA), B(.8, .85, .35, .28, .005, .18, AZUL), B(2.2, .83, .7, .6, .02, .45, AMARELO), B(2.25, .85, .75, .25, .005, .35, INK),
+    B(3.2, .83, .3, .4, .08, .3, '#8E1B2C'), B(3.22, .91, .32, .36, .08, .26, '#2F5DA8'), B(3.18, .99, .3, .42, .07, .3, '#C9A24E'),
+    B(4.9, .83, .5, .6, .03, .42, '#3A3E45'), B(4.9, .86, .47, .6, .4, .03, '#3A3E45'), B(4.95, .9, .5, .5, .32, .01, LILAS)];
+  const PLANTA_BIBLIO = salaDe({ k: 'nicho', nome: 'A biblioteca', W: 13, D: 12, ALT: 4.2, piso: '#8E5B33', linha: 'rgba(40,20,5,.22)', parede: '#6B3A2A', decor: BIBLIO_DECOR });
+
+  /* a Vitrine: o estilo de vida em exposição. Cada canto é um bloco da conta (a casa, o carro, o lazer, o luxo) e tudo
+     tem etiqueta pendurada; no fundo, o quadro dos sonhos, e no meio a calculadora gigante que faz a conta do mês */
+  const etiqueta = (x, z) => [B(x - .15, 0, z - .15, .3, .03, .3, INK), B(x - .03, .03, z - .03, .06, 1.1, .06, INK), B(x - .22, 1.13, z - .02, .44, .28, .04, PAPEL),
+    B(x - .17, 1.33, z + .02, .05, .05, .01, LILAS), B(x - .12, 1.24, z + .02, .26, .03, .01, INK), B(x - .12, 1.17, z + .02, .18, .03, .01, INK)];
+  const carroSonho = () => [B(0, .25, 0, 3, .55, 1.6, LILAS), B(.7, .8, .1, 1.6, .5, 1.4, LILAS), B(.78, .86, .09, .65, .36, .01, VIDRO), B(1.5, .86, .09, .7, .36, .01, VIDRO),
+    B(.78, .86, 1.5, .65, .36, .01, VIDRO), B(1.5, .86, 1.5, .7, .36, .01, VIDRO), B(2.3, .86, .2, .01, .36, 1.2, VIDRO), B(.69, .86, .2, .01, .36, 1.2, VIDRO),
+    ...[[.4, -.06], [2, -.06], [.4, 1.56], [2, 1.56]].map(([x, z]) => B(x, 0, z, .6, .5, .1, INK)), B(2.99, .5, .15, .02, .12, .3, PAPEL), B(2.99, .5, 1.15, .02, .12, .3, PAPEL),
+    B(-.01, .5, .15, .02, .1, .3, '#E2412E'), B(-.01, .5, 1.15, .02, .1, .3, '#E2412E')];
+  const SONHOS = (() => { const out = [B(-.1, 1.15, 0, 7.2, 2.3, .04, LILAS)]; const q = (u, c) => out.push(B(u, 1.3, .04, 1.6, 2, .02, c));
+    q(0, CEU); out.push(B(0, 1.3, .06, 1.6, .7, .01, AZUL), B(0, 1.3, .07, 1.6, .25, .01, '#EAD9A8'), B(.95, 2.6, .06, .4, .4, .01, AMARELO));
+    q(1.8, PAPEL); out.push(B(2.15, 1.5, .06, .9, .8, .01, ROSA), B(2.05, 2.3, .06, 1.1, .2, .01, '#B4152E'), B(2.25, 2.5, .06, .7, .2, .01, '#B4152E'), B(2.45, 2.7, .06, .3, .15, .01, '#B4152E'), B(2.48, 1.5, .07, .25, .45, .01, INK));
+    q(3.6, '#F4F1EA'); out.push(B(3.75, 1.75, .06, 1.3, .35, .01, LARANJA), B(4.05, 2.1, .06, .7, .3, .01, LARANJA), B(3.85, 1.6, .07, .3, .2, .01, INK), B(4.65, 1.6, .07, .3, .2, .01, INK));
+    q(5.4, '#9CC9F0'); out.push(B(5.6, 2.3, .06, 1.2, .14, .01, PAPEL), B(6.05, 2.05, .06, .25, .6, .01, PAPEL), B(5.65, 2.4, .06, .14, .25, .01, PAPEL), B(5.8, 1.6, .06, .5, .12, .01, PAPEL), B(6.3, 1.75, .06, .4, .1, .01, PAPEL));
+    return out; })();
+  const VITRINE_DECOR = [
+    { x: 3.5, z: .15, parede: true, bl: SONHOS },
+    { x: 1, z: 2.2, piso: true, bl: [B(0, 0, 0, 3.8, .015, 2.4, PAPEL)] }, { x: 9.2, z: 2.2, piso: true, bl: [B(0, 0, 0, 3.8, .015, 2.4, PAPEL)] },
+    { x: 1, z: 6.6, piso: true, bl: [B(0, 0, 0, 3.4, .015, 2.6, PAPEL)] }, { x: 9.6, z: 6.6, piso: true, bl: [B(0, 0, 0, 3, .015, 2.6, PAPEL)] },
+    { x: 9.6, z: 2.6, bl: carroSonho() },
+    { x: 0, z: 0, bl: [...etiqueta(4.4, 4.2), ...etiqueta(8.8, 4.2), ...etiqueta(4.1, 8.8), ...etiqueta(9.3, 8.8)] }
+  ];
+  const CALCULADORA = [B(.2, 0, .2, 1.6, .6, .8, '#D9CCEF'), B(.4, .6, .35, 1.2, 1.55, .35, INK), B(.5, 1.75, .7, 1, .3, .01, '#D9CCEF'),
+    ...[0, 1, 2, 3, 4].map(i => B(.62 + i * .17, 1.8, .71, .11, .18, .005, INK)),
+    ...Array.from({ length: 16 }, (_, i) => B(.5 + (i % 4) * .26, .72 + Math.floor(i / 4) * .25, .7, .2, .18, .02, i === 3 ? AMARELO : i % 4 === 3 ? LILAS : i === 0 ? ROSA : '#3A3E45'))];
+  const PLANTA_VITRINE = salaDe({ k: 'estilo', nome: 'A vitrine', W: 14, D: 12, ALT: 4, piso: '#E9E6E0', linha: 'rgba(60,50,40,.06)', parede: '#F4F1EA', fundo: '#D9CCEF', decor: VITRINE_DECOR });
+
+  /* a Escolinha: a lousa preta (nada de verde) com o giz desenhando o passo a passo, o abecedário colorido em cima,
+     as carteiras com o corredor no meio, a mesa da professora com o globo e os desenhos da turma na parede */
+  const LOUSA = [B(-.1, .85, 0, 7.2, 1.95, .05, MAD), B(0, .95, .05, 7, 1.75, .02, '#22252B'), B(0, .9, .05, 7, .04, .14, MAD), B(.5, .94, .12, .25, .06, .1, '#E6D7B4'),
+    ...[[.5, 2.1], [2.3, 2.1], [4.1, 2.1]].flatMap(([u, v], i) => [B(u, v, .07, .36, .36, .01, PAPEL), B(u + .08, v + .08, .08, .2, .2, .005, '#22252B'), B(u + .5, v + .22, .07, 1, .05, .01, PAPEL), B(u + .5, v + .08, .07, .7, .05, .01, PAPEL), ...(i < 2 ? [B(u + 1.6, v + .16, .07, .12, .05, .01, AMARELO)] : [])]),
+    B(.6, 1.2, .07, .7, .5, .01, ROSA), B(.65, 1.7, .07, .6, .1, .01, ROSA), B(.75, 1.8, .07, .4, .1, .01, ROSA), B(.82, 1.2, .08, .2, .3, .005, '#22252B'),
+    B(5.9, 2.2, .07, .45, .45, .01, AMARELO), B(5.75, 2.38, .07, .1, .08, .01, AMARELO), B(6.4, 2.38, .07, .1, .08, .01, AMARELO), B(6.08, 2.7, .07, .08, .1, .01, AMARELO),
+    B(2.2, 1.25, .07, 2.6, .05, .01, PAPEL), B(4.6, 1.15, .07, .14, .25, .01, PAPEL), B(5.4, 1.2, .07, .3, .3, .01, ROSA), B(5.45, 1.45, .07, .1, .08, .01, ROSA), B(5.65, 1.45, .07, .1, .08, .01, ROSA)];
+  const carteiraEsc = c => [B(0, .7, 0, .8, .05, .55, MAD), B(.06, 0, .06, .05, .7, .05, '#4A4E56'), B(.69, 0, .06, .05, .7, .05, '#4A4E56'), B(.06, 0, .44, .05, .7, .05, '#4A4E56'), B(.69, 0, .44, .05, .7, .05, '#4A4E56'),
+    B(.15, .42, .7, .5, .05, .42, c), B(.15, .47, 1.08, .5, .45, .05, c), B(.18, 0, .74, .04, .42, .04, '#4A4E56'), B(.58, 0, .74, .04, .42, .04, '#4A4E56'), B(.18, 0, 1.06, .04, .42, .04, '#4A4E56'), B(.58, 0, 1.06, .04, .42, .04, '#4A4E56')];
+  const ESCOLA_DECOR = [
+    { x: 2.5, z: .15, parede: true, bl: Array.from({ length: 12 }, (_, i) => B(i * .6, 3, .02, .5, .3, .02, [ROSA, AMARELO, AZUL, LARANJA, LILAS, CEU][i % 6])) },
+    ...[[1.4, 3.4], [3.1, 3.4], [7.3, 3.4], [9, 3.4], [1.4, 5.2], [3.1, 5.2], [7.3, 5.2], [9, 5.2], [1.4, 7], [3.1, 7], [7.3, 7], [9, 7]].map(([x, z], i) => ({ x, z, bl: carteiraEsc([AZUL, ROSA, LARANJA, LILAS][i % 4]) })),
+    /* a mesa da professora com o globo */
+    { x: 9.6, z: 1.3, bl: [B(0, .74, 0, 1.6, .06, .8, MAD_E), B(0, 0, 0, .1, .74, .8, MAD_E), B(1.5, 0, 0, .1, .74, .8, MAD_E), B(.45, .8, .25, .2, .04, .2, MAD_E), B(.53, .84, .33, .04, .2, .04, MAD_E),
+      B(.38, 1.02, .2, .34, .3, .3, AZUL), B(.34, 1.08, .24, .42, .18, .22, AZUL), B(.42, 1.12, .19, .14, .12, .01, LARANJA), B(.6, 1.18, .19, .1, .08, .01, LARANJA), B(1.1, .8, .3, .3, .2, .2, '#E2412E')] },
+    /* os desenhos da turma, presos na parede da esquerda */
+    { x: .15, z: 0, parede: true, bl: [[3.5, ROSA, AMARELO], [4.6, AZUL, LARANJA], [5.7, AMARELO, ROSA], [6.8, LILAS, AZUL]].flatMap(([z, a, b], i) => [B(0, 1.5 + (i % 2) * .12, z, .02, .7, .9, PAPEL), B(.02, 1.62 + (i % 2) * .12, z + .15, .01, .3, .3, a), B(.02, 1.62 + (i % 2) * .12, z + .5, .01, .45, .25, b), B(.02, 2.05 + (i % 2) * .12, z + .1, .01, .05, .7, AMARELO)]) }
+  ];
+  const PLANTA_ESCOLA = salaDe({ k: 'manual', nome: 'A escolinha', W: 12, D: 11, ALT: 3.4, piso: '#C89B6A', linha: 'rgba(60,30,10,.16)', parede: '#EAD9A8', fundo: '#F4F1EA', decor: ESCOLA_DECOR });
+
+  /* o Cineclube: a tela com Londrina no fim da tarde (o céu laranja, os prédios, o ipê rosa), a cortina de veludo,
+     as poltronas com o corredor no meio, o carrinho de pipoca e, perto da porta, o projetor com as duas bobinas */
+  const TELAO = [B(1.6, .9, 0, 8.8, 2.9, .04, INK), B(1.8, 1, .04, 8.4, 2.6, .02, '#F2A65A'), B(1.8, 2.7, .06, 8.4, .9, .01, '#E8643A'), B(1.8, 3.2, .065, 8.4, .4, .01, '#8F86E8'),
+    B(7.4, 2.2, .07, .7, .7, .01, AMARELO), ...[[1.8, .7], [2.6, 1.1], [3.2, .5], [3.8, 1.4], [4.6, .9], [5.4, 1.2], [6.1, .6], [8.3, 1], [9.1, .7]].map(([u, h], i) => B(u, 1, .075, [.7, .5, .55, .7, .7, .6, .5, .7, .8][i], h, .01, '#2B2F38')),
+    ...[[3.95, 2.05], [4.2, 2.2], [3.85, 2.3], [4.05, 2.45]].map(([u, v]) => B(u, v, .08, .35, .25, .01, ROSA)), B(4.05, 1.4, .08, .08, .7, .01, MAD_E)];
+  const cortina = x0 => Array.from({ length: 6 }, (_, i) => B(x0 + i * .18, 0, .15, .18, 4, .16 + (i % 2) * .06, i % 2 ? '#6E1422' : '#8E1B2C'));
+  const poltronaCine = () => [B(.3, 0, .2, .3, .38, .4, '#2B2F38'), B(.05, .38, .05, .8, .12, .7, '#8E1B2C'), B(.05, .38, .7, .8, .8, .15, '#8E1B2C'), B(0, .38, .05, .06, .28, .8, '#2B2F38'), B(.84, .38, .05, .06, .28, .8, '#2B2F38')];
+  const CINE_DECOR = [
+    { x: 0, z: .15, parede: true, bl: TELAO },
+    { x: 0, z: 0, bl: [...cortina(.6), ...cortina(10.32), B(.6, 3.7, .15, 10.8, .4, .28, '#8E1B2C'), B(.6, 3.66, .43, 10.8, .05, .02, OURO), B(1.2, 0, .45, 9.6, .25, 1.1, '#2B2F38')] },
+    ...[5, 6.6, 8.2].flatMap(z => [1, 1.9, 2.8, 3.7, 7.4, 8.3, 9.2, 10.1].map(x => ({ x, z, bl: poltronaCine() }))),
+    /* o carrinho de pipoca */
+    { x: .6, z: 10.4, bl: [B(0, .1, 0, 1, .7, .7, '#E2412E'), ...[.1, .3, .5, .7].map(x => B(x, .1, .7, .1, .7, .01, PAPEL)), B(0, 0, .05, .15, .15, .15, INK), B(.85, 0, .05, .15, .15, .15, INK),
+      B(.05, .8, .05, .9, .05, .6, PAPEL), B(.05, .85, .05, .05, .6, .05, PAPEL), B(.9, .85, .05, .05, .6, .05, PAPEL), B(.05, .85, .6, .05, .6, .05, PAPEL), B(.9, .85, .6, .05, .6, .05, PAPEL), B(.05, 1.45, .05, .9, .06, .6, '#E2412E'),
+      B(.12, .85, .12, .76, .25, .46, AMARELO), B(.25, 1.1, .2, .2, .1, .2, PAPEL), B(.55, 1.1, .25, .2, .12, .2, '#F2E3B0')] },
+    /* cartazes nas laterais */
+    { x: .15, z: 0, parede: true, bl: [...pintaTela(4.2, 1.2, 1, 1.4, INK, [[.1, .5, .8, .8, ROSA], [.1, .15, .8, .1, AMARELO], [.1, .3, .5, .08, PAPEL]], 'z', 1), ...pintaTela(7.6, 1.2, 1, 1.4, AMARELO, [[.15, .45, .7, .8, AZUL], [.3, .65, .4, .4, PAPEL], [.15, .15, .7, .1, INK]], 'z', 1)] },
+    { x: 11.85, z: 0, parede: true, bl: [...pintaTela(4.2, 1.2, 1, 1.4, LILAS, [[.15, .5, .7, .75, INK], [.35, .7, .3, .3, AMARELO], [.15, .15, .7, .1, INK]], 'z', -1), ...pintaTela(7.6, 1.2, 1, 1.4, '#E8643A', [[.1, .4, .8, .9, '#2B2F38'], [.4, .9, .2, .2, PAPEL], [.1, .15, .8, .1, PAPEL]], 'z', -1)] }
+  ];
+  const PROJETOR = [B(.3, 0, .3, .8, 1.1, .5, '#2B2F38'), B(.15, 1.1, .1, 1.1, .5, .9, '#3A3E45'), B(.55, 1.25, -.15, .3, .25, .25, INK), B(.6, 1.3, -.16, .2, .15, .01, LUZ_S),
+    ...discoEmPe(.45, 1.95, .35, .45, .06, '#C9CDD3'), ...discoEmPe(.98, 1.85, .28, .45, .06, '#C9CDD3'), B(.4, 1.9, .51, .1, .1, .01, INK), B(.93, 1.8, .51, .1, .1, .01, INK), B(.45, 1.6, .47, .55, .02, .02, INK)];
+  const PLANTA_CINE = salaDe({ k: 'rolo', nome: 'O cineclube', W: 12, D: 13, ALT: 4.2, piso: '#3A1E28', linha: 'rgba(0,0,0,.12)', parede: '#1B1D22', fundo: '#15161A', decor: CINE_DECOR });
+
   const LUGARES = {
     horus: { titulo: 'Casa do Hórus', planta: PLANTA_HORUS, ola: 'Casa do Hórus. O radar é o altar do meio: chega e toca.',
       estacoes: () => [{ id: 'radar', liga: 'horus', titulo: 'Radar do Hórus', rota: '#/horus', cor: INK, x: 5.6, z: 5, w: 2.8, d: 2.8, bl: RADAR, tag: [1.4, 1.75, 1.4], y: 0 }] },
     studio: { titulo: 'O Estúdio', planta: PLANTA_ESTUDIO, ola: 'O Estúdio. A mesa de criação abre o Studio: chega e toca.',
       estacoes: () => [{ id: 'studio', titulo: 'Mesa de criação', rota: '#/studio', cor: AMARELO, x: 7.4, z: .9, w: 4.2, d: 1.2, bl: ESTUDIO_MESA, tag: [2.1, 2.05, .6], y: 0 }],
       itens: [['cadeira_gamer', 10.4, 2.3, 2, 0, 2], ['banqueta', 2.4, 1.4, 0, 0, 2], ['mic_pedestal', 6, 4.4, 0, 0, 0], ['cabine_foto', 11.6, 6, 0, 0, 0], ['pufe', 8.6, 8.6, 0, 0, 0],
-        ['bean_bag', 9.8, 8.4, 0, 0, 1], ['luminaria', .4, 10, 0, 0, 2], ['neon_raio', 5.9, .15, 0, 0, 0], ['varal_luzes', 8.4, 9.6, 0, 0, 0], ['tapete', 8.6, 7.6, 1, 0, 2]] },
+        ['bean_bag', 9.8, 8.4, 0, 0, 1], ['luminaria', .4, 10, 0, 0, 0], ['neon_raio', 5.9, .15, 0, 0, 0], ['varal_luzes', 8.4, 9.6, 0, 0, 0], ['tapete', 8.6, 7.6, 1, 0, 2]] },
     vendas: { titulo: 'O Balcão', planta: PLANTA_BALCAO, ola: 'O Balcão. A caixa registradora abre as tuas vendas: chega e toca.',
       estacoes: () => [{ id: 'vendas', titulo: 'Caixa registradora', rota: '#/vendas', cor: LARANJA, x: 5.3, z: 3.45, w: 1.4, d: .8, bl: BALCAO_CAIXA, tag: [.7, 1.95, .35], y: 0 }],
       itens: [['banqueta', 5.5, 2.2, 0, 0, 4], ['maquina_refri', .3, 5.4, 1, 0, 0], ['geladeira_bebidas', .3, 6.6, 1, 0, 0], ['vaso', .4, 9.4, 0, 0, 0], ['vaso', 10.6, 9.4, 0, 0, 1],
@@ -435,7 +558,27 @@
     marcas: { titulo: 'A Galeria', planta: PLANTA_GALERIA, ola: 'A Galeria. O catálogo aberto no meio é o teu portfólio: chega e toca.',
       estacoes: () => [{ id: 'marcas', titulo: 'O catálogo', rota: '#/marcas', cor: '#E2412E', x: 6, z: 6.2, w: 2, d: 1.2, bl: GALERIA_CATALOGO, tag: [1, 1.8, .6], y: 0 }],
       itens: [['banco_madeira', 1, 2.8, 0, 0, 3], ['banco_madeira', 11, 2.8, 0, 0, 3], ['estatua', 12.3, 10.4, 0, 0, 0], ['vaso', .6, 10.4, 0, 0, 0],
-        ['pendente', 3, 3.4, 0, 0, 2], ['pendente', 7, 3.4, 0, 0, 2], ['pendente', 11, 3.4, 0, 0, 2]] }
+        ['pendente', 3, 3.4, 0, 0, 2], ['pendente', 7, 3.4, 0, 0, 2], ['pendente', 11, 3.4, 0, 0, 2]] },
+    feed: { titulo: 'O Beco', planta: PLANTA_BECO, ola: 'O Beco. O paredão de lambe-lambe no fundo é o feed: chega e toca.',
+      estacoes: () => [{ id: 'feed', titulo: 'Paredão do feed', rota: '#/', cor: ROSA, parede: true, x: 1, z: .15, w: 8, d: .1, bl: PAREDAO, tag: [4, 2.5, .6], y: 0 }],
+      itens: [['banco_praca', .3, 2.5, 1, 0, 0], ['bike', .3, 4.8, 1, 0, 1], ['corrimao', 3.4, 6.6, 0, 0, 0], ['skate', 6.4, 7.4, 0, 0, 2], ['poste', 8.6, 7.6, 0, 0, 0], ['cone', 3.2, 10.4, 0, 0, 0],
+        ['cone', 6.2, 4.4, 0, 0, 0], ['lixeira_rua', 8.7, 10.3, 0, 0, 0], ['hidrante', .3, 12.2, 0, 0, 0], ['orelhao', 8.7, 11.8, 3, 0, 0], ['quadro_grafite', 9.75, 8, 3, 0, 0],
+        ['placa_rua', .15, 1.2, 1, 0, 0], ['varal_luzes', 3.5, 3.5, 0, 0, 0], ['varal_luzes', 3.5, 8.5, 0, 0, 0]] },
+    nicho: { titulo: 'A Biblioteca', planta: PLANTA_BIBLIO, ola: 'A Biblioteca. A mesa de referências abre o Do teu nicho: chega e toca.',
+      estacoes: () => [{ id: 'nicho', titulo: 'Mesa de referências', rota: '#/refs', cor: '#8F86E8', x: 3.6, z: 5.4, w: 5.8, d: 1.4, bl: BIBLIO_MESA, tag: [2.9, 1.7, .7], y: 0 }],
+      itens: [['estante', .2, 2.2, 1, 0, 1], ['estante', .2, 4.6, 1, 0, 1], ['estante', 11.8, 2.2, 3, 0, 1], ['estante', 11.8, 4.4, 3, 0, 1], ['cadeira', 4.6, 4.2, 0, 0, 3], ['cadeira', 6, 4.2, 0, 0, 3],
+        ['cadeira', 7.4, 4.2, 0, 0, 3], ['poltrona', .4, 8, 1, 0, 3], ['mesa_lateral', .4, 9.1, 0, 0, 1], ['poltrona', .4, 10.2, 1, 0, 3], ['tapete_redondo', 1.4, 8.6, 0, 0, 3],
+        ['estante_manga', 11.8, 10.6, 3, 0, 0], ['luminaria', 2.6, 10.6, 0, 0, 0], ['lustre', 6, 7, 0, 0, 0]] },
+    estilo: { titulo: 'A Vitrine', planta: PLANTA_VITRINE, ola: 'A Vitrine. A calculadora faz a conta do teu estilo de vida: chega e toca.',
+      estacoes: () => [{ id: 'estilo', titulo: 'A conta do mês', rota: '#/estilo', cor: LILAS, x: 6, z: 4.4, w: 2, d: 1.2, bl: CALCULADORA, tag: [1, 2.45, .5], y: 0 }],
+      itens: [['sofa', 1.4, 2.6, 0, 0, 5], ['mesa_lateral', 3.5, 2.6, 0, 0, 2], ['espreguicadeira', 1.4, 6.8, 0, 0, 1], ['guarda_sol', 2.5, 6.9, 0, 0, 0], ['prancha', 3.5, 7.2, 0, 0, 3],
+        ['piano', 10.2, 6.9, 0, 0, 0], ['pendente', 3, 3, 0, 0, 3], ['pendente', 11, 3, 0, 0, 3], ['vaso', .5, 10.4, 0, 0, 3], ['vaso', 12.5, 10.4, 0, 0, 3]] },
+    manual: { titulo: 'A Escolinha', planta: PLANTA_ESCOLA, ola: 'A Escolinha. A lousa abre o manual do Corre: chega e toca.',
+      estacoes: () => [{ id: 'manual', titulo: 'A lousa', rota: '', cor: CEU, parede: true, x: 2.5, z: .15, w: 7, d: .1, bl: LOUSA, tag: [3.5, 2.3, .6], y: 0 }],
+      itens: [['relogio', 10.1, .15, 0, 0, 0], ['estante', .2, .6, 1, 0, 0], ['quadro_avisos', 11.75, 4, 3, 0, 0], ['bebedouro', 10.8, 8.6, 0, 0, 0], ['vaso', .4, 9.6, 0, 0, 0]] },
+    rolo: { titulo: 'O Cineclube', planta: PLANTA_CINE, ola: 'O Cineclube. O projetor perto da porta abre o Rolo 360: chega e toca.',
+      estacoes: () => [{ id: 'rolo', titulo: 'O projetor', rota: '#/rolo', cor: '#8E4B2B', x: 8.6, z: 10, w: 1.4, d: 1.1, bl: PROJETOR, tag: [.7, 2.5, .5], y: 0 }],
+      itens: [['arandela', .15, 3, 1, 0, 0], ['arandela', .15, 9.6, 1, 0, 0], ['arandela', 11.75, 3, 3, 0, 0], ['arandela', 11.75, 9.6, 3, 0, 0]] }
   };
   /* a estação que é só do fundador aparece na casa do fundador (pra ele e pra quem visita) */
   const paraDono = (e, dono) => e.so !== 'fundador' || ehDoFundador(dono);

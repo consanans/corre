@@ -1043,16 +1043,16 @@
      Duas fileiras, uma barraca pra cada ferramenta. Chegou perto e tocou: a ferramenta abre num balcão por cima da
      cidade (o próprio Corre, sem menu) e você continua na rua, de barraca em barraca. O Rolo 360 só aparece pro @consanans. */
   const BARRACAS = [
-    { id: 'feed', titulo: 'Feed', placa: 'FEED', rota: '#/', ico: 'chat', botao: 'Abrir o feed', cor: ROSA, fundo: '#2B2F38', coisa: 'cartaz' },
+    { id: 'feed', titulo: 'Feed', placa: 'FEED', rota: '#/', ico: 'chat', botao: 'Entrar no Beco', cor: ROSA, fundo: '#2B2F38', coisa: 'cartaz', lugar: 'feed' },
     { id: 'studio', titulo: 'Studio', placa: 'STUDIO', rota: '#/studio', ico: 'magia', botao: 'Entrar no Estúdio', cor: AMARELO, fundo: '#F4F1EA', coisa: 'cavalete', lugar: 'studio' },
     { id: 'horus', titulo: 'Hórus', placa: 'HORUS', rota: '#/horus', ico: 'eye', botao: 'Entrar na Casa do Hórus', cor: INK, fundo: '#1B1D22', coisa: 'olho', pf: INK, pc: AMARELO, lugar: 'horus' },
     { id: 'vendas', titulo: 'Vendas', placa: 'VENDAS', rota: '#/vendas', ico: 'recibo', botao: 'Entrar no Balcão', cor: LARANJA, fundo: '#F4F1EA', coisa: 'recibos', lugar: 'vendas' },
     { id: 'grana', titulo: 'Grana', placa: 'GRANA', rota: '#/grana', ico: 'grana', botao: 'Entrar no Cofre', cor: AZUL, fundo: '#F4F1EA', coisa: 'moedas', lugar: 'grana' },
-    { id: 'estilo', titulo: 'Estilo de vida', placa: 'ESTILO', rota: '#/estilo', ico: 'calc', botao: 'Estilo de vida', cor: LILAS, fundo: '#F4F1EA', coisa: 'casinha' },
+    { id: 'estilo', titulo: 'Estilo de vida', placa: 'ESTILO', rota: '#/estilo', ico: 'calc', botao: 'Entrar na Vitrine', cor: LILAS, fundo: '#F4F1EA', coisa: 'casinha', lugar: 'estilo' },
     { id: 'marcas', titulo: 'Portfólio e catálogo', placa: 'MARCAS', rota: '#/marcas', ico: 'marcas', botao: 'Entrar na Galeria', cor: '#E2412E', fundo: '#F4F1EA', coisa: 'pastas', lugar: 'marcas' },
-    { id: 'nicho', titulo: 'Do teu nicho', placa: 'NICHO', rota: '#/refs', ico: 'marcador', botao: 'Do teu nicho', cor: '#8F86E8', fundo: '#F2D8A7', coisa: 'revistas' },
-    { id: 'manual', titulo: 'Manual', placa: 'MANUAL', rota: '', ico: 'manual', botao: 'Abrir o manual', cor: '#9CC9F0', fundo: PAPEL, coisa: 'duvida' },
-    { id: 'rolo', titulo: 'Rolo 360', placa: 'ROLO 360', rota: '#/rolo', ico: 'rolo', botao: 'Rolo 360', cor: '#8E4B2B', fundo: '#1B1D22', coisa: 'filme', so: 'fundador', pf: INK, pc: AMARELO }
+    { id: 'nicho', titulo: 'Do teu nicho', placa: 'NICHO', rota: '#/refs', ico: 'marcador', botao: 'Entrar na Biblioteca', cor: '#8F86E8', fundo: '#F2D8A7', coisa: 'revistas', lugar: 'nicho' },
+    { id: 'manual', titulo: 'Manual', placa: 'MANUAL', rota: '', ico: 'manual', botao: 'Entrar na Escolinha', cor: '#9CC9F0', fundo: PAPEL, coisa: 'duvida', lugar: 'manual' },
+    { id: 'rolo', titulo: 'Rolo 360', placa: 'ROLO 360', rota: '#/rolo', ico: 'rolo', botao: 'Entrar no Cineclube', cor: '#8E4B2B', fundo: '#1B1D22', coisa: 'filme', so: 'fundador', pf: INK, pc: AMARELO, lugar: 'rolo' }
   ];
   const BC_MURAL = { id: 'mural', titulo: 'Mural', rota: '#/mural', cor: ROSA }, BC_BANCA = { id: 'banca', titulo: 'Banca do dia', rota: '#/banca', cor: AZUL };
   /* barraca que é só de alguém (o Rolo) some pros outros, inclusive a colisão; o Hórus desligado fica de porta baixada */
@@ -3509,7 +3509,7 @@
     if(p.tipo === 'aeroporto'){ aeroportoSheet(); return; }
     /* v3.45: barraca com lugar (o Hórus) é porta: entra na construção 3D, e a ferramenta tá lá dentro. Desligada, segue
        pro balcão de sempre (que manda ligar) */
-    if(p.tipo === 'barraca'){ if(p.b.id === 'manual'){ if(C.manual) C.manual.abrir(); return; }
+    if(p.tipo === 'barraca'){ if(p.b.id === 'manual' && !(p.b.lugar && C.casa && C.casa.LUGARES && C.casa.LUGARES[p.b.lugar])){ if(C.manual) C.manual.abrir(); return; }
       if(p.b.lugar && aberta(p.b) && C.casa && C.casa.LUGARES && C.casa.LUGARES[p.b.lugar]){ if(C.versoSom) C.versoSom.porta(); C.casa.abrir({ lugar: p.b.lugar }); return; }
       abreBalcao(p.b); return; }
     if(p.tipo === 'mural'){ abreBalcao(BC_MURAL); return; }
