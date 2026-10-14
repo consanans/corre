@@ -70,7 +70,15 @@ O app tem três modos (`core.js`): **de verdade** (config.js com `SUPABASE_URL` 
 - Comentários em português, no tom da casa: dizem o porquê.
 - Sem dependência nova no site (tudo roda no navegador, sem build de módulos). CDN só as que já estão no index.
 
-## Onde parou (v3.43, 14/10/2026)
+## Onde parou (v3.44, 14/10/2026)
+- **v3.44 (zip entregue, junto com o que falta da 3.43):**
+  - **Menu ainda mais junto:** grupos Rede (Início, Mensagens, Grupos, Avisos), Laboratório (Studio, Studio Houzi, Hórus, Portfólio), Financeiro, Banca e Perfil (Meu perfil, Salvos); o Mais sumiu. Com a Rede fechada e algo não lido, um pontinho rosa no grupo (CSS `:has`). Hórus e Portfólio sem migalha.
+  - **Minimapa do Correverso:** `miniMapa()` em verso.js (o `desenhaMapa` numa tela escondida, recortado em volta de você, de 330 em 330 ms), botão `.cvr-mapinha` no canto de cima à esquerda; tocou, abre o Mapa. (O nome `cvr-mini` já é dos bonequinhos do Trampo.)
+  - **Login pela Apple:** botão "Continuar com a Apple" só com `APPLE_LOGIN: true` no config.js. Falta do lado do Thales: Apple Developer Program, um Services ID com o domínio app.corresocial.com e a volta `https://jzjsqadcwphqzxfsxxyx.supabase.co/auth/v1/callback`, uma chave Sign in with Apple (.p8), e ligar a Apple em Supabase › Authentication › Providers (o segredo vence a cada 6 meses). Depois, `APPLE_LOGIN: true` e subir o site.
+  - **Pedidos grandes na fila (14/10):** cada ferramenta da Feira vira uma construção 3D onde se entra (começando pelo Hórus), quadras 3D com desafios entre pessoas, largada de corrida de moto e de patinete, competição de pesca no Igapó, tudo no 3D de blocos da casa (casa.js).
+  - **Testes da 3.44:** scratchpad/v344 (mini.cjs, menu344.cjs, apple.cjs). Os testes de rolagem do menu da 3.43 esperavam a lista rolando em tela baixa; com o menu mais curto ela quase não rola, e essas checagens ficaram velhas.
+
+## Antes (v3.43, 14/10/2026)
 - **v3.43, o que entrou:**
   - **Menu em grupos:** Laboratório (Studio, Studio Houzi), Financeiro (Vendas e Grana, Carteira de correal), Banca (Banca do dia, Do teu nicho, Rolo 360); Correverso e Mural em destaque (o Mural em cortiça). No celular, a barra é Início, Studio, Correverso, Mural e Mensagens, e o sino subiu pro alto. Código em `app.js` (`GRUPOS`, `LISTA`, `BARRA`, `grupoLado`, `gavetaHTML`, `aVista`, `sinalRola`), ícones `lab` e `toldo` no `core.js`, CSS no bloco `/* v3.43 ·` do fim do `monstra.css`. Em tela baixa de notebook, a lista rola com um trilho fino e um degradê só quando tem item inteiro escondido.
   - **Correal em centavos:** `supabase/delta-v343.sql` (0,03 por ponto, teto 1,00 por dia, preços divididos por 10: imagem 1,00, marca 0,30, legenda/abordagem 0,20, voo 0,50; o extrato tem trava de -1 a 1). No site, tudo passa por `C.correalFmt`/`C.correalTxt` (core.js): "0,90 correal", "2,40 correais", "0,00 correais"; as contas são em centavos inteiros. O site novo e o delta sobem JUNTOS (o delta primeiro). O delta não pode ser partido (ver o topo dele).
