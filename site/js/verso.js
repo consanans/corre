@@ -681,7 +681,7 @@
     if(BC.aberto) m.tr = 1;
     if(V.jogo) m.jg = 1;
     /* dentro de uma casa: quem passa vê "em casa"; quem tá na mesma casa te vê lá dentro (e a voz fica entre vocês) */
-    if(C.casa && C.casa.aberta()){ m.ec = 1; m.casa = C.casa.sala(); const pq = C.casa.placar ? C.casa.placar() : null; if(pq && pq.c > 0){ m.pk = pq.c; m.pr = pq.r; } const cr = C.casa.corrida ? C.casa.corrida() : null; if(cr && cr.tc > 0){ m.tc = cr.tc; m.td = cr.td; } const q = C.casa.pos(); if(q){ m.cx = Math.round(q.x * 10) / 10; m.cz = Math.round(q.z * 10) / 10; m.cy = Math.round((q.y || 0) * 10) / 10; m.cd = Math.round(q.yaw * 100) / 100; }
+    if(C.casa && C.casa.aberta()){ m.ec = 1; m.casa = C.casa.sala(); const pq = C.casa.placar ? C.casa.placar() : null; if(pq && pq.c > 0){ m.pk = pq.c; m.pr = pq.r; } const cr = C.casa.corrida ? C.casa.corrida() : null; if(cr && cr.tc > 0){ m.tc = cr.tc; m.td = cr.td; } const qd = C.casa.quadra ? C.casa.quadra() : null; if(qd && qd.qp > 0){ m.qp = qd.qp; m.qd = qd.qd; } const q = C.casa.pos(); if(q){ m.cx = Math.round(q.x * 10) / 10; m.cz = Math.round(q.z * 10) / 10; m.cy = Math.round((q.y || 0) * 10) / 10; m.cd = Math.round(q.yaw * 100) / 100; }
       const dsc = C.casa.disco && C.casa.disco(); if(dsc && dsc.t){ m.disco = dsc.k || ''; m.discoT = dsc.t; } }
     /* no ar, o teu nome e o teu @ não viajam na presença (qualquer um escreveria qualquer coisa ali): vêm do servidor */
     return C.LIVE ? m : Object.assign(m, { uid: me.id || '', handle: pub ? me.handle : '', nome: pub ? String(me.nome || '').slice(0, 40) : 'perfil mocado' });
@@ -808,6 +808,8 @@
           pk: Number.isInteger(m.pk) && m.pk > 0 && m.pk < 100000 ? m.pk : 0, pr: Number.isInteger(m.pr) && m.pr >= 0 && m.pr < 1e6 ? m.pr : -1,
           /* v3.50: o melhor tempo do dia na pista (centésimos) e o dia */
           tc: Number.isInteger(m.tc) && m.tc > 0 && m.tc < 360000 ? m.tc : 0, td: Number.isInteger(m.td) && m.td >= 0 ? m.td : -1,
+          /* v3.51: os pontos do melhor desafio do dia na quadra e o dia */
+          qp: Number.isInteger(m.qp) && m.qp > 0 && m.qp <= 30 ? m.qp : 0, qd: Number.isInteger(m.qd) && m.qd >= 0 ? m.qd : -1,
           disco: typeof m.disco === 'string' && /^[a-z0-9]{0,16}$/.test(m.disco) ? m.disco : '', discoT: Number.isFinite(m.discoT) ? m.discoT : 0 });
         if(r.naCasa && Number.isFinite(m.cx) && Number.isFinite(m.cz)){ if(r.hx == null){ r.hxv = m.cx; r.hzv = m.cz; r.hyv = Number.isFinite(m.cy) ? clamp(m.cy, 0, 8) : 0; } r.hx = clamp(m.cx, -1, 31); r.hz = clamp(m.cz, -1, 31); r.hy = Number.isFinite(m.cy) ? clamp(m.cy, 0, 8) : 0; r.hyaw = Number.isFinite(m.cd) ? m.cd : 0; }
         else if(!r.naCasa){ r.hx = r.hz = null; }
@@ -1339,6 +1341,8 @@
     c.vazios.forEach(o => P.push({ x: o.x + LW / 2, y: o.y + LH - 40, tipo: 'lote' }));
     if(c.feira) c.feira.barracas.filter(paraMim).forEach(b => P.push({ x: b.x, y: b.base + 10, tipo: 'barraca', b }));
     c.bancos.forEach(b => P.push({ x: b.x, y: b.y + 4, tipo: 'banco', b, pesca: /^(Píer|Deck) do Igapó$/.test(b.lugar || '') }));
+    /* v3.51: toda quadra tem a entrada do desafio 3D, no canto de baixo à esquerda (o meio é da bola) */
+    quadrasDaCidade(c).forEach(q => P.push({ x: q.x + 16, y: q.y + q.h - 10, tipo: 'quadra', k: q.tipo === 'futsal' ? 'quadra-futsal' : 'quadra-basquete' }));
     /* v3.50: as largadas das corridas (moto no Estádio do Café, patinete no Zerão) */
     if(c.estadio && c.estadio.largada) P.push({ x: c.estadio.largada.x, y: c.estadio.largada.y, tipo: 'pista', k: 'moto' });
     if(c.zerao && c.zerao.largada) P.push({ x: c.zerao.largada.x, y: c.zerao.largada.y, tipo: 'pista', k: 'patinete' });
@@ -1418,6 +1422,8 @@
     const rr = Math.min(q.w, q.h) * .16; for(let a = 0; a < 28; a++){ const an = a / 28 * Math.PI * 2; ctx.fillRect(sn(cx + Math.cos(an) * rr), sn(cy + Math.sin(an) * rr), L, L); }
     const ah = q.h * .44, aw = q.w * .14; linhas(ctx, q.x + 6, cy - ah / 2, aw, ah); linhas(ctx, q.x + q.w - 6 - aw, cy - ah / 2, aw, ah);
     if(q.tipo === 'futsal'){ ctx.fillStyle = '#E6E9EE'; linhas(ctx, q.x - 6, cy - 16, 12, 32); linhas(ctx, q.x + q.w - 6, cy - 16, 12, 32); }
+    /* v3.51: a plaquinha do desafio, no canto onde fica a entrada da quadra 3D */
+    pixPlaca(ctx, 'DESAFIO', q.x + 30, q.y + q.h - 16, { fundo: AMARELO, cor: INK, max: 10 });
   }
   function chao(ctx, vx, vy, vw, vh){
     const c = V.cid, { W, rows } = c;
@@ -3126,7 +3132,7 @@
     const meu = p.tipo === 'casa' && p.c.id === (C.st.me && C.st.me.id);
     if(p.tipo === 'tarefa'){ const T = V.tarefa, ag = T && T.fase === 'agindo'; b.innerHTML = `${ico('raio')} ${esc(p.et.acao)}${ag ? '…' : ''}`; b.disabled = !!ag; return; }
     b.disabled = false;
-    b.innerHTML = p.tipo === 'aeroporto' ? `${ico('aviao')} Voar (${C.correalTxt(precoVoo())})` : p.tipo === 'sebo' ? `${ico('musica')} Entrar no Sebo` : p.tipo === 'torneio' ? `${ico('peixe')} Torneio de Pesca` : p.tipo === 'pista' ? `${ico('raio')} ${p.k === 'moto' ? 'Autódromo do Café' : 'Corrida de patinete'}` : p.tipo === 'civico' ? `${ico('raio')} ${esc(CIVICOS[p.k].entra)}` : p.tipo === 'barraca' ? (aberta(p.b) ? `${ico(p.b.ico)} ${esc(p.b.botao)}` : `${ico('eye')} Hórus desligado: ligar`) : p.tipo === 'comida' ? `${ico('banca')} ${esc(COMIDAS[p.k][0])}` : p.tipo === 'aquario' ? `${ico('play')} Jogar ${esc(JOGOS[p.jogo].titulo)}` : p.tipo === 'banco' ? (p.pesca ? `${ico('gente')} Pescar no ${p.b.lugar.startsWith('Deck') ? 'deck' : 'píer'}` : `${ico('gente')} Sentar ${p.b.degrau ? 'na Concha' : 'no banco'}`) : p.tipo === 'mural' ? `${ico('tacha')} Abrir o Mural` : p.tipo === 'banca' ? `${ico('banca')} Banca do dia` : p.tipo === 'lote' ? `${ico('plus')} Lote livre` : meu ? `${ico('home')} Tua casa` : `${ico('home')} Bater na porta de @${esc(p.c.handle)}`;
+    b.innerHTML = p.tipo === 'aeroporto' ? `${ico('aviao')} Voar (${C.correalTxt(precoVoo())})` : p.tipo === 'sebo' ? `${ico('musica')} Entrar no Sebo` : p.tipo === 'torneio' ? `${ico('peixe')} Torneio de Pesca` : p.tipo === 'quadra' ? `${ico('raio')} ${p.k === 'quadra-futsal' ? 'Desafio de pênalti' : 'Desafio de arremesso'}` : p.tipo === 'pista' ? `${ico('raio')} ${p.k === 'moto' ? 'Autódromo do Café' : 'Corrida de patinete'}` : p.tipo === 'civico' ? `${ico('raio')} ${esc(CIVICOS[p.k].entra)}` : p.tipo === 'barraca' ? (aberta(p.b) ? `${ico(p.b.ico)} ${esc(p.b.botao)}` : `${ico('eye')} Hórus desligado: ligar`) : p.tipo === 'comida' ? `${ico('banca')} ${esc(COMIDAS[p.k][0])}` : p.tipo === 'aquario' ? `${ico('play')} Jogar ${esc(JOGOS[p.jogo].titulo)}` : p.tipo === 'banco' ? (p.pesca ? `${ico('gente')} Pescar no ${p.b.lugar.startsWith('Deck') ? 'deck' : 'píer'}` : `${ico('gente')} Sentar ${p.b.degrau ? 'na Concha' : 'no banco'}`) : p.tipo === 'mural' ? `${ico('tacha')} Abrir o Mural` : p.tipo === 'banca' ? `${ico('banca')} Banca do dia` : p.tipo === 'lote' ? `${ico('plus')} Lote livre` : meu ? `${ico('home')} Tua casa` : `${ico('home')} Bater na porta de @${esc(p.c.handle)}`;
   }
   function tamanhoTela(){
     const st = C.$('cvr-stage'); if(!st || !V.cv) return;
@@ -3544,6 +3550,7 @@
     if(p.tipo === 'barraca'){ if(p.b.id === 'manual' && !(p.b.lugar && C.casa && C.casa.LUGARES && C.casa.LUGARES[p.b.lugar])){ if(C.manual) C.manual.abrir(); return; }
       if(p.b.lugar && aberta(p.b) && C.casa && C.casa.LUGARES && C.casa.LUGARES[p.b.lugar]){ if(C.versoSom) C.versoSom.porta(); C.casa.abrir({ lugar: p.b.lugar }); return; }
       abreBalcao(p.b); return; }
+    if(p.tipo === 'quadra'){ if(C.casa && C.casa.LUGARES && C.casa.LUGARES[p.k]){ if(C.versoSom) C.versoSom.porta(); C.casa.abrir({ lugar: p.k }); } return; }
     if(p.tipo === 'pista'){ if(C.casa && C.casa.LUGARES && C.casa.LUGARES[p.k]){ if(C.versoSom) C.versoSom.porta(); C.casa.abrir({ lugar: p.k }); } return; }
     if(p.tipo === 'torneio'){ if(C.casa && C.casa.LUGARES && C.casa.LUGARES.pesca){ if(C.versoSom) C.versoSom.porta(); C.casa.abrir({ lugar: 'pesca' }); } return; }
     if(p.tipo === 'sebo'){ if(C.casa && C.casa.LUGARES && C.casa.LUGARES.sebo){ if(C.versoSom) C.versoSom.porta(); C.casa.abrir({ lugar: 'sebo' }); } return; }

@@ -2696,3 +2696,14 @@ html.embed .msg-pg{height:calc(100dvh - 40px)}
 .cs-pesca.morde{background:#FFE3EF}
 .cs-porta.morde{background:var(--pink);color:var(--paper);animation:cs-puxa .35s ease-in-out infinite alternate}
 @keyframes cs-puxa{to{transform:translateX(-50%) scale(1.08)}}
+/* v3.51 · a régua do desafio da quadra (no placar de cima): a faixa certa em rosa claro, o cursor preto que vai e volta,
+   e no futsal a trave nas pontas e o goleiro como uma faixa escura */
+.cs-med{position:relative;height:18px;margin:7px 0 4px;border:2px solid var(--ink);border-radius:8px;background:var(--paper-2);overflow:hidden}
+.cs-med i{position:absolute;top:0;bottom:0;display:block}
+.cs-med-a{background:#FFC7DD}
+.cs-med-t{background:#C9CDD3}
+.cs-med-k{width:16%;margin-left:-8%;top:2px!important;bottom:2px!important;border-radius:4px;background:#2B2F38;opacity:.85}
+.cs-med-c{width:4px;margin-left:-2px;background:var(--pink);box-shadow:0 0 0 1px var(--ink)}
+/* no celular, a barra da câmera fica na direita, embaixo do sino: o placar (pesca, corrida e quadra) encosta na esquerda
+   pra não ficar por cima dela */
+.cs-casa.toque .cs-pesca{left:12px;transform:none;width:min(300px,calc(100% - 82px))}

@@ -655,6 +655,69 @@
   const PISTAS = { moto: { cx: 15, cz: 12, ax: 13.5, az: 9.5, larg: 4.5, vmax: 11, acel: 7, giro: 2.2, veic: 'moto', nome: 'Autódromo do Café' },
     patinete: { cx: 13, cz: 11.5, ax: 11.5, az: 8, larg: 3, vmax: 6.5, acel: 5, giro: 2.6, veic: 'patinete', nome: 'Pista do Zerão' } };
 
+  /* ---------- v3.51 · as quadras: o desafio de pênalti (futsal) e o de arremesso (basquete) ----------
+     Toda quadra da cidade tem a entrada da quadra 3D do esporte dela (todas as de futsal dão na mesma sala, e as de
+     basquete também, pra gente se encontrar). Lá dentro é desafio de habilidade, 10 tentativas: no futsal a mira
+     corre de trave a trave e o goleiro anda; chuta quando a mira tá longe dele. No basquete a régua de força vai e
+     volta; arremessa quando ela passa na faixa (de 3 a faixa é mais fina). O melhor do dia vai na presença */
+  const torcida = (w, deg, cores) => { const out = []; for(let k = 0; k < deg; k++) out.push(B(0, k * .45, 0, w, .45, (deg - k) * .55, k % 2 ? '#C9CDD3' : '#A4A8AE'));
+    for(let k = 0; k < deg; k++) for(let i = 0; i < Math.floor(w / .7); i++){ if(sorte(i * 11 + k * 17 + w) < .4) continue; const z = (deg - k - 1) * .55 + .15;
+      out.push(B(.2 + i * .7, (k + 1) * .45, z, .26, .3, .22, cores[(i + k * 3) % cores.length]), B(.24 + i * .7, (k + 1) * .45 + .3, z + .02, .18, .18, .18, ['#C68642', '#8E5B33', '#F0C9A0', '#5A3A22'][(i + k) % 4])); }
+    return out; };
+  /* uma linha branca reta no chão e um arco de linha (anel fino), em polígonos */
+  const linha = (x0, z0, x1, z1, c) => ret(Math.min(x0, x1) - (x0 === x1 ? .04 : 0), Math.min(z0, z1) - (z0 === z1 ? .04 : 0), Math.max(x0, x1) + (x0 === x1 ? .04 : 0), Math.max(z0, z1) + (z0 === z1 ? .04 : 0), c || PAPEL);
+  const arco = (cx, cz, r, a0, a1, n, c) => Array.from({ length: n }, (_, i) => { const b0 = a0 + (a1 - a0) * i / n, b1 = a0 + (a1 - a0) * (i + 1) / n; return { pts: anelPts(cx, cz, r + .04, r + .04, r - .04, r - .04, b0, b1), c: c || PAPEL }; });
+  const disco2d = (cx, cz, r, c) => ({ pts: ovalPts(cx, cz, r, r, 16), c });
+  /* placas de propaganda na beira (formas do Corre, sem marca de ninguém) */
+  const placas = (x0, n, z) => Array.from({ length: n }, (_, i) => [B(x0 + i * 1.6, 0, z, 1.5, .7, .1, [ROSA, AMARELO, AZUL, INK][i % 4]), B(x0 + i * 1.6 + .2, .2, z + .1, .7, .3, .01, [PAPEL, INK, PAPEL, AMARELO][i % 4]), B(x0 + i * 1.6 + 1, .15, z + .1, .3, .4, .01, [AMARELO, ROSA, ROSA, ROSA][i % 4])]).flat();
+  /* o futsal: quadra azul, o gol no fundo com a rede, o goleiro (robô do Corre, de uniforme de craque) */
+  const GOL = { x0: 7.5, x1: 10.5, z: 1.2, alt: 2 };
+  const CHAO_FUTSAL = [ret(1.2, 1.2, 16.8, 13.4, '#2F5DA8'), linha(1.2, 1.2, 16.8, 1.2), linha(1.2, 1.2, 1.2, 13.4), linha(16.8, 1.2, 16.8, 13.4), linha(1.2, 13.4, 16.8, 13.4),
+    ...arco(9, 1.2, 6, 0, Math.PI, 30), disco2d(9, 7.2, .12, PAPEL), disco2d(9, 11.2, .12, PAPEL), ...arco(9, 13.4, 3, Math.PI, Math.PI * 2, 18)];
+  const rede = () => { const out = [B(GOL.x0 - .1, 0, GOL.z - .1, .1, GOL.alt, .1, PAPEL), B(GOL.x1, 0, GOL.z - .1, .1, GOL.alt, .1, PAPEL), B(GOL.x0 - .1, GOL.alt, GOL.z - .1, GOL.x1 - GOL.x0 + .2, .1, .1, PAPEL),
+    B(GOL.x0 - .1, 0, GOL.z - .9, .06, 1.8, .06, CINZA), B(GOL.x1 + .04, 0, GOL.z - .9, .06, 1.8, .06, CINZA), B(GOL.x0 - .1, 1.8, GOL.z - .9, GOL.x1 - GOL.x0 + .2, .05, .05, CINZA)];
+    for(let x = GOL.x0; x <= GOL.x1 + .01; x += .3) out.push(B(x, 0, GOL.z - .9, .015, 1.8, .015, '#E6E2DA'));
+    for(let y = .3; y < 1.8; y += .3) out.push(B(GOL.x0, y, GOL.z - .9, GOL.x1 - GOL.x0, .015, .015, '#E6E2DA'));
+    for(let z = GOL.z - .9; z < GOL.z; z += .3){ out.push(B(GOL.x0 - .08, 0, z, .015, 1.9, .015, '#E6E2DA'), B(GOL.x1 + .06, 0, z, .015, 1.9, .015, '#E6E2DA')); }
+    return out; };
+  const caixaBolas = (c, c2) => [B(0, 0, 0, .7, .45, .5, '#3A3E45'), ...[[.1, .1], [.38, .12], [.22, .3]].map(([x, z], i) => B(x, .45, z, .22, .22, .22, i % 2 ? c2 : c))];
+  const FUTSAL_DECOR = [
+    { x: 0, z: 0, bl: rede() },
+    { x: .3, z: .1, bl: torcida(6.6, 3, [ROSA, AZUL, AMARELO, PAPEL, LARANJA]) }, { x: 11.1, z: .1, bl: torcida(6.6, 3, [AZUL, ROSA, LILAS, PAPEL, '#E2412E']) },
+    { x: .2, z: 0, parede: true, bl: [B(0, 2.5, 0, .04, .8, 14, '#1C2350'), ...Array.from({ length: 8 }, (_, i) => B(.04, 2.62, .6 + i * 1.7, .01, .55, 1.4, [ROSA, AMARELO, PAPEL, AZUL][i % 4]))] },
+    { x: 17.8, z: 0, parede: true, bl: [B(-.04, 2.5, 0, .04, .8, 14, '#1C2350'), ...Array.from({ length: 8 }, (_, i) => B(-.05, 2.62, .6 + i * 1.7, .01, .55, 1.4, [AMARELO, ROSA, AZUL, PAPEL][i % 4]))] },
+    /* o placar eletrônico no fundo, em cima do gol */
+    { x: 7, z: .15, parede: true, bl: [B(0, 2.6, 0, 4, 1.1, .08, INK), B(.2, 2.75, .08, 1.4, .8, .01, '#2B2F38'), B(2.4, 2.75, .08, 1.4, .8, .01, '#2B2F38'), B(.5, 2.95, .09, .8, .4, .005, '#E8643A'), B(2.7, 2.95, .09, .8, .4, .005, AMARELO), B(1.75, 3, .09, .5, .3, .005, ROSA)] },
+    { x: 11.2, z: 7.4, acao: 'desafio', bl: caixaBolas(PAPEL, INK) }
+  ];
+  /* o basquete: piso de madeira laranja, o garrafão vermelho, a linha de 3, a tabela e a cesta (o aro é laranja e a rede branca) */
+  const ARO = { x: 8, y: 3.05, z: 1.6, r: .23 };
+  const CHAO_BASQ = [ret(.8, .8, 15.2, 13.6, '#C8743A'), ...Array.from({ length: 9 }, (_, i) => ret(.8 + i * 1.6, .8, .8 + i * 1.6 + .02, 13.6, '#B5652F')), ret(6.2, .8, 9.8, 6.6, '#B4152E'),
+    linha(.8, .8, 15.2, .8), linha(.8, .8, .8, 13.6), linha(15.2, .8, 15.2, 13.6), linha(.8, 13.6, 15.2, 13.6), linha(6.2, .8, 6.2, 6.6), linha(9.8, .8, 9.8, 6.6), linha(6.2, 6.6, 9.8, 6.6),
+    ...arco(8, 6.6, 1.8, 0, Math.PI, 16), ...arco(8, 1.6, 6.75, Math.PI * .08, Math.PI * .92, 34), linha(1.6, .8, 1.6, 2.4), linha(14.4, .8, 14.4, 2.4)];
+  const PONTOS_BASQ = [-55, -28, 0, 28, 55].map(a => [4.2, a]).concat([-55, -28, 0, 28, 55].map(a => [7.3, a])).map(([r, a]) => { const t = a * Math.PI / 180; return { x: ARO.x + Math.sin(t) * r, z: ARO.z + Math.cos(t) * r, tres: r > 6.75 }; });
+  const cesta = () => { const out = [B(7.88, 0, .2, .24, 3.5, .24, INK), B(7.94, 3.3, .3, .12, .12, .9, INK), B(7.1, 2.85, 1.15, 1.8, 1.05, .06, PAPEL),
+    B(7.72, 2.95, 1.21, .56, .04, .01, '#E2412E'), B(7.72, 3.35, 1.21, .56, .04, .01, '#E2412E'), B(7.72, 2.95, 1.21, .04, .44, .01, '#E2412E'), B(8.24, 2.95, 1.21, .04, .44, .01, '#E2412E')];
+    const r = ARO.r; out.push(B(ARO.x - r, ARO.y, ARO.z - r, r * 2, .03, .03, '#E8643A'), B(ARO.x - r, ARO.y, ARO.z + r - .03, r * 2, .03, .03, '#E8643A'), B(ARO.x - r, ARO.y, ARO.z - r, .03, .03, r * 2, '#E8643A'), B(ARO.x + r - .03, ARO.y, ARO.z - r, .03, .03, r * 2, '#E8643A'), B(7.95, ARO.y - .02, 1.21, .1, .05, .16, '#E8643A'));
+    [[-1, -1], [1, -1], [-1, 1], [1, 1], [0, -1.2], [0, 1.2]].forEach(([a, b]) => out.push(B(ARO.x + a * .17 - .01, ARO.y - .42, ARO.z + b * .15 - .01, .02, .42, .02, PAPEL)));
+    return out; };
+  const BASQ_DECOR = [
+    { x: 0, z: 0, bl: cesta() },
+    { x: .3, z: .1, bl: torcida(5.4, 3, [ROSA, AMARELO, AZUL, PAPEL]) }, { x: 10.3, z: .1, bl: torcida(5.4, 3, [LILAS, ROSA, AZUL, LARANJA]) },
+    { x: 12.8, z: 11.2, acao: 'desafio', bl: caixaBolas('#E8643A', '#C85A2A') }
+  ];
+  const quadraPlanta = (k, nome, W, D, ALT, chao, decor, cor) => ({ k: 'lugar-' + k, W, D, ALT,
+    comodos: [{ k, nome, x0: 0, z0: 0, x1: W, z1: D, piso: '#4A4E56', linha: 'rgba(0,0,0,.1)' }],
+    paredes: [{ a: [0, D], b: [W, D], ext: [0, 1], portas: [[W / 2 - .6, W / 2 + .6]], entrada: true, cor }, { a: [W, 0], b: [W, D], ext: [1, 0], cor }, { a: [0, 0], b: [0, D], ext: [-1, 0], cor }, { a: [0, 0], b: [W, 0], ext: [0, -1], cor }],
+    entrada: { x: W / 2, z: D }, chao: [...chao, ...PONTOS_SPOT(k)], decor, padrao: [] });
+  const PONTOS_SPOT = k => (k === 'quadra-basquete' ? PONTOS_BASQ.map(p => disco2d(p.x, p.z, .16, p.tres ? AMARELO : ROSA)) : []);
+  const PLANTA_FUTSAL = quadraPlanta('quadra-futsal', 'Quadra do Zerão', 18, 14.4, 4, CHAO_FUTSAL, FUTSAL_DECOR, '#E6E2DA');
+  const PLANTA_BASQ = quadraPlanta('quadra-basquete', 'Quadra de basquete', 16, 14.4, 5, CHAO_BASQ, BASQ_DECOR, '#E6E2DA');
+  const DESAFIOS = {
+    futsal: { esporte: 'futsal', nome: 'Desafio de pênalti', vez: 'Cobrança', botao: 'Chutar!', per: 1.7, spot: { x: 8.55, z: 7.95, yaw: Math.PI - .07 } },
+    basquete: { esporte: 'basquete', nome: 'Desafio de arremesso', vez: 'Arremesso', botao: 'Arremessar!', per: 1.5 }
+  };
+
   const LUGARES = {
     horus: { titulo: 'Casa do Hórus', planta: PLANTA_HORUS, ola: 'Casa do Hórus. O radar é o altar do meio: chega e toca.',
       estacoes: () => [{ id: 'radar', liga: 'horus', titulo: 'Radar do Hórus', rota: '#/horus', cor: INK, x: 5.6, z: 5, w: 2.8, d: 2.8, bl: RADAR, tag: [1.4, 1.75, 1.4], y: 0 }] },
@@ -703,7 +766,11 @@
     moto: { titulo: 'Autódromo do Café', sai: 'Sair pra rua', planta: PLANTA_MOTO, ola: 'Autódromo do Café. Vai no totem da bandeira e toca em Largar: 3 voltas de moto contra o relógio.', estacoes: () => [], corrida: PISTAS.moto,
       itens: [['poste', 1, 21.6, 0, 0, 0], ['poste', 28, 21.6, 0, 0, 0], ['cone', 11, 22.2, 0, 0, 0], ['cone', 19, 22.2, 0, 0, 0]] },
     patinete: { titulo: 'Pista do Zerão', sai: 'Sair pra rua', planta: PLANTA_PATI, ola: 'Pista do Zerão. Vai no totem da bandeira e toca em Largar: 3 voltas de patinete contra o relógio.', estacoes: () => [], corrida: PISTAS.patinete,
-      itens: [['banco_praca', 18, 20.2, 0, 0, 0], ['poste', 1, 19.8, 0, 0, 0], ['poste', 24, 19.8, 0, 0, 0], ['lixeira_rua', 21, 20.4, 0, 0, 0]] }
+      itens: [['banco_praca', 18, 20.2, 0, 0, 0], ['poste', 1, 19.8, 0, 0, 0], ['poste', 24, 19.8, 0, 0, 0], ['lixeira_rua', 21, 20.4, 0, 0, 0]] },
+    'quadra-futsal': { titulo: 'Quadra do Zerão', sai: 'Sair pra rua', planta: PLANTA_FUTSAL, ola: 'Quadra do Zerão. Na caixa de bolas, toca em "Desafio de pênalti": 10 cobranças contra o goleiro.', estacoes: () => [], desafio: DESAFIOS.futsal,
+      itens: [['banco_madeira', 1.4, 12.2, 0, 0, 3], ['banco_madeira', 14.6, 12.2, 0, 0, 3], ['bebedouro', 16.6, 9.5, 3, 0, 0]] },
+    'quadra-basquete': { titulo: 'Quadra de basquete', sai: 'Sair pra rua', planta: PLANTA_BASQ, ola: 'Quadra de basquete. Na caixa de bolas, toca em "Desafio de arremesso": 10 arremessos, 5 de dois e 5 de três.', estacoes: () => [], desafio: DESAFIOS.basquete,
+      itens: [['banco_madeira', 1, 12.3, 0, 0, 3], ['banco_madeira', 12.8, 12.6, 0, 0, 3], ['bebedouro', 15, 8.5, 3, 0, 0]] }
   };
   /* a estação que é só do fundador aparece na casa do fundador (pra ele e pra quem visita) */
   const paraDono = (e, dono) => e.so !== 'fundador' || ehDoFundador(dono);
@@ -1252,7 +1319,7 @@
     return out;
   }
   const acaoPraMim = a => a.a !== 'skate' || S.meu;
-  const rotuloAcao = a => a.a === 'largada' ? `Largar (${VOLTAS} voltas)` : a.a === 'pesca' ? 'Pescar aqui' : a.a === 'skate' ? (C.st.me && C.st.me.verso && C.st.me.verso.skate ? 'Largar o skate' : 'Pegar o skate') : a.a === 'jogo' ? 'Jogar Killer Ocean' : (S.discoAtual ? '♪ ' + (C.beats ? C.beats.nome(S.discoAtual) : 'tocando') : '♪ Discos');
+  const rotuloAcao = a => a.a === 'desafio' ? `${(quadraAqui() || {}).nome || 'Desafio'} (${TENT})` : a.a === 'largada' ? `Largar (${VOLTAS} voltas)` : a.a === 'pesca' ? 'Pescar aqui' : a.a === 'skate' ? (C.st.me && C.st.me.verso && C.st.me.verso.skate ? 'Largar o skate' : 'Pegar o skate') : a.a === 'jogo' ? 'Jogar Killer Ocean' : (S.discoAtual ? '♪ ' + (C.beats ? C.beats.nome(S.discoAtual) : 'tocando') : '♪ Discos');
   /* vai até a frente e faz */
   function vaiNaAcao(a){
     if(!S.eu || !a || !acaoPraMim(a)) return;
@@ -1267,6 +1334,7 @@
     if(a.a === 'discos'){ discosSheet(); return; }
     if(a.a === 'pesca'){ comecaPesca(a.e && a.e.spot); return; }
     if(a.a === 'largada'){ largar(); return; }
+    if(a.a === 'desafio'){ comecaDesafio(); return; }
     /* o fliperama da casa roda o Killer Ocean (o mesmo do Aquário), por cima da casa */
     if(a.a === 'jogo'){ if(C.verso && C.verso.abreJogo && C.verso.JOGOS && C.verso.JOGOS.killer) C.verso.abreJogo('killer'); else C.toast('O jogo não carregou.'); return; }
     if(a.a === 'skate'){
@@ -1287,6 +1355,132 @@
       <p class="note">Beats da casa, feitos na hora. Quem tá aqui dentro ouve junto.${S.meu ? ' Mais discos no Sebo da cidade: escolhe lá e eles aparecem aqui.' : ''}</p>
       <div class="cs-disco-l">${lista.map(d => `<button type="button" class="cs-disco${atual === d.k ? ' on' : ''}" data-act="cs-disco" data-k="${d.k}"><i style="--c:${d.cor}"></i><b>${esc(d.nome)}</b><small>${d.bpm} bpm${atual === d.k ? ' · tocando' : ''}</small></button>`).join('')}</div>
       ${atual ? `<div class="acts"><button type="button" class="btn" data-act="cs-disco-para">${ico('x')} Tirar o disco</button></div>` : ''}</div>`);
+  }
+  /* ---------- v3.51 · o desafio da quadra ----------
+     10 tentativas. A régua (no placar de cima) vai e volta sozinha; o botão grande chuta ou arremessa na hora. No
+     futsal a régua é o gol visto de cima: a faixa escura é o goleiro, que anda sozinho e pula na bola (alcança 0,9 m);
+     nas pontas é trave. No basquete a faixa rosa é a força certa (mais fina nos 5 de três). A bola voa em arcos
+     (posBola) e o resultado sai no fim do voo. O melhor do dia vai na presença (m.qp, os pontos, e m.qd, o dia) */
+  const quadraAqui = () => (S.aberta && S.lugar && LUGARES[S.lugar] && LUGARES[S.lugar].desafio) || null;
+  const recQuadra = () => { try{ const o = JSON.parse(localStorage.getItem('corre-quadra') || '{}'); return o && typeof o === 'object' ? o : {}; }catch(e){ return {}; } };
+  const guardaQuadra = o => { try{ localStorage.setItem('corre-quadra', JSON.stringify(o)); }catch(e){} };
+  const melhorQuadra = Q => { const r = Q && recQuadra()[Q.esporte]; return r && r.dia === diaBR() ? r.pts : 0; };
+  const TENT = 10;
+  const medidor = D => { const per = D.Q.per * Math.max(.6, 1 - D.n * .035); return .5 - .5 * Math.cos((Date.now() - D.t0) / 1000 / per * Math.PI * 2); };
+  const faixaBasq = n => (n < 5 ? .26 : .16);
+  let GOL_AV = null;
+  const GOLEIRO = () => GOL_AV || (GOL_AV = C.verso.avLimpo({ skin: 'craque' }, 'goleiro-do-corre'));
+  function rankingQuadra(Q){
+    const hoje = diaBR() % 1e5, out = [], meu = melhorQuadra(Q);
+    if(meu) out.push({ nome: 'você', pts: meu, eu: true });
+    gente().forEach(g => { if(g.qd === hoje && g.qp > 0) out.push({ nome: '@' + (g.handle || 'alguém'), pts: g.qp }); });
+    return out.sort((a, b) => b.pts - a.pts);
+  }
+  function posicionaDesafio(){
+    const D = S.desafio, e = S.eu; if(!D || !e) return;
+    if(D.Q.esporte === 'futsal'){ e.x = D.Q.spot.x; e.z = D.Q.spot.z; e.yaw = D.Q.spot.yaw; }
+    else { const p = PONTOS_BASQ[D.n % PONTOS_BASQ.length]; e.x = p.x; e.z = p.z; e.yaw = Math.atan2(ARO.x - p.x, ARO.z - p.z); }
+    e.andando = false; S.cam.th = e.yaw + Math.PI; S.arrastou = 0;
+  }
+  /* a câmera do desafio: baixa, atrás de você e mirando no meio do caminho, pra o gol (ou a cesta) aparecer inteiro
+     embaixo do placar. Arrastou pra olhar, ela respeita por 3 s */
+  function camDesafio(dt){
+    const D = S.desafio, e = S.eu, c = S.cam, f = Math.min(1, dt * 4), gols = D.Q.esporte === 'futsal';
+    const al = gols ? [9, GOL.z] : [ARO.x, ARO.z], tx = e.x + (al[0] - e.x) * .4, tz = e.z + (al[1] - e.z) * .4;
+    c.tx += (tx - c.tx) * f; c.tz += (tz - c.tz) * f; c.ty += ((gols ? .9 : 2.3) - c.ty) * f;
+    if(Date.now() - (S.arrastou || 0) < 3000) return;
+    let d = e.yaw + Math.PI - c.th; d = Math.atan2(Math.sin(d), Math.cos(d)); c.th += d * f;
+    c.ph += ((gols ? .36 : .3) - c.ph) * f; c.dist += ((gols ? 8.5 : 8) - c.dist) * f;
+  }
+  /* sai do desafio e devolve a câmera de antes */
+  function largaDesafio(){ const D = S.desafio; S.desafio = null; if(D && D.cam0){ S.cam.ph = D.cam0.ph; S.cam.dist = D.cam0.dist; } painelDesafio(true); }
+  function comecaDesafio(){
+    const Q = quadraAqui(); if(!Q || !S.eu || S.desafio) return;
+    S.alvo = null; S.rota = []; S.acao = null; S.teclas.clear();
+    S.desafio = { Q, n: 0, pts: 0, fase: 'mira', t0: Date.now(), bola: null, kx: 9, ktx: 9, ktT: 0, ult: Date.now(), cam0: { ph: S.cam.ph, dist: S.cam.dist } };
+    posicionaDesafio(); painelDesafio(true);
+  }
+  function paraDesafio(msg){ if(!S.desafio) return; largaDesafio(); if(msg) C.toast(msg, 1600); }
+  function posBola(b, agora){
+    let t = agora - b.t0;
+    for(const sg of b.segs){ if(t <= sg.dur){ const u = t / sg.dur; return [sg.de[0] + (sg.ate[0] - sg.de[0]) * u, sg.de[1] + (sg.ate[1] - sg.de[1]) * u + sg.arco * 4 * u * (1 - u), sg.de[2] + (sg.ate[2] - sg.de[2]) * u, false]; } t -= sg.dur; }
+    const ul = b.segs[b.segs.length - 1].ate; return [ul[0], ul[1], ul[2], true];
+  }
+  function dispara(){
+    const D = S.desafio; if(!D || D.fase !== 'mira' || !S.eu) return;
+    const p = medidor(D), e = S.eu, agora = Date.now(), fx = Math.sin(e.yaw), fz = Math.cos(e.yaw);
+    if(D.Q.esporte === 'futsal'){
+      const ax = GOL.x0 + .1 + p * (GOL.x1 - GOL.x0 - .2), trave = p < .05 || p > .95, kf = D.kx + Math.max(-.9, Math.min(.9, ax - D.kx)) * .8, gol = !trave && Math.abs(ax - kf) > .5;
+      D.kf = kf; D.res = gol ? 'gol' : trave ? 'trave' : 'defesa'; if(gol) D.pts++;
+      const de = [9, .11, 7.2], ate = [ax, .55, GOL.z + .05];
+      D.bola = { t0: agora, segs: [{ de, ate, dur: 450, arco: .35 }, gol ? { de: ate, ate: [ax, .2, GOL.z - .75], dur: 250, arco: 0 } : trave ? { de: ate, ate: [ax < 9 ? 5.5 : 12.5, .11, 3.4], dur: 600, arco: .6 } : { de: ate, ate: [kf + (Math.random() - .5), .11, 4], dur: 650, arco: .8 }] };
+    } else {
+      const w = faixaBasq(D.n), acerta = Math.abs(p - .5) < w / 2, tres = D.n >= 5;
+      D.res = acerta ? (tres ? 'tres' : 'cesta') : p < .5 ? 'curto' : 'forte'; if(acerta) D.pts += tres ? 3 : 2;
+      const de = [e.x + fx * .22, 2.05, e.z + fz * .22], aro = [ARO.x, ARO.y + .14, ARO.z], curto = [ARO.x - fx * .3, ARO.y + .05, ARO.z - fz * .3], tabela = [ARO.x, ARO.y + .4, 1.3];
+      D.bola = { t0: agora, segs: acerta ? [{ de, ate: aro, dur: 850, arco: 1.5 }, { de: aro, ate: [ARO.x, .12, ARO.z], dur: 450, arco: 0 }]
+        : p < .5 ? [{ de, ate: curto, dur: 800, arco: 1.3 }, { de: curto, ate: [ARO.x - fx * 1.8 + (Math.random() - .5), .12, ARO.z - fz * 1.8 + .5], dur: 700, arco: .7 }]
+        : [{ de, ate: tabela, dur: 820, arco: 1.4 }, { de: tabela, ate: [ARO.x + (Math.random() - .5) * 2, .12, 3], dur: 750, arco: .5 }] };
+    }
+    D.fase = 'voo';
+  }
+  function fimDesafio(){
+    const D = S.desafio, Q = D.Q, rec = recQuadra(), hoje = diaBR(), meu = rec[Q.esporte] && rec[Q.esporte].dia === hoje ? rec[Q.esporte].pts : 0, bateu = D.pts > meu, sempre = rec[Q.esporte + 'Rec'] || 0, recorde = D.pts > sempre;
+    if(bateu) rec[Q.esporte] = { dia: hoje, pts: D.pts }; if(recorde) rec[Q.esporte + 'Rec'] = D.pts; guardaQuadra(rec);
+    D.fase = 'fim';
+    const lista = rankingQuadra(Q), pos = lista.findIndex(x => x.eu) + 1, un = Q.esporte === 'futsal' ? (D.pts === 1 ? 'gol' : 'gols') : (D.pts === 1 ? 'ponto' : 'pontos');
+    C.toast(`Fim do desafio: ${D.pts} ${un}${recorde && D.pts ? ', teu recorde' : bateu && D.pts ? ', o teu melhor de hoje' : ''}${lista.length > 1 && D.pts ? `. ${pos}º do dia na quadra` : ''}.`, 4800);
+    if(C.verso && C.verso.anunciar) C.verso.anunciar();
+    setTimeout(() => { if(S.desafio === D) largaDesafio(); }, 2400);
+  }
+  function tickDesafio(){
+    if(!quadraAqui()) return;
+    const D = S.desafio, agora = Date.now();
+    if(D){
+      const dt = Math.min(.1, (agora - D.ult) / 1000); D.ult = agora;
+      if(D.Q.esporte === 'futsal'){
+        if(D.fase === 'mira'){ if(agora > D.ktT){ D.ktx = 7.9 + Math.random() * 2.2; D.ktT = agora + 600 + Math.random() * 600; } const d = D.ktx - D.kx; D.kx += Math.sign(d) * Math.min(Math.abs(d), 2.2 * dt); }
+        else if(D.fase === 'voo' && D.kf != null){ const d = D.kf - D.kx; D.kx += Math.sign(d) * Math.min(Math.abs(d), 5 * dt); }
+      }
+      if(D.fase === 'voo' && D.bola && posBola(D.bola, agora)[3]){
+        C.toast({ gol: 'Gol!', trave: 'Na trave!', defesa: 'O goleiro pegou.', cesta: 'Cesta! +2', tres: 'De três! +3', curto: 'Curto: bateu no aro.', forte: 'Forte demais: tabela e fora.' }[D.res], 1300);
+        D.n++; D.bola = null; D.kf = null;
+        if(D.n >= TENT) fimDesafio(); else { D.fase = 'mira'; D.t0 = agora; posicionaDesafio(); }
+        painelDesafio(true);
+      }
+    }
+    painelDesafio();
+  }
+  function painelDesafio(forca){
+    const el = C.$('cs-pesca'), Q = quadraAqui(); if(!el || !Q) return;
+    el.hidden = false; const D = S.desafio, agora = Date.now(), gols = Q.esporte === 'futsal';
+    if(forca || agora - (S.painelT || 0) >= 150){ S.painelT = agora;
+      const sempre = recQuadra()[Q.esporte + 'Rec'] || 0, un = n => (gols ? (n === 1 ? 'gol' : 'gols') : (n === 1 ? 'ponto' : 'pontos'));
+      let topo, dica, med = '';
+      if(D && D.fase !== 'fim'){
+        topo = `${Q.vez} ${Math.min(TENT, D.n + 1)}/${TENT} · ${D.pts} ${un(D.pts)}`;
+        if(gols){ med = '<div class="cs-med"><i class="cs-med-t" style="left:0;width:5%"></i><i class="cs-med-t" style="left:95%;width:5%"></i><i class="cs-med-k"></i><i class="cs-med-c"></i></div>'; dica = 'A barra é o gol, e a faixa escura é o goleiro. Chuta quando a mira tá longe dele.'; }
+        else { const w = faixaBasq(D.n); med = `<div class="cs-med"><i class="cs-med-a" style="left:${(50 - w * 50).toFixed(1)}%;width:${(w * 100).toFixed(1)}%"></i><i class="cs-med-c"></i></div>`; dica = D.n >= 5 ? 'De três: a faixa é mais fina.' : 'Arremessa quando a régua passar na faixa rosa.'; }
+      } else if(D){ topo = `Fim: ${D.pts} ${un(D.pts)}`; dica = 'Toca na caixa de bolas pra tentar de novo.'; }
+      else { topo = `${esc(Q.nome)} · melhor do dia`; dica = 'Vai na caixa de bolas e toca no desafio.'; }
+      const lista = rankingQuadra(Q), eu = lista.findIndex(x => x.eu), mostra = lista.slice(0, 3); if(eu > 2) mostra.push(lista[eu]);
+      const html = `<b class="cs-pesca-t">${ico('raio')} ${topo}</b>${med}<ol>${mostra.length ? mostra.map(x => `<li${x.eu ? ' class="eu"' : ''}><i>${lista.indexOf(x) + 1}º</i><span>${esc(x.nome)}</span><b>${x.pts} ${gols ? un(x.pts) : 'pts'}</b></li>`).join('') : '<li><i></i><span>Ninguém jogou hoje ainda.</span><b></b></li>'}</ol><small>${dica}${sempre ? ` Recorde: ${sempre}.` : ''}</small>`;
+      el.classList.remove('morde');
+      if(el.dataset.h !== html){ el.dataset.h = html; el.innerHTML = html; }
+    }
+    /* a régua e o goleiro andam a cada quadro (só o estilo, sem refazer o placar) */
+    if(D && D.fase === 'mira'){ const c = el.querySelector('.cs-med-c'); if(c) c.style.left = (medidor(D) * 100).toFixed(1) + '%'; }
+    if(D && gols){ const k = el.querySelector('.cs-med-k'); if(k) k.style.left = ((D.kx - GOL.x0) / (GOL.x1 - GOL.x0) * 100).toFixed(1) + '%'; }
+  }
+  /* o goleiro (sempre no gol do futsal) e a bola (no pé, na mão ou voando) */
+  function solidosDesafio(){
+    const Q = quadraAqui(); if(!Q) return [];
+    const D = S.desafio, out = [], e = S.eu, gols = Q.esporte === 'futsal';
+    if(gols && C.verso && C.verso.avLimpo) out.push(...sobe(boneco(GOLEIRO(), D ? D.kx : 9, GOL.z + .45, 0, 0, false), D && D.fase === 'voo' && D.kf != null ? .25 : 0));
+    const bp = D && D.bola ? posBola(D.bola, Date.now()) : D && D.fase === 'mira' && e ? (gols ? [9, .11, 7.2] : [e.x + Math.sin(e.yaw) * .22, 2.05, e.z + Math.cos(e.yaw) * .22]) : null;
+    if(bp){ const r = gols ? .11 : .12, c = gols ? PAPEL : '#E8643A', c2 = gols ? INK : '#8E3A1E';
+      out.push(solido({ x: bp[0] - r, y: bp[1] - r, z: bp[2] - r, w: r * 2, h: r * 2, d: r * 2, c }, null, c, null, {}), solido({ x: bp[0] - r * .55, y: bp[1] + r - .005, z: bp[2] - r * .55, w: r * 1.1, h: .012, d: r * 1.1, c: c2 }, null, c2, null, { semTraco: true })); }
+    return out;
   }
   /* ---------- v3.50 · a corrida ----------
      Montado, o boneco anda como veículo: frente acelera, trás freia (e dá ré), os lados viram, e a câmera fica atrás.
@@ -1604,7 +1798,7 @@
     ctx.fillStyle = 'rgba(255,255,255,.7)'; for(let i = 0; i < 40; i++){ const sx = ((i * 97) % 101) / 101 * cv.width, sy = ((i * 53) % 37) / 37 * cv.height * .45; ctx.fillRect(sx, sy, 1, 1); }
     const pisos = pisosDaCasa(), extras = [];
     pisos.push(...sombras(extras));
-    const solidos = [...solidosParedes(cam), ...solidosAndares(), ...solidosFixos(), ...solidosItens(), ...solidosAnimados(t), ...extras, ...solidosDisco(t), ...solidosPesca(t)];
+    const solidos = [...solidosParedes(cam), ...solidosAndares(), ...solidosFixos(), ...solidosItens(), ...solidosAnimados(t), ...extras, ...solidosDisco(t), ...solidosPesca(t), ...solidosDesafio()];
     const mv = S.corrida && S.eu ? S.corrida.P.veic : '';
     if(mv) solidos.push(...veiculo3d(mv, S.eu.x, S.eu.y, S.eu.z, S.eu.yaw, corVeic(mv, S.eu.av), 'eu'));
     if(S.eu) solidos.push(...sobe(boneco(S.eu.av, S.eu.x, S.eu.z, S.eu.yaw, S.eu.passo, mv ? false : S.eu.andando), S.eu.y + (mv ? VEIC_3D[mv].alt : puloCasa(S.eu) * PULO_ALT)));
@@ -1634,7 +1828,7 @@
     const cm = S.eu && comodoDe(S.eu.x, S.eu.z, nivelDe(S.eu.y)), noEsc = !!(cm && cm.k === 'escritorio') || !!S.lugar;
     if((S.meu || S.lugar) && S.modo === 'andar') S.fixos.forEach(e => { const el = S.tags.get('est:' + e.id); if(!noEsc && !(S.eu && nivelDe(S.eu.y) === (e.y > 1.5 ? 1 : 0) && Math.hypot(S.eu.x - e.x - e.w / 2, S.eu.z - e.z - e.d / 2) < 5)){ if(el) el.hidden = true; return; } poe('est:' + e.id, [e.x + e.tag[0], (e.y || 0) + e.tag[1], e.z + e.tag[2]], e.trava ? e.titulo + ' · em breve' : e.id === 'horus' && !estAberta(e) ? 'Hórus desligado' : e.agente ? AGENTE[agenteDe(S.dono)].nome : e.titulo, e.trava ? 'trava' : e.id === 'horus' && !estAberta(e) ? 'off' : e.agente ? 'agente' : ''); });
     poe('saida', [ENTRADA.x, .25, ENTRADA.z - .25], S.meu ? 'Sair pra rua' : S.lugar ? LUGARES[S.lugar].sai || 'Sair pra Feira' : 'Sair', 'saida');
-    if(S.modo === 'andar') acoes().forEach(a => { if(!acaoPraMim(a) || (S.pesca && a.a === 'pesca') || S.corrida){ const el = S.tags.get('acao:' + a.id); if(el) el.hidden = true; return; } const cx = a.x + a.w / 2, cz = a.z + a.d / 2, n = a.y > 1.5 ? 1 : 0; if(!(S.eu && nivelDe(S.eu.y) === n && Math.hypot(S.eu.x - cx, S.eu.z - cz) < 4.5)){ const el = S.tags.get('acao:' + a.id); if(el) el.hidden = true; return; } poe('acao:' + a.id, [cx, a.y + a.topo + .35, cz], rotuloAcao(a), a.a === 'discos' && S.discoAtual ? 'acao som' : 'acao'); });
+    if(S.modo === 'andar') acoes().forEach(a => { if(!acaoPraMim(a) || (S.pesca && a.a === 'pesca') || S.corrida || S.desafio){ const el = S.tags.get('acao:' + a.id); if(el) el.hidden = true; return; } const cx = a.x + a.w / 2, cz = a.z + a.d / 2, n = a.y > 1.5 ? 1 : 0; if(!(S.eu && nivelDe(S.eu.y) === n && Math.hypot(S.eu.x - cx, S.eu.z - cz) < 4.5)){ const el = S.tags.get('acao:' + a.id); if(el) el.hidden = true; return; } poe('acao:' + a.id, [cx, a.y + a.topo + .35, cz], rotuloAcao(a), a.a === 'discos' && S.discoAtual ? 'acao som' : 'acao'); });
     const peers = C.verso.peers ? C.verso.peers() : new Map();
     gente().forEach(r => { const p = peers.get(r.sid), vivo = p && p.estado === 'aovivo'; poe('gente:' + r.sid, [r.hxv, (r.hyv || 0) + 1.78, r.hzv], (r.handle ? '@' + r.handle : r.nome || 'visitante') + (vivo ? ' · ao vivo' : r.mic ? ' · mic' : ''), vivo ? 'gente vivo' : 'gente'); });
     S.tags.forEach((el, k) => { if(!usadas.has(k) && !el.hidden){ el.hidden = true; } });
@@ -1652,6 +1846,7 @@
       if(S.ouvindo && !(sh && !sh.hidden && sh.querySelector('.cs-sebo'))) paraDeOuvir();
       tickPesca();
       if(pistaAqui()) painelCorrida();
+      tickDesafio();
       /* celular fraco (quadro lento): o boneco anda em passos de até 50 ms, pra a velocidade não depender do quadro
          (e sem atravessar parede num passo grande) */
       if(!parado){ const np = Math.max(1, Math.ceil(dt / .05 - 1e-9)); for(let i = 0; i < np && S.aberta && S.eu; i++) passo(dt / np); }
@@ -1668,6 +1863,7 @@
   function passo(dt){
     const e = S.eu; if(!e) return;
     if(S.corrida){ passoVeiculo(dt); return; }
+    if(S.desafio){ const pv0 = S.pad && S.pad.vetor ? S.pad.vetor() : null; if(S.teclas.size || S.alvo || (pv0 && pv0.m)) paraDesafio('Saiu do desafio.'); else { camDesafio(dt); return; } }
     let dx = 0, dz = 0;
     const k = S.teclas, th = S.cam.th;
     /* W = pra longe da câmera; as setas acompanham o giro da câmera */
@@ -1720,14 +1916,16 @@
   }
   function portaCasa(){
     const b = C.$('cs-porta'); if(!b) return;
+    if(S.desafio){ const D = S.desafio, txt = D.fase === 'mira' ? D.Q.botao : D.fase === 'voo' ? '…' : 'Fim!'; S.perto = null; if(b.dataset.txt !== txt){ b.dataset.txt = txt; b.hidden = false; b.innerHTML = `${ico('raio')}<span>${txt}</span>`; } b.classList.remove('morde'); return; }
     if(S.corrida){ const txt = S.corrida.fim ? 'Chegou!' : 'Desistir'; S.perto = null; if(b.dataset.txt !== txt){ b.dataset.txt = txt; b.hidden = false; b.innerHTML = `${ico(S.corrida.fim ? 'check' : 'x')}<span>${txt}</span>`; } b.classList.remove('morde'); return; }
     if(S.pesca){ const txt = S.pesca.fase === 'morde' ? 'Puxar!' : 'Puxar'; S.perto = null; if(b.dataset.txt !== txt){ b.dataset.txt = txt; b.hidden = false; b.innerHTML = `${ico('peixe')}<span>${txt}</span>`; } b.classList.toggle('morde', S.pesca.fase === 'morde'); return; }
     b.classList.remove('morde');
     const p = S.modo === 'andar' && !S.alvo ? pertoDe() : null; S.perto = p;
     const txt = p ? p.nome : '';
-    if(b.dataset.txt !== txt){ b.dataset.txt = txt; b.hidden = !p; if(p) b.innerHTML = `${ico(p.t === 'saida' ? 'prev' : p.t === 'escada' ? 'up' : p.t === 'est' ? 'raio' : p.a && p.a.a === 'discos' ? 'musica' : p.a && p.a.a === 'jogo' ? 'play' : p.a && p.a.a === 'pesca' ? 'peixe' : p.a && p.a.a === 'largada' ? 'raio' : 'eu')}<span>${esc(p.nome)}</span>`; }
+    if(b.dataset.txt !== txt){ b.dataset.txt = txt; b.hidden = !p; if(p) b.innerHTML = `${ico(p.t === 'saida' ? 'prev' : p.t === 'escada' ? 'up' : p.t === 'est' ? 'raio' : p.a && p.a.a === 'discos' ? 'musica' : p.a && p.a.a === 'jogo' ? 'play' : p.a && p.a.a === 'pesca' ? 'peixe' : p.a && (p.a.a === 'largada' || p.a.a === 'desafio') ? 'raio' : 'eu')}<span>${esc(p.nome)}</span>`; }
   }
   function acaoPerto(){
+    if(S.desafio){ dispara(); return; }
     if(S.corrida){ if(!S.corrida.fim) desmonta(true); return; }
     if(S.pesca){ puxa(); return; }
     const p = S.perto || pertoDe(); if(!p || !S.eu) return;
@@ -1904,7 +2102,7 @@
     const sh = C.$('sheet'); if(digitando || (sh && !sh.hidden)){ S.teclas.clear(); return; }
     const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
     if(TECLAS.has(k)){ e.preventDefault(); if(e.type === 'keydown') S.teclas.add(k); else S.teclas.delete(k); return; }
-    if(k === ' '){ e.preventDefault(); if(e.type === 'keydown' && !e.repeat){ if(S.pesca) puxa(); else if(!S.corrida) pulaCasa(); } return; }
+    if(k === ' '){ e.preventDefault(); if(e.type === 'keydown' && !e.repeat){ if(S.pesca) puxa(); else if(S.desafio) dispara(); else if(!S.corrida) pulaCasa(); } return; }
     if(e.type !== 'keydown') return;
     if(k === 'q'){ S.cam.th += Math.PI / 4; S.arrastou = Date.now(); } else if(k === 'e'){ S.cam.th -= Math.PI / 4; S.arrastou = Date.now(); }
     else if(k === 'r' && S.ghost){ giraGhost(); }
@@ -2101,7 +2299,7 @@
       <button type="button" class="cs-porta" id="cs-porta" data-act="cs-porta" hidden></button><div class="cs-pesca" id="cs-pesca" aria-live="polite" hidden></div>`;
     document.body.appendChild(el); S.el = el; S.cv = C.$('cs-cv'); S.ctx = S.cv.getContext('2d');
     /* v3.40: no celular, o controle de videogame (direcional + pular); o botão de som é o mesmo da cidade */
-    if(C.pad && C.pad.toque()){ S.pad = C.pad.cria(el, { pula: () => (S.pesca ? puxa() : S.corrida ? null : pulaCasa()) }); el.classList.add('toque'); }
+    if(C.pad && C.pad.toque()){ S.pad = C.pad.cria(el, { pula: () => (S.pesca ? puxa() : S.desafio ? dispara() : S.corrida ? null : pulaCasa()) }); el.classList.add('toque'); }
     if(C.versoSom && C.versoSom.botao) C.versoSom.botao(C.$('cs-som'));
     S.cv.addEventListener('pointerdown', pointerDown); S.cv.addEventListener('pointermove', pointerMove); S.cv.addEventListener('pointerup', pointerUp); S.cv.addEventListener('pointercancel', pointerUp);
     S.cv.addEventListener('wheel', roda, { passive: false });
@@ -2155,7 +2353,7 @@
     if(!S.aberta) return;
     if(S.modo === 'colocar') cancelaGhost();
     S.aberta = false; S.lugar = ''; cancelAnimationFrame(S.raf); S.raf = 0; S.teclas.clear(); S.padTh = null; S.perto = null; if(S.pad) S.pad.solta();
-    S.disco = null; S.discoAtual = ''; S.ouvindo = ''; S.pesca = null; S.corrida = null; if(C.beats) C.beats.para();
+    S.disco = null; S.discoAtual = ''; S.ouvindo = ''; S.pesca = null; S.corrida = null; S.desafio = null; if(C.beats) C.beats.para();
     const pq = C.$('cs-pesca'); if(pq) pq.hidden = true;
     clearTimeout(S.salvaT); if(S.sujo) salva();
     if(S.el){ S.el.hidden = true; }
@@ -2227,6 +2425,7 @@
   }
   C.casa = { abrir, fechar, aberta: () => S.aberta, estado: () => S, ITENS, CAT, ESTACOES, encosta, alturaItem: (it, i) => alturaItem(it, i), COMODOS: () => COMODOS, planta: () => PL, plantaDe, lerCasa, miniatura, tela, serial, previa, acoes, disco: () => S.disco, discoAtual: () => S.discoAtual, poeDisco, AGENTES, agenteDe: () => agenteDe(S.dono),
     sala: () => (S.aberta && S.dono ? String(S.dono.id || '') : ''), lugar: () => (S.aberta ? S.lugar || '' : ''), LUGARES,
-    placar: () => (S.aberta && S.lugar === 'pesca' && S.placar && S.placar.r === rodadaAgora() ? { c: Math.round(S.placar.kg * 100), r: S.placar.r % 1e6 } : null), corrida: () => { const P = pistaAqui(); if(!P) return null; const m = melhorHoje(P); return { tc: m ? Math.round(m / 10) : 0, td: diaBR() % 1e5 }; },
+    placar: () => (S.aberta && S.lugar === 'pesca' && S.placar && S.placar.r === rodadaAgora() ? { c: Math.round(S.placar.kg * 100), r: S.placar.r % 1e6 } : null), quadra: () => { const Q = quadraAqui(); if(!Q) return null; return { qp: melhorQuadra(Q), qd: diaBR() % 1e5 }; },
+    corrida: () => { const P = pistaAqui(); if(!P) return null; const m = melhorHoje(P); return { tc: m ? Math.round(m / 10) : 0, td: diaBR() % 1e5 }; },
     pos: () => (S.aberta && S.eu ? { x: S.eu.x, y: S.eu.y || 0, z: S.eu.z, yaw: S.eu.yaw, andando: !!(S.eu.andando || (S.corrida && Math.abs(S.eu.vel || 0) > .3)), mt: S.corrida ? (S.corrida.P.veic === 'moto' ? 1 : 2) : 0 } : null), gente };
 })();

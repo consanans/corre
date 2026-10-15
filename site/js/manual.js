@@ -6,10 +6,11 @@
   'use strict';
   const C = window.Corre, { esc, ico } = C;
   /* sobe esse número a cada atualização: quem já viu recebe de novo, abrindo nas novidades */
-  const VERSAO = '3.50';
+  const VERSAO = '3.51';
   const K = 'corre-manual-visto';
 
   const NOVIDADES = [
+    ['fogo', 'Correverso: desafio nas quadras', 'As quadras do Zerão viraram quadra em 3D, com arquibancada e torcida. Na quadra de futsal é o Desafio de pênalti: 10 cobranças contra o goleiro, que anda no gol e pula na bola. No placar de cima, a barra é o gol e a faixa escura é o goleiro: chuta quando a mira tá longe dele (nas pontas é trave). Na de basquete é o Desafio de arremesso: 10 arremessos, 5 de dois e 5 de três, e você acerta quando a régua passa na faixa rosa (na de três ela é mais fina). Pra entrar, a placa DESAFIO no canto de cada quadra; lá dentro, a caixa de bolas. O placar mostra o melhor do dia de quem tá na quadra. Não vale correal: vale o recorde.'],
     ['raio', 'Correverso: corrida de moto e de patinete', 'Duas largadas novas na cidade, com a placa da bandeira quadriculada. No portão do Estádio do Café fica o Autódromo do Café (moto); na pista do Zerão, a corrida de patinete. Lá dentro é uma pista oval em 3D: vai no totem da bandeira, toca em Largar e espera o 3, 2, 1. Montado, frente acelera, trás freia e os lados viram (no celular, o direcional faz o mesmo). São 3 voltas contra o relógio, e o placar mostra o melhor tempo do dia de quem tá na pista. Não vale correal: vale o teu recorde.'],
     ['peixe', 'Correverso: Torneio de Pesca no Igapó', 'No começo do Píer do Igapó tem a placa do Torneio. Lá dentro é um píer em 3D no meio da água: vai num balde da beira e toca "Pescar aqui". Quando a boia afundar, o botão vira "Puxar!" (no computador, o espaço também puxa): puxou cedo, o peixe se assusta; demorou, escapa. Tem lambari, tilápia, traíra, pacu, carpa, dourado e, de vez em quando, uma bota velha. A rodada é de 3 minutos, igual pra todo mundo, e o placar mostra quem tá no píer. Não vale correal: vale a glória (e o teu recorde fica guardado).'],
     ['musica', 'Correverso: o Sebo e os discos novos', 'A cidade ganhou um Sebo (tá no mapa). Lá dentro, nos caixotes do meio, tem dez discos novos: samba, bossa, drill, dub, afrobeat, dembow, chillhop, disco, grime e um da noite de Londrina. Toca "Ouvir" pra escutar ali mesmo e "Levar pra casa" pra pôr no toca-discos da tua casa. É de graça, e dá pra devolver. Todos são beats originais, feitos na hora no aparelho.'],
