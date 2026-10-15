@@ -1879,7 +1879,22 @@
     patinete: { alt: .11, bl: c => [B(-.13, .06, -.5, .26, .05, .95, '#2B2F38'), B(-.05, 0, -.56, .1, .12, .12, '#16181D'), B(-.05, 0, .4, .1, .12, .12, '#16181D'),
       B(-.03, .11, .38, .06, 1, .06, '#8F96A0'), B(-.3, 1.08, .37, .6, .05, .06, INK), B(-.12, .11, .3, .24, .06, .12, c), B(-.05, .82, .44, .1, .08, .04, '#FFF6CF')] }
   };
-  const veiculo3d = (k, x, y, z, yaw, cor, dono) => VEIC_3D[k].bl(cor).map(b => solido(Object.assign({}, b, { x: b.x + x, y: b.y + y, z: b.z + z }), [{ yaw, piv: [x, 0, z] }], b.c, dono, {}));
+  /* v3.54: patinete é sempre o da JET (o Thales: "só a azul, e faz questão de enfatizar o logo da JET"): azul da marca,
+     faixa branca, e a marca no guidão, no deque, atrás e numa bandeirinha alta (a câmera da corrida vê ela o tempo todo) */
+  const JET_AZUL = '#307FE2';
+  const LOGO_JET = [[[.09, .118, .32], [-.09, .118, .32], [-.09, .118, -.22], [.09, .118, -.22]], [[-.09, .8, .452], [.09, .8, .452], [.09, .62, .452], [-.09, .62, .452]], [[.11, .32, -.612], [-.11, .32, -.612], [-.11, .13, -.612], [.11, .13, -.612]],
+    [[.0, 1.36, -.585], [-.4, 1.36, -.585], [-.4, 1.1, -.585], [.0, 1.1, -.585]], [[-.4, 1.36, -.575], [.0, 1.36, -.575], [.0, 1.1, -.575], [-.4, 1.1, -.575]]];
+  const veiculo3d = (k, x, y, z, yaw, cor, dono) => {
+    const jet = k === 'patinete', cr = jet ? JET_AZUL : cor, out = VEIC_3D[k].bl(cr).map(b => solido(Object.assign({}, b, { x: b.x + x, y: b.y + y, z: b.z + z }), [{ yaw, piv: [x, 0, z] }], b.c, dono, {}));
+    if(jet){
+      const extra = [B(-.135, .105, -.5, .27, .012, .95, PAPEL), B(-.11, .11, -.62, .22, .22, .02, JET_AZUL), B(-.012, .11, -.59, .024, 1.27, .024, '#8F96A0'), B(-.08, .58, .44, .16, .24, .01, INK)];
+      extra.forEach(b => out.push(solido(Object.assign({}, b, { x: b.x + x, y: b.y + y, z: b.z + z }), [{ yaw, piv: [x, 0, z] }], b.c, dono, {})));
+      const cy = Math.cos(yaw), sy = Math.sin(yaw), W = p => [x + p[0] * cy + p[2] * sy, y + p[1], z - p[0] * sy + p[2] * cy];
+      const logo = () => (C.verso && C.verso.publiLogo ? C.verso.publiLogo('jet', 256, 128) : null);
+      LOGO_JET.forEach(P4 => out.push(painelSol(P4.map(W), logo, JET_AZUL, dono)));
+    }
+    return out;
+  };
   const corVeic = (k, av) => (C.veiculos && C.veiculos.cor ? C.veiculos.cor(k, av && av.vcor) : LARANJA);
   const diaBR = () => Math.floor((Date.now() - 3 * 3600e3) / 864e5);
   const tempoTxt = ms => { const t = Math.max(0, Math.round(ms / 100)), m = Math.floor(t / 600), sg = Math.floor(t / 10) % 60; return `${m}:${String(sg).padStart(2, '0')},${t % 10}`; };

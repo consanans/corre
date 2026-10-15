@@ -1734,6 +1734,15 @@
     PUBLI_IMG.set(chave, cv); if(PUBLI_IMG.size > 300) PUBLI_IMG.delete(PUBLI_IMG.keys().next().value);
     return cv;
   }
+  /* a marca sozinha (o patinete da JET leva no guidão, no deque, atrás e na bandeirinha): letra branca no azul */
+  function publiLogo(k, W, H){
+    const P = PUBLI[k]; if(!P) return null; W = W || 256; H = H || 128; const chave = 'logo|' + k + W + 'x' + H; let cv = PUBLI_IMG.get(chave); if(cv) return cv;
+    cv = document.createElement('canvas'); cv.width = W; cv.height = H; const x = cv.getContext('2d');
+    x.fillStyle = P.cores.a; x.fillRect(0, 0, W, H); x.fillStyle = '#FFFFFF'; x.textAlign = 'center'; x.textBaseline = 'middle';
+    let t = H * .78; x.font = `italic 900 ${t}px "Archivo", "Big Shoulders Display", system-ui, sans-serif`; while(t > 8 && x.measureText(P.nome).width > W * .82){ t -= 2; x.font = `italic 900 ${t}px "Archivo", "Big Shoulders Display", system-ui, sans-serif`; }
+    x.fillText(P.nome, W / 2, H * .48); x.fillRect(W * .18, H * .84, W * .64, H * .05);
+    PUBLI_IMG.set(chave, cv); return cv;
+  }
   /* a folha da propaganda: o QR grande e os links (abre fora do Corre) */
   function publiSheet(k){
     const P = PUBLI[k]; if(!P) return; const n = P.qr ? P.qr.length : 0;
@@ -2708,6 +2717,8 @@
     else if(!eu && o.pt > 0 && o.av && o.av.skin && !o.av.personagem && PATENTES[o.av.skin]){ pixPlaca(ctx, PATENTES[o.av.skin][o.pt].toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''), o.x, yb, { fundo: '#38E1FF' }); yb -= 13 / V.k; }
     if(o.fala && o.fala.ate > (agora || Date.now())){ const b = pixPlaca(ctx, o.fala.t, o.x, yb, { fundo: PAPEL, max: 24 }); ctx.save(); naBase(ctx); ctx.fillStyle = INK; const tx = b.ix + Math.floor(b.w / 2); ctx.fillRect(tx - 1, b.iy + b.h, 3, 1); ctx.fillRect(tx, b.iy + b.h + 1, 1, 1); ctx.restore(); }
     const r = pixPlaca(ctx, nm, o.x, y, { fundo: eu ? AMARELO : o.eu ? '#FFF7A8' : PAPEL, max: o.eu ? 22 : 16 });
+    /* v3.54: de patinete (o da JET), a marca vai do lado do nome */
+    if(vk === 'patinete') pixPlaca(ctx, 'JET', o.x - (r.w / 2 + 11) / V.k, y, { fundo: '#307FE2', cor: PAPEL, borda: INK });
     if(eu ? V.mic : o.mic){
       const p = !eu && V.peers.get(o.sid), vivo = (p && p.estado === 'aovivo') || (eu && [...V.peers.values()].some(q => q.estado === 'aovivo'));
       ctx.save(); naBase(ctx); const bx = r.ix + r.w + 1, by = r.iy;
@@ -3819,7 +3830,7 @@
   C.verso = { miniVeiculo, trocaVeiculo, veiculoDe, alturaPulo, PULO_MS,
     /* a casa avisa que você pulou lá dentro (quem tá na casa vê) */
     marcaPulo: () => { if(!V.eu) return; V.eu.puN = ((V.eu.puN || 0) % 999) + 1; enviaPos(true); },
-    publiImg, publiSheet, PUBLI, meuSid: () => sid, kartManda: d => { if(V.rede && V.rede.kart && C.casa && C.casa.aberta()) V.rede.kart(Object.assign({ sid }, d)); },
+    publiImg, publiLogo, publiSheet, PUBLI, meuSid: () => sid, kartManda: d => { if(V.rede && V.rede.kart && C.casa && C.casa.aberta()) V.rede.kart(Object.assign({ sid }, d)); },
     skin, avLimpo, nivel, cores: { PELES, CAB_CORES, ROUPA_CORES, CALCA_CORES, TENIS_CORES }, anunciar, enviaPos, retoma: () => { V.tAnt = 0; V.teclas.clear(); portaUI(); }, mic: () => V.mic, peers: () => V.peers, remotos: () => V.remotos, montaCidade, desenhaCasa: (c, k) => (ESTILO_SPRITE()[c.estilo] || spriteCasa)(c, k).cv, estado: () => V, vivo: () => !!V.vivo, chip: chipVolta, balcao: () => BC, abreBalcao, fechaBalcao, gente: () => contaGente(), aparece: () => [...quemAparece()], PERSONAGENS,
     atualizaAv: () => { if(V.eu && C.st.me){ V.eu.av = avLimpo(C.st.me.verso, C.st.me.id); anunciar(); } }, come, falaAuto, bolas: () => V.bolas || [], COMIDAS, JOGOS, abreJogo, fechaJogo, jogo: () => V.jogo, zoom: poeZoom, zoomFator, SKINS, SKIN, TAREFAS, CIVICOS, PATENTES, patenteDe, pegaTarefa, largaTarefa, agirTarefa, tarefa: () => V.tarefa, trampoSheet };
 })();

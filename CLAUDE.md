@@ -1,6 +1,6 @@
 # Corre: guia pro Claude Code
 
-O Corre (app.corresocial.com) é a rede social e a ferramenta de trabalho do Thales (@consanans, Londrina). É pra quem vive do próprio corre: feed, mensagens, grupos, Studio (programa e posta no Instagram), Vendas e Grana, Hórus (caça de clientes), Mural, Rolo 360, Correverso (cidade em pixel com casa 3D) e Studio Houzi (branding). Versão atual: **3.53** (15/10/2026; no ar, a 3.49).
+O Corre (app.corresocial.com) é a rede social e a ferramenta de trabalho do Thales (@consanans, Londrina). É pra quem vive do próprio corre: feed, mensagens, grupos, Studio (programa e posta no Instagram), Vendas e Grana, Hórus (caça de clientes), Mural, Rolo 360, Correverso (cidade em pixel com casa 3D) e Studio Houzi (branding). Versão atual: **3.54** (15/10/2026; no ar, a 3.49).
 
 **Com o Thales:** português, curto e direto. Ele não é programador: explica o que muda pra ele, não o código.
 
@@ -94,6 +94,7 @@ O app tem três modos (`core.js`): **de verdade** (config.js com `SUPABASE_URL` 
   - **Placas de parceiro (verso.js "v3.53 · as placas de publicidade"):** `PUBLI` (nexwin, com QR pré-calculado em `QR_NEXWIN` pelo lab-qr.js; jet), `publiImg` (canvas), `publiSheet` (QR grande e links), outdoor nos 3 lotes livres da cidade (porta `publi`). No 3D: `painelSol`/`imgNoQuad` (imagem em perspectiva por triângulos), `PL.paineis`, `p.img` no chão, faixa `bannerPubli` na arena do parceiro. Nome das marcas escrito em letra (nenhum logo baixado); a NexWin vai no azul/roxo dela, sem o verde da marca (regra do Corre).
   - **Gráfico e outros:** Esc que fecha uma folha não fecha mais o lugar 3D (app.js marca o evento). Pesca com piapara e pirarara (`PEIXES`, `COR_PEIXE`). Presença aceita coordenada até 81 m (lugar grande).
   - Testes: scratchpad/v353 (kart.cjs pista a pista com piloto automático, vivo.cjs, publi.cjs); regressão verde (quadra 50, pesca 30, moto 32, sebo 22, lugares 94, mini 12, hórus 12).
+- **v3.54, o Patinete JET (o Thales: "a opção de cores de patinete deixe apenas a azul e faça questão de enfatizar o logo da JET"):** em veiculos.js o patinete é "Patinete JET" com `soCor: '#307FE2'` e `marca` (o `cor()` devolve o `soCor`; a garagem troca a paleta por uma nota). No 3D, `veiculo3d` (casa.js) põe o azul, a faixa branca do deque, a placa de trás, o mastro e a placa do guidão, e a marca em 5 `painelSol` (`LOGO_JET`: deque, guidão, trás e a bandeirinha dos dois lados) com `C.verso.publiLogo('jet')` (verso.js: o nome em branco no azul). Como os bichos do kart andam de patinete, os seis da pista ficam azuis com a bandeirinha. Na cidade, `nomeDe` põe a plaquinha "JET" do lado do nome de quem tá de patinete. Teste: scratchpad/v354/jet.cjs (pc e celular).
 - **Próximos (a fila do Thales):** vazia.
 
 ## Antes (v3.44, 14/10/2026)

@@ -45,7 +45,8 @@
   /* ---------- a frota ---------- */
   const LISTA = [
     { k: 'skate', nome: 'Skate', seg: 'shape de rua', tipo: 'skate', vel: 1.5, som: 'skate', botao: 'pula', cor: 7 },
-    { k: 'patinete', nome: 'Patinete', seg: 'patinete elétrico', tipo: 'patinete', vel: 1.45, som: 'patinete', botao: 'pula', cor: 3 },
+    /* v3.54: o patinete é o da JET (parceira do Corre): só no azul dela, com a marca à vista */
+    { k: 'patinete', nome: 'Patinete JET', seg: 'patinete elétrico da JET', tipo: 'patinete', vel: 1.45, som: 'patinete', botao: 'pula', cor: 1, soCor: '#307FE2', marca: 'JET' },
     { k: 'bike', nome: 'Magrela', seg: 'bike urbana', tipo: 'bike', vel: 1.65, som: 'bike', botao: 'pula', buzina: 'bike', cor: 5 },
     { k: 'scooter', nome: 'Brisa 125', seg: 'scooter', tipo: 'scooter', vel: 1.9, som: 'scooter', botao: 'buzina', buzina: 'moto', capacete: true, cor: 8 },
     { k: 'moto', nome: 'Corre 160', seg: 'moto de rua', tipo: 'moto', vel: 2.1, som: 'moto', botao: 'buzina', buzina: 'moto', capacete: true, cor: 0 },
@@ -59,7 +60,7 @@
   ];
   const POR = {}; LISTA.forEach(v => { POR[v.k] = v; });
   const porK = k => POR[k] || null;
-  const cor = (k, i) => { const v = POR[k]; const n = Number.isInteger(i) && i >= 0 && i < CORES.length ? i : v ? v.cor : 0; return CORES[n][1]; };
+  const cor = (k, i) => { const v = POR[k]; if(v && v.soCor) return v.soCor; const n = Number.isInteger(i) && i >= 0 && i < CORES.length ? i : v ? v.cor : 0; return CORES[n][1]; };
 
   /* onde o boneco fica em cada veículo: quanto sobe (pés no pedal, no pedaleiro, no assoalho), quanto anda pro lado
      (no carro, quem dirige fica atrás do vidro da frente), se pedala (as pernas mexem) e se o braço vai na manopla */
@@ -303,7 +304,7 @@
         <button type="button" class="cvr-gar-i${!G.k ? ' on' : ''}" data-act="cvr-gar-ve" data-k="" aria-pressed="${!G.k}"><canvas width="54" height="38" data-k="" aria-hidden="true"></canvas><b>A pé</b><small>${pontos(1)}</small></button>
         ${LISTA.map(x => `<button type="button" class="cvr-gar-i${x.k === G.k ? ' on' : ''}" data-act="cvr-gar-ve" data-k="${x.k}" aria-pressed="${x.k === G.k}"><canvas width="54" height="38" data-k="${x.k}" aria-hidden="true"></canvas><b>${esc(x.nome)}</b><small>${esc(x.seg)}</small><small class="cvr-gar-v" aria-label="velocidade">${pontos(x.vel)}</small></button>`).join('')}
       </div>
-      ${v ? `<p class="lbl-s">Cor</p><div class="cvr-sw cvr-gar-cores" role="radiogroup" aria-label="Cor">${CORES.map(([n, h], i) => `<button type="button" role="radio" aria-checked="${i === ci}" aria-label="${esc(n)}" title="${esc(n)}" style="--c:${h}" data-act="cvr-gar-cor" data-i="${i}"></button>`).join('')}</div>` : ''}
+      ${v && v.soCor ? `<p class="lbl-s">Cor</p><p class="note">Só no azul da ${esc(v.marca || '')}: é o patinete da parceira do Corre.</p>` : ''}${v && !v.soCor ? `<p class="lbl-s">Cor</p><div class="cvr-sw cvr-gar-cores" role="radiogroup" aria-label="Cor">${CORES.map(([n, h], i) => `<button type="button" role="radio" aria-checked="${i === ci}" aria-label="${esc(n)}" title="${esc(n)}" style="--c:${h}" data-act="cvr-gar-cor" data-i="${i}"></button>`).join('')}</div>` : ''}
       <div class="acts"><button type="button" class="btn pri" data-act="cvr-gar-sai">${v ? `${ico('carro')} Sair de ${esc(v.nome)}` : `${ico('eu')} Sair a pé`}</button></div></div>`, 'wide');
     document.querySelectorAll('.cvr-gar-i canvas').forEach(cv => { if(C.verso && C.verso.miniVeiculo) C.verso.miniVeiculo(cv, cv.dataset.k, cv.dataset.k === G.k ? ci : null); });
   }

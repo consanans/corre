@@ -6,10 +6,11 @@
   'use strict';
   const C = window.Corre, { esc, ico } = C;
   /* sobe esse número a cada atualização: quem já viu recebe de novo, abrindo nas novidades */
-  const VERSAO = '3.53';
+  const VERSAO = '3.54';
   const K = 'corre-manual-visto';
 
   const NOVIDADES = [
+    ['raio', 'Patinete JET', 'O patinete do Correverso agora é o da JET, a parceira do Corre: só no azul da marca (na garagem ele não troca de cor). Na corrida, cada patinete leva a marca no deque, no guidão, atrás e numa bandeirinha alta, que a câmera vê o tempo todo. Na cidade, quem anda de patinete ganha a plaquinha JET do lado do nome.'],
     ['raio', 'Correverso: corrida de kart de patinete', 'A placa de largada do patinete, no Zerão, abre a escolha de pista: Circuito do Zerão (lago e capivara atravessando), Terreiro de Café (terra roxa, zigue-zague e trator), Noite no Calçadão (neon e o busão cruzando) e Arena JET. São pistas grandes, de 250 a 300 metros, com seta de turbo no chão, rampa (no ar, aperta Pular: manobra e turbo), derrapagem (segura Pular virando: a faísca fica laranja, depois rosa, e soltar dá o turbo) e os discos de item: café é turbo, café triplo são três, chiclete gruda na pista atrás de você e o grave derruba quem tá perto. Na largada, segura o acelerador quando acender a segunda luz: largada perfeita.'],
     ['gente', 'Seis bichos e corrida ao vivo', 'Na corrida é sempre seis na pista, cada um com um bicho do Corre: Capivolt, Bumbo, Bicudo, Tatubala, Canelinha e Soneca. No totem você escolhe o teu. Sozinho, os outros cinco são da máquina. Com gente na pista, cada pessoa pega um bicho (o que já foi pego aparece com o @ de quem pegou) e o botão vira "Largar ao vivo": a largada sai junto pra todo mundo, a máquina completa os seis, a posição é ao vivo e chiclete e grave pegam em quem tá correndo de verdade. Quem não pegou bicho assiste, com o placar ao vivo e a câmera que segue cada corredor (dá pra fazer live).'],
     ['ext', 'Placas dos parceiros: NexWin e JET', 'Os lotes livres da cidade e as pistas ganharam placas de propaganda. A primeira é a NexWin, campeonato de eSports no celular, com o QR pra baixar o app: chega perto (ou toca na placa) e abre a folha com o QR grande e os links. A Arena JET é a pista da parceira JET, patinete elétrico de aluguel: placa pra todo lado, faixa de LED correndo frase, a marca pintada no chão, vaga de patinete, estação de power bank e a van da JET cruzando a pista.'],
