@@ -681,7 +681,7 @@
     if(BC.aberto) m.tr = 1;
     if(V.jogo) m.jg = 1;
     /* dentro de uma casa: quem passa vê "em casa"; quem tá na mesma casa te vê lá dentro (e a voz fica entre vocês) */
-    if(C.casa && C.casa.aberta()){ m.ec = 1; m.casa = C.casa.sala(); const pq = C.casa.placar ? C.casa.placar() : null; if(pq && pq.c > 0){ m.pk = pq.c; m.pr = pq.r; } const q = C.casa.pos(); if(q){ m.cx = Math.round(q.x * 10) / 10; m.cz = Math.round(q.z * 10) / 10; m.cy = Math.round((q.y || 0) * 10) / 10; m.cd = Math.round(q.yaw * 100) / 100; }
+    if(C.casa && C.casa.aberta()){ m.ec = 1; m.casa = C.casa.sala(); const pq = C.casa.placar ? C.casa.placar() : null; if(pq && pq.c > 0){ m.pk = pq.c; m.pr = pq.r; } const cr = C.casa.corrida ? C.casa.corrida() : null; if(cr && cr.tc > 0){ m.tc = cr.tc; m.td = cr.td; } const q = C.casa.pos(); if(q){ m.cx = Math.round(q.x * 10) / 10; m.cz = Math.round(q.z * 10) / 10; m.cy = Math.round((q.y || 0) * 10) / 10; m.cd = Math.round(q.yaw * 100) / 100; }
       const dsc = C.casa.disco && C.casa.disco(); if(dsc && dsc.t){ m.disco = dsc.k || ''; m.discoT = dsc.t; } }
     /* no ar, o teu nome e o teu @ não viajam na presença (qualquer um escreveria qualquer coisa ali): vêm do servidor */
     return C.LIVE ? m : Object.assign(m, { uid: me.id || '', handle: pub ? me.handle : '', nome: pub ? String(me.nome || '').slice(0, 40) : 'perfil mocado' });
@@ -806,6 +806,8 @@
         Object.assign(r, { av: avLimpo(m.av, r.uid || m.sid), mic: !!m.mic, tr: m.tr === 1, jg: m.jg === 1, ec: m.ec === 1, pt: Number.isInteger(m.pt) ? Math.max(0, Math.min(3, m.pt)) : 0, naCasa: typeof m.casa === 'string' && /^[0-9a-z-]{1,40}$/i.test(m.casa) ? m.casa : '', visto: Date.now(),
           /* v3.49: o peso da rodada no Torneio de Pesca (centésimos de kg) e a rodada; fora do comum, vira zero */
           pk: Number.isInteger(m.pk) && m.pk > 0 && m.pk < 100000 ? m.pk : 0, pr: Number.isInteger(m.pr) && m.pr >= 0 && m.pr < 1e6 ? m.pr : -1,
+          /* v3.50: o melhor tempo do dia na pista (centésimos) e o dia */
+          tc: Number.isInteger(m.tc) && m.tc > 0 && m.tc < 360000 ? m.tc : 0, td: Number.isInteger(m.td) && m.td >= 0 ? m.td : -1,
           disco: typeof m.disco === 'string' && /^[a-z0-9]{0,16}$/.test(m.disco) ? m.disco : '', discoT: Number.isFinite(m.discoT) ? m.discoT : 0 });
         if(r.naCasa && Number.isFinite(m.cx) && Number.isFinite(m.cz)){ if(r.hx == null){ r.hxv = m.cx; r.hzv = m.cz; r.hyv = Number.isFinite(m.cy) ? clamp(m.cy, 0, 8) : 0; } r.hx = clamp(m.cx, -1, 31); r.hz = clamp(m.cz, -1, 31); r.hy = Number.isFinite(m.cy) ? clamp(m.cy, 0, 8) : 0; r.hyaw = Number.isFinite(m.cd) ? m.cd : 0; }
         else if(!r.naCasa){ r.hx = r.hz = null; }
@@ -820,7 +822,7 @@
       ui();
     },
     /* passo a passo vem por broadcast (qualquer um manda): salto grande não vale, quem viaja se anuncia pela presença */
-    mv(d){ if(!d || d.sid === sid) return; const r = V.remotos.get(d.sid); if(!r || !coordOk(d.x, d.y)) return; if(Math.hypot(d.x - r.tx, d.y - r.ty) > 700) return; r.tx = d.x; r.ty = d.y; if(['baixo', 'cima', 'esq', 'dir'].includes(d.dir)) r.dir = d.dir; r.mov = !!d.mov; r.sit = !!d.sit; if(d.mic != null && !!d.mic !== r.mic){ r.mic = !!d.mic; ui(); } if(Number.isFinite(d.cx) && Number.isFinite(d.cz)){ if(r.hx == null){ r.hxv = d.cx; r.hzv = d.cz; r.hyv = Number.isFinite(d.cy) ? clamp(d.cy, 0, 8) : 0; } r.hx = clamp(d.cx, -1, 31); r.hz = clamp(d.cz, -1, 31); r.hy = Number.isFinite(d.cy) ? clamp(d.cy, 0, 8) : 0; r.hyaw = Number.isFinite(d.cd) ? d.cd : 0; r.hmov = d.cm === 1; } r.item = typeof d.it === 'string' && ITEM_MAO[d.it] ? d.it : null; r.pesca = d.pe === 1; r.visto = r.sinal = Date.now();
+    mv(d){ if(!d || d.sid === sid) return; const r = V.remotos.get(d.sid); if(!r || !coordOk(d.x, d.y)) return; if(Math.hypot(d.x - r.tx, d.y - r.ty) > 700) return; r.tx = d.x; r.ty = d.y; if(['baixo', 'cima', 'esq', 'dir'].includes(d.dir)) r.dir = d.dir; r.mov = !!d.mov; r.sit = !!d.sit; if(d.mic != null && !!d.mic !== r.mic){ r.mic = !!d.mic; ui(); } if(Number.isFinite(d.cx) && Number.isFinite(d.cz)){ if(r.hx == null){ r.hxv = d.cx; r.hzv = d.cz; r.hyv = Number.isFinite(d.cy) ? clamp(d.cy, 0, 8) : 0; } r.hx = clamp(d.cx, -1, 31); r.hz = clamp(d.cz, -1, 31); r.hy = Number.isFinite(d.cy) ? clamp(d.cy, 0, 8) : 0; r.hyaw = Number.isFinite(d.cd) ? d.cd : 0; r.hmov = d.cm === 1; r.hmt = d.mt === 1 || d.mt === 2 ? d.mt : 0; } r.item = typeof d.it === 'string' && ITEM_MAO[d.it] ? d.it : null; r.pesca = d.pe === 1; r.visto = r.sinal = Date.now();
       /* v3.40: o pulo (cada pulo novo tem um número) e o avião/paraquedas */
       if(Number.isInteger(d.pu)){ if(r.puN != null && d.pu !== r.puN) r.puT = performance.now(); r.puN = d.pu; }
       r.vo = d.vo === 1 || d.vo === 2 ? d.vo : 0; r.pq = d.pq === 1; },
@@ -1009,7 +1011,7 @@
     const q = C.casa && C.casa.aberta() ? C.casa.pos() : null, mov = q ? q.andando : V.eu.mov || !!V.voo;
     if(!forca && t - V.ultEnvio < (mov ? 100 : 2000)) return;
     const m = { sid, x: Math.round(V.eu.x), y: Math.round(V.eu.y), dir: V.eu.dir, mov: V.eu.mov, mic: V.mic, sit: !!V.eu.sit };
-    if(q){ m.cx = Math.round(q.x * 20) / 20; m.cz = Math.round(q.z * 20) / 20; m.cy = Math.round((q.y || 0) * 20) / 20; m.cd = Math.round(q.yaw * 100) / 100; m.cm = q.andando ? 1 : 0; }
+    if(q){ m.cx = Math.round(q.x * 20) / 20; m.cz = Math.round(q.z * 20) / 20; m.cy = Math.round((q.y || 0) * 20) / 20; m.cd = Math.round(q.yaw * 100) / 100; m.cm = q.andando ? 1 : 0; if(q.mt) m.mt = q.mt; }
     if(V.eu.item && V.eu.item.ate > Date.now()) m.it = V.eu.item.k;
     if(V.eu.pesca && V.eu.sit) m.pe = 1;
     if(V.eu.puN) m.pu = V.eu.puN;
@@ -1241,6 +1243,8 @@
   /* Zerão: a pista oval de terra roxa, quadras, parquinho, academia ao ar livre e food truck */
   function montaZerao(R, K, sorte){
     const z = { R, cx: R.x + R.w / 2, cy: R.y + R.h / 2 + 26, rx: 296, ry: 436 };
+    /* v3.50: a largada da corrida de patinete, em cima da pista de caminhada (do lado direito do oval) */
+    z.largada = { x: z.cx + z.rx - 19, y: z.cy }; K.lugares.push({ nome: 'Pista do Zerão', x: z.largada.x, y: z.largada.y + 20 });
     z.quadras = [{ tipo: 'futsal', x: z.cx - 96, y: z.cy - 252, w: 192, h: 112 }, { tipo: 'basquete', x: z.cx - 84, y: z.cy - 36, w: 168, h: 100 }];
     z.areia = { x: z.cx - 176, y: z.cy + 168, w: 146, h: 96 };
     const qb = z.quadras[1];
@@ -1289,6 +1293,8 @@
     const e = { R, fx: R.x + 14, fy: R.y + 14, fw: R.w - 28, fh: R.h - 28 };
     const c = e.campo = { x: e.fx + 80, y: e.fy + 120, w: e.fw - 160, h: e.fh - 200 };
     e.portao = { y: c.y + c.h / 2 - 36, h: 72 };
+    /* v3.50: a largada da corrida de moto, no portão da esquerda do Estádio (o Autódromo do Café é do lado) */
+    e.largada = { x: R.x + 34, y: e.portao.y + e.portao.h / 2 + 10 }; K.lugares.push({ nome: 'Autódromo do Café', x: e.largada.x, y: e.largada.y + 20 });
     const fim = e.fy + e.fh, dx = e.fx + e.fw, sul = c.y + c.h;
     K.sol.push({ x: e.fx, y: e.fy, w: e.fw, h: c.y - e.fy });
     K.sol.push({ x: e.fx, y: c.y, w: c.x - e.fx, h: e.portao.y - c.y }, { x: e.fx, y: e.portao.y + e.portao.h, w: c.x - e.fx, h: fim - e.portao.y - e.portao.h });
@@ -1333,6 +1339,9 @@
     c.vazios.forEach(o => P.push({ x: o.x + LW / 2, y: o.y + LH - 40, tipo: 'lote' }));
     if(c.feira) c.feira.barracas.filter(paraMim).forEach(b => P.push({ x: b.x, y: b.base + 10, tipo: 'barraca', b }));
     c.bancos.forEach(b => P.push({ x: b.x, y: b.y + 4, tipo: 'banco', b, pesca: /^(Píer|Deck) do Igapó$/.test(b.lugar || '') }));
+    /* v3.50: as largadas das corridas (moto no Estádio do Café, patinete no Zerão) */
+    if(c.estadio && c.estadio.largada) P.push({ x: c.estadio.largada.x, y: c.estadio.largada.y, tipo: 'pista', k: 'moto' });
+    if(c.zerao && c.zerao.largada) P.push({ x: c.zerao.largada.x, y: c.zerao.largada.y, tipo: 'pista', k: 'patinete' });
     /* v3.49: no começo do Píer do Igapó, a entrada do Torneio de Pesca */
     if(c.torneio) P.push({ x: c.torneio.x, y: c.torneio.y, tipo: 'torneio' });
     /* v3.48: a porta do Sebo entra no Sebo (os caixotes de disco) */
@@ -1467,6 +1476,7 @@
       ctx.fillStyle = '#F4F3EF'; for(let i = 0; i < 140; i += 2){ const an = i / 140 * Math.PI * 2; ctx.fillRect(sn(z.cx + Math.cos(an) * (z.rx - 19)), sn(z.cy + Math.sin(an) * (z.ry - 19)), u * 2, u * 2); }
       z.quadras.forEach(q => quadraChao(ctx, q));
       ctx.fillStyle = pad(ctx, '#E8D29A'); ctx.fillRect(z.areia.x, z.areia.y, z.areia.w, z.areia.h); ctx.beginPath(); ctx.rect(z.areia.x, z.areia.y, z.areia.w, z.areia.h); traco(ctx, '#B89A5A', 2);
+      placaLargada(ctx, z.largada, 'PATINETE');
     },
     bosque(ctx, R, vx, vy, vw, vh){
       const b = V.cid.bosque;
@@ -1491,6 +1501,7 @@
       const cx = c.x + c.w / 2, cy = c.y + c.h / 2; for(let a = 0; a < 44; a++){ const an = a / 44 * Math.PI * 2; ctx.fillRect(sn(cx + Math.cos(an) * 48), sn(cy + Math.sin(an) * 48), L, L); }
       const ah = c.h * .5, aw = c.w * .13; linhas(ctx, c.x + 14, cy - ah / 2, aw, ah); linhas(ctx, c.x + c.w - 14 - aw, cy - ah / 2, aw, ah);
       ctx.fillStyle = '#E6E9EE'; linhas(ctx, c.x + 2, cy - 22, 12, 44); linhas(ctx, c.x + c.w - 14, cy - 22, 12, 44);
+      placaLargada(ctx, e.largada, 'MOTO');
     },
     /* v3.40 · o aeroporto: grama seca, o pátio de concreto, a pista com as faixas, a cabeceira e as luzes */
     aeroporto(ctx, R, vx, vy, vw, vh){
@@ -1537,6 +1548,12 @@
     ctx.fillStyle = '#8D5A3B'; ctx.fillRect(x - 6, y - 15, 4, 7); ctx.fillStyle = '#F1C19B'; ctx.fillRect(x + 1, y - 15, 4, 7);
   }
   /* pontes e píer por cima da água (o pedalinho passa por baixo) */
+  /* v3.50: a placa de largada (mastro, bandeira quadriculada e o nome) */
+  function placaLargada(ctx, p, txt){
+    if(!p) return; ctx.fillStyle = '#121419'; ctx.fillRect(p.x + 24, p.y - 40, 4, 44);
+    for(let i = 0; i < 4; i++) for(let j = 0; j < 3; j++){ ctx.fillStyle = (i + j) % 2 ? '#121419' : '#F4F3EF'; ctx.fillRect(p.x + 28 + i * 5, p.y - 40 + j * 5, 5, 5); }
+    pixPlaca(ctx, txt, p.x + 26, p.y - 48, { fundo: AMARELO, cor: INK, max: 10 });
+  }
   function sobreAgua(ctx, vx, vy, vw, vh){
     const l = V.cid.lago; if(!l) return;
     l.secos.forEach(s => {
@@ -3109,7 +3126,7 @@
     const meu = p.tipo === 'casa' && p.c.id === (C.st.me && C.st.me.id);
     if(p.tipo === 'tarefa'){ const T = V.tarefa, ag = T && T.fase === 'agindo'; b.innerHTML = `${ico('raio')} ${esc(p.et.acao)}${ag ? '…' : ''}`; b.disabled = !!ag; return; }
     b.disabled = false;
-    b.innerHTML = p.tipo === 'aeroporto' ? `${ico('aviao')} Voar (${C.correalTxt(precoVoo())})` : p.tipo === 'sebo' ? `${ico('musica')} Entrar no Sebo` : p.tipo === 'torneio' ? `${ico('peixe')} Torneio de Pesca` : p.tipo === 'civico' ? `${ico('raio')} ${esc(CIVICOS[p.k].entra)}` : p.tipo === 'barraca' ? (aberta(p.b) ? `${ico(p.b.ico)} ${esc(p.b.botao)}` : `${ico('eye')} Hórus desligado: ligar`) : p.tipo === 'comida' ? `${ico('banca')} ${esc(COMIDAS[p.k][0])}` : p.tipo === 'aquario' ? `${ico('play')} Jogar ${esc(JOGOS[p.jogo].titulo)}` : p.tipo === 'banco' ? (p.pesca ? `${ico('gente')} Pescar no ${p.b.lugar.startsWith('Deck') ? 'deck' : 'píer'}` : `${ico('gente')} Sentar ${p.b.degrau ? 'na Concha' : 'no banco'}`) : p.tipo === 'mural' ? `${ico('tacha')} Abrir o Mural` : p.tipo === 'banca' ? `${ico('banca')} Banca do dia` : p.tipo === 'lote' ? `${ico('plus')} Lote livre` : meu ? `${ico('home')} Tua casa` : `${ico('home')} Bater na porta de @${esc(p.c.handle)}`;
+    b.innerHTML = p.tipo === 'aeroporto' ? `${ico('aviao')} Voar (${C.correalTxt(precoVoo())})` : p.tipo === 'sebo' ? `${ico('musica')} Entrar no Sebo` : p.tipo === 'torneio' ? `${ico('peixe')} Torneio de Pesca` : p.tipo === 'pista' ? `${ico('raio')} ${p.k === 'moto' ? 'Autódromo do Café' : 'Corrida de patinete'}` : p.tipo === 'civico' ? `${ico('raio')} ${esc(CIVICOS[p.k].entra)}` : p.tipo === 'barraca' ? (aberta(p.b) ? `${ico(p.b.ico)} ${esc(p.b.botao)}` : `${ico('eye')} Hórus desligado: ligar`) : p.tipo === 'comida' ? `${ico('banca')} ${esc(COMIDAS[p.k][0])}` : p.tipo === 'aquario' ? `${ico('play')} Jogar ${esc(JOGOS[p.jogo].titulo)}` : p.tipo === 'banco' ? (p.pesca ? `${ico('gente')} Pescar no ${p.b.lugar.startsWith('Deck') ? 'deck' : 'píer'}` : `${ico('gente')} Sentar ${p.b.degrau ? 'na Concha' : 'no banco'}`) : p.tipo === 'mural' ? `${ico('tacha')} Abrir o Mural` : p.tipo === 'banca' ? `${ico('banca')} Banca do dia` : p.tipo === 'lote' ? `${ico('plus')} Lote livre` : meu ? `${ico('home')} Tua casa` : `${ico('home')} Bater na porta de @${esc(p.c.handle)}`;
   }
   function tamanhoTela(){
     const st = C.$('cvr-stage'); if(!st || !V.cv) return;
@@ -3527,6 +3544,7 @@
     if(p.tipo === 'barraca'){ if(p.b.id === 'manual' && !(p.b.lugar && C.casa && C.casa.LUGARES && C.casa.LUGARES[p.b.lugar])){ if(C.manual) C.manual.abrir(); return; }
       if(p.b.lugar && aberta(p.b) && C.casa && C.casa.LUGARES && C.casa.LUGARES[p.b.lugar]){ if(C.versoSom) C.versoSom.porta(); C.casa.abrir({ lugar: p.b.lugar }); return; }
       abreBalcao(p.b); return; }
+    if(p.tipo === 'pista'){ if(C.casa && C.casa.LUGARES && C.casa.LUGARES[p.k]){ if(C.versoSom) C.versoSom.porta(); C.casa.abrir({ lugar: p.k }); } return; }
     if(p.tipo === 'torneio'){ if(C.casa && C.casa.LUGARES && C.casa.LUGARES.pesca){ if(C.versoSom) C.versoSom.porta(); C.casa.abrir({ lugar: 'pesca' }); } return; }
     if(p.tipo === 'sebo'){ if(C.casa && C.casa.LUGARES && C.casa.LUGARES.sebo){ if(C.versoSom) C.versoSom.porta(); C.casa.abrir({ lugar: 'sebo' }); } return; }
     if(p.tipo === 'mural'){ abreBalcao(BC_MURAL); return; }

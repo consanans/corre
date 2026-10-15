@@ -593,6 +593,68 @@
     ],
     entrada: { x: 7, z: 14 }, decor: PESCA_DECOR, chao: CHAO_PESCA, bloqueio: BLOQ_PESCA, padrao: [] };
 
+  /* ---------- v3.50 · as pistas: moto no Autódromo do Café e patinete no Zerão ----------
+     Uma pista é um oval: o asfalto (ou a terra) entre o oval de fora e o de dentro, a zebra, a linha de chegada
+     quadriculada e o pórtico. Quem não deixa sair do traçado é o PL.bloqueio, linha a linha da grade (25 cm); o
+     paddock, entre a pista e a porta, é livre. A largada é uma ação ("Largar"): a pessoa monta no veículo, conta
+     3, 2, 1 e faz 3 voltas contra o relógio, passando pelos três lados do oval na ordem (os pontos de controle) */
+  const ovalPts = (cx, cz, ax, az, n) => Array.from({ length: n }, (_, i) => { const a = i / n * Math.PI * 2; return [cx + Math.cos(a) * ax, cz + Math.sin(a) * az]; });
+  const anelPts = (cx, cz, ax, az, bx, bz, a0, a1) => [[cx + Math.cos(a0) * ax, cz + Math.sin(a0) * az], [cx + Math.cos(a1) * ax, cz + Math.sin(a1) * az], [cx + Math.cos(a1) * bx, cz + Math.sin(a1) * bz], [cx + Math.cos(a0) * bx, cz + Math.sin(a0) * bz]];
+  function pista(o){
+    const { W, D, cx, cz, ax, az, larg } = o, bx = ax - larg, bz = az - larg, N = 72, chao = [], bloq = [], decor = [];
+    chao.push({ pts: ovalPts(cx, cz, ax, az, N), c: o.cor });
+    /* a zebra, por dentro e por fora */
+    for(let i = 0; i < N; i++){ const a0 = i / N * Math.PI * 2, a1 = (i + 1) / N * Math.PI * 2, c = i % 2 ? PAPEL : o.zebra;
+      chao.push({ pts: anelPts(cx, cz, ax, az, ax - .35, az - .35, a0, a1), c }, { pts: anelPts(cx, cz, bx + .35, bz + .35, bx, bz, a0, a1), c }); }
+    chao.push({ pts: ovalPts(cx, cz, bx, bz, N), c: o.dentro });
+    /* a chegada: o quadriculado atravessando a reta de baixo */
+    const nq = Math.round(larg / .35), qs = larg / nq; for(let i = 0; i < nq; i++) for(let j = 0; j < 2; j++) chao.push(ret(cx - .35 + j * .35, cz + bz + i * qs, cx + j * .35, cz + bz + (i + 1) * qs, (i + j) % 2 ? INK : PAPEL));
+    for(let z = 0; z < D; z += .25){
+      const zm = z + .125, dz = zm - cz; if(zm > cz + az) continue;
+      const ho = Math.abs(dz) < az ? ax * Math.sqrt(1 - (dz / az) ** 2) : 0;
+      if(ho <= .05){ bloq.push([0, z, W, z + .25]); continue; }
+      bloq.push([0, z, cx - ho, z + .25], [cx + ho, z, W, z + .25]);
+      if(Math.abs(dz) < bz){ const hi = bx * Math.sqrt(1 - (dz / bz) ** 2); bloq.push([cx - hi, z, cx + hi, z + .25]); }
+    }
+    /* a barreira de fora (pneu na moto, fardo de palha no patinete), aberta embaixo, onde a pista encosta no paddock */
+    const nb = Math.round(Math.PI * (ax + az) / 1.8);
+    for(let i = 0; i < nb; i++){ const a = i / nb * Math.PI * 2, gr = Math.abs(((a * 180 / Math.PI) - 90 + 540) % 360 - 180); if(gr < 32) continue;
+      const x = cx + Math.cos(a) * (ax + .3), z = cz + Math.sin(a) * (az + .3);
+      decor.push({ x, z, bl: o.barreira(i) }); }
+    /* o pórtico da chegada: um braço só, preso no miolo e passando por cima da pista (um poste do lado de fora ficaria
+       bem na frente da câmera de quem entra) */
+    const yz = cz + bz - .2, yz2 = cz + az - .35;
+    decor.push({ x: cx, z: 0, bl: [B(-.12, 0, yz - .25, .24, 3.2, .24, INK), B(-.2, 3.2, yz - .25, .4, .5, yz2 - yz + .5, INK),
+      ...Array.from({ length: Math.round((yz2 - yz) / .3) }, (_, i) => B(-.21, 3.3, yz + i * .3, .01, .3, .3, i % 2 ? PAPEL : INK)), ...[0, 1, 2, 3, 4].map(i => B(-.22, 3.55, yz + .4 + i * .5, .02, .1, .1, i < 3 ? '#E2412E' : AMARELO))] });
+    return { chao, bloq, decor, bx, bz };
+  }
+  const PNEUS = i => [B(-.26, 0, -.26, .52, .22, .52, '#1B1D22'), B(-.26, .22, -.26, .52, .22, .52, i % 2 ? '#E2412E' : PAPEL), B(-.14, .44, -.14, .28, .01, .28, '#3A3E45')];
+  const FARDO = i => [B(-.4, 0, -.25, .8, .45, .5, i % 3 ? '#D9C27F' : '#C9A95E'), B(-.4, .2, -.26, .8, .04, .01, '#B8964C')];
+  const ipe = (c, s) => [B(.4 * s, 0, .4 * s, .22 * s, 1.7 * s, .22 * s, '#5A3A1E'), B(0, 1.6 * s, 0, 1 * s, .6 * s, 1 * s, c), B(.2 * s, 2.2 * s, .2 * s, .6 * s, .4 * s, .6 * s, c), B(-.1 * s, 1.75 * s, .3 * s, .3 * s, .3 * s, .4 * s, c)];
+  /* a arquibancada do fundo, com a torcida (cabeças coloridas, cada uma num lugar) */
+  const arquibancada = (w, deg) => { const out = []; for(let k = 0; k < deg; k++) out.push(B(0, k * .45, k * .55, w, .45, (deg - k) * .55, k % 2 ? '#C9CDD3' : '#A4A8AE'));
+    for(let k = 0; k < deg; k++) for(let i = 0; i < Math.floor(w / .7); i++){ if(sorte(i * 7 + k * 13) < .35) continue; out.push(B(.2 + i * .7, (k + 1) * .45, k * .55 + .15, .26, .3, .22, [ROSA, AZUL, LARANJA, LILAS, PAPEL, '#E2412E', INK][(i + k * 3) % 7]), B(.24 + i * .7, (k + 1) * .45 + .3, k * .55 + .17, .18, .18, .18, ['#C68642', '#8E5B33', '#F0C9A0', '#5A3A22'][(i + k) % 4])); }
+    return out; };
+  const P_MOTO = pista({ W: 30, D: 24, cx: 15, cz: 12, ax: 13.5, az: 9.5, larg: 4.5, cor: '#3A3E45', dentro: '#D9C27F', zebra: '#E2412E', barreira: PNEUS });
+  const P_PATI = pista({ W: 26, D: 22, cx: 13, cz: 11.5, ax: 11.5, az: 8, larg: 3, cor: '#A4553A', dentro: '#D9C27F', zebra: '#8E5B33', barreira: FARDO });
+  /* a largada: o totem com a bandeira quadriculada, no paddock */
+  const totemLargada = cor => [B(0, 0, 0, .5, 1, .4, INK), B(.05, 1, .05, .4, .05, .3, cor), B(.22, 1.05, .15, .05, 1, .05, '#8F96A0'), ...Array.from({ length: 6 }, (_, i) => B(.27 + (i % 3) * .15, 1.6 + Math.floor(i / 3) * .15, .17, .15, .15, .01, (i + Math.floor(i / 3)) % 2 ? INK : PAPEL))];
+  const PLANTA_MOTO = { k: 'lugar-moto', W: 30, D: 24, ALT: 3,
+    comodos: [{ k: 'autodromo', nome: 'Autódromo do Café', x0: 0, z0: 0, x1: 30, z1: 24, piso: '#4A4E56', linha: 'rgba(0,0,0,.12)' }],
+    paredes: [{ a: [0, 24], b: [30, 24], ext: [0, 1], portas: [[14.4, 15.6]], entrada: true, cor: '#2B2F38' }, { a: [30, 0], b: [30, 24], ext: [1, 0], cor: '#2B2F38' }, { a: [0, 0], b: [0, 24], ext: [-1, 0], cor: '#2B2F38' }, { a: [0, 0], b: [30, 0], ext: [0, -1], cor: '#2B2F38' }],
+    entrada: { x: 15, z: 24 }, chao: P_MOTO.chao, bloqueio: P_MOTO.bloq, padrao: [],
+    decor: [...P_MOTO.decor, { x: 3, z: .2, bl: arquibancada(24, 3) }, { x: 8.5, z: 21.8, acao: 'largada', bl: totemLargada(ROSA) },
+      ...[[10, 10], [13.5, 13], [17.5, 11], [20, 13.5]].map(([x, z], i) => ({ x, z, bl: ipe([ROSA, '#FFB3D1', LILAS, ROSA][i], .8) }))] };
+  const PLANTA_PATI = { k: 'lugar-patinete', W: 26, D: 22, ALT: 3,
+    comodos: [{ k: 'zerao', nome: 'Pista do Zerão', x0: 0, z0: 0, x1: 26, z1: 22, piso: '#D9C27F', linha: 'rgba(60,40,10,.08)' }],
+    paredes: [{ a: [0, 22], b: [26, 22], ext: [0, 1], portas: [[12.4, 13.6]], entrada: true, cor: '#C9A95E', alt: 1.2 }, { a: [26, 0], b: [26, 22], ext: [1, 0], cor: '#C9A95E', alt: 1.2 }, { a: [0, 0], b: [0, 22], ext: [-1, 0], cor: '#C9A95E', alt: 1.2 }, { a: [0, 0], b: [26, 0], ext: [0, -1], cor: '#C9A95E', alt: 1.2 }],
+    entrada: { x: 13, z: 22 }, chao: P_PATI.chao, bloqueio: P_PATI.bloq, padrao: [],
+    decor: [...P_PATI.decor, { x: 7, z: 20, acao: 'largada', bl: totemLargada(AZUL) },
+      ...[[7.5, 8], [10, 12], [14.5, 9.5], [17, 12.5], [12, 6.2], [1, 1], [23.5, 1.5], [1.2, 15], [23.6, 15]].map(([x, z], i) => ({ x, z, bl: ipe([ROSA, '#FFB3D1', LILAS, ROSA, '#FFB3D1', LILAS, ROSA, LILAS, ROSA][i], i > 4 ? 1 : .8) }))] };
+  /* a pista que cada lugar usa (o oval, pra contar as voltas) e o veículo */
+  const PISTAS = { moto: { cx: 15, cz: 12, ax: 13.5, az: 9.5, larg: 4.5, vmax: 11, acel: 7, giro: 2.2, veic: 'moto', nome: 'Autódromo do Café' },
+    patinete: { cx: 13, cz: 11.5, ax: 11.5, az: 8, larg: 3, vmax: 6.5, acel: 5, giro: 2.6, veic: 'patinete', nome: 'Pista do Zerão' } };
+
   const LUGARES = {
     horus: { titulo: 'Casa do Hórus', planta: PLANTA_HORUS, ola: 'Casa do Hórus. O radar é o altar do meio: chega e toca.',
       estacoes: () => [{ id: 'radar', liga: 'horus', titulo: 'Radar do Hórus', rota: '#/horus', cor: INK, x: 5.6, z: 5, w: 2.8, d: 2.8, bl: RADAR, tag: [1.4, 1.75, 1.4], y: 0 }] },
@@ -631,13 +693,17 @@
     rolo: { titulo: 'O Cineclube', planta: PLANTA_CINE, ola: 'O Cineclube. O projetor perto da porta abre o Rolo 360: chega e toca.',
       estacoes: () => [{ id: 'rolo', titulo: 'O projetor', rota: '#/rolo', cor: '#8E4B2B', x: 8.6, z: 10, w: 1.4, d: 1.1, bl: PROJETOR, tag: [.7, 2.5, .5], y: 0 }],
       itens: [['arandela', .15, 3, 1, 0, 0], ['arandela', .15, 9.6, 1, 0, 0], ['arandela', 11.75, 3, 3, 0, 0], ['arandela', 11.75, 9.6, 3, 0, 0]] },
-    sebo: { titulo: 'O Sebo', planta: PLANTA_SEBO, ola: 'O Sebo. Nos caixotes do meio você escolhe disco pra levar pra tua casa: chega e toca.',
+    sebo: { titulo: 'O Sebo', sai: 'Sair pra rua', planta: PLANTA_SEBO, ola: 'O Sebo. Nos caixotes do meio você escolhe disco pra levar pra tua casa: chega e toca.',
       estacoes: () => [{ id: 'sebo', abre: 'sebo', titulo: 'Caixotes de discos', rota: '', cor: '#8E4B2B', x: 3.6, z: 4.4, w: 4.8, d: 1.4, bl: CAIXOTES, tag: [2.4, 1.6, .7], y: 0 }],
       itens: [['jukebox', 10.8, 2.6, 3, 0, 0], ['pilha_discos', 1.2, 9.2, 0, 0, 0], ['pilha_discos', 2.3, 9.4, 0, 0, 0], ['gato', 1.6, 8.1, 0, 0, 1], ['poltrona', 10.7, 8.8, 3, 0, 4],
         ['luminaria', .4, 6.8, 0, 0, 0], ['toca_discos', 9.4, 8.8, 0, 0, 0]] },
-    pesca: { titulo: 'Torneio de Pesca', planta: PLANTA_PESCA, ola: 'Torneio de Pesca do Igapó. Vai num balde da beira e toca; quando a boia afundar, puxa! A rodada é de 3 minutos.',
+    pesca: { titulo: 'Torneio de Pesca', sai: 'Sair pra rua', planta: PLANTA_PESCA, ola: 'Torneio de Pesca do Igapó. Vai num balde da beira e toca; quando a boia afundar, puxa! A rodada é de 3 minutos.',
       estacoes: () => [],
-      itens: [['podio', 2.2, 12.4, 0, 0, 0], ['capivara_ouro', 4.3, 12.5, 0, 0, 0], ['caixa_termica', 8.6, 12.6, 0, 0, 0], ['banco_madeira', 11.4, 12.9, 0, 0, 0], ['poste', 5.2, 11.6, 0, 0, 0]] }
+      itens: [['podio', 2.2, 12.4, 0, 0, 0], ['capivara_ouro', 4.3, 12.5, 0, 0, 0], ['caixa_termica', 8.6, 12.6, 0, 0, 0], ['banco_madeira', 11.4, 12.9, 0, 0, 0], ['poste', 5.2, 11.6, 0, 0, 0]] },
+    moto: { titulo: 'Autódromo do Café', sai: 'Sair pra rua', planta: PLANTA_MOTO, ola: 'Autódromo do Café. Vai no totem da bandeira e toca em Largar: 3 voltas de moto contra o relógio.', estacoes: () => [], corrida: PISTAS.moto,
+      itens: [['poste', 1, 21.6, 0, 0, 0], ['poste', 28, 21.6, 0, 0, 0], ['cone', 11, 22.2, 0, 0, 0], ['cone', 19, 22.2, 0, 0, 0]] },
+    patinete: { titulo: 'Pista do Zerão', sai: 'Sair pra rua', planta: PLANTA_PATI, ola: 'Pista do Zerão. Vai no totem da bandeira e toca em Largar: 3 voltas de patinete contra o relógio.', estacoes: () => [], corrida: PISTAS.patinete,
+      itens: [['banco_praca', 18, 20.2, 0, 0, 0], ['poste', 1, 19.8, 0, 0, 0], ['poste', 24, 19.8, 0, 0, 0], ['lixeira_rua', 21, 20.4, 0, 0, 0]] }
   };
   /* a estação que é só do fundador aparece na casa do fundador (pra ele e pra quem visita) */
   const paraDono = (e, dono) => e.so !== 'fundador' || ehDoFundador(dono);
@@ -1186,7 +1252,7 @@
     return out;
   }
   const acaoPraMim = a => a.a !== 'skate' || S.meu;
-  const rotuloAcao = a => a.a === 'pesca' ? 'Pescar aqui' : a.a === 'skate' ? (C.st.me && C.st.me.verso && C.st.me.verso.skate ? 'Largar o skate' : 'Pegar o skate') : a.a === 'jogo' ? 'Jogar Killer Ocean' : (S.discoAtual ? '♪ ' + (C.beats ? C.beats.nome(S.discoAtual) : 'tocando') : '♪ Discos');
+  const rotuloAcao = a => a.a === 'largada' ? `Largar (${VOLTAS} voltas)` : a.a === 'pesca' ? 'Pescar aqui' : a.a === 'skate' ? (C.st.me && C.st.me.verso && C.st.me.verso.skate ? 'Largar o skate' : 'Pegar o skate') : a.a === 'jogo' ? 'Jogar Killer Ocean' : (S.discoAtual ? '♪ ' + (C.beats ? C.beats.nome(S.discoAtual) : 'tocando') : '♪ Discos');
   /* vai até a frente e faz */
   function vaiNaAcao(a){
     if(!S.eu || !a || !acaoPraMim(a)) return;
@@ -1200,6 +1266,7 @@
   async function fazAcao(a){
     if(a.a === 'discos'){ discosSheet(); return; }
     if(a.a === 'pesca'){ comecaPesca(a.e && a.e.spot); return; }
+    if(a.a === 'largada'){ largar(); return; }
     /* o fliperama da casa roda o Killer Ocean (o mesmo do Aquário), por cima da casa */
     if(a.a === 'jogo'){ if(C.verso && C.verso.abreJogo && C.verso.JOGOS && C.verso.JOGOS.killer) C.verso.abreJogo('killer'); else C.toast('O jogo não carregou.'); return; }
     if(a.a === 'skate'){
@@ -1220,6 +1287,108 @@
       <p class="note">Beats da casa, feitos na hora. Quem tá aqui dentro ouve junto.${S.meu ? ' Mais discos no Sebo da cidade: escolhe lá e eles aparecem aqui.' : ''}</p>
       <div class="cs-disco-l">${lista.map(d => `<button type="button" class="cs-disco${atual === d.k ? ' on' : ''}" data-act="cs-disco" data-k="${d.k}"><i style="--c:${d.cor}"></i><b>${esc(d.nome)}</b><small>${d.bpm} bpm${atual === d.k ? ' · tocando' : ''}</small></button>`).join('')}</div>
       ${atual ? `<div class="acts"><button type="button" class="btn" data-act="cs-disco-para">${ico('x')} Tirar o disco</button></div>` : ''}</div>`);
+  }
+  /* ---------- v3.50 · a corrida ----------
+     Montado, o boneco anda como veículo: frente acelera, trás freia (e dá ré), os lados viram, e a câmera fica atrás.
+     No celular é o mesmo direcional: pra cima acelera, pros lados vira. A volta conta quando você passa pelos três
+     lados do oval na ordem (direita, fundo, esquerda) e cruza a chegada; são 3. O melhor tempo do dia vai na presença
+     (m.tc, em centésimos, e m.td, o dia de Brasília) e o placar junta você e quem tá na pista. Não vale correal */
+  const VEIC_3D = {
+    moto: { alt: .36, bl: c => [B(-.07, 0, .38, .14, .44, .44, '#16181D'), B(-.07, 0, -.82, .14, .44, .44, '#16181D'), B(-.08, .15, .53, .16, .14, .14, '#8F96A0'), B(-.08, .15, -.67, .16, .14, .14, '#8F96A0'),
+      B(-.16, .32, -.62, .32, .26, 1, c), B(-.18, .56, -.12, .36, .2, .46, c), B(-.15, .58, -.6, .3, .1, .5, INK), B(-.04, .4, .38, .08, .5, .08, '#8F96A0'),
+      B(-.36, .88, .36, .72, .05, .05, INK), B(-.09, .66, .48, .18, .14, .06, '#FFF6CF'), B(-.07, .5, -.66, .14, .08, .04, '#E2412E')] },
+    patinete: { alt: .11, bl: c => [B(-.13, .06, -.5, .26, .05, .95, '#2B2F38'), B(-.05, 0, -.56, .1, .12, .12, '#16181D'), B(-.05, 0, .4, .1, .12, .12, '#16181D'),
+      B(-.03, .11, .38, .06, 1, .06, '#8F96A0'), B(-.3, 1.08, .37, .6, .05, .06, INK), B(-.12, .11, .3, .24, .06, .12, c), B(-.05, .82, .44, .1, .08, .04, '#FFF6CF')] }
+  };
+  const veiculo3d = (k, x, y, z, yaw, cor, dono) => VEIC_3D[k].bl(cor).map(b => solido(Object.assign({}, b, { x: b.x + x, y: b.y + y, z: b.z + z }), [{ yaw, piv: [x, 0, z] }], b.c, dono, {}));
+  const corVeic = (k, av) => (C.veiculos && C.veiculos.cor ? C.veiculos.cor(k, av && av.vcor) : LARANJA);
+  const diaBR = () => Math.floor((Date.now() - 3 * 3600e3) / 864e5);
+  const tempoTxt = ms => { const t = Math.max(0, Math.round(ms / 100)), m = Math.floor(t / 600), sg = Math.floor(t / 10) % 60; return `${m}:${String(sg).padStart(2, '0')},${t % 10}`; };
+  const recCorrida = () => { try{ const o = JSON.parse(localStorage.getItem('corre-corrida') || '{}'); return o && typeof o === 'object' ? o : {}; }catch(e){ return {}; } };
+  const guardaCorrida = o => { try{ localStorage.setItem('corre-corrida', JSON.stringify(o)); }catch(e){} };
+  const pistaAqui = () => (S.aberta && S.lugar && LUGARES[S.lugar] && LUGARES[S.lugar].corrida) || null;
+  const melhorHoje = P => { const r = P && recCorrida()[P.veic]; return r && r.dia === diaBR() ? r.ms : 0; };
+  const angPista = (P, x, z) => Math.atan2((z - P.cz) / (P.az - P.larg / 2), (x - P.cx) / (P.ax - P.larg / 2)) * 180 / Math.PI;
+  const difAng = (a, b) => Math.abs((((a - b) % 360) + 540) % 360 - 180);
+  const ALVOS = [0, -90, 180, 90], VOLTAS = 3;
+  function rankingCorrida(P){
+    const hoje = diaBR() % 1e5, out = [], meu = melhorHoje(P);
+    if(meu) out.push({ nome: 'você', ms: meu, eu: true });
+    gente().forEach(g => { if(g.td === hoje && g.tc > 0) out.push({ nome: '@' + (g.handle || 'alguém'), ms: g.tc * 10 }); });
+    return out.sort((a, b) => a.ms - b.ms);
+  }
+  function largar(){
+    const P = pistaAqui(), e = S.eu; if(!P || !e || S.corrida) return;
+    const mx = P.ax - P.larg / 2, mz = P.az - P.larg / 2, a = 100 * Math.PI / 180;
+    e.x = P.cx + Math.cos(a) * mx; e.z = P.cz + Math.sin(a) * mz; e.yaw = Math.atan2(Math.sin(a) * mx, -Math.cos(a) * mz); e.vel = 0; e.andando = false;
+    S.alvo = null; S.rota = []; S.acao = null; S.teclas.clear(); S.cam.th = e.yaw + Math.PI; S.cam.tx = e.x; S.cam.tz = e.z;
+    S.corrida = { P, larga: Date.now() + 3000, alvo: 0, voltas: [], tv: 0 };
+    painelCorrida(true); if(C.verso && C.verso.enviaPos) C.verso.enviaPos(true);
+  }
+  function desmonta(desistiu){
+    const R = S.corrida; if(!R) return; S.corrida = null;
+    const e = S.eu; if(e){ e.vel = 0; const p = livrePerto(ENTRADA.x, ENTRADA.z - 1.2, 0); e.x = p[0]; e.z = p[1]; e.yaw = Math.PI; S.cam.th = 0; }
+    if(desistiu) C.toast('Desistiu da corrida.', 1600);
+    painelCorrida(true); if(C.verso && C.verso.enviaPos) C.verso.enviaPos(true);
+  }
+  function chegada(){
+    const R = S.corrida, P = R.P, total = Date.now() - R.larga, rec = recCorrida(), hoje = diaBR();
+    R.fim = Date.now(); R.total = total;
+    const meu = rec[P.veic] && rec[P.veic].dia === hoje ? rec[P.veic].ms : 0, bateu = !meu || total < meu, sempre = rec[P.veic + 'Rec'] || 0, recorde = !sempre || total < sempre;
+    if(bateu) rec[P.veic] = { dia: hoje, ms: total }; if(recorde) rec[P.veic + 'Rec'] = total; guardaCorrida(rec);
+    const lista = rankingCorrida(P), pos = lista.findIndex(x => x.eu) + 1;
+    C.toast(`Chegou! ${tempoTxt(total)}${recorde ? ', teu recorde' : bateu ? ', o teu melhor de hoje' : ''}${lista.length > 1 ? `. ${pos}º do dia na pista` : ''}.`, 5000);
+    if(C.verso && C.verso.anunciar) C.verso.anunciar();
+    setTimeout(() => { if(S.corrida === R) desmonta(); }, 2600);
+  }
+  function contaVolta(){
+    const R = S.corrida, e = S.eu, P = R.P, agora = Date.now();
+    if(difAng(angPista(P, e.x, e.z), ALVOS[R.alvo]) > 14) return;
+    R.alvo++;
+    if(R.alvo < ALVOS.length) return;
+    R.alvo = 0; const tv = agora - (R.tv || R.larga); R.voltas.push(tv); R.tv = agora;
+    if(R.voltas.length >= VOLTAS) chegada(); else C.toast(`Volta ${R.voltas.length}: ${tempoTxt(tv)}`, 1600);
+  }
+  function passoVeiculo(dt){
+    const e = S.eu, R = S.corrida, P = R.P, k = S.teclas, agora = Date.now();
+    let ac = 0, vi = 0;
+    if(k.has('w') || k.has('ArrowUp')) ac += 1; if(k.has('s') || k.has('ArrowDown')) ac -= 1;
+    if(k.has('d') || k.has('ArrowRight')) vi += 1; if(k.has('a') || k.has('ArrowLeft')) vi -= 1;
+    const pv = S.pad && S.pad.vetor ? S.pad.vetor() : null;
+    if(pv && pv.m && !ac && !vi){ ac = Math.max(-1, Math.min(1, -pv.y * 1.4)); vi = Math.max(-1, Math.min(1, pv.x * 1.4)); }
+    S.alvo = null; S.rota = []; S.acao = null;
+    const solto = agora >= R.larga && !R.fim;
+    if(solto && !R.vai){ R.vai = 1; C.toast('Vai!', 900); }
+    if(!solto) ac = 0;
+    let v = e.vel || 0;
+    if(ac > 0) v += P.acel * ac * dt;
+    else if(ac < 0) v -= (v > 0 ? P.acel * 1.8 : P.acel * .5) * -ac * dt;
+    else v -= Math.sign(v) * Math.min(Math.abs(v), 2.5 * dt);
+    v = Math.max(-2.5, Math.min(P.vmax, v));
+    if(Math.abs(v) > .2) e.yaw -= vi * P.giro * dt * Math.min(1, Math.abs(v) / 3) * Math.sign(v);
+    const sx = Math.sin(e.yaw) * v * dt, sz = Math.cos(e.yaw) * v * dt, ox = e.x, oz = e.z;
+    mover(e, sx, sz);
+    const andou = Math.hypot(e.x - ox, e.z - oz), quer = Math.hypot(sx, sz);
+    if(quer > .001 && andou < quer * .6) v *= .55;
+    e.vel = v; e.andando = false;
+    const c = S.cam, f = Math.min(1, dt * 6); c.tx += (e.x - c.tx) * f; c.tz += (e.z - c.tz) * f; c.ty += (e.y + 1.1 - c.ty) * f;
+    let d = e.yaw + Math.PI - c.th; d = Math.atan2(Math.sin(d), Math.cos(d)); c.th += d * Math.min(1, dt * 4);
+    if(solto) contaVolta();
+  }
+  function painelCorrida(forca){
+    const el = C.$('cs-pesca'), P = pistaAqui(); if(!el || !P) return;
+    el.hidden = false;
+    const agora = Date.now(); if(!forca && agora - (S.painelT || 0) < 120) return; S.painelT = agora;
+    const R = S.corrida, sempre = recCorrida()[P.veic + 'Rec'] || 0, toque = !!S.pad;
+    let topo, dica;
+    if(R && agora < R.larga){ topo = `Largada em ${Math.ceil((R.larga - agora) / 1000)}`; dica = 'Segura: sai no "Vai!".'; }
+    else if(R && !R.fim){ topo = `Volta ${Math.min(VOLTAS, R.voltas.length + 1)}/${VOLTAS} · ${tempoTxt(agora - R.larga)}`; dica = toque ? 'No direcional: pra cima acelera, pros lados vira.' : 'Frente acelera, trás freia, os lados viram.'; }
+    else if(R && R.fim){ topo = `Chegou: ${tempoTxt(R.total)}`; dica = 'Volta pro paddock e larga de novo quando quiser.'; }
+    else { topo = `${esc(P.nome)} · melhor do dia`; dica = 'Vai no totem da bandeira e toca em Largar.'; }
+    const lista = rankingCorrida(P), eu = lista.findIndex(x => x.eu), mostra = lista.slice(0, 3); if(eu > 2) mostra.push(lista[eu]);
+    const html = `<b class="cs-pesca-t">${ico('raio')} ${topo}</b><ol>${mostra.length ? mostra.map(x => `<li${x.eu ? ' class="eu"' : ''}><i>${lista.indexOf(x) + 1}º</i><span>${esc(x.nome)}</span><b>${tempoTxt(x.ms)}</b></li>`).join('') : '<li><i></i><span>Ninguém correu hoje ainda.</span><b></b></li>'}</ol><small>${dica}${sempre ? ` Recorde: ${tempoTxt(sempre)}.` : ''}</small>`;
+    el.classList.toggle('morde', !!(R && agora < R.larga));
+    if(el.dataset.h !== html){ el.dataset.h = html; el.innerHTML = html; }
   }
   /* ---------- v3.49 · a pesca do Torneio do Igapó ----------
      No balde, o boneco vai pra beira e joga a linha. Uma hora a boia afunda: o botão vira "Puxar!" e você tem 1,2 s.
@@ -1265,7 +1434,8 @@
     const maior = p.kg > 0 && (!rec.maior || p.kg > rec.maior.kg); if(maior){ rec.maior = { nome: p.nome, kg: p.kg }; guardaRec(rec); }
     C.toast(p.kg ? `Pegou ${p.art} ${p.nome} de ${kgTxt(p.kg)}!${maior && rec.maior && S.placar.n > 1 ? ' O maior que você já tirou.' : ''}` : 'Pegou uma bota velha. Vale 0 kg, mas rende história.', 2800);
     P.fase = 'espera'; P.ate = agora + 2400 + Math.random() * 4200; P.pegou = agora;
-    if(C.verso && C.verso.enviaPos) C.verso.enviaPos(true);
+    /* o peso vai no "track" da presença (o anunciar), não no movimento: assim o placar de quem tá no píer atualiza */
+    if(C.verso && C.verso.anunciar) C.verso.anunciar();
     painelPesca(true);
   }
   function tickPesca(){
@@ -1435,9 +1605,13 @@
     const pisos = pisosDaCasa(), extras = [];
     pisos.push(...sombras(extras));
     const solidos = [...solidosParedes(cam), ...solidosAndares(), ...solidosFixos(), ...solidosItens(), ...solidosAnimados(t), ...extras, ...solidosDisco(t), ...solidosPesca(t)];
-    if(S.eu) solidos.push(...sobe(boneco(S.eu.av, S.eu.x, S.eu.z, S.eu.yaw, S.eu.passo, S.eu.andando), S.eu.y + puloCasa(S.eu) * PULO_ALT));
+    const mv = S.corrida && S.eu ? S.corrida.P.veic : '';
+    if(mv) solidos.push(...veiculo3d(mv, S.eu.x, S.eu.y, S.eu.z, S.eu.yaw, corVeic(mv, S.eu.av), 'eu'));
+    if(S.eu) solidos.push(...sobe(boneco(S.eu.av, S.eu.x, S.eu.z, S.eu.yaw, S.eu.passo, mv ? false : S.eu.andando), S.eu.y + (mv ? VEIC_3D[mv].alt : puloCasa(S.eu) * PULO_ALT)));
     const fracoG = embaixoDoMezanino();
-    gente().forEach(r => solidos.push(...sobe(boneco(r.av, r.hxv, r.hzv, r.hyaw || 0, r.hpasso || 0, !!r.hand).map(b => { b.dono = 'gente:' + r.sid; if(fracoG && (r.hyv || 0) > 1.5) b.alpha = .22; return b; }), (r.hyv || 0) + (C.verso.alturaPulo ? C.verso.alturaPulo(r) * PULO_ALT : 0))));
+    gente().forEach(r => { const rv = r.hmt === 1 ? 'moto' : r.hmt === 2 ? 'patinete' : '';
+      if(rv) solidos.push(...veiculo3d(rv, r.hxv, r.hyv || 0, r.hzv, r.hyaw || 0, corVeic(rv, r.av), 'gente:' + r.sid));
+      solidos.push(...sobe(boneco(r.av, r.hxv, r.hzv, r.hyaw || 0, r.hpasso || 0, rv ? false : !!r.hand).map(b => { b.dono = 'gente:' + r.sid; if(fracoG && (r.hyv || 0) > 1.5) b.alpha = .22; return b; }), (r.hyv || 0) + (rv ? VEIC_3D[rv].alt : C.verso.alturaPulo ? C.verso.alturaPulo(r) * PULO_ALT : 0))); });
     if(S.ghost){ const g = S.ghost, it = ITEM[g.k]; if(it) solidos.push(...solidosItem(it, g.x, g.z, g.r, null, g.ok ? { alpha: .62 } : { alpha: .62, cru: true, traco: VERM }, alturaItem(it, g), M.blocos(it, g.c).concat(M.anima(it, animaA(t), g.c, 0))).map(s => { if(!g.ok) s.c = VERM; return s; })); }
     if(S.alvo && !S.acao){ const a = proj(cam, [S.alvo.x, (S.alvo.n && PL.mezanino ? PL.mezanino.y : 0) + .02, S.alvo.z]); if(a){ ctx.strokeStyle = ROSA; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.ellipse(a[0], a[1], 6 + Math.sin(t * 6) * 1.5, 3, 0, 0, Math.PI * 2); ctx.stroke(); } }
     const foco = S.eu ? { q: proj(cam, [S.eu.x, S.eu.y + .9, S.eu.z]), prof: (S.eu.x - cam.pos[0]) ** 2 + (S.eu.y + .9 - cam.pos[1]) ** 2 + (S.eu.z - cam.pos[2]) ** 2, raio: cv.height * .16 } : null;
@@ -1459,8 +1633,8 @@
     };
     const cm = S.eu && comodoDe(S.eu.x, S.eu.z, nivelDe(S.eu.y)), noEsc = !!(cm && cm.k === 'escritorio') || !!S.lugar;
     if((S.meu || S.lugar) && S.modo === 'andar') S.fixos.forEach(e => { const el = S.tags.get('est:' + e.id); if(!noEsc && !(S.eu && nivelDe(S.eu.y) === (e.y > 1.5 ? 1 : 0) && Math.hypot(S.eu.x - e.x - e.w / 2, S.eu.z - e.z - e.d / 2) < 5)){ if(el) el.hidden = true; return; } poe('est:' + e.id, [e.x + e.tag[0], (e.y || 0) + e.tag[1], e.z + e.tag[2]], e.trava ? e.titulo + ' · em breve' : e.id === 'horus' && !estAberta(e) ? 'Hórus desligado' : e.agente ? AGENTE[agenteDe(S.dono)].nome : e.titulo, e.trava ? 'trava' : e.id === 'horus' && !estAberta(e) ? 'off' : e.agente ? 'agente' : ''); });
-    poe('saida', [ENTRADA.x, .25, ENTRADA.z - .25], S.meu ? 'Sair pra rua' : S.lugar ? 'Sair pra Feira' : 'Sair', 'saida');
-    if(S.modo === 'andar') acoes().forEach(a => { if(!acaoPraMim(a) || (S.pesca && a.a === 'pesca')){ const el = S.tags.get('acao:' + a.id); if(el) el.hidden = true; return; } const cx = a.x + a.w / 2, cz = a.z + a.d / 2, n = a.y > 1.5 ? 1 : 0; if(!(S.eu && nivelDe(S.eu.y) === n && Math.hypot(S.eu.x - cx, S.eu.z - cz) < 4.5)){ const el = S.tags.get('acao:' + a.id); if(el) el.hidden = true; return; } poe('acao:' + a.id, [cx, a.y + a.topo + .35, cz], rotuloAcao(a), a.a === 'discos' && S.discoAtual ? 'acao som' : 'acao'); });
+    poe('saida', [ENTRADA.x, .25, ENTRADA.z - .25], S.meu ? 'Sair pra rua' : S.lugar ? LUGARES[S.lugar].sai || 'Sair pra Feira' : 'Sair', 'saida');
+    if(S.modo === 'andar') acoes().forEach(a => { if(!acaoPraMim(a) || (S.pesca && a.a === 'pesca') || S.corrida){ const el = S.tags.get('acao:' + a.id); if(el) el.hidden = true; return; } const cx = a.x + a.w / 2, cz = a.z + a.d / 2, n = a.y > 1.5 ? 1 : 0; if(!(S.eu && nivelDe(S.eu.y) === n && Math.hypot(S.eu.x - cx, S.eu.z - cz) < 4.5)){ const el = S.tags.get('acao:' + a.id); if(el) el.hidden = true; return; } poe('acao:' + a.id, [cx, a.y + a.topo + .35, cz], rotuloAcao(a), a.a === 'discos' && S.discoAtual ? 'acao som' : 'acao'); });
     const peers = C.verso.peers ? C.verso.peers() : new Map();
     gente().forEach(r => { const p = peers.get(r.sid), vivo = p && p.estado === 'aovivo'; poe('gente:' + r.sid, [r.hxv, (r.hyv || 0) + 1.78, r.hzv], (r.handle ? '@' + r.handle : r.nome || 'visitante') + (vivo ? ' · ao vivo' : r.mic ? ' · mic' : ''), vivo ? 'gente vivo' : 'gente'); });
     S.tags.forEach((el, k) => { if(!usadas.has(k) && !el.hidden){ el.hidden = true; } });
@@ -1477,6 +1651,7 @@
       /* v3.48: fechou a folha do Sebo com um disco no fone: o fone para */
       if(S.ouvindo && !(sh && !sh.hidden && sh.querySelector('.cs-sebo'))) paraDeOuvir();
       tickPesca();
+      if(pistaAqui()) painelCorrida();
       /* celular fraco (quadro lento): o boneco anda em passos de até 50 ms, pra a velocidade não depender do quadro
          (e sem atravessar parede num passo grande) */
       if(!parado){ const np = Math.max(1, Math.ceil(dt / .05 - 1e-9)); for(let i = 0; i < np && S.aberta && S.eu; i++) passo(dt / np); }
@@ -1492,6 +1667,7 @@
   }
   function passo(dt){
     const e = S.eu; if(!e) return;
+    if(S.corrida){ passoVeiculo(dt); return; }
     let dx = 0, dz = 0;
     const k = S.teclas, th = S.cam.th;
     /* W = pra longe da câmera; as setas acompanham o giro da câmera */
@@ -1539,18 +1715,20 @@
     if(S.meu || S.lugar) S.fixos.forEach(f => { if((f.y > 1.5 ? 1 : 0) !== n) return; const nome = f.trava ? f.titulo + ' · em breve' : f.agente ? AGENTE[agenteDe(S.dono)].nome : f.id === 'horus' && !estAberta(f) ? 'Hórus desligado' : f.titulo; ve(Math.hypot(e.x - f.x - f.w / 2, e.z - f.z - f.d / 2) - Math.max(f.w, f.d) / 2, { t: 'est', e: f, nome: 'Abrir: ' + nome }); });
     acoes().forEach(a => { if(!acaoPraMim(a) || (a.y > 1.5 ? 1 : 0) !== n) return; ve(Math.hypot(e.x - a.x - a.w / 2, e.z - a.z - a.d / 2) - Math.max(a.w, a.d) / 2, { t: 'acao', a, nome: rotuloAcao(a) }); });
     if(PL.escada){ const es = PL.escada, cx = (es.x0 + es.x1) / 2; ve(n === 1 ? Math.hypot(e.x - cx, e.z - (es.z0 - .7)) - .4 : Math.hypot(e.x - cx, e.z - (es.z1 + .9)) - .4, { t: 'escada', nome: n === 1 ? 'Descer a escada' : 'Subir a escada' }); }
-    if(n === 0) ve(Math.hypot(e.x - ENTRADA.x, e.z - (ENTRADA.z - .4)) - .3, { t: 'saida', nome: S.meu ? 'Sair pra rua' : S.lugar ? 'Sair pra Feira' : 'Sair' });
+    if(n === 0) ve(Math.hypot(e.x - ENTRADA.x, e.z - (ENTRADA.z - .4)) - .3, { t: 'saida', nome: S.meu ? 'Sair pra rua' : S.lugar ? LUGARES[S.lugar].sai || 'Sair pra Feira' : 'Sair' });
     return melhor;
   }
   function portaCasa(){
     const b = C.$('cs-porta'); if(!b) return;
+    if(S.corrida){ const txt = S.corrida.fim ? 'Chegou!' : 'Desistir'; S.perto = null; if(b.dataset.txt !== txt){ b.dataset.txt = txt; b.hidden = false; b.innerHTML = `${ico(S.corrida.fim ? 'check' : 'x')}<span>${txt}</span>`; } b.classList.remove('morde'); return; }
     if(S.pesca){ const txt = S.pesca.fase === 'morde' ? 'Puxar!' : 'Puxar'; S.perto = null; if(b.dataset.txt !== txt){ b.dataset.txt = txt; b.hidden = false; b.innerHTML = `${ico('peixe')}<span>${txt}</span>`; } b.classList.toggle('morde', S.pesca.fase === 'morde'); return; }
     b.classList.remove('morde');
     const p = S.modo === 'andar' && !S.alvo ? pertoDe() : null; S.perto = p;
     const txt = p ? p.nome : '';
-    if(b.dataset.txt !== txt){ b.dataset.txt = txt; b.hidden = !p; if(p) b.innerHTML = `${ico(p.t === 'saida' ? 'prev' : p.t === 'escada' ? 'up' : p.t === 'est' ? 'raio' : p.a && p.a.a === 'discos' ? 'musica' : p.a && p.a.a === 'jogo' ? 'play' : p.a && p.a.a === 'pesca' ? 'peixe' : 'eu')}<span>${esc(p.nome)}</span>`; }
+    if(b.dataset.txt !== txt){ b.dataset.txt = txt; b.hidden = !p; if(p) b.innerHTML = `${ico(p.t === 'saida' ? 'prev' : p.t === 'escada' ? 'up' : p.t === 'est' ? 'raio' : p.a && p.a.a === 'discos' ? 'musica' : p.a && p.a.a === 'jogo' ? 'play' : p.a && p.a.a === 'pesca' ? 'peixe' : p.a && p.a.a === 'largada' ? 'raio' : 'eu')}<span>${esc(p.nome)}</span>`; }
   }
   function acaoPerto(){
+    if(S.corrida){ if(!S.corrida.fim) desmonta(true); return; }
     if(S.pesca){ puxa(); return; }
     const p = S.perto || pertoDe(); if(!p || !S.eu) return;
     if(p.t === 'est') vaiNaEstacao(p.e);
@@ -1726,7 +1904,7 @@
     const sh = C.$('sheet'); if(digitando || (sh && !sh.hidden)){ S.teclas.clear(); return; }
     const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
     if(TECLAS.has(k)){ e.preventDefault(); if(e.type === 'keydown') S.teclas.add(k); else S.teclas.delete(k); return; }
-    if(k === ' '){ e.preventDefault(); if(e.type === 'keydown' && !e.repeat){ if(S.pesca) puxa(); else pulaCasa(); } return; }
+    if(k === ' '){ e.preventDefault(); if(e.type === 'keydown' && !e.repeat){ if(S.pesca) puxa(); else if(!S.corrida) pulaCasa(); } return; }
     if(e.type !== 'keydown') return;
     if(k === 'q'){ S.cam.th += Math.PI / 4; S.arrastou = Date.now(); } else if(k === 'e'){ S.cam.th -= Math.PI / 4; S.arrastou = Date.now(); }
     else if(k === 'r' && S.ghost){ giraGhost(); }
@@ -1923,7 +2101,7 @@
       <button type="button" class="cs-porta" id="cs-porta" data-act="cs-porta" hidden></button><div class="cs-pesca" id="cs-pesca" aria-live="polite" hidden></div>`;
     document.body.appendChild(el); S.el = el; S.cv = C.$('cs-cv'); S.ctx = S.cv.getContext('2d');
     /* v3.40: no celular, o controle de videogame (direcional + pular); o botão de som é o mesmo da cidade */
-    if(C.pad && C.pad.toque()){ S.pad = C.pad.cria(el, { pula: () => (S.pesca ? puxa() : pulaCasa()) }); el.classList.add('toque'); }
+    if(C.pad && C.pad.toque()){ S.pad = C.pad.cria(el, { pula: () => (S.pesca ? puxa() : S.corrida ? null : pulaCasa()) }); el.classList.add('toque'); }
     if(C.versoSom && C.versoSom.botao) C.versoSom.botao(C.$('cs-som'));
     S.cv.addEventListener('pointerdown', pointerDown); S.cv.addEventListener('pointermove', pointerMove); S.cv.addEventListener('pointerup', pointerUp); S.cv.addEventListener('pointercancel', pointerUp);
     S.cv.addEventListener('wheel', roda, { passive: false });
@@ -1964,7 +2142,7 @@
     const pc = C.$('cs-porta'); if(pc){ pc.hidden = true; pc.dataset.txt = ''; }
     const nomeC = L ? L.titulo : meu ? 'Tua casa' : 'Casa de @' + (dono.handle || '');
     C.$('cs-titulo').textContent = nomeC;
-    const st = C.$('cs-sair-t'); if(st) st.textContent = L ? 'Sair pra Feira' : 'Sair pra rua';
+    const st = C.$('cs-sair-t'); if(st) st.textContent = L ? L.sai || 'Sair pra Feira' : 'Sair pra rua';
     S.titulo = document.title; document.title = nomeC + ' · Correverso';
     barra();
     S.aberta = true; S.tAnt = 0;
@@ -1977,7 +2155,7 @@
     if(!S.aberta) return;
     if(S.modo === 'colocar') cancelaGhost();
     S.aberta = false; S.lugar = ''; cancelAnimationFrame(S.raf); S.raf = 0; S.teclas.clear(); S.padTh = null; S.perto = null; if(S.pad) S.pad.solta();
-    S.disco = null; S.discoAtual = ''; S.ouvindo = ''; S.pesca = null; if(C.beats) C.beats.para();
+    S.disco = null; S.discoAtual = ''; S.ouvindo = ''; S.pesca = null; S.corrida = null; if(C.beats) C.beats.para();
     const pq = C.$('cs-pesca'); if(pq) pq.hidden = true;
     clearTimeout(S.salvaT); if(S.sujo) salva();
     if(S.el){ S.el.hidden = true; }
@@ -2049,5 +2227,6 @@
   }
   C.casa = { abrir, fechar, aberta: () => S.aberta, estado: () => S, ITENS, CAT, ESTACOES, encosta, alturaItem: (it, i) => alturaItem(it, i), COMODOS: () => COMODOS, planta: () => PL, plantaDe, lerCasa, miniatura, tela, serial, previa, acoes, disco: () => S.disco, discoAtual: () => S.discoAtual, poeDisco, AGENTES, agenteDe: () => agenteDe(S.dono),
     sala: () => (S.aberta && S.dono ? String(S.dono.id || '') : ''), lugar: () => (S.aberta ? S.lugar || '' : ''), LUGARES,
-    placar: () => (S.aberta && S.lugar === 'pesca' && S.placar && S.placar.r === rodadaAgora() ? { c: Math.round(S.placar.kg * 100), r: S.placar.r % 1e6 } : null), pos: () => (S.aberta && S.eu ? { x: S.eu.x, y: S.eu.y || 0, z: S.eu.z, yaw: S.eu.yaw, andando: !!S.eu.andando } : null), gente };
+    placar: () => (S.aberta && S.lugar === 'pesca' && S.placar && S.placar.r === rodadaAgora() ? { c: Math.round(S.placar.kg * 100), r: S.placar.r % 1e6 } : null), corrida: () => { const P = pistaAqui(); if(!P) return null; const m = melhorHoje(P); return { tc: m ? Math.round(m / 10) : 0, td: diaBR() % 1e5 }; },
+    pos: () => (S.aberta && S.eu ? { x: S.eu.x, y: S.eu.y || 0, z: S.eu.z, yaw: S.eu.yaw, andando: !!(S.eu.andando || (S.corrida && Math.abs(S.eu.vel || 0) > .3)), mt: S.corrida ? (S.corrida.P.veic === 'moto' ? 1 : 2) : 0 } : null), gente };
 })();
