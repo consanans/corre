@@ -2707,3 +2707,5 @@ html.embed .msg-pg{height:calc(100dvh - 40px)}
 /* no celular, a barra da câmera fica na direita, embaixo do sino: o placar (pesca, corrida e quadra) encosta na esquerda
    pra não ficar por cima dela */
 .cs-casa.toque .cs-pesca{left:12px;transform:none;width:min(300px,calc(100% - 82px))}
+/* v3.52 · o 3D da casa e dos lugares agora é desenhado na resolução do aparelho: nada de esticar em bloquinho */
+.cs-casa canvas,.cvr-previa canvas{image-rendering:auto}

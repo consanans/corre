@@ -27,6 +27,12 @@
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
   const escala = ctx => { const m = ctx.getTransform(); return Math.hypot(m.a, m.b) || 1; };
+  /* v3.52 · a base: a tela da cidade agora tem fx pontos de verdade pra cada "pixel" do desenho de antes (o mundo fica
+     mais nítido: bola redonda, diagonal lisa, detalhe que antes sumia). Quem desenha ponto a ponto (a letra, o boneco,
+     o avião, as placas) continua no pixel de antes, e a base multiplica: o tamanho na tela é o mesmo */
+  const BASE = ctx => ctx.__b || 1;
+  const naBase = ctx => { const b = BASE(ctx); ctx.setTransform(b, 0, 0, b, 0, 0); };
+  const ptBase = (ctx, x, y) => { const m = ctx.getTransform(), b = BASE(ctx); return [Math.round((m.a * x + m.e) / b), Math.round((m.d * y + m.f) / b), m.d / b]; };
 
   /* ---------- texturas de bloco (16x16, feitas aqui mesmo, cada material com o seu ruído e as juntas) ---------- */
   const TEXB = { concreto: '#A4A8AE', escuro: '#4A4E56', branco: '#EEEBE4', preto: '#1B1D22', corten: '#8E4B2B', madeira: '#B3793F', lote: '#E6DECD', calcada: '#C9D0D8', rua: '#2B2F38', dois: '#3A3E45', tronco: '#6B4A32', vidroOn: '#FFD37A', vidroOff: '#2A3442', praca: '#DCCFB6', gramado: '#D9C27F', terra: '#A4553A', agua: '#2F7FC1', mosaico: '#F1EDE4', tijolo: '#8C3B2E', zinco: '#9AA0A8' };
@@ -94,19 +100,19 @@
   /* texto em pixel: x, y no mundo (centro); s = tamanho do ponto em pixels de verdade */
   function pixTxt(ctx, t, x, y, s, cor, al){
     t = txtN(t); s = s || 1;
-    const m = ctx.getTransform(), w = pixLarg(t, s), h = 5 * s;
-    let ix = Math.round(m.a * x + m.e); const iy = Math.round(m.d * y + m.f) - Math.floor(h / 2);
+    const w = pixLarg(t, s), h = 5 * s, pb = ptBase(ctx, x, y);
+    let ix = pb[0]; const iy = pb[1] - Math.floor(h / 2);
     if(al !== 'e') ix -= al === 'd' ? w : Math.floor(w / 2);
-    ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = cor;
+    ctx.save(); naBase(ctx); ctx.fillStyle = cor;
     let cx = ix; for(const ch of t){ const g = GL[ch] || GL['?']; g.forEach((row, ry) => { for(let j = 0; j < row.length; j++) if(row.charCodeAt(j) === 49) ctx.fillRect(cx + j * s, iy + ry * s, s, s); }); cx += (g[0].length + 1) * s; }
     ctx.restore(); return w;
   }
   function pixPlaca(ctx, t, x, y, o){
     o = o || {}; t = txtN(t); const s = o.s || 1;
     if(o.max && t.length > o.max) t = t.slice(0, Math.max(1, o.max - 2)) + '..';
-    const m = ctx.getTransform(), w = pixLarg(t, s), h = 5 * s, pad = o.pad == null ? 2 : o.pad;
-    const cx = Math.round(m.a * x + m.e), cy = Math.round(m.d * y + m.f), x0 = cx - Math.floor(w / 2) - pad, y0 = cy - Math.floor(h / 2) - pad;
-    ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0);
+    const w = pixLarg(t, s), h = 5 * s, pad = o.pad == null ? 2 : o.pad, pb = ptBase(ctx, x, y);
+    const cx = pb[0], cy = pb[1], x0 = cx - Math.floor(w / 2) - pad, y0 = cy - Math.floor(h / 2) - pad;
+    ctx.save(); naBase(ctx);
     if(o.borda !== false){ ctx.fillStyle = o.borda || INK; ctx.fillRect(x0 - 1, y0 - 1, w + pad * 2 + 2, h + pad * 2 + 2); }
     ctx.fillStyle = o.fundo || PAPEL; ctx.fillRect(x0, y0, w + pad * 2, h + pad * 2);
     ctx.restore(); pixTxt(ctx, t, x, y, s, o.cor || INK, 'c');
@@ -309,7 +315,7 @@
     const roupa = SK ? (SK.manga === 'curta' ? 'camiseta' : 'uniforme') : av.roupa, pernaAv = SK && SK.perna ? SK.perna : av.perna, estampa = SK ? 'nada' : av.estampa, corrente = SK ? 'nada' : av.corrente, topo = capacete || (SK && SK.cabeca) ? 'nada' : av.topo, MAO = SK && SK.luva ? SK.luva : P, cobre = !!(SK && SK.cobre) || capacete;
     const CAP = R === PAPEL ? ROSA : R, OLHO = '#2B1A12', BR = '#F4F3EF';
     const st = passo == null ? 0 : Math.sin(passo), fase = (PO && !PO.pedala) ? 0 : st > .35 ? 1 : st < -.35 ? -1 : 0, bob = skate ? (passo != null && Math.sin(passo * .5) > .6 ? 1 : 0) : PO ? 0 : passo != null && Math.abs(Math.cos(passo)) > .75 ? 1 : 0;
-    ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.save(); naBase(ctx);
     /* o desenho do veículo: no chão (sobe junto no pulo), espelhado de lado como o boneco */
     const vy0 = fy - salto * e, pv = (x, y, w, h, c) => { ctx.fillStyle = c; const X = lado && esp < 0 ? -(x + w) : x; ctx.fillRect(fx + X * e, vy0 + y * e, w * e, h * e); };
     const pvC = (x, y, w, h, c) => { ctx.fillStyle = c; const X = lado && esp < 0 ? -(x + w) : x; ctx.fillRect(fx + X * e, fy + y * e, w * e, h * e); };
@@ -507,7 +513,7 @@
     const corpo = gH + fH * (andares - 1), M = 40, extra = (terraco ? 30 : 6) + (topoL ? 46 : 0) + (S.chamine ? 26 : 0);
     const W = w + M * 2, H = corpo + extra + M + 24;
     const cv = document.createElement('canvas'); cv.width = Math.max(1, Math.ceil(W * k)); cv.height = Math.max(1, Math.ceil(H * k));
-    const ctx = cv.getContext('2d'); ctx.scale(k, k); ctx.lineJoin = 'miter'; ctx.imageSmoothingEnabled = false;
+    const ctx = cv.getContext('2d'); ctx.__b = V.fx || 1; ctx.scale(k, k); ctx.lineJoin = 'miter'; ctx.imageSmoothingEnabled = false;
     const x0 = M, base = H - M, px = c.portaX - c.x, lado = px > w / 2 ? 1 : -1;
     ctx.fillStyle = 'rgba(15,18,24,.22)'; ctx.fillRect(x0 - 10, base - 2, w + 20, 10);
     /* volume de cima, em balanço pro lado da porta */
@@ -561,7 +567,7 @@
   function spriteDois(k){
     const TW = 2 * LW + RUA, M = 44, W = TW + M * 2, H = 420 + M + 24, base = H - M;
     const cv = document.createElement('canvas'); cv.width = Math.ceil(W * k); cv.height = Math.ceil(H * k);
-    const ctx = cv.getContext('2d'); ctx.scale(k, k); ctx.lineJoin = 'miter'; ctx.imageSmoothingEnabled = false;
+    const ctx = cv.getContext('2d'); ctx.__b = V.fx || 1; ctx.scale(k, k); ctx.lineJoin = 'miter'; ctx.imageSmoothingEnabled = false;
     const L = Math.max(2, 1.05 / k), ACO = '#121419';
     const ax = M + 10, aw = 280, bx = M + LW + RUA + 10, bw = 280;
     ctx.fillStyle = 'rgba(15,18,24,.25)'; ctx.fillRect(ax - 30, base - 2, aw + 40, 12); ctx.fillRect(bx - 10, base - 2, bw + 40, 12);
@@ -1384,14 +1390,30 @@
       if(b.y < q.y + m){ b.y = q.y + m; b.vy = -b.vy * .62; } else if(b.y > q.y + q.h - m){ b.y = q.y + q.h - m; b.vy = -b.vy * .62; }
     });
   }
+  /* v3.52 · a bola da quadra: redonda de verdade, com luz (o brilho em cima à esquerda), os gomos do futsal ou a
+     costura do basquete girando com ela, e a sombra que encolhe quando ela sobe */
   function desenhaBola(ctx, b){
-    const k = V.k, L = Math.max(1, 1.05 / k), futsal = b.q.tipo === 'futsal', r = futsal ? 5 : 5.5;
-    ctx.fillStyle = 'rgba(15,18,24,.28)'; ctx.beginPath(); ctx.ellipse(b.x, b.y + 2, r + 1, 3, 0, 0, Math.PI * 2); ctx.fill();
-    const alt = b.gol ? Math.sin(Math.min(1, (Date.now() - b.gol) / 1100) * Math.PI) * 10 : 0;
-    ctx.beginPath(); ctx.arc(b.x, b.y - 4 - alt, r, 0, Math.PI * 2); forma(ctx, futsal ? '#F4F3EF' : '#E3732E', 1.5);
-    ctx.fillStyle = INK;
-    if(futsal){ for(let i = 0; i < 3; i++){ const a = b.rot + i * Math.PI * 2 / 3; ctx.fillRect(Math.round(b.x + Math.cos(a) * 2.4) - L, Math.round(b.y - 4 - alt + Math.sin(a) * 2.4) - L, 2 * L, 2 * L); } }
-    else { ctx.save(); ctx.translate(b.x, b.y - 4 - alt); ctx.rotate(b.rot); ctx.fillRect(-r, -L / 2, r * 2, L); ctx.fillRect(-L / 2, -r, L, r * 2); ctx.restore(); }
+    const futsal = b.q.tipo === 'futsal', r = futsal ? 5 : 5.5, u = 1 / escala(ctx);
+    const alt = b.gol ? Math.sin(Math.min(1, (Date.now() - b.gol) / 1100) * Math.PI) * 10 : 0, x = b.x, y = b.y - 4 - alt;
+    ctx.fillStyle = `rgba(15,18,24,${.3 - alt * .012})`; ctx.beginPath(); ctx.ellipse(x, b.y + 2, r + 1 - alt * .15, 2.6 - alt * .06, 0, 0, Math.PI * 2); ctx.fill();
+    const base = futsal ? '#F4F3EF' : '#E3732E', g = ctx.createRadialGradient(x - r * .35, y - r * .4, r * .1, x, y, r);
+    g.addColorStop(0, futsal ? '#FFFFFF' : '#F59A5A'); g.addColorStop(.6, base); g.addColorStop(1, futsal ? '#B9BCC4' : '#A9471B');
+    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fillStyle = g; ctx.fill();
+    ctx.save(); ctx.clip();
+    if(futsal){
+      /* os gomos pretos, um no meio e cinco em volta, girando */
+      ctx.fillStyle = '#23252C';
+      const gomo = (cx, cy, rr, a0) => { ctx.beginPath(); for(let i = 0; i < 5; i++){ const a = a0 + i * Math.PI * .4; ctx.lineTo(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr); } ctx.closePath(); ctx.fill(); };
+      gomo(x + Math.cos(b.rot) * 1.2, y + Math.sin(b.rot) * .8, r * .3, b.rot);
+      for(let i = 0; i < 5; i++){ const a = b.rot + i * Math.PI * .4; gomo(x + Math.cos(a) * r * .86, y + Math.sin(a) * r * .86, r * .26, a + Math.PI); }
+    } else {
+      /* a costura: duas linhas que cruzam e as curvas dos lados */
+      ctx.strokeStyle = '#2A160C'; ctx.lineWidth = Math.max(u, .7);
+      ctx.translate(x, y); ctx.rotate(b.rot); ctx.beginPath(); ctx.moveTo(-r, 0); ctx.lineTo(r, 0); ctx.moveTo(0, -r); ctx.lineTo(0, r); ctx.stroke();
+      ctx.beginPath(); ctx.arc(-r * 1.25, 0, r * .85, -1, 1); ctx.stroke(); ctx.beginPath(); ctx.arc(r * 1.25, 0, r * .85, Math.PI - 1, Math.PI + 1); ctx.stroke();
+    }
+    ctx.restore();
+    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.strokeStyle = INK; ctx.lineWidth = Math.max(u, .8); ctx.stroke();
   }
   const bate = (x, y) => { if(x < 14 || y < TOPO - 70 || x > V.cid.W - 14 || y > V.cid.H - 14) return true; if(naAgua(x, y)) return true; for(const s of V.sol) if(x > s.x - 8 && x < s.x + s.w + 8 && y > s.y && y < s.y + s.h + 4) return true; return false; };
   function mover(o, dx, dy){ if(!dx && !dy) return; if(!bate(o.x + dx, o.y)) o.x += dx; if(!bate(o.x, o.y + dy)) o.y += dy; }
@@ -1644,7 +1666,7 @@
     pixTxt(ctx, 'CHAMA ALGUEM', x, y + 54, 1, '#6B7480', 'c');
   }
   /* ---------- os lugares de Londrina (cada um vira uma folha desenhada uma vez só) ---------- */
-  function folha(W, H, k){ const cv = document.createElement('canvas'); cv.width = Math.max(1, Math.ceil(W * k)); cv.height = Math.max(1, Math.ceil(H * k)); const ctx = cv.getContext('2d'); ctx.scale(k, k); ctx.lineJoin = 'miter'; ctx.imageSmoothingEnabled = false; return { cv, ctx }; }
+  function folha(W, H, k){ const cv = document.createElement('canvas'); cv.width = Math.max(1, Math.ceil(W * k)); cv.height = Math.max(1, Math.ceil(H * k)); const ctx = cv.getContext('2d'); ctx.__b = V.fx || 1; ctx.scale(k, k); ctx.lineJoin = 'miter'; ctx.imageSmoothingEnabled = false; return { cv, ctx }; }
   /* Catedral: o salão branco e a agulha alta */
   function spriteCatedral(k){
     const W = LW, M = 20, H = 470, base = H - M, { cv, ctx } = folha(W + M * 2, H, k), x0 = M, cx = x0 + W / 2;
@@ -2463,14 +2485,16 @@
         R(cx - 34, cy + 8, 68, 10, INK); for(let i = 0; i < 9; i++) R(cx - 31 + i * 7.5, cy + 10, 3, 2, PAPEL); for(let i = 0; i < 9; i++) R(cx - 31 + i * 7.5, cy + 14, 3, 2, PAPEL); break;
     }
   }
+  /* v3.52: os desenhos prontos (casas, prédios) agora são maiores; a memória guarda os 160 usados por último */
+  function guardaSprite(chave, s){ V.sprites.set(chave, s); if(V.sprites.size > 160){ const velho = V.sprites.keys().next().value; V.sprites.delete(velho); } }
   function quadro(t){
-    const { ctx } = V, z = V.z, k = V.k, vw = V.cssW / z, vh = V.cssH / z, c = V.cid;
-    const vx = V.cam.x - vw / 2, vy = V.cam.y - vh / 2, ox = -Math.round(vx * k), oy = -Math.round(vy * k);
+    const { ctx } = V, z = V.z, k0 = V.k, fx = V.fx || 1, k = V.kr || k0, vw = V.cssW / z, vh = V.cssH / z, c = V.cid;
+    const vx = V.cam.x - vw / 2, vy = V.cam.y - vh / 2, ox = -Math.round(vx * k0) * fx, oy = -Math.round(vy * k0) * fx;
     ctx.setTransform(k, 0, 0, k, ox, oy); ctx.imageSmoothingEnabled = false;
     chao(ctx, vx, vy, vw, vh); aguaViva(ctx, t, vx, vy, vw, vh); sobreAgua(ctx, vx, vy, vw, vh);
     const L = [];
     const vis = (x, y, m) => x > vx - m && x < vx + vw + m && y > vy - 40 && y < vy + vh + m * 1.6;
-    const sprite = (chave, fazer, x, base) => L.push({ y: base, f: () => { let s = V.sprites.get(chave); if(!s){ s = fazer(); V.sprites.set(chave, s); } ctx.drawImage(s.cv, x - s.M, base - s.base, s.cv.width / k, s.cv.height / k); } });
+    const sprite = (chave, fazer, x, base) => L.push({ y: base, f: () => { let s = V.sprites.get(chave); if(!s){ s = fazer(); guardaSprite(chave, s); } ctx.drawImage(s.cv, x - s.M, base - s.base, s.cv.width / k, s.cv.height / k); } });
     c.casas.forEach(h => { if(vis(h.x + h.w / 2, h.base, 320)) sprite(h.id, () => (ESTILO_SPRITE()[h.estilo] || spriteCasa)(h, k), h.x, h.base); });
     if(c.dois){ const d = c.dois; if(vis(d.x + d.w / 2, d.base, 700)) L.push({ y: d.base, f: () => { if(!V.doisS) V.doisS = spriteDois(k); const s = V.doisS, sx = d.x - s.M, sy = d.base - s.base; ctx.drawImage(s.cv, sx, sy, s.cv.width / k, s.cv.height / k); overlayDois(ctx, s, sx, sy, t); } }); }
     const ce = c.centro, FZ = { teatro: spriteTeatro, concha: spriteConcha, catedral: spriteCatedral, museu: spriteMuseu, arte: spriteArte, aquario: spriteAquario, delegacia: spriteDelegacia, bombeiros: spriteBombeiros, hospital: spriteHospital };
@@ -2505,7 +2529,7 @@
     if(V.eu) L.push({ y: V.eu.y + (V.eu.sit ? 1 : 0), f: () => boneco(ctx, V.eu, t, true) });
     desenhaTarefa(L, ctx, t, vis);
     L.sort((a, b) => a.y - b.y).forEach(o => o.f());
-    if(V.alvo){ ctx.strokeStyle = ROSA; ctx.lineWidth = Math.max(2, 1.05 / k); ctx.beginPath(); ctx.ellipse(V.alvo.x, V.alvo.y, 10 + Math.sin(t * 6) * 2, 4, 0, 0, Math.PI * 2); ctx.stroke(); }
+    if(V.alvo){ ctx.strokeStyle = ROSA; ctx.lineWidth = Math.max(2, 1.05 / k0); ctx.beginPath(); ctx.ellipse(V.alvo.x, V.alvo.y, 10 + Math.sin(t * 6) * 2, 4, 0, 0, Math.PI * 2); ctx.stroke(); }
     if(V.porta && !(V.eu && V.eu.sit)){ const p = V.porta; ctx.save(); ctx.translate(p.x, p.y - (p.tipo === 'banco' ? 34 : 4) + Math.round(Math.sin(t * 4) * 2)); ctx.beginPath(); ctx.moveTo(-8, -12); ctx.lineTo(8, -12); ctx.lineTo(0, 0); ctx.closePath(); forma(ctx, AMARELO, 2); ctx.restore(); }
     desenhaVoos(ctx, t, gente);
     /* nomes e balões por cima de tudo */
@@ -2566,10 +2590,10 @@
   }
   function falando(o, eu){ if(eu) return V.mic && V.nivelEu > .035; const p = V.peers.get(o.sid); return !!p && (p.bot ? Math.sin(performance.now() / 260) > .2 : (p.nivel || 0) > .03); }
   function boneco(ctx, o, t, eu){
-    const m = ctx.getTransform(), ix = Math.round(m.a * o.x + m.e), iy = Math.round(m.d * o.y + m.f);
+    const [ix, iy] = ptBase(ctx, o.x, o.y);
     /* no avião (ou de paraquedas) quem desenha é o voo */
     if(emVoo(o)) return;
-    if(falando(o, eu)){ ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = ROSA; const w = 9 + (Math.sin(t * 14) > 0 ? 1 : 0); ctx.fillRect(ix - w, iy + 1, w * 2, 1); ctx.fillRect(ix - w, iy - 1, 1, 2); ctx.fillRect(ix + w - 1, iy - 1, 1, 2); ctx.restore(); }
+    if(falando(o, eu)){ ctx.save(); naBase(ctx); ctx.fillStyle = ROSA; const w = 9 + (Math.sin(t * 14) > 0 ? 1 : 0); ctx.fillRect(ix - w, iy + 1, w * 2, 1); ctx.fillRect(ix - w, iy - 1, 1, 2); ctx.fillRect(ix + w - 1, iy - 1, 1, 2); ctx.restore(); }
     const item = o.item && (eu ? o.item.ate > Date.now() && o.item.k : o.item) || null;
     skin(ctx, o.av, ix, iy, o.sit ? 'baixo' : o.dir, o.mov && !o.sit ? o.passo : null, 1, o.sit ? 'sentado' : '', { item, pesca: !!(o.pesca && o.sit), vc: o.sit ? '' : veiculoDe(o), vcor: o.av && o.av.vcor, pulo: alturaPulo(o) * PULO_PX });
   }
@@ -2589,11 +2613,11 @@
     else if(!eu && o.ec){ pixPlaca(ctx, 'EM CASA', o.x, yb, { fundo: LILAS }); yb -= 13 / V.k; }
     else if(!eu && o.jg){ pixPlaca(ctx, 'NO AQUARIO', o.x, yb, { fundo: '#62F5E2' }); yb -= 13 / V.k; }
     else if(!eu && o.pt > 0 && o.av && o.av.skin && !o.av.personagem && PATENTES[o.av.skin]){ pixPlaca(ctx, PATENTES[o.av.skin][o.pt].toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''), o.x, yb, { fundo: '#38E1FF' }); yb -= 13 / V.k; }
-    if(o.fala && o.fala.ate > (agora || Date.now())){ const b = pixPlaca(ctx, o.fala.t, o.x, yb, { fundo: PAPEL, max: 24 }); ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = INK; const tx = b.ix + Math.floor(b.w / 2); ctx.fillRect(tx - 1, b.iy + b.h, 3, 1); ctx.fillRect(tx, b.iy + b.h + 1, 1, 1); ctx.restore(); }
+    if(o.fala && o.fala.ate > (agora || Date.now())){ const b = pixPlaca(ctx, o.fala.t, o.x, yb, { fundo: PAPEL, max: 24 }); ctx.save(); naBase(ctx); ctx.fillStyle = INK; const tx = b.ix + Math.floor(b.w / 2); ctx.fillRect(tx - 1, b.iy + b.h, 3, 1); ctx.fillRect(tx, b.iy + b.h + 1, 1, 1); ctx.restore(); }
     const r = pixPlaca(ctx, nm, o.x, y, { fundo: eu ? AMARELO : o.eu ? '#FFF7A8' : PAPEL, max: o.eu ? 22 : 16 });
     if(eu ? V.mic : o.mic){
       const p = !eu && V.peers.get(o.sid), vivo = (p && p.estado === 'aovivo') || (eu && [...V.peers.values()].some(q => q.estado === 'aovivo'));
-      ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); const bx = r.ix + r.w + 1, by = r.iy;
+      ctx.save(); naBase(ctx); const bx = r.ix + r.w + 1, by = r.iy;
       ctx.fillStyle = INK; ctx.fillRect(bx, by, 9, r.h); ctx.fillStyle = vivo ? ROSA : PAPEL; ctx.fillRect(bx + 1, by + 1, 7, r.h - 2);
       ctx.fillStyle = INK; const y0 = by + Math.floor((r.h - 7) / 2); MIC_B.forEach((row, i) => { for(let j = 0; j < 5; j++) if(row[j] === '1') ctx.fillRect(bx + 2 + j, y0 + i, 1, 1); });
       ctx.restore();
@@ -2704,7 +2728,7 @@
       for(const r of V.remotos.values()) if(!r.bot){ r.x = r.tx; r.y = r.ty; r.mov = false; }
       V.raf = requestAnimationFrame(laco); return;
     }
-    passo(dt, t); quadro(t);
+    passo(dt, t); quadro(t); ajustaFx(dt, t);
     if(ts - (V.miniT || 0) > 330){ V.miniT = ts; miniMapa(); }
     V.raf = requestAnimationFrame(laco);
   }
@@ -3138,10 +3162,27 @@
     const st = C.$('cvr-stage'); if(!st || !V.cv) return;
     const r = st.getBoundingClientRect(), tb = document.querySelector('.tabbar'), tbH = tb && getComputedStyle(tb).display !== 'none' ? tb.getBoundingClientRect().height + 18 : 18;
     const h = Math.max(320, Math.round(innerHeight - r.top - tbH)); st.style.height = h + 'px';
-    const w = st.clientWidth, iw = Math.max(80, Math.floor(w / PX)), ih = Math.max(80, Math.floor(h / PX));
-    V.cv.width = iw; V.cv.height = ih; V.cv.style.width = iw * PX + 'px'; V.cv.style.height = ih * PX + 'px';
-    V.cssW = iw * PX; V.cssH = ih * PX; V.z = (w < 560 ? .82 : 1) * zoomFator(); V.k = V.z / PX;
+    const w = st.clientWidth, iw = Math.max(80, Math.floor(w / PX)), ih = Math.max(80, Math.floor(h / PX)), fx = V.fx = fxCidade();
+    V.cv.width = iw * fx; V.cv.height = ih * fx; V.cv.style.width = iw * PX + 'px'; V.cv.style.height = ih * PX + 'px'; V.ctx.__b = fx;
+    V.cssW = iw * PX; V.cssH = ih * PX; V.z = (w < 560 ? .82 : 1) * zoomFator(); V.k = V.z / PX; V.kr = V.k * fx;
     V.sprites.clear(); V.doisS = null; PADS.clear();
+  }
+  /* v3.52 · quantos pontos de verdade por pixel de antes: 3 (a tela inteira, nítida); se os quadros ficam lentos, desce
+     pra 1,5 e depois pra 1 (o de antes). O degrau fica guardado no aparelho por uma semana e aí tenta de novo */
+  const FX_K = 'corre-verso-fx', FX_DEGRAUS = [1, 1.5, 3];
+  function fxCidade(){
+    if(V.fxAgora) return V.fxAgora;
+    let f = 3; try{ const o = JSON.parse(localStorage.getItem(FX_K) || 'null'); if(o && FX_DEGRAUS.includes(o.f) && Date.now() - o.t < 7 * 864e5) f = o.f; }catch(e){}
+    return (V.fxAgora = f);
+  }
+  function ajustaFx(dt, t){
+    if(V.fxFixo || !(dt > 0) || dt > .2) return;
+    V.fxMed = V.fxMed == null ? dt : V.fxMed * .95 + dt * .05;
+    if(t - (V.fxT || 0) < 3 || V.fxMed < .04) return;
+    const i = FX_DEGRAUS.indexOf(V.fxAgora); if(i <= 0) return;
+    V.fxAgora = FX_DEGRAUS[i - 1]; V.fxT = t; V.fxMed = null;
+    try{ localStorage.setItem(FX_K, JSON.stringify({ f: V.fxAgora, t: Date.now() })); }catch(e){}
+    tamanhoTela();
   }
   /* o zoom da cidade: mais perto do boneco por padrão; roda do mouse ou pinça mudam, e fica guardado no aparelho */
   const ZOOM_K = 'corre-verso-zoom';
@@ -3297,7 +3338,7 @@
       <button type="button" class="cvr-porta" id="cvr-porta" data-act="cvr-porta" hidden></button>
       <div class="cvr-bar"><button type="button" class="cvr-b mic" id="cvr-mic" data-act="cvr-mic" aria-pressed="false"></button><button type="button" class="cvr-b" data-act="cvr-avatar" title="Avatar" aria-label="Avatar">${ico('eu')}<span>Avatar</span></button><button type="button" class="cvr-b" data-act="cvr-garagem" title="Garagem: como você anda pela cidade" aria-label="Garagem">${ico('carro')}<span>Garagem</span></button><button type="button" class="cvr-b" data-act="cvr-casa" title="Voltar pra casa" aria-label="Voltar pra casa">${ico('home')}<span>Pra casa</span></button><button type="button" class="cvr-b" data-act="cvr-mapa" title="Mapa" aria-label="Mapa">${ico('mapa')}<span>Mapa</span></button><button type="button" class="cvr-b" data-act="cvr-falar" title="Falar uma frase" aria-label="Falar uma frase" aria-expanded="false">${ico('chat')}<span>Falar</span></button><button type="button" class="cvr-b" data-act="cvr-gente" title="Quem tá na cidade" aria-label="Quem tá na cidade">${ico('gente')}<span>Gente</span></button><button type="button" class="cvr-b" data-act="cvr-trampo" title="Trampo: as tarefas do teu uniforme" aria-label="Trampo">${ico('raio')}<span>Trampo</span></button></div>
       <div class="cvr-falas" id="cvr-falas" hidden>${FALAS.map((f, i) => `<button type="button" data-act="cvr-fala" data-i="${i}">${esc(f)}</button>`).join('')}</div>`;
-    V.cv = C.$('cvr-cv'); V.ctx = V.cv.getContext('2d', { willReadFrequently: true });
+    V.cv = C.$('cvr-cv'); V.ctx = V.cv.getContext('2d');
     tamanhoTela();
     C.correalCarrega().then(() => correalUI(false)).catch(() => {});
     /* você sai pela porta da tua casa; se acabou de sair da cidade (Mural, Banca, casa de alguém...), volta pra onde tava */
@@ -3326,7 +3367,7 @@
     V.cv.addEventListener('wheel', rodaCidade, { passive: false });
     V.cv.addEventListener('pointerdown', pincaBaixo); V.cv.addEventListener('pointermove', pincaMove); V.cv.addEventListener('pointerup', pincaSolta); V.cv.addEventListener('pointercancel', pincaSolta);
     ui(); portaUI();
-    V.tAnt = 0; V.raf = requestAnimationFrame(laco);
+    V.tAnt = 0; V.fxT = performance.now() / 1000; V.fxMed = null; V.raf = requestAnimationFrame(laco);
     /* v3.40: o controle de videogame na tela (celular), a música e os sons da cidade */
     V.voo = null; V.passoN = 0;
     if(C.pad && C.pad.toque()){ V.pad = C.pad.cria(st, { pula: () => pula() }); st.classList.add('toque'); padRotulo(); }
@@ -3515,8 +3556,8 @@
   }
   /* o avião num ponto do mundo (no chão, ou a "alt" de altura com a sombra embaixo) */
   function desenhaAviao(ctx, x, y, alt, dir, t, helice, trem){
-    const m = ctx.getTransform(), ix = Math.round(m.a * x + m.e), iy = Math.round(m.d * y + m.f), ia = Math.round(alt * m.d);
-    ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0);
+    const [ix, iy, md] = ptBase(ctx, x, y), ia = Math.round(alt * md);
+    ctx.save(); naBase(ctx);
     const pc = (X, Y, w, h, c) => { ctx.fillStyle = c; ctx.fillRect(ix + (dir < 0 ? -(X + w) : X), iy + Y, w, h); };
     if(alt > 3) C.veiculos.sombraAviao(pc);
     const pa = (X, Y, w, h, c) => { ctx.fillStyle = c; ctx.fillRect(ix + (dir < 0 ? -(X + w) : X), iy - ia + Y, w, h); };
@@ -3524,8 +3565,8 @@
     ctx.restore();
   }
   function desenhaParaquedas(ctx, o, x, y, alt, t){
-    const m = ctx.getTransform(), ix = Math.round(m.a * x + m.e), iy = Math.round(m.d * y + m.f), ia = Math.round(alt * m.d), bal = Math.round(Math.sin(t * 2.2) * 2);
-    ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0);
+    const [ix, iy, md] = ptBase(ctx, x, y), ia = Math.round(alt * md), bal = Math.round(Math.sin(t * 2.2) * 2);
+    ctx.save(); naBase(ctx);
     const enc = Math.max(2, 8 - Math.round(ia / 10)); ctx.fillStyle = 'rgba(15,18,24,.22)'; ctx.fillRect(ix - enc, iy - 1, enc * 2, 2);
     C.veiculos.paraquedas((X, Y, w, h, c) => { ctx.fillStyle = c; ctx.fillRect(ix + bal + X, iy - ia + Y, w, h); });
     ctx.restore();
