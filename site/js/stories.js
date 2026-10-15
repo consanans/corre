@@ -207,6 +207,8 @@
     }
   });
   addEventListener('keydown', e => {
+    /* v3.55: o Esc que fechou uma folha (ou a pergunta) por cima do story não fecha o story junto */
+    if(e.defaultPrevented || document.querySelector('dialog[open]')) return;
     const el = C.$('story'); if(!el || el.hidden || !C.$('sheet').hidden) return;
     if(e.key === 'Escape') close(); if(e.key === 'ArrowRight') next(); if(e.key === 'ArrowLeft') prev();
   });

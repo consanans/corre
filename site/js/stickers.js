@@ -6,7 +6,7 @@
   /* gradientes compartilhados vão num <svg> escondido (index.html: #defs) */
   const DEFS = `<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
     <linearGradient id="g-holo" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#FF9BE3"/><stop offset=".28" stop-color="#9FF2FF"/><stop offset=".55" stop-color="#E4FF8A"/><stop offset=".8" stop-color="#C6A6FF"/><stop offset="1" stop-color="#FF9BE3"/>
+      <stop offset="0" stop-color="#FF9BE3"/><stop offset=".28" stop-color="#9FF2FF"/><stop offset=".55" stop-color="#FFF08A"/><stop offset=".8" stop-color="#C6A6FF"/><stop offset="1" stop-color="#FF9BE3"/>
     </linearGradient>
     <linearGradient id="g-chrome" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0" stop-color="#FFFFFF"/><stop offset=".45" stop-color="#C9D3DE"/><stop offset=".55" stop-color="#8E9CAD"/><stop offset="1" stop-color="#F2F6FA"/>

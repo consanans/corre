@@ -354,7 +354,8 @@
     'sp-sair': () => fechar(),
     'sp-mais': () => { fechar(); abrir(); },
     'sp-pular': () => proximo(),
-    'sp-enviar': () => { const l = SP.fila[SP.i]; if(!l) return; SP.feitosIds.add(l.id); SP.feitos++; C.acts['hz-fire']({ dataset: { id: l.id } }); setTimeout(proximo, 120); },
+    /* v3.55: tecla segurada ou toque duplo não manda de novo pro mesmo (pulava o D2 e o próximo da fila) */
+    'sp-enviar': () => { const l = SP.fila[SP.i]; if(!l || SP.feitosIds.has(l.id)) return; SP.feitosIds.add(l.id); SP.feitos++; C.acts['hz-fire']({ dataset: { id: l.id } }); setTimeout(proximo, 120); },
     'sp-liguei': () => { const l = SP.fila[SP.i]; if(!l) return; SP.feitosIds.add(l.id); SP.feitos++; C.acts['hz-call']({ dataset: { id: l.id } }); proximo(); },
     'sp-nao': async () => {
       const l = SP.fila[SP.i]; if(!l) return; SP.feitosIds.add(l.id);

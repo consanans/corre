@@ -163,11 +163,14 @@
 
   /* ---------------- cena -> SVG ---------------- */
   let uid = 0;
+  /* v3.55: tudo que vai dentro de atributo ou texto do SVG passa por aqui: a cor vem da marca salva no banco (uma cor com aspas
+     abria código na vitrine e no brandbook de quem visita) e o nome com "&" deixava o SVG inválido (kit e PNG falhavam) */
+  const at = s => String(s).replace(/[&"<>]/g, c => ({ '&': '&amp;', '"': '&quot;', '<': '&lt;', '>': '&gt;' })[c]);
   const attrs = el => {
     const a = [];
-    a.push(`fill="${el.f || 'none'}"`);
+    a.push(`fill="${at(el.f || 'none')}"`);
     if(el.eo) a.push('fill-rule="evenodd"');
-    if(el.s){ a.push(`stroke="${el.s}" stroke-width="${r3(el.w || 1)}" stroke-linecap="${el.cap || 'round'}" stroke-linejoin="${el.join || 'round'}"`); }
+    if(el.s){ a.push(`stroke="${at(el.s)}" stroke-width="${r3(el.w || 1)}" stroke-linecap="${at(el.cap || 'round')}" stroke-linejoin="${at(el.join || 'round')}"`); }
     if(el.op !== undefined && el.op < 1) a.push(`opacity="${r3(el.op)}"`);
     return a.join(' ');
   };
@@ -184,9 +187,9 @@
     const mclips = [];
     const furoSvg = e => { const p = `<path d="${dDe(e.d)}" ${attrs(Object.assign({}, e, { f: e.f ? '#000' : 'none', s: e.s ? '#000' : null }))}/>`; if(!e.clip) return p; const cid = id + 'm' + mclips.length; mclips.push(`<clipPath id="${cid}"><path d="${dDe(e.clip)}"${e.clipEo ? ' clip-rule="evenodd"' : ''}/></clipPath>`); return `<g clip-path="url(#${cid})">${p}</g>`; };
     const mask = furos.length ? (() => { const fx = furos.map(furoSvg).join(''); return `<defs><mask id="${id}" maskUnits="userSpaceOnUse" x="${r3(vb.x - 10)}" y="${r3(vb.y - 10)}" width="${r3(vb.w + 20)}" height="${r3(vb.h + 20)}">${mclips.length ? `<defs>${mclips.join('')}</defs>` : ''}<rect x="${r3(vb.x - 10)}" y="${r3(vb.y - 10)}" width="${r3(vb.w + 20)}" height="${r3(vb.h + 20)}" fill="#fff"/>${fx}</mask></defs>`; })() : '';
-    const fundo = (clips.length ? `<defs>${clips.join('')}</defs>` : '') + (o.fundo ? `<rect x="${r3(vb.x)}" y="${r3(vb.y)}" width="${r3(vb.w)}" height="${r3(vb.h)}" fill="${o.fundo}"/>` : '');
+    const fundo = (clips.length ? `<defs>${clips.join('')}</defs>` : '') + (o.fundo ? `<rect x="${r3(vb.x)}" y="${r3(vb.y)}" width="${r3(vb.w)}" height="${r3(vb.h)}" fill="${at(o.fundo)}"/>` : '');
     const wh = o.w ? ` width="${r3(o.w)}" height="${r3(o.h || o.w * vb.h / vb.w)}"` : '';
-    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${r3(vb.x)} ${r3(vb.y)} ${r3(vb.w)} ${r3(vb.h)}"${wh}${o.cls ? ` class="${o.cls}"` : ''}${o.titulo ? ` role="img" aria-label="${String(o.titulo).replace(/"/g, '&quot;')}"` : ' aria-hidden="true"'}>${o.titulo ? `<title>${String(o.titulo).replace(/</g, '&lt;')}</title>` : ''}${mask}${fundo}${furos.length ? `<g mask="url(#${id})">${corpo}</g>` : corpo}${o.extra || ''}</svg>`;
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${r3(vb.x)} ${r3(vb.y)} ${r3(vb.w)} ${r3(vb.h)}"${wh}${o.cls ? ` class="${o.cls}"` : ''}${o.titulo ? ` role="img" aria-label="${at(o.titulo)}"` : ' aria-hidden="true"'}>${o.titulo ? `<title>${at(o.titulo)}</title>` : ''}${mask}${fundo}${furos.length ? `<g mask="url(#${id})">${corpo}</g>` : corpo}${o.extra || ''}</svg>`;
   };
   /* recorta uma cena: soma margem em volta */
   M.margem = (els, m) => { const b = juntaCaixas(els.map(e => caixa(e.d))); return { x: b.x - m, y: b.y - m, w: b.w + 2 * m, h: b.h + 2 * m }; };

@@ -57,6 +57,8 @@
 
   const mesNome = ym => { const [y, m] = ym.split('-'); return `${C.MESES_L[+m - 1]} ${y}`; };
   const addMes = (ym, k) => { let [y, m] = ym.split('-').map(Number); m += k; while(m < 1){ m += 12; y--; } while(m > 12){ m -= 12; y++; } return `${y}-${String(m).padStart(2, '0')}`; };
+  /* v3.55: mês que a tela consegue mostrar (o Corre carrega os últimos 12) */
+  const noAlcance = ym => { const ini = addMes(C.hojeBR().slice(0, 7), -11); return ym < ini ? ini : ym; };
   const doMes = (ls, ym) => ls.filter(l => String(l.data).slice(0, 7) === ym);
   const soma = ls => ls.reduce((s, l) => s + Number(l.valor), 0);
   const sinal = v => (v < 0 ? '− ' : '') + money(Math.abs(v));
@@ -108,7 +110,8 @@
   function num(s){
     s = String(s || '').replace(/[R$\s]/g, '');
     if(!s) return NaN;
-    const neg = /^\(.*\)$/.test(s) || /-$/.test(s); s = s.replace(/[()]/g, '').replace(/-$/, '');
+    /* v3.55: o sinal na frente também conta ("-2.000" era -2,00: o ponto de milhar só valia sem sinal) */
+    const neg = /^\(.*\)$/.test(s) || /^[-\u2212]|-$/.test(s); s = s.replace(/[()]/g, '').replace(/^[-+\u2212]|-$/g, '');
     if(s.includes(',') && s.includes('.')) s = s.lastIndexOf(',') > s.lastIndexOf('.') ? s.replace(/\./g, '').replace(',', '.') : s.replace(/,/g, '');
     else if(s.includes(',')) s = s.replace(',', '.');
     /* "1.500" e "2.000.000" no jeito brasileiro: o ponto é de milhar, não de centavo */
@@ -260,7 +263,7 @@
     box.innerHTML = `<div class="g-pg">
       <div class="sec-row corre-tit"><h2 class="sec-t"><span class="hl">Grana</span></h2><span class="note">contas, extrato e quanto sobrou. O perfil mostra só o que você liberar.</span></div>
       <section class="card g-top">
-        <div class="g-mes"><button type="button" class="cbtn" data-act="g-mes" data-k="-1" aria-label="Mês anterior">${ico('prev')}</button><h2>${mesNome(G.mes)}</h2><button type="button" class="cbtn" data-act="g-mes" data-k="1" aria-label="Próximo mês"${G.mes >= C.hojeBR().slice(0, 7) ? ' disabled' : ''}>${ico('next')}</button></div>
+        <div class="g-mes"><button type="button" class="cbtn" data-act="g-mes" data-k="-1" aria-label="Mês anterior"${G.mes <= addMes(C.hojeBR().slice(0, 7), -11) ? ' disabled' : ''}>${ico('prev')}</button><h2>${mesNome(G.mes)}</h2><button type="button" class="cbtn" data-act="g-mes" data-k="1" aria-label="Próximo mês"${G.mes >= C.hojeBR().slice(0, 7) ? ' disabled' : ''}>${ico('next')}</button></div>
         <div class="g-nums">
           <div><span>Entrou</span><b class="num">${money(soma(ent))}</b></div>
           <div><span>Saiu</span><b class="num">${sinal(soma(sai))}</b></div>
@@ -326,8 +329,7 @@
       <div class="acts"><button type="submit" class="btn pri">${c.id ? 'Salvar' : 'Criar conta'}</button>${c.id ? `<button type="button" class="btn ghost" data-act="g-conta-del" data-id="${c.id}">${ico('trash')} Apagar conta</button>` : ''}</div>
       <p class="fine" id="g-cdel" hidden></p>
     </form>`);
-    C.$('g-cf').addEventListener('submit', async e => {
-      e.preventDefault();
+    C.umaVez(C.$('g-cf'), async e => {
       const row = { apelido: C.$('g-ap').value.trim(), banco: C.$('g-bc').value, cor: (document.querySelector('input[name="g-cor"]:checked') || {}).value || '' };
       if(!row.apelido){ C.toast('Dá um apelido pra conta.'); return; }
       try{ if(c.id) await C.api.upd('corre_contas', { id: c.id }, row); else await C.api.ins('corre_contas', row); C.closeSheet(); await carregar(); render(); C.toast(c.id ? 'Conta salva.' : 'Conta criada.'); }
@@ -353,8 +355,7 @@
     </form>`);
     const vl = C.$('g-vl'); if(l && vl){ vl.focus(); vl.select(); }
     C.$('g-lf').addEventListener('change', () => { const s1 = (document.querySelector('input[name="g-tp"]:checked') || {}).value === '-1'; C.$('g-clf').hidden = s1; C.$('g-caf').hidden = !s1; });
-    C.$('g-lf').addEventListener('submit', async e => {
-      e.preventDefault();
+    C.umaVez(C.$('g-lf'), async e => {
       const tp = Number((document.querySelector('input[name="g-tp"]:checked') || {}).value || 1), v = Math.abs(num(C.$('g-vl').value));
       if(!isFinite(v) || !v){ C.toast('Coloca o valor.'); C.$('g-vl').focus(); return; }
       const tr = C.$('g-tr') && C.$('g-tr').checked;
@@ -362,7 +363,7 @@
       try{
         if(l) await C.api.upd('corre_lancamentos', { id: l.id }, row);
         else await C.api.ins('corre_lancamentos', Object.assign(row, { origem: 'manual' }));
-        C.closeSheet(); G.mes = row.data.slice(0, 7); await carregar(); render(); C.toast(l ? 'Lançamento salvo.' : 'Lançado.');
+        C.closeSheet(); G.mes = noAlcance(row.data.slice(0, 7)); await carregar(); render(); C.toast(l ? 'Lançamento salvo.' : 'Lançado.');
       }catch(err){ C.toast(C.errMsg(err)); }
     });
   }
@@ -409,7 +410,7 @@
         for(const c of casar){ try{ await C.api.upd('corre_lancamentos', { id: c.id }, { chave: c.chave, conta_id: contaId }); }catch(e){} }
         for(const id of trVelhos){ try{ await C.api.upd('corre_lancamentos', { id }, { categoria: TRANSF }); }catch(e){} }
         for(let i = 0; i < ls.length; i += 400){ const r = await C.api.upsert('corre_lancamentos', ls.slice(i, i + 400).map(l => Object.assign({ conta_id: contaId, cliente: l.cliente || '' }, l)), 'conta_id,chave', true); nNovos += r.length; }
-        C.closeSheet(); G.mes = ds[ds.length - 1].slice(0, 7); await carregar(); render();
+        C.closeSheet(); G.mes = noAlcance(ds[ds.length - 1].slice(0, 7)); await carregar(); render();
         C.toast(nNovos ? `${nNovos} lançamentos novos.` : 'Tudo isso já estava aqui.');
       }catch(err){ C.toast(C.errMsg(err)); ev.target.disabled = false; ev.target.textContent = 'Importar'; }
     });
@@ -417,7 +418,8 @@
 
   Object.assign(C.acts, {
     'g-robo-quero': async el => { el.disabled = true; try{ const f = Object.assign({}, (C.st.me && C.st.me.ferramentas) || {}, { robo: 'lista' }); await C.saveMe({ ferramentas: f }); C.toast('Tá na lista do robô. A gente te chama quando abrir.', 3600); const b = C.$('g-robo'); if(b) b.outerHTML = roboHTML(); }catch(e){ el.disabled = false; C.toast(C.errMsg(e)); } },
-    'g-mes': el => { G.mes = addMes(G.mes, Number(el.dataset.k)); render(); },
+    /* v3.55: o Corre carrega os últimos 12 meses; antes disso a tela mostrava zero (e "nenhum lançamento") com dado no banco */
+    'g-mes': el => { G.mes = noAlcance(addMes(G.mes, Number(el.dataset.k))); render(); },
     'g-conta-nova': () => contaForm(null),
     'g-conta-edit': el => contaForm(G.contas.find(c => c.id === el.dataset.id)),
     'g-conta-del': async el => {

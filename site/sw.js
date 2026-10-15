@@ -49,7 +49,8 @@ self.addEventListener('notificationclick', e => {
   const url = new URL(typeof d.url === 'string' ? d.url : '/', self.registration.scope).href;
   e.waitUntil((async () => {
     const abertas = await janelas();
-    const c = abertas.find(x => x.url.startsWith(self.registration.scope)) || abertas[0];
+    /* v3.55: só a janela do app (o balcão da cidade é um iframe e não navega; a privacidade e a volta do Instagram também não) */
+    const c = abertas.find(x => x.frameType !== 'nested' && x.url.startsWith(self.registration.scope) && !/[?&]embed\b/.test(x.url) && !/\/(privacidade|ig)\.html/.test(x.url));
     if(c){
       try{ await c.focus(); }catch(err){}
       c.postMessage({ corre: 'ir', url });

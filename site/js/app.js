@@ -182,7 +182,7 @@
     /* v3.38: o Rolo 360 apaga a cidade (sala escura) e toca música clássica; saiu da sala, a música para */
     document.body.classList.toggle('em-rolo', cru === 'rolo');
     if(cru !== 'rolo' && C.roloSom) C.roloSom.sai();
-    if(logged && active === '' && /^#\/@/.test(location.hash) && decodeURIComponent(location.hash.slice(3)).toLowerCase() === me.handle) active = 'perfil';
+    if(logged && active === '' && /^#\/@/.test(location.hash) && C.decURI(location.hash.slice(3)).toLowerCase() === me.handle) active = 'perfil';
     if(logged && C.visitas) setTimeout(() => C.visitas.sync(), 0);
     if(logged && C.avisos) setTimeout(() => C.avisos.sync(), 0);
     if(logged && C.msg) setTimeout(() => C.msg.sync(), 0);
@@ -416,7 +416,8 @@
       lastChecked = h;
       try{
         const free = await api.rpc('corre_handle_livre', { h });
-        if(lastChecked !== h) return null;
+        /* v3.55: resposta atrasada de um @ que a pessoa já apagou não pinta a dica */
+        if(lastChecked !== h || hIn.value !== h) return null;
         hHint.className = 'hint ' + (free ? 'ok' : 'bad');
         hHint.textContent = free ? `@${h} tá livre.` : `@${h} já tem dono. Tenta outro.`;
         return free;
@@ -661,10 +662,10 @@
     }
     /* logado mas sem perfil (acabou de entrar pelo link de um post, story ou perfil): primeiro o perfil, depois volta pra lá */
     const precisaPerfil = async volta => { if(!st.user) return false; await loadMe(); if(st.me || st.meErro) return false; try{ localStorage.setItem('corre-volta', volta); }catch(e){} viewOnboarding(); return true; };
-    if(h.startsWith('@')){ if(await precisaPerfil(location.hash)) return; return viewProfile(decodeURIComponent(h.slice(1)).toLowerCase()); }
+    if(h.startsWith('@')){ if(await precisaPerfil(location.hash)) return; return viewProfile(C.decURI(h.slice(1)).toLowerCase()); }
     /* Story que veio do Instagram (#/s/@/ID): abre o perfil e o story por cima, sem login. O endereço vira o do perfil. */
     if(h.startsWith('s/')){
-      const [hh, sid] = h.slice(2).split('/'), hd = decodeURIComponent(hh || '').toLowerCase().replace(/[^a-z0-9_.]/g, '');
+      const [hh, sid] = h.slice(2).split('/'), hd = C.decURI(hh || '').toLowerCase().replace(/[^a-z0-9_.]/g, '');
       if(await precisaPerfil('#/@' + hd)) return;
       try{ history.replaceState(null, '', location.pathname + location.search + '#/@' + hd); }catch(e){}
       await viewProfile(hd);
@@ -674,7 +675,7 @@
     /* Mural: o mural, o pedido e a página de quem pediu abrem sem login */
     if((h === 'mural' || h.startsWith('mural/')) && C.views.mural){ if(st.user) await loadMe(); window.scrollTo(0, 0); return C.views.mural(app, h.slice(6)); }
     /* Feed: a conversa de um post (#/p/ID) abre sem login, pra dar pra mandar o link */
-    if(h.startsWith('p/') && C.views.post){ if(await precisaPerfil(location.hash)) return; window.scrollTo(0, 0); return C.views.post(app, decodeURIComponent(h.slice(2))); }
+    if(h.startsWith('p/') && C.views.post){ if(await precisaPerfil(location.hash)) return; window.scrollTo(0, 0); return C.views.post(app, C.decURI(h.slice(2))); }
     /* Grupos (v3.36): a vitrine e a página do grupo abrem sem login (grupo aberto mostra os posts; fechado, só a capa) */
     if(h.startsWith('g/') && C.views.grupo){ if(await precisaPerfil(location.hash)) return; window.scrollTo(0, 0); return C.views.grupo(app, h.slice(2)); }
     if(h === 'grupos' && C.views.grupos){ if(await precisaPerfil(location.hash)) return; window.scrollTo(0, 0); return C.views.grupos(app); }
@@ -683,9 +684,9 @@
     if(h.startsWith('bb/') && C.views.bb){ if(st.user) await loadMe(); window.scrollTo(0, 0); return C.views.bb(app, h.slice(3)); }
     if(!st.user && /^houzi\//.test(h)){ try{ localStorage.setItem('corre-volta', location.hash); }catch(e){} }
     /* Vendas: o orçamento que o cliente recebe abre sem login */
-    if(h.startsWith('o/') && C.views.orcamentoVenda){ if(st.user) await loadMe(); window.scrollTo(0, 0); return C.views.orcamentoVenda(app, decodeURIComponent(h.slice(2))); }
+    if(h.startsWith('o/') && C.views.orcamentoVenda){ if(st.user) await loadMe(); window.scrollTo(0, 0); return C.views.orcamentoVenda(app, C.decURI(h.slice(2))); }
     /* Hórus 4: o link público de orçamento abre sem login */
-    if(h.startsWith('orcamento/') && C.views.orcamento){ if(st.user) await loadMe(); return C.views.orcamento(app, decodeURIComponent(h.slice(10))); }
+    if(h.startsWith('orcamento/') && C.views.orcamento){ if(st.user) await loadMe(); return C.views.orcamento(app, C.decURI(h.slice(10))); }
     if(!st.user && /^msg(\/|$)/.test(h)){ try{ localStorage.setItem('corre-volta', location.hash); }catch(e){} }
     if(!st.user){ if(C.EMBED){ app.innerHTML = ''; C.pai('fechar'); return; } return viewLogin(); }
     await loadMe();
@@ -820,6 +821,8 @@
   addEventListener('pageshow', e => { if(e.persisted && /^#\/verso/.test(location.hash) && st.user) route(); });
   document.addEventListener('keydown', e => {
     if(e.key !== 'Escape') return;
+    /* v3.55: a pergunta por cima (C.confirma, um <dialog>) fecha sozinha no Esc; a folha embaixo fica (e o balcão também) */
+    if(document.querySelector('dialog[open]')) return;
     const sh = $('sheet'), aberta = !!(sh && !sh.hidden);
     /* v3.53: o Esc que fechou a folha não fecha mais nada (a casa/lugar 3D ouvia o mesmo Esc e saía junto) */
     if(aberta) e.preventDefault();

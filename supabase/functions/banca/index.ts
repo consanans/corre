@@ -42,9 +42,11 @@ const TTL = 20 * 60 * 1000;
 const cache = new Map<string, { at: number; itens: Item[] }>();
 
 const ENT: Record<string, string> = { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", nbsp: " ", hellip: "…", ndash: "–", mdash: "—", lsquo: "‘", rsquo: "’", ldquo: "“", rdquo: "”" };
+/* v3.55: código fora do Unicode (&#99999999;) virava RangeError e derrubava o feed inteiro */
+const cp = (n: number) => (n > 0 && n <= 0x10FFFF ? String.fromCodePoint(n) : "");
 const ents = (s: string) => s
-  .replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCodePoint(parseInt(h, 16)))
-  .replace(/&#(\d+);/g, (_, d) => String.fromCodePoint(Number(d)))
+  .replace(/&#x([0-9a-f]+);/gi, (_, h) => cp(parseInt(h, 16)))
+  .replace(/&#(\d+);/g, (_, d) => cp(Number(d)))
   .replace(/&([a-z]+);/gi, (m, n) => ENT[n.toLowerCase()] ?? m);
 function decode(s: string): string {
   // duas passadas: tem feed que manda "&amp;amp;"

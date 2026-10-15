@@ -162,6 +162,8 @@
   async function pintaCorpo(){
     const el = C.$('mu-corpo'); if(!el) return;
     clearInterval(M.poll); M.poll = 0;
+    /* v3.55: cada pintura tem número; a resposta de uma busca velha ("lo") não pinta por cima da nova ("logo") */
+    const seq = M.seq = (M.seq || 0) + 1;
     if(M.tab === 'chat') return pintaChat(el);
     if(M.tab === 'minhas') return pintaMinhas(el);
     if(M.tab === 'quem') return pintaQuem(el);
@@ -179,7 +181,8 @@
     try{
       if(M.tab === 'pra') rows = await C.api.rpc('corre_mural_lista', { p_uf: pf.area === 'brasil' ? '' : pr.uf, p_cidade: pf.area === 'cidade' ? pr.cidade : '', p_cats: pf.cats.length ? pf.cats : null, p_q: '', p_antes: null });
       else rows = await C.api.rpc('corre_mural_lista', { p_uf: M.uf, p_cidade: M.uf ? M.cidade : '', p_cats: M.cat ? [M.cat] : null, p_q: M.q, p_antes: null });
-    }catch(e){ const w = C.$('mu-wall'); if(w) w.innerHTML = `<p class="note">${esc(C.errMsg(e, 'Não deu pra abrir o mural agora.'))}</p>`; return; }
+    }catch(e){ const w = C.$('mu-wall'); if(w && seq === M.seq) w.innerHTML = `<p class="note">${esc(C.errMsg(e, 'Não deu pra abrir o mural agora.'))}</p>`; return; }
+    if(seq !== M.seq) return;
     rows = rows || [];
     const daqui = store.get(MEUS_K, []).map(x => x.codigo);
     if(M.tab === 'pra') rows = rows.filter(p => !daqui.includes(p.codigo));
@@ -267,7 +270,9 @@
     pintaLista();
     M.poll = setInterval(async () => {
       if(M.tab !== 'chat' || !C.$('mu-chat-l') || document.visibilityState !== 'visible'){ if(!C.$('mu-chat-l')){ clearInterval(M.poll); M.poll = 0; } return; }
-      const antes = (M.chat[0] || {}).id; await carregaChat(); if((M.chat[0] || {}).id !== antes){ await candidatos(); pintaLista(); }
+      /* v3.55: com pergunta tua no forno, a lista não repinta (apagava o "procurando quem faz…" e a resposta sumia) */
+      if(M.enviando) return;
+      const antes = (M.chat[0] || {}).id; await carregaChat(); if((M.chat[0] || {}).id !== antes && !M.enviando){ await candidatos(); pintaLista(); }
     }, 25e3);
   }
   async function carregaChat(){ try{ M.chat = await C.api.q('corre_mural_chat', { select: COLS, order: ['created_at', false], limit: 30 }) || []; }catch(e){ M.chat = M.chat || []; } }
@@ -306,7 +311,8 @@
     if(q && q.id && q.chave){ store.set(CHAT_K, [{ id: q.id, chave: q.chave }].concat(meusChat()).slice(0, 30)); }
     else if(q && q.id && !local && !String(q.id).startsWith('local-')){ store.set(CHAT_K, [{ id: q.id, chave: '' }].concat(meusChat()).slice(0, 30)); }
     if(!local){ M.chat = [q].concat(M.chat.filter(x => x.id !== q.id)); }
-    const n = C.$('qa-novo'); if(n) n.outerHTML = qaHTML(q, { local });
+    const n = C.$('qa-novo'), lq = C.$('mu-chat-l');
+    if(n) n.outerHTML = qaHTML(q, { local }); else if(lq) lq.insertAdjacentHTML('afterbegin', qaHTML(q, { local }));
     const pq = C.$('mu-pq'); if(pq) pq.value = '';
     if(local) C.toast('Resposta rápida: a IA do Mural ainda tá sendo ligada. Essa pergunta só você vê.', 4200);
     }finally{
@@ -324,9 +330,9 @@
       <div class="mu-pros" id="mu-pros"><p class="note">Procurando…</p></div>
       <p class="mu-cota">Não achou? <a href="#/mural/novo">Fixa o pedido</a> e quem faz chega até você.</p>`;
     if(M.quf) encheCidades(M.quf, 'mu-qcid-l');
-    let l = [];
+    let l = []; const seq = M.seq;
     try{ l = await C.api.rpc('corre_quem_faz', { p_cat: M.qcat, p_uf: M.quf, p_cidade: M.quf ? M.qcid : '', p_q: M.qq }) || []; }catch(e){ const b = C.$('mu-pros'); if(b) b.innerHTML = `<p class="note">${esc(C.errMsg(e))}</p>`; return; }
-    const b = C.$('mu-pros'); if(!b) return;
+    const b = C.$('mu-pros'); if(!b || seq !== M.seq) return;
     b.innerHTML = l.length ? l.map(proHTML).join('') : `<div class="mu-vazio"><p><b>Ainda não tem ninguém com esse filtro.</b></p><p>${CRESCE} Enquanto isso, tira um filtro ou fixa o teu pedido no Mural: quem faz recebe e manda proposta.</p><a class="btn" href="#/mural/novo">${ico('tacha')} Fixar um pedido</a></div>`;
   }
   function proHTML(f){
@@ -469,11 +475,15 @@
   /* ---------------- um pedido (público) ---------------- */
   async function viewPedido(app, cod){
     app.innerHTML = header() + '<main class="wrap mural mu-det"><p class="note">Abrindo o pedido…</p></main>';
+    /* v3.55: a resposta lenta não pinta por cima da página pra onde a pessoa já foi */
+    const rota = C.rota;
     let p = null; try{ p = await C.api.rpc('corre_mural_ver', { p_codigo: cod }); }catch(e){ p = null; }
+    if(rota !== C.rota) return;
     if(!p){ app.innerHTML = header() + `<main class="wrap mural mu-det"><section class="card"><h1>Esse pedido não tá mais no Mural.</h1><p><a href="#/mural">Ver o mural</a></p></section></main>`; return; }
     document.title = `${p.titulo} · Mural · Corre`;
     const local = store.get(MEUS_K, []).find(x => x.codigo === p.codigo);
     const t = tom(p.codigo), pct = Math.min(100, Math.round((p.propostas / Math.max(1, p.vagas)) * 100));
+    const prop = await propostaHTML(p, local); if(rota !== C.rota) return;
     app.innerHTML = header() + `<main class="wrap mural mu-det">
       <a class="mu-back" href="#/mural">${ico('prev')} Mural</a>
       <article class="mu-card mu-grande mu-t${t % 4}" style="--r:-.6deg">
@@ -485,7 +495,7 @@
         <div class="mu-meta"><span>${ico('pin')}${esc(lugar(p))}</span>${p.quando === 'urgente' ? '<span class="mu-urg">Urgente</span>' : `<span>${esc(QN[p.quando] || '')}</span>`}<span class="mu-verba">${esc(VN[p.verba] || 'Verba não informada')}</span></div>
         <div class="mu-foot"><span class="mu-vagas" aria-hidden="true"><i style="width:${pct}%"></i></span><span>${p.propostas} de ${p.vagas} propostas${p.vagas - p.propostas > 0 && p.st === 'aberto' ? ` · ${p.vagas - p.propostas} ${p.vagas - p.propostas === 1 ? 'vaga' : 'vagas'}` : ''}</span></div>
       </article>
-      <section class="card mu-prop" id="mu-prop">${await propostaHTML(p, local)}</section>
+      <section class="card mu-prop" id="mu-prop">${prop}</section>
       <p class="fine mu-sharel">Conhece alguém que faz isso? <button type="button" class="linklike" data-act="mu-share" data-u="${esc(linkPub(p.codigo))}" data-t="${esc(p.titulo)}">Manda o pedido</button>.</p>
     </main>`;
     M.atual = p;
@@ -540,7 +550,9 @@
   /* ---------------- a página de quem pediu ---------------- */
   async function viewDono(app, chave){
     app.innerHTML = header() + '<main class="wrap mural mu-dono"><p class="note">Abrindo teu pedido…</p></main>';
+    const rota = C.rota;
     let p = null; try{ p = await C.api.rpc('corre_mural_pedido', { p_chave: chave }); }catch(e){ p = null; }
+    if(rota !== C.rota) return;
     if(!p){ esquece(chave); app.innerHTML = header() + `<main class="wrap mural mu-dono"><section class="card"><h1>Não achei esse pedido.</h1><p class="note">Ele pode ter sido apagado, ou o link veio cortado.</p><a class="btn" href="#/mural">Ver o mural</a></section></main>`; return; }
     document.title = `Teu pedido · ${p.titulo} · Corre`;
     lembra({ chave: p.chave, codigo: p.codigo, titulo: p.titulo });

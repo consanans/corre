@@ -36,9 +36,9 @@
     const [y, m, d] = k.split('-').map(Number);
     return `${d} de ${MES[m - 1]}${y !== Number(diaK(Date.now()).slice(0, 4)) ? ' de ' + y : ''}`;
   }
-  const linka = t => esc(t)
-    .replace(/\b(https?:\/\/[^\s<]{4,200})/g, '<a href="$1" target="_blank" rel="noopener nofollow">$1</a>')
-    .replace(/(^|[\s(])@([a-z0-9_.]{3,24})/gi, (m, a, h) => { const k = h.replace(/\.+$/, ''); return k.length < 3 ? m : `${a}<a href="#/@${k.toLowerCase()}">@${k}</a>${h.slice(k.length)}`; });
+  /* v3.55: o @ vira link só fora dos links (dentro do href ele quebrava a marcação: "http://a.co/(@abc" ) */
+  const linka = t => esc(t).split(/\b(https?:\/\/[^\s<]{4,200})/g).map((s, i) => i % 2 ? `<a href="${s}" target="_blank" rel="noopener nofollow">${s}</a>`
+    : s.replace(/(^|[\s(])@([a-z0-9_.]{3,24})/gi, (m, a, h) => { const k = h.replace(/\.+$/, ''); return k.length < 3 ? m : `${a}<a href="#/@${k.toLowerCase()}">@${k}</a>${h.slice(k.length)}`; })).join('');
   const monstra = () => ST ? `<span class="msg-stk" aria-hidden="true">${ST.svg('monstra')}</span>` : '';
 
   /* ---------- o número do topo e o ouvido ligado ---------- */
@@ -57,7 +57,7 @@
     if(C.push) C.push.badge(n + p);
   }
   async function sync(forca){
-    if(!uid() || !C.st.me){ para(); return; }
+    if(!uid() || !C.st.me){ esquece(); return; }
     liga();
     if(!forca && Date.now() - M.badgeAt < 30e3){ pintaBadge(); return; }
     M.badgeAt = Date.now();
@@ -70,6 +70,8 @@
     para(); M.ouvirDe = u; M.ouvir = C.api.msg.ouve(chegou);
   }
   function para(){ if(M.ouvir){ try{ M.ouvir(); }catch(e){} } M.ouvir = null; M.ouvirDe = null; }
+  /* v3.55: sair da conta esquece a caixa, os bloqueados e o contador (a próxima conta no mesmo aparelho não vê os da anterior) */
+  function esquece(){ para(); M.caixa = null; M.bloq = null; M.badge = { n: 0, conversas: 0, pedidos: 0 }; M.badgeAt = 0; M.autores = {}; }
 
   /* mensagem nova (ou apagada) chegou pelo tempo real */
   function chegou(tipo, m){
@@ -636,5 +638,5 @@
     }
   });
 
-  C.msg = { botao, sync, para, pintaBadge, mandar, nova, estado: () => M };
+  C.msg = { botao, sync, para: esquece, pintaBadge, mandar, nova, estado: () => M };
 })();

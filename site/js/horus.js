@@ -236,8 +236,11 @@
     try{ await C.api.upd('corre_leads', { id: l.id }, patch); return true; }
     catch(e){ C.toast(C.errMsg(e, 'Não deu pra salvar o lead.')); return false; }
   }
+  const FOI = {};
   async function fire(id, how){
     const l = H.by[id]; if(!l) return;
+    /* v3.55: dois toques no mesmo lead em 3 s contam um só (o segundo pulava um passo da cadência) */
+    if(Date.now() - (FOI[id] || 0) < 3000) return; FOI[id] = Date.now();
     how = how || 'WhatsApp';
     const s = cadStep(l), m = nextMsg(l), ia = H.ia[id] ? ' · IA' : ''; delete H.ia[id];
     if(s != null && s < CAD.length){
@@ -800,8 +803,8 @@
       <div class="row2"><div class="fld"><label for="hn-c">Nicho</label><select class="inp" id="hn-c">${c.nichos.map(n => `<option value="${esc(n.k)}">${esc(n.n)}</option>`).join('')}</select></div><div class="fld"><label for="hn-b">Bairro</label><input class="inp" id="hn-b" maxlength="80"></div></div>
       <div class="acts"><button type="submit" class="btn pri">Pôr no radar</button></div></form>`);
     C.$('hn-n').addEventListener('input', () => { const g = guessNicho(C.$('hn-n').value); if(g) C.$('hn-c').value = g; });
-    C.$('hn-f').addEventListener('submit', async e => {
-      e.preventDefault(); const nome = C.$('hn-n').value.trim(); if(!nome){ C.toast('Coloca o nome da empresa.'); return; }
+    C.umaVez(C.$('hn-f'), async e => {
+      const nome = C.$('hn-n').value.trim(); if(!nome){ C.toast('Coloca o nome da empresa.'); return; }
       const pr = cfg().praca, ph = phoneOf(C.$('hn-w').value, pr.ddd), ig = C.$('hn-i').value.trim().replace(/^@/, '').replace(/[^A-Za-z0-9_.]/g, '').slice(0, 30);
       try{ await C.api.ins('corre_leads', { nome, nicho: C.$('hn-c').value, bairro: C.$('hn-b').value.trim(), tel: ph ? ph.fmt : '', wa: ph ? ph.wa : '', fixo: ph ? ph.fixo : '', insta: ig, cidade: pr.cidade.slice(0, 60), uf: UFN[pr.uf] ? pr.uf : '', st: 'novo', fonte: 'manual', hist: [{ t: new Date().toISOString(), k: 'cria', v: 'Na mão' }] }); C.closeSheet(); C.toast('No radar.'); C.views.horus(C.$('app')); }
       catch(err){ C.toast(C.errMsg(err)); }

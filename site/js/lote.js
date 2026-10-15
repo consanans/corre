@@ -57,13 +57,13 @@
     temas.forEach((t, k) => { const i = Math.min(it.length - 1, Math.floor(k * it.length / temas.length)), x = it[i]; Object.assign(x, { tema: 'Assunto', titulo: (t[0].toUpperCase() + t.slice(1)).slice(0, 60), cena: `${t}, na marca ${mk.marca} (${seg})`, dataC: null }); });
     return it.map(x => ({ data: x.data, tema: x.tema, titulo: x.titulo, cena: x.cena }));
   }
-  async function pautaIA(mk, datas, assunto){
+  async function pautaIA(mk, datas, assunto, f){
     const ctx = { marca: mk.marca, segmento: mk.segmento || '', instagram: mk.rede || '', cidade: (C.st.me && C.st.me.cidade) || '', assunto: String(assunto || '').slice(0, 600),
       datas: datas.map(d => ({ data: d, dia: DOWL[new Date(msDe(d)).getUTCDay()] })), datas_comerciais: (C.refs && C.refs.proximas ? C.refs.proximas(catDe(mk), 12) : []).map(c => ({ nome: c.nome, data: c.data })),
       anteriores: S().posts().filter(p => p.marca_id === mk.id && p.titulo).slice(-12).map(p => p.titulo) };
     const r = await C.iaFn({ acao: 'pauta', ctx, marca_id: mk.id }, { oque: 'uma pauta' });
     /* a pauta paga entra na conta do mês (o "Usou X correal" do fim), já que a promessa da folha conta com ela */
-    if(F && r && r.pago) F.pautaPago = (F.pautaPago || 0) + C.correalCent(r.pago);
+    if(f && r && r.pago) f.pautaPago = (f.pautaPago || 0) + C.correalCent(r.pago);
     const L = (r && Array.isArray(r.itens) ? r.itens : []).filter(x => x && x.titulo);
     if(L.length < Math.ceil(datas.length / 2)) throw { code: 'pauta' };
     const base = pautaLocal(mk, datas, assunto);
@@ -344,9 +344,12 @@
       if(!F.dias.length){ C.toast('Escolhe pelo menos um dia da semana.'); return; }
       if(!F.datas.length){ C.toast('Não achei vaga nesses dias. Muda o dia ou o "a partir de".'); return; }
       el.disabled = true; el.innerHTML = `${ico('magia')} Montando a pauta…`;
-      try{ F.pauta = await pautaIA(F.mk, F.datas, F.assunto); F.pautaIA = true; }
-      catch(e){ F.pauta = pautaLocal(F.mk, F.datas, F.assunto); F.pautaIA = false; }
-      if(!C.$('lt-corpo')) return;
+      /* v3.55: a folha pode fechar (ou abrir outra, de outra marca) enquanto a IA pensa: a pauta fica com quem pediu */
+      const f = F; let pauta, ia;
+      try{ pauta = await pautaIA(f.mk, f.datas, f.assunto, f); ia = true; }
+      catch(e){ pauta = pautaLocal(f.mk, f.datas, f.assunto); ia = false; }
+      if(F !== f || !C.$('lt-corpo')) return;
+      F.pauta = pauta; F.pautaIA = ia;
       pautaTela();
     },
     'lt-volta': () => plano(),

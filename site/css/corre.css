@@ -11,8 +11,8 @@
   --ink-2:#3C4450;
   --muted:#6B7480;
   --yellow:#F2EC54;       /* a marca e os marca-textos */
-  --pink:#FF4F9A; --lime:#B8F04A; --orange:#FF8A3D; --blue:#2E5BFF; --lav:#C6A6FF;
-  --ok:#0B7A3E; --bad:#B4152E; --focus:#2E5BFF;
+  --pink:#FF4F9A; --lime:#FFE14A; --orange:#FF8A3D; --blue:#2E5BFF; --lav:#C6A6FF;
+  --ok:#0B5C8E; --bad:#B4152E; --focus:#2E5BFF;
   --shadow:0 14px 34px rgb(18 52 88 / 28%), 0 2px 6px rgb(18 52 88 / 18%);
   --font-display:"Playfair Display",Georgia,"Times New Roman",serif;
   --font-body:"Archivo",system-ui,-apple-system,"Segoe UI",sans-serif;

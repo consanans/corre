@@ -1443,7 +1443,14 @@
 
   C.api = LIVE ? liveApi() : DEMO ? demoApi() : offApi();
   Object.defineProperty(C, 'oculto', { get: () => OCULTO.on, set: v => { OCULTO.on = !!v; try{ localStorage.setItem('corre-oculto', v ? '1' : '0'); }catch(e){} } });
-  Object.assign(C, { $, esc, norm, rid, hash, rng, shuffle, money, MESES, MESES_L, hojeBR, ddmm, rel, toast, copy, initials, avatar, firstName, profileUrl, ico, shrink, pickFile, sheet, closeSheet, errMsg });
+  /* v3.55: formulário que grava no banco manda uma vez só: toque duplo ou rede lenta não criam dois (o botão apaga até voltar) */
+  const umaVez = (form, fn) => { if(form) form.addEventListener('submit', async e => {
+    e.preventDefault(); if(form.dataset.indo === '1') return; form.dataset.indo = '1'; const b = e.submitter; if(b) b.disabled = true;
+    try{ await fn(e); }finally{ form.dataset.indo = ''; if(b && b.isConnected) b.disabled = false; }
+  }); };
+  /* v3.55: endereço com % quebrado (#/@ana%) não derruba a rota: devolve o texto como veio */
+  const decURI = s => { try{ return decodeURIComponent(s); }catch(e){ return String(s); } };
+  Object.assign(C, { $, esc, decURI, umaVez, norm, rid, hash, rng, shuffle, money, MESES, MESES_L, hojeBR, ddmm, rel, toast, copy, initials, avatar, firstName, profileUrl, ico, shrink, pickFile, sheet, closeSheet, errMsg });
   C.uid = () => C.st.user && C.st.user.id;
 
   /* ---------- v3.38 · CORREAL: a moeda do Correverso ----------

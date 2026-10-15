@@ -545,6 +545,8 @@
           if(e && e.code === 'nofn' && C.DEMO){ blobIA = await fakeIA(); C.toast(IA_ERRO.nofn, 3600); }
           else throw e;
         }
+        /* v3.55: a folha fechou (ou outra abriu) enquanto a IA desenhava: a imagem não cai no post errado */
+        if(!cv.isConnected) return;
         fotoFile = await C.shrink(new File([blobIA], 'ia.png', { type: blobIA.type }), 1600, .88);
         art.foto = URL.createObjectURL(fotoFile);
         if(['frase', 'lista', 'oferta'].includes(art.modelo)){ const r2 = document.querySelector('input[name="es-m"][value="imagem"]'); if(r2) r2.checked = true; }
@@ -582,14 +584,14 @@
       paint();
     }
     async function escreverLegenda(auto){
-      if(legBusy || !C.$('es-leg-go')) return; legBusy = true;
+      if(legBusy || !C.$('es-leg-go') || !cv.isConnected) return; legBusy = true;
       const b = C.$('es-leg-go'), st = C.$('es-leg-st'); b.disabled = true; st.textContent = 'Escrevendo a legenda…';
       try{
         read(); const ctx = ctxLeg(), arte = await arteB64();
         let r;
         try{ r = await C.iaFn({ acao: 'legenda', ctx, arte, marca_id: mk.id }, { oque: 'uma legenda', auto: auto ? false : undefined }); }
         catch(e){ if(e && e.code === 'nofn' && C.DEMO){ r = fakeLeg(ctx); if(!auto) C.toast('Na demonstração a legenda sai de um modelo pronto.', 3200); } else throw e; }
-        if(!C.$('es-leg-go')) return;
+        if(!C.$('es-leg-go') || !cv.isConnected) return;
         setLeg(r || {}, auto); st.textContent = 'Legenda pronta. Revisa antes de postar.';
       }catch(e){
         const semIA = e && (e.code === 'sem_chave' || e.status === 404), msg = iaMsg(e, LEG_ERRO, 'Não deu pra escrever agora.');
@@ -630,6 +632,12 @@
         }
         /* sem o botão de programar (painel da marca): postado à mão ou de volta pra ideia sai da fila do Instagram */
         if(!au && p && ['agendado', 'erro'].includes(p.ig_status || '') && row.status !== 'pronto') row.ig_status = '';
+        /* v3.55: e se segue Pronto mas mudou o dia ou a hora, a fila vai junto (o banco refaz a hora; o demo não);
+           sem dia, ou com a hora já passada, sai da fila (antes o banco recusava o post sem dia, e a hora velha publicava na hora) */
+        else if(!au && p && p.ig_status === 'agendado' && row.status === 'pronto' && (row.data !== p.data || row.hora !== (p.hora || ''))){
+          if(row.data && at(row) > Date.now() + 6e4) row.ig_quando = `${row.data}T${row.hora || '12:00'}:00-03:00`;
+          else row.ig_status = '';
+        }
         if(p) await C.api.upd('corre_posts', { id: p.id }, row); else { const r = await C.api.ins('corre_posts', row); p = r[0]; }
         await load(); S.sel = p.id; if(p.data){ S.week = weekOf(p.data); S.mes = p.data.slice(0, 7); } lista(); dirty = false;
         if(S.onSave) try{ S.onSave(p); }catch(e){}
@@ -649,8 +657,10 @@
     C.$('es-cp').addEventListener('click', () => { read(); C.copy(juntar(leg), 'Legenda copiada.'); });
     C.$('es-post').addEventListener('click', async () => {
       read(); C.copy(juntar(leg), 'Legenda copiada. Cola no Instagram.');
+      /* v3.55: abre o Instagram ainda no toque (depois do download e do upload o iPhone bloqueia a janela nova) */
+      window.open('https://www.instagram.com/', '_blank', 'noopener');
       const ok = await baixar();
-      if(ok && await salvar('postado')){ window.open('https://www.instagram.com/', '_blank', 'noopener'); C.closeSheet(); C.toast('Legenda copiada e arte baixada. Marcado como postado.', 4200); }
+      if(ok && await salvar('postado')){ C.closeSheet(); C.toast('Legenda copiada e arte baixada. Marcado como postado.', 4200); }
     });
     const del = C.$('es-del');
     if(del) del.addEventListener('click', async () => {

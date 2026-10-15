@@ -68,7 +68,8 @@
       if(!(cats.includes(TODOS) || (!cat && k !== 'sexta13') || cats.includes(cat))) return;
       [].concat(f(ano)).forEach(d => {
         const falta = Math.round((d - hoje) / DIA);
-        if(falta < -1 || falta > 365) return;
+        /* v3.55: data de ontem não aparece mais como "é hoje" (hoje dá -0 aqui, que não é menor que 0) */
+        if(falta < 0 || falta > 365) return;
         const abre = mais(d, -ant), jaAbriu = hoje >= abre;
         out.push({ k, nome, data: iso(d), falta, ant, abre: iso(abre), jaAbriu, pra: pra || '', ideia: ideia(k, cat) });
       });
@@ -86,7 +87,10 @@
   /* ---------------- a tela ---------------- */
   C.views.refs = async function(app){
     app.innerHTML = C.header('refs') + '<main class="wrap rf"><section class="card"><p>Abrindo as referências…</p></section></main>';
+    /* v3.55: saiu antes de carregar: não pinta por cima da outra página */
+    const rota = C.rota;
     await carregar(true);
+    if(rota !== C.rota) return;
     pinta();
   };
   function pinta(){
@@ -157,8 +161,7 @@
       try{ const blob = await C.shrink(f, 1000, .82); img = await C.api.upload(blob); C.$('rf-im').innerHTML = `<img src="${esc(img)}" alt="">`; }catch(e){ C.toast(C.errMsg(e, 'Não deu pra subir a foto.')); }
       finally{ b.disabled = false; b.innerHTML = `${ico('camera')} Trocar`; }
     });
-    C.$('rf-f').addEventListener('submit', async e => {
-      e.preventDefault();
+    C.umaVez(C.$('rf-f'), async e => {
       const titulo = C.$('rf-t').value.trim().slice(0, 120); let url = C.$('rf-u').value.trim();
       if(!titulo){ C.toast('Diz de quem ou do quê é.'); C.$('rf-t').focus(); return; }
       if(/^@[A-Za-z0-9_.]{1,30}$/.test(url)) url = 'https://www.instagram.com/' + url.slice(1) + '/';

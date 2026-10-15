@@ -156,8 +156,7 @@
     calc();
     pintaFoto();
     ['ct-p', 'ct-c', 'ct-h'].forEach(id => C.$(id).addEventListener('input', calc));
-    C.$('ct-f').addEventListener('submit', async e => {
-      e.preventDefault();
+    C.umaVez(C.$('ct-f'), async e => {
       const nome = C.$('ct-n').value.trim().slice(0, 80), preco = parseReais(C.$('ct-p').value), custo = parseReais(C.$('ct-c').value), hr = C.$('ct-h').value.trim() ? parseReais(C.$('ct-h').value) : null;
       if(!nome){ C.toast('Diz o que você vende.'); C.$('ct-n').focus(); return; }
       if(!(preco > 0)){ C.toast('Coloca o preço.'); C.$('ct-p').focus(); return; }

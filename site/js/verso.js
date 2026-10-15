@@ -19,6 +19,8 @@
   const ESPECIAL = { consanans: 'dois' };
   /* casas com estilo próprio */
   const ESTILOS = { maiacrds: 'tinta', 'tropicalink.00': 'tropical', lolouzimaki: 'blocos', playboy: 'pimp', apenassantoro: 'dj' };
+  /* v3.55: @ chamado "constructor" ou "__proto__" não vira fundador nem estilo */
+  Object.setPrototypeOf(ESPECIAL, null); Object.setPrototypeOf(ESTILOS, null);
   const ESTILO_SPRITE = () => ({ tinta: spriteTinta, tropical: spriteTropical, blocos: spriteBlocos, pimp: spritePimp, dj: spriteDJ });
   const INK = '#0F1218', PAPEL = '#FFFFFF', AMARELO = '#F2EC54', ROSA = '#FF4F9A', AZUL = '#2E5BFF', LARANJA = '#FF8A3D', LILAS = '#C6A6FF';
 
@@ -296,6 +298,8 @@
     pergaminho: (px, x, y) => { px(x, y - 1, 6, 4, '#F3E9D2'); px(x, y - 2, 6, 1, '#C9B79C'); px(x, y + 3, 6, 1, '#C9B79C'); px(x + 2, y, 2, 2, '#E2412E'); },
     envelope: (px, x, y) => { px(x, y - 1, 6, 4, '#F4F3EF'); px(x, y - 1, 6, 1, '#C9B79C'); px(x + 1, y, 1, 1, '#C9B79C'); px(x + 4, y, 1, 1, '#C9B79C'); px(x + 2, y + 1, 2, 1, '#C9B79C'); px(x + 2, y + 2, 2, 1, '#E2412E'); }
   };
+  /* v3.55: sem protótipo: um vizinho mandando item "__proto__" ou "valueOf" achava uma "função" aqui e travava a cidade de todo mundo */
+  Object.setPrototypeOf(ITEM_MAO, null);
   /* comida: o nome na placa do truck/quiosque → o item */
   const COMIDA_DE = { SMASH: 'smash', PASTEL: 'pastel', CHURROS: 'churros', COCO: 'coco', SORVETE: 'sorvete', PIPOCA: 'pipoca', ACAI: 'acai', 'CALDO DE CANA': 'caldo' };
   const COMIDAS = { smash: ['Comer um smash', 'Smash'], pastel: ['Comer um pastel', 'Pastel'], churros: ['Comer churros', 'Churros'], coco: ['Tomar água de coco', 'Água de coco'], sorvete: ['Tomar um sorvete', 'Sorvete'], pipoca: ['Comer pipoca', 'Pipoca'], acai: ['Tomar um açaí', 'Açaí'], caldo: ['Tomar caldo de cana', 'Caldo de cana'] };
@@ -466,6 +470,8 @@
     frete: { b: 'escuro', u: AMARELO, a: AMARELO, g: 'caixa', f: 'garagem' }, juridico: { b: 'branco', u: 'concreto', a: INK, g: 'balanca', f: 'pilotis' },
     casa: { b: 'branco', u: '#9CC9F0', a: AZUL, g: 'brilho', f: 'vasos' }, outros: { b: 'concreto', u: ROSA, a: ROSA, g: 'estrela', f: 'vitrine' }
   };
+  /* v3.55: sem protótipo: categoria "constructor" não vira casa quebrada */
+  Object.setPrototypeOf(CASA, null);
   const GLIFO = {
     cel: 'M8 3h8a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1zM11 18h2', pena: 'M12 3l6 7-6 11-6-11zM12 10v5', cam: 'M4 8h4l2-3h4l2 3h4v11H4zM12 16.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z',
     code: 'M8 7l-5 5 5 5M16 7l5 5-5 5M14 4l-4 16', seta: 'M3 20l6-6 4 4 8-9M15 9h6v6', disco: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4z',
@@ -793,7 +799,7 @@
       else if(d.t === 'kart') h.kart(d.d);
     };
     bc.postMessage({ t: 'oi', m: meta() }); setTimeout(() => h.ok(true), 50);
-    const lim = setInterval(() => { const n = Date.now(); let mudou = false; for(const [k, v] of vivos) if(n - v.t > 9000){ vivos.delete(k); mudou = true; } if(mudou) pres(); }, 3000);
+    const lim = setInterval(() => { const n = Date.now(); let mudou = false; for(const [k, v] of vivos) if(n - v.t > 25000){ vivos.delete(k); mudou = true; } if(mudou) pres(); }, 3000);
     return { mv: d => bc.postMessage({ t: 'mv', d }), emo: i => bc.postMessage({ t: 'emo', d: { sid, i } }), kart: d => bc.postMessage({ t: 'kart', d }), sig: (to, m) => bc.postMessage({ t: 'sig', to, from: sid, m }), track: m => bc.postMessage({ t: 'meta', m }), sair: () => { bc.postMessage({ t: 'tchau', sid }); clearInterval(lim); bc.close(); } };
   }
   /* o que chega dos outros pela rede é de qualquer um: número tem que ser número dentro da cidade, texto curto */
@@ -821,7 +827,7 @@
           qp: Number.isInteger(m.qp) && m.qp > 0 && m.qp <= 30 ? m.qp : 0, qd: Number.isInteger(m.qd) && m.qd >= 0 ? m.qd : -1,
           /* v3.53: o bicho da corrida de kart (0 a 5) e quando ele foi escolhido (desempata quem pegou primeiro) */
           kp: Number.isInteger(m.kp) && m.kp >= 0 && m.kp < 6 ? m.kp : null, kpt: Number.isInteger(m.kpt) && m.kpt >= 0 ? m.kpt : 0,
-          disco: typeof m.disco === 'string' && /^[a-z0-9]{0,16}$/.test(m.disco) ? m.disco : '', discoT: Number.isFinite(m.discoT) ? m.discoT : 0 });
+          disco: typeof m.disco === 'string' && /^[a-z0-9]{0,16}$/.test(m.disco) ? m.disco : '', discoT: Number.isFinite(m.discoT) && m.discoT > 0 && m.discoT < Date.now() + 6e5 ? m.discoT : 0 });
         if(r.naCasa && Number.isFinite(m.cx) && Number.isFinite(m.cz)){ if(r.hx == null){ r.hxv = m.cx; r.hzv = m.cz; r.hyv = Number.isFinite(m.cy) ? clamp(m.cy, 0, 8) : 0; } r.hx = clamp(m.cx, -1, 81); r.hz = clamp(m.cz, -1, 81); r.hy = Number.isFinite(m.cy) ? clamp(m.cy, 0, 8) : 0; r.hyaw = Number.isFinite(m.cd) ? m.cd : 0; }
         else if(!r.naCasa){ r.hx = r.hz = null; }
         confereAv(r);
@@ -830,7 +836,8 @@
         if(ok){ r.px = m.x; r.py = m.y; }
         V.remotos.set(m.sid, r);
       });
-      for(const k of [...V.remotos.keys()]) if(!vistos.has(k) && !V.remotos.get(k).bot){ fechar(k, false); V.remotos.delete(k); }
+      /* v3.55: quem saiu leva junto o "quem é" (o código dele, que é público, não fica valendo @ dele pra outro) */
+      for(const k of [...V.remotos.keys()]) if(!vistos.has(k) && !V.remotos.get(k).bot){ fechar(k, false); V.remotos.delete(k); QUEM.delete(k); }
       if(C.LIVE) pedeQuem();
       ui();
     },
@@ -846,21 +853,26 @@
       const r = V.remotos.get(d.sid); if(!r || !C.casa || !C.casa.aberta() || !r.naCasa || r.naCasa !== C.casa.sala()) return;
       const n = { t: d.t, id: d.id };
       const int = (v, a, b) => Number.isInteger(v) && v >= a && v <= b;
-      if(d.t === 'larga'){ if(!Array.isArray(d.quem) || !d.quem.length || d.quem.length > 6 || !d.quem.every(sidOk) || !Number.isFinite(d.em) || !Array.isArray(d.bichos) || d.bichos.length !== d.quem.length || !d.bichos.every(b => int(b, 0, 5))) return; n.quem = d.quem.slice(); n.bichos = d.bichos.slice(); n.em = clamp(d.em, 1000, 10000); }
+      if(d.t === 'larga'){ if(!Array.isArray(d.quem) || !d.quem.length || d.quem.length > 6 || !d.quem.every(sidOk) || !Number.isFinite(d.em) || !Array.isArray(d.bichos) || d.bichos.length !== d.quem.length || !d.bichos.every(b => int(b, 0, 5))
+        /* v3.55: sem repetido, e quem manda a largada é o primeiro da lista (o que roda a máquina) */
+        || new Set(d.bichos).size !== d.bichos.length || new Set(d.quem).size !== d.quem.length || d.quem[0] !== d.sid) return; n.quem = d.quem.slice(); n.bichos = d.bichos.slice(); n.em = clamp(d.em, 1000, 10000); }
       if(d.t === 'cpu'){ if(!Array.isArray(d.l) || d.l.length > 6 || !d.l.every(o => Array.isArray(o) && o.length === 6 && int(o[0], 0, 5) && int(o[1], -1e5, 1e6) && int(o[2], -600, 600) && int(o[3], -100, 400) && int(o[4], 0, 1) && int(o[5], 0, 36e5))) return; n.l = d.l.map(o => o.slice()); }
-      if(d.t === 'chic' || d.t === 'grave'){ if(!Number.isFinite(d.x) || !Number.isFinite(d.z)) return; n.x = clamp(d.x, -1, 81); n.z = clamp(d.z, -1, 81); }
+      if(d.t === 'chic' || d.t === 'grave'){ if(!Number.isFinite(d.x) || !Number.isFinite(d.z)) return; n.x = clamp(d.x, -1, 81); n.z = clamp(d.z, -1, 81); if(d.t === 'grave' && int(d.de, 0, 5)) n.de = d.de; }
       if(d.t === 'fim'){ if(!Number.isFinite(d.ms) || d.ms < 5000 || d.ms > 36e5) return; n.ms = d.ms; }
       if(C.casa.kartEvento) C.casa.kartEvento(n, r);
     },
     emo(d){
       if(!d || !Number.isInteger(d.i)) return; const r = V.remotos.get(d.sid); const t = d.i >= 100 ? FALAS_AUTO[d.i - 100] : FALAS[d.i]; if(r && !bloqueado(r) && t) r.fala = { t, ate: Date.now() + 4500 };
       /* a buzina (ou a campainha) de quem tá perto: você ouve, mais baixo quanto mais longe */
-      if(r && !bloqueado(r) && (d.i === 107 || d.i === 108) && V.eu && C.versoSom){ const dd = dist(V.eu, r), vi = veiculoInfo(r); if(dd < 340) C.versoSom.buzina(d.i === 108 ? 'bike' : (vi && vi.buzina) || 'carro', Math.max(.2, 1 - dd / 340)); }
+      /* v3.55: buzina dos outros no máximo uma a cada 0,9 s (igual à tua): ninguém enche o ouvido dos outros */
+      if(r && !bloqueado(r) && (d.i === 107 || d.i === 108) && V.eu && C.versoSom && Date.now() - (r.buzT || 0) > 900){ r.buzT = Date.now(); const dd = dist(V.eu, r), vi = veiculoInfo(r); if(dd < 340) C.versoSom.buzina(d.i === 108 ? 'bike' : (vi && vi.buzina) || 'carro', Math.max(.2, 1 - dd / 340)); }
     }
   };
   /* v3.53: o que a corrida ao vivo manda no movimento: o bicho, quanto andou (decímetros), a corrida e a chegada (centésimos) */
   function kartMv(r, d){
     r.kp = Number.isInteger(d.kp) && d.kp >= 0 && d.kp < 6 ? d.kp : r.kp;
+    /* v3.55: parou de mandar a corrida (desceu do patinete, saiu): não conta mais como correndo ao vivo */
+    if(!Number.isInteger(d.kl)) r.kl = null;
     if(Number.isInteger(d.kl) && d.kl >= 0 && d.kl <= 1e9){ r.kl = d.kl; r.kg = Number.isInteger(d.kg) && Math.abs(d.kg) < 1e6 ? d.kg : r.kg; if(Number.isInteger(d.kf) && d.kf > 500 && d.kf < 36e4){ r.kfT = d.kf * 10; r.kfId = d.kl; } }
   }
   const FALAS = ['Oi!', 'Bora trocar ideia?', 'Top!', 'Haha', 'Valeu!', 'Partiu lago?', 'Liga o mic!'];
@@ -900,7 +912,8 @@
     const sids = pend.filter(r => { const q = QUEM.get(r.sid); return !q || q.prox <= agora; }).map(r => r.sid).slice(0, 200);
     if(!sids.length){ quemDepois(); return; }
     let rs = null; try{ rs = await C.api.rpc('corre_verso_quem', { p_sids: sids }); }catch(e){ rs = null; }
-    if(!Array.isArray(rs)) return;
+    /* v3.55: a rede piscou: pergunta de novo daqui a 5 s (antes quem chegou nessa hora ficava invisível até outra mudança) */
+    if(!Array.isArray(rs)){ clearTimeout(quemR); quemR = setTimeout(pedeQuem, 5000); return; }
     const achou = new Set();
     rs.forEach(x => { if(!x || !sidOk(x.sid)) return; achou.add(x.sid); QUEM.set(x.sid, { ok: true, uid: typeof x.uid === 'string' && /^[0-9a-f-]{36}$/i.test(x.uid) ? x.uid : '', handle: txtCurto(x.handle || '', 30).replace(/[^a-z0-9_.]/gi, ''), nome: txtCurto(x.nome || '', 40), bloq: !!x.bloq, eu: !!x.eu }); });
     /* código que ninguém registrou (ou acabou de entrar): tenta de novo daqui a pouco, cada vez mais devagar */
@@ -991,7 +1004,10 @@
     if(!m || !V.vivo) return;
     const r = V.remotos.get(from);
     if(m.k === 'oferta'){
-      if(!V.mic || !r || bloqueado(r) || !confia(r) || !(dist(V.eu, r) <= R_FECHA)){ V.rede.sig(from, { k: 'nao' }); return; }
+      /* v3.55: na mesma casa/lugar vale a sala (quem entrou por portas longe uma da outra se ouve lá dentro, como no proximidade) */
+      const minha = C.casa && C.casa.aberta() ? C.casa.sala() : '', dele = (r && r.naCasa) || '';
+      const perto = !!r && (minha || dele ? minha === dele : dist(V.eu, r) <= R_FECHA);
+      if(!V.mic || !r || bloqueado(r) || !confia(r) || !perto){ V.rede.sig(from, { k: 'nao' }); return; }
       if(V.peers.has(from)) fechar(from, false);
       const p = novoPeer(from, false);
       await p.pc.setRemoteDescription({ type: 'offer', sdp: m.sdp });
@@ -1401,7 +1417,8 @@
       if(b.gol){ if(agora - b.gol > 1100){ b.gol = 0; b.x = q.x + q.w / 2; b.y = q.y + q.h / 2; b.vx = b.vy = 0; } return; }
       const chuta = (o, eu) => { if(!o || o.sit || !o.mov) return; const d = Math.hypot(b.x - o.x, b.y - (o.y - 3)); if(d > 13 || agora - b.chute < 180) return; const ang = Math.atan2(b.y - (o.y - 3), b.x - o.x), sp = futsal ? 250 : 210; b.vx = Math.cos(ang) * sp; b.vy = Math.sin(ang) * sp; b.chute = agora; b.meu = !!eu; };
       chuta(V.eu, true);
-      for(const r of V.remotos.values()){ if(!r.bot && Math.hypot(r.x - b.x, r.y - b.y) > 60) continue; chuta(r, false); }
+      /* v3.55: quem você bloqueou não mexe na tua bola */
+      for(const r of V.remotos.values()){ if(bloqueado(r) || (!r.bot && Math.hypot(r.x - b.x, r.y - b.y) > 60)) continue; chuta(r, false); }
       const v = Math.hypot(b.vx, b.vy); if(v < 2){ b.vx = b.vy = 0; return; }
       const f = Math.max(0, 1 - (futsal ? 1.6 : 2.1) * dt); b.vx *= f; b.vy *= f;
       b.x += b.vx * dt; b.y += b.vy * dt; b.rot += v * dt / 6;
@@ -1652,7 +1669,7 @@
     return L;
   }
   function carros(dt){
-    const gente = [V.eu, ...V.remotos.values()].filter(Boolean), W = V.cid.W;
+    const gente = [V.eu, ...V.remotos.values()].filter(r => r && (r === V.eu || !bloqueado(r))), W = V.cid.W;
     for(const car of V.carros){
       const para = gente.some(o => { const d = (o.x - car.x) * car.dir; return d > -12 && d < 78 && Math.abs(o.y - car.y) < 30; });
       if(!para){ car.x += car.dir * car.v * dt; if(car.x > W + 90) car.x = -90; else if(car.x < -90) car.x = W + 90; }
@@ -1807,11 +1824,11 @@
     const gx = x0 + 36, gy = base - 98, gw = 228, gh = 70;
     const g = ctx.createLinearGradient(0, gy, 0, gy + gh); g.addColorStop(0, '#0E6C7C'); g.addColorStop(.5, '#06404F'); g.addColorStop(1, '#010C12');
     ctx.fillStyle = g; ctx.fillRect(gx, gy, gw, gh);
-    ctx.strokeStyle = '#06302a'; ctx.lineWidth = 3;
+    ctx.strokeStyle = '#0B2A3A'; ctx.lineWidth = 3;
     [14, 40, 70, 150, 190, 214].forEach((ax, i) => { ctx.beginPath(); ctx.moveTo(gx + ax, gy + gh); ctx.quadraticCurveTo(gx + ax + 6, gy + gh - 18, gx + ax + (i % 2 ? -8 : 10), gy + gh - 32 - (i % 3) * 6); ctx.stroke(); });
     /* a serpente */
     ctx.strokeStyle = '#071A20'; ctx.lineWidth = 11; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(gx + 24, gy + 44); ctx.bezierCurveTo(gx + 60, gy + 8, gx + 100, gy + 62, gx + 140, gy + 30); ctx.bezierCurveTo(gx + 170, gy + 8, gx + 190, gy + 30, gx + 206, gy + 24); ctx.stroke(); ctx.lineCap = 'butt';
-    ctx.fillStyle = '#62F5E2'; [[46, 26], [72, 36], [100, 48], [128, 36], [156, 20], [182, 24]].forEach(([a, b]) => ctx.fillRect(gx + a, gy + b, 2, 2));
+    ctx.fillStyle = '#38E1FF'; [[46, 26], [72, 36], [100, 48], [128, 36], [156, 20], [182, 24]].forEach(([a, b]) => ctx.fillRect(gx + a, gy + b, 2, 2));
     ctx.fillStyle = '#FF4A5C'; ctx.fillRect(gx + 204, gy + 20, 3, 3); ctx.fillRect(gx + 208, gy + 24, 3, 3); ctx.fillRect(gx + 204, gy + 28, 3, 3);
     /* peixes, uma relíquia âmbar e bolhas */
     const peixe = (px, py, c, d) => { ctx.fillStyle = c; ctx.fillRect(px, py, 7, 3); ctx.fillRect(px + (d > 0 ? -3 : 7), py - 1, 3, 5); ctx.fillStyle = INK; ctx.fillRect(px + (d > 0 ? 5 : 1), py + 1, 1, 1); };
@@ -1825,7 +1842,7 @@
     /* a porta e o letreiro */
     ctx.fillStyle = '#121419'; ctx.fillRect(cx - 16, base - 26, 32, 26); ctx.fillStyle = '#2A3442'; ctx.fillRect(cx - 12, base - 22, 10, 16); ctx.fillRect(cx + 2, base - 22, 10, 16); ctx.beginPath(); ctx.rect(cx - 16, base - 26, 32, 26); traco(ctx, INK, 2);
     pixPlaca(ctx, 'AQUARIO DO IGAPO', cx, base - 132, { fundo: PAPEL });
-    pixPlaca(ctx, 'KILLER OCEAN', cx, base - 12, { fundo: '#010C12', cor: '#62F5E2', borda: '#62F5E2' });
+    pixPlaca(ctx, 'KILLER OCEAN', cx, base - 12, { fundo: '#010C12', cor: '#38E1FF', borda: '#38E1FF' });
     return { cv, W: W + M * 2, H, M, base };
   }
   /* ---------- os prédios cívicos: Delegacia, Corpo de Bombeiros e Hospital do Corre (todos desenhados daqui) ---------- */
@@ -2713,7 +2730,7 @@
     let yb = y - 13 / V.k;
     if(!eu && o.tr){ pixPlaca(ctx, 'TRAMPANDO', o.x, yb, { fundo: AMARELO }); yb -= 13 / V.k; }
     else if(!eu && o.ec){ pixPlaca(ctx, 'EM CASA', o.x, yb, { fundo: LILAS }); yb -= 13 / V.k; }
-    else if(!eu && o.jg){ pixPlaca(ctx, 'NO AQUARIO', o.x, yb, { fundo: '#62F5E2' }); yb -= 13 / V.k; }
+    else if(!eu && o.jg){ pixPlaca(ctx, 'NO AQUARIO', o.x, yb, { fundo: '#38E1FF' }); yb -= 13 / V.k; }
     else if(!eu && o.pt > 0 && o.av && o.av.skin && !o.av.personagem && PATENTES[o.av.skin]){ pixPlaca(ctx, PATENTES[o.av.skin][o.pt].toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''), o.x, yb, { fundo: '#38E1FF' }); yb -= 13 / V.k; }
     if(o.fala && o.fala.ate > (agora || Date.now())){ const b = pixPlaca(ctx, o.fala.t, o.x, yb, { fundo: PAPEL, max: 24 }); ctx.save(); naBase(ctx); ctx.fillStyle = INK; const tx = b.ix + Math.floor(b.w / 2); ctx.fillRect(tx - 1, b.iy + b.h, 3, 1); ctx.fillRect(tx, b.iy + b.h + 1, 1, 1); ctx.restore(); }
     const r = pixPlaca(ctx, nm, o.x, y, { fundo: eu ? AMARELO : o.eu ? '#FFF7A8' : PAPEL, max: o.eu ? 22 : 16 });
@@ -2832,8 +2849,9 @@
       for(const r of V.remotos.values()) if(!r.bot){ r.x = r.tx; r.y = r.ty; r.mov = false; }
       V.raf = requestAnimationFrame(laco); return;
     }
-    passo(dt, t); quadro(t); ajustaFx(dt, t);
-    if(ts - (V.miniT || 0) > 330){ V.miniT = ts; miniMapa(); }
+    /* v3.55: um quadro que dá erro não para a cidade (o próximo quadro sempre fica marcado; o erro vai pro console uma vez) */
+    try{ passo(dt, t); quadro(t); ajustaFx(dt, t); if(ts - (V.miniT || 0) > 330){ V.miniT = ts; miniMapa(); } }
+    catch(e){ if(!V.erroQ){ V.erroQ = 1; try{ console.error('[corre] cidade', e); }catch(_){} } }
     V.raf = requestAnimationFrame(laco);
   }
   function bots(dt){
@@ -3482,6 +3500,8 @@
      (antes, um erro aqui deixava a rede e os ouvintes pendurados e a cidade não abria de novo) */
   function sair(){
     V.gen = (V.gen || 0) + 1;
+    /* v3.55: o "quem é quem" e a placa do bairro começam do zero na próxima entrada */
+    QUEM.clear(); clearTimeout(quemR); V.zona = null;
     if(C.casa && C.casa.aberta()) try{ C.casa.fechar(true); }catch(e){}
     const tenta = f => { try{ f(); }catch(e){} };
     tenta(() => fechaJogo(true));
@@ -3801,7 +3821,8 @@
     'cvr-veste': el => vesteUniforme(el.dataset.u),
     'cvr-uni': el => vesteUniforme(el.dataset.u || ''),
     'cvr-avatar': () => avatarSheet(false),
-    'cvr-casa': () => { if(!V.eu || !V.casa) return; V.alvo = null; V.eu.x = V.casa.x; V.eu.y = V.casa.y; V.entrando = .55; anunciar(); },
+    /* v3.55: "Pra casa" levanta do banco e larga a vara (antes chegava sentado, pescando na porta) */
+    'cvr-casa': () => { if(!V.eu || !V.casa) return; V.alvo = null; V.eu.sit = false; V.eu.pesca = null; V.eu.x = V.casa.x; V.eu.y = V.casa.y; V.entrando = .55; anunciar(); portaUI(); },
     'cvr-gente': () => genteSheet(),
     'cvr-mapa': () => { if(V.cid) mapaSheet(); },
     'cvr-ir-lugar': el => { const l = lugares()[Number(el.dataset.i)]; if(!l) return; const p = pertoLivre(l.x, l.y); if(p) teleporta(p.x, p.y); },

@@ -26,7 +26,8 @@
   const nMembros = g => plural(Number(g.membros_n) || 0, 'membro', 'membros');
   const mod = g => !!g && !!g.eu && g.eu.estado === 'ativo' && (g.eu.papel === 'dono' || g.eu.papel === 'mod');
   const dentro = g => !!g && !!g.eu && g.eu.estado === 'ativo';
-  const capaOk = u => /^(https:\/\/|data:image\/)/.test(String(u || ''));
+  /* v3.55: a capa vai dentro de url('…') no style: aspas, parênteses, barra invertida e espaço ficam de fora (abriam CSS injetado na página do grupo) */
+  const capaOk = u => /^(https:\/\/[A-Za-z0-9._~\/?#=%:@!$*+,;-]+|data:image\/[a-z+]+;base64,[A-Za-z0-9+\/=]+)$/.test(String(u || ''));
   const linkDe = g => { const me = C.st.me, de = me && me.handle && me.visibilidade !== 'mocado' ? '?de=' + encodeURIComponent(me.handle) : ''; return `${location.origin}${location.pathname}${de}#/g/${g.slug}`; };
 
   /* a carinha do grupo: a capa, ou a inicial no quadrado da cor */

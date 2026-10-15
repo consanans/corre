@@ -491,13 +491,16 @@ async function houzi(sb: any, user: any, body: any, KEY: string, X: Extra) {
   if (!resp.ok) { const msg = out?.error?.message || `HTTP ${resp.status}`; console.error('houzi:', resp.status, msg); return json({ erro: resp.status === 401 ? 'sem_chave' : 'provedor', detalhe: msg }, resp.status === 401 ? 503 : 502); }
   let r: any = null;
   try { r = JSON.parse(out?.choices?.[0]?.message?.content || ''); } catch (_) { /* cai abaixo */ }
-  await sb.from('corre_geracoes').insert({ tipo: 'marca', prompt: (nomes ? 'nomes · ' + ctx.negocio : 'marca · ' + ctx.nome).slice(0, 200) });
+  /* v3.55: só conta o uso do dia quando a resposta veio boa (JSON cortado não gasta o grátis de ninguém) */
+  const conta = () => sb.from('corre_geracoes').insert({ tipo: 'marca', prompt: (nomes ? 'nomes · ' + ctx.negocio : 'marca · ' + ctx.nome).slice(0, 200) });
   const restam = Math.max(0, lim - (count ?? 0) - 1);
   if (nomes) {
     if (!r || !Array.isArray(r.nomes) || !r.nomes.length) return json({ erro: 'provedor', detalhe: 'resposta vazia' }, 502);
+    await conta();
     return json({ nomes: r.nomes.slice(0, 12).map((n: any) => ({ nome: txt(n.nome, 26), estrategia: txt(n.estrategia, 20), porque: txt(n.porque, 260) })).filter((n: any) => n.nome), restam });
   }
   if (!r || !r.conceito) return json({ erro: 'provedor', detalhe: 'resposta vazia' }, 502);
+  await conta();
   const t = r.textos || {}, bp = r.buyer_persona || {}, gp = r.brand_persona || {};
   return json({
     conceito: txt(r.conceito, 200), manifesto: txt(r.manifesto, 800), taglines: lista(r.taglines, 6, 60), e: lista(r.e, 4, 30), nao_e: lista(r.nao_e, 4, 30),

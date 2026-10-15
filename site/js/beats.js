@@ -76,7 +76,8 @@
       bass: [[0, 33, 16], [16, 31, 16]],
       chords: [[0, [57, 64, 67, 71], 16], [16, [55, 62, 65, 69], 16]] }
   ];
-  const DISCO = {}; DISCOS.forEach(d => { DISCO[d.k] = d; });
+  /* v3.55: sem protótipo: disco "constructor" vindo da presença não acha nada (antes tocava um disco quebrado em loop) */
+  const DISCO = Object.create(null); DISCOS.forEach(d => { DISCO[d.k] = d; });
   const hz = m => 440 * Math.pow(2, (m - 69) / 12);
   let ac = null, master = null, comp = null, ruido = null, crack = null, timer = 0, atual = '', passo = 0, prox = 0, ultKick = -9;
 
@@ -166,7 +167,8 @@
   function para(semFade){
     if(timer){ clearInterval(timer); timer = 0; }
     atual = '';
-    if(ac && master){ const t = ac.currentTime; if(semFade){ master.gain.setValueAtTime(.5, t); } else { master.gain.cancelScheduledValues(t); master.gain.setValueAtTime(master.gain.value, t); master.gain.linearRampToValueAtTime(0, t + .25); master.gain.setValueAtTime(.5, t + .3); } }
+    if(ac && master){ const t = ac.currentTime; if(semFade){ master.gain.setValueAtTime(.5, t); } else { master.gain.cancelScheduledValues(t); master.gain.setValueAtTime(master.gain.value, t); master.gain.linearRampToValueAtTime(0, t + .25); master.gain.setValueAtTime(.5, t + 4.5); } }
+    /* v3.55: o volume só volta depois do rabo das notas longas (em .3 s o acorde do disco tirado voltava alto por uns segundos); o toca() refaz o volume na hora */
     chiado(false);
   }
   /* 1 no bumbo, caindo a 0 em 0,3 s (pro disco girar e a caixa pulsar) */

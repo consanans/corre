@@ -206,7 +206,7 @@
     pintaItens();
     C.$('ng-f').addEventListener('input', e => { if(e.target.closest('#ng-rows') || e.target.id === 'ng-ds' || e.target.id === 'ng-sn') leItens(); });
     C.$('ng-c').addEventListener('change', () => { const l = N.leads.find(x => C.norm(x.nome) === C.norm(C.$('ng-c').value)); if(l){ E.lead_id = l.id; if(!C.$('ng-w').value) C.$('ng-w').value = l.wa || l.fixo || ''; } else E.lead_id = null; });
-    C.$('ng-f').addEventListener('submit', e => { e.preventDefault(); salvar(novo, (e.submitter && e.submitter.dataset.st) || v.st); });
+    C.umaVez(C.$('ng-f'), e => salvar(novo, (e.submitter && e.submitter.dataset.st) || v.st));
   }
   function pintaItens(){
     const box = C.$('ng-rows'); if(!box) return;
@@ -231,7 +231,7 @@
   function totais(){
     const el = C.$('ng-tot'); if(!el) return;
     const sub = E.itens.reduce((s, e) => s + (Number(e.q) || 0) * (Number(e.v) || 0), 0), cus = E.itens.reduce((s, e) => s + (Number(e.q) || 0) * (Number(e.c) || 0), 0);
-    const ds = C.$('ng-ds') ? C.catalogo.parseReais(C.$('ng-ds').value) : 0, tot = Math.max(sub - ds, 0);
+    const ds = C.$('ng-ds') ? C.catalogo.parseReais(C.$('ng-ds').value) : 0, tot = Math.round(Math.max(sub - ds, 0) * 100) / 100;
     const sn = Math.min(C.$('ng-sn') ? C.catalogo.parseReais(C.$('ng-sn').value) || 0 : 0, tot);
     el.innerHTML = `<span>Subtotal <b class="num">${money(sub)}</b></span>${ds ? `<span>Desconto <b class="num">− ${money(ds)}</b></span>` : ''}<span class="ng-total">Total <b class="num">${money(tot)}</b></span>${sn ? `<span class="ng-tot-sn">Sinal <b class="num">${money(sn)}</b> · resto <b class="num">${money(tot - sn)}</b></span>` : ''}${cus ? `<span class="fine">custo ${money(cus)} · sobra <b class="num">${money(tot - cus)}</b></span>` : ''}`;
     E.tot = tot;
@@ -251,7 +251,8 @@
     row.dia_fixo = row.recorrente && row.vence ? (E.v && E.v.vence === row.vence && Number(E.v.dia_fixo) ? Number(E.v.dia_fixo) : diaDe(row.vence)) : null;
     const snEl = C.$('ng-sn');
     if(snEl && !snEl.disabled){
-      const sn = C.catalogo.parseReais(snEl.value) || 0, tot = Math.max(itens.reduce((s, e) => s + e.q * e.v, 0) - (row.desconto || 0), 0);
+      /* v3.55: o total em centavos (3 x 19,90 dava 59,6999… e o sinal de 59,70 "passava do total") */
+      const sn = C.catalogo.parseReais(snEl.value) || 0, tot = Math.round(Math.max(itens.reduce((s, e) => s + e.q * e.v, 0) - (row.desconto || 0), 0) * 100) / 100;
       if(sn > tot){ C.toast('O sinal passou do total.'); snEl.focus(); return; }
       row.sinal = sn;
     }

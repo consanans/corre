@@ -160,7 +160,9 @@
     const nm = C.norm(m.marca), ym = C.hojeBR().slice(0, 7);
     let ls = [];
     try{ ls = (await C.api.q('corre_lancamentos', { eq: { dono: C.uid() }, gt: { valor: 0 }, order: ['data', false], limit: 2000 })).filter(l => C.norm(l.cliente) === nm && l.categoria !== 'transferencia'); }catch(e){}
-    const mes = ls.filter(l => String(l.data).slice(0, 7) === ym), tot = ls.reduce((s, l) => s + Number(l.valor), 0), totMes = mes.reduce((s, l) => s + Number(l.valor), 0);
+    /* v3.55: "Últimos 12 meses" é dos últimos 12 (antes somava tudo que já entrou) */
+    let [ay, am] = ym.split('-').map(Number); am -= 11; if(am < 1){ am += 12; ay--; } const desde = `${ay}-${String(am).padStart(2, '0')}-01`;
+    const mes = ls.filter(l => String(l.data).slice(0, 7) === ym), tot = ls.filter(l => String(l.data).slice(0, 10) >= desde).reduce((s, l) => s + Number(l.valor), 0), totMes = mes.reduce((s, l) => s + Number(l.valor), 0);
     const assuntos = [m.marca].concat(m.segmento && C.norm(m.segmento) !== nm ? [m.segmento] : []);
     app.innerHTML = C.header('marcas') + `<main class="wrap">
       <section class="card mk-head">${C.marcaLogo(m, 'l')}<div><span class="mono">Painel da marca</span><h1>${esc(m.marca)}</h1><p class="note">${esc([m.segmento, m.papel].filter(Boolean).join(' · '))}</p></div>

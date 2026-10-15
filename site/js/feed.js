@@ -265,6 +265,8 @@
   }
   function composer(g){
     const me = C.st.me; if(!me) return '';
+    /* v3.55: composer novo, sem foto: a foto escolhida e largada em outro composer (grupo, Início) não vai junto no próximo post */
+    F.foto = null;
     return `<section class="card fc-box${g ? ' fc-grupo' : ''}" aria-label="${g ? 'Novo post no grupo' : 'Novo post'}">
       <div class="fc-row">${C.avatar(me, 's')}<div class="fc-col">
         <textarea class="inp fc-t" id="fd-t" rows="2" maxlength="${MAX}" data-conta="fd-conta" placeholder="${g ? `Escreve pro grupo, ${esc(C.firstName(me.nome))}…` : `O que tá rolando no teu corre, ${esc(C.firstName(me.nome))}?`}" aria-label="${g ? 'Texto do post no grupo' : 'Texto do post'}"></textarea>
@@ -303,10 +305,12 @@
     document.querySelectorAll('.fc-bar [data-act="fd-enq"]').forEach(b => b.setAttribute('aria-pressed', 'false'));
     const f = C.$('fd-fio'); if(f) f.innerHTML = '';
   }
+  /* v3.55: lista recarregando (troca de aba, filtro): o "Carregar mais" some até a lista nova chegar (antes misturava as duas abas) */
+  const escondeMais = () => { const m = C.$('fd-mais'); if(m) m.hidden = true; };
   async function recarrega(){
     const t = C.$('fd-topo'); if(t) t.innerHTML = topoHTML();
     const a = C.$('fd-alta'); if(a && F.alta) a.innerHTML = altaHTML();
-    const b = C.$('fd-list'); if(b) b.innerHTML = '<div class="empty">Carregando…</div>';
+    const b = C.$('fd-list'); if(b) b.innerHTML = '<div class="empty">Carregando…</div>'; escondeMais();
     try{ await carregar(false); pinta(); }catch(e){ if(b) b.innerHTML = `<div class="empty">${esc(C.errMsg(e, 'Não deu pra abrir o feed agora.'))}</div>`; }
   }
   /* o que eu acabei de postar/fortalecer aparece na lista que tá aberta? */
@@ -314,6 +318,8 @@
 
   async function pub(){
     const t = C.$('fd-t'), st = C.$('fd-st'), texto = (t.value || '').trim();
+    /* v3.55: o grupo é o de quando tocou em Publicar (trocar de página durante o upload jogava o post do grupo fechado no feed aberto) */
+    const gid = F.grupo ? F.grupo.id : null;
     const extras = [...document.querySelectorAll('#fd-fio textarea')].map(x => x.value.trim()).filter(Boolean);
     const box = C.$('fd-enq'); let enquete = null;
     if(box && !box.hidden){
@@ -330,7 +336,7 @@
     try{
       let midia_url = '';
       if(F.foto){ const b = await C.shrink(F.foto, 1600, .86); midia_url = await C.api.upload(b); }
-      const raiz = await C.feed.publicar(Object.assign({ texto, midia_url, tipo: 'post' }, enquete ? { enquete } : {}, F.grupo ? { grupo: F.grupo.id } : {}));
+      const raiz = await C.feed.publicar(Object.assign({ texto, midia_url, tipo: 'post' }, enquete ? { enquete } : {}, gid ? { grupo: gid } : {}));
       /* o fio: cada pedaço é um post teu, pendurado no primeiro */
       let foram = 0;
       for(const x of extras){ try{ const r = await C.api.ins('corre_feed', { texto: x, fio: raiz.id }); if(r && r[0]){ guarda([Object.assign(r[0], { perfil: C.st.me })]); if(C.push && MARCA.test(x)) C.push.avisa('post', r[0].id); } foram++; }catch(e){ C.toast(erroPost(e)); break; } }
@@ -511,7 +517,7 @@
   }
 
   Object.assign(C.acts, {
-    'fd-tab': async el => { F.tab = el.dataset.t === 'seguindo' ? 'seguindo' : 'pravoce'; F.pv = null; F.pvVazio = false; document.querySelectorAll('[data-act="fd-tab"]').forEach(b => b.setAttribute('aria-selected', String(b.dataset.t === F.tab))); const b = C.$('fd-list'); if(b) b.innerHTML = '<div class="empty">Carregando…</div>'; try{ await carregar(false); }catch(e){ if(b) b.innerHTML = '<div class="empty">Não deu pra carregar agora. Toca na aba de novo.</div>'; return; } pinta(); },
+    'fd-tab': async el => { F.tab = el.dataset.t === 'seguindo' ? 'seguindo' : 'pravoce'; F.pv = null; F.pvVazio = false; document.querySelectorAll('[data-act="fd-tab"]').forEach(b => b.setAttribute('aria-selected', String(b.dataset.t === F.tab))); const b = C.$('fd-list'); if(b) b.innerHTML = '<div class="empty">Carregando…</div>'; escondeMais(); try{ await carregar(false); }catch(e){ if(b) b.innerHTML = '<div class="empty">Não deu pra carregar agora. Toca na aba de novo.</div>'; return; } pinta(); },
     'fd-mais': async el => { el.disabled = true; try{ await carregar(true); pinta(); }finally{ el.disabled = false; } },
     /* hashtag: filtra o feed da home (de qualquer lugar, leva pra lá) */
     'fd-tag': async el => {
@@ -561,6 +567,8 @@
     'fd-salvar': async el => {
       if(!C.uid()){ C.toast('Entra no Corre pra salvar.'); return; }
       const id = el.dataset.id, on = F.salvos.has(id);
+      /* v3.55: toque duplo não manda salvar e tirar ao mesmo tempo (o banco podia ficar ao contrário da tela) */
+      F.pendS = F.pendS || new Set(); if(F.pendS.has(id)) return; F.pendS.add(id);
       if(on) F.salvos.delete(id); else F.salvos.add(id);
       repinta(id);
       try{
@@ -568,6 +576,7 @@
         C.toast(on ? 'Tirado dos salvos.' : 'Salvo. Tá em Salvos, no menu da conta.', 2600);
         if(on && F.modo === 'salvos'){ F.rows = F.rows.filter(r => r.id !== id); pinta(); }
       }catch(e){ if(e && e.code === '23505') return; if(on) F.salvos.add(id); else F.salvos.delete(id); repinta(id); C.toast(C.errMsg(e)); }
+      finally{ F.pendS.delete(id); }
     },
     'fd-share': el => {
       const id = el.dataset.id, p = F.by[id] || {}, a = p.perfil || {}, url = linkPost(id);

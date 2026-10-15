@@ -584,7 +584,9 @@
   const balde = (dx, dz) => [B(dx, 0, dz - .13, .26, .28, .26, '#4A4E56'), B(dx - .02, .28, dz - .15, .3, .03, .3, '#8F96A0'), B(dx + .02, .27, dz - .11, .22, .01, .22, AGUA), B(dx + .08, .29, dz - .05, .1, .02, .05, '#C9CDD3')];
   const PESCA_DECOR = [
     /* as estacas na beira do píer */
-    { x: 0, z: 0, bl: [[6.2, 4.5], [6.2, 7.5], [6.2, 10.4], [7.6, 4.5], [7.6, 7.5], [7.6, 10.4], [1.5, 2], [1.5, 3.3], [12.3, 2], [12.3, 3.3], [3.7, 3.3], [10.1, 3.3]].map(([x, z]) => B(x, 0, z, .2, .32, .2, ESTACA)) },
+    /* v3.55: as do meio desceram de 7,5 pra 8: com o balde do ponto da esquerda elas fechavam a passagem do píer
+       (na grade de 25 cm sobravam 2 casas e o boneco precisa de 3), e 4 dos 6 baldes do T ficavam sem caminho */
+    { x: 0, z: 0, bl: [[6.2, 4.5], [6.2, 8], [6.2, 10.4], [7.6, 4.5], [7.6, 8], [7.6, 10.4], [1.5, 2], [1.5, 3.3], [12.3, 2], [12.3, 3.3], [3.7, 3.3], [10.1, 3.3]].map(([x, z]) => B(x, 0, z, .2, .32, .2, ESTACA)) },
     /* o placar boiando no fundo, de frente pra margem */
     { x: 5, z: .3, bl: [B(.3, 0, .2, .15, 1.6, .15, ESTACA), B(3.55, 0, .2, .15, 1.6, .15, ESTACA), B(0, 1.3, .2, 4, 1.3, .12, '#2B2F38'), B(.1, 2.3, .32, 3.8, .22, .02, ROSA),
       B(.3, 2.34, .34, .3, .14, .01, PAPEL), B(.55, 2.38, .34, .1, .06, .01, PAPEL), B(.25, 1.95, .32, 2.6, .16, .02, '#E8643A'), B(.25, 1.7, .32, 2, .16, .02, '#C9CDD3'), B(.25, 1.45, .32, 1.4, .16, .02, '#C68642'),
@@ -1225,7 +1227,8 @@
     /* a ordem só muda quando a câmera anda (ou alguém anda): parado, reaproveita a do quadro anterior */
     let assin = solidos.length;
     for(let i = 0; i < solidos.length; i++){ const s = solidos[i]; s.ci = i; assin += Math.round(s.cx * 10) * 7 + Math.round(s.cz * 10) * 13 + (s.alpha != null ? 1 : 0); }
-    const chave = assin + '|' + cam.pos.map(v => Math.round(v * 10)).join(',');
+    /* v3.55: o tamanho da tela entra na chave (girar o celular muda quem tapa quem) */
+    const chave = assin + '|' + cv.width + 'x' + cv.height + '|' + cam.pos.map(v => Math.round(v * 10)).join(',');
     const t0o = performance.now();
     if(S.ordemChave === chave && S.ordemPerm && S.ordemPerm.length === solidos.length){
       const base = solidos.slice(); for(let i = 0; i < base.length; i++) solidos[i] = base[S.ordemPerm[i]];
@@ -1687,7 +1690,8 @@
     const fraco = embaixoDoMezanino() ? { alpha: .22 } : null, t = S.tAnt || 0;
     const out = [];
     const poe = (bl, e, dono) => sobe(bl.map(b => { const bb = Object.assign({}, b, { x: b.x + e.x, z: b.z + e.z }); if(b.piv) bb.piv = [b.piv[0] + e.x, b.piv[1], b.piv[2] + e.z]; return solido(bb, null, b.c, dono, (e.y || 0) > 1.5 ? fraco : null); }), e.y || 0);
-    S.fixos.forEach(e => { const dono = S.meu ? 'est:' + e.id : null, sol = cola(poe(e.bl, e, dono), e.bl, 0); out.push(...sol); if(e.agente){ const bl = solidosAgente(e, t); out.push(...cola(poe(bl, e, dono), bl, 0, sol, e.bl)); } });
+    /* v3.55: nos lugares a estação também é tocável (antes o toque no altar ou no caixa passava pro chão) */
+    S.fixos.forEach(e => { const dono = (S.meu || S.lugar) ? 'est:' + e.id : null, sol = cola(poe(e.bl, e, dono), e.bl, 0); out.push(...sol); if(e.agente){ const bl = solidosAgente(e, t); out.push(...cola(poe(bl, e, dono), bl, 0, sol, e.bl)); } });
     S.decor.forEach((e, i) => out.push(...cola(poe(e.bl, e, e.acao ? 'decor:' + i : null), e.bl, 0)));
     return out;
   }
@@ -2033,7 +2037,8 @@
     const ocupados = vivo ? vivo.bichos : [S.kartBicho], livres = BICHOS_K.map((b, j) => j).filter(j => !ocupados.includes(j));
     const slots = vivo ? g.map((x, n) => n).filter(n => n >= vivo.quem.length) : [0, 1, 2, 4, 5];
     const roda = !vivo || vivo.quem[0] === C.verso.meuSid();
-    const rivais = livres.map((j, n) => { const b = BICHOS_K[j], sl = g[slots[n]]; return Object.assign({}, b, { idx: j, av: avBicho(j), s: sl.i * c.ds, sAlvo: sl.i * c.ds, lat: sl.lat, latAlvo: sl.lat, v: 0, vmax: P.vmax * b.f, estilo: (sorte(j * 7.3 + 1) - .5) * 1.4, item: null, itemT: 0, boostAte: 0, rodouAte: 0, puloT: 0, fim: 0, remoto: !roda }); });
+    /* v3.55: dois com o mesmo bicho sobrava bicho sem lugar no grid (e a largada quebrava): só entra quem cabe */
+    const rivais = livres.slice(0, slots.length).map((j, n) => { const b = BICHOS_K[j], sl = g[slots[n]]; return Object.assign({}, b, { idx: j, av: avBicho(j), s: sl.i * c.ds, sAlvo: sl.i * c.ds, lat: sl.lat, latAlvo: sl.lat, v: 0, vmax: P.vmax * b.f, estilo: (sorte(j * 7.3 + 1) - .5) * 1.4, item: null, itemT: 0, boostAte: 0, rodouAte: 0, puloT: 0, fim: 0, remoto: !roda }); });
     S.corrida = { P, kart: true, vivo: vivo ? { id: vivo.id, quem: vivo.quem.slice(0, 6), bichos: vivo.bichos.slice(0, 6), host: vivo.quem[0], roda } : null, cpuT: 0, cpuVisto: Date.now(), larga: Date.now() + (vivo ? vivo.em : 4000), voltas: [], tv: 0, lap: 0, prog: meu.i * c.ds, si: idxK(c, meu.i), item: null, itemN: 0, roleta: 0, sorteado: null, boostAte: 0, drift: null, pulo: null, hopT: 0, rodouAte: 0, chic: [], ondas: [], rivais, discOff: {}, cam0: { ph: S.cam.ph, dist: S.cam.dist }, acelDesde: 0, longeT: 0, contraT: 0, progAnt: 0, yawVis: 0, segura: false, pulaT: 0 };
     painelCorrida(true); if(C.verso && C.verso.enviaPos) C.verso.enviaPos(true);
   }
@@ -2162,6 +2167,8 @@
     R.rivais.forEach(r => {
       if(!solto) return;
       /* ao vivo, em quem não roda a máquina: o bicho segue o que chegou (e anda sozinho entre uma mensagem e outra) */
+      /* v3.55: quem roda a máquina terminou, saiu ou escondeu a aba: depois de 3 s sem notícia cada aparelho pilota os bichos (antes eles paravam na pista) */
+      if(r.remoto && !r.fim && agora - Math.max(R.cpuVisto, R.larga) > 3000) r.remoto = false;
       if(r.remoto){ if(agora - R.cpuVisto > 2500) r.v = 0; r.s += r.v * dt; r.s += (r.sAlvo - r.s) * Math.min(1, dt * 4); const p0 = naLinha(c, r.s, r.lat), dx = e.x - p0[0], dz = e.z - p0[1], dist = Math.hypot(dx, dz); if(dist < .62 && dist > .01 && !R.pulo){ mover(e, dx / dist * (.62 - dist), dz / dist * (.62 - dist)); e.vel = (e.vel || 0) * .93; } return; }
       const i = idxK(c, Math.floor(r.s / c.ds));
       /* a velocidade que a curva da frente deixa */
@@ -2189,7 +2196,7 @@
         const p = naLinha(c, r.s, r.lat);
         if(r.item === 'cafe') r.boostAte = agora + 1200;
         else if(r.item === 'chiclete'){ const q = naLinha(c, r.s - 1.3, r.lat); R.chic.push({ x: q[0], z: q[1], ate: agora + 30000, t0: agora }); if(R.vivo) mandaKart({ t: 'chic', id: R.vivo.id, x: Math.round(q[0] * 100) / 100, z: Math.round(q[1] * 100) / 100 }); }
-        else if(r.item === 'grave'){ R.ondas.push({ x: p[0], z: p[1], t0: agora }); if(R.vivo) mandaKart({ t: 'grave', id: R.vivo.id, x: Math.round(p[0] * 100) / 100, z: Math.round(p[1] * 100) / 100 }); if(Math.hypot(p[0] - e.x, p[1] - e.z) < 8 && !R.pulo && rodou(R, 850, .55)) C.toast(`O grave de ${r.nome} te pegou!`, 1500); }
+        else if(r.item === 'grave'){ R.ondas.push({ x: p[0], z: p[1], t0: agora }); if(R.vivo) mandaKart({ t: 'grave', id: R.vivo.id, de: r.idx, x: Math.round(p[0] * 100) / 100, z: Math.round(p[1] * 100) / 100 }); if(Math.hypot(p[0] - e.x, p[1] - e.z) < 8 && !R.pulo && rodou(R, 850, .55)) C.toast(`O grave de ${r.nome} te pegou!`, 1500); }
         r.item = null;
       }
       if(!r.fantasma){ const p = naLinha(c, r.s, r.lat); for(let j = R.chic.length - 1; j >= 0; j--){ const g = R.chic[j]; if(agora - g.t0 > 600 && Math.hypot(g.x - p[0], g.z - p[1]) < .6){ R.chic.splice(j, 1); rodou(r, 1000, .3); } } }
@@ -2329,7 +2336,7 @@
   function larga(modo){
     const P = pistaAqui(); if(!P || !P.kart || S.corrida || !bichoOk(S.kartBicho)) return; C.closeSheet();
     if(modo === 'vivo'){
-      const outros = gente().filter(r => bichoOk(r.kp) && r.kp !== S.kartBicho).slice(0, 5), quem = [C.verso.meuSid(), ...outros.map(r => r.sid)], bichos = [S.kartBicho, ...outros.map(r => r.kp)], id = Math.floor(Math.random() * 1e9);
+      const vistos = new Set([S.kartBicho]), outros = gente().filter(r => bichoOk(r.kp) && !vistos.has(r.kp) && vistos.add(r.kp)).slice(0, 5), quem = [C.verso.meuSid(), ...outros.map(r => r.sid)], bichos = [S.kartBicho, ...outros.map(r => r.kp)], id = Math.floor(Math.random() * 1e9);
       mandaKart({ t: 'larga', id, em: 5000, quem, bichos }); S.kartVivo = { id, quem, ate: Date.now() + 6 * 60e3 };
       largarKart(P, { id, quem, bichos, em: 5000 }); C.toast(quem.length < 6 ? `Corrida ao vivo: ${quem.length} de gente e ${6 - quem.length} da máquina!` : 'Corrida ao vivo com seis!', 2200);
     } else largarKart(P, null);
@@ -2349,9 +2356,9 @@
       d.l.forEach(([j, sdm, lcm, vdm, rodou2, fimMs]) => { let o = KV.rivais.find(x => x.idx === j); if(!o){ const b = BICHOS_K[j]; o = Object.assign({}, b, { idx: j, av: avBicho(j), s: sdm / 10 }); KV.rivais.push(o); } o.sAlvo = sdm / 10; o.lat = lcm / 100; o.v = vdm / 10; if(rodou2 && !(o.rodouAte > agora)){ o.rodouAte = agora + 900; o.rodouT0 = agora; } if(fimMs){ o.fim = o.fim || agora; o.tempo = fimMs; } }); return; }
     if(!R || !R.vivo || R.vivo.id !== d.id) return;
     if(d.t === 'cpu'){ if(!r || r.sid !== R.vivo.host || R.vivo.roda) return; R.cpuVisto = agora;
-      d.l.forEach(([j, sdm, lcm, vdm, rodou2, fimMs]) => { const o = R.rivais.find(x => x.idx === j); if(!o) return; o.sAlvo = sdm / 10; o.lat = lcm / 100; o.v = vdm / 10; if(rodou2 && !(o.rodouAte > agora)){ o.rodouAte = agora + 900; o.rodouT0 = agora; } if(fimMs && !o.fim){ o.fim = agora; o.tempo = fimMs; } }); return; }
+      d.l.forEach(([j, sdm, lcm, vdm, rodou2, fimMs]) => { const o = R.rivais.find(x => x.idx === j); if(!o) return; o.remoto = true; o.sAlvo = sdm / 10; o.lat = lcm / 100; o.v = vdm / 10; if(rodou2 && !(o.rodouAte > agora)){ o.rodouAte = agora + 900; o.rodouT0 = agora; } if(fimMs && !o.fim){ o.fim = agora; o.tempo = fimMs; } }); return; }
     if(d.t === 'chic') R.chic.push({ x: d.x, z: d.z, ate: agora + 30000, t0: agora });
-    else if(d.t === 'grave'){ R.ondas.push({ x: d.x, z: d.z, t0: agora }); if(R.vivo.roda) R.rivais.forEach(o => { const p = naLinha(R.P.Kp.c, o.s, o.lat); if(Math.hypot(p[0] - d.x, p[1] - d.z) < 8) rodou(o, 1100, .45); }); if(!R.pulo && S.eu && Math.hypot(d.x - S.eu.x, d.z - S.eu.z) < 8 && rodou(R, 850, .55)) C.toast(`O grave de ${r && bichoOk(r.kp) ? BICHOS_K[r.kp].nome : 'alguém'} te pegou!`, 1500); }
+    else if(d.t === 'grave'){ R.ondas.push({ x: d.x, z: d.z, t0: agora }); if(R.vivo.roda) R.rivais.forEach(o => { const p = naLinha(R.P.Kp.c, o.s, o.lat); if(Math.hypot(p[0] - d.x, p[1] - d.z) < 8) rodou(o, 1100, .45); }); if(!R.pulo && S.eu && Math.hypot(d.x - S.eu.x, d.z - S.eu.z) < 8 && rodou(R, 850, .55)) C.toast(`O grave de ${bichoOk(d.de) ? BICHOS_K[d.de].nome : r && bichoOk(r.kp) ? BICHOS_K[r.kp].nome : 'alguém'} te pegou!`, 1500); }
   }
   /* quem assiste: a câmera segue um corredor (o botão grande troca de um pro outro) */
   function corredoresVivo(){
@@ -2724,7 +2731,8 @@
       if(pistaAqui()) painelCorrida();
       tickDesafio();
       if(PL && PL.kart && (!S.bichoT || t - S.bichoT > 1)){ S.bichoT = t; confereBicho(); }
-      if(!S.corrida && S.kartVivo && S.kartVivo.rivais){ const KV = S.kartVivo; KV.rivais.forEach(o => { if(Date.now() - KV.visto > 2500) o.v = 0; o.s += o.v * dt; o.s += (o.sAlvo - o.s) * Math.min(1, dt * 4); }); }
+      /* v3.55: 5 s sem notícia da máquina, os bichos de quem assiste saem da pista (antes ficavam parados lá até a próxima corrida) */
+      if(!S.corrida && S.kartVivo && S.kartVivo.rivais){ const KV = S.kartVivo; if(Date.now() - KV.visto > 5000) KV.rivais.length = 0; KV.rivais.forEach(o => { if(Date.now() - KV.visto > 2500) o.v = 0; o.s += o.v * dt; o.s += (o.sAlvo - o.s) * Math.min(1, dt * 4); }); }
       /* celular fraco (quadro lento): o boneco anda em passos de até 50 ms, pra a velocidade não depender do quadro
          (e sem atravessar parede num passo grande) */
       if(!parado){ const np = Math.max(1, Math.ceil(dt / .05 - 1e-9)); for(let i = 0; i < np && S.aberta && S.eu; i++) passo(dt / np); }
@@ -2999,7 +3007,8 @@
     if(k === 'q'){ S.cam.th += Math.PI / 4; S.arrastou = Date.now(); } else if(k === 'e'){ S.cam.th -= Math.PI / 4; S.arrastou = Date.now(); }
     else if(k === 'r' && S.ghost){ giraGhost(); }
     else if(k === 'Enter' && S.modo === 'colocar'){ colocaGhost(); }
-    else if(k === 'Enter' && S.modo === 'andar'){ e.preventDefault(); acaoPerto(); }
+    /* v3.55: Enter segurado não gasta os três cafés de uma vez (a repetição da tecla não conta) */
+    else if(k === 'Enter' && S.modo === 'andar'){ e.preventDefault(); if(!e.repeat) acaoPerto(); }
     else if(k === 'Escape'){ if(e.defaultPrevented) return; e.preventDefault(); if(S.modo === 'colocar') cancelaGhost(); else if(S.modo === 'decorar') decorar(false); else fechar(); }
   }
   function soltar(){ S.teclas.clear(); }
@@ -3120,6 +3129,8 @@
   function cancelaGhost(){
     const g = S.ghost; if(!g) return;
     if(g.de >= 0 && g.orig) S.itens.splice(g.de, 0, g.orig);
+    /* v3.55: o móvel que tava sendo movido volta pro lugar (Esc, voltar do celular e fechar a casa apagavam ele) */
+    if(g.volta) S.itens.splice(g.volta.i, 0, g.volta.o);
     S.ghost = null; S.modo = 'decorar'; S.cacheItens = null; montaGrade(); barra();
   }
   function moveSel(){
@@ -3292,7 +3303,7 @@
     'cs-pega': el => pega(el.dataset.k),
     'cs-gira': () => giraGhost(),
     'cs-coloca': () => colocaGhost(),
-    'cs-cancela': () => { const v = S.ghost && S.ghost.volta; cancelaGhost(); if(v){ S.itens.splice(v.i, 0, v.o); S.cacheItens = null; montaGrade(); } },
+    'cs-cancela': () => cancelaGhost(),
     'cs-gira-sel': () => giraSel(),
     'cs-move': () => moveSel(),
     'cs-guarda': () => guardaSel(),
@@ -3304,9 +3315,10 @@
   /* a prévia da casa (na porta, antes de entrar): a casa inteira vista de cima e da frente, as paredes de fora baixinhas, como uma maquete */
   function previa(cv, dono){
     if(!cv || !C.verso) return;
-    const guarda = { PL, fixos: S.fixos, decor: S.decor, itens: S.itens, eu: S.eu, cache: S.cacheItens, cacheFraco: S.cacheFraco, cam: S.cam, ghost: S.ghost, lw: S.lw };
+    /* v3.55: o dono da prévia também (o agente da mesa era o da última casa aberta, não o de quem é a porta) */
+    const guarda = { PL, fixos: S.fixos, decor: S.decor, itens: S.itens, eu: S.eu, cache: S.cacheItens, cacheFraco: S.cacheFraco, cam: S.cam, ghost: S.ghost, lw: S.lw, dono: S.dono };
     try{
-      usaPlanta(plantaDe(dono)); S.decor = PL.decor || [];
+      usaPlanta(plantaDe(dono)); S.decor = PL.decor || []; S.dono = dono;
       S.fixos = ESTACOES.filter(e => paraDono(e, dono)).map(e => Object.assign({ y: 0 }, e, (PL.estacoes || {})[e.id] || {}));
       S.itens = lerCasa(dono && dono.casa); S.eu = null; S.cacheItens = null; S.ghost = null;
       const r = cv.getBoundingClientRect(), rp = resMax(), cw = Math.max(120, Math.round((r.width || 360) * rp)), chh = Math.max(70, Math.round((r.height || 200) * rp)); S.lw = Math.max(1, rp * 1.15);
@@ -3319,9 +3331,11 @@
       const pisos = pisosDaCasa(), extras = []; pisos.push(...sombras(extras));
       cena(ctx, cv, cam, pisos, [...solidosParedes(cam), ...solidosAndares(), ...solidosFixos(), ...solidosItens(), ...extras], null);
     }catch(e){ try{ console.error('[casa] prévia', e); }catch(_){} }
-    finally{ usaPlanta(guarda.PL); S.fixos = guarda.fixos; S.decor = guarda.decor; S.itens = guarda.itens; S.eu = guarda.eu; S.cacheItens = guarda.cache; S.cacheFraco = guarda.cacheFraco; S.cam = guarda.cam; S.ghost = guarda.ghost; S.lw = guarda.lw; }
+    finally{ usaPlanta(guarda.PL); S.fixos = guarda.fixos; S.decor = guarda.decor; S.itens = guarda.itens; S.eu = guarda.eu; S.cacheItens = guarda.cache; S.cacheFraco = guarda.cacheFraco; S.cam = guarda.cam; S.ghost = guarda.ghost; S.lw = guarda.lw; S.dono = guarda.dono; }
   }
-  C.casa = { abrir, fechar, escolhePista, aberta: () => S.aberta, estado: () => S, res: v => { S.resFixa = !!v; if(v) S.res = v; tamanho(); return S.res; }, ITENS, CAT, ESTACOES, encosta, alturaItem: (it, i) => alturaItem(it, i), COMODOS: () => COMODOS, planta: () => PL, plantaDe, lerCasa, miniatura, tela, serial, previa, acoes, disco: () => S.disco, discoAtual: () => S.discoAtual, poeDisco, AGENTES, agenteDe: () => agenteDe(S.dono),
+  C.casa = { abrir, fechar, escolhePista, aberta: () => S.aberta, estado: () => S, res: v => { S.resFixa = !!v; if(v) S.res = v; tamanho(); return S.res; },
+    /* pros testes: anda até uma ação como o toque faria ('d3' = decoração 3, 'i0' = móvel 0) */
+    vaiAcao: id => { const a = acoes().find(x => x.id === id); if(a) vaiNaAcao(a); return !!a; }, ITENS, CAT, ESTACOES, encosta, alturaItem: (it, i) => alturaItem(it, i), COMODOS: () => COMODOS, planta: () => PL, plantaDe, lerCasa, miniatura, tela, serial, previa, acoes, disco: () => S.disco, discoAtual: () => S.discoAtual, poeDisco, AGENTES, agenteDe: () => agenteDe(S.dono),
     sala: () => (S.aberta && S.dono ? String(S.dono.id || '') : ''), lugar: () => (S.aberta ? S.lugar || '' : ''), LUGARES,
     placar: () => (S.aberta && S.lugar === 'pesca' && S.placar && S.placar.r === rodadaAgora() ? { c: Math.round(S.placar.kg * 100), r: S.placar.r % 1e6 } : null), quadra: () => { const Q = quadraAqui(); if(!Q) return null; return { qp: melhorQuadra(Q), qd: diaBR() % 1e5 }; },
     corrida: () => { const P = pistaAqui(); if(!P) return null; const m = melhorHoje(P); return { tc: m ? Math.round(m / 10) : 0, td: diaBR() % 1e5 }; },

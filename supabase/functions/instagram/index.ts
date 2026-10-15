@@ -245,7 +245,10 @@ Deno.serve(async (req) => {
     for (const p of posts || []) out.push({ id: p.id, ...(await publicarPost(admin, p)) });
     let renovadas = 0;
     try { renovadas = await renova(admin); } catch (e: any) { console.error('renova:', e?.message); }
-    return json({ ok: true, feitos: out.length, posts: out, renovadas });
+    /* v3.55: a resposta não leva o detalhe dos posts (quem chama a fila pode ser qualquer um, e o post é de outra pessoa);
+       o detalhe fica só no log da função */
+    if (out.length) console.log('fila:', JSON.stringify(out));
+    return json({ ok: true, feitos: out.length, renovadas });
   }
 
   /* ---------- daqui pra baixo, precisa do login do app ---------- */

@@ -58,14 +58,18 @@
       return row;
     }
   };
-  H.ler = async id => { if(/^l-/.test(id)) return local.ler().find(x => x.id === id) || null; return await C.api.one(TAB, { eq: { id } }); };
-  H.lerSlug = async slug => { if(/^l-/.test(slug)) return local.ler().find(x => x.slug === slug) || null; return await C.api.one(TAB, { eq: { slug } }); };
+  /* v3.55: a cor da marca vai pro SVG e pro CSS da vitrine e do brandbook, que qualquer um abre; o que não for #RRGGBB
+     (alguém gravando direto no banco) vira uma cor neutra antes de chegar na tela */
+  const CORES_K = { p: '#141414', s: '#D8D4CB', a: '#B8913A', ink: '#141414', paper: '#F6F2EA' };
+  const limpa = m => { const c = m && m.spec && m.spec.cores; if(c && typeof c === 'object') Object.keys(CORES_K).forEach(k => { if(c[k] != null && !/^#[0-9a-f]{6}$/i.test(String(c[k]))) c[k] = CORES_K[k]; }); return m; };
+  H.ler = async id => { if(/^l-/.test(id)) return local.ler().find(x => x.id === id) || null; return limpa(await C.api.one(TAB, { eq: { id } })); };
+  H.lerSlug = async slug => { if(/^l-/.test(slug)) return local.ler().find(x => x.slug === slug) || null; return limpa(await C.api.one(TAB, { eq: { slug } })); };
   H.minhas = async () => {
     let l = [];
     if(C.uid()){ try{ l = await C.api.q(TAB, { eq: { dono: C.uid() }, order: ['updated_at', false], limit: 40 }); }catch(e){ if(!semBanco(e)) throw e; } }
-    return l.concat(local.ler());
+    return (l || []).map(limpa).concat(local.ler());
   };
-  H.vitrine = async () => { try{ return (await C.api.q(TAB, { eq: { publica: true }, order: ['updated_at', false], limit: 12 })) || []; }catch(e){ return []; } };
+  H.vitrine = async () => { try{ return ((await C.api.q(TAB, { eq: { publica: true }, order: ['updated_at', false], limit: 12 })) || []).map(limpa); }catch(e){ return []; } };
   /* v3.41 · A BUYER PERSONA É SÓ DO DONO. A marca publicada abre pra qualquer um, e a voz vai junto; então o cliente
      ideal que a IA ou o dono escreveu não vai na voz: mora na corre_houzi_privado, que só o dono lê (delta-v341.sql).
      Marca deste aparelho (local) guarda junto, que lá já é só dela. */
@@ -84,7 +88,9 @@
   /* o dono abre a marca (bancada ou brandbook): a buyer persona dele volta pra voz, só na memória */
   H.lerPrivado = async m => {
     if(!m || ehLocal(m) || !C.uid() || m.dono !== C.uid()) return m;
-    try{ const r = await C.api.one(PRIV, { eq: { marca: m.id } }); if(r && r.buyer && temPersona(r.buyer)){ m.voz = Object.assign({}, m.voz || {}, { buyer_persona: r.buyer }); privSalvo[m.id] = JSON.stringify(r.buyer); } }catch(e){}
+    try{ const r = await C.api.one(PRIV, { eq: { marca: m.id } }); m._privErro = false; if(r && r.buyer && temPersona(r.buyer)){ m.voz = Object.assign({}, m.voz || {}, { buyer_persona: r.buyer }); privSalvo[m.id] = JSON.stringify(r.buyer); } }
+    /* v3.55: não deu pra ler o "Pra quem" guardado: marca, pra edição não gravar o modelo do Studio por cima do que a pessoa escreveu */
+    catch(e){ m._privErro = true; }
     return m;
   };
   H.apagar = async m => { if(ehLocal(m)){ local.salvar(local.ler().filter(x => x.id !== m.id)); return; } await C.api.del(TAB, { id: m.id }); };
@@ -549,6 +555,7 @@
     if(el.dataset.p){ /* as personas (v3.41) */
       const [q, k] = el.dataset.p.split('.'), chave = q === 'brand' ? 'brand_persona' : 'buyer_persona', atual = H.personas(B.m)[q === 'brand' ? 'brand' : 'buyer'];
       if(!atual || !(k in atual) || k === 'arquetipo') return;
+      if(q !== 'brand' && B.m._privErro){ C.toast('Não deu pra abrir o teu "Pra quem" agora. Recarrega a página antes de mexer nele.', 4600); return; }
       const nova = Object.assign({}, atual, { [k]: Array.isArray(atual[k]) ? el.value.split('\n').map(s => s.trim()).filter(Boolean).slice(0, 4) : el.value });
       delete nova.arquetipo;
       if(!B.m.voz || !B.m.voz.conceito) B.m.voz = Object.assign({}, H.voz(B.m), B.m.voz || {});

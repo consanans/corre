@@ -274,7 +274,8 @@
   let amb0 = null, ambNivel = { trafego: .6, passaros: .3, gente: .1, agua: 0 }, ambT = 0;
   function laco(buf, tipo, f, q){ const s = ac.createBufferSource(), fl = ac.createBiquadFilter(), g = ac.createGain(); s.buffer = buf; s.loop = true; fl.type = tipo; fl.frequency.value = f; fl.Q.value = q; g.gain.value = .0001; s.connect(fl); fl.connect(g); g.connect(amb); s.start(0, Math.random() * .9); return { s, fl, g }; }
   function montaAmbiente(){
-    if(amb0) return;
+    /* v3.55: voltou pra cidade: o ambiente já existe, mas os passarinhos e as buzinas de longe precisam ser agendados de novo */
+    if(amb0){ clearTimeout(ambT); ambT = setTimeout(eventos, 1500); return; }
     const tr = laco(marrom, 'lowpass', 230, .7);
     const ge = laco(ruido, 'bandpass', 900, 1.1), am = ac.createGain(); am.gain.value = .55; ge.fl.disconnect(); ge.fl.connect(am); am.connect(ge.g);
     [3.1, 4.7, 7.3].forEach((f, k) => { const l = ac.createOscillator(), lg = ac.createGain(); l.frequency.value = f; lg.gain.value = .14 + k * .03; l.connect(lg); lg.connect(am.gain); l.start(); });
@@ -357,7 +358,9 @@
     nivela(amb, querFx ? (s.casa ? .18 : s.balcao ? .35 : 1) : 0, .9);
     if(querMusica && !musicaOn){ musicaOn = true; i = 0; t0 = ac.currentTime + .25; clearInterval(timer); timer = setInterval(tick, 150); tick(); }
     else if(!querMusica && musicaOn){ musicaOn = false; clearInterval(timer); }
-    if(!querFx){ paraMotor(); aviao('para'); }
+    /* v3.55: dentro de casa, de lugar 3D ou do balcão o motor da rua para (o passo da cidade não roda lá e ele ficava zumbindo) */
+    if(!querFx || s.casa || s.balcao) paraMotor();
+    if(!querFx) aviao('para');
     /* nada pra tocar: o áudio dorme (economiza bateria) */
     if(!querMusica && !querFx){ setTimeout(() => { if(ac && ativo && ac.state === 'running' && (modoAtual === 'mudo' || st().pausa)) ac.suspend().catch(() => {}); }, 1200); }
     else if(ac.state === 'suspended' && !document.hidden) ac.resume().catch(() => {});

@@ -1961,14 +1961,14 @@ html.embed .st-barra .st-barra-t,html.embed .st-barra [data-act="studio-sair"]{d
 @media (max-width:480px){.cs-ag-h{grid-template-columns:110px minmax(0,1fr)}.cs-ag-h canvas{width:110px;height:96px}}
 /* ---------- v3.27 · o jogo do aquário por cima da cidade ---------- */
 .cvr-jogo{position:fixed;inset:0;z-index:36;background:#010C12;display:flex;flex-direction:column}
-.cvr-jogo-top{flex:none;height:44px;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:0 10px;background:var(--ink);color:var(--paper);font-family:var(--font-mono);border-bottom:2px solid #62F5E2}
+.cvr-jogo-top{flex:none;height:44px;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:0 10px;background:var(--ink);color:var(--paper);font-family:var(--font-mono);border-bottom:2px solid #38E1FF}
 .cvr-jogo-t{display:flex;flex-direction:column;line-height:1.1;min-width:0}
-.cvr-jogo-t b{font-size:14px;letter-spacing:.04em;text-transform:uppercase;color:#62F5E2}
+.cvr-jogo-t b{font-size:14px;letter-spacing:.04em;text-transform:uppercase;color:#38E1FF}
 .cvr-jogo-t small{font-size:11px;color:#8FB3B8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cvr-jogo-x{flex:none}
 .cvr-jogo-corpo{flex:1;position:relative;min-height:0}
 .cvr-jogo iframe{position:absolute;inset:0;width:100%;height:100%;border:0;background:#010C12}
-.cvr-jogo-load{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#62F5E2;font-family:var(--font-mono);font-size:13px;letter-spacing:.06em;text-transform:uppercase;pointer-events:none}
+.cvr-jogo-load{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#38E1FF;font-family:var(--font-mono);font-size:13px;letter-spacing:.06em;text-transform:uppercase;pointer-events:none}
 /* ---------- v3.26 · ações da casa: discos e skate ---------- */
 .cs-tag.acao{background:var(--paper);color:var(--ink)}
 .cs-tag.acao.som{background:var(--pink);color:var(--paper)}
@@ -2741,3 +2741,6 @@ html.embed .msg-pg{height:calc(100dvh - 40px)}
 .cs-banner small{position:absolute;top:6px;right:8px;font-family:var(--font-mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:#fff;opacity:.75}
 .cs-banner.sai{opacity:0;transform:translate(-50%,12px);transition:opacity .35s,transform .35s}
 @keyframes cs-banner-entra{from{opacity:0;transform:translate(-50%,16px)}to{opacity:1;transform:translate(-50%,0)}}
+/* v3.55 · revisão geral: o verde-água do jogo do Aquário (matiz 183) caía na faixa proibida; vira o ciano da cidade */
+.cvr-jogo-top{border-bottom-color:#38E1FF}
+.cvr-jogo-t b,.cvr-jogo-load{color:#38E1FF}
