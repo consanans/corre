@@ -687,7 +687,7 @@
     if(BC.aberto) m.tr = 1;
     if(V.jogo) m.jg = 1;
     /* dentro de uma casa: quem passa vê "em casa"; quem tá na mesma casa te vê lá dentro (e a voz fica entre vocês) */
-    if(C.casa && C.casa.aberta()){ m.ec = 1; m.casa = C.casa.sala(); const pq = C.casa.placar ? C.casa.placar() : null; if(pq && pq.c > 0){ m.pk = pq.c; m.pr = pq.r; } const cr = C.casa.corrida ? C.casa.corrida() : null; if(cr && cr.tc > 0){ m.tc = cr.tc; m.td = cr.td; } const qd = C.casa.quadra ? C.casa.quadra() : null; if(qd && qd.qp > 0){ m.qp = qd.qp; m.qd = qd.qd; } const q = C.casa.pos(); if(q){ m.cx = Math.round(q.x * 10) / 10; m.cz = Math.round(q.z * 10) / 10; m.cy = Math.round((q.y || 0) * 10) / 10; m.cd = Math.round(q.yaw * 100) / 100; }
+    if(C.casa && C.casa.aberta()){ m.ec = 1; m.casa = C.casa.sala(); const pq = C.casa.placar ? C.casa.placar() : null; if(pq && pq.c > 0){ m.pk = pq.c; m.pr = pq.r; } const cr = C.casa.corrida ? C.casa.corrida() : null; if(cr && cr.tc > 0){ m.tc = cr.tc; m.td = cr.td; } const qd = C.casa.quadra ? C.casa.quadra() : null; if(qd && qd.qp > 0){ m.qp = qd.qp; m.qd = qd.qd; } const km = C.casa.kartMeta ? C.casa.kartMeta() : null; if(km){ m.kp = km.kp; m.kpt = km.kpt; } const q = C.casa.pos(); if(q){ m.cx = Math.round(q.x * 10) / 10; m.cz = Math.round(q.z * 10) / 10; m.cy = Math.round((q.y || 0) * 10) / 10; m.cd = Math.round(q.yaw * 100) / 100; }
       const dsc = C.casa.disco && C.casa.disco(); if(dsc && dsc.t){ m.disco = dsc.k || ''; m.discoT = dsc.t; } }
     /* no ar, o teu nome e o teu @ não viajam na presença (qualquer um escreveria qualquer coisa ali): vêm do servidor */
     return C.LIVE ? m : Object.assign(m, { uid: me.id || '', handle: pub ? me.handle : '', nome: pub ? String(me.nome || '').slice(0, 40) : 'perfil mocado' });
@@ -744,6 +744,7 @@
         })
           .on('broadcast', { event: 'mv' }, ({ payload }) => { if(!fim && ch === este) h.mv(payload); })
           .on('broadcast', { event: 'emo' }, ({ payload }) => { if(!fim && ch === este) h.emo(payload); })
+          .on('broadcast', { event: 'kart' }, ({ payload }) => { if(!fim && ch === este) h.kart(payload); })
           .subscribe(async s => {
             if(fim || ch !== este) return;
             if(s === 'SUBSCRIBED'){ clearTimeout(vigia); pronto = true; entrou = true; try{ await este.track(meta()); }catch(e){} h.ok(true); }
@@ -768,6 +769,7 @@
       mv: d => manda('mv', d),
       sig: (to, m) => { if(!fim && sidOk(to)) C.api.rpc('corre_verso_sinal', { p_de: sid, p_para: to, p_m: m }).catch(() => {}); },
       emo: i => manda('emo', { sid, i }),
+      kart: d => manda('kart', d),
       track: m => { if(pronto && ch && !fim) Promise.resolve(ch.track(m)).catch(() => {}); },
       sair: () => {
         fim = true; pronto = false; clearTimeout(vigia); clearInterval(vida); document.removeEventListener('visibilitychange', aoVoltar);
@@ -778,7 +780,7 @@
     };
   }
   function redeDemo(h){
-    if(!('BroadcastChannel' in window)){ setTimeout(() => h.ok(true)); return { mv(){}, sig(){}, emo(){}, track(){}, sair(){} }; }
+    if(!('BroadcastChannel' in window)){ setTimeout(() => h.ok(true)); return { mv(){}, sig(){}, emo(){}, kart(){}, track(){}, sair(){} }; }
     const bc = new BroadcastChannel('corre-verso'), vivos = new Map();
     const pres = () => h.presenca([...vivos.values()].map(v => v.m));
     bc.onmessage = ({ data: d }) => {
@@ -788,10 +790,11 @@
       else if(d.t === 'mv'){ const v = vivos.get(d.d.sid); if(v){ v.t = Date.now(); h.mv(d.d); } else bc.postMessage({ t: 'oi', m: meta() }); }
       else if(d.t === 'sig' && d.to === sid) h.sig(d.from, d.m);
       else if(d.t === 'emo') h.emo(d.d);
+      else if(d.t === 'kart') h.kart(d.d);
     };
     bc.postMessage({ t: 'oi', m: meta() }); setTimeout(() => h.ok(true), 50);
     const lim = setInterval(() => { const n = Date.now(); let mudou = false; for(const [k, v] of vivos) if(n - v.t > 9000){ vivos.delete(k); mudou = true; } if(mudou) pres(); }, 3000);
-    return { mv: d => bc.postMessage({ t: 'mv', d }), emo: i => bc.postMessage({ t: 'emo', d: { sid, i } }), sig: (to, m) => bc.postMessage({ t: 'sig', to, from: sid, m }), track: m => bc.postMessage({ t: 'meta', m }), sair: () => { bc.postMessage({ t: 'tchau', sid }); clearInterval(lim); bc.close(); } };
+    return { mv: d => bc.postMessage({ t: 'mv', d }), emo: i => bc.postMessage({ t: 'emo', d: { sid, i } }), kart: d => bc.postMessage({ t: 'kart', d }), sig: (to, m) => bc.postMessage({ t: 'sig', to, from: sid, m }), track: m => bc.postMessage({ t: 'meta', m }), sair: () => { bc.postMessage({ t: 'tchau', sid }); clearInterval(lim); bc.close(); } };
   }
   /* o que chega dos outros pela rede é de qualquer um: número tem que ser número dentro da cidade, texto curto */
   const coordOk = (x, y) => Number.isFinite(x) && Number.isFinite(y) && V.cid && x >= 0 && y >= TOPO - 200 && x <= V.cid.W && y <= V.cid.H;
@@ -816,8 +819,10 @@
           tc: Number.isInteger(m.tc) && m.tc > 0 && m.tc < 360000 ? m.tc : 0, td: Number.isInteger(m.td) && m.td >= 0 ? m.td : -1,
           /* v3.51: os pontos do melhor desafio do dia na quadra e o dia */
           qp: Number.isInteger(m.qp) && m.qp > 0 && m.qp <= 30 ? m.qp : 0, qd: Number.isInteger(m.qd) && m.qd >= 0 ? m.qd : -1,
+          /* v3.53: o bicho da corrida de kart (0 a 5) e quando ele foi escolhido (desempata quem pegou primeiro) */
+          kp: Number.isInteger(m.kp) && m.kp >= 0 && m.kp < 6 ? m.kp : null, kpt: Number.isInteger(m.kpt) && m.kpt >= 0 ? m.kpt : 0,
           disco: typeof m.disco === 'string' && /^[a-z0-9]{0,16}$/.test(m.disco) ? m.disco : '', discoT: Number.isFinite(m.discoT) ? m.discoT : 0 });
-        if(r.naCasa && Number.isFinite(m.cx) && Number.isFinite(m.cz)){ if(r.hx == null){ r.hxv = m.cx; r.hzv = m.cz; r.hyv = Number.isFinite(m.cy) ? clamp(m.cy, 0, 8) : 0; } r.hx = clamp(m.cx, -1, 31); r.hz = clamp(m.cz, -1, 31); r.hy = Number.isFinite(m.cy) ? clamp(m.cy, 0, 8) : 0; r.hyaw = Number.isFinite(m.cd) ? m.cd : 0; }
+        if(r.naCasa && Number.isFinite(m.cx) && Number.isFinite(m.cz)){ if(r.hx == null){ r.hxv = m.cx; r.hzv = m.cz; r.hyv = Number.isFinite(m.cy) ? clamp(m.cy, 0, 8) : 0; } r.hx = clamp(m.cx, -1, 81); r.hz = clamp(m.cz, -1, 81); r.hy = Number.isFinite(m.cy) ? clamp(m.cy, 0, 8) : 0; r.hyaw = Number.isFinite(m.cd) ? m.cd : 0; }
         else if(!r.naCasa){ r.hx = r.hz = null; }
         confereAv(r);
         /* posição da presença só vale quando muda (a pessoa se anunciou de novo: chegou, viajou pelo Mapa, foi pra casa) */
@@ -830,17 +835,34 @@
       ui();
     },
     /* passo a passo vem por broadcast (qualquer um manda): salto grande não vale, quem viaja se anuncia pela presença */
-    mv(d){ if(!d || d.sid === sid) return; const r = V.remotos.get(d.sid); if(!r || !coordOk(d.x, d.y)) return; if(Math.hypot(d.x - r.tx, d.y - r.ty) > 700) return; r.tx = d.x; r.ty = d.y; if(['baixo', 'cima', 'esq', 'dir'].includes(d.dir)) r.dir = d.dir; r.mov = !!d.mov; r.sit = !!d.sit; if(d.mic != null && !!d.mic !== r.mic){ r.mic = !!d.mic; ui(); } if(Number.isFinite(d.cx) && Number.isFinite(d.cz)){ if(r.hx == null){ r.hxv = d.cx; r.hzv = d.cz; r.hyv = Number.isFinite(d.cy) ? clamp(d.cy, 0, 8) : 0; } r.hx = clamp(d.cx, -1, 31); r.hz = clamp(d.cz, -1, 31); r.hy = Number.isFinite(d.cy) ? clamp(d.cy, 0, 8) : 0; r.hyaw = Number.isFinite(d.cd) ? d.cd : 0; r.hmov = d.cm === 1; r.hmt = d.mt === 1 || d.mt === 2 ? d.mt : 0; } r.item = typeof d.it === 'string' && ITEM_MAO[d.it] ? d.it : null; r.pesca = d.pe === 1; r.visto = r.sinal = Date.now();
+    mv(d){ if(!d || d.sid === sid) return; const r = V.remotos.get(d.sid); if(!r || !coordOk(d.x, d.y)) return; if(Math.hypot(d.x - r.tx, d.y - r.ty) > 700) return; r.tx = d.x; r.ty = d.y; if(['baixo', 'cima', 'esq', 'dir'].includes(d.dir)) r.dir = d.dir; r.mov = !!d.mov; r.sit = !!d.sit; if(d.mic != null && !!d.mic !== r.mic){ r.mic = !!d.mic; ui(); } if(Number.isFinite(d.cx) && Number.isFinite(d.cz)){ if(r.hx == null){ r.hxv = d.cx; r.hzv = d.cz; r.hyv = Number.isFinite(d.cy) ? clamp(d.cy, 0, 8) : 0; } r.hx = clamp(d.cx, -1, 81); r.hz = clamp(d.cz, -1, 81); r.hy = Number.isFinite(d.cy) ? clamp(d.cy, 0, 8) : 0; r.hyaw = Number.isFinite(d.cd) ? d.cd : 0; r.hmov = d.cm === 1; r.hmt = d.mt === 1 || d.mt === 2 ? d.mt : 0; kartMv(r, d); } r.item = typeof d.it === 'string' && ITEM_MAO[d.it] ? d.it : null; r.pesca = d.pe === 1; r.visto = r.sinal = Date.now();
       /* v3.40: o pulo (cada pulo novo tem um número) e o avião/paraquedas */
       if(Number.isInteger(d.pu)){ if(r.puN != null && d.pu !== r.puN) r.puT = performance.now(); r.puN = d.pu; }
       r.vo = d.vo === 1 || d.vo === 2 ? d.vo : 0; r.pq = d.pq === 1; },
     sig(from, m){ aoSinal(from, m).catch(() => {}); },
+    /* v3.53: os eventos da corrida ao vivo (largada, chiclete, grave, chegada): só de quem tá na mesma sala que você */
+    kart(d){
+      if(!d || !sidOk(d.sid) || d.sid === sid || !['larga', 'chic', 'grave', 'fim', 'cpu'].includes(d.t) || !Number.isInteger(d.id) || d.id < 0 || d.id > 1e9) return;
+      const r = V.remotos.get(d.sid); if(!r || !C.casa || !C.casa.aberta() || !r.naCasa || r.naCasa !== C.casa.sala()) return;
+      const n = { t: d.t, id: d.id };
+      const int = (v, a, b) => Number.isInteger(v) && v >= a && v <= b;
+      if(d.t === 'larga'){ if(!Array.isArray(d.quem) || !d.quem.length || d.quem.length > 6 || !d.quem.every(sidOk) || !Number.isFinite(d.em) || !Array.isArray(d.bichos) || d.bichos.length !== d.quem.length || !d.bichos.every(b => int(b, 0, 5))) return; n.quem = d.quem.slice(); n.bichos = d.bichos.slice(); n.em = clamp(d.em, 1000, 10000); }
+      if(d.t === 'cpu'){ if(!Array.isArray(d.l) || d.l.length > 6 || !d.l.every(o => Array.isArray(o) && o.length === 6 && int(o[0], 0, 5) && int(o[1], -1e5, 1e6) && int(o[2], -600, 600) && int(o[3], -100, 400) && int(o[4], 0, 1) && int(o[5], 0, 36e5))) return; n.l = d.l.map(o => o.slice()); }
+      if(d.t === 'chic' || d.t === 'grave'){ if(!Number.isFinite(d.x) || !Number.isFinite(d.z)) return; n.x = clamp(d.x, -1, 81); n.z = clamp(d.z, -1, 81); }
+      if(d.t === 'fim'){ if(!Number.isFinite(d.ms) || d.ms < 5000 || d.ms > 36e5) return; n.ms = d.ms; }
+      if(C.casa.kartEvento) C.casa.kartEvento(n, r);
+    },
     emo(d){
       if(!d || !Number.isInteger(d.i)) return; const r = V.remotos.get(d.sid); const t = d.i >= 100 ? FALAS_AUTO[d.i - 100] : FALAS[d.i]; if(r && !bloqueado(r) && t) r.fala = { t, ate: Date.now() + 4500 };
       /* a buzina (ou a campainha) de quem tá perto: você ouve, mais baixo quanto mais longe */
       if(r && !bloqueado(r) && (d.i === 107 || d.i === 108) && V.eu && C.versoSom){ const dd = dist(V.eu, r), vi = veiculoInfo(r); if(dd < 340) C.versoSom.buzina(d.i === 108 ? 'bike' : (vi && vi.buzina) || 'carro', Math.max(.2, 1 - dd / 340)); }
     }
   };
+  /* v3.53: o que a corrida ao vivo manda no movimento: o bicho, quanto andou (decímetros), a corrida e a chegada (centésimos) */
+  function kartMv(r, d){
+    r.kp = Number.isInteger(d.kp) && d.kp >= 0 && d.kp < 6 ? d.kp : r.kp;
+    if(Number.isInteger(d.kl) && d.kl >= 0 && d.kl <= 1e9){ r.kl = d.kl; r.kg = Number.isInteger(d.kg) && Math.abs(d.kg) < 1e6 ? d.kg : r.kg; if(Number.isInteger(d.kf) && d.kf > 500 && d.kf < 36e4){ r.kfT = d.kf * 10; r.kfId = d.kl; } }
+  }
   const FALAS = ['Oi!', 'Bora trocar ideia?', 'Top!', 'Haha', 'Valeu!', 'Partiu lago?', 'Liga o mic!'];
   /* balões que a cidade solta sozinha (comendo, pescando, gol); viajam como 100 + índice */
   const FALAS_AUTO = ['nham nham', 'fisgou!', 'hmm… nada', 'uma bota…', 'golaço!', 'na cesta!', 'tarefa feita!', 'bi-bi!', 'trim-trim!', 'uhuuu!'];
@@ -1019,7 +1041,7 @@
     const q = C.casa && C.casa.aberta() ? C.casa.pos() : null, mov = q ? q.andando : V.eu.mov || !!V.voo;
     if(!forca && t - V.ultEnvio < (mov ? 100 : 2000)) return;
     const m = { sid, x: Math.round(V.eu.x), y: Math.round(V.eu.y), dir: V.eu.dir, mov: V.eu.mov, mic: V.mic, sit: !!V.eu.sit };
-    if(q){ m.cx = Math.round(q.x * 20) / 20; m.cz = Math.round(q.z * 20) / 20; m.cy = Math.round((q.y || 0) * 20) / 20; m.cd = Math.round(q.yaw * 100) / 100; m.cm = q.andando ? 1 : 0; if(q.mt) m.mt = q.mt; }
+    if(q){ m.cx = Math.round(q.x * 20) / 20; m.cz = Math.round(q.z * 20) / 20; m.cy = Math.round((q.y || 0) * 20) / 20; m.cd = Math.round(q.yaw * 100) / 100; m.cm = q.andando ? 1 : 0; if(q.mt) m.mt = q.mt; ['kp', 'kg', 'kl', 'kf'].forEach(k => { if(Number.isInteger(q[k])) m[k] = q[k]; }); }
     if(V.eu.item && V.eu.item.ate > Date.now()) m.it = V.eu.item.k;
     if(V.eu.pesca && V.eu.sit) m.pe = 1;
     if(V.eu.puN) m.pu = V.eu.puN;
@@ -1345,6 +1367,7 @@
     if(c.dois){ const d = c.dois; P.push({ x: d.portaX, y: d.base + 8, tipo: 'casa', c: d, dois: true }); }
     const pr = c.praca; P.push({ x: pr.x + 85, y: pr.y + 168, tipo: 'mural' }, { x: pr.x + LW - 68, y: pr.y + 190, tipo: 'banca' });
     c.vazios.forEach(o => P.push({ x: o.x + LW / 2, y: o.y + LH - 40, tipo: 'lote' }));
+    c.vazios.forEach(o => P.push({ x: o.x + LW / 2, y: o.y + LH * .55 + 14, tipo: 'publi', k: 'nexwin' }));
     if(c.feira) c.feira.barracas.filter(paraMim).forEach(b => P.push({ x: b.x, y: b.base + 10, tipo: 'barraca', b }));
     c.bancos.forEach(b => P.push({ x: b.x, y: b.y + 4, tipo: 'banco', b, pesca: /^(Píer|Deck) do Igapó$/.test(b.lugar || '') }));
     /* v3.51: toda quadra tem a entrada do desafio 3D, no canto de baixo à esquerda (o meio é da bola) */
@@ -1658,6 +1681,76 @@
     bloco(ctx, bx - 8, by - 14, 104, 14, AMARELO);
     pixTxt(ctx, 'BANCA', bx + 44, by - 7, 1, INK, 'c');
     pixPlaca(ctx, 'CALCADAO', p.x + LW / 2, p.y + 16, { fundo: PAPEL });
+  }
+  /* ---------- v3.53 · as placas de publicidade dos parceiros ----------
+     O Thales: "onde for terreno vazio, placa de publicidade; começa com a nexwin.app, com o QR pra baixar o app (sou
+     sócio)" e a Arena JET (parceria). Cada placa é um desenho de canvas feito aqui (o nome da marca em letra, sem
+     baixar logo de ninguém) e vale na cidade (os lotes livres) e no 3D (as pistas). Tocou ou chegou perto: a folha com
+     o QR grande e os links. As cores são as de cada marca, menos o verde (no Corre não entra verde: a NexWin vai no
+     azul e no roxo dela) */
+  const QR_NEXWIN = 'jtv27.a5nwh.eknkt.ek4t9.ekfh9.a7bcx.jvfy7.1gjk.euruk.6nrj6.6hw4b.8g1yp.w4wn.hwwbu.cn6t7.e5bw1.do3qs.24go.jujiv.a7vh4.el6ut.ek3j3.ek0wd.a5d6h.jvsfz';
+  const qrLinhas = cod => cod.split('.').map(x => parseInt(x, 36).toString(2).padStart(25, '0'));
+  const PUBLI = {
+    nexwin: { nome: 'NexWin', site: 'nexwin.app', url: 'https://nexwin.app/', qr: qrLinhas(QR_NEXWIN), frase: 'Conectando Campeões',
+      sobre: 'Campeonatos de EA FC 26, eFootball, Free Fire, Clash Royale e mais, no celular. Dispute, ganhe Nexcoins e use na Store e na Academy.',
+      lojas: [['App Store', 'https://apps.apple.com/br/app/nexwin/id6749592307'], ['Google Play', 'https://play.google.com/store/apps/details?id=br.com.nexwin.app']],
+      cores: { fundo: '#070C12', a: '#2F80ED', b: '#8B5CF6', txt: '#FFFFFF' },
+      frases: [['nexwin', 'CONECTANDO CAMPEÕES'], ['CAMPEONATO NO CELULAR', 'EA FC 26 · FREE FIRE · CLASH ROYALE'], ['DO DOWNLOAD AO PÓDIO', 'GANHE NEXCOINS']] },
+    jet: { nome: 'JET', site: 'jetshr.com', url: 'https://jetshr.com/#/pt', frase: 'Patinete elétrico no app',
+      sobre: 'Alugue um patinete elétrico pelo app: encontre no mapa, escaneie o código e comece a viagem. A JET tá em 40 cidades do Brasil, com mais de 40 mil patinetes.',
+      cores: { fundo: '#181818', a: '#307FE2', b: '#307FE2', txt: '#FFFFFF' },
+      frases: [['JET', 'ALUGUE UM PATINETE ELÉTRICO'], ['ESCANEIE. ANDE. ESTACIONE.', 'BAIXE O APP JET'], ['40 CIDADES', '40 MIL PATINETES JET'], ['SEM CNH', 'PRA ANDAR DE PATINETE JET'], ['SE BEBER, NÃO USE O PATINETE', 'JET · PROIBIDO PRA MENOR DE 18'], ['JET POWER BANK', 'BATERIA ONDE VOCÊ ESTIVER']] }
+  };
+  const PUBLI_IMG = new Map(), PUBLI_LED = new Map();
+  if(document.fonts && document.fonts.ready) document.fonts.ready.then(() => PUBLI_IMG.clear()).catch(() => {});
+  function qrNoCanvas(x, linhas, px, py, tam){ const n = linhas.length, m = tam / (n + 2); x.fillStyle = '#FFFFFF'; x.fillRect(px, py, tam, tam); x.fillStyle = '#0F1218'; linhas.forEach((l, j) => { for(let i = 0; i < n; i++) if(l[i] === '1') x.fillRect(Math.floor(px + (i + 1) * m), Math.floor(py + (j + 1) * m), Math.ceil(m), Math.ceil(m)); }); }
+  /* a placa pronta (canvas), por marca e por variação; LED = a faixa comprida que corre o texto (redesenhada a cada passo) */
+  function publiImg(k, v, W, H, led){
+    const P = PUBLI[k]; if(!P) return null; W = W || 512; H = H || 256; const fr = P.frases[((v || 0) % P.frases.length + P.frases.length) % P.frases.length], chave = [k, v, W, H, led ? Math.floor(led) : ''].join('|');
+    let cv = led ? PUBLI_LED.get(k + W + 'x' + H) : PUBLI_IMG.get(chave); if(cv && (!led || cv._led === Math.floor(led))) return cv;
+    if(!cv){ cv = document.createElement('canvas'); cv.width = W; cv.height = H; if(led) PUBLI_LED.set(k + W + 'x' + H, cv); }
+    const x = cv.getContext('2d'), Co = P.cores; if(led) cv._led = Math.floor(led);
+    x.fillStyle = Co.fundo; x.fillRect(0, 0, W, H);
+    const g = x.createLinearGradient(0, 0, W, 0); g.addColorStop(0, Co.a); g.addColorStop(1, Co.b);
+    const fonte = (peso, tam, it) => `${it ? 'italic ' : ''}${peso} ${Math.round(tam)}px "Archivo", "Big Shoulders Display", system-ui, sans-serif`;
+    const cabe = (txt, peso, max, larg, it) => { let t = max; x.font = fonte(peso, t, it); while(t > 8 && x.measureText(txt).width > larg){ t -= 2; x.font = fonte(peso, t, it); } return t; };
+    if(led){
+      /* a faixa de LED: o texto passando, com a marca no começo */
+      const txt = `${P.nome}   ·   ${P.frases.map(f => f.join(' · ')).join('   ·   ')}   ·   `; x.font = fonte(900, H * .62, k === 'jet'); const w = x.measureText(txt).width, off = -((led * 3) % w);
+      x.fillStyle = g; x.fillRect(0, H * .86, W, H * .14); x.fillStyle = Co.txt; x.textBaseline = 'middle'; for(let p = off; p < W; p += w) x.fillText(txt, p, H * .45);
+      return cv;
+    }
+    x.fillStyle = g; x.fillRect(0, H - H * .08, W, H * .08); x.fillRect(0, 0, W * .025, H);
+    const qr = P.qr && H >= 120, aq = qr ? H * .72 : 0, larg = W - (qr ? aq + W * .13 : W * .1);
+    x.fillStyle = Co.txt; x.textBaseline = 'alphabetic';
+    /* as linhas: a frase grande, a de baixo e o endereço, sem encostar uma na outra */
+    let t1 = cabe(fr[0], 900, H * (fr[0].length < 8 ? .44 : .25), larg, k === 'jet'); const t2 = cabe(fr[1], 700, H * .11, larg);
+    if(H * .1 + t1 * .82 + t2 * 1.45 > H * .72) t1 = Math.max(10, (H * .72 - H * .1 - t2 * 1.45) / .82);
+    const b1 = H * .1 + t1 * .82, b2 = b1 + t2 * 1.45;
+    x.font = fonte(900, t1, k === 'jet'); x.fillText(fr[0], W * .06, b1);
+    x.font = fonte(700, t2); x.fillStyle = Co.a === Co.b ? Co.a : '#B7C9FF'; x.fillText(fr[1], W * .06, b2);
+    x.font = fonte(600, H * .065); x.fillStyle = 'rgba(255,255,255,.75)'; x.fillText(qr ? `BAIXE O APP · ${P.site}` : P.site, W * .06, H * .86);
+    if(qr){ const px = W - aq - W * .05, py = (H - aq) / 2 - H * .03; qrNoCanvas(x, P.qr, px, py, aq); x.font = fonte(700, H * .055); x.fillStyle = Co.txt; x.textAlign = 'center'; x.fillText('APONTA A CÂMERA', px + aq / 2, py + aq + H * .07); x.textAlign = 'left'; }
+    PUBLI_IMG.set(chave, cv); if(PUBLI_IMG.size > 300) PUBLI_IMG.delete(PUBLI_IMG.keys().next().value);
+    return cv;
+  }
+  /* a folha da propaganda: o QR grande e os links (abre fora do Corre) */
+  function publiSheet(k){
+    const P = PUBLI[k]; if(!P) return; const n = P.qr ? P.qr.length : 0;
+    const qr = P.qr ? `<svg class="cvr-publi-qr" viewBox="-2 -2 ${n + 4} ${n + 4}" aria-label="QR code do ${esc(P.nome)}"><rect x="-2" y="-2" width="${n + 4}" height="${n + 4}" fill="#FFFFFF"/>${P.qr.map((l, j) => [...l].map((b, i) => (b === '1' ? `<rect x="${i}" y="${j}" width="1.02" height="1.02" fill="#0F1218"/>` : '')).join('')).join('')}</svg>` : '';
+    C.sheet(`<div class="form cvr-publi"><div class="sheet-head"><h2>${esc(P.nome)} · ${esc(P.frase)}</h2><button type="button" class="cbtn plain" data-close aria-label="Fechar">${ico('x')}</button></div>
+      <p class="note">${esc(P.sobre)}</p>${qr}${qr ? '<p class="note">Aponta a câmera do celular pro QR pra baixar o app.</p>' : ''}
+      <div class="acts"><a class="btn primary" href="${P.url}" target="_blank" rel="noopener">${ico('ext')} Abrir ${esc(P.site)}</a>${(P.lojas || []).map(([n2, u]) => `<a class="btn" href="${u}" target="_blank" rel="noopener">${esc(n2)}</a>`).join('')}</div>
+      <p class="fine">Parceiro do Corre.</p></div>`);
+  }
+  /* o outdoor do lote livre: dois postes e a placa (o desenho da placa é o canvas da marca, liso, sem pixel) */
+  function outdoor(ctx, o, i){
+    const cx = o.x + LW / 2, base = o.y + LH * .55, w = 230, h = 115, top = base - 58 - h, img = publiImg('nexwin', i, 512, 256);
+    ctx.fillStyle = 'rgba(15,18,24,.25)'; ctx.fillRect(cx - w / 2, base - 2, w, 8);
+    ctx.fillStyle = INK; ctx.fillRect(cx - w * .32 - 4, top + h, 8, 58); ctx.fillRect(cx + w * .32 - 4, top + h, 8, 58);
+    ctx.fillStyle = INK; ctx.fillRect(cx - w / 2 - 5, top - 5, w + 10, h + 10);
+    if(img){ const sm = ctx.imageSmoothingEnabled; ctx.imageSmoothingEnabled = true; ctx.drawImage(img, cx - w / 2, top, w, h); ctx.imageSmoothingEnabled = sm; }
+    ctx.fillStyle = '#3A3E45'; ctx.fillRect(cx - w / 2 - 5, top - 9, w + 10, 4); [-.3, 0, .3].forEach(f => { ctx.fillStyle = '#8F96A0'; ctx.fillRect(cx + w * f - 2, top - 16, 4, 10); ctx.fillStyle = '#FFE9B0'; ctx.fillRect(cx + w * f - 6, top - 18, 12, 4); });
   }
   function loteLivre(ctx, o){
     const x = o.x + LW / 2, y = o.y + LH - 90;
@@ -2521,7 +2614,7 @@
     V.carros.forEach(car => { if(vis(car.x, car.y, 90)) L.push({ y: car.y, f: () => carro(ctx, car) }); });
     c.bancos.forEach(b => { if(vis(b.x, b.y, 60)) L.push({ y: b.y - 1, f: () => banco(ctx, b) }); });
     (V.bolas || []).forEach(b => { if(vis(b.x, b.y, 40)) L.push({ y: b.y, f: () => desenhaBola(ctx, b) }); });
-    c.vazios.forEach(o => { if(vis(o.x + LW / 2, o.y + LH, 200)) L.push({ y: o.y + LH - 40, f: () => loteLivre(ctx, o) }); });
+    c.vazios.forEach((o, i) => { if(vis(o.x + LW / 2, o.y + LH, 260)){ L.push({ y: o.y + LH - 40, f: () => loteLivre(ctx, o) }); L.push({ y: o.y + LH * .55, f: () => outdoor(ctx, o, i) }); } });
     c.arv.forEach(a => { if(vis(a.x, a.y, 90)) L.push({ y: a.y, f: () => arvore(ctx, a) }); });
     if(vis(c.praca.cx, c.praca.cy, 220)) L.push({ y: c.praca.y + 150, f: () => praca(ctx) });
     const agora = Date.now(), mostra = quemAparece(agora), gente = [...V.remotos.values()].filter(r => mostra.has(r.sid) && vis(r.x, r.y, 60));
@@ -3156,7 +3249,7 @@
     const meu = p.tipo === 'casa' && p.c.id === (C.st.me && C.st.me.id);
     if(p.tipo === 'tarefa'){ const T = V.tarefa, ag = T && T.fase === 'agindo'; b.innerHTML = `${ico('raio')} ${esc(p.et.acao)}${ag ? '…' : ''}`; b.disabled = !!ag; return; }
     b.disabled = false;
-    b.innerHTML = p.tipo === 'aeroporto' ? `${ico('aviao')} Voar (${C.correalTxt(precoVoo())})` : p.tipo === 'sebo' ? `${ico('musica')} Entrar no Sebo` : p.tipo === 'torneio' ? `${ico('peixe')} Torneio de Pesca` : p.tipo === 'quadra' ? `${ico('raio')} ${p.k === 'quadra-futsal' ? 'Desafio de pênalti' : 'Desafio de arremesso'}` : p.tipo === 'pista' ? `${ico('raio')} ${p.k === 'moto' ? 'Autódromo do Café' : 'Corrida de patinete'}` : p.tipo === 'civico' ? `${ico('raio')} ${esc(CIVICOS[p.k].entra)}` : p.tipo === 'barraca' ? (aberta(p.b) ? `${ico(p.b.ico)} ${esc(p.b.botao)}` : `${ico('eye')} Hórus desligado: ligar`) : p.tipo === 'comida' ? `${ico('banca')} ${esc(COMIDAS[p.k][0])}` : p.tipo === 'aquario' ? `${ico('play')} Jogar ${esc(JOGOS[p.jogo].titulo)}` : p.tipo === 'banco' ? (p.pesca ? `${ico('gente')} Pescar no ${p.b.lugar.startsWith('Deck') ? 'deck' : 'píer'}` : `${ico('gente')} Sentar ${p.b.degrau ? 'na Concha' : 'no banco'}`) : p.tipo === 'mural' ? `${ico('tacha')} Abrir o Mural` : p.tipo === 'banca' ? `${ico('banca')} Banca do dia` : p.tipo === 'lote' ? `${ico('plus')} Lote livre` : meu ? `${ico('home')} Tua casa` : `${ico('home')} Bater na porta de @${esc(p.c.handle)}`;
+    b.innerHTML = p.tipo === 'aeroporto' ? `${ico('aviao')} Voar (${C.correalTxt(precoVoo())})` : p.tipo === 'sebo' ? `${ico('musica')} Entrar no Sebo` : p.tipo === 'torneio' ? `${ico('peixe')} Torneio de Pesca` : p.tipo === 'quadra' ? `${ico('raio')} ${p.k === 'quadra-futsal' ? 'Desafio de pênalti' : 'Desafio de arremesso'}` : p.tipo === 'publi' ? `${ico('ext')} ${esc((PUBLI[p.k] || {}).nome || '')}: baixar o app` : p.tipo === 'pista' ? `${ico('raio')} ${p.k === 'moto' ? 'Autódromo do Café' : 'Corrida de patinete'}` : p.tipo === 'civico' ? `${ico('raio')} ${esc(CIVICOS[p.k].entra)}` : p.tipo === 'barraca' ? (aberta(p.b) ? `${ico(p.b.ico)} ${esc(p.b.botao)}` : `${ico('eye')} Hórus desligado: ligar`) : p.tipo === 'comida' ? `${ico('banca')} ${esc(COMIDAS[p.k][0])}` : p.tipo === 'aquario' ? `${ico('play')} Jogar ${esc(JOGOS[p.jogo].titulo)}` : p.tipo === 'banco' ? (p.pesca ? `${ico('gente')} Pescar no ${p.b.lugar.startsWith('Deck') ? 'deck' : 'píer'}` : `${ico('gente')} Sentar ${p.b.degrau ? 'na Concha' : 'no banco'}`) : p.tipo === 'mural' ? `${ico('tacha')} Abrir o Mural` : p.tipo === 'banca' ? `${ico('banca')} Banca do dia` : p.tipo === 'lote' ? `${ico('plus')} Lote livre` : meu ? `${ico('home')} Tua casa` : `${ico('home')} Bater na porta de @${esc(p.c.handle)}`;
   }
   function tamanhoTela(){
     const st = C.$('cvr-stage'); if(!st || !V.cv) return;
@@ -3592,6 +3685,9 @@
       if(p.b.lugar && aberta(p.b) && C.casa && C.casa.LUGARES && C.casa.LUGARES[p.b.lugar]){ if(C.versoSom) C.versoSom.porta(); C.casa.abrir({ lugar: p.b.lugar }); return; }
       abreBalcao(p.b); return; }
     if(p.tipo === 'quadra'){ if(C.casa && C.casa.LUGARES && C.casa.LUGARES[p.k]){ if(C.versoSom) C.versoSom.porta(); C.casa.abrir({ lugar: p.k }); } return; }
+    if(p.tipo === 'publi'){ publiSheet(p.k); return; }
+    /* v3.53: a placa do patinete abre a escolha entre as pistas de kart */
+    if(p.tipo === 'pista' && p.k === 'patinete' && C.casa && C.casa.escolhePista){ C.casa.escolhePista(); return; }
     if(p.tipo === 'pista'){ if(C.casa && C.casa.LUGARES && C.casa.LUGARES[p.k]){ if(C.versoSom) C.versoSom.porta(); C.casa.abrir({ lugar: p.k }); } return; }
     if(p.tipo === 'torneio'){ if(C.casa && C.casa.LUGARES && C.casa.LUGARES.pesca){ if(C.versoSom) C.versoSom.porta(); C.casa.abrir({ lugar: 'pesca' }); } return; }
     if(p.tipo === 'sebo'){ if(C.casa && C.casa.LUGARES && C.casa.LUGARES.sebo){ if(C.versoSom) C.versoSom.porta(); C.casa.abrir({ lugar: 'sebo' }); } return; }
@@ -3723,6 +3819,7 @@
   C.verso = { miniVeiculo, trocaVeiculo, veiculoDe, alturaPulo, PULO_MS,
     /* a casa avisa que você pulou lá dentro (quem tá na casa vê) */
     marcaPulo: () => { if(!V.eu) return; V.eu.puN = ((V.eu.puN || 0) % 999) + 1; enviaPos(true); },
+    publiImg, publiSheet, PUBLI, meuSid: () => sid, kartManda: d => { if(V.rede && V.rede.kart && C.casa && C.casa.aberta()) V.rede.kart(Object.assign({ sid }, d)); },
     skin, avLimpo, nivel, cores: { PELES, CAB_CORES, ROUPA_CORES, CALCA_CORES, TENIS_CORES }, anunciar, enviaPos, retoma: () => { V.tAnt = 0; V.teclas.clear(); portaUI(); }, mic: () => V.mic, peers: () => V.peers, remotos: () => V.remotos, montaCidade, desenhaCasa: (c, k) => (ESTILO_SPRITE()[c.estilo] || spriteCasa)(c, k).cv, estado: () => V, vivo: () => !!V.vivo, chip: chipVolta, balcao: () => BC, abreBalcao, fechaBalcao, gente: () => contaGente(), aparece: () => [...quemAparece()], PERSONAGENS,
     atualizaAv: () => { if(V.eu && C.st.me){ V.eu.av = avLimpo(C.st.me.verso, C.st.me.id); anunciar(); } }, come, falaAuto, bolas: () => V.bolas || [], COMIDAS, JOGOS, abreJogo, fechaJogo, jogo: () => V.jogo, zoom: poeZoom, zoomFator, SKINS, SKIN, TAREFAS, CIVICOS, PATENTES, patenteDe, pegaTarefa, largaTarefa, agirTarefa, tarefa: () => V.tarefa, trampoSheet };
 })();

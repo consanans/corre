@@ -3,7 +3,8 @@
    (ou buzinar, de moto e de carro) embaixo à direita. O botão de ação (Entrar, Sentar, Comer, Abrir...) fica logo acima
    do Pular, pro mesmo dedão. Serve pra cidade e pra dentro das casas. No computador continua o teclado: setas ou W A S D,
    espaço pula, E ou Enter faz a ação.
-   C.pad = { cria(host, { pula, rotulo }), toque() } → { vetor(), mostra(on), solta(), rotulo(html), destroi() } */
+   C.pad = { cria(host, { pula, soltou, rotulo }), toque() } → { vetor(), segura(), mostra(on), solta(), rotulo(html), destroi() }
+   v3.53: o botão também avisa quando o dedo sai (soltou) e diz se tá apertado (segura): no kart, segurar é derrapar */
 (function(){
   'use strict';
   const C = window.Corre; if(!C) return;
@@ -18,7 +19,7 @@
       <button type="button" class="pad-b pad-pula" tabindex="-1">${ico('up')}<span>Pular</span></button>`;
     host.appendChild(el);
     const st = el.querySelector('.pad-stick'), dot = el.querySelector('.pad-dot'), bp = el.querySelector('.pad-pula');
-    let id = null, cx = 0, cy = 0, R = 46, vx = 0, vy = 0, rot = '';
+    let id = null, cx = 0, cy = 0, R = 46, vx = 0, vy = 0, rot = '', aperta = false;
     function solta(){ id = null; vx = vy = 0; dot.style.transform = ''; st.classList.remove('on'); }
     function move(ev){
       if(ev.pointerId !== id) return;
@@ -35,15 +36,16 @@
     st.addEventListener('pointermove', move);
     ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(t => st.addEventListener(t, ev => { if(ev.pointerId === id) solta(); }));
     /* o botão responde no toque (não espera o clique), e o dedo pode estar no direcional ao mesmo tempo */
-    bp.addEventListener('pointerdown', ev => { ev.preventDefault(); ev.stopPropagation(); bp.classList.add('on'); if(o.pula) o.pula(); });
-    ['pointerup', 'pointercancel', 'pointerleave'].forEach(t => bp.addEventListener(t, () => bp.classList.remove('on')));
+    bp.addEventListener('pointerdown', ev => { ev.preventDefault(); ev.stopPropagation(); bp.classList.add('on'); aperta = true; if(o.pula) o.pula(); });
+    ['pointerup', 'pointercancel', 'pointerleave'].forEach(t => bp.addEventListener(t, () => { bp.classList.remove('on'); if(aperta){ aperta = false; if(o.soltou) o.soltou(); } }));
     el.addEventListener('contextmenu', ev => ev.preventDefault());
     return {
       el,
       /* pra onde o dedo aponta: x (direita +) e y (baixo +), de -1 a 1, e a força (0 parado) */
       vetor(){ const m = Math.hypot(vx, vy); return m < MORTA ? { x: 0, y: 0, m: 0 } : { x: vx, y: vy, m: Math.min(1, m) }; },
       ativo: () => id != null,
-      mostra(on){ el.hidden = !on; if(!on){ solta(); bp.classList.remove('on'); } },
+      segura: () => aperta,
+      mostra(on){ el.hidden = !on; if(!on){ solta(); bp.classList.remove('on'); aperta = false; } },
       solta,
       /* o rótulo do botão da direita: Pular, Buzinar, Trim-trim... */
       rotulo(k, txt){ if(rot === k + txt) return; rot = k + txt; bp.innerHTML = `${ico(k)}<span>${txt}</span>`; },

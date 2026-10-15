@@ -821,6 +821,8 @@
   document.addEventListener('keydown', e => {
     if(e.key !== 'Escape') return;
     const sh = $('sheet'), aberta = !!(sh && !sh.hidden);
+    /* v3.53: o Esc que fechou a folha não fecha mais nada (a casa/lugar 3D ouvia o mesmo Esc e saía junto) */
+    if(aberta) e.preventDefault();
     C.closeSheet();
     if(C.EMBED && !aberta) C.pai('fechar');
   });

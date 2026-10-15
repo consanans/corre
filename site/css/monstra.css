@@ -2709,3 +2709,35 @@ html.embed .msg-pg{height:calc(100dvh - 40px)}
 .cs-casa.toque .cs-pesca{left:12px;transform:none;width:min(300px,calc(100% - 82px))}
 /* v3.52 · o 3D da casa e dos lugares agora é desenhado na resolução do aparelho: nada de esticar em bloquinho */
 .cs-casa canvas,.cvr-previa canvas{image-rendering:auto}
+/* v3.53 · a corrida de kart: a escolha da pista (três cartões com o traçado visto de cima), o item no placar e o
+   botão sem item apagado */
+.cs-pistas-l{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-top:10px}
+.cs-pista{display:grid;gap:4px;text-align:left;padding:10px;border:2px solid var(--ink);border-radius:12px;background:var(--paper);box-shadow:3px 3px 0 var(--ink);cursor:pointer;color:var(--ink);font:inherit}
+.cs-pista:hover,.cs-pista:focus-visible{background:#FFF6CF;outline:0}
+.cs-pista:active{transform:translate(1px,1px);box-shadow:2px 2px 0 var(--ink)}
+.cs-pista svg{width:100%;height:auto;aspect-ratio:78/64;border-radius:8px}
+.cs-pista b{font-size:15px}
+.cs-pista small{font-size:12px;color:var(--muted);line-height:1.35}
+.cs-pista em{font-style:normal;font-family:var(--font-mono);font-size:11px;text-transform:uppercase;letter-spacing:.03em}
+.cs-kart-item{display:flex;align-items:center;gap:6px;margin:6px 0 2px;padding:4px 8px;border:2px solid var(--ink);border-radius:8px;background:#FFF6CF;font-size:13px}
+.cs-kart-item span{color:var(--muted)}
+.cs-kart-item .ic{width:16px;height:16px}
+.cs-kart-item.gira{background:#FFE3EF}
+.cs-pesca.kart ol li{font-size:12px}
+.cs-porta.vazio{background:#C9CDD3}
+.cs-bichos-l{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:10px 0}
+.cs-bicho{display:grid;justify-items:center;gap:2px;padding:8px 6px;border:2px solid var(--ink);border-radius:12px;background:var(--paper);box-shadow:3px 3px 0 var(--ink);cursor:pointer;color:var(--ink);font:inherit;border-bottom:6px solid var(--c)}
+.cs-bicho svg{width:56px;height:52px;image-rendering:pixelated}
+.cs-bicho b{font-size:14px}
+.cs-bicho small{font-family:var(--font-mono);font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cs-bicho.on{background:#FFF6CF;outline:3px solid var(--pink);outline-offset:1px}
+.cs-bicho.tomado{opacity:.5;cursor:not-allowed}
+.cs-bichos .acts{display:flex;flex-wrap:wrap;gap:8px}
+.cvr-publi-qr{display:block;width:min(260px,70vw);height:auto;margin:6px auto 4px;border:3px solid var(--ink);border-radius:8px;box-shadow:4px 4px 0 var(--ink)}
+.cvr-publi .acts{display:flex;flex-wrap:wrap;gap:8px}
+/* a faixa de propaganda que passa embaixo na arena do parceiro (toca e abre a folha da marca) */
+.cs-banner{position:absolute;left:50%;bottom:calc(150px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:4;width:min(520px,calc(100% - 32px));padding:0;border:3px solid var(--ink);border-radius:12px;overflow:hidden;background:#181818;box-shadow:4px 4px 0 var(--ink);cursor:pointer;animation:cs-banner-entra .35s ease-out}
+.cs-banner canvas{display:block;width:100%;height:auto}
+.cs-banner small{position:absolute;top:6px;right:8px;font-family:var(--font-mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:#fff;opacity:.75}
+.cs-banner.sai{opacity:0;transform:translate(-50%,12px);transition:opacity .35s,transform .35s}
+@keyframes cs-banner-entra{from{opacity:0;transform:translate(-50%,16px)}to{opacity:1;transform:translate(-50%,0)}}
