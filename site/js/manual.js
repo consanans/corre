@@ -6,10 +6,11 @@
   'use strict';
   const C = window.Corre, { esc, ico } = C;
   /* sobe esse número a cada atualização: quem já viu recebe de novo, abrindo nas novidades */
-  const VERSAO = '3.47';
+  const VERSAO = '3.48';
   const K = 'corre-manual-visto';
 
   const NOVIDADES = [
+    ['musica', 'Correverso: o Sebo e os discos novos', 'A cidade ganhou um Sebo (tá no mapa). Lá dentro, nos caixotes do meio, tem dez discos novos: samba, bossa, drill, dub, afrobeat, dembow, chillhop, disco, grime e um da noite de Londrina. Toca "Ouvir" pra escutar ali mesmo e "Levar pra casa" pra pôr no toca-discos da tua casa. É de graça, e dá pra devolver. Todos são beats originais, feitos na hora no aparelho.'],
     ['verso', 'Correverso: a Feira inteira dá pra entrar', 'As últimas barracas da Feira viraram lugar em 3D. O Beco (Feed): viela de tijolo com grafite, escada de incêndio e o paredão de lambe-lambe, que é o feed. A Biblioteca (Do teu nicho): estante até o teto, quadro de cortiça com fio vermelho e a mesa de referências. A Vitrine (Estilo de vida): o carro, a casa, o lazer e o piano, tudo com etiqueta, e a calculadora que faz a conta do mês. A Escolinha (Manual): a lousa abre o manual. E o Cineclube (Rolo 360): tela, cortina de veludo, pipoca e o projetor com as bobinas.'],
     ['verso', 'Correverso: Estúdio, Balcão, Cofre e Galeria', 'Mais quatro barracas da Feira viraram lugar de entrar, em 3D. O Estúdio (Studio): fundo infinito, softbox, câmera no tripé e a mesa de criação, que abre o Studio. O Balcão (Vendas): mercadinho com prateleira cheia e a caixa registradora, que abre as tuas vendas. O Cofre (Grana): a porta redonda de aço abre a tua grana, com as barras de ouro no laser e a Capi de ouro de guarda. A Galeria (Portfólio e catálogo): telas na parede, peças nos pedestais e o catálogo aberto no meio. E o boneco agora desvia do que tá no caminho até a ferramenta.'],
     ['correal', 'Correal rende 10 vezes mais', 'Com 1,00 correal agora dá pra trabalhar meio dia. Os preços caíram 10 vezes: imagem 0,10, Studio Houzi 0,03, legenda, pauta ou Hórus 0,02 e o voo 0,05. Dá, por exemplo, 3 imagens, 10 legendas, 15 mensagens do Hórus e 2 textos do Studio Houzi com 1 correal, e isso só depois que o grátis do dia acaba. O ganho segue igual (umas 10 tarefas fecham o dia em 1,00) e o que você já tem na carteira passa a render 10 vezes mais.'],

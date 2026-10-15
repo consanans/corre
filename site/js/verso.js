@@ -1106,6 +1106,10 @@
       const o = lotXY(s.c, s.r), f = { id: 'f' + s.c + ',' + s.r, t, c: s.c, r: s.r, x: o.x, y: o.y, sd };
       grade[s.r][s.c] = { t: 'enche', f }; montaEnche(f, K, rng(sd + 1)); return f;
     });
+    /* v3.48: o Sebo é onde se escolhe disco pra casa. A cidade sempre tem pelo menos um (se o sorteio não deu, a loja da
+       direita do primeiro par vira Sebo) e ele aparece no mapa */
+    if(!enche.some(f => f.t === 'loja' && f.lojas.some(l => l.nome === 'SEBO'))){ const f = enche.find(x => x.t === 'loja'); if(f) f.lojas[1].nome = 'SEBO'; }
+    enche.forEach(f => { if(f.t === 'loja') f.lojas.forEach((l, i) => { if(l.nome === 'SEBO') K.lugares.push({ nome: 'Sebo', x: portaLoja(f, i), y: f.base + 22 }); }); });
     /* os dois quarteirões */
     let dois = null;
     if(esp){ const a = lotXY(6, 2), b = lotXY(7, 2); dois = { id: esp.id, p: esp, handle: esp.handle, nome: esp.nome, x: a.x, w: 2 * LW + RUA, base: a.y + LH - 34, blocos: [a, b], portaX: a.x + 154 }; grade[2][6] = grade[2][7] = { t: 'dois' }; }
@@ -1139,6 +1143,8 @@
       arv: K.arv, bancos: K.bancos, zonas: K.zonas, sol: K.sol, lugares: K.lugares, decor: K.decor, quiosques: K.quiosques, trucks: K.trucks, barracas: K.barracas, postes: K.postes };
   }
 
+  /* a porta de cada loja do par (a mesma conta do desenho: 14 de margem, 140 por loja e a porta a 80% da fachada) */
+  const portaLoja = (f, i) => Math.round(f.x + 14 + i * 140 + 132 * .8);
   /* o que sobra vira cidade */
   function montaEnche(f, K, q){
     const cx = f.x + LW / 2, cy = f.y + LH / 2; f.base = f.y + LH - 34;
@@ -1325,6 +1331,8 @@
     c.vazios.forEach(o => P.push({ x: o.x + LW / 2, y: o.y + LH - 40, tipo: 'lote' }));
     if(c.feira) c.feira.barracas.filter(paraMim).forEach(b => P.push({ x: b.x, y: b.base + 10, tipo: 'barraca', b }));
     c.bancos.forEach(b => P.push({ x: b.x, y: b.y + 4, tipo: 'banco', b, pesca: /^(Píer|Deck) do Igapó$/.test(b.lugar || '') }));
+    /* v3.48: a porta do Sebo entra no Sebo (os caixotes de disco) */
+    c.enche.forEach(f => { if(f.t === 'loja') f.lojas.forEach((l, i) => { if(l.nome === 'SEBO') P.push({ x: portaLoja(f, i), y: f.base + 8, tipo: 'sebo' }); }); });
     /* o aquário: na porta, o jogo */
     if(c.centro.aquario) P.push({ x: c.centro.aquario.x + LW / 2, y: c.centro.aquario.base + 8, tipo: 'aquario', jogo: 'killer' });
     /* v3.40: o embarque do aeroporto */
@@ -3094,7 +3102,7 @@
     const meu = p.tipo === 'casa' && p.c.id === (C.st.me && C.st.me.id);
     if(p.tipo === 'tarefa'){ const T = V.tarefa, ag = T && T.fase === 'agindo'; b.innerHTML = `${ico('raio')} ${esc(p.et.acao)}${ag ? '…' : ''}`; b.disabled = !!ag; return; }
     b.disabled = false;
-    b.innerHTML = p.tipo === 'aeroporto' ? `${ico('aviao')} Voar (${C.correalTxt(precoVoo())})` : p.tipo === 'civico' ? `${ico('raio')} ${esc(CIVICOS[p.k].entra)}` : p.tipo === 'barraca' ? (aberta(p.b) ? `${ico(p.b.ico)} ${esc(p.b.botao)}` : `${ico('eye')} Hórus desligado: ligar`) : p.tipo === 'comida' ? `${ico('banca')} ${esc(COMIDAS[p.k][0])}` : p.tipo === 'aquario' ? `${ico('play')} Jogar ${esc(JOGOS[p.jogo].titulo)}` : p.tipo === 'banco' ? (p.pesca ? `${ico('gente')} Pescar no ${p.b.lugar.startsWith('Deck') ? 'deck' : 'píer'}` : `${ico('gente')} Sentar ${p.b.degrau ? 'na Concha' : 'no banco'}`) : p.tipo === 'mural' ? `${ico('tacha')} Abrir o Mural` : p.tipo === 'banca' ? `${ico('banca')} Banca do dia` : p.tipo === 'lote' ? `${ico('plus')} Lote livre` : meu ? `${ico('home')} Tua casa` : `${ico('home')} Bater na porta de @${esc(p.c.handle)}`;
+    b.innerHTML = p.tipo === 'aeroporto' ? `${ico('aviao')} Voar (${C.correalTxt(precoVoo())})` : p.tipo === 'sebo' ? `${ico('musica')} Entrar no Sebo` : p.tipo === 'civico' ? `${ico('raio')} ${esc(CIVICOS[p.k].entra)}` : p.tipo === 'barraca' ? (aberta(p.b) ? `${ico(p.b.ico)} ${esc(p.b.botao)}` : `${ico('eye')} Hórus desligado: ligar`) : p.tipo === 'comida' ? `${ico('banca')} ${esc(COMIDAS[p.k][0])}` : p.tipo === 'aquario' ? `${ico('play')} Jogar ${esc(JOGOS[p.jogo].titulo)}` : p.tipo === 'banco' ? (p.pesca ? `${ico('gente')} Pescar no ${p.b.lugar.startsWith('Deck') ? 'deck' : 'píer'}` : `${ico('gente')} Sentar ${p.b.degrau ? 'na Concha' : 'no banco'}`) : p.tipo === 'mural' ? `${ico('tacha')} Abrir o Mural` : p.tipo === 'banca' ? `${ico('banca')} Banca do dia` : p.tipo === 'lote' ? `${ico('plus')} Lote livre` : meu ? `${ico('home')} Tua casa` : `${ico('home')} Bater na porta de @${esc(p.c.handle)}`;
   }
   function tamanhoTela(){
     const st = C.$('cvr-stage'); if(!st || !V.cv) return;
@@ -3512,6 +3520,7 @@
     if(p.tipo === 'barraca'){ if(p.b.id === 'manual' && !(p.b.lugar && C.casa && C.casa.LUGARES && C.casa.LUGARES[p.b.lugar])){ if(C.manual) C.manual.abrir(); return; }
       if(p.b.lugar && aberta(p.b) && C.casa && C.casa.LUGARES && C.casa.LUGARES[p.b.lugar]){ if(C.versoSom) C.versoSom.porta(); C.casa.abrir({ lugar: p.b.lugar }); return; }
       abreBalcao(p.b); return; }
+    if(p.tipo === 'sebo'){ if(C.casa && C.casa.LUGARES && C.casa.LUGARES.sebo){ if(C.versoSom) C.versoSom.porta(); C.casa.abrir({ lugar: 'sebo' }); } return; }
     if(p.tipo === 'mural'){ abreBalcao(BC_MURAL); return; }
     if(p.tipo === 'banca'){ abreBalcao(BC_BANCA); return; }
     if(p.tipo === 'banco'){ const b = p.b; V.alvo = null; V.eu.x = b.x; V.eu.y = b.y + (b.degrau ? 0 : 2); V.eu.sit = true; V.eu.mov = false; V.eu.dir = 'baixo'; V.eu.pesca = p.pesca ? { ate: Date.now() + 3500 + Math.random() * 3500 } : null; portaUI(); enviaPos(true); if(p.pesca) C.toast('Jogou a linha. Espera que uma hora fisga.', 2800); return; }

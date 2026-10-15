@@ -2675,3 +2675,11 @@ html.embed .msg-pg{height:calc(100dvh - 40px)}
   .lado-gi .sino-n,.lado-gi .msg-n{top:-9px;right:-12px;border-color:var(--night)}
   .lado-g:not([open]):has(.sino-n:not([hidden]),.msg-n:not([hidden])) > .lado-gs .mi-ic::after{content:"";position:absolute;top:-3px;right:-5px;width:10px;height:10px;border-radius:50%;background:var(--pink);border:2px solid var(--night)}
 }
+/* v3.48 · o Sebo: cada disco numa linha, com o Ouvir e o Levar pra casa (o que já tá em casa fica com fundo de papel amarelado) */
+.cs-sebo-l{display:grid;gap:10px}
+.cs-sebo-d{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border:2px solid var(--ink);border-radius:12px;background:var(--paper);box-shadow:3px 3px 0 var(--ink)}
+.cs-sebo-d.tem{background:#FFF6CF}
+.cs-sebo-d .cs-disco{border:0;box-shadow:none;padding:0;background:none;cursor:default;min-width:0;flex:1 1 180px}
+.cs-sebo-d .cs-disco:active{transform:none}
+.cs-sebo-a{display:flex;flex-wrap:wrap;gap:8px}
+.cs-sebo-a .btn.tem{background:var(--paper-2)}

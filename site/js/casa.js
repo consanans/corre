@@ -541,6 +541,22 @@
     ...discoEmPe(.45, 1.95, .35, .45, .06, '#C9CDD3'), ...discoEmPe(.98, 1.85, .28, .45, .06, '#C9CDD3'), B(.4, 1.9, .51, .1, .1, .01, INK), B(.93, 1.8, .51, .1, .1, .01, INK), B(.45, 1.6, .47, .55, .02, .02, INK)];
   const PLANTA_CINE = salaDe({ k: 'rolo', nome: 'O cineclube', W: 12, D: 13, ALT: 4.2, piso: '#3A1E28', linha: 'rgba(0,0,0,.12)', parede: '#1B1D22', fundo: '#15161A', decor: CINE_DECOR });
 
+  /* ---------- v3.48 · o Sebo: livro usado no fundo, capas de disco na parede e, no meio, os caixotes ----------
+     Nos caixotes a pessoa escolhe disco pra levar pro toca-discos de casa (seboSheet). A jukebox e o toca-discos daqui
+     tocam qualquer disco da cidade; tem um gato dormindo nas caixas, como todo sebo que se preze */
+  const CAPAS = (() => { const out = []; for(let i = 0; i < 12; i++){ const z = 1.6 + (i % 6) * 1.1, y = 1.3 + Math.floor(i / 6) * 1, c = [ROSA, AMARELO, '#2F5DA8', LARANJA, LILAS, '#E2412E', CEU, INK, '#D9C27F', '#8F86E8', PAPEL, '#E8643A'][i];
+    out.push(B(0, y, z, .03, .82, .82, c), B(.03, y + .16, z + .16, .01, .5, .5, INK), B(.04, y + .36, z + .36, .006, .1, .1, c === INK ? AMARELO : c)); } return out; })();
+  const caixote = x0 => [B(x0, .78, .2, .5, .04, 1, MAD), B(x0, .78, .2, .04, .3, 1, MAD), B(x0 + .46, .78, .2, .04, .3, 1, MAD), B(x0, .78, 1.16, .5, .18, .04, MAD), B(x0, .78, .2, .5, .3, .04, MAD),
+    ...Array.from({ length: 7 }, (_, i) => B(x0 + .07, .82, .3 + i * .12, .36, .32 - (i % 2) * .03, .02, [ROSA, AZUL, AMARELO, INK, LARANJA, LILAS, PAPEL][(i + Math.round(x0 * 3)) % 7]))];
+  const CAIXOTES = [B(0, .72, 0, 4.8, .06, 1.4, MAD_E), ...[[.1, .1], [4.6, .1], [.1, 1.2], [4.6, 1.2]].map(([x, z]) => B(x, 0, z, .1, .72, .1, MAD_E)), ...[.35, 1.45, 2.55, 3.65].flatMap(caixote)];
+  const SEBO_DECOR = [
+    { x: .2, z: .15, bl: [...estanteAlta(0, 3.8, 7), ...estanteAlta(3.9, 3.8, 8), ...estanteAlta(7.8, 3.8, 9)] },
+    { x: .15, z: 0, parede: true, bl: CAPAS },
+    /* o balcão do dono, com o toca-discos de ouvir antes de levar e a caixinha de troco */
+    { x: 9, z: 6.6, bl: [B(0, 0, 0, 2.6, .95, .8, MAD_E), B(-.05, .95, -.05, 2.7, .05, .9, MAD), B(.3, 1, .15, .7, .1, .55, INK), B(.6, 1.1, .4, .02, .02, .02, PAPEL), Object.assign(B(.35, 1.1, .2, .5, .01, .5, '#2B2F38'), { yaw: .3 }), B(.6, 1.11, .43, .1, .01, .1, ROSA), B(1.6, 1, .2, .5, .25, .4, '#3A3E45')] }
+  ];
+  const PLANTA_SEBO = salaDe({ k: 'sebo', nome: 'O sebo', W: 12, D: 11, ALT: 3.8, piso: '#8E5B33', linha: 'rgba(40,20,5,.22)', parede: '#E8D7C3', fundo: TIJ, decor: SEBO_DECOR });
+
   const LUGARES = {
     horus: { titulo: 'Casa do Hórus', planta: PLANTA_HORUS, ola: 'Casa do Hórus. O radar é o altar do meio: chega e toca.',
       estacoes: () => [{ id: 'radar', liga: 'horus', titulo: 'Radar do Hórus', rota: '#/horus', cor: INK, x: 5.6, z: 5, w: 2.8, d: 2.8, bl: RADAR, tag: [1.4, 1.75, 1.4], y: 0 }] },
@@ -578,7 +594,11 @@
       itens: [['relogio', 10.1, .15, 0, 0, 0], ['estante', .2, .6, 1, 0, 0], ['quadro_avisos', 11.75, 4, 3, 0, 0], ['bebedouro', 10.8, 8.6, 0, 0, 0], ['vaso', .4, 9.6, 0, 0, 0]] },
     rolo: { titulo: 'O Cineclube', planta: PLANTA_CINE, ola: 'O Cineclube. O projetor perto da porta abre o Rolo 360: chega e toca.',
       estacoes: () => [{ id: 'rolo', titulo: 'O projetor', rota: '#/rolo', cor: '#8E4B2B', x: 8.6, z: 10, w: 1.4, d: 1.1, bl: PROJETOR, tag: [.7, 2.5, .5], y: 0 }],
-      itens: [['arandela', .15, 3, 1, 0, 0], ['arandela', .15, 9.6, 1, 0, 0], ['arandela', 11.75, 3, 3, 0, 0], ['arandela', 11.75, 9.6, 3, 0, 0]] }
+      itens: [['arandela', .15, 3, 1, 0, 0], ['arandela', .15, 9.6, 1, 0, 0], ['arandela', 11.75, 3, 3, 0, 0], ['arandela', 11.75, 9.6, 3, 0, 0]] },
+    sebo: { titulo: 'O Sebo', planta: PLANTA_SEBO, ola: 'O Sebo. Nos caixotes do meio você escolhe disco pra levar pra tua casa: chega e toca.',
+      estacoes: () => [{ id: 'sebo', abre: 'sebo', titulo: 'Caixotes de discos', rota: '', cor: '#8E4B2B', x: 3.6, z: 4.4, w: 4.8, d: 1.4, bl: CAIXOTES, tag: [2.4, 1.6, .7], y: 0 }],
+      itens: [['jukebox', 10.8, 2.6, 3, 0, 0], ['pilha_discos', 1.2, 9.2, 0, 0, 0], ['pilha_discos', 2.3, 9.4, 0, 0, 0], ['gato', 1.6, 8.1, 0, 0, 1], ['poltrona', 10.7, 8.8, 3, 0, 4],
+        ['luminaria', .4, 6.8, 0, 0, 0], ['toca_discos', 9.4, 8.8, 0, 0, 0]] }
   };
   /* a estação que é só do fundador aparece na casa do fundador (pra ele e pra quem visita) */
   const paraDono = (e, dono) => e.so !== 'fundador' || ehDoFundador(dono);
@@ -1153,12 +1173,46 @@
   /* ---------- os discos: beats originais, tocados na hora; quem tá na casa ouve o mesmo ---------- */
   function discosSheet(){
     const B2 = C.beats; if(!B2){ C.toast('Os discos não carregaram.'); return; }
-    const atual = S.discoAtual;
+    const atual = S.discoAtual, lista = S.lugar === 'sebo' ? B2.DISCOS : B2.daCasa ? B2.daCasa(S.dono) : B2.DISCOS;
     C.sheet(`<div class="form cs-discos"><div class="sheet-head"><h2>${ico('musica')} Discos</h2><button type="button" class="cbtn plain" data-close aria-label="Fechar">${ico('x')}</button></div>
-      <p class="note">Beats da casa, feitos na hora. Quem tá aqui dentro ouve junto.</p>
-      <div class="cs-disco-l">${B2.DISCOS.map(d => `<button type="button" class="cs-disco${atual === d.k ? ' on' : ''}" data-act="cs-disco" data-k="${d.k}"><i style="--c:${d.cor}"></i><b>${esc(d.nome)}</b><small>${d.bpm} bpm${atual === d.k ? ' · tocando' : ''}</small></button>`).join('')}</div>
+      <p class="note">Beats da casa, feitos na hora. Quem tá aqui dentro ouve junto.${S.meu ? ' Mais discos no Sebo da cidade: escolhe lá e eles aparecem aqui.' : ''}</p>
+      <div class="cs-disco-l">${lista.map(d => `<button type="button" class="cs-disco${atual === d.k ? ' on' : ''}" data-act="cs-disco" data-k="${d.k}"><i style="--c:${d.cor}"></i><b>${esc(d.nome)}</b><small>${d.bpm} bpm${atual === d.k ? ' · tocando' : ''}</small></button>`).join('')}</div>
       ${atual ? `<div class="acts"><button type="button" class="btn" data-act="cs-disco-para">${ico('x')} Tirar o disco</button></div>` : ''}</div>`);
   }
+  /* ---------- v3.48 · o Sebo: os discos da cidade ----------
+     Cada disco é um beat original, tocado na hora. "Ouvir" toca ali mesmo, só pra você; "Levar pra casa" põe o disco no
+     toca-discos da tua casa (fica no perfil, verso.discos) e "Na tua casa" devolve. De graça: disco não custa correal */
+  const linhaSebo = (d, tem) => { const on = S.ouvindo === d.k;
+    return `<div class="cs-sebo-d${tem ? ' tem' : ''}" data-k="${d.k}"><span class="cs-disco${on ? ' on' : ''}"><i style="--c:${d.cor}"></i><span><b>${esc(d.nome)}</b><small>${esc(d.estilo || '')} · ${d.bpm} bpm</small></span></span>
+      <span class="cs-sebo-a"><button type="button" class="btn sm" data-act="cs-sebo-ouvir" data-k="${d.k}">${ico(on ? 'pause' : 'play')} ${on ? 'Parar' : 'Ouvir'}</button><button type="button" class="btn sm${tem ? ' tem' : ' pri'}" data-act="cs-sebo-leva" data-k="${d.k}"${tem ? ' aria-pressed="true"' : ''}>${tem ? `${ico('check')} Na tua casa` : `${ico('home')} Levar pra casa`}</button></span></div>`; };
+  const contaSebo = n => n ? `Na tua casa: os ${C.beats.DISCOS.length - C.beats.SEBO.length} de sempre e ${n} do Sebo. Toca "Na tua casa" pra devolver.` : `Os ${C.beats.DISCOS.length - C.beats.SEBO.length} discos de sempre já tão na tua casa; os daqui você escolhe.`;
+  function seboSheet(){
+    const B2 = C.beats; if(!B2 || !B2.SEBO){ C.toast('Os discos não carregaram.'); return; }
+    const meus = new Set(B2.doSebo(C.st.me));
+    C.sheet(`<div class="form cs-discos cs-sebo"><div class="sheet-head"><h2>${ico('musica')} Discos do Sebo</h2><button type="button" class="cbtn plain" data-close aria-label="Fechar">${ico('x')}</button></div>
+      <p class="note">Ouve aqui e leva pro toca-discos da tua casa. É de graça, e dá pra devolver quando quiser.</p>
+      <div class="cs-sebo-l">${B2.SEBO.map(d => linhaSebo(d, meus.has(d.k))).join('')}</div>
+      <p class="fine" id="cs-sebo-conta">${contaSebo(meus.size)}</p></div>`);
+  }
+  const trocaLinha = k => { const d = C.beats.SEBO.find(x => x.k === k), el = document.querySelector(`.cs-sebo-d[data-k="${k}"]`); if(d && el) el.outerHTML = linhaSebo(d, C.beats.doSebo(C.st.me).includes(k)); };
+  function seboOuvir(k){
+    const B2 = C.beats; if(!B2) return; const antes = S.ouvindo;
+    if(antes === k){ S.ouvindo = ''; if(S.discoAtual) B2.toca(S.discoAtual); else B2.para(); }
+    else { S.ouvindo = k; if(!B2.toca(k)) S.ouvindo = ''; }
+    if(antes && antes !== k) trocaLinha(antes); trocaLinha(k);
+  }
+  async function seboLeva(k){
+    const B2 = C.beats; if(!B2 || !C.st.me || S.salvaSebo) return;
+    const v0 = C.st.me.verso && typeof C.st.me.verso === 'object' ? C.st.me.verso : {}, meus = B2.doSebo(C.st.me), tem = meus.includes(k);
+    S.salvaSebo = true;
+    try{ await C.saveMe({ verso: Object.assign({}, v0, { discos: tem ? meus.filter(x => x !== k) : meus.concat(k).slice(-40) }) }); }
+    catch(e){ C.toast(C.errMsg(e, 'Não deu pra guardar o disco agora.')); return; }
+    finally{ S.salvaSebo = false; }
+    trocaLinha(k); const ct = C.$('cs-sebo-conta'); if(ct) ct.textContent = contaSebo(B2.doSebo(C.st.me).length);
+    C.toast(tem ? `Devolveu o ${B2.nome(k)}.` : `${B2.nome(k)} foi pro toca-discos da tua casa.`, 2600);
+  }
+  /* saiu do Sebo (ou fechou a folha) com um disco no fone: para, e volta o disco do lugar se tinha um */
+  function paraDeOuvir(){ if(!S.ouvindo) return; S.ouvindo = ''; if(C.beats){ if(S.discoAtual) C.beats.toca(S.discoAtual); else C.beats.para(); } }
   function poeDisco(k){
     S.disco = { k: k || '', t: Date.now() };
     if(C.verso.anunciar) C.verso.anunciar();
@@ -1293,6 +1347,8 @@
     const t = ts / 1000, dt = Math.min(.25, S.tAnt ? Math.max(0, t - S.tAnt) : .016); S.tAnt = t;
     try{
       const bc = C.verso && C.verso.balcao && C.verso.balcao().aberto, sh = C.$('sheet'), parado = bc || (sh && !sh.hidden) || document.hidden;
+      /* v3.48: fechou a folha do Sebo com um disco no fone: o fone para */
+      if(S.ouvindo && !(sh && !sh.hidden && sh.querySelector('.cs-sebo'))) paraDeOuvir();
       /* celular fraco (quadro lento): o boneco anda em passos de até 50 ms, pra a velocidade não depender do quadro
          (e sem atravessar parede num passo grande) */
       if(!parado){ const np = Math.max(1, Math.ceil(dt / .05 - 1e-9)); for(let i = 0; i < np && S.aberta && S.eu; i++) passo(dt / np); }
@@ -1424,6 +1480,7 @@
   function abreEstacao(e){
     if(!(S.meu || S.lugar) || !e) return;
     if(e.id === 'manual'){ if(C.manual) C.manual.abrir(); return; }
+    if(e.abre === 'sebo'){ seboSheet(); return; }
     if(e.agente){ agenteSheet(); return; }
     if(e.trava){ iaSheet(); return; }
     if(!estAberta(e)){ C.toast('O Hórus tá desligado. Liga em Editar perfil › Ferramentas.', 3600); if(C.verso && C.verso.abreBalcao) C.verso.abreBalcao({ id: 'horus', titulo: 'Hórus', rota: '#/editar', cor: INK }); return; }
@@ -1789,7 +1846,7 @@
     if(!S.aberta) return;
     if(S.modo === 'colocar') cancelaGhost();
     S.aberta = false; S.lugar = ''; cancelAnimationFrame(S.raf); S.raf = 0; S.teclas.clear(); S.padTh = null; S.perto = null; if(S.pad) S.pad.solta();
-    S.disco = null; S.discoAtual = ''; if(C.beats) C.beats.para();
+    S.disco = null; S.discoAtual = ''; S.ouvindo = ''; if(C.beats) C.beats.para();
     clearTimeout(S.salvaT); if(S.sujo) salva();
     if(S.el){ S.el.hidden = true; }
     S.tags.clear(); const tg = C.$('cs-tags'); if(tg) tg.innerHTML = '';
@@ -1818,6 +1875,8 @@
     'cs-ag-grana': () => { C.closeSheet(); const e = S.fixos.find(x => x.id === 'grana'); if(e) abreEstacao(e); },
     'cs-ag-lista': async el => { el.disabled = true; try{ const f = Object.assign({}, (C.st.me && C.st.me.ferramentas) || {}, { robo: 'lista' }); await C.saveMe({ ferramentas: f }); C.toast('Tá na lista do robô. A gente te chama quando abrir.', 3600); agenteSheet(); }catch(e){ el.disabled = false; C.toast(C.errMsg(e)); } },
     'cs-disco': el => poeDisco(el.dataset.k),
+    'cs-sebo-ouvir': el => seboOuvir(el.dataset.k),
+    'cs-sebo-leva': el => seboLeva(el.dataset.k),
     'cs-disco-para': () => poeDisco(''),
     'cs-disco-b': () => discosSheet(),
     'cs-decorar': () => decorar(true),
