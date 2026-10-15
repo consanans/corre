@@ -2683,3 +2683,16 @@ html.embed .msg-pg{height:calc(100dvh - 40px)}
 .cs-sebo-d .cs-disco:active{transform:none}
 .cs-sebo-a{display:flex;flex-wrap:wrap;gap:8px}
 .cs-sebo-a .btn.tem{background:var(--paper-2)}
+/* v3.49 · o Torneio de Pesca: o placar da rodada no alto, e o botão grande vira "Puxar!" (pisca rosa quando a boia afunda) */
+.cs-pesca{position:absolute;top:62px;left:50%;transform:translateX(-50%);z-index:3;width:min(300px,calc(100% - 32px));padding:10px 12px;border:2px solid var(--ink);border-radius:12px;background:var(--paper);box-shadow:3px 3px 0 var(--ink);color:var(--ink);pointer-events:none}
+.cs-pesca-t{display:flex;align-items:center;gap:6px;font-size:13px;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.04em}
+.cs-pesca-t .ic{width:18px;height:18px}
+.cs-pesca ol{list-style:none;margin:6px 0 4px;padding:0;display:grid;gap:2px}
+.cs-pesca li{display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:6px;font-size:13px}
+.cs-pesca li i{font-style:normal;font-family:var(--font-mono);color:var(--muted)}
+.cs-pesca li span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cs-pesca li.eu{font-weight:800}
+.cs-pesca small{display:block;font-size:12px;color:var(--muted)}
+.cs-pesca.morde{background:#FFE3EF}
+.cs-porta.morde{background:var(--pink);color:var(--paper);animation:cs-puxa .35s ease-in-out infinite alternate}
+@keyframes cs-puxa{to{transform:translateX(-50%) scale(1.08)}}

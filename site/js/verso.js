@@ -681,7 +681,7 @@
     if(BC.aberto) m.tr = 1;
     if(V.jogo) m.jg = 1;
     /* dentro de uma casa: quem passa vê "em casa"; quem tá na mesma casa te vê lá dentro (e a voz fica entre vocês) */
-    if(C.casa && C.casa.aberta()){ m.ec = 1; m.casa = C.casa.sala(); const q = C.casa.pos(); if(q){ m.cx = Math.round(q.x * 10) / 10; m.cz = Math.round(q.z * 10) / 10; m.cy = Math.round((q.y || 0) * 10) / 10; m.cd = Math.round(q.yaw * 100) / 100; }
+    if(C.casa && C.casa.aberta()){ m.ec = 1; m.casa = C.casa.sala(); const pq = C.casa.placar ? C.casa.placar() : null; if(pq && pq.c > 0){ m.pk = pq.c; m.pr = pq.r; } const q = C.casa.pos(); if(q){ m.cx = Math.round(q.x * 10) / 10; m.cz = Math.round(q.z * 10) / 10; m.cy = Math.round((q.y || 0) * 10) / 10; m.cd = Math.round(q.yaw * 100) / 100; }
       const dsc = C.casa.disco && C.casa.disco(); if(dsc && dsc.t){ m.disco = dsc.k || ''; m.discoT = dsc.t; } }
     /* no ar, o teu nome e o teu @ não viajam na presença (qualquer um escreveria qualquer coisa ali): vêm do servidor */
     return C.LIVE ? m : Object.assign(m, { uid: me.id || '', handle: pub ? me.handle : '', nome: pub ? String(me.nome || '').slice(0, 40) : 'perfil mocado' });
@@ -804,6 +804,8 @@
         const assin = [m.x, m.y, JSON.stringify(m.av), m.mic ? 1 : 0, m.tr === 1 ? 1 : 0].join('|');
         if(novo || assin !== r.assin){ r.assin = assin; r.sinal = Date.now(); }
         Object.assign(r, { av: avLimpo(m.av, r.uid || m.sid), mic: !!m.mic, tr: m.tr === 1, jg: m.jg === 1, ec: m.ec === 1, pt: Number.isInteger(m.pt) ? Math.max(0, Math.min(3, m.pt)) : 0, naCasa: typeof m.casa === 'string' && /^[0-9a-z-]{1,40}$/i.test(m.casa) ? m.casa : '', visto: Date.now(),
+          /* v3.49: o peso da rodada no Torneio de Pesca (centésimos de kg) e a rodada; fora do comum, vira zero */
+          pk: Number.isInteger(m.pk) && m.pk > 0 && m.pk < 100000 ? m.pk : 0, pr: Number.isInteger(m.pr) && m.pr >= 0 && m.pr < 1e6 ? m.pr : -1,
           disco: typeof m.disco === 'string' && /^[a-z0-9]{0,16}$/.test(m.disco) ? m.disco : '', discoT: Number.isFinite(m.discoT) ? m.discoT : 0 });
         if(r.naCasa && Number.isFinite(m.cx) && Number.isFinite(m.cz)){ if(r.hx == null){ r.hxv = m.cx; r.hzv = m.cz; r.hyv = Number.isFinite(m.cy) ? clamp(m.cy, 0, 8) : 0; } r.hx = clamp(m.cx, -1, 31); r.hz = clamp(m.cz, -1, 31); r.hy = Number.isFinite(m.cy) ? clamp(m.cy, 0, 8) : 0; r.hyaw = Number.isFinite(m.cd) ? m.cd : 0; }
         else if(!r.naCasa){ r.hx = r.hz = null; }
@@ -1087,7 +1089,7 @@
     let rows = 12; while(livresAte(rows) < resto.length + LIVRES) rows++;
     const W = RUA + COLS * (LW + RUA), H = TOPO + rows * (LH + RUA) + 8;
     const grade = Array.from({ length: rows }, () => Array(COLS).fill(null));
-    const K = { arv: [], bancos: [], zonas: [], sol: [], lugares: [], decor: [], quiosques: [], trucks: [], barracas: [], postes: [] };
+    const K = { arv: [], bancos: [], zonas: [], sol: [], lugares: [], decor: [], quiosques: [], trucks: [], barracas: [], postes: [], torneio: null };
     const slots = []; for(let r = 0; r < rows; r++) for(let c = 0; c < COLS; c++) if(!reservado(c, r)) slots.push({ c, r });
     const dm = s => Math.hypot((s.c - MEIO.c) * (LW + RUA), (s.r - MEIO.r) * (LH + RUA));
     slots.sort((a, b) => dm(a) - dm(b) || a.r - b.r || a.c - b.c);
@@ -1140,7 +1142,7 @@
     /* ruas onde passa carro: as que atravessam a cidade inteira */
     const ruasLivres = []; for(let s = 0; s <= rows; s++) if(!REGIOES.some(g => g.r0 <= s - 1 && g.r1 >= s)) ruasLivres.push(s);
     return { W, H, rows, grade, casas, dois, vazios, enche, praca, centro, regs, lago, zerao, bosque, gleba: glebaR.torres, glebaR, estadio, feira, aeroporto, ruasLivres,
-      arv: K.arv, bancos: K.bancos, zonas: K.zonas, sol: K.sol, lugares: K.lugares, decor: K.decor, quiosques: K.quiosques, trucks: K.trucks, barracas: K.barracas, postes: K.postes };
+      arv: K.arv, bancos: K.bancos, zonas: K.zonas, sol: K.sol, lugares: K.lugares, torneio: K.torneio, decor: K.decor, quiosques: K.quiosques, trucks: K.trucks, barracas: K.barracas, postes: K.postes };
   }
 
   /* a porta de cada loja do par (a mesma conta do desenho: 14 de margem, 140 por loja e a porta a 80% da fachada) */
@@ -1196,7 +1198,7 @@
     /* duas pontes nos trechos mais estreitos */
     [[.17, .29], [.62, .74]].forEach(([a, b]) => { const c = cols[busca(a, b, false)], xb = c.x + B / 2; L.secos.push({ tipo: 'ponte', x: xb - 24, y: c.t - 52, w: 48, h: c.b - c.t + 104 }); });
     /* píer no meio, saindo da orla norte, e um deck saindo da orla sul */
-    { const c = cols[busca(.44, .56, true)], xp = c.x + B / 2, lp = Math.min(160, Math.round((c.b - c.t) * .42)); L.secos.push({ tipo: 'pier', x: xp - 22, y: c.t - 16, w: 44, h: lp + 16 }); K.bancos.push({ x: xp, y: c.t + lp - 16, lugar: 'Píer do Igapó' }); K.zonas.push({ nome: 'Píer do Igapó', x: xp - 44, y: c.t - 24, w: 88, h: lp + 30 }); K.lugares.push({ nome: 'Píer do Igapó', x: xp, y: c.t + lp - 46 }); }
+    { const c = cols[busca(.44, .56, true)], xp = c.x + B / 2, lp = Math.min(160, Math.round((c.b - c.t) * .42)); L.secos.push({ tipo: 'pier', x: xp - 22, y: c.t - 16, w: 44, h: lp + 16 }); K.bancos.push({ x: xp, y: c.t + lp - 16, lugar: 'Píer do Igapó' }); K.torneio = { x: xp, y: c.t + 8 }; K.zonas.push({ nome: 'Píer do Igapó', x: xp - 44, y: c.t - 24, w: 88, h: lp + 30 }); K.lugares.push({ nome: 'Píer do Igapó', x: xp, y: c.t + lp - 46 }); }
     { const c = cols[busca(.84, .94, true)], xp = c.x + B / 2, lp = Math.min(140, Math.round((c.b - c.t) * .38)); L.secos.push({ tipo: 'pier', x: xp - 22, y: c.b - lp, w: 44, h: lp + 16 }); K.bancos.push({ x: xp, y: c.b - lp + 26, lugar: 'Deck do Igapó' }); K.zonas.push({ nome: 'Deck do Igapó', x: xp - 44, y: c.b - lp - 10, w: 88, h: lp + 30 }); }
     /* a ilhinha com ipês e o chafariz */
     { const c = cols[busca(.33, .43, true)], ix = c.x + B / 2, iy = (c.t + c.b) / 2, rad = Math.min(88, (c.b - c.t) / 2 - 70);
@@ -1331,6 +1333,8 @@
     c.vazios.forEach(o => P.push({ x: o.x + LW / 2, y: o.y + LH - 40, tipo: 'lote' }));
     if(c.feira) c.feira.barracas.filter(paraMim).forEach(b => P.push({ x: b.x, y: b.base + 10, tipo: 'barraca', b }));
     c.bancos.forEach(b => P.push({ x: b.x, y: b.y + 4, tipo: 'banco', b, pesca: /^(Píer|Deck) do Igapó$/.test(b.lugar || '') }));
+    /* v3.49: no começo do Píer do Igapó, a entrada do Torneio de Pesca */
+    if(c.torneio) P.push({ x: c.torneio.x, y: c.torneio.y, tipo: 'torneio' });
     /* v3.48: a porta do Sebo entra no Sebo (os caixotes de disco) */
     c.enche.forEach(f => { if(f.t === 'loja') f.lojas.forEach((l, i) => { if(l.nome === 'SEBO') P.push({ x: portaLoja(f, i), y: f.base + 8, tipo: 'sebo' }); }); });
     /* o aquário: na porta, o jogo */
@@ -1542,6 +1546,9 @@
       if(s.tipo === 'ponte'){ ctx.fillStyle = pad(ctx, 'concreto'); ctx.fillRect(s.x - 5, s.y, 7, s.h); ctx.fillRect(s.x + s.w - 2, s.y, 7, s.h); ctx.fillStyle = '#121419'; for(let y = s.y + 10; y < s.y + s.h - 6; y += 40){ ctx.fillRect(s.x - 6, y, 9, 7); ctx.fillRect(s.x + s.w - 3, y, 9, 7); } }
       else { ctx.fillStyle = '#5A3A22'; for(let y = s.y + 30; y < s.y + s.h; y += 48){ ctx.fillRect(s.x - 4, y, 4, 10); ctx.fillRect(s.x + s.w, y, 4, 10); } }
     });
+    /* v3.49: a placa do Torneio de Pesca, no começo do Píer do Igapó */
+    const tn = V.cid.torneio;
+    if(tn && tn.x > vx - 90 && tn.x < vx + vw + 90 && tn.y > vy - 90 && tn.y < vy + vh + 90){ ctx.fillStyle = '#5A3A22'; ctx.fillRect(tn.x + 30, tn.y - 26, 4, 30); pixPlaca(ctx, 'TORNEIO', tn.x + 32, tn.y - 30, { fundo: AMARELO, cor: INK, max: 10 }); }
   }
   function arvore(ctx, a){
     const s = a.g === 2 ? 2 : a.g ? 1.3 : 1, f = 'folha' + a.cor;
@@ -3102,7 +3109,7 @@
     const meu = p.tipo === 'casa' && p.c.id === (C.st.me && C.st.me.id);
     if(p.tipo === 'tarefa'){ const T = V.tarefa, ag = T && T.fase === 'agindo'; b.innerHTML = `${ico('raio')} ${esc(p.et.acao)}${ag ? '…' : ''}`; b.disabled = !!ag; return; }
     b.disabled = false;
-    b.innerHTML = p.tipo === 'aeroporto' ? `${ico('aviao')} Voar (${C.correalTxt(precoVoo())})` : p.tipo === 'sebo' ? `${ico('musica')} Entrar no Sebo` : p.tipo === 'civico' ? `${ico('raio')} ${esc(CIVICOS[p.k].entra)}` : p.tipo === 'barraca' ? (aberta(p.b) ? `${ico(p.b.ico)} ${esc(p.b.botao)}` : `${ico('eye')} Hórus desligado: ligar`) : p.tipo === 'comida' ? `${ico('banca')} ${esc(COMIDAS[p.k][0])}` : p.tipo === 'aquario' ? `${ico('play')} Jogar ${esc(JOGOS[p.jogo].titulo)}` : p.tipo === 'banco' ? (p.pesca ? `${ico('gente')} Pescar no ${p.b.lugar.startsWith('Deck') ? 'deck' : 'píer'}` : `${ico('gente')} Sentar ${p.b.degrau ? 'na Concha' : 'no banco'}`) : p.tipo === 'mural' ? `${ico('tacha')} Abrir o Mural` : p.tipo === 'banca' ? `${ico('banca')} Banca do dia` : p.tipo === 'lote' ? `${ico('plus')} Lote livre` : meu ? `${ico('home')} Tua casa` : `${ico('home')} Bater na porta de @${esc(p.c.handle)}`;
+    b.innerHTML = p.tipo === 'aeroporto' ? `${ico('aviao')} Voar (${C.correalTxt(precoVoo())})` : p.tipo === 'sebo' ? `${ico('musica')} Entrar no Sebo` : p.tipo === 'torneio' ? `${ico('peixe')} Torneio de Pesca` : p.tipo === 'civico' ? `${ico('raio')} ${esc(CIVICOS[p.k].entra)}` : p.tipo === 'barraca' ? (aberta(p.b) ? `${ico(p.b.ico)} ${esc(p.b.botao)}` : `${ico('eye')} Hórus desligado: ligar`) : p.tipo === 'comida' ? `${ico('banca')} ${esc(COMIDAS[p.k][0])}` : p.tipo === 'aquario' ? `${ico('play')} Jogar ${esc(JOGOS[p.jogo].titulo)}` : p.tipo === 'banco' ? (p.pesca ? `${ico('gente')} Pescar no ${p.b.lugar.startsWith('Deck') ? 'deck' : 'píer'}` : `${ico('gente')} Sentar ${p.b.degrau ? 'na Concha' : 'no banco'}`) : p.tipo === 'mural' ? `${ico('tacha')} Abrir o Mural` : p.tipo === 'banca' ? `${ico('banca')} Banca do dia` : p.tipo === 'lote' ? `${ico('plus')} Lote livre` : meu ? `${ico('home')} Tua casa` : `${ico('home')} Bater na porta de @${esc(p.c.handle)}`;
   }
   function tamanhoTela(){
     const st = C.$('cvr-stage'); if(!st || !V.cv) return;
@@ -3520,6 +3527,7 @@
     if(p.tipo === 'barraca'){ if(p.b.id === 'manual' && !(p.b.lugar && C.casa && C.casa.LUGARES && C.casa.LUGARES[p.b.lugar])){ if(C.manual) C.manual.abrir(); return; }
       if(p.b.lugar && aberta(p.b) && C.casa && C.casa.LUGARES && C.casa.LUGARES[p.b.lugar]){ if(C.versoSom) C.versoSom.porta(); C.casa.abrir({ lugar: p.b.lugar }); return; }
       abreBalcao(p.b); return; }
+    if(p.tipo === 'torneio'){ if(C.casa && C.casa.LUGARES && C.casa.LUGARES.pesca){ if(C.versoSom) C.versoSom.porta(); C.casa.abrir({ lugar: 'pesca' }); } return; }
     if(p.tipo === 'sebo'){ if(C.casa && C.casa.LUGARES && C.casa.LUGARES.sebo){ if(C.versoSom) C.versoSom.porta(); C.casa.abrir({ lugar: 'sebo' }); } return; }
     if(p.tipo === 'mural'){ abreBalcao(BC_MURAL); return; }
     if(p.tipo === 'banca'){ abreBalcao(BC_BANCA); return; }

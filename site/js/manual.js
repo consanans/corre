@@ -6,10 +6,11 @@
   'use strict';
   const C = window.Corre, { esc, ico } = C;
   /* sobe esse número a cada atualização: quem já viu recebe de novo, abrindo nas novidades */
-  const VERSAO = '3.48';
+  const VERSAO = '3.49';
   const K = 'corre-manual-visto';
 
   const NOVIDADES = [
+    ['peixe', 'Correverso: Torneio de Pesca no Igapó', 'No começo do Píer do Igapó tem a placa do Torneio. Lá dentro é um píer em 3D no meio da água: vai num balde da beira e toca "Pescar aqui". Quando a boia afundar, o botão vira "Puxar!" (no computador, o espaço também puxa): puxou cedo, o peixe se assusta; demorou, escapa. Tem lambari, tilápia, traíra, pacu, carpa, dourado e, de vez em quando, uma bota velha. A rodada é de 3 minutos, igual pra todo mundo, e o placar mostra quem tá no píer. Não vale correal: vale a glória (e o teu recorde fica guardado).'],
     ['musica', 'Correverso: o Sebo e os discos novos', 'A cidade ganhou um Sebo (tá no mapa). Lá dentro, nos caixotes do meio, tem dez discos novos: samba, bossa, drill, dub, afrobeat, dembow, chillhop, disco, grime e um da noite de Londrina. Toca "Ouvir" pra escutar ali mesmo e "Levar pra casa" pra pôr no toca-discos da tua casa. É de graça, e dá pra devolver. Todos são beats originais, feitos na hora no aparelho.'],
     ['verso', 'Correverso: a Feira inteira dá pra entrar', 'As últimas barracas da Feira viraram lugar em 3D. O Beco (Feed): viela de tijolo com grafite, escada de incêndio e o paredão de lambe-lambe, que é o feed. A Biblioteca (Do teu nicho): estante até o teto, quadro de cortiça com fio vermelho e a mesa de referências. A Vitrine (Estilo de vida): o carro, a casa, o lazer e o piano, tudo com etiqueta, e a calculadora que faz a conta do mês. A Escolinha (Manual): a lousa abre o manual. E o Cineclube (Rolo 360): tela, cortina de veludo, pipoca e o projetor com as bobinas.'],
     ['verso', 'Correverso: Estúdio, Balcão, Cofre e Galeria', 'Mais quatro barracas da Feira viraram lugar de entrar, em 3D. O Estúdio (Studio): fundo infinito, softbox, câmera no tripé e a mesa de criação, que abre o Studio. O Balcão (Vendas): mercadinho com prateleira cheia e a caixa registradora, que abre as tuas vendas. O Cofre (Grana): a porta redonda de aço abre a tua grana, com as barras de ouro no laser e a Capi de ouro de guarda. A Galeria (Portfólio e catálogo): telas na parede, peças nos pedestais e o catálogo aberto no meio. E o boneco agora desvia do que tá no caminho até a ferramenta.'],

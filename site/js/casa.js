@@ -557,6 +557,42 @@
   ];
   const PLANTA_SEBO = salaDe({ k: 'sebo', nome: 'O sebo', W: 12, D: 11, ALT: 3.8, piso: '#8E5B33', linha: 'rgba(40,20,5,.22)', parede: '#E8D7C3', fundo: TIJ, decor: SEBO_DECOR });
 
+  /* ---------- v3.49 · o Torneio de Pesca do Igapó ----------
+     Um píer em T no meio da água, a margem de palha com os ipês, o placar boiando no fundo e a Capi de ouro no pódio.
+     Cada balde na beira do píer é um ponto de pesca (ação "Pescar aqui"). A água é o piso do lugar, e quem não deixa
+     ninguém andar nela é o PL.bloqueio (a grade marca, sem desenhar nada); o píer e a margem são polígonos do chão */
+  const AGUA = '#2F6FA8', TABUA = '#B3793F', TABUA2 = '#96612F', ESTACA = '#5A3A1E';
+  const tabuas = (x0, z0, x1, z1, eixo) => { const out = [ret(x0, z0, x1, z1, TABUA)];
+    if(eixo === 'z') for(let x = x0 + .4; x < x1 - .05; x += .4) out.push(ret(x - .015, z0, x + .015, z1, TABUA2));
+    else for(let z = z0 + .4; z < z1 - .05; z += .4) out.push(ret(x0, z - .015, x1, z + .015, TABUA2));
+    return out; };
+  const CHAO_PESCA = [ret(0, 11.2, 14, 14, '#D9C27F'), ret(0, 11.2, 14, 11.4, '#C9A95E'), ...tabuas(6.2, 3.5, 7.8, 11.3, 'x'), ...tabuas(1.5, 2, 12.5, 3.5, 'z'),
+    ...[[2, 5], [4, 8.5], [10, 6], [11.4, 9.2], [2.6, .9], [9.2, .7], [12.6, 4.6], [3.6, 6.6]].map(([x, z]) => ret(x, z, x + .7, z + .06, '#4F8BC4'))];
+  const BLOQ_PESCA = [[0, 0, 14, 2], [0, 2, 1.5, 3.5], [12.5, 2, 14, 3.5], [0, 3.5, 6.2, 11.2], [7.8, 3.5, 14, 11.2]];
+  /* os pontos de pesca: onde o boneco fica (x, z), pra onde ele olha (yaw) e o balde do lado */
+  const PONTOS = [[2.6, 2.35, Math.PI, [.3, 0]], [4.8, 2.35, Math.PI, [.3, 0]], [9.2, 2.35, Math.PI, [.3, 0]], [11.4, 2.35, Math.PI, [.3, 0]], [6.55, 6.6, -Math.PI / 2, [0, .3]], [7.45, 8.8, Math.PI / 2, [0, .3]]];
+  const balde = (dx, dz) => [B(dx, 0, dz - .13, .26, .28, .26, '#4A4E56'), B(dx - .02, .28, dz - .15, .3, .03, .3, '#8F96A0'), B(dx + .02, .27, dz - .11, .22, .01, .22, AGUA), B(dx + .08, .29, dz - .05, .1, .02, .05, '#C9CDD3')];
+  const PESCA_DECOR = [
+    /* as estacas na beira do píer */
+    { x: 0, z: 0, bl: [[6.2, 4.5], [6.2, 7.5], [6.2, 10.4], [7.6, 4.5], [7.6, 7.5], [7.6, 10.4], [1.5, 2], [1.5, 3.3], [12.3, 2], [12.3, 3.3], [3.7, 3.3], [10.1, 3.3]].map(([x, z]) => B(x, 0, z, .2, .32, .2, ESTACA)) },
+    /* o placar boiando no fundo, de frente pra margem */
+    { x: 5, z: .3, bl: [B(.3, 0, .2, .15, 1.6, .15, ESTACA), B(3.55, 0, .2, .15, 1.6, .15, ESTACA), B(0, 1.3, .2, 4, 1.3, .12, '#2B2F38'), B(.1, 2.3, .32, 3.8, .22, .02, ROSA),
+      B(.3, 2.34, .34, .3, .14, .01, PAPEL), B(.55, 2.38, .34, .1, .06, .01, PAPEL), B(.25, 1.95, .32, 2.6, .16, .02, '#E8643A'), B(.25, 1.7, .32, 2, .16, .02, '#C9CDD3'), B(.25, 1.45, .32, 1.4, .16, .02, '#C68642'),
+      B(3.1, 1.6, .32, .6, .5, .02, PAPEL), B(3.2, 1.75, .34, .4, .2, .01, ROSA)] },
+    /* os ipês da margem e a barraquinha de isca */
+    ...[[.4, 12.3, ROSA], [12.6, 12.3, '#FFB3D1']].map(([x, z, c]) => ({ x, z, bl: [B(.4, 0, .4, .22, 1.7, .22, ESTACA), B(0, 1.6, 0, 1, .6, 1, c), B(.2, 2.2, .2, .6, .4, .6, c), B(-.1, 1.75, .3, .3, .3, .4, c), B(.8, 1.7, .2, .3, .35, .5, c)] })),
+    { x: 9.6, z: 12.2, bl: [B(0, 0, 0, 1.6, .9, .7, MAD_E), B(-.05, .9, -.05, 1.7, .05, .8, MAD), B(0, .95, 0, .08, 1, .08, ESTACA), B(1.52, .95, 0, .08, 1, .08, ESTACA),
+      ...Array.from({ length: 6 }, (_, i) => B(-.1 + i * .3, 1.95, -.15, .3, .12, 1, i % 2 ? PAPEL : ROSA)), B(.2, .95, .2, .3, .2, .3, AZUL), B(.7, .95, .25, .25, .15, .25, '#C68642')] },
+    ...PONTOS.map(([x, z, yaw, [dx, dz]]) => ({ x, z, acao: 'pesca', spot: { x, z, yaw }, bl: balde(dx, dz) }))
+  ];
+  const PLANTA_PESCA = { k: 'lugar-pesca', W: 14, D: 14, ALT: 3,
+    comodos: [{ k: 'pier', nome: 'O píer', x0: 0, z0: 0, x1: 14, z1: 14, piso: AGUA, linha: 'rgba(255,255,255,.05)' }],
+    paredes: [
+      { a: [0, 14], b: [14, 14], ext: [0, 1], portas: [[6.4, 7.6]], entrada: true, cor: ESTACA, alt: .4 },
+      { a: [14, 0], b: [14, 14], ext: [1, 0], cor: ESTACA, alt: .4 }, { a: [0, 0], b: [0, 14], ext: [-1, 0], cor: ESTACA, alt: .4 }, { a: [0, 0], b: [14, 0], ext: [0, -1], cor: ESTACA, alt: .4 }
+    ],
+    entrada: { x: 7, z: 14 }, decor: PESCA_DECOR, chao: CHAO_PESCA, bloqueio: BLOQ_PESCA, padrao: [] };
+
   const LUGARES = {
     horus: { titulo: 'Casa do Hórus', planta: PLANTA_HORUS, ola: 'Casa do Hórus. O radar é o altar do meio: chega e toca.',
       estacoes: () => [{ id: 'radar', liga: 'horus', titulo: 'Radar do Hórus', rota: '#/horus', cor: INK, x: 5.6, z: 5, w: 2.8, d: 2.8, bl: RADAR, tag: [1.4, 1.75, 1.4], y: 0 }] },
@@ -598,7 +634,10 @@
     sebo: { titulo: 'O Sebo', planta: PLANTA_SEBO, ola: 'O Sebo. Nos caixotes do meio você escolhe disco pra levar pra tua casa: chega e toca.',
       estacoes: () => [{ id: 'sebo', abre: 'sebo', titulo: 'Caixotes de discos', rota: '', cor: '#8E4B2B', x: 3.6, z: 4.4, w: 4.8, d: 1.4, bl: CAIXOTES, tag: [2.4, 1.6, .7], y: 0 }],
       itens: [['jukebox', 10.8, 2.6, 3, 0, 0], ['pilha_discos', 1.2, 9.2, 0, 0, 0], ['pilha_discos', 2.3, 9.4, 0, 0, 0], ['gato', 1.6, 8.1, 0, 0, 1], ['poltrona', 10.7, 8.8, 3, 0, 4],
-        ['luminaria', .4, 6.8, 0, 0, 0], ['toca_discos', 9.4, 8.8, 0, 0, 0]] }
+        ['luminaria', .4, 6.8, 0, 0, 0], ['toca_discos', 9.4, 8.8, 0, 0, 0]] },
+    pesca: { titulo: 'Torneio de Pesca', planta: PLANTA_PESCA, ola: 'Torneio de Pesca do Igapó. Vai num balde da beira e toca; quando a boia afundar, puxa! A rodada é de 3 minutos.',
+      estacoes: () => [],
+      itens: [['podio', 2.2, 12.4, 0, 0, 0], ['capivara_ouro', 4.3, 12.5, 0, 0, 0], ['caixa_termica', 8.6, 12.6, 0, 0, 0], ['banco_madeira', 11.4, 12.9, 0, 0, 0], ['poste', 5.2, 11.6, 0, 0, 0]] }
   };
   /* a estação que é só do fundador aparece na casa do fundador (pra ele e pra quem visita) */
   const paraDono = (e, dono) => e.so !== 'fundador' || ehDoFundador(dono);
@@ -1026,6 +1065,8 @@
     });
     S.fixos.forEach(e => { if(!e.parede) marcaEm(e.y > 1.5 ? g1 : g0, e.x, e.z, e.x + e.w, e.z + e.d); });
     S.decor.forEach(e => { const g = (e.y || 0) > 1.5 ? g1 : g0; pegadasDecor(e).forEach(q => marcaEm(g, q.x, q.z, q.x + q.w, q.z + q.d)); });
+    /* v3.49: chão que não se pisa (a água do Torneio de Pesca): bloqueia na grade sem desenhar nada */
+    if(PL.bloqueio) PL.bloqueio.forEach(([x0, z0, x1, z1]) => marcaEm(g0, x0, z0, x1, z1));
     S.itens.forEach(i => { const it = ITEM[i.k]; if(!it || semChao(it)) return; const p = pegadaDe(it, i.r); marcaEm(i.n ? g1 : g0, i.x, i.z, i.x + p.w, i.z + p.d); });
     S.grades = [g0, g1];
   }
@@ -1069,7 +1110,7 @@
         const t0 = cortes[i], t1 = cortes[i + 1], meio = (t0 + t1) / 2;
         const porta = gaps.some(gp => meio > gp[0] && meio < gp[1]), jan = !mureta && jans.some(j => meio > j[0] && meio < j[1]), alta = !mureta && altas.some(j => meio > j[0] && meio < j[1]);
         const extra = vidroFraco ? { alpha: .38 } : {};
-        if(porta){ if(!mureta) out.push(caixa(t0, t1, 2.15, altP, COR, extra)); continue; }
+        if(porta){ if(!mureta && altP > 2.3) out.push(caixa(t0, t1, 2.15, altP, COR, extra)); continue; }
         if(mureta){ out.push(caixa(t0, t1, 0, .35, COR, { traco: 'rgba(15,18,24,.5)' })); continue; }
         if(alta){
           /* janelão de ferro: vidro do chão quase ao teto, com os montantes pretos */
@@ -1140,12 +1181,12 @@
   /* ---------- as ações da casa: discos (prateleira, mesa de DJ, caixa de som) e o skate (na parede ou no chão) ---------- */
   function acoes(){
     const out = [];
-    S.decor.forEach((e, i) => { if(!e.acao) return; const ps = pegadasDecor(e); const bb = ps.length ? ps : [{ x: e.x + Math.min(...e.bl.map(b => b.x)), z: e.z + Math.min(...e.bl.map(b => b.z)), w: Math.max(...e.bl.map(b => b.x + b.w)) - Math.min(...e.bl.map(b => b.x)), d: Math.max(...e.bl.map(b => b.z + b.d)) - Math.min(...e.bl.map(b => b.z)) }]; const x0 = Math.min(...bb.map(q => q.x)), x1 = Math.max(...bb.map(q => q.x + q.w)), z0 = Math.min(...bb.map(q => q.z)), z1 = Math.max(...bb.map(q => q.z + q.d)); out.push({ id: 'd' + i, a: e.acao, x: x0, z: z0, w: x1 - x0, d: z1 - z0, y: e.y || 0, parede: !!e.parede, topo: e.topo || Math.max(...e.bl.map(b => b.y + b.h)) }); });
+    S.decor.forEach((e, i) => { if(!e.acao) return; const ps = pegadasDecor(e); const bb = ps.length ? ps : [{ x: e.x + Math.min(...e.bl.map(b => b.x)), z: e.z + Math.min(...e.bl.map(b => b.z)), w: Math.max(...e.bl.map(b => b.x + b.w)) - Math.min(...e.bl.map(b => b.x)), d: Math.max(...e.bl.map(b => b.z + b.d)) - Math.min(...e.bl.map(b => b.z)) }]; const x0 = Math.min(...bb.map(q => q.x)), x1 = Math.max(...bb.map(q => q.x + q.w)), z0 = Math.min(...bb.map(q => q.z)), z1 = Math.max(...bb.map(q => q.z + q.d)); out.push({ id: 'd' + i, a: e.acao, x: x0, z: z0, w: x1 - x0, d: z1 - z0, y: e.y || 0, parede: !!e.parede, topo: e.topo || Math.max(...e.bl.map(b => b.y + b.h)), e }); });
     S.itens.forEach((it, i) => { const o = ITEM[it.k]; if(!o || !o.acao) return; const p = pegadaDe(o, it.r); out.push({ id: 'i' + i, a: o.acao, x: it.x, z: it.z, w: p.w, d: p.d, y: chaoItem(it), parede: !!o.parede, topo: Math.max(...blocosDe(it).map(b => b.y + b.h)) }); });
     return out;
   }
   const acaoPraMim = a => a.a !== 'skate' || S.meu;
-  const rotuloAcao = a => a.a === 'skate' ? (C.st.me && C.st.me.verso && C.st.me.verso.skate ? 'Largar o skate' : 'Pegar o skate') : a.a === 'jogo' ? 'Jogar Killer Ocean' : (S.discoAtual ? '♪ ' + (C.beats ? C.beats.nome(S.discoAtual) : 'tocando') : '♪ Discos');
+  const rotuloAcao = a => a.a === 'pesca' ? 'Pescar aqui' : a.a === 'skate' ? (C.st.me && C.st.me.verso && C.st.me.verso.skate ? 'Largar o skate' : 'Pegar o skate') : a.a === 'jogo' ? 'Jogar Killer Ocean' : (S.discoAtual ? '♪ ' + (C.beats ? C.beats.nome(S.discoAtual) : 'tocando') : '♪ Discos');
   /* vai até a frente e faz */
   function vaiNaAcao(a){
     if(!S.eu || !a || !acaoPraMim(a)) return;
@@ -1158,6 +1199,7 @@
   }
   async function fazAcao(a){
     if(a.a === 'discos'){ discosSheet(); return; }
+    if(a.a === 'pesca'){ comecaPesca(a.e && a.e.spot); return; }
     /* o fliperama da casa roda o Killer Ocean (o mesmo do Aquário), por cima da casa */
     if(a.a === 'jogo'){ if(C.verso && C.verso.abreJogo && C.verso.JOGOS && C.verso.JOGOS.killer) C.verso.abreJogo('killer'); else C.toast('O jogo não carregou.'); return; }
     if(a.a === 'skate'){
@@ -1178,6 +1220,90 @@
       <p class="note">Beats da casa, feitos na hora. Quem tá aqui dentro ouve junto.${S.meu ? ' Mais discos no Sebo da cidade: escolhe lá e eles aparecem aqui.' : ''}</p>
       <div class="cs-disco-l">${lista.map(d => `<button type="button" class="cs-disco${atual === d.k ? ' on' : ''}" data-act="cs-disco" data-k="${d.k}"><i style="--c:${d.cor}"></i><b>${esc(d.nome)}</b><small>${d.bpm} bpm${atual === d.k ? ' · tocando' : ''}</small></button>`).join('')}</div>
       ${atual ? `<div class="acts"><button type="button" class="btn" data-act="cs-disco-para">${ico('x')} Tirar o disco</button></div>` : ''}</div>`);
+  }
+  /* ---------- v3.49 · a pesca do Torneio do Igapó ----------
+     No balde, o boneco vai pra beira e joga a linha. Uma hora a boia afunda: o botão vira "Puxar!" e você tem 1,2 s.
+     Puxou antes, o peixe se assusta; demorou, escapa. A rodada é de 3 minutos e é a mesma pra todo mundo (pelo
+     relógio): soma o peso do que você tirou, e o placar mostra quem tá no píer (o peso vai na presença, em
+     centésimos de kg). Não vale correal (correal só sai de tarefa); o recorde fica no aparelho */
+  const RODADA_MS = 180000, rodadaAgora = () => Math.floor(Date.now() / RODADA_MS);
+  const PEIXES = [['lambari', 52, .05, .2, 'um'], ['tilápia', 26, .4, 1.6, 'uma'], ['traíra', 10, .8, 2.6, 'uma'], ['pacu', 6, 1.5, 4.2, 'um'], ['carpa', 4, 2, 6, 'uma'], ['dourado', 1.5, 3, 8.5, 'um'], ['bota velha', .5, 0, 0, 'uma']];
+  const sorteiaPeixe = () => { let v = Math.random() * PEIXES.reduce((a, p) => a + p[1], 0); for(const p of PEIXES){ if(v < p[1]) return { nome: p[0], art: p[4], kg: Math.round((p[2] + Math.random() * (p[3] - p[2])) * 100) / 100 }; v -= p[1]; } return { nome: 'lambari', art: 'um', kg: .1 }; };
+  const kgTxt = kg => (Math.round(kg * 100) / 100).toFixed(2).replace('.', ',') + ' kg';
+  const recPesca = () => { try{ const o = JSON.parse(localStorage.getItem('corre-pesca') || '{}'); return o && typeof o === 'object' ? o : {}; }catch(e){ return {}; } };
+  const guardaRec = o => { try{ localStorage.setItem('corre-pesca', JSON.stringify(o)); }catch(e){} };
+  function rankingPesca(r){
+    const out = [{ nome: 'você', kg: S.placar && S.placar.r === r ? S.placar.kg : 0, eu: true }];
+    gente().forEach(g => { if(g.pr === r % 1e6 && g.pk > 0) out.push({ nome: '@' + (g.handle || 'alguém'), kg: g.pk / 100 }); });
+    return out.sort((a, b) => b.kg - a.kg || (a.eu ? -1 : 1));
+  }
+  function fechaRodada(){
+    const P = S.placar, r = rodadaAgora();
+    if(P && P.r !== r && P.kg > 0){
+      const lista = rankingPesca(P.r), pos = lista.findIndex(x => x.eu) + 1, rec = recPesca(), bateu = !rec.rodada || P.kg > rec.rodada;
+      if(bateu){ rec.rodada = P.kg; guardaRec(rec); }
+      C.toast(`Fim da rodada: ${kgTxt(P.kg)} em ${P.n} ${P.n === 1 ? 'peixe' : 'peixes'}${lista.length > 1 ? `, ${pos}º lugar no píer` : ''}${bateu ? '. Teu recorde!' : '.'}`, 4600);
+    }
+    S.placar = { r, kg: 0, n: 0 };
+  }
+  function comecaPesca(sp){
+    if(S.lugar !== 'pesca' || !S.eu || !sp) return;
+    if(!S.placar || S.placar.r !== rodadaAgora()) fechaRodada();
+    const e = S.eu; e.x = sp.x; e.z = sp.z; e.yaw = sp.yaw; e.andando = false; S.alvo = null; S.rota = []; S.acao = null; S.teclas.clear();
+    /* a câmera de três quartos, pra ver a vara e a boia (bem de trás, o boneco tapa as duas) */
+    S.cam.th = sp.yaw + Math.PI + .7; S.arrastou = Date.now();
+    S.pesca = { sp, fase: 'espera', ate: Date.now() + 2200 + Math.random() * 3500 };
+    painelPesca(true);
+  }
+  function paraPesca(){ if(!S.pesca) return; S.pesca = null; painelPesca(true); }
+  function puxa(){
+    const P = S.pesca; if(!P) return; const agora = Date.now();
+    if(P.fase !== 'morde'){ P.ate = Math.max(P.ate, agora) + 1500; C.toast('Cedo demais: o peixe se assustou.', 1600); return; }
+    if(!S.placar || S.placar.r !== rodadaAgora()) fechaRodada();
+    const p = sorteiaPeixe(), rec = recPesca();
+    S.placar.kg = Math.round((S.placar.kg + p.kg) * 100) / 100; S.placar.n++;
+    const maior = p.kg > 0 && (!rec.maior || p.kg > rec.maior.kg); if(maior){ rec.maior = { nome: p.nome, kg: p.kg }; guardaRec(rec); }
+    C.toast(p.kg ? `Pegou ${p.art} ${p.nome} de ${kgTxt(p.kg)}!${maior && rec.maior && S.placar.n > 1 ? ' O maior que você já tirou.' : ''}` : 'Pegou uma bota velha. Vale 0 kg, mas rende história.', 2800);
+    P.fase = 'espera'; P.ate = agora + 2400 + Math.random() * 4200; P.pegou = agora;
+    if(C.verso && C.verso.enviaPos) C.verso.enviaPos(true);
+    painelPesca(true);
+  }
+  function tickPesca(){
+    if(S.lugar !== 'pesca') return;
+    const P = S.pesca, agora = Date.now(), e = S.eu;
+    if(P){
+      if(!e || S.alvo || S.teclas.size || Math.hypot(e.x - P.sp.x, e.z - P.sp.z) > .5) paraPesca();
+      else if(P.fase === 'espera' && agora > P.ate){ P.fase = 'morde'; P.ate = agora + 1200; try{ if(navigator.vibrate) navigator.vibrate(60); }catch(_){} painelPesca(true); }
+      else if(P.fase === 'morde' && agora > P.ate){ P.fase = 'espera'; P.ate = agora + 2600 + Math.random() * 3800; C.toast('Escapou…', 1200); painelPesca(true); }
+    }
+    painelPesca();
+  }
+  function painelPesca(forca){
+    const el = C.$('cs-pesca'); if(!el) return;
+    const on = S.lugar === 'pesca'; el.hidden = !on; if(!on) return;
+    const agora = Date.now(); if(!forca && agora - (S.painelT || 0) < 250) return; S.painelT = agora;
+    if(!S.placar || S.placar.r !== rodadaAgora()) fechaRodada();
+    const resta = RODADA_MS - (agora % RODADA_MS), mm = Math.floor(resta / 60000), ss = Math.floor(resta / 1000) % 60, rec = recPesca(), P = S.pesca;
+    const lista = rankingPesca(S.placar.r), eu = lista.findIndex(x => x.eu), mostra = lista.slice(0, 3); if(eu > 2) mostra.push(lista[eu]);
+    const html = `<b class="cs-pesca-t">${ico('peixe')} Rodada · ${mm}:${String(ss).padStart(2, '0')}</b><ol>${mostra.map(x => `<li${x.eu ? ' class="eu"' : ''}><i>${lista.indexOf(x) + 1}º</i><span>${esc(x.nome)}</span><b>${kgTxt(x.kg)}</b></li>`).join('')}</ol>`
+      + `<small>${P ? (P.fase === 'morde' ? 'A boia afundou: puxa!' : 'Esperando a boia afundar…') : 'Vai num balde da beira e toca pra pescar.'}${rec.rodada ? ` Recorde: ${kgTxt(rec.rodada)}.` : ''}</small>`;
+    el.classList.toggle('morde', !!(P && P.fase === 'morde'));
+    if(el.dataset.h !== html){ el.dataset.h = html; el.innerHTML = html; }
+  }
+  /* a vara (uma caixa inclinada saindo da mão) e a boia, que balança e afunda quando o peixe morde */
+  function solidosPesca(t){
+    const P = S.pesca, e = S.eu; if(!P || !e) return [];
+    const s = P.sp.yaw, fx = Math.sin(s), fz = Math.cos(s), hx = e.x + fx * .3, hz = e.z + fz * .3, hy = .95, ang = .55, L = 1.75;
+    const bx = e.x + fx * 2.3, bz = e.z + fz * 2.3, by = P.fase === 'morde' ? -.06 + Math.abs(Math.sin(t * 24)) * .05 : .02 + Math.sin(t * 2.4) * .02;
+    P.tip = [hx + fx * L * Math.cos(ang), hy + L * Math.sin(ang), hz + fz * L * Math.cos(ang)]; P.boia = [bx, by + .34, bz];
+    return [solido({ x: hx, y: hy - .02, z: hz - .02, w: L, h: .04, d: .04, c: ESTACA, roll: ang, yaw: s - Math.PI / 2, piv: [hx, hy, hz] }, null, ESTACA, null, { semTraco: true }),
+      solido({ x: bx - .12, y: by, z: bz - .12, w: .24, h: .12, d: .24, c: PAPEL }, null, PAPEL, null, { cru: true }), solido({ x: bx - .1, y: by + .12, z: bz - .1, w: .2, h: .12, d: .2, c: ROSA }, null, ROSA, null, { cru: true }), solido({ x: bx - .02, y: by + .24, z: bz - .02, w: .04, h: .1, d: .04, c: INK }, null, INK, null, { semTraco: true })];
+  }
+  /* a linha: um traço fino da ponta da vara até a boia, por cima de tudo */
+  function linhaPesca(ctx, cam){
+    const P = S.pesca; if(!P || !P.tip || !P.boia) return;
+    const a = proj(cam, P.tip), b = proj(cam, P.boia); if(!a || !b) return;
+    ctx.save(); ctx.strokeStyle = 'rgba(244,239,230,.85)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.quadraticCurveTo((a[0] + b[0]) / 2, Math.max(a[1], b[1]) + 6, b[0], b[1]); ctx.stroke(); ctx.restore();
   }
   /* ---------- v3.48 · o Sebo: os discos da cidade ----------
      Cada disco é um beat original, tocado na hora. "Ouvir" toca ali mesmo, só pra você; "Levar pra casa" põe o disco no
@@ -1308,7 +1434,7 @@
     ctx.fillStyle = 'rgba(255,255,255,.7)'; for(let i = 0; i < 40; i++){ const sx = ((i * 97) % 101) / 101 * cv.width, sy = ((i * 53) % 37) / 37 * cv.height * .45; ctx.fillRect(sx, sy, 1, 1); }
     const pisos = pisosDaCasa(), extras = [];
     pisos.push(...sombras(extras));
-    const solidos = [...solidosParedes(cam), ...solidosAndares(), ...solidosFixos(), ...solidosItens(), ...solidosAnimados(t), ...extras, ...solidosDisco(t)];
+    const solidos = [...solidosParedes(cam), ...solidosAndares(), ...solidosFixos(), ...solidosItens(), ...solidosAnimados(t), ...extras, ...solidosDisco(t), ...solidosPesca(t)];
     if(S.eu) solidos.push(...sobe(boneco(S.eu.av, S.eu.x, S.eu.z, S.eu.yaw, S.eu.passo, S.eu.andando), S.eu.y + puloCasa(S.eu) * PULO_ALT));
     const fracoG = embaixoDoMezanino();
     gente().forEach(r => solidos.push(...sobe(boneco(r.av, r.hxv, r.hzv, r.hyaw || 0, r.hpasso || 0, !!r.hand).map(b => { b.dono = 'gente:' + r.sid; if(fracoG && (r.hyv || 0) > 1.5) b.alpha = .22; return b; }), (r.hyv || 0) + (C.verso.alturaPulo ? C.verso.alturaPulo(r) * PULO_ALT : 0))));
@@ -1316,6 +1442,7 @@
     if(S.alvo && !S.acao){ const a = proj(cam, [S.alvo.x, (S.alvo.n && PL.mezanino ? PL.mezanino.y : 0) + .02, S.alvo.z]); if(a){ ctx.strokeStyle = ROSA; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.ellipse(a[0], a[1], 6 + Math.sin(t * 6) * 1.5, 3, 0, 0, Math.PI * 2); ctx.stroke(); } }
     const foco = S.eu ? { q: proj(cam, [S.eu.x, S.eu.y + .9, S.eu.z]), prof: (S.eu.x - cam.pos[0]) ** 2 + (S.eu.y + .9 - cam.pos[1]) ** 2 + (S.eu.z - cam.pos[2]) ** 2, raio: cv.height * .16 } : null;
     cena(ctx, cv, cam, pisos, solidos, S.hit, foco && foco.q ? foco : null);
+    linhaPesca(ctx, cam);
     etiquetas(cam, cv);
   }
   /* as plaquinhas das ferramentas (e da saída) são DOM, por cima do canvas */
@@ -1333,7 +1460,7 @@
     const cm = S.eu && comodoDe(S.eu.x, S.eu.z, nivelDe(S.eu.y)), noEsc = !!(cm && cm.k === 'escritorio') || !!S.lugar;
     if((S.meu || S.lugar) && S.modo === 'andar') S.fixos.forEach(e => { const el = S.tags.get('est:' + e.id); if(!noEsc && !(S.eu && nivelDe(S.eu.y) === (e.y > 1.5 ? 1 : 0) && Math.hypot(S.eu.x - e.x - e.w / 2, S.eu.z - e.z - e.d / 2) < 5)){ if(el) el.hidden = true; return; } poe('est:' + e.id, [e.x + e.tag[0], (e.y || 0) + e.tag[1], e.z + e.tag[2]], e.trava ? e.titulo + ' · em breve' : e.id === 'horus' && !estAberta(e) ? 'Hórus desligado' : e.agente ? AGENTE[agenteDe(S.dono)].nome : e.titulo, e.trava ? 'trava' : e.id === 'horus' && !estAberta(e) ? 'off' : e.agente ? 'agente' : ''); });
     poe('saida', [ENTRADA.x, .25, ENTRADA.z - .25], S.meu ? 'Sair pra rua' : S.lugar ? 'Sair pra Feira' : 'Sair', 'saida');
-    if(S.modo === 'andar') acoes().forEach(a => { if(!acaoPraMim(a)) return; const cx = a.x + a.w / 2, cz = a.z + a.d / 2, n = a.y > 1.5 ? 1 : 0; if(!(S.eu && nivelDe(S.eu.y) === n && Math.hypot(S.eu.x - cx, S.eu.z - cz) < 4.5)){ const el = S.tags.get('acao:' + a.id); if(el) el.hidden = true; return; } poe('acao:' + a.id, [cx, a.y + a.topo + .35, cz], rotuloAcao(a), a.a === 'discos' && S.discoAtual ? 'acao som' : 'acao'); });
+    if(S.modo === 'andar') acoes().forEach(a => { if(!acaoPraMim(a) || (S.pesca && a.a === 'pesca')){ const el = S.tags.get('acao:' + a.id); if(el) el.hidden = true; return; } const cx = a.x + a.w / 2, cz = a.z + a.d / 2, n = a.y > 1.5 ? 1 : 0; if(!(S.eu && nivelDe(S.eu.y) === n && Math.hypot(S.eu.x - cx, S.eu.z - cz) < 4.5)){ const el = S.tags.get('acao:' + a.id); if(el) el.hidden = true; return; } poe('acao:' + a.id, [cx, a.y + a.topo + .35, cz], rotuloAcao(a), a.a === 'discos' && S.discoAtual ? 'acao som' : 'acao'); });
     const peers = C.verso.peers ? C.verso.peers() : new Map();
     gente().forEach(r => { const p = peers.get(r.sid), vivo = p && p.estado === 'aovivo'; poe('gente:' + r.sid, [r.hxv, (r.hyv || 0) + 1.78, r.hzv], (r.handle ? '@' + r.handle : r.nome || 'visitante') + (vivo ? ' · ao vivo' : r.mic ? ' · mic' : ''), vivo ? 'gente vivo' : 'gente'); });
     S.tags.forEach((el, k) => { if(!usadas.has(k) && !el.hidden){ el.hidden = true; } });
@@ -1349,6 +1476,7 @@
       const bc = C.verso && C.verso.balcao && C.verso.balcao().aberto, sh = C.$('sheet'), parado = bc || (sh && !sh.hidden) || document.hidden;
       /* v3.48: fechou a folha do Sebo com um disco no fone: o fone para */
       if(S.ouvindo && !(sh && !sh.hidden && sh.querySelector('.cs-sebo'))) paraDeOuvir();
+      tickPesca();
       /* celular fraco (quadro lento): o boneco anda em passos de até 50 ms, pra a velocidade não depender do quadro
          (e sem atravessar parede num passo grande) */
       if(!parado){ const np = Math.max(1, Math.ceil(dt / .05 - 1e-9)); for(let i = 0; i < np && S.aberta && S.eu; i++) passo(dt / np); }
@@ -1416,11 +1544,14 @@
   }
   function portaCasa(){
     const b = C.$('cs-porta'); if(!b) return;
+    if(S.pesca){ const txt = S.pesca.fase === 'morde' ? 'Puxar!' : 'Puxar'; S.perto = null; if(b.dataset.txt !== txt){ b.dataset.txt = txt; b.hidden = false; b.innerHTML = `${ico('peixe')}<span>${txt}</span>`; } b.classList.toggle('morde', S.pesca.fase === 'morde'); return; }
+    b.classList.remove('morde');
     const p = S.modo === 'andar' && !S.alvo ? pertoDe() : null; S.perto = p;
     const txt = p ? p.nome : '';
-    if(b.dataset.txt !== txt){ b.dataset.txt = txt; b.hidden = !p; if(p) b.innerHTML = `${ico(p.t === 'saida' ? 'prev' : p.t === 'escada' ? 'up' : p.t === 'est' ? 'raio' : p.a && p.a.a === 'discos' ? 'musica' : p.a && p.a.a === 'jogo' ? 'play' : 'eu')}<span>${esc(p.nome)}</span>`; }
+    if(b.dataset.txt !== txt){ b.dataset.txt = txt; b.hidden = !p; if(p) b.innerHTML = `${ico(p.t === 'saida' ? 'prev' : p.t === 'escada' ? 'up' : p.t === 'est' ? 'raio' : p.a && p.a.a === 'discos' ? 'musica' : p.a && p.a.a === 'jogo' ? 'play' : p.a && p.a.a === 'pesca' ? 'peixe' : 'eu')}<span>${esc(p.nome)}</span>`; }
   }
   function acaoPerto(){
+    if(S.pesca){ puxa(); return; }
     const p = S.perto || pertoDe(); if(!p || !S.eu) return;
     if(p.t === 'est') vaiNaEstacao(p.e);
     else if(p.t === 'acao') vaiNaAcao(p.a);
@@ -1595,7 +1726,7 @@
     const sh = C.$('sheet'); if(digitando || (sh && !sh.hidden)){ S.teclas.clear(); return; }
     const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
     if(TECLAS.has(k)){ e.preventDefault(); if(e.type === 'keydown') S.teclas.add(k); else S.teclas.delete(k); return; }
-    if(k === ' '){ e.preventDefault(); if(e.type === 'keydown' && !e.repeat) pulaCasa(); return; }
+    if(k === ' '){ e.preventDefault(); if(e.type === 'keydown' && !e.repeat){ if(S.pesca) puxa(); else pulaCasa(); } return; }
     if(e.type !== 'keydown') return;
     if(k === 'q'){ S.cam.th += Math.PI / 4; S.arrastou = Date.now(); } else if(k === 'e'){ S.cam.th -= Math.PI / 4; S.arrastou = Date.now(); }
     else if(k === 'r' && S.ghost){ giraGhost(); }
@@ -1789,10 +1920,10 @@
       <div class="cs-top"><span class="cs-titulo"><b id="cs-titulo"></b><small id="cs-onde"></small></span><span class="cs-top-r"><b class="cs-live" id="cs-live" hidden></b><button type="button" class="cvr-bc-b cs-disco-b" id="cs-disco-b" data-act="cs-disco-b" hidden></button><button type="button" class="cvr-bc-b cvr-som cs-som" id="cs-som" data-act="cvr-som" aria-pressed="false" hidden></button><button type="button" class="cvr-bc-b cs-mic" id="cs-mic" data-act="cs-mic" aria-pressed="false">${ico('micoff')}<span>Mic desligado</span></button><button type="button" class="cvr-bc-b cs-sair" data-act="cs-sair">${ico('prev')}<span id="cs-sair-t">Sair pra rua</span></button></span></div>
       <div class="cs-cam"><button type="button" data-act="cs-cam" data-k="esq" title="Girar (Q)" aria-label="Girar a câmera pra esquerda">${ico('prev')}</button><button type="button" data-act="cs-cam" data-k="dir" title="Girar (E)" aria-label="Girar a câmera pra direita">${ico('next')}</button><button type="button" data-act="cs-cam" data-k="perto" aria-label="Aproximar">${ico('plus')}</button><button type="button" data-act="cs-cam" data-k="longe" aria-label="Afastar">${ico('down')}</button></div>
       <div class="cs-bar" id="cs-bar"></div>
-      <button type="button" class="cs-porta" id="cs-porta" data-act="cs-porta" hidden></button>`;
+      <button type="button" class="cs-porta" id="cs-porta" data-act="cs-porta" hidden></button><div class="cs-pesca" id="cs-pesca" aria-live="polite" hidden></div>`;
     document.body.appendChild(el); S.el = el; S.cv = C.$('cs-cv'); S.ctx = S.cv.getContext('2d');
     /* v3.40: no celular, o controle de videogame (direcional + pular); o botão de som é o mesmo da cidade */
-    if(C.pad && C.pad.toque()){ S.pad = C.pad.cria(el, { pula: () => pulaCasa() }); el.classList.add('toque'); }
+    if(C.pad && C.pad.toque()){ S.pad = C.pad.cria(el, { pula: () => (S.pesca ? puxa() : pulaCasa()) }); el.classList.add('toque'); }
     if(C.versoSom && C.versoSom.botao) C.versoSom.botao(C.$('cs-som'));
     S.cv.addEventListener('pointerdown', pointerDown); S.cv.addEventListener('pointermove', pointerMove); S.cv.addEventListener('pointerup', pointerUp); S.cv.addEventListener('pointercancel', pointerUp);
     S.cv.addEventListener('wheel', roda, { passive: false });
@@ -1846,7 +1977,8 @@
     if(!S.aberta) return;
     if(S.modo === 'colocar') cancelaGhost();
     S.aberta = false; S.lugar = ''; cancelAnimationFrame(S.raf); S.raf = 0; S.teclas.clear(); S.padTh = null; S.perto = null; if(S.pad) S.pad.solta();
-    S.disco = null; S.discoAtual = ''; S.ouvindo = ''; if(C.beats) C.beats.para();
+    S.disco = null; S.discoAtual = ''; S.ouvindo = ''; S.pesca = null; if(C.beats) C.beats.para();
+    const pq = C.$('cs-pesca'); if(pq) pq.hidden = true;
     clearTimeout(S.salvaT); if(S.sujo) salva();
     if(S.el){ S.el.hidden = true; }
     S.tags.clear(); const tg = C.$('cs-tags'); if(tg) tg.innerHTML = '';
@@ -1916,5 +2048,6 @@
     finally{ usaPlanta(guarda.PL); S.fixos = guarda.fixos; S.decor = guarda.decor; S.itens = guarda.itens; S.eu = guarda.eu; S.cacheItens = guarda.cache; S.cacheFraco = guarda.cacheFraco; S.cam = guarda.cam; S.ghost = guarda.ghost; }
   }
   C.casa = { abrir, fechar, aberta: () => S.aberta, estado: () => S, ITENS, CAT, ESTACOES, encosta, alturaItem: (it, i) => alturaItem(it, i), COMODOS: () => COMODOS, planta: () => PL, plantaDe, lerCasa, miniatura, tela, serial, previa, acoes, disco: () => S.disco, discoAtual: () => S.discoAtual, poeDisco, AGENTES, agenteDe: () => agenteDe(S.dono),
-    sala: () => (S.aberta && S.dono ? String(S.dono.id || '') : ''), lugar: () => (S.aberta ? S.lugar || '' : ''), LUGARES, pos: () => (S.aberta && S.eu ? { x: S.eu.x, y: S.eu.y || 0, z: S.eu.z, yaw: S.eu.yaw, andando: !!S.eu.andando } : null), gente };
+    sala: () => (S.aberta && S.dono ? String(S.dono.id || '') : ''), lugar: () => (S.aberta ? S.lugar || '' : ''), LUGARES,
+    placar: () => (S.aberta && S.lugar === 'pesca' && S.placar && S.placar.r === rodadaAgora() ? { c: Math.round(S.placar.kg * 100), r: S.placar.r % 1e6 } : null), pos: () => (S.aberta && S.eu ? { x: S.eu.x, y: S.eu.y || 0, z: S.eu.z, yaw: S.eu.yaw, andando: !!S.eu.andando } : null), gente };
 })();
