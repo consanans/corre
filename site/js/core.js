@@ -40,7 +40,21 @@
   }
 
   let toastT = 0;
-  function toast(msg, ms){ const t = $('toast'); if(!t) return; t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => { t.hidden = true; }, ms || 2800); }
+  /* v3.63: o aviso de cima entra deslizando, mostra o tempo que falta numa linha embaixo e some com um toque
+     (o Thales: "acabamento horrível"; antes era uma pílula que, com texto comprido, virava um oval). "♪ " na frente
+     ganha o ícone da música */
+  function toast(msg, ms){
+    const t = $('toast'); if(!t) return;
+    ms = ms || 2800;
+    let txt = String(msg == null ? '' : msg), ic = '';
+    if(/^♪\s*/.test(txt)){ txt = txt.replace(/^♪\s*/, ''); ic = 'musica'; }
+    t.innerHTML = `${ic ? `<span class="toast-i">${ico(ic)}</span>` : ''}<span class="toast-tx"></span><i class="toast-t" style="animation-duration:${ms}ms" aria-hidden="true"></i>`;
+    t.querySelector('.toast-tx').textContent = txt;
+    if(!t.dataset.toque){ t.dataset.toque = '1'; t.addEventListener('click', fechaToast); }
+    t.classList.remove('on'); t.hidden = false; void t.offsetWidth; t.classList.add('on');
+    clearTimeout(toastT); toastT = setTimeout(fechaToast, ms);
+  }
+  function fechaToast(){ const t = $('toast'); if(!t) return; t.classList.remove('on'); clearTimeout(toastT); toastT = setTimeout(() => { if(!t.classList.contains('on')) t.hidden = true; }, 220); }
   function copy(text, ok){
     try{ const pr = navigator.clipboard && navigator.clipboard.writeText(text); if(!pr) throw 0; pr.then(() => toast(ok), () => toast(text, 6000)); }
     catch(e){ toast(text, 6000); }

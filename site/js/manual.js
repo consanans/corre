@@ -6,10 +6,11 @@
   'use strict';
   const C = window.Corre, { esc, ico } = C;
   /* sobe esse número a cada atualização: quem já viu recebe de novo, abrindo nas novidades */
-  const VERSAO = '3.62';
+  const VERSAO = '3.63';
   const K = 'corre-manual-visto';
 
   const NOVIDADES = [
+    ['bell', 'Avisos com outro acabamento', 'Os avisos rápidos que aparecem no alto da tela ganharam cara nova: cartão escuro com a barrinha amarela, uma linha embaixo que mostra quanto tempo falta pra sumir, e entrada suave. Pra fechar antes, é só tocar nele.'],
     ['musica', 'Jazz e clássica na cidade', 'A música do Correverso virou uma rodada de três, uma depois da outra: o tema "Rua do Corre" em trio de jazz (vibrafone, piano, contrabaixo andando e prato), o Prelúdio em Dó de Bach no piano e o Cânone em Ré de Pachelbel nas cordas. Tudo tocado ao vivo no teu aparelho; quando troca, o nome da música aparece rapidinho na tela.'],
     ['carro', 'Carro no Autódromo', 'No Autódromo do Café, o totem da bandeira agora pergunta com o que você corre: a moto Corre 160 ou um dos carros da garagem, cada um com o seu jeito. O Pé-Vermelho arranca forte e vira fechado, o Palhano é o mais rápido na reta, e a Cafeeira passa nas costelas quase sem tirar o pé. Mesmo circuito, 3 voltas contra o relógio, e cada veículo tem o placar do dia e o recorde dele (carro não disputa tempo com moto).'],
     ['cartao', 'Planos revisados', 'Trocar o plano do Studio pra mais redes agora libera as redes novas quando a fatura com o valor novo é paga (dá pra pagar na hora, em Planos). Quem cancela e assina de novo ainda no período pago só paga quando ele acaba. Marca acima do que o plano cobre continua guardada, mas o painel e o Studio dela esperam o plano voltar. Apagar o perfil cancela antes os planos pagos, pra nenhuma cobrança seguir sozinha.'],
