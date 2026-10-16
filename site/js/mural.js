@@ -137,6 +137,8 @@
   /* ---------------- o mural ---------------- */
   async function viewMural(app){
     document.title = 'Mural · Corre';
+    /* v3.69: abriu o Mural, o "novo" do menu zera (o que chegou antes daqui já foi visto) */
+    store.set(VISITA_K, Date.now());
     /* entrou ou saiu: volta pra aba certa ("Pra você" pra quem tem perfil) */
     const quem = logado() ? C.st.user.id : '';
     if(!M.tab || M.quem !== quem){ M.quem = quem; M.tab = 'chat'; }
@@ -694,7 +696,25 @@
     if(id === 'mu-u'){ encheCidades(e.target.value, 'mu-c-l'); }
     if(id === 'mu-r') forca();
   });
+  /* v3.69 · o sinal do Mural no menu esperto: proposta tua que escolheram e você ainda não viu (o mais importante) e
+     pedido novo pra você desde a última vez que abriu o Mural (no máximo dos últimos 3 dias, pra não acender tudo de uma
+     vez na primeira) */
+  const VISITA_K = 'corre-mural-visita';
+  async function sinal(){
+    if(!logado()) return null;
+    const pf = prefs(), pr = minhaPraca();
+    const [rows, minhas] = await Promise.all([
+      C.api.rpc('corre_mural_lista', { p_uf: pf.area === 'brasil' ? '' : pr.uf, p_cidade: pf.area === 'cidade' ? pr.cidade : '', p_cats: pf.cats.length ? pf.cats : null, p_q: '', p_antes: null }),
+      C.api.rpc('corre_mural_minhas', {})
+    ]);
+    const vistas = store.get(VISTAS_K, []), daqui = store.get(MEUS_K, []).map(x => x.codigo);
+    const desde = Math.max(Number(store.get(VISITA_K, 0)) || 0, Date.now() - 3 * 864e5);
+    return {
+      escolhido: (minhas || []).filter(x => x.st === 'escolhida' && !vistas.includes(x.id)).length,
+      novos: (rows || []).filter(q => !q.ja && !q.meu && !daqui.includes(q.codigo) && Date.parse(q.created_at) > desde).length
+    };
+  }
   /* v3.65 · a busca do Corre abre o Mural na aba "Tudo" já filtrando pelo que a pessoa procurou */
   const procura = q => { M.quem = logado() ? C.st.user.id : ''; M.tab = 'tudo'; M.cat = ''; M.q = String(q || '').trim().slice(0, 60); C.go('#/mural'); };
-  C.mural = { CATS, catDe, catsDe, calor, prefs, procura };
+  C.mural = { CATS, catDe, catsDe, calor, prefs, procura, sinal };
 })();

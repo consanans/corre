@@ -3013,3 +3013,75 @@ html.embed .msg-pg{height:calc(100dvh - 40px)}
 /* tela estreita: quebra antes do ×, que fica junto da Simonini */
 .login-assina .la-x{white-space:nowrap}
 .login-assina i{display:inline-block;margin:0 5px;color:var(--yellow);font-style:normal;font-size:15px;line-height:1;transform:translateY(1px)}
+/* v3.69 · o menu esperto: um sinal em cada item que tem coisa pra fazer. A cor diz a pressa: laranja é atrasado (post com
+   erro, cobrança vencida, alguém te escolheu no Mural), amarelo é de hoje e lilás é novidade (pedido novo no Mural). Nada
+   de valor em dinheiro: o sinal conta cobranças, não reais. Largo, é uma pílula com o texto; só
+   ícone (901 a 1279 e a barra do celular), vira um pontinho no canto do ícone. O grupo fechado acende com o pontinho da
+   cor mais urgente que tem dentro (o :has olha o que tá à vista: nada de JavaScript a mais) */
+.sinal{flex:none;display:inline-flex;align-items:center;max-width:120px;margin-left:auto;padding:2px 8px;border-radius:999px;font-family:var(--font-mono);font-size:11px;font-weight:700;
+  line-height:1.35;letter-spacing:.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums;color:var(--ink);background:var(--yellow)}
+.sinal[hidden]{display:none}
+.sinal.alerta{background:var(--orange)}
+.sinal.info{background:var(--lav)}
+@media (min-width:901px){
+  /* só ícone: o pontinho no canto de cima do ícone, com a borda da cor do menu pra descolar do desenho */
+  .lado-gi{position:relative}
+  .lado-gi .sinal,.lado-praca .sinal{position:absolute;top:5px;right:9px;width:11px;height:11px;margin:0;padding:0;border:2px solid var(--night);font-size:0;color:transparent}
+  .lado-praca .lado-i{position:relative}
+  .lado-praca .sinal{top:-5px;right:-5px;width:13px;height:13px;border-color:var(--ink)}
+  .lado-g:not([open]):has(.sinal.hoje:not([hidden]),.sinal.info:not([hidden])) > .lado-gs .mi-ic::before,
+  .lado-g:not([open]):has(.sinal.alerta:not([hidden])) > .lado-gs .mi-ic::before{content:"";position:absolute;bottom:-3px;right:-5px;width:10px;height:10px;border-radius:50%;background:var(--yellow);border:2px solid var(--night)}
+  .lado-g:not([open]):has(.sinal.alerta:not([hidden])) > .lado-gs .mi-ic::before{background:var(--orange)}
+}
+@media (min-width:1280px){
+  /* largo: a pílula com o texto, encostada na direita do item (o item estica pra ela caber) */
+  .lado-gi:has(.sinal:not([hidden])){align-self:stretch}
+  .lado-gi .sinal{position:static;width:auto;height:auto;margin-left:auto;padding:2px 8px;border:0;font-size:11px;color:var(--ink)}
+  /* onde a pílula não cabe (o app.js mede e põe o .ponto), o pontinho na direita do item */
+  .lado-gi .sinal.ponto{width:10px;height:10px;padding:0;font-size:0;color:transparent}
+  .lado-praca .sinal{position:static;width:auto;height:auto;margin-left:auto;padding:2px 8px;border:1.5px solid var(--ink);font-size:11px;color:var(--ink)}
+  .lado-i.lado-mural:has(.sinal:not([hidden])){padding-right:10px}
+}
+@media (max-width:900px){
+  /* a barra de baixo: o pontinho no canto do ícone, como o número das Mensagens */
+  .tabbar.tbx .sinal{position:absolute;top:2px;right:calc(50% - 26px);width:12px;height:12px;margin:0;padding:0;border:2px solid var(--paper);font-size:0;color:transparent;pointer-events:none}
+  body.em-rolo .tabbar.tbx .sinal{border-color:#121015}
+  /* a gaveta: a pílula na direita do item */
+  .gv-g > a .sinal,.gv-g > button .sinal{font-size:11.5px}
+  /* o "Pra hoje": logo embaixo da tua foto, o que pede ação, o urgente primeiro, cada um leva pra página dele. Cartão escuro
+     com o ícone na cor da pressa (três blocos laranja seguidos gritavam demais). O .gaveta na frente ganha do ".me-menu a"
+     antigo (display:block e o fundo claro no hover) */
+  .gv-hoje-box:empty{display:none}
+  .gv-hoje{flex:none;display:flex;flex-direction:column;gap:6px;margin:0 0 4px}
+  .gv-hoje > .gv-k,.gv-at > .gv-k{display:flex;align-items:center;gap:8px;margin-top:6px}
+  .gv-hoje > .gv-k .ic,.gv-at > .gv-k .ic{width:15px;height:15px;flex:none}
+  .gaveta .gv-hoje-i{display:flex;align-items:center;gap:12px;width:100%;min-height:52px;padding:8px 10px 8px 8px;border:1.5px solid #34303A;border-radius:14px;background:var(--night-2);color:var(--night-ink);
+    text-decoration:none;font-size:15px;font-weight:750;line-height:1.25}
+  .gaveta .gv-hoje-i:hover,.gaveta .gv-hoje-i:active{background:#2C2931;border-color:var(--yellow)}
+  .gv-hoje-i > .ic:first-child{flex:none;box-sizing:content-box;width:20px;height:20px;padding:7px;border:2px solid var(--ink);border-radius:10px;background:var(--yellow);color:var(--ink)}
+  .gv-hoje-i.alerta > .ic:first-child{background:var(--orange)}
+  .gv-hoje-i.info > .ic:first-child{background:var(--lav)}
+  .gv-hoje-i > span{flex:1;min-width:0}
+  .gv-hoje-i .gv-hoje-seta{flex:none;width:16px;height:16px;color:var(--night-ink-2)}
+  .gaveta .gv-hoje-i:focus-visible{outline:3px solid var(--yellow);outline-offset:-3px}
+  .gv-hoje-ok{display:flex;align-items:center;gap:8px;margin:0;padding:4px 12px 2px;color:var(--night-ink-2);font-size:14.5px}
+  .gv-hoje-ok .ic{width:16px;height:16px;flex:none;color:var(--yellow)}
+  /* os teus atalhos: o que você mais usa (e não tá na barra de baixo), em blocos de dois */
+  .gv-at{flex:none;display:flex;flex-direction:column}
+  .gv-at-l{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:2px 0 4px}
+  .gaveta .gv-at-i{display:flex;align-items:center;gap:10px;min-width:0;width:100%;min-height:52px;padding:0 12px;border:1.5px solid #34303A;border-radius:14px;background:var(--night-2);color:var(--night-ink);
+    text-align:left;text-decoration:none;font:inherit;font-size:14.5px;font-weight:750;line-height:1.2;cursor:pointer}
+  .gv-at-i span{min-width:0;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+  .gv-at-i .ic{width:22px;height:22px;flex:none;color:var(--yellow)}
+  /* de carona: o toque que abre a gaveta deixava a tua foto em hover, e o ".me-menu a" antigo pintava um oval claro da
+     largura da gaveta atrás dela (a 320 dava pra ver). A foto é só a foto */
+  .gaveta .gv-topo > a{display:block;width:auto;padding:0}
+  .gaveta .gv-topo > a:hover{background:none}
+  .gaveta .gv-topo > a:focus-visible{outline:3px solid var(--yellow);outline-offset:2px}
+  .gaveta .gv-at-i:active,.gaveta .gv-at-i:hover{background:#2C2931;border-color:var(--yellow)}
+  .gaveta .gv-at-i:focus-visible{outline:3px solid var(--yellow);outline-offset:-3px}
+}
+/* v3.69 · na busca vazia, o "Pra hoje" em cima: o ícone na cor da pressa (a mesma do sinal do menu) */
+.pq-ic-h{background:var(--yellow)}
+.pq-ic-h.pq-n-alerta{background:var(--orange)}
+.pq-ic-h.pq-n-info{background:var(--lav)}

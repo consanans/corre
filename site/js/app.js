@@ -67,9 +67,126 @@
   /* onde o Postar redondo do celular aparece: no Início, no teu perfil e nas páginas de ler (Banca do dia e Do teu
      nicho), como até a v3.42, quando elas eram do Início. O Editar perfil acende o Perfil, mas ali ninguém posta */
   const POSTAR = ['inicio', 'perfil', 'banca', 'refs'];
+  /* ---------------- v3.69 · o menu esperto ----------------
+     O Thales: "melhore o menu e deixe ele o mais smart possível". O menu passa a dizer onde tem coisa pra fazer: um sinal
+     em cada item (post que sai hoje ou atrasou, cliente pra retornar, cobrança vencida, alguém te escolheu no Mural ou
+     pedido novo, teste do plano acabando), o grupo fechado acende quando tem sinal dentro e abre
+     sozinho o grupo que pede atenção. No celular, a gaveta abre com o "Pra hoje" e os teus atalhos, que aprendem o que
+     você mais usa (a busca também). Tudo calculado no aparelho com o que o app já lê; nada novo no banco */
+  const SN = { at: 0, uid: '', pronto: false, ind: null, v: {} };
+  /* o que cada sinal abre e o ícone dele no "Pra hoje" */
+  const SN_IR = { studio: ['#/studio', 'magia'], horus: ['#/horus', 'eye'], corre: ['#/corre', 'grana'], mural: ['#/mural', 'tacha'], planos: ['#/planos', 'cartao'] };
+  /* estados do lead que não pedem mais retorno (os mesmos do horus.js) */
+  const LEAD_FIM = ['fechado', 'perdido', 'nao_encontrado'];
+  const diaMenos = (iso, n) => { const d = new Date(iso + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() - n); return d.toISOString().slice(0, 10); };
+  const plural = (n, um, varios) => n === 1 ? `1 ${um}` : `${n} ${varios}`;
+  async function calculaSinais(){
+    const uid = C.uid(), hj = C.hojeBR(), v = {};
+    const studio = api.q('corre_posts', { select: 'id,data,hora,status,ig_status,midia_url', eq: { dono: uid }, gte: { data: diaMenos(hj, 7) }, lte: { data: hj }, limit: 500 }).then(ps => {
+      /* o mesmo jeito do Studio: publicado e rascunho não contam; com erro ou 15 min depois da hora é atrasado */
+      let hoje = 0, atras = 0;
+      (ps || []).forEach(p => {
+        if(p.ig_status === 'publicado' || p.status === 'postado') return;
+        if(p.ig_status === 'erro'){ atras++; return; }
+        if(!p.data || !p.hora || !p.midia_url || p.status === 'ideia') return;
+        const t = Date.parse(`${p.data}T${String(p.hora).slice(0, 5)}:00-03:00`);
+        if(t < Date.now() - 15 * 6e4) atras++; else if(p.data === hj) hoje++;
+      });
+      if(atras) v.studio = { txt: plural(atras, 'atrasado', 'atrasados'), nivel: 'alerta', diz: atras === 1 ? '1 post atrasou' : `${atras} posts atrasaram` };
+      else if(hoje) v.studio = { txt: `${hoje} hoje`, nivel: 'hoje', diz: hoje === 1 ? '1 post sai hoje' : `${hoje} posts saem hoje` };
+    }).catch(() => {});
+    const horus = !C.ferr('horus') ? null : api.q('corre_leads', { select: 'id,st,prox', eq: { dono: uid }, lte: { prox: hj }, limit: 3000 }).then(L => {
+      const ab = (L || []).filter(l => l.prox && !LEAD_FIM.includes(l.st)); if(!ab.length) return;
+      v.horus = { txt: String(ab.length), nivel: ab.some(l => l.prox < hj) ? 'alerta' : 'hoje', diz: ab.length === 1 ? '1 cliente pra retornar' : `${ab.length} clientes pra retornar` };
+    }).catch(() => {});
+    const vendas = api.q('corre_vendas', { select: 'id,st,vence', eq: { dono: uid, st: 'fechado' }, lte: { vence: hj }, limit: 1000 }).then(L => {
+      const venc = (L || []).filter(x => x.vence && x.vence < hj).length, hoje = (L || []).filter(x => x.vence === hj).length;
+      /* conta de cobrança, nunca valor: dinheiro não aparece no menu (e nunca em vermelho) */
+      if(venc) v.corre = { txt: plural(venc, 'vencida', 'vencidas'), nivel: 'alerta', diz: venc === 1 ? '1 cobrança vencida' : `${venc} cobranças vencidas` };
+      else if(hoje) v.corre = { txt: `${hoje} hoje`, nivel: 'hoje', diz: hoje === 1 ? '1 pagamento pra receber hoje' : `${hoje} pagamentos pra receber hoje` };
+    }).catch(() => {});
+    const mural = C.mural && C.mural.sinal ? C.mural.sinal().then(m => {
+      if(!m) return;
+      if(m.escolhido) v.mural = { txt: 'te escolheram', nivel: 'alerta', diz: m.escolhido === 1 ? 'Te escolheram no Mural!' : `${m.escolhido} te escolheram no Mural!` };
+      else if(m.novos) v.mural = { txt: plural(m.novos, 'novo', 'novos'), nivel: 'info', diz: m.novos === 1 ? '1 pedido novo pra você no Mural' : `${m.novos} pedidos novos pra você no Mural` };
+    }).catch(() => {}) : null;
+    const planos = (C.acesso ? Promise.resolve(C.acesso) : C.acessoCarrega ? C.acessoCarrega() : Promise.resolve(null)).then(A => {
+      if(!A || A.fundador || !A.planos) return;
+      const NOME = { studio: 'Studio', houzi: 'Studio Houzi', horus: 'Hórus' };
+      Object.keys(A.planos).forEach(k => {
+        const p = A.planos[k], dias = p.teste_ate ? Math.ceil((Date.parse(p.teste_ate) - Date.now()) / 864e5) : null;
+        if(p.status === 'atrasada') v.planos = { txt: 'atrasado', nivel: 'alerta', diz: `A fatura do ${NOME[k] || k} atrasou` };
+        else if(!v.planos && p.status === 'teste' && !p.assinado && dias != null && dias >= 0 && dias <= 5) v.planos = { txt: dias <= 1 ? 'acaba hoje' : `${dias} dias`, nivel: 'hoje', diz: `O teste do ${NOME[k] || k} acaba ${dias <= 1 ? 'hoje' : `em ${dias} dias`}` };
+      });
+    }).catch(() => {});
+    /* (o saldo de correal ficou de fora: o menu só sinaliza o que pede ação, e "Carteira de correal" com o número não cabia) */
+    await Promise.all([studio, horus, vendas, mural, planos]);
+    return v;
+  }
+  /* de 2 em 2 minutos no máximo (o menu se redesenha a cada página e usa o que já sabe); trocou de conta, começa do zero */
+  function sinaisCarrega(forca){
+    const u = C.uid() || ''; if(SN.uid !== u){ SN.uid = u; SN.v = {}; SN.pronto = false; SN.at = 0; }
+    if(!u || !st.me) return Promise.resolve(SN.v);
+    if(SN.ind) return SN.ind;
+    if(!forca && Date.now() - SN.at < 12e4) return Promise.resolve(SN.v);
+    return (SN.ind = calculaSinais().then(v => { if(SN.uid === u){ SN.v = v; SN.pronto = true; SN.at = Date.now(); } return SN.v; }).finally(() => { SN.ind = null; }));
+  }
+  const sinalHTML = k => { const s = SN.v[k]; return `<span class="sinal${s ? ' ' + s.nivel : ''}" data-sinal="${k}"${s ? ` title="${esc(s.diz || s.txt)}"` : ' hidden'}>${s ? esc(s.txt) : ''}</span>`; };
+  /* o "Pra hoje" (gaveta do celular e a busca vazia): o que pede ação, o urgente primeiro */
+  const ORDEM_SN = { alerta: 0, hoje: 1, info: 2 };
+  const praHoje = () => Object.keys(SN.v).filter(k => SN.v[k].diz && SN_IR[k] && tem(k)).sort((a, b) => ORDEM_SN[SN.v[a].nivel] - ORDEM_SN[SN.v[b].nivel]);
+  const praHojeHTML = () => {
+    if(!SN.pronto) return '';
+    const L = praHoje();
+    return `<div class="gv-hoje" role="group" aria-labelledby="gv-hoje-k"><span class="gv-k" id="gv-hoje-k">${ico('clock')}Pra hoje</span>${L.length
+      ? L.map(k => `<a class="gv-hoje-i ${SN.v[k].nivel}" href="${SN_IR[k][0]}">${ico(SN_IR[k][1])}<span>${esc(SN.v[k].diz)}</span>${ico('next', 'gv-hoje-seta')}</a>`).join('')
+      : `<p class="gv-hoje-ok">${ico('check')} Tudo em dia por aqui.</p>`}</div>`;
+  };
+  /* depois de calcular: troca os sinais na tela, sem redesenhar o menu */
+  function pintaSinais(){
+    document.querySelectorAll('[data-sinal]').forEach(el => {
+      const s = SN.v[el.dataset.sinal];
+      el.hidden = !s; el.className = 'sinal' + (s ? ' ' + s.nivel : ''); el.textContent = s ? s.txt : '';
+      if(s) el.title = s.diz || s.txt; else el.removeAttribute('title');
+    });
+    document.querySelectorAll('.gv-hoje-box').forEach(el => { el.innerHTML = praHojeHTML(); });
+    cabePilula();
+  }
+  /* no menu largo (1280+), a pílula escrita só onde cabe: no item de nome comprido (Vendas e Grana) ela empurrava o item pra
+     fora do menu, então vira o pontinho e o texto fica no title (e no "Pra hoje"). Item de grupo fechado não tem tamanho:
+     mede de novo quando o grupo abre */
+  const cabePilula = () => document.querySelectorAll('.lado-gi .sinal:not([hidden])').forEach(el => {
+    el.classList.remove('ponto'); const it = el.parentNode; if(it.clientWidth && it.scrollWidth > it.clientWidth + 1) el.classList.add('ponto');
+  });
+  /* o grupo que pede atenção: o do sinal mais urgente (alerta antes de hoje); sem nenhum, o Laboratório de sempre */
+  const grupoUrgente = () => { const k = praHoje().find(x => GRUPO_DE[x]); return k ? GRUPO_DE[k] : 'lab'; };
+  /* o que a pessoa mais usa: cada página aberta soma 1, e tudo perde 10% por dia (o que você parou de usar sai sozinho) */
+  const USO_K = 'corre-menu-uso';
+  const usoLe = () => { try{ const o = JSON.parse(localStorage.getItem(USO_K) || 'null'); return o && st.me && o.u === st.me.id ? o : null; }catch(e){ return null; } };
+  function usoConta(k){
+    if(!k || !st.me || !DEST(st.me)[k]) return;
+    try{
+      const o = usoLe() || { u: st.me.id, c: {}, dia: C.hojeBR(), ult: '', t: 0 }, hj = C.hojeBR();
+      if(o.dia !== hj){ const d = Math.min(60, Math.max(1, Math.round((Date.parse(hj) - Date.parse(o.dia)) / 864e5))); Object.keys(o.c).forEach(x => { o.c[x] = Math.round(o.c[x] * Math.pow(.9, d) * 100) / 100; if(o.c[x] < .05) delete o.c[x]; }); o.dia = hj; }
+      /* a mesma página de novo em 5 minutos (voltar, recarregar) não conta */
+      if(o.ult === k && Date.now() - o.t < 3e5) return;
+      o.c[k] = (o.c[k] || 0) + 1; o.ult = k; o.t = Date.now();
+      localStorage.setItem(USO_K, JSON.stringify(o));
+    }catch(e){}
+  }
+  const maisUsados = (n, fora) => { const o = usoLe(); if(!o) return []; return Object.keys(o.c).filter(k => o.c[k] >= 1.5 && tem(k) && !(fora || []).includes(k)).sort((a, b) => o.c[b] - o.c[a]).slice(0, n); };
+  /* os atalhos da gaveta: os mais usados que não estão na barra de baixo (com pouco uso ainda, não aparece) */
+  const atalhosHTML = me => {
+    const L = maisUsados(4, BARRA.concat(['perfil'])); if(L.length < 2) return '';
+    const D = DEST(me);
+    return `<div class="gv-at" role="group" aria-labelledby="gv-at-k"><span class="gv-k" id="gv-at-k">${ico('star')}Teus atalhos</span><div class="gv-at-l">${L.map(k => D[k][0]
+      ? `<a class="gv-at-i" href="${esc(D[k][0])}">${ico(D[k][2])}<span>${D[k][1]}</span></a>`
+      : `<button type="button" class="gv-at-i" data-act="${k === 'avisos' ? 'sino' : k}">${ico(D[k][2])}<span>${D[k][1]}</span></button>`).join('')}</div></div>`;
+  };
+  document.addEventListener('visibilitychange', () => { if(!C.EMBED && document.visibilityState === 'visible' && st.me && Date.now() - SN.at > 6e4) sinaisCarrega(true).then(pintaSinais); });
   /* um item sem enfeite (o Mais e a gaveta). O da página aberta ganha aria-current; a carteira avisa que abre por cima */
-  const itemSimples = ([k, h, l, i], cls, ativo) => h ? `<a${cls ? ` class="${cls}-${k}"` : ''} href="${esc(h)}"${cls ? ' role="menuitem"' : ''}${ativo ? ' aria-current="page"' : ''}>${ico(i)}${l}</a>`
-    : `<button type="button"${cls ? ` class="${cls}-${k}" role="menuitem"` : ''} data-act="${k === 'avisos' ? 'sino' : k}"${k === 'carteira' ? ' aria-haspopup="dialog"' : ''}>${ico(i)}${l}</button>`;
+  const itemSimples = ([k, h, l, i], cls, ativo) => h ? `<a${cls ? ` class="${cls}-${k}"` : ''} href="${esc(h)}"${cls ? ' role="menuitem"' : ''}${ativo ? ' aria-current="page"' : ''}>${ico(i)}${l}${sinalHTML(k)}</a>`
+    : `<button type="button"${cls ? ` class="${cls}-${k}" role="menuitem"` : ''} data-act="${k === 'avisos' ? 'sino' : k}"${k === 'carteira' ? ' aria-haspopup="dialog"' : ''}>${ico(i)}${l}${sinalHTML(k)}</button>`;
   /* o sino, as mensagens e a conta aparecem duas vezes (no computador e no celular): o id fica com o que tá na tela */
   const MQ = matchMedia('(min-width: 901px)');
   const idSe = (desk, id) => (MQ.matches === desk ? ` id="${id}"` : '');
@@ -84,8 +201,9 @@
     const dados = k === 'avisos' ? ` data-sino${idSe(desk, 'sino')}` : k === 'msg' ? ` data-msg${idSe(desk, 'msg-btn')}` : '';
     /* a praça: o Correverso é a noite com estrela, o Mural é a cortiça (a mesma forma, cada um com a sua cara) */
     const ic = k === 'verso' ? `<span class="tb-bola">${ico(i)}</span>` : k === 'mural' ? `<span class="tb-bola tb-cortica">${ico(i)}</span>` : `<span class="mi-ic">${ico(i)}${n}</span>`, c = `${cls} ${desk ? 'lado' : 'tb'}-${k}`;
-    return h ? `<a class="${c}" href="${esc(h)}" title="${l}" aria-label="${l}"${dados}${ativo ? ' aria-current="page"' : ''}>${ic}<span class="mi-t">${l}</span></a>`
-      : `<button type="button" class="${c}" data-act="${k === 'avisos' ? 'sino' : k}" title="${l}" aria-label="${l}"${dados}>${ic}<span class="mi-t">${l}</span></button>`;
+    const sn = k === 'avisos' || k === 'msg' ? '' : sinalHTML(k);
+    return h ? `<a class="${c}" href="${esc(h)}" title="${l}" aria-label="${l}"${dados}${ativo ? ' aria-current="page"' : ''}>${ic}<span class="mi-t">${l}</span>${sn}</a>`
+      : `<button type="button" class="${c}" data-act="${k === 'avisos' ? 'sino' : k}" title="${l}" aria-label="${l}"${dados}>${ic}<span class="mi-t">${l}</span>${sn}</button>`;
   };
   /* um item dentro do grupo (computador): link, ou botão (a carteira abre por cima) */
   /* v3.44: dentro da Rede, os Avisos (o sino) e as Mensagens levam o número de não lidos, como na lista de antes */
@@ -93,8 +211,9 @@
     const n = k === 'avisos' ? `<span class="sino-n num" hidden></span>` : k === 'msg' ? `<span class="msg-n num" hidden></span>` : '';
     const dados = k === 'avisos' ? ` data-sino${idSe(true, 'sino')}` : k === 'msg' ? ` data-msg${idSe(true, 'msg-btn')}` : '';
     const ic = n ? `<span class="lado-gi-ic">${ico(i)}${n}</span>` : ico(i);
-    return h ? `<a class="lado-gi lado-gi-${k}" href="${esc(h)}" title="${l}" aria-label="${l}"${dados}${ativo ? ' aria-current="page"' : ''}>${ic}<span class="mi-t">${l}</span></a>`
-      : `<button type="button" class="lado-gi lado-gi-${k}" data-act="${k === 'avisos' ? 'sino' : k}" title="${l}" aria-label="${l}"${dados} aria-haspopup="dialog">${ic}<span class="mi-t">${l}</span></button>`;
+    const sn = n ? '' : sinalHTML(k);
+    return h ? `<a class="lado-gi lado-gi-${k}" href="${esc(h)}" title="${l}" aria-label="${l}"${dados}${ativo ? ' aria-current="page"' : ''}>${ic}<span class="mi-t">${l}</span>${sn}</a>`
+      : `<button type="button" class="lado-gi lado-gi-${k}" data-act="${k === 'avisos' ? 'sino' : k}" title="${l}" aria-label="${l}"${dados} aria-haspopup="dialog">${ic}<span class="mi-t">${l}</span>${sn}</button>`;
   };
   /* o grupo no computador. Abre o da página aberta; fora dos grupos, o Laboratório (o Studio fica a 1 clique). Um por
      vez: o name do details faz isso sozinho. Não guarda nada: o menu se redesenha a cada página e a regra decide de
@@ -103,7 +222,7 @@
   const grupoLado = (g, D, active) => {
     const [t, i, ks] = GRUPOS[g], itens = ks.filter(tem);
     if(itens.length < 2) return itens.map(k => itemMenu(k, D[k][0], D[k][1], D[k][2], 'lado-i', k === active, true)).join('');
-    const aqui = itens.includes(active), aberto = aqui || (!GRUPO_DE[active] && g === 'lab');
+    const aqui = itens.includes(active), aberto = aqui || (!GRUPO_DE[active] && g === grupoUrgente());
     return `<details class="lado-g${aqui ? ' aqui' : ''}" data-g="${g}" name="lado-g"${aberto ? ' open' : ''}><summary class="lado-i lado-gs" title="${t}" aria-label="${t}"><span class="mi-ic">${ico(i)}</span><span class="mi-t">${t}</span>${ico('next', 'lado-g-seta')}</summary>
       <div class="lado-g-m" role="group" aria-label="${t}">${itens.map(k => filho(k, D[k], k === active)).join('')}</div></details>`;
   };
@@ -112,7 +231,7 @@
   const gavetaHTML = (me, active) => {
     const D = DEST(me), um = k => tem(k) ? itemSimples([k].concat(D[k]), '', k === active) : '';
     const bloco = (id, t, i, ks) => { const l = ks.filter(tem); return l.length ? `<div class="gv-g" role="group" aria-labelledby="gv-g-${id}"><span class="gv-k" id="gv-g-${id}">${i ? ico(i) : ''}${t}</span>${l.map(um).join('')}</div>` : ''; };
-    return Object.keys(GRUPOS).map(g => bloco(g, GRUPOS[g][0], GRUPOS[g][1], GRUPOS[g][2])).join('') + bloco('mais', 'Mais', '', MAIS);
+    return `<div class="gv-hoje-box">${praHojeHTML()}</div>${atalhosHTML(me)}` + Object.keys(GRUPOS).map(g => bloco(g, GRUPOS[g][0], GRUPOS[g][1], GRUPOS[g][2])).join('') + bloco('mais', 'Mais', '', MAIS);
   };
   /* em tela baixa a lista do menu rola: o item da página aberta (e o grupo que acabou de abrir) aparece inteiro.
      Mexe só no scrollTop da lista, nunca na página. v3.43: com folga do degradê que avisa que a lista rola (36px + um
@@ -140,10 +259,10 @@
     l.style.setProperty('--trilho-t', px(n.offsetTop + 2 + (h - 4 - t) * Math.min(1, Math.max(0, y / sobra)))); l.style.setProperty('--trilho-h', px(t));
   };
   document.addEventListener('scroll', e => { if(e.target && e.target.classList && e.target.classList.contains('lado-nav')) sinalRola(); }, { capture: true, passive: true });
-  document.addEventListener('toggle', e => { if(e.target && e.target.closest && e.target.closest('.lado-nav')) sinalRola(); }, true);
-  window.addEventListener('resize', sinalRola);
+  document.addEventListener('toggle', e => { if(e.target && e.target.closest && e.target.closest('.lado-nav')){ sinalRola(); cabePilula(); } }, true);
+  window.addEventListener('resize', () => { sinalRola(); cabePilula(); });
   /* as letras de verdade chegam depois e mudam a altura dos itens */
-  if(document.fonts && document.fonts.ready) document.fonts.ready.then(sinalRola, () => {});
+  if(document.fonts && document.fonts.ready) document.fonts.ready.then(() => { sinalRola(); cabePilula(); }, () => {});
   /* a cidade usa o Espaço (pula) e o Enter (porta). Quem chegou no menu pelo Tab (um grupo, a Carteira, o sino) usa as
      duas pra abrir o que tá no foco, como em qualquer página; quem clicou com o mouse e voltou pro jogo segue pulando.
      Por isso o app lembra se o último foco veio do teclado (o :focus-visible não serve: o Chrome liga ele em qualquer
@@ -189,6 +308,9 @@
     if(cru !== 'rolo' && C.roloSom) C.roloSom.sai();
     if(logged && active === '' && /^#\/@/.test(location.hash) && C.decURI(location.hash.slice(3)).toLowerCase() === me.handle) active = 'perfil';
     if(logged && C.visitas) setTimeout(() => C.visitas.sync(), 0);
+    /* v3.69: o menu esperto (o uso de cada página e os sinais, de 2 em 2 minutos no máximo) */
+    /* (no balcão dos lugares 3D o menu não aparece: conta o uso, mas não faz as consultas dos sinais de novo) */
+    if(logged){ usoConta(active); if(active === 'mural' && SN.v.mural && SN.v.mural.nivel === 'info') delete SN.v.mural; if(!C.EMBED) setTimeout(() => sinaisCarrega().then(pintaSinais), 0); }
     if(logged && C.avisos) setTimeout(() => C.avisos.sync(), 0);
     if(logged && C.msg) setTimeout(() => C.msg.sync(), 0);
     /* avisos no celular: confere a inscrição deste aparelho (uma vez por abertura) */
@@ -196,7 +318,7 @@
     /* o manual abre sozinho na primeira entrada e a cada atualização */
     if(logged && C.manual) setTimeout(() => C.manual.talvez(), 900);
     /* em tela baixa a lista do menu rola: o item aceso aparece (depois de a página ir pra tela) */
-    if(logged) setTimeout(() => { aVista(document.querySelector('.lado-nav [aria-current="page"]')); sinalRola(); }, 0);
+    if(logged) setTimeout(() => { aVista(document.querySelector('.lado-nav [aria-current="page"]')); sinalRola(); cabePilula(); }, 0);
     const v = logged && VOLTA[cru], volta = v ? (v[0] === 'perfil' ? ['#/@' + me.handle, 'Perfil'] : v) : null;
     return `<header class="hdr">
       ${logged ? `<details class="me hdr-eu"${idSe(false, 'me')}><summary aria-label="Abrir o menu: teu perfil e o teu corre">${avatar(me, 's')}</summary>
@@ -303,7 +425,7 @@
   /* o que a pessoa abriu pela busca fica no aparelho (por login), pra voltar com um toque */
   const REC_K = 'corre-procura';
   const recentes = () => { try{ const o = JSON.parse(localStorage.getItem(REC_K) || 'null'); return o && st.me && o.u === st.me.id && Array.isArray(o.L) ? o.L.slice(0, 6) : []; }catch(e){ return []; } };
-  const guardaRecente = o => { if(!st.me || o.tipo === 'm' || o.tipo === 't') return; try{ const x = Object.assign({}, o); delete x.kw; localStorage.setItem(REC_K, JSON.stringify({ u: st.me.id, L: [x].concat(recentes().filter(r => r.key !== o.key)).slice(0, 6) })); }catch(e){} };
+  const guardaRecente = o => { if(!st.me || o.tipo === 'm' || o.tipo === 't' || o.tipo === 'h') return; try{ const x = Object.assign({}, o); delete x.kw; localStorage.setItem(REC_K, JSON.stringify({ u: st.me.id, L: [x].concat(recentes().filter(r => r.key !== o.key)).slice(0, 6) })); }catch(e){} };
   /* o que tá em alta no feed (as hashtags da semana), guardado por 5 minutos */
   let altaCache = null;
   const emAlta = async () => {
@@ -337,7 +459,7 @@
   const umPost = (p, q) => { const a = p.perfil || {}; return { tipo: 'post', key: 'post:' + p.id, t: trecho(p.texto, q), s: '@' + (a.handle || '') + (p.created_at && C.rel ? ' · ' + C.rel(p.created_at) : ''), h: '#/p/' + p.id, av: { nome: a.nome || a.handle || '', avatar_url: a.avatar_url || '' } }; };
 
   const P = { q: '', seq: 0, lista: [], ativo: -1, banco: null, bancoQ: '', t: 0 };
-  const icone = o => o.av ? avatar(o.av, 's') : o.gav && C.grupos ? C.grupos.av(o.gav, 's') : `<span class="pq-ic pq-ic-${o.tipo}">${ico(o.i)}</span>`;
+  const icone = o => o.av ? avatar(o.av, 's') : o.gav && C.grupos ? C.grupos.av(o.gav, 's') : `<span class="pq-ic pq-ic-${o.tipo}${o.nivel ? ' pq-n-' + o.nivel : ''}">${ico(o.i)}</span>`;
   const rotulo = { f: 'ferramenta', v: 'na cidade', p: 'perfil', g: 'grupo', post: 'post', m: 'mural', t: 'hashtag' };
   function itemHTML(o, q){
     const n = P.lista.push(o) - 1, abre = o.h ? `a href="${esc(o.h)}"` : 'button type="button"', fecha = o.h ? 'a' : 'button';
@@ -348,9 +470,11 @@
   async function pintaVazio(){
     const res = $('pq-res'); if(!res) return;
     P.lista = []; const rec = recentes(), F = FERR(), por = k => F.find(f => f.key === 'f:' + k);
-    const atalhos = ['studio', 'houzi', 'horus', 'corre', 'verso', 'mural', 'grupos', 'planos'].map(por).filter(Boolean);
-    res.innerHTML = secao('rec', 'Recentes', rec, '', `<button type="button" class="pq-limpa" data-pq-limpa>limpar</button>`)
-      + `<div class="pq-sec" role="group" aria-labelledby="pq-s-at"><p class="pq-k" id="pq-s-at"><span>Atalhos</span></p><div class="pq-chips">${atalhos.map(o => { const n = P.lista.push(o) - 1; return `<a class="pq-chip" href="${esc(o.h)}" data-pq="${n}" tabindex="-1">${ico(o.i)}<span>${esc(o.t)}</span></a>`; }).join('')}</div></div>
+    /* v3.69: os atalhos começam pelo que a pessoa mais usa e completam com os de sempre; e o "Pra hoje" vem em cima */
+    const atalhos = [...new Set(maisUsados(8, ['inicio']).concat(['studio', 'houzi', 'horus', 'corre', 'verso', 'mural', 'grupos', 'planos']))].map(por).filter(Boolean).slice(0, 8);
+    const hoje = praHoje().map(k => ({ tipo: 'h', key: 'h:' + k, t: SN.v[k].diz, s: '', i: SN_IR[k][1], h: SN_IR[k][0], nivel: SN.v[k].nivel }));
+    res.innerHTML = secao('hoje', 'Pra hoje', hoje, '') + secao('rec', 'Recentes', rec, '', `<button type="button" class="pq-limpa" data-pq-limpa>limpar</button>`)
+      + `<div class="pq-sec" role="group" aria-labelledby="pq-s-at"><p class="pq-k" id="pq-s-at"><span>Atalhos</span></p><div class="pq-chips">${atalhos.map(o => { const n = P.lista.push(o) - 1; return o.h ? `<a class="pq-chip" href="${esc(o.h)}" data-pq="${n}" tabindex="-1">${ico(o.i)}<span>${esc(o.t)}</span></a>` : `<button type="button" class="pq-chip" data-pq="${n}" tabindex="-1">${ico(o.i)}<span>${esc(o.t)}</span></button>`; }).join('')}</div></div>
       <div class="pq-sec pq-alta" id="pq-alta" hidden></div>
       <p class="pq-nada pq-como">Procura gente pelo nome, pelo @ ou pelo que faz (fotógrafo, DJ, bolo), um grupo, uma ferramenta, um lugar do Correverso ou um #assunto.</p>`;
     marcaAtivo(-1);

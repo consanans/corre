@@ -6,20 +6,20 @@
   'use strict';
   const C = window.Corre, { esc, ico } = C;
   /* sobe esse número a cada atualização: quem já viu recebe de novo, abrindo nas novidades */
-  const VERSAO = '3.68';
+  const VERSAO = '3.69';
   const K = 'corre-manual-visto';
 
   /* O que tem de novo: só o que é super relevante pra galera (o Thales, v3.67). No máximo 8, o mais novo em cima, uma ou
      duas frases cada, no jeito de quem conta pro amigo. Conserto, acabamento e detalhe técnico não entram aqui (moram no
      CLAUDE.md); novidade grande que chega empurra a mais velha pra fora */
   const NOVIDADES = [
+    ['clock', 'Menu esperto', 'O menu avisa onde tem coisa pra fazer: post que sai hoje, cliente pra retornar, cobrança vencida, pedido novo no Mural. No celular, a gaveta abre com o "Pra hoje" e os atalhos do que você mais usa.'],
     ['star', 'Ateliê: skins novas', '18 skins pro teu boneco, de Faraó a Diva do Calçadão, compradas com correal. O Ateliê tá no mapa da cidade, e dá pra provar antes no teu avatar.'],
     ['lupa', 'Procurar', 'Gente, grupos, posts, ferramentas e lugares da cidade numa busca só. No computador é a barra no alto do menu (ou a tecla /); no celular, a lupa no alto da tela.'],
     ['carro', 'Autódromo do Café', 'Circuito de verdade, com saltos e obstáculos. Corre de moto ou de carro, 3 voltas contra o relógio, e vê quem fez o melhor tempo do dia.'],
     ['raio', 'Tarefas com minijogo', 'O Trampo da cidade virou joguinho: cada tarefa pede ritmo, sequência ou mira. Fez, ganha correal.'],
     ['gente', 'Kart ao vivo', 'Quatro pistas e seis bichos pra escolher. Corre com quem tá na pista na hora; faltou gente, a máquina completa.'],
     ['fogo', 'Jogos pela cidade', 'Torneio de pesca no Igapó, pênalti e arremesso nas quadras do Zerão e rebatida de beisebol na ACEL.'],
-    ['lock', 'Desbaratinado', 'Todo perfil aparece pra todo mundo. Se quiser, em Editar perfil, deixa teus posts e dados só pra quem te segue.'],
     ['cartao', 'Planos', 'A rede, as mensagens, o Correverso, o Mural e Vendas e Grana seguem de graça. Studio com mais redes, Studio Houzi e Hórus têm plano; os dois últimos começam com 30 dias grátis. Fica em Financeiro › Planos.']
   ];
   /* cada página: o que é, pra que serve no teu dia, e o botão que leva lá */
