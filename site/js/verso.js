@@ -824,7 +824,7 @@
           /* v3.50: o melhor tempo do dia na pista (centésimos) e o dia */
           tc: Number.isInteger(m.tc) && m.tc > 0 && m.tc < 360000 ? m.tc : 0, td: Number.isInteger(m.td) && m.td >= 0 ? m.td : -1,
           /* v3.51: os pontos do melhor desafio do dia na quadra e o dia */
-          qp: Number.isInteger(m.qp) && m.qp > 0 && m.qp <= 30 ? m.qp : 0, qd: Number.isInteger(m.qd) && m.qd >= 0 ? m.qd : -1,
+          qp: Number.isInteger(m.qp) && m.qp > 0 && m.qp <= 40 ? m.qp : 0, qd: Number.isInteger(m.qd) && m.qd >= 0 ? m.qd : -1,
           /* v3.53: o bicho da corrida de kart (0 a 5) e quando ele foi escolhido (desempata quem pegou primeiro) */
           kp: Number.isInteger(m.kp) && m.kp >= 0 && m.kp < 6 ? m.kp : null, kpt: Number.isInteger(m.kpt) && m.kpt >= 0 ? m.kpt : 0,
           disco: typeof m.disco === 'string' && /^[a-z0-9]{0,16}$/.test(m.disco) ? m.disco : '', discoT: Number.isFinite(m.discoT) && m.discoT > 0 && m.discoT < Date.now() + 6e5 ? m.discoT : 0 });
@@ -1087,7 +1087,9 @@
     { k: 'estadio', nome: 'Estádio do Café', c0: 10, r0: 10, c1: 11, r1: 11 },
     { k: 'feira', nome: 'Feira do Corre', c0: 6, r0: 4, c1: 7, r1: 4 },
     /* v3.40: o aeroporto, no canto mais longe do Centro (só tira lote de quem tá na ponta da cidade) */
-    { k: 'aeroporto', nome: 'Aeroporto de Londrina', c0: 0, r0: 10, c1: 2, r1: 11 }
+    { k: 'aeroporto', nome: 'Aeroporto de Londrina', c0: 0, r0: 10, c1: 2, r1: 11 },
+    /* v3.57: a ACEL e o campo de beisebol, no canto de cima à direita (lote de casa só chega lá depois da 44ª pessoa) */
+    { k: 'acel', nome: 'ACEL', c0: 11, r0: 0, c1: 12, r1: 1 }
   ];
   /* ---------- a Feira do Corre: o menu inteiro em barracas, logo abaixo do Calçadão ----------
      Duas fileiras, uma barraca pra cada ferramenta. Chegou perto e tocou: a ferramenta abre num balcão por cima da
@@ -1178,7 +1180,7 @@
     /* os lugares grandes */
     const regs = REGIOES.map(g => { const R = Object.assign(ret(g.c0, g.r0, g.c1, g.r1), g); for(let r = g.r0; r <= g.r1; r++) for(let c = g.c0; c <= g.c1; c++) grade[r][c] = { t: 'reg', R }; return R; });
     const RG = nm => regs.find(R => R.k === nm), sorte = rng(hash('londrina'));
-    const lago = montaLago(RG('lago'), K, sorte), zerao = montaZerao(RG('zerao'), K, sorte), bosque = montaBosque(RG('bosque'), K, sorte), glebaR = montaGleba(RG('gleba'), K, sorte), estadio = montaEstadio(RG('estadio'), K), feira = montaFeira(RG('feira'), K), aeroporto = montaAeroporto(RG('aeroporto'), K);
+    const lago = montaLago(RG('lago'), K, sorte), zerao = montaZerao(RG('zerao'), K, sorte), bosque = montaBosque(RG('bosque'), K, sorte), glebaR = montaGleba(RG('gleba'), K, sorte), estadio = montaEstadio(RG('estadio'), K), feira = montaFeira(RG('feira'), K), aeroporto = montaAeroporto(RG('aeroporto'), K), acel = montaAcel(RG('acel'), K);
     regs.forEach(R => K.zonas.push({ nome: R.nome, x: R.x - 10, y: R.y - 10, w: R.w + 20, h: R.h + 20 }));
     /* postes nas esquinas e na beira dos lugares grandes */
     for(let r = 0; r < rows; r++) for(let c = 0; c < COLS; c++){
@@ -1189,7 +1191,7 @@
     regs.forEach(R => { for(let x = R.x + 180; x < R.x + R.w - 80; x += 420) K.postes.push({ x, y: R.y - 5 }); });
     /* ruas onde passa carro: as que atravessam a cidade inteira */
     const ruasLivres = []; for(let s = 0; s <= rows; s++) if(!REGIOES.some(g => g.r0 <= s - 1 && g.r1 >= s)) ruasLivres.push(s);
-    return { W, H, rows, grade, casas, dois, vazios, enche, praca, centro, regs, lago, zerao, bosque, gleba: glebaR.torres, glebaR, estadio, feira, aeroporto, ruasLivres,
+    return { W, H, rows, grade, casas, dois, vazios, enche, praca, centro, regs, lago, zerao, bosque, gleba: glebaR.torres, glebaR, estadio, feira, aeroporto, acel, ruasLivres,
       arv: K.arv, bancos: K.bancos, zonas: K.zonas, sol: K.sol, lugares: K.lugares, torneio: K.torneio, decor: K.decor, quiosques: K.quiosques, trucks: K.trucks, barracas: K.barracas, postes: K.postes };
   }
 
@@ -1349,6 +1351,37 @@
     K.lugares.push({ nome: 'Estádio do Café', x: c.x + c.w / 2, y: c.y + c.h / 2 });
     return e;
   }
+  /* v3.57 · a ACEL: o campo de beisebol em pixel (a casa embaixo, a cerca em arco em cima), a sede de telhado de beiral
+     e a arquibancada atrás da casa. O chão é calculado uma vez, em colunas de 8 px (cada coluna, os trechos de terra) */
+  function montaAcel(R, K){
+    if(!R) return null;
+    const hp = { x: R.x + R.w / 2, y: R.y + R.h - 120 }, raio = th => 300 + 70 * Math.cos(2 * th), BQ = 8, monte = { x: hp.x, y: hp.y - 75 };
+    const em = (th, r) => ({ x: hp.x + Math.sin(th) * r, y: hp.y - Math.cos(th) * r });
+    const bases = [em(Math.PI / 4, 112), em(0, 158), em(-Math.PI / 4, 112)];
+    /* cada quadradinho: 1 = terra roxa (pista de aviso, o arco do infield, o círculo da casa), 2 = o montinho e as bases */
+    const tipo = (x, y) => {
+      const dx = x - hp.x, dy = hp.y - y, d = Math.hypot(dx, dy), th = Math.atan2(dx, dy), dentro = Math.abs(th) <= Math.PI / 4 + .02;
+      if(Math.hypot(x - monte.x, y - monte.y) <= 13 || bases.some(b => Math.hypot(x - b.x, y - b.y) <= 12)) return 2;
+      if(d <= 26) return 1;
+      if(dentro && d < raio(th) && d > raio(th) - 22) return 1;
+      const losango = Math.abs(dx) + Math.abs(dy - 79) <= 66;
+      if(!losango && Math.abs(th) <= Math.PI / 4 + .14 && Math.hypot(x - monte.x, y - monte.y) <= 104 && dy > 0) return 1;
+      return 0;
+    };
+    const runs = { 1: [], 2: [] };
+    for(let x = R.x; x < R.x + R.w; x += BQ){ let cur = 0, y0 = 0;
+      for(let y = R.y; y <= R.y + R.h; y += BQ){ const k = y < R.y + R.h ? tipo(x + BQ / 2, y + BQ / 2) : 0; if(k !== cur){ if(cur) runs[cur].push([x, y0, y - y0]); cur = k; y0 = y; } } }
+    /* a cerca: um ponto a cada ~10 px, e cada um é parede */
+    const cerca = []; for(let i = 0; i <= 64; i++){ const th = -Math.PI / 4 + Math.PI / 2 * i / 64, p = em(th, raio(th)); cerca.push(p); K.sol.push({ x: p.x - 5, y: p.y - 4, w: 10, h: 6 }); }
+    const arq = [{ x: hp.x - 34 - 206, y: hp.y + 30, w: 206, h: 44 }, { x: hp.x + 34, y: hp.y + 30, w: 206, h: 44 }];
+    const banco = [{ x: hp.x - 176, y: hp.y - 40, w: 90, h: 16 }, { x: hp.x + 86, y: hp.y - 40, w: 90, h: 16 }];
+    const sede = { x: R.x + 14, base: R.y + 196, w: 180 }, placar = { x: hp.x, base: R.y + 122 }, portal = { x: hp.x, base: R.y + R.h - 10 };
+    const torres = [{ x: R.x + 40, base: R.y + 430 }, { x: R.x + R.w - 40, base: R.y + 430 }, { x: R.x + 46, base: hp.y + 20 }, { x: R.x + R.w - 46, base: hp.y + 20 }];
+    K.sol.push(...arq, ...banco, { x: sede.x, y: sede.base - 34, w: sede.w, h: 34 }, { x: placar.x - 60, y: placar.base - 8, w: 120, h: 8 }, { x: portal.x - 46, y: portal.base - 6, w: 10, h: 6 }, { x: portal.x + 36, y: portal.base - 6, w: 10, h: 6 },
+      ...torres.map(o => ({ x: o.x - 4, y: o.base - 5, w: 8, h: 6 })));
+    K.lugares.push({ nome: 'ACEL · Beisebol', x: hp.x, y: hp.y + 104 });
+    return { R, hp, raio, bases, monte, runs, cerca, arq, banco, sede, placar, portal, torres, porta: { x: hp.x, y: R.y + R.h - 4 }, casa: { x: hp.x - 22, y: hp.y + 14 } };
+  }
   /* v3.40 · o Aeroporto de Londrina: a pista embaixo, o terminal e a torre em cima, o pátio com o teco-teco do Corre */
   function montaAeroporto(R, K){
     if(!R) return null;
@@ -1399,6 +1432,8 @@
     if(c.centro.aquario) P.push({ x: c.centro.aquario.x + LW / 2, y: c.centro.aquario.base + 8, tipo: 'aquario', jogo: 'killer' });
     /* v3.40: o embarque do aeroporto */
     if(c.aeroporto) P.push({ x: c.aeroporto.porta.x, y: c.aeroporto.porta.y, tipo: 'aeroporto' });
+    /* v3.57: a ACEL tem duas entradas pro campo 3D: o portal e a casa (onde se rebate) */
+    if(c.acel) P.push({ x: c.acel.porta.x, y: c.acel.porta.y, tipo: 'beisebol' }, { x: c.acel.casa.x, y: c.acel.casa.y, tipo: 'beisebol' });
     /* a Delegacia, o quartel e o Hospital: na porta, o trampo de cada uniforme */
     ['delegacia', 'bombeiros', 'hospital'].forEach(k => { if(c.centro[k]) P.push({ x: c.centro[k].x + LW / 2, y: c.centro[k].base + 8, tipo: 'civico', k }); });
     /* comida: trucks do Zerão e quiosques do lago */
@@ -1584,6 +1619,32 @@
       for(let i = 0; i < 6; i++){ const y = p.y + 9 + i * 7; ctx.fillRect(p.x + 14, y, 46, Math.max(L, 3)); ctx.fillRect(p.x + p.w - 60, y, 46, Math.max(L, 3)); }
       pixTxt(ctx, '09', p.x + 84, p.y + p.h / 2, 2, '#F4F3EF', 'c'); pixTxt(ctx, '27', p.x + p.w - 84, p.y + p.h / 2, 2, '#F4F3EF', 'c');
       ctx.fillStyle = '#F2C230'; for(let x = p.x + 6; x < p.x + p.w; x += 48){ ctx.fillRect(x, p.y - 6, L * 1.5, L * 1.5); ctx.fillRect(x, p.y + p.h + 4, L * 1.5, L * 1.5); }
+    },
+    /* v3.57 · a ACEL: gramado dourado com o corte em faixas, terra roxa no infield, a cerca, as linhas e a arquibancada */
+    acel(ctx, R, vx, vy, vw, vh){
+      const a = V.cid.acel; if(!a) return; const L = Math.max(2, 1.05 / V.k), hp = a.hp;
+      ctx.fillStyle = pad(ctx, 'gramado'); ctx.fillRect(R.x, R.y, R.w, R.h); capim(ctx, R, vx, vy, vw, vh);
+      ctx.save(); ctx.beginPath(); ctx.moveTo(hp.x, hp.y); a.cerca.forEach(p => ctx.lineTo(p.x, p.y)); ctx.closePath(); ctx.clip();
+      ctx.fillStyle = 'rgba(120,90,30,.13)'; for(let y = R.y; y < hp.y; y += 48) ctx.fillRect(R.x, y, R.w, 24); ctx.restore();
+      ctx.fillStyle = pad(ctx, 'praca'); ctx.fillRect(hp.x - 34, hp.y + 28, 68, R.y + R.h - hp.y - 28);
+      ctx.fillStyle = pad(ctx, 'terra'); a.runs[1].forEach(([x, y, h]) => ctx.fillRect(x, y, 8, h));
+      ctx.fillStyle = pad(ctx, '#B0603F'); a.runs[2].forEach(([x, y, h]) => ctx.fillRect(x, y, 8, h));
+      /* as linhas de falta (pontilhado), as caixas do rebatedor, a casa, o pino do lançador e as bases */
+      ctx.fillStyle = '#F4F3EF'; [-1, 1].forEach(l => { for(let d = 6; d < 296; d += 4) ctx.fillRect(sn(hp.x + l * d * Math.SQRT1_2), sn(hp.y - d * Math.SQRT1_2), L, L); });
+      linhas(ctx, hp.x - 22, hp.y - 9, 12, 18); linhas(ctx, hp.x + 10, hp.y - 9, 12, 18);
+      ctx.fillRect(hp.x - 4, hp.y - 4, 8, 5); ctx.fillRect(hp.x - 2, hp.y + 1, 4, 2); ctx.fillRect(a.monte.x - 4, a.monte.y - 1, 8, L);
+      a.bases.forEach(b => { ctx.fillRect(b.x - 3, b.y - 3, 6, 6); });
+      /* v3.57: o escudo do Londrina Red Sharks pintado no gramado do meio do campo */
+      { const im = logoSharks(), w = 150, h = w * im.height / im.width; ctx.save(); ctx.imageSmoothingEnabled = true; ctx.globalAlpha = .92; ctx.drawImage(im, hp.x - w / 2, hp.y - 262 - h / 2, w, h); ctx.restore(); }
+      /* a cerca escura com o friso amarelo (por cima de tudo do chão) e os números */
+      a.cerca.forEach(p => { ctx.fillStyle = '#2B2F38'; ctx.fillRect(sn(p.x - 5), sn(p.y - 9), 10, 9); ctx.fillStyle = '#F2C230'; ctx.fillRect(sn(p.x - 5), sn(p.y - 10), 10, 2); });
+      [[-Math.PI / 4, '36'], [0, '42'], [Math.PI / 4, '36']].forEach(([th, n]) => { const r = a.raio(th) + 1; pixTxt(ctx, n, hp.x + Math.sin(th) * r, hp.y - Math.cos(th) * r - 5, 1, '#F4F3EF', 'c'); });
+      /* a arquibancada em fileiras de vermelho e branco, com a torcida em pontinhos, e os bancos de reserva */
+      const tor = rng(57);
+      a.arq.forEach(q => { ctx.fillStyle = pad(ctx, 'concreto'); ctx.fillRect(q.x, q.y, q.w, q.h);
+        for(let i = 0; i < 4; i++){ ctx.fillStyle = i % 2 ? '#EEEBE4' : '#D9452B'; ctx.fillRect(q.x + 2, q.y + 2 + i * 10, q.w - 4, 8); }
+        for(let i = 0; i < 4; i++) for(let x = q.x + 6; x < q.x + q.w - 6; x += 7){ const r = tor(); if(r < .45) continue; ctx.fillStyle = [INK, '#5E3A26', '#8D5A3B', AMARELO, ROSA, PAPEL, AZUL][Math.floor(tor() * 7)]; ctx.fillRect(x, q.y + 3 + i * 10, 4, 4); } });
+      a.banco.forEach(q => { ctx.fillStyle = '#2B2F38'; ctx.fillRect(q.x, q.y, q.w, q.h); ctx.fillStyle = '#D9452B'; ctx.fillRect(q.x - 2, q.y - 3, q.w + 4, 5); ctx.fillStyle = '#8E5B33'; ctx.fillRect(q.x + 4, q.y + 8, q.w - 8, 5); });
     }
   };
   /* a água mexendo, o chafariz e os pedalinhos */
@@ -1752,6 +1813,37 @@
     return cv;
   }
   /* a marca sozinha (o patinete da JET leva no guidão, no deque, atrás e na bandeirinha): letra branca no azul */
+  /* v3.57 · o escudo do Londrina Red Sharks (o time de beisebol da ACEL), pintado no meio do campo: o tubarão vermelho
+     saltando por cima da bola, e o nome embaixo. Desenho nosso, nas cores do time (nenhum arquivo baixado); chegando o
+     logo oficial, é só trocar este desenho. Fundo transparente, feito uma vez */
+  let SHARKS = null;
+  function logoSharks(){
+    if(SHARKS) return SHARKS;
+    const cv = document.createElement('canvas'); cv.width = 512; cv.height = 400; const x = cv.getContext('2d'), R = '#D9252B', P = '#0F1218';
+    x.lineJoin = 'round'; x.lineCap = 'round';
+    /* a bola */
+    x.beginPath(); x.arc(256, 168, 98, 0, Math.PI * 2); x.fillStyle = '#FFFFFF'; x.fill(); x.lineWidth = 10; x.strokeStyle = P; x.stroke();
+    x.strokeStyle = R; x.lineWidth = 7; x.beginPath(); x.arc(106, 168, 116, -.62, .62); x.stroke(); x.beginPath(); x.arc(406, 168, 116, Math.PI - .62, Math.PI + .62); x.stroke();
+    /* o tubarão: corpo, barbatana, rabo e nadadeira (contorno preto grosso, barriga clara) */
+    const corpo = () => { x.beginPath(); x.moveTo(78, 214); x.quadraticCurveTo(190, 70, 432, 112); x.quadraticCurveTo(470, 122, 478, 140); x.quadraticCurveTo(420, 178, 336, 176); x.quadraticCurveTo(220, 172, 116, 232); x.closePath(); };
+    const forma = (pts, cor) => { x.beginPath(); pts.forEach(([a, b], i) => (i ? x.lineTo(a, b) : x.moveTo(a, b))); x.closePath(); x.fillStyle = cor; x.fill(); x.lineWidth = 10; x.strokeStyle = P; x.stroke(); };
+    forma([[244, 100], [206, 18], [318, 92]], R);
+    forma([[96, 214], [24, 146], [66, 214], [30, 286], [122, 230]], R);
+    corpo(); x.fillStyle = R; x.fill(); x.lineWidth = 12; x.strokeStyle = P; x.stroke();
+    x.save(); corpo(); x.clip(); x.beginPath(); x.moveTo(120, 240); x.quadraticCurveTo(250, 150, 480, 146); x.lineTo(480, 240); x.closePath(); x.fillStyle = '#F4F1EA'; x.fill(); x.restore();
+    corpo(); x.lineWidth = 12; x.strokeStyle = P; x.stroke();
+    forma([[296, 168], [262, 236], [346, 174]], R);
+    /* a boca com os dentes, as guelras e o olho */
+    x.beginPath(); x.moveTo(372, 160); x.quadraticCurveTo(420, 150, 462, 138); x.lineWidth = 6; x.strokeStyle = P; x.stroke();
+    x.fillStyle = '#FFFFFF'; for(let i = 0; i < 6; i++){ const a = 380 + i * 13, b = 158 - i * 3.2; x.beginPath(); x.moveTo(a, b); x.lineTo(a + 6, b + 9); x.lineTo(a + 12, b - 2); x.closePath(); x.fill(); }
+    x.lineWidth = 5; [0, 1, 2].forEach(i => { x.beginPath(); x.moveTo(330 - i * 14, 124 + i * 2); x.quadraticCurveTo(322 - i * 14, 142, 330 - i * 14, 160); x.stroke(); });
+    x.beginPath(); x.arc(410, 124, 9, 0, Math.PI * 2); x.fillStyle = '#FFFFFF'; x.fill(); x.lineWidth = 4; x.stroke(); x.beginPath(); x.arc(412, 124, 4, 0, Math.PI * 2); x.fillStyle = P; x.fill();
+    /* o nome */
+    x.textAlign = 'center'; x.textBaseline = 'middle';
+    x.font = '900 44px "Archivo", system-ui, sans-serif'; x.lineWidth = 10; x.strokeStyle = P; x.strokeText('LONDRINA', 256, 300); x.fillStyle = '#FFFFFF'; x.fillText('LONDRINA', 256, 300);
+    x.font = '900 72px "Archivo", system-ui, sans-serif'; x.lineWidth = 16; x.strokeStyle = '#FFFFFF'; x.strokeText('RED SHARKS', 256, 356); x.lineWidth = 8; x.strokeStyle = P; x.strokeText('RED SHARKS', 256, 356); x.fillStyle = R; x.fillText('RED SHARKS', 256, 356);
+    SHARKS = cv; return cv;
+  }
   function publiLogo(k, W, H){
     const P = PUBLI[k]; if(!P) return null; W = W || 256; H = H || 128; const chave = 'logo|' + k + W + 'x' + H; let cv = PUBLI_IMG.get(chave); if(cv) return cv;
     cv = document.createElement('canvas'); cv.width = W; cv.height = H; const x = cv.getContext('2d');
@@ -1927,6 +2019,52 @@
     ctx.beginPath(); ctx.rect(vx, vy - 30, 72, 28); traco(ctx, INK, 2);
     pixPlaca(ctx, 'HOSPITAL DO CORRE', cx, base - 148, { fundo: '#2E5BFF', cor: PAPEL, borda: PAPEL });
     pixPlaca(ctx, 'EMERGENCIA', cx + 70, base - 66, { fundo: '#E2412E', cor: PAPEL, borda: PAPEL });
+    return { cv, W: W + M * 2, H, M, base };
+  }
+  /* v3.57 · a sede da ACEL (parede branca, janelas de papel, o beiral escuro e as lanternas), o portal vermelho da
+     entrada, o placar do fundo e as torres de luz do campo */
+  function spriteSedeAcel(k){
+    const W = 180, M = 22, H = 150, base = H - M, { cv, ctx } = folha(W + M * 2, H, k), x0 = M, cx = x0 + W / 2;
+    ctx.fillStyle = 'rgba(15,18,24,.22)'; ctx.fillRect(x0 + 6, base - 2, W - 12, 10);
+    bloco(ctx, x0, base - 64, W, 64, 'branco');
+    ctx.fillStyle = '#5A3A22'; ctx.fillRect(x0, base - 6, W, 6); for(let x = x0; x <= x0 + W - 4; x += 44) ctx.fillRect(x, base - 64, 4, 64);
+    [[x0 + 12, 52], [x0 + W - 64, 52]].forEach(([x, w]) => { ctx.fillStyle = '#F4E9D8'; ctx.fillRect(x, base - 52, w, 30); ctx.fillStyle = '#5A3A22'; for(let i = 0; i <= 4; i++) ctx.fillRect(x + i * (w - 2) / 4, base - 52, 2, 30); for(let j = 0; j <= 3; j++) ctx.fillRect(x, base - 52 + j * 9.4, w, 2); });
+    ctx.fillStyle = '#121419'; ctx.fillRect(cx - 18, base - 40, 36, 40); ctx.fillStyle = '#D9452B'; ctx.fillRect(cx - 22, base - 46, 44, 5);
+    /* o telhado: duas águas largas com a ponta levantada (beiral) */
+    ctx.beginPath(); ctx.moveTo(x0 - 18, base - 60); ctx.lineTo(x0 - 12, base - 68); ctx.lineTo(x0 + 20, base - 98); ctx.lineTo(x0 + W - 20, base - 98); ctx.lineTo(x0 + W + 12, base - 68); ctx.lineTo(x0 + W + 18, base - 60); ctx.lineTo(x0 + W, base - 64); ctx.lineTo(x0, base - 64); ctx.closePath(); forma(ctx, '#3A3E45', 2);
+    ctx.fillStyle = '#4A4E56'; for(let y = base - 92; y < base - 66; y += 6) ctx.fillRect(x0 + 6, y, W - 12, 2);
+    ctx.fillStyle = '#121419'; ctx.fillRect(x0 + 16, base - 102, W - 32, 5);
+    pixPlaca(ctx, 'ACEL', cx, base - 78, { fundo: '#D9452B', cor: PAPEL, borda: PAPEL, s: 2 });
+    [x0 + 6, x0 + W - 6].forEach(x => { ctx.fillStyle = INK; ctx.fillRect(x - 1, base - 60, 2, 6); ctx.beginPath(); ctx.ellipse(x, base - 47, 6, 8, 0, 0, Math.PI * 2); forma(ctx, '#E2412E', 1.5); ctx.fillStyle = INK; ctx.fillRect(x - 5, base - 56, 10, 2); ctx.fillRect(x - 5, base - 40, 10, 2); });
+    return { cv, W: W + M * 2, H, M, base };
+  }
+  function spritePortalAcel(k){
+    const W = 104, M = 10, H = 120, base = H - M, { cv, ctx } = folha(W + M * 2, H, k), x0 = M, cx = x0 + W / 2;
+    ctx.fillStyle = 'rgba(15,18,24,.22)'; ctx.fillRect(cx - 46, base - 2, 92, 8);
+    [cx - 40, cx + 32].forEach(x => { bloco(ctx, x, base - 86, 8, 86, '#D9452B'); ctx.fillStyle = INK; ctx.fillRect(x - 2, base - 8, 12, 8); });
+    bloco(ctx, cx - 48, base - 74, 96, 7, '#D9452B');
+    ctx.beginPath(); ctx.moveTo(cx - 58, base - 92); ctx.lineTo(cx - 52, base - 86); ctx.lineTo(cx + 52, base - 86); ctx.lineTo(cx + 58, base - 92); ctx.lineTo(cx + 54, base - 98); ctx.lineTo(cx - 54, base - 98); ctx.closePath(); forma(ctx, INK, 2);
+    ctx.fillStyle = '#D9452B'; ctx.fillRect(cx - 50, base - 86, 100, 4);
+    pixPlaca(ctx, 'ACEL', cx, base - 78, { fundo: INK, cor: PAPEL, borda: PAPEL });
+    [cx - 22, cx, cx + 22].forEach(x => { ctx.fillStyle = INK; ctx.fillRect(x - 1, base - 67, 2, 5); ctx.beginPath(); ctx.ellipse(x, base - 56, 5, 7, 0, 0, Math.PI * 2); forma(ctx, '#E2412E', 1.5); });
+    return { cv, W: W + M * 2, H, M, base };
+  }
+  function spritePlacarAcel(k){
+    const W = 130, M = 10, H = 104, base = H - M, { cv, ctx } = folha(W + M * 2, H, k), x0 = M, cx = x0 + W / 2;
+    ctx.fillStyle = 'rgba(15,18,24,.22)'; ctx.fillRect(x0 + 10, base - 2, W - 20, 8);
+    bloco(ctx, x0 + 18, base - 40, 6, 40, 'escuro'); bloco(ctx, x0 + W - 24, base - 40, 6, 40, 'escuro');
+    bloco(ctx, x0, base - 92, W, 54, 'preto'); ctx.fillStyle = '#D9452B'; ctx.fillRect(x0 + 2, base - 90, W - 4, 13);
+    pixTxt(ctx, 'ACEL', cx, base - 83, 1, PAPEL, 'c');
+    pixTxt(ctx, 'CASA', x0 + 30, base - 66, 1, '#FFB347', 'c'); pixTxt(ctx, 'VISITA', x0 + W - 34, base - 66, 1, '#FFB347', 'c');
+    pixTxt(ctx, '0', x0 + 30, base - 52, 2, '#FFE9B0', 'c'); pixTxt(ctx, '0', x0 + W - 34, base - 52, 2, '#FFE9B0', 'c');
+    return { cv, W: W + M * 2, H, M, base };
+  }
+  function spriteTorreLuz(k){
+    const W = 44, M = 6, H = 210, base = H - M, { cv, ctx } = folha(W + M * 2, H, k), x0 = M, cx = x0 + W / 2;
+    ctx.fillStyle = 'rgba(15,18,24,.22)'; ctx.fillRect(cx - 8, base - 2, 16, 6);
+    bloco(ctx, cx - 2, base - 170, 4, 170, 'escuro');
+    bloco(ctx, cx - 20, base - 196, 40, 26, 'preto');
+    ctx.fillStyle = '#FFF3C4'; for(let i = 0; i < 4; i++) for(let j = 0; j < 2; j++) ctx.fillRect(cx - 17 + i * 9, base - 193 + j * 11, 7, 8);
     return { cv, W: W + M * 2, H, M, base };
   }
   /* v3.40 · o terminal do aeroporto (vidro de ponta a ponta, a marquise rosa e o letreiro) e a torre de controle */
@@ -2635,6 +2773,14 @@
       if(vis(ae.biruta.x, ae.biruta.y, 120)) L.push({ y: ae.biruta.y, f: () => biruta(ctx, ae.biruta, t) });
       if(!V.voo && vis(ae.vaga.x, ae.vaga.y, 180)) L.push({ y: ae.vaga.y, f: () => desenhaAviao(ctx, ae.vaga.x, ae.vaga.y, 0, 1, t, false, true) });
     }
+    /* v3.57: a ACEL (sede, portal, placar e as torres de luz) */
+    const ac = c.acel;
+    if(ac){
+      if(vis(ac.sede.x + ac.sede.w / 2, ac.sede.base, 280)) sprite('acel:s', () => spriteSedeAcel(k), ac.sede.x, ac.sede.base);
+      if(vis(ac.portal.x, ac.portal.base, 200)) sprite('acel:p', () => spritePortalAcel(k), ac.portal.x - 52, ac.portal.base);
+      if(vis(ac.placar.x, ac.placar.base, 200)) sprite('acel:q', () => spritePlacarAcel(k), ac.placar.x - 65, ac.placar.base);
+      ac.torres.forEach(o => { if(vis(o.x, o.base, 260)) sprite('acel:l', () => spriteTorreLuz(k), o.x - 22, o.base); });
+    }
     c.decor.forEach(d => { if(vis(d.x, d.y, 180)) L.push({ y: d.y, f: () => decor(ctx, d, t) }); });
     c.postes.forEach(p => { if(vis(p.x, p.y, 70)) L.push({ y: p.y, f: () => poste(ctx, p) }); });
     V.carros.forEach(car => { if(vis(car.x, car.y, 90)) L.push({ y: car.y, f: () => carro(ctx, car) }); });
@@ -2669,7 +2815,9 @@
       ctx.fillStyle = cor; ctx.fillRect(X(o.x), Y(o.y), Math.round(LW / S), Math.round(LH / S));
       if(g && g.t === 'casa' && g.h.id === meu){ ctx.fillStyle = INK; ctx.fillRect(X(o.x) + 4, Y(o.y) + 4, Math.round(LW / S) - 8, Math.round(LH / S) - 8); ctx.fillStyle = AMARELO; ctx.fillRect(X(o.x) + 6, Y(o.y) + 6, Math.round(LW / S) - 12, Math.round(LH / S) - 12); }
     }
-    c.regs.forEach(R => { ctx.fillStyle = { lago: '#D9C27F', zerao: '#D9C27F', bosque: '#B8964C', gleba: '#DCCFB6', estadio: '#A4A8AE', feira: '#F2D8A7', aeroporto: '#CDBB86' }[R.k] || '#E6DECD'; ctx.fillRect(X(R.x), Y(R.y), Math.round(R.w / S), Math.round(R.h / S)); });
+    c.regs.forEach(R => { ctx.fillStyle = { lago: '#D9C27F', zerao: '#D9C27F', bosque: '#B8964C', gleba: '#DCCFB6', estadio: '#A4A8AE', feira: '#F2D8A7', aeroporto: '#CDBB86', acel: '#D9C27F' }[R.k] || '#E6DECD'; ctx.fillRect(X(R.x), Y(R.y), Math.round(R.w / S), Math.round(R.h / S)); });
+    if(c.acel){ const a = c.acel, h = a.hp; ctx.fillStyle = '#A4553A'; ctx.beginPath(); ctx.moveTo(X(h.x), Y(h.y + 6)); a.bases.forEach(b => ctx.lineTo(X(b.x) + (b.x > h.x ? 2 : b.x < h.x ? -2 : 0), Y(b.y) - (b.x === h.x ? 2 : 0))); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = '#2B2F38'; ctx.lineWidth = 2; ctx.beginPath(); a.cerca.forEach((p, i) => (i ? ctx.lineTo(X(p.x), Y(p.y)) : ctx.moveTo(X(p.x), Y(p.y)))); ctx.stroke(); }
     if(c.aeroporto){ const p = c.aeroporto.pista; ctx.fillStyle = '#2B2F38'; ctx.fillRect(X(p.x), Y(p.y), Math.round(p.w / S), Math.max(2, Math.round(p.h / S))); }
     if(c.feira) c.feira.barracas.filter(paraMim).forEach(b => { ctx.fillStyle = INK; ctx.fillRect(X(b.x) - 3, Y(b.base) - 4, 7, 5); ctx.fillStyle = b.cor === INK ? AMARELO : b.cor; ctx.fillRect(X(b.x) - 2, Y(b.base) - 3, 5, 3); });
     const l = c.lago; ctx.fillStyle = '#C9D0D8'; l.bandas[0][1].forEach(q => ctx.fillRect(X(q.x), Y(q.t), 1, Math.max(1, Math.round((q.b - q.t) / S))));
@@ -2677,7 +2825,7 @@
     const z = c.zerao; ctx.strokeStyle = '#A4553A'; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(X(z.cx), Y(z.cy), z.rx / S - 1, z.ry / S - 1, 0, 0, Math.PI * 2); ctx.stroke();
     const e = c.estadio.campo; ctx.fillStyle = '#2E5BFF'; ctx.fillRect(X(e.x) - 4, Y(e.y) - 6, Math.round(e.w / S) + 8, Math.round(e.h / S) + 10); ctx.fillStyle = '#D9C27F'; ctx.fillRect(X(e.x), Y(e.y), Math.round(e.w / S), Math.round(e.h / S));
     ctx.fillStyle = '#7F8A96'; c.gleba.forEach(g => ctx.fillRect(X(g.x), Y(g.base - 40), Math.max(2, Math.round(g.w / S)), 3));
-    [['LAGO IGAPO', l.x + l.w / 2, l.y + l.h / 2], ['ZERAO', z.cx, z.cy], ['BOSQUE', c.bosque.cx, c.bosque.cy], ['CENTRO', c.praca.cx, c.praca.y + LH + 40], ['ESTADIO', c.estadio.campo.x + c.estadio.campo.w / 2, c.estadio.campo.y + c.estadio.campo.h / 2], ['GLEBA', c.glebaR.R.x + c.glebaR.R.w / 2, c.glebaR.R.y + LH / 2]].concat(c.feira ? [['FEIRA', c.feira.R.x + c.feira.R.w / 2, c.feira.R.y + c.feira.R.h + 30]] : []).concat(c.aeroporto ? [['AEROPORTO', c.aeroporto.R.x + c.aeroporto.R.w / 2, c.aeroporto.R.y + 120]] : []).forEach(([t, x, y]) => pixPlaca(ctx, t, X(x), Y(y), { fundo: PAPEL }));
+    [['LAGO IGAPO', l.x + l.w / 2, l.y + l.h / 2], ['ZERAO', z.cx, z.cy], ['BOSQUE', c.bosque.cx, c.bosque.cy], ['CENTRO', c.praca.cx, c.praca.y + LH + 40], ['ESTADIO', c.estadio.campo.x + c.estadio.campo.w / 2, c.estadio.campo.y + c.estadio.campo.h / 2], ['GLEBA', c.glebaR.R.x + c.glebaR.R.w / 2, c.glebaR.R.y + LH / 2]].concat(c.feira ? [['FEIRA', c.feira.R.x + c.feira.R.w / 2, c.feira.R.y + c.feira.R.h + 30]] : []).concat(c.aeroporto ? [['AEROPORTO', c.aeroporto.R.x + c.aeroporto.R.w / 2, c.aeroporto.R.y + 120]] : []).concat(c.acel ? [['ACEL', c.acel.hp.x, c.acel.hp.y - 250]] : []).forEach(([t, x, y]) => pixPlaca(ctx, t, X(x), Y(y), { fundo: PAPEL }));
     const mostra = quemAparece(); ctx.fillStyle = PAPEL; for(const r of V.remotos.values()) if(mostra.has(r.sid)) ctx.fillRect(X(r.x) - 1, Y(r.y) - 1, 3, 3);
     if(V.eu && Date.now() % 1000 < 650){ ctx.fillStyle = INK; ctx.fillRect(X(V.eu.x) - 3, Y(V.eu.y) - 3, 7, 7); ctx.fillStyle = ROSA; ctx.fillRect(X(V.eu.x) - 2, Y(V.eu.y) - 2, 5, 5); }
   }
@@ -2812,6 +2960,7 @@
     for(const R of c.regs) if(x >= R.x && x <= R.x + R.w && y >= R.y && y <= R.y + R.h){
       if(R.k === 'bosque') return 'terra';
       if(R.k === 'zerao' || R.k === 'lago') return 'grama';
+      if(R.k === 'acel'){ const a = c.acel; return a && x > a.hp.x - 34 && x < a.hp.x + 34 && y > a.hp.y + 28 ? 'pedra' : 'grama'; }
       if(R.k === 'estadio'){ const f = c.estadio.campo; return x > f.x && x < f.x + f.w && y > f.y && y < f.y + f.h ? 'grama' : 'pedra'; }
       if(R.k === 'aeroporto'){ const a = c.aeroporto; if(!a) return 'pedra'; const naPista = y > a.pista.y - 8 && y < a.pista.y + a.pista.h + 8, noPatio = x > a.patio.x - 40 && y > a.patio.y && y < a.pista.y; return y > a.term.base + 70 && !naPista && !noPatio ? 'grama' : 'pedra'; }
       return 'pedra';
@@ -2834,10 +2983,10 @@
     const c = V.cid, x = V.eu.x, y = V.eu.y, perto = (p, r) => p ? clamp(1 - Math.hypot(x - p.x, y - p.y) / r, 0, 1) : 0;
     const R = c.regs.find(R => x >= R.x - 80 && x <= R.x + R.w + 80 && y >= R.y - 80 && y <= R.y + R.h + 80);
     const g = c.grade[Math.floor((y - TOPO) / (LH + RUA))], f = g && g[Math.floor((x - RUA) / (LW + RUA))];
-    const verde = (R && /bosque|zerao|lago/.test(R.k)) || !!(f && f.t === 'enche' && /pracinha|bosquinho/.test(f.f.t));
+    const verde = (R && /bosque|zerao|lago|acel/.test(R.k)) || !!(f && f.t === 'enche' && /pracinha|bosquinho/.test(f.f.t));
     const lg = c.lago, agua = lg && x > lg.x - 60 && x < lg.x + lg.w + 60 && y > lg.y - 60 && y < lg.y + lg.h + 60 ? 1 : 0;
     const gente = Math.max(perto({ x: c.praca.cx, y: c.praca.cy }, 700), c.feira ? perto({ x: c.feira.R.x + c.feira.R.w / 2, y: c.feira.R.y + c.feira.R.h / 2 }, 600) : 0, perto(c.centro.concha ? { x: c.centro.concha.x + LW / 2, y: c.centro.concha.base + 60 } : null, 420) * .7);
-    const trafego = R ? ({ lago: .3, bosque: .4, zerao: .55, aeroporto: .45 }[R.k] || .7) : 1;
+    const trafego = R ? ({ lago: .3, bosque: .4, zerao: .55, aeroporto: .45, acel: .5 }[R.k] || .7) : 1;
     S.ambiente({ trafego, passaros: verde ? 1 : .2, gente, agua: agua * (R && R.k === 'lago' ? 1 : .5) });
   }
   function laco(ts){
@@ -3278,7 +3427,7 @@
     const meu = p.tipo === 'casa' && p.c.id === (C.st.me && C.st.me.id);
     if(p.tipo === 'tarefa'){ const T = V.tarefa, ag = T && T.fase === 'agindo'; b.innerHTML = `${ico('raio')} ${esc(p.et.acao)}${ag ? '…' : ''}`; b.disabled = !!ag; return; }
     b.disabled = false;
-    b.innerHTML = p.tipo === 'aeroporto' ? `${ico('aviao')} Voar (${C.correalTxt(precoVoo())})` : p.tipo === 'sebo' ? `${ico('musica')} Entrar no Sebo` : p.tipo === 'torneio' ? `${ico('peixe')} Torneio de Pesca` : p.tipo === 'quadra' ? `${ico('raio')} ${p.k === 'quadra-futsal' ? 'Desafio de pênalti' : 'Desafio de arremesso'}` : p.tipo === 'publi' ? `${ico('ext')} ${esc((PUBLI[p.k] || {}).nome || '')}: baixar o app` : p.tipo === 'pista' ? `${ico('raio')} ${p.k === 'moto' ? 'Autódromo do Café' : 'Corrida de patinete'}` : p.tipo === 'civico' ? `${ico('raio')} ${esc(CIVICOS[p.k].entra)}` : p.tipo === 'barraca' ? (aberta(p.b) ? `${ico(p.b.ico)} ${esc(p.b.botao)}` : `${ico('eye')} Hórus desligado: ligar`) : p.tipo === 'comida' ? `${ico('banca')} ${esc(COMIDAS[p.k][0])}` : p.tipo === 'aquario' ? `${ico('play')} Jogar ${esc(JOGOS[p.jogo].titulo)}` : p.tipo === 'banco' ? (p.pesca ? `${ico('gente')} Pescar no ${p.b.lugar.startsWith('Deck') ? 'deck' : 'píer'}` : `${ico('gente')} Sentar ${p.b.degrau ? 'na Concha' : 'no banco'}`) : p.tipo === 'mural' ? `${ico('tacha')} Abrir o Mural` : p.tipo === 'banca' ? `${ico('banca')} Banca do dia` : p.tipo === 'lote' ? `${ico('plus')} Lote livre` : meu ? `${ico('home')} Tua casa` : `${ico('home')} Bater na porta de @${esc(p.c.handle)}`;
+    b.innerHTML = p.tipo === 'aeroporto' ? `${ico('aviao')} Voar (${C.correalTxt(precoVoo())})` : p.tipo === 'sebo' ? `${ico('musica')} Entrar no Sebo` : p.tipo === 'torneio' ? `${ico('peixe')} Torneio de Pesca` : p.tipo === 'beisebol' ? `${ico('raio')} Jogar beisebol na ACEL` : p.tipo === 'quadra' ? `${ico('raio')} ${p.k === 'quadra-futsal' ? 'Desafio de pênalti' : 'Desafio de arremesso'}` : p.tipo === 'publi' ? `${ico('ext')} ${esc((PUBLI[p.k] || {}).nome || '')}: baixar o app` : p.tipo === 'pista' ? `${ico('raio')} ${p.k === 'moto' ? 'Autódromo do Café' : 'Corrida de patinete'}` : p.tipo === 'civico' ? `${ico('raio')} ${esc(CIVICOS[p.k].entra)}` : p.tipo === 'barraca' ? (aberta(p.b) ? `${ico(p.b.ico)} ${esc(p.b.botao)}` : `${ico('eye')} Hórus desligado: ligar`) : p.tipo === 'comida' ? `${ico('banca')} ${esc(COMIDAS[p.k][0])}` : p.tipo === 'aquario' ? `${ico('play')} Jogar ${esc(JOGOS[p.jogo].titulo)}` : p.tipo === 'banco' ? (p.pesca ? `${ico('gente')} Pescar no ${p.b.lugar.startsWith('Deck') ? 'deck' : 'píer'}` : `${ico('gente')} Sentar ${p.b.degrau ? 'na Concha' : 'no banco'}`) : p.tipo === 'mural' ? `${ico('tacha')} Abrir o Mural` : p.tipo === 'banca' ? `${ico('banca')} Banca do dia` : p.tipo === 'lote' ? `${ico('plus')} Lote livre` : meu ? `${ico('home')} Tua casa` : `${ico('home')} Bater na porta de @${esc(p.c.handle)}`;
   }
   function tamanhoTela(){
     const st = C.$('cvr-stage'); if(!st || !V.cv) return;
@@ -3715,6 +3864,7 @@
     if(p.tipo === 'barraca'){ if(p.b.id === 'manual' && !(p.b.lugar && C.casa && C.casa.LUGARES && C.casa.LUGARES[p.b.lugar])){ if(C.manual) C.manual.abrir(); return; }
       if(p.b.lugar && aberta(p.b) && C.casa && C.casa.LUGARES && C.casa.LUGARES[p.b.lugar]){ if(C.versoSom) C.versoSom.porta(); C.casa.abrir({ lugar: p.b.lugar }); return; }
       abreBalcao(p.b); return; }
+    if(p.tipo === 'beisebol'){ if(C.casa && C.casa.LUGARES && C.casa.LUGARES.beisebol){ if(C.versoSom) C.versoSom.porta(); C.casa.abrir({ lugar: 'beisebol' }); } return; }
     if(p.tipo === 'quadra'){ if(C.casa && C.casa.LUGARES && C.casa.LUGARES[p.k]){ if(C.versoSom) C.versoSom.porta(); C.casa.abrir({ lugar: p.k }); } return; }
     if(p.tipo === 'publi'){ publiSheet(p.k); return; }
     /* v3.53: a placa do patinete abre a escolha entre as pistas de kart */
@@ -3851,7 +4001,7 @@
   C.verso = { miniVeiculo, trocaVeiculo, veiculoDe, alturaPulo, PULO_MS,
     /* a casa avisa que você pulou lá dentro (quem tá na casa vê) */
     marcaPulo: () => { if(!V.eu) return; V.eu.puN = ((V.eu.puN || 0) % 999) + 1; enviaPos(true); },
-    publiImg, publiLogo, publiSheet, PUBLI, meuSid: () => sid, kartManda: d => { if(V.rede && V.rede.kart && C.casa && C.casa.aberta()) V.rede.kart(Object.assign({ sid }, d)); },
+    publiImg, publiLogo, publiSheet, PUBLI, logoSharks, meuSid: () => sid, kartManda: d => { if(V.rede && V.rede.kart && C.casa && C.casa.aberta()) V.rede.kart(Object.assign({ sid }, d)); },
     skin, avLimpo, nivel, cores: { PELES, CAB_CORES, ROUPA_CORES, CALCA_CORES, TENIS_CORES }, anunciar, enviaPos, retoma: () => { V.tAnt = 0; V.teclas.clear(); portaUI(); }, mic: () => V.mic, peers: () => V.peers, remotos: () => V.remotos, montaCidade, desenhaCasa: (c, k) => (ESTILO_SPRITE()[c.estilo] || spriteCasa)(c, k).cv, estado: () => V, vivo: () => !!V.vivo, chip: chipVolta, balcao: () => BC, abreBalcao, fechaBalcao, gente: () => contaGente(), aparece: () => [...quemAparece()], PERSONAGENS,
     atualizaAv: () => { if(V.eu && C.st.me){ V.eu.av = avLimpo(C.st.me.verso, C.st.me.id); anunciar(); } }, come, falaAuto, bolas: () => V.bolas || [], COMIDAS, JOGOS, abreJogo, fechaJogo, jogo: () => V.jogo, zoom: poeZoom, zoomFator, SKINS, SKIN, TAREFAS, CIVICOS, PATENTES, patenteDe, pegaTarefa, largaTarefa, agirTarefa, tarefa: () => V.tarefa, trampoSheet };
 })();

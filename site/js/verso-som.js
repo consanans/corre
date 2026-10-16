@@ -343,6 +343,10 @@
   }
   /* a moeda (pagou em correal), a porta, o plim de chegada */
   function moeda(){ if(!fxOk()) return; const t = ac.currentTime + .01; brilho(t, midi('B5'), .09, .06, fx); brilho(t + .085, midi('E6'), .3, .06, fx); }
+  /* v3.57 · a ACEL: o estalo do taco (mais forte, mais seco), a bola na luva do catcher e o taikô do home run */
+  function taco(forca){ if(!fxOk()) return; const t = ac.currentTime + .004, f = Math.max(.3, Math.min(1, forca || 1)); estalo(t, 2400, 1.2, .05, .16 * f); estalo(t, 900, .9, .09, .1 * f); tom(t, 1150, 600, .06, .07 * f, 'triangle'); }
+  function luva(){ if(!fxOk()) return; const t = ac.currentTime + .004; estalo(t, 520, .8, .07, .12, 'lowpass'); tom(t, 140, 90, .06, .08); }
+  function taiko(n){ if(!fxOk()) return; const t = ac.currentTime + .02; for(let i = 0; i < (n || 1); i++){ const ti = t + i * .32; tom(ti, 110, 52, .5, .2); estalo(ti, 180, .7, .16, .12, 'lowpass'); } }
   function porta(){ if(!fxOk()) return; const t = ac.currentTime + .01; estalo(t, 600, 1.8, .12, .07); tom(t, 160, 120, .12, .06, 'triangle'); estalo(t + .14, 520, 1.6, .1, .05); }
 
   /* ---------- liga, pausa, sai: quem manda é o modo e o estado da cidade ---------- */
@@ -461,7 +465,7 @@
     /* mais um botão de som (o da casa) */
     botao(b){ if(b && !botoes.includes(b)){ botoes.push(b); pinta(); } },
     sai, alterna, modo: () => modoAtual, tocando: () => musicaOn && modoAtual === 'tudo', ativo: () => ativo,
-    passo, pulo, cai, buzina, carroPassa, motor, ambiente, aviao, moeda, porta,
+    passo, pulo, cai, buzina, carroPassa, motor, ambiente, aviao, moeda, porta, taco, luva, taiko,
     amostra, amostraFx, nome: 'Rua do Corre'
   };
 })();

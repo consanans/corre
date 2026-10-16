@@ -922,9 +922,95 @@
   const PONTOS_SPOT = k => (k === 'quadra-basquete' ? PONTOS_BASQ.map(p => disco2d(p.x, p.z, .16, p.tres ? AMARELO : ROSA)) : []);
   const PLANTA_FUTSAL = quadraPlanta('quadra-futsal', 'Quadra do Zerão', 18, 14.4, 4, CHAO_FUTSAL, FUTSAL_DECOR, '#E6E2DA');
   const PLANTA_BASQ = quadraPlanta('quadra-basquete', 'Quadra de basquete', 16, 14.4, 5, CHAO_BASQ, BASQ_DECOR, '#E6E2DA');
+  /* ---------- v3.57 · a ACEL: o campo de beisebol ----------
+     A ACEL (Associação Cultural e Esportiva de Londrina, a casa nikkei da cidade) ganhou o campo em 3D, de noite e de
+     refletor ligado (o Thales: "adicione a Acel no mapa, onde poderão jogar beisebol"). É o campo de verdade em escala
+     menor: base a 13 m, montinho a 8,75 m da casa, cerca de 36 m nas linhas a 42 m no meio. Gramado dourado (o Corre
+     não tem verde), infield de terra roxa de Londrina, alambrado atrás da casa com lanternas vermelhas, portal na
+     entrada e um taikô do lado da arquibancada. O jogo é o Desafio de rebatida (junto do desafio das quadras) */
+  const HP = { x: 32, z: 50 }, MONTE = { x: 32, z: 41.25 }, BOLA_B = .095, VERMELHAO = '#D9452B';
+  const TERRA_R = '#9C4A2E', TERRA_R2 = '#AE5B3C', PALHA = '#D9C27F', PALHA2 = '#CDB46E';
+  /* th: o ângulo a partir do meio do campo (positivo pro lado da 1ª base); a cerca é mais funda no meio */
+  const cercaR = th => 36 + 6 * Math.cos(2 * th);
+  const noCampo = (th, r) => [HP.x + Math.sin(th) * r, HP.z - Math.cos(th) * r];
+  const BASES_B = [noCampo(Math.PI / 4, 13), noCampo(0, 13 * Math.SQRT2), noCampo(-Math.PI / 4, 13)];
+  /* uma faixa reta em qualquer direção (a linha de falta vai a 45 graus) */
+  const faixa = (x0, z0, x1, z1, w, c) => { const dx = x1 - x0, dz = z1 - z0, n = Math.hypot(dx, dz) || 1, px = -dz / n * w / 2, pz = dx / n * w / 2; return { pts: [[x0 + px, z0 + pz], [x1 + px, z1 + pz], [x1 - px, z1 - pz], [x0 - px, z0 - pz]], c }; };
+  const CHAO_BEISEBOL = (() => {
+    const out = [];
+    /* as faixas do corte no gramado e a pista de aviso (terra) na beira da cerca */
+    for(let z = 6; z < 55; z += 4) out.push(ret(3, z, 61, z + 2, PALHA2));
+    const N = 30, a0 = -Math.PI / 4 - .04, a1 = Math.PI / 4 + .04;
+    for(let i = 0; i < N; i++){ const t0 = a0 + (a1 - a0) * i / N, t1 = a0 + (a1 - a0) * (i + 1) / N; out.push({ pts: [noCampo(t0, cercaR(t0)), noCampo(t1, cercaR(t1)), noCampo(t1, cercaR(t1) - 2.2), noCampo(t0, cercaR(t0) - 2.2)], c: TERRA_R2 }); }
+    /* o infield de terra roxa: o arco atrás das bases e a descida até a casa, por fora das linhas */
+    const arco = []; for(let g = -76; g <= 76; g += 4){ const r = g * Math.PI / 180; arco.push([MONTE.x + Math.sin(r) * 14, MONTE.z - Math.cos(r) * 14]); }
+    out.push({ pts: [[HP.x - 2, HP.z + 1.6], ...arco, [HP.x + 2, HP.z + 1.6], [HP.x, HP.z + 2.6]], c: TERRA_R });
+    /* o gramado de dentro (o losango), o círculo da casa, o montinho e a terra das bases */
+    out.push({ pts: [[HP.x, HP.z - 1.56], [BASES_B[0][0] - 1.56, BASES_B[0][1]], [HP.x, BASES_B[1][1] + 1.56], [BASES_B[2][0] + 1.56, BASES_B[2][1]]], c: PALHA });
+    out.push({ pts: ovalPts(HP.x, HP.z, 2.3, 2.3, 22), c: TERRA_R }, { pts: ovalPts(MONTE.x, MONTE.z, 1.5, 1.5, 18), c: TERRA_R2 });
+    BASES_B.forEach(([x, z]) => out.push({ pts: ovalPts(x, z, 1.15, 1.15, 14), c: TERRA_R }));
+    /* as linhas de falta, da casa até a cerca, e as caixas do rebatedor */
+    [-1, 1].forEach(l => { const p = noCampo(l * Math.PI / 4, cercaR(Math.PI / 4)); out.push(faixa(HP.x, HP.z, p[0], p[1], .1, PAPEL)); });
+    [[30.15, 31.35], [32.65, 33.85]].forEach(([x0, x1]) => out.push(linha(x0, 49.05, x1, 49.05), linha(x0, 50.95, x1, 50.95), linha(x0, 49.05, x0, 50.95), linha(x1, 49.05, x1, 50.95)));
+    /* a casa (o pentágono, a ponta pro catcher), o pino do lançador, as bases e os círculos de espera */
+    out.push({ pts: [[HP.x - .3, HP.z - .3], [HP.x + .3, HP.z - .3], [HP.x + .3, HP.z], [HP.x, HP.z + .3], [HP.x - .3, HP.z]], c: PAPEL });
+    out.push(ret(MONTE.x - .3, MONTE.z - .2, MONTE.x + .3, MONTE.z - .05, PAPEL));
+    BASES_B.forEach(([x, z]) => out.push({ pts: [[x, z - .32], [x + .32, z], [x, z + .32], [x - .32, z]], c: PAPEL }));
+    [[24.6, 53.4], [39.4, 53.4]].forEach(([x, z]) => out.push(disco2d(x, z, .75, TERRA_R2)));
+    /* o escudo do Londrina Red Sharks pintado no gramado do meio do campo (o desenho é o mesmo da cidade, verso.js) */
+    out.push({ img: () => (C.verso && C.verso.logoSharks ? C.verso.logoSharks() : null), P4: [[25, .01, 15.5], [39, .01, 15.5], [39, .01, 26.4], [25, .01, 26.4]] });
+    return out;
+  })();
+  const BEISEBOL_DECOR = (() => {
+    const D = [], cerca = [], N = 30;
+    /* a cerca em arco (escura, friso amarelo em cima e almofada vermelha de vez em quando) e os postes de falta */
+    for(let i = 0; i < N; i++){
+      const t0 = -Math.PI / 4 + Math.PI / 2 * i / N, t1 = -Math.PI / 4 + Math.PI / 2 * (i + 1) / N, p0 = noCampo(t0, cercaR(t0)), p1 = noCampo(t1, cercaR(t1));
+      const mx = (p0[0] + p1[0]) / 2, mz = (p0[1] + p1[1]) / 2, len = Math.hypot(p1[0] - p0[0], p1[1] - p0[1]) + .08, g = { yaw: Math.atan2(-(p1[1] - p0[1]), p1[0] - p0[0]), piv: [mx, 0, mz] };
+      cerca.push(Object.assign(B(mx - len / 2, 0, mz - .12, len, 1.9, .24, '#2B2F38'), g), Object.assign(B(mx - len / 2, 1.9, mz - .14, len, .1, .28, '#F2C230'), g));
+      if(i % 5 === 2) cerca.push(Object.assign(B(mx - len / 2 + .3, .5, mz + .121, len - .6, .7, .01, VERMELHAO), g));
+    }
+    D.push({ x: 0, z: 0, bl: cerca });
+    [-1, 1].forEach(l => { const [x, z] = noCampo(l * Math.PI / 4, cercaR(Math.PI / 4) + .1); D.push({ x, z, bl: [B(-.09, 0, -.09, .18, 7, .18, '#F2C230'), B(l > 0 ? -.6 : .09, 3.4, -.02, .5, 2.6, .04, '#F2C230')] }); });
+    /* o placar no fundo do campo (o painel com a imagem é posto em cima, no quadro) e os refletores */
+    D.push({ x: 32, z: 3.4, bl: [B(-4.9, 0, -.15, .3, 3.2, .3, INK), B(4.6, 0, -.15, .3, 3.2, .3, INK), B(-5.4, 3.2, -.2, 10.8, 5.4, .4, '#1B1D22'), B(-5.4, 8.6, -.2, 10.8, .25, .4, VERMELHAO)] });
+    const lampada = (x, y, z) => Object.assign(B(x, y, z, .5, .5, .02, '#FFF3C4'), { ex: { cru: true } });
+    [[5, 18], [59, 18], [4, 52], [60, 52]].forEach(([x, z]) => D.push({ x, z, bl: [B(-.2, 0, -.2, .4, 11, .4, '#3A3E45'), B(-1.4, 11, -.35, 2.8, 1.5, .7, '#2B2F38'),
+      ...[0, 1, 2, 3].flatMap(i => [0, 1].flatMap(j => [lampada(-1.25 + i * .66, 11.15 + j * .68, .36), lampada(-1.25 + i * .66, 11.15 + j * .68, -.38)]))] }));
+    /* o alambrado atrás da casa, com o vão do meio, e as lanternas vermelhas penduradas nele */
+    const alambrado = (x0, x1, z, h) => { const out = [B(x0, 0, z, .12, h, .12, '#3A3E45'), B(x1 - .12, 0, z, .12, h, .12, '#3A3E45'), B(x0, h - .1, z, x1 - x0, .1, .12, '#3A3E45')];
+      for(let x = x0 + .5; x < x1 - .1; x += .5) out.push(B(x, 0, z + .04, .025, h - .1, .025, '#8F96A0'));
+      for(let y = .5; y < h - .1; y += .5) out.push(B(x0, y, z + .04, x1 - x0, .025, .025, '#8F96A0'));
+      return out; };
+    D.push({ x: 0, z: 0, bl: [...alambrado(24.6, 30.7, 55.2, 3.6), ...alambrado(33.3, 39.4, 55.2, 3.6)] });
+    D.push({ x: 0, z: 0, bl: [25.4, 27.6, 29.8, 34.2, 36.4, 38.6].flatMap(x => [B(x - .01, 3.3, 55.28, .02, .3, .02, INK), Object.assign(B(x - .24, 2.84, 55.06, .48, .48, .48, '#E2412E'), { ex: { esfera: .24 } }), B(x - .13, 3.26, 55.17, .26, .06, .26, INK), B(x - .13, 2.8, 55.17, .26, .06, .26, INK)]) });
+    /* a arquibancada atrás da casa, com a torcida de vermelho e branco */
+    const cores = [VERMELHAO, PAPEL, INK, AMARELO, ROSA, AZUL, '#F4F1EA'];
+    [[9.5, 56.3], [34.5, 56.3]].forEach(([x, z]) => D.push({ x, z, bl: espelhaZ(torcida(20, 3, cores), 1.65) }));
+    /* os bancos de reserva (fora das linhas), o taikô e o portal da entrada */
+    [[16.6, 45.4], [41.8, 45.4]].forEach(([x, z]) => D.push({ x, z, bl: [B(0, 0, 1.7, 5.6, 1.7, .2, '#3A3E45'), B(0, 0, 0, .18, 1.7, 1.9, '#3A3E45'), B(5.42, 0, 0, .18, 1.7, 1.9, '#3A3E45'), B(-.2, 1.7, -.1, 6, .14, 2.1, VERMELHAO), B(.4, 0, 1.15, 4.8, .45, .45, '#8E5B33'), B(.4, .45, 1.45, 4.8, .4, .1, '#8E5B33')] }));
+    D.push({ x: 49.6, z: 52.6, bl: [B(-.7, 0, -.7, 1.4, .45, 1.4, '#5A3A1E'), B(-.55, .45, -.55, 1.1, .95, 1.1, '#8E4B2B'), B(-.6, .55, -.6, 1.2, .08, 1.2, INK), B(-.6, 1.25, -.6, 1.2, .08, 1.2, INK), B(-.5, 1.4, -.5, 1, .03, 1, '#F4E9D8'),
+      Object.assign(B(.3, 1.3, -.05, .5, .05, .05, '#C8955A'), { roll: .5, piv: [.3, 1.3, 0] }), Object.assign(B(.3, 1.3, .2, .5, .05, .05, '#C8955A'), { roll: .6, piv: [.3, 1.3, .2] })] });
+    D.push({ x: 32, z: 58.9, bl: [B(-1.95, 0, -.15, .3, 4.3, .3, VERMELHAO), B(1.65, 0, -.15, .3, 4.3, .3, VERMELHAO), B(-2, 0, -.2, .4, .35, .4, INK), B(1.6, 0, -.2, .4, .35, .4, INK),
+      B(-2.4, 3.35, -.12, 4.8, .26, .24, VERMELHAO), B(-2.7, 4, -.17, 5.4, .3, .34, VERMELHAO), B(-2.9, 4.3, -.22, 5.8, .22, .44, INK), B(-.55, 3.6, -.06, 1.1, .45, .12, INK)] });
+    /* o suporte dos tacos (com o capacete): é aqui que começa o desafio */
+    D.push({ x: 26.8, z: 52.3, acao: 'desafio', bl: [B(0, 0, 0, .9, .1, .35, '#5A3A1E'), B(0, .85, 0, .9, .08, .35, '#5A3A1E'), B(0, 0, 0, .08, .93, .35, '#5A3A1E'), B(.82, 0, 0, .08, .93, .35, '#5A3A1E'),
+      ...[.2, .42, .64].map((x, i) => Object.assign(B(x, .05, .14, .06, .95, .06, '#C8955A'), { roll: (i - 1) * .08, piv: [x + .03, .05, .17] })), B(.28, .93, .05, .32, .22, .28, VERMELHAO), B(.24, .93, .28, .4, .04, .12, VERMELHAO)] });
+    return D;
+  })();
+  const PLANTA_BEISEBOL = (() => {
+    const W = 64, D = 60, muro = '#3A3E45', bloq = [];
+    /* a cerca fecha o campo: o lado de fora dela não é de andar */
+    for(let i = 0; i <= 200; i++){ const t = -Math.PI / 4 + Math.PI / 2 * i / 200, [x, z] = noCampo(t, cercaR(t) + .05); bloq.push([x - .2, z - .2, x + .2, z + .2]); }
+    return { k: 'lugar-beisebol', W, D, ALT: 3, longe: 64,
+      comodos: [{ k: 'campo', nome: 'ACEL', x0: 0, z0: 0, x1: W, z1: D, piso: PALHA, linha: 'rgba(60,40,10,.05)' }],
+      paredes: [{ a: [0, D], b: [W, D], ext: [0, 1], portas: [[W / 2 - .6, W / 2 + .6]], entrada: true, cor: muro, alt: 1.2 }, { a: [W, 0], b: [W, D], ext: [1, 0], cor: muro, alt: 1.2 }, { a: [0, 0], b: [0, D], ext: [-1, 0], cor: muro, alt: 1.2 }, { a: [0, 0], b: [W, 0], ext: [0, -1], cor: muro, alt: 1.2 }],
+      entrada: { x: W / 2, z: D }, chao: CHAO_BEISEBOL, bloqueio: bloq, padrao: [], decor: BEISEBOL_DECOR };
+  })();
   const DESAFIOS = {
     futsal: { esporte: 'futsal', nome: 'Desafio de pênalti', vez: 'Cobrança', botao: 'Chutar!', per: 1.7, spot: { x: 8.55, z: 7.95, yaw: Math.PI - .07 } },
-    basquete: { esporte: 'basquete', nome: 'Desafio de arremesso', vez: 'Arremesso', botao: 'Arremessar!', per: 1.5 }
+    basquete: { esporte: 'basquete', nome: 'Desafio de arremesso', vez: 'Arremesso', botao: 'Arremessar!', per: 1.5 },
+    beisebol: { esporte: 'beisebol', nome: 'Desafio de rebatida', vez: 'Arremesso', botao: 'Rebater!', per: 1 }
   };
 
   /* v3.53: as pistas de kart só ficam prontas aqui (o cenário usa a torcida, que é das quadras) */
@@ -982,7 +1068,9 @@
     'quadra-futsal': { titulo: 'Quadra do Zerão', sai: 'Sair pra rua', planta: PLANTA_FUTSAL, ola: 'Quadra do Zerão. Na caixa de bolas, toca em "Desafio de pênalti": 10 cobranças contra o goleiro.', estacoes: () => [], desafio: DESAFIOS.futsal,
       itens: [['banco_madeira', 1.4, 12.2, 0, 0, 3], ['banco_madeira', 14.6, 12.2, 0, 0, 3], ['bebedouro', 16.6, 9.5, 3, 0, 0]] },
     'quadra-basquete': { titulo: 'Quadra de basquete', sai: 'Sair pra rua', planta: PLANTA_BASQ, ola: 'Quadra de basquete. Na caixa de bolas, toca em "Desafio de arremesso": 10 arremessos, 5 de dois e 5 de três.', estacoes: () => [], desafio: DESAFIOS.basquete,
-      itens: [['banco_madeira', 1, 12.3, 0, 0, 3], ['banco_madeira', 12.8, 12.6, 0, 0, 3], ['bebedouro', 15, 8.5, 3, 0, 0]] }
+      itens: [['banco_madeira', 1, 12.3, 0, 0, 3], ['banco_madeira', 12.8, 12.6, 0, 0, 3], ['bebedouro', 15, 8.5, 3, 0, 0]] },
+    /* v3.57: o campo da ACEL (a porta da cidade entra aqui) */
+    beisebol: { titulo: 'ACEL · Beisebol', sai: 'Sair pra rua', planta: PLANTA_BEISEBOL, ola: 'ACEL, o campo de beisebol. No suporte dos tacos, toca em "Desafio de rebatida": 10 arremessos. Rebate quando a bola chegar na base: home run vale 4.', estacoes: () => [], desafio: DESAFIOS.beisebol }
   };
   /* a estação que é só do fundador aparece na casa do fundador (pra ele e pra quem visita) */
   const paraDono = (e, dono) => e.so !== 'fundador' || ehDoFundador(dono);
@@ -1042,6 +1130,12 @@
         lats.forEach(h => { const p = Math.sqrt(1 - h * h); linha(a => [Math.cos(a) * p, h, Math.sin(a) * p]); });
         lons.forEach(fi => linha(a => [Math.cos(a) * Math.cos(fi), Math.sin(a), Math.cos(a) * Math.sin(fi)]));
         if(gl){ ctx.fillStyle = 'rgba(255,255,255,.85)'; for(let k = 0; k < 9; k++){ const a = k * 2.4 + G * 2, h = Math.sin(k * 1.7) * .8, p = Math.sqrt(1 - h * h), q = tv(giraV([Math.cos(a) * p, h, Math.sin(a) * p], G)); if(q[2] > .35) ctx.fillRect(x + q[0] * r - r * .06, y - q[1] * r - r * .06, r * .12, r * .12); } }
+      } else if(s.desenho === 'beisebol'){
+        /* a costura vermelha da bola de beisebol: a curva de tênis (duas voltas em S), girando junto */
+        const G = s.gira || 0, N = 40; ctx.strokeStyle = 'rgba(212,40,46,.92)'; ctx.lineWidth = Math.max(1, r * .08); ctx.beginPath(); let ok = false;
+        for(let i = 0; i <= N; i++){ const t2 = i / N * Math.PI * 2, v = [.62 * Math.cos(t2) + .23 * Math.cos(3 * t2), .62 * Math.sin(t2) - .23 * Math.sin(3 * t2), .55 * Math.sin(2 * t2)], n = Math.hypot(...v), q = tv(giraV([v[0] / n, v[1] / n, v[2] / n], G));
+          if(q[2] > -.02){ const px = x + q[0] * r, py = y - q[1] * r; if(ok) ctx.lineTo(px, py); else ctx.moveTo(px, py); ok = true; } else ok = false; }
+        ctx.stroke();
       } else if(s.desenho === 'boia'){
         ctx.fillStyle = luzTom('#F4EFE6', .7); ctx.fillRect(x - r, y, r * 2, r);
       }
@@ -1763,6 +1857,7 @@
   function posicionaDesafio(){
     const D = S.desafio, e = S.eu; if(!D || !e) return;
     if(D.Q.esporte === 'futsal'){ e.x = D.Q.spot.x; e.z = D.Q.spot.z; e.yaw = D.Q.spot.yaw; }
+    else if(ehBeisebol(D.Q)){ e.x = HP.x - .78; e.z = HP.z + .08; e.yaw = Math.PI / 2; e.andando = false; S.cam.th = 0; S.arrastou = 0; return; }
     else { const p = PONTOS_BASQ[D.n % PONTOS_BASQ.length]; e.x = p.x; e.z = p.z; e.yaw = Math.atan2(ARO.x - p.x, ARO.z - p.z); }
     e.andando = false; S.cam.th = e.yaw + Math.PI; S.arrastou = 0;
   }
@@ -1770,6 +1865,15 @@
      embaixo do placar. Arrastou pra olhar, ela respeita por 3 s */
   function camDesafio(dt){
     const D = S.desafio, e = S.eu, c = S.cam, f = Math.min(1, dt * 4), gols = D.Q.esporte === 'futsal';
+    /* no beisebol: atrás da casa, olhando o lançador; com a bola rebatida, a câmera vai atrás dela (na direção da batida) */
+    if(ehBeisebol(D.Q)){
+      const V = D.voo, segue = V && D.fase !== 'espera' && D.fase !== 'arremesso' && !V.pego, alvo = segue ? [V.p[0], V.p[1] * .55, V.p[2]] : [32, 1, 46.5];
+      c.tx += (alvo[0] - c.tx) * f; c.ty += (alvo[1] - c.ty) * f; c.tz += (alvo[2] - c.tz) * f;
+      if(Date.now() - (S.arrastou || 0) < 3000) return;
+      let d = (segue ? -V.fi : 0) - c.th; d = Math.atan2(Math.sin(d), Math.cos(d)); c.th += d * f * (segue ? .6 : 1);
+      c.ph += ((segue ? .32 : .5) - c.ph) * f; c.dist += ((segue ? 12 : 7.2) - c.dist) * f * (segue ? .5 : 1);
+      return;
+    }
     const al = gols ? [9, GOL.z] : [ARO.x, ARO.z], tx = e.x + (al[0] - e.x) * .4, tz = e.z + (al[1] - e.z) * .4;
     c.tx += (tx - c.tx) * f; c.tz += (tz - c.tz) * f; c.ty += ((gols ? .9 : 2.3) - c.ty) * f;
     if(Date.now() - (S.arrastou || 0) < 3000) return;
@@ -1777,11 +1881,12 @@
     c.ph += ((gols ? .36 : .3) - c.ph) * f; c.dist += ((gols ? 8.5 : 8) - c.dist) * f;
   }
   /* sai do desafio e devolve a câmera de antes */
-  function largaDesafio(){ const D = S.desafio; S.desafio = null; if(D && D.cam0){ S.cam.ph = D.cam0.ph; S.cam.dist = D.cam0.dist; } painelDesafio(true); }
+  function largaDesafio(){ const D = S.desafio; S.desafio = null; if(D && ehBeisebol(D.Q)) S.bsb = null; if(D && D.cam0){ S.cam.ph = D.cam0.ph; S.cam.dist = D.cam0.dist; } painelDesafio(true); }
   function comecaDesafio(){
     const Q = quadraAqui(); if(!Q || !S.eu || S.desafio) return;
     S.alvo = null; S.rota = []; S.acao = null; S.teclas.clear();
     S.desafio = { Q, n: 0, pts: 0, fase: 'mira', t0: Date.now(), bola: null, kx: 9, ktx: 9, ktT: 0, ult: Date.now(), cam0: { ph: S.cam.ph, dist: S.cam.dist } };
+    if(ehBeisebol(Q)){ Object.assign(S.desafio, { fase: 'espera', t0: Date.now() + 900, hr: 0, sw: 0, swC: 0, erro: 0, pitch: null, voo: null }); S.bsb = null; }
     posicionaDesafio(); painelDesafio(true);
   }
   function paraDesafio(msg){ if(!S.desafio) return; largaDesafio(); if(msg) C.toast(msg, 1600); }
@@ -1791,7 +1896,8 @@
     const ul = b.segs[b.segs.length - 1].ate; return [ul[0], ul[1], ul[2], true];
   }
   function dispara(){
-    const D = S.desafio; if(!D || D.fase !== 'mira' || !S.eu) return;
+    const D = S.desafio; if(D && ehBeisebol(D.Q)){ rebateB(D); return; }
+    if(!D || D.fase !== 'mira' || !S.eu) return;
     const p = medidor(D), e = S.eu, agora = Date.now(), fx = Math.sin(e.yaw), fz = Math.cos(e.yaw);
     if(D.Q.esporte === 'futsal'){
       const ax = GOL.x0 + .1 + p * (GOL.x1 - GOL.x0 - .2), trave = p < .05 || p > .95, kf = D.kx + Math.max(-.9, Math.min(.9, ax - D.kx)) * .8, gol = !trave && Math.abs(ax - kf) > .5;
@@ -1813,14 +1919,16 @@
     if(bateu) rec[Q.esporte] = { dia: hoje, pts: D.pts }; if(recorde) rec[Q.esporte + 'Rec'] = D.pts; guardaQuadra(rec);
     D.fase = 'fim';
     const lista = rankingQuadra(Q), pos = lista.findIndex(x => x.eu) + 1, un = Q.esporte === 'futsal' ? (D.pts === 1 ? 'gol' : 'gols') : (D.pts === 1 ? 'ponto' : 'pontos');
-    C.toast(`Fim do desafio: ${D.pts} ${un}${recorde && D.pts ? ', teu recorde' : bateu && D.pts ? ', o teu melhor de hoje' : ''}${lista.length > 1 && D.pts ? `. ${pos}º do dia na quadra` : ''}.`, 4800);
+    C.toast(`Fim do desafio: ${D.pts} ${un}${ehBeisebol(Q) && D.hr ? ` (${D.hr} home run${D.hr > 1 ? 's' : ''})` : ''}${recorde && D.pts ? ', teu recorde' : bateu && D.pts ? ', o teu melhor de hoje' : ''}${lista.length > 1 && D.pts ? `. ${pos}º do dia na quadra` : ''}.`, 4800);
     if(C.verso && C.verso.anunciar) C.verso.anunciar();
     setTimeout(() => { if(S.desafio === D) largaDesafio(); }, 2400);
   }
   function tickDesafio(){
     if(!quadraAqui()) return;
     const D = S.desafio, agora = Date.now();
-    if(D){
+    if(D && ehBeisebol(D.Q) && D.fase !== 'fim'){ tickBeisebol(D, agora); painelDesafio(); return; }
+    if(D && ehBeisebol(D.Q)){ D.bp = null; passoTimeB(null, Math.min(.1, (agora - D.ult) / 1000)); D.ult = agora; }
+    else if(D){
       const dt = Math.min(.1, (agora - D.ult) / 1000); D.ult = agora;
       if(D.Q.esporte === 'futsal'){
         if(D.fase === 'mira'){ if(agora > D.ktT){ D.ktx = 7.9 + Math.random() * 2.2; D.ktT = agora + 600 + Math.random() * 600; } const d = D.ktx - D.kx; D.kx += Math.sign(d) * Math.min(Math.abs(d), 2.2 * dt); }
@@ -1843,10 +1951,11 @@
       let topo, dica, med = '';
       if(D && D.fase !== 'fim'){
         topo = `${Q.vez} ${Math.min(TENT, D.n + 1)}/${TENT} · ${D.pts} ${un(D.pts)}`;
-        if(gols){ med = '<div class="cs-med"><i class="cs-med-t" style="left:0;width:5%"></i><i class="cs-med-t" style="left:95%;width:5%"></i><i class="cs-med-k"></i><i class="cs-med-c"></i></div>'; dica = 'A barra é o gol, e a faixa escura é o goleiro. Chuta quando a mira tá longe dele.'; }
+        if(ehBeisebol(Q)){ topo += ` · ${D.hr || 0} HR`; const [zl, zw] = zonaB(D); med = `<div class="cs-med"><i class="cs-med-a" style="left:${zl.toFixed(1)}%;width:${zw.toFixed(1)}%"></i><i class="cs-med-c"></i></div>`; dica = 'Toca Rebater! quando a bola entrar na faixa rosa. Bem no meio sai home run.'; }
+        else if(gols){ med = '<div class="cs-med"><i class="cs-med-t" style="left:0;width:5%"></i><i class="cs-med-t" style="left:95%;width:5%"></i><i class="cs-med-k"></i><i class="cs-med-c"></i></div>'; dica = 'A barra é o gol, e a faixa escura é o goleiro. Chuta quando a mira tá longe dele.'; }
         else { const w = faixaBasq(D.n); med = `<div class="cs-med"><i class="cs-med-a" style="left:${(50 - w * 50).toFixed(1)}%;width:${(w * 100).toFixed(1)}%"></i><i class="cs-med-c"></i></div>`; dica = D.n >= 5 ? 'De três: a faixa é mais fina.' : 'Arremessa quando a régua passar na faixa rosa.'; }
-      } else if(D){ topo = `Fim: ${D.pts} ${un(D.pts)}`; dica = 'Toca na caixa de bolas pra tentar de novo.'; }
-      else { topo = `${esc(Q.nome)} · melhor do dia`; dica = 'Vai na caixa de bolas e toca no desafio.'; }
+      } else if(D){ topo = `Fim: ${D.pts} ${un(D.pts)}`; dica = `Toca ${ehBeisebol(Q) ? 'no suporte dos tacos' : 'na caixa de bolas'} pra tentar de novo.`; }
+      else { topo = `${esc(Q.nome)} · melhor do dia`; dica = `Vai ${ehBeisebol(Q) ? 'no suporte dos tacos' : 'na caixa de bolas'} e toca no desafio.`; }
       const lista = rankingQuadra(Q), eu = lista.findIndex(x => x.eu), mostra = lista.slice(0, 3); if(eu > 2) mostra.push(lista[eu]);
       const html = `<b class="cs-pesca-t">${ico('raio')} ${topo}</b>${med}<ol>${mostra.length ? mostra.map(x => `<li${x.eu ? ' class="eu"' : ''}><i>${lista.indexOf(x) + 1}º</i><span>${esc(x.nome)}</span><b>${x.pts} ${gols ? un(x.pts) : 'pts'}</b></li>`).join('') : '<li><i></i><span>Ninguém jogou hoje ainda.</span><b></b></li>'}</ol><small>${dica}${sempre ? ` Recorde: ${sempre}.` : ''}</small>`;
       el.classList.remove('morde');
@@ -1854,11 +1963,13 @@
     }
     /* a régua e o goleiro andam a cada quadro (só o estilo, sem refazer o placar) */
     if(D && D.fase === 'mira'){ const c = el.querySelector('.cs-med-c'); if(c) c.style.left = (medidor(D) * 100).toFixed(1) + '%'; }
+    if(D && ehBeisebol(Q)){ const c = el.querySelector('.cs-med-c'); if(c){ const u = D.fase === 'arremesso' && D.pitch ? Math.min(1, (agora - D.pitch.t0) / D.pitch.T / 1.15) : D.fase === 'espera' ? 0 : 1; c.style.left = (u * 100).toFixed(1) + '%'; } }
     if(D && gols){ const k = el.querySelector('.cs-med-k'); if(k) k.style.left = ((D.kx - GOL.x0) / (GOL.x1 - GOL.x0) * 100).toFixed(1) + '%'; }
   }
   /* o goleiro (sempre no gol do futsal) e a bola (no pé, na mão ou voando) */
   function solidosDesafio(){
     const Q = quadraAqui(); if(!Q) return [];
+    if(ehBeisebol(Q)) return solidosBeisebol();
     const D = S.desafio, out = [], e = S.eu, gols = Q.esporte === 'futsal';
     if(gols && C.verso && C.verso.avLimpo) out.push(...sobe(boneco(GOLEIRO(), D ? D.kx : 9, GOL.z + .45, 0, 0, false), D && D.fase === 'voo' && D.kf != null ? .25 : 0));
     const bp = bolaAgora();
@@ -1868,8 +1979,213 @@
   /* onde a bola tá agora (no pé, na mão ou voando); null se não tem bola na quadra */
   function bolaAgora(){
     const Q = quadraAqui(), D = S.desafio, e = S.eu; if(!Q || !D) return null;
+    if(ehBeisebol(Q)) return D.bp || null;
     if(D.bola) return posBola(D.bola, Date.now());
     return D.fase === 'mira' && e ? (Q.esporte === 'futsal' ? [9, .11, 7.2] : [e.x + Math.sin(e.yaw) * .22, 2.05, e.z + Math.cos(e.yaw) * .22]) : null;
+  }
+  /* ---------- v3.57 · o Desafio de rebatida (ACEL) ----------
+     O lançador dá a volta e arremessa; a bola leva de 0,6 a 1 s até a casa (cada arremesso um pouco mais rápido). O
+     taco encontra a bola 90 ms depois do toque, então o certo é tocar quando ela entra na faixa rosa do placar. O erro
+     em ms decide tudo: até 150 ms tem contato (quanto mais perto de zero, mais forte e mais alto); cedo puxa pra
+     esquerda, tarde vai pra direita, e passou de 45 graus é falta. A bola voa de verdade (gravidade): passou da cerca
+     no alto é home run (com taikô e hanabi), bateu na cerca é tripla, e o resto conta pelo primeiro quique (12 m
+     simples, 22 m dupla, 31 m tripla; antes disso, eliminado). Simples vale 1, dupla 2, tripla 3 e home run 4.
+     Não vale correal: vale o recorde (o melhor do dia vai na presença, igual às quadras) */
+  const SOLTA_B = 990, ANIM_B = 1600, SW_C = 90, SW_DUR = 280, JANELA_B = 150;
+  const PONTOS_B = { hr: 4, muro: 3, tripla: 3, dupla: 2, simples: 1 };
+  const FALA_B = { hr: 'HOME RUN! +4', muro: 'No muro! Tripla, +3', tripla: 'Tripla! +3', dupla: 'Dupla! +2', simples: 'Simples. +1', falta: 'Falta.', alto: 'Pegaram no alto: eliminado.', rasteira: 'Rasteira: eliminado na 1ª.', errou: 'Girou e errou: strike.', olhou: 'Strike! Ficou olhando.', cedo: 'Girou antes do arremesso: strike.' };
+  const SOLTA_P = [MONTE.x - .34, 1.95, MONTE.z + .55], LUVA_C = [31.75, .76, 50.86];
+  const POS_B = [[42.4, 38.8], [37.4, 32.4], [26.6, 32.4], [21.6, 38.8], [19.6, 22.6], [32, 15.6], [44.4, 22.6]];
+  const PELES_B = ['#F0C9A0', '#C68642', '#8E5B33', '#E8B98A', '#5A3A22', '#F3D3B0', '#A86B3C', '#D9A07A', '#B97B55'];
+  const lerpK = (f, K) => { if(f <= K[0][0]) return K[0][1]; for(let i = 1; i < K.length; i++) if(f <= K[i][0]){ const [a, va] = K[i - 1], [b, vb] = K[i]; return va + (vb - va) * (f - a) / (b - a); } return K[K.length - 1][1]; };
+  const ehBeisebol = Q => !!Q && Q.esporte === 'beisebol';
+  /* o time do campo (a máquina): cada um no seu lugar; quem tá perto de onde a bola vai cair corre atrás dela */
+  function timeB(){
+    if(!S.bsb) S.bsb = { J: POS_B.map(([x, z], i) => ({ x, z, x0: x, z0: z, yaw: Math.atan2(HP.x - x, HP.z - z), pele: PELES_B[i % PELES_B.length], passo: 0, corre: false, alvo: null })), fogos: [] };
+    return S.bsb;
+  }
+  /* um jogador em blocos (o boneco da cidade não levanta um braço só): o uniforme do Londrina Red Sharks (o Thales:
+     "boné preto e vermelho, camiseta vermelha e calça branca") e a luva na mão esquerda. pose: 'pronto', 'corre' (passo), 'arremesso' (f de 0 a 1), 'agachado' (o catcher) e 'juiz' */
+  function atleta(x, z, yaw, o){
+    const out = [], giro = { yaw, piv: [x, 0, z] }, P = o.pele || '#C68642', juiz = o.pose === 'juiz', ag = o.pose === 'agachado' || juiz, f = o.f || 0;
+    const R = juiz ? '#1B1D22' : VERMELHAO, Lc = juiz ? '#3A3E45' : '#F4F1EA', dono = o.dono || null;
+    const add = (b, ...T) => out.push(solido(b, [...T.filter(Boolean), giro], b.c, dono, {}));
+    const sw = o.pose === 'corre' ? Math.sin(o.passo || 0) * .8 : 0, hy = ag ? .3 : .44;
+    if(ag) [-.26, .04].forEach(sx => { add(B(x + sx, .2, z - .06, .22, .14, .44, Lc)); add(B(x + sx, 0, z + .22, .22, .3, .16, Lc)); add(B(x + sx - .01, 0, z + .2, .24, .08, .26, INK)); });
+    else {
+      /* no arremesso, a perna da luva sobe no meio da volta */
+      const lev = o.pose === 'arremesso' ? -1.35 * Math.sin(Math.PI * Math.min(1, Math.max(0, f / .5))) : null;
+      const perna = (sx, sinal, ang) => { const T2 = { pitch: ang != null ? ang : sw * sinal, piv: [x, hy, z] }; add(B(x + sx, .14, z - .12, .22, hy - .14, .24, Lc), T2); add(B(x + sx, .06, z - .12, .22, .1, .24, juiz ? INK : '#1B1D22'), T2); add(B(x + sx - .01, 0, z - .14, .24, .08, .3, INK), T2); };
+      perna(-.24, 1, null); perna(.02, -1, lev);
+    }
+    const lean = o.pose === 'pronto' ? .22 : ag ? .25 : o.pose === 'arremesso' ? lerpK(f, [[0, 0], [.3, -.12], [.55, -.1], [.68, .5], [1, .3]]) : 0;
+    const TL = lean ? { pitch: lean, piv: [x, hy, z] } : null;
+    add(B(x - .25, hy, z - .12, .5, .5, .24, R), TL);
+    if(!juiz){ add(B(x - .25, hy + .32, z + .121, .5, .05, .01, PAPEL), TL); add(B(x - .07, hy + .1, z + .121, .14, .16, .01, PAPEL), TL); add(B(x - .25, hy + .32, z - .131, .5, .05, .01, PAPEL), TL); add(B(x - .26, hy, z - .13, .52, .06, .26, INK), TL); }
+    add(B(x - .25, hy + .5, z - .25, .5, .5, .5, P), TL);
+    add(B(x - .16, hy + .76, z + .25, .08, .08, .01, INK), TL); add(B(x + .08, hy + .76, z + .25, .08, .08, .01, INK), TL);
+    if(ag) add(B(x - .27, hy + .52, z + .25, .54, .42, .05, '#2B2F38'), TL);
+    /* o boné: a copa preta com o botão vermelho e a aba vermelha (o juiz, todo preto) */
+    add(B(x - .27, hy + .94, z - .27, .54, .11, .54, INK), TL); add(B(x - .2, hy + .94, z + (ag ? -.47 : .27), .4, .04, .2, juiz ? INK : VERMELHAO), TL);
+    if(!juiz){ add(B(x - .05, hy + 1.05, z - .05, .1, .03, .1, VERMELHAO), TL); add(B(x - .27, hy + .94, z - .27, .54, .03, .54, VERMELHAO), TL); }
+    /* os braços: o direito (lado -x) arremessa por cima; o esquerdo leva a luva */
+    const braco = (sx, ang, luva) => { const T2 = { pitch: ang, piv: [x, hy + .46, z] }; add(B(x + sx, hy + .18, z - .1, .14, .32, .2, R), T2, TL); add(B(x + sx, hy, z - .1, .14, .18, .2, P), T2, TL); if(luva) add(B(x + sx - .06, hy - .14, z - .12, .26, .26, .3, '#8E5B33'), T2, TL); };
+    let aD = -sw, aE = sw;
+    if(o.pose === 'pronto'){ aD = -.55; aE = -.75; }
+    else if(o.pose === 'agachado'){ aD = -.3; aE = -1.45; }
+    else if(juiz){ aD = -.5; aE = -.5; }
+    else if(o.pose === 'arremesso'){ aD = lerpK(f, [[0, -.9], [.28, -1.1], [.5, 2.5], [.56, 3.13], [.5601, -3.13], [.64, -1.9], [.75, -1], [1, -.4]]); aE = lerpK(f, [[0, -.9], [.28, -1.1], [.5, -1.6], [.68, -.3], [1, -.4]]); }
+    braco(-.39, aD, false); braco(.25, aE, !juiz);
+    return out;
+  }
+  /* a bola no arremesso: sai da mão do lançador, faz um arco leve, quebra no fim e, sem rebatida, vai pra luva */
+  function bolaPitch(P, agora){
+    const u = (agora - P.t0) / P.T, alvo = [HP.x + P.bx, .82 + P.by, HP.z + .05];
+    if(u <= 1) return [SOLTA_P[0] + (alvo[0] - SOLTA_P[0]) * Math.pow(u, 1.6), SOLTA_P[1] + (alvo[1] - SOLTA_P[1]) * u + .9 * u * (1 - u) * .45, SOLTA_P[2] + (alvo[2] - SOLTA_P[2]) * u];
+    const w = Math.min(1, (agora - P.t0 - P.T) / 150);
+    return [alvo[0] + (LUVA_C[0] - alvo[0]) * w, alvo[1] + (LUVA_C[1] - alvo[1]) * w, alvo[2] + (LUVA_C[2] - alvo[2]) * w];
+  }
+  /* o toque: o taco começa a girar e encontra a bola 90 ms depois */
+  function rebateB(D){
+    if(D.sw || !['espera', 'arremesso'].includes(D.fase)) return;
+    const agora = Date.now(); D.sw = agora; D.swC = agora + SW_C;
+    D.erro = D.fase === 'espera' ? -1e9 : D.swC - (D.pitch.t0 + D.pitch.T);
+  }
+  function lancaB(D, agora){
+    const e = D.erro, q = Math.max(0, 1 - Math.abs(e) / JANELA_B), fi = e / JANELA_B * .96, r = Math.random();
+    /* bem no tempo sai alta e forte; meio fora, linha; muito fora, rasteira ou balão */
+    const th = (q > .75 ? 22 + r * 12 : q > .45 ? 12 + r * 14 : r < .5 ? 2 + r * 12 : 48 + (r - .5) * 28) * Math.PI / 180;
+    const v = 11 + 13 * Math.pow(q, 1.3) + (Math.random() - .5) * 1.6, vh = v * Math.cos(th);
+    const p0 = [HP.x + .12, .86, HP.z - .2 + Math.max(-1, Math.min(1, e / JANELA_B)) * .3];
+    const V = D.voo = { t0: agora, p: p0, v: [vh * Math.sin(fi), v * Math.sin(th), -vh * Math.cos(fi)], fi, th, falta: Math.abs(fi) > Math.PI / 4, quiques: 0, res: null, parou: 0, pego: false, quem: null };
+    D.fase = 'voo';
+    if(C.versoSom && C.versoSom.taco) C.versoSom.taco(.45 + q * .55);
+    /* quem tá mais perto de onde ela vai cair sai correndo (dentro da cerca) */
+    if(!V.falta){
+      const vy = V.v[1], tq = (vy + Math.sqrt(vy * vy + 2 * 9.8 * (p0[1] - BOLA_B))) / 9.8; let lx = p0[0] + V.v[0] * tq, lz = p0[2] + V.v[2] * tq;
+      const ang = Math.atan2(lx - HP.x, HP.z - lz), lim = cercaR(ang) - 1.2; if(Math.hypot(lx - HP.x, HP.z - lz) > lim){ lx = HP.x + Math.sin(ang) * lim; lz = HP.z - Math.cos(ang) * lim; }
+      let md = 1e9; timeB().J.forEach(j => { const d = Math.hypot(j.x - lx, j.z - lz); if(d < md){ md = d; V.quem = j; } }); if(V.quem) V.quem.alvo = [lx, lz];
+    }
+  }
+  function voaB(D, agora, dt){
+    const V = D.voo, h = dt / 4;
+    for(let i = 0; i < 4 && !V.parou && !V.pego; i++){
+      V.v[1] -= 9.8 * h; V.p[0] += V.v[0] * h; V.p[1] += V.v[1] * h; V.p[2] += V.v[2] * h;
+      const dx = V.p[0] - HP.x, dz = HP.z - V.p[2], d = Math.hypot(dx, dz), ang = Math.atan2(dx, dz);
+      /* a cerca: por cima é home run; batendo nela, volta (e é tripla) */
+      if(!V.res && !V.falta && Math.abs(ang) <= Math.PI / 4 + .01 && d >= cercaR(ang) - .2){
+        if(V.p[1] > 2.05){ V.res = 'hr'; V.hrT = agora; soltaFogos(agora); if(C.versoSom && C.versoSom.taiko) C.versoSom.taiko(3); }
+        else { V.res = 'muro'; V.v[0] *= -.35; V.v[2] *= -.35; const k = (cercaR(ang) - .35) / d; V.p[0] = HP.x + dx * k; V.p[2] = HP.z - dz * k; if(C.versoSom && C.versoSom.cai) C.versoSom.cai(.6); }
+      }
+      if(V.p[1] <= BOLA_B){
+        V.p[1] = BOLA_B;
+        if(!V.quiques && !V.res) V.res = V.falta ? 'falta' : d >= 31 ? 'tripla' : d >= 22 ? 'dupla' : d >= 12 ? 'simples' : V.th > .7 ? 'alto' : 'rasteira';
+        V.quiques++; V.v[1] = Math.abs(V.v[1]) * .3; V.v[0] *= .6; V.v[2] *= .6;
+        if(V.quiques > 3 || Math.hypot(V.v[0], V.v[2]) < .5){ V.v = [0, 0, 0]; V.parou = agora; }
+      }
+    }
+    /* o fim da jogada: o home run espera a bola sumir no escuro; o resto, a bola parar (ou alguém pegar) */
+    const fim = V.res === 'hr' ? agora - V.hrT > 1700 : (V.parou && agora - V.parou > 300) || V.pego || agora - V.t0 > 7000;
+    if(fim) resultadoB(D, V.res || (V.falta ? 'falta' : 'rasteira'), agora);
+  }
+  function resultadoB(D, res, agora){
+    if(D.fase === 'res' || D.fase === 'fim') return;
+    const p = PONTOS_B[res] || 0; D.pts += p; if(res === 'hr') D.hr = (D.hr || 0) + 1;
+    D.res = res; D.fase = 'res'; D.resAte = agora + (res === 'hr' ? 1500 : 1200);
+    C.toast(FALA_B[res] || '', 1400);
+    if(p && res !== 'hr' && C.versoSom && C.versoSom.moeda) C.versoSom.moeda();
+    painelDesafio(true);
+  }
+  function passoTimeB(D, dt){
+    const V = D && D.voo, luva = j => [j.x + Math.cos(j.yaw) * .3, 1, j.z - Math.sin(j.yaw) * .3];
+    timeB().J.forEach(j => {
+      /* quem foi atrás persegue a bola depois do quique */
+      if(V && V.quem === j && !V.pego && V.quiques) j.alvo = [V.p[0], V.p[2]];
+      const alvo = j.alvo || [j.x0, j.z0], dx = alvo[0] - j.x, dz = alvo[1] - j.z, d = Math.hypot(dx, dz), vel = j.alvo ? 6.8 : 3.2;
+      if(d > .12){ const s = Math.min(d, vel * dt); j.x += dx / d * s; j.z += dz / d * s; j.yaw = Math.atan2(dx, dz); j.corre = true; j.passo += dt * (j.alvo ? 14 : 9); }
+      else { j.corre = false; let a = Math.atan2(HP.x - j.x, HP.z - j.z) - j.yaw; a = Math.atan2(Math.sin(a), Math.cos(a)); j.yaw += a * Math.min(1, dt * 4); }
+      if(V && V.quem === j && !V.pego && V.quiques && Math.hypot(V.p[0] - j.x, V.p[2] - j.z) < .7){ V.pego = true; V.v = [0, 0, 0]; }
+      if(V && V.pego && V.quem === j) V.p = luva(j);
+    });
+  }
+  function tickBeisebol(D, agora){
+    const dt = Math.min(.1, (agora - D.ult) / 1000); D.ult = agora;
+    if(D.fase === 'espera' && agora - D.t0 >= SOLTA_B){
+      D.pitch = { t0: agora, T: Math.max(600, 1000 - D.n * 32 + (Math.random() - .5) * 140), bx: (Math.random() - .5) * .44, by: (Math.random() - .5) * .3 };
+      D.fase = 'arremesso'; painelDesafio(true);
+    }
+    if(D.fase === 'arremesso'){
+      const P = D.pitch;
+      if(D.swC && agora >= D.swC && Math.abs(D.erro) <= JANELA_B) lancaB(D, agora);
+      else if(agora >= P.t0 + P.T + 150){ if(C.versoSom && C.versoSom.luva) C.versoSom.luva(); resultadoB(D, D.erro === -1e9 ? 'cedo' : D.sw ? 'errou' : 'olhou', agora); }
+    }
+    if(D.fase === 'voo') voaB(D, agora, dt);
+    if(D.fase === 'res' && agora >= D.resAte){
+      D.n++; timeB().J.forEach(j => { j.alvo = null; });
+      if(D.n >= TENT) fimDesafio();
+      else { Object.assign(D, { fase: 'espera', t0: agora + 250, sw: 0, swC: 0, erro: 0, pitch: null, voo: null, res: null }); posicionaDesafio(); }
+      painelDesafio(true);
+    }
+    /* onde a bola tá agora (o quadro e a sombra leem daqui) */
+    D.bp = D.fase === 'arremesso' && D.pitch ? bolaPitch(D.pitch, agora) : D.voo ? D.voo.p.slice() : D.fase === 'res' && D.pitch ? LUVA_C.slice() : null;
+    passoTimeB(D, dt);
+  }
+  /* a faixa rosa do placar: onde a bola tá quando o toque é perfeito (em % da barra, que vai até 115% do caminho) */
+  const zonaB = D => { const T = D.pitch ? D.pitch.T : Math.max(600, 1000 - D.n * 32), u = 1 - SW_C / T, w = 45 / T; return [(u - w) / 1.15 * 100, 2 * w / 1.15 * 100]; };
+  /* os fogos (hanabi) do home run, por cima do fundo do campo */
+  function soltaFogos(agora){ const F = timeB().fogos, cores = [ROSA, AMARELO, '#E2412E', LILAS, LARANJA, PAPEL]; for(let k = 0; k < 5; k++) F.push({ t0: agora + k * 330, x: 16 + Math.random() * 32, y: 20 + Math.random() * 9, z: 2 + Math.random() * 10, c: cores[k % cores.length] }); }
+  function fogosB(agora){
+    const F = timeB().fogos, out = [];
+    for(let i = F.length - 1; i >= 0; i--){
+      const fo = F[i], t = (agora - fo.t0) / 1000; if(t > 1.8){ F.splice(i, 1); continue; } if(t < 0) continue;
+      const r = 7 * (1 - Math.pow(1 - Math.min(1, t / 1.1), 3)), al = Math.max(0, 1 - t / 1.8);
+      for(let k = 0; k < 18; k++){ const a = k / 18 * Math.PI * 2, b = ((k * 7) % 5 - 2) * .32; out.push(esfera(fo.x + Math.cos(a) * Math.cos(b) * r, fo.y + Math.sin(b) * r - 1.6 * t * t, fo.z + Math.sin(a) * Math.cos(b) * r * .6, .3, k % 3 ? fo.c : PAPEL, null, { alpha: al, semTraco: true })); }
+    }
+    return out;
+  }
+  /* o placar (desenhado de novo só quando muda), os números da cerca e a placa do portal */
+  const textoB = (t, fundo, cor) => { const cv = document.createElement('canvas'); cv.width = 256; cv.height = 128; const x = cv.getContext('2d'); x.fillStyle = fundo; x.fillRect(0, 0, 256, 128); x.fillStyle = cor; x.textAlign = 'center'; x.textBaseline = 'middle'; x.font = '900 84px "Archivo", system-ui, sans-serif'; x.fillText(t, 128, 68); return cv; };
+  let PLACAR_B = null, PLACAR_K = '';
+  function placarB(){
+    const D = S.desafio && ehBeisebol(S.desafio.Q) ? S.desafio : null, rec = melhorQuadra(DESAFIOS.beisebol), k = D ? [D.n, D.pts, D.hr || 0, D.fase === 'res' ? D.res : ''].join('|') : 'parado|' + rec;
+    if(PLACAR_B && PLACAR_K === k) return PLACAR_B; PLACAR_K = k;
+    const cv = PLACAR_B || document.createElement('canvas'); cv.width = 512; cv.height = 256; const x = cv.getContext('2d');
+    x.fillStyle = '#121419'; x.fillRect(0, 0, 512, 256); x.fillStyle = VERMELHAO; x.fillRect(0, 0, 512, 62);
+    x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillStyle = '#FFFFFF'; x.font = '900 46px "Archivo", system-ui, sans-serif'; x.fillText('ACEL', 256, 33);
+    if(D && D.fase === 'res' && D.res === 'hr'){ x.fillStyle = '#FFE14A'; x.font = '900 76px "Archivo", system-ui, sans-serif'; x.fillText('HOME RUN!', 256, 160); }
+    else {
+      const L = D ? [['ARREMESSO', `${Math.min(TENT, D.n + 1)}/${TENT}`], ['PONTOS', String(D.pts)], ['HOME RUNS', String(D.hr || 0)]] : [['DESAFIO DE', 'REBATIDA'], ['MELHOR DO DIA', rec ? `${rec} PTS` : '-']];
+      x.font = '700 30px system-ui, sans-serif';
+      L.forEach(([a, b], i) => { const y = 102 + i * 52; x.textAlign = 'left'; x.fillStyle = '#FFB347'; x.fillText(a, 30, y); x.textAlign = 'right'; x.fillStyle = '#FFE9B0'; x.fillText(b, 482, y); });
+    }
+    PLACAR_B = cv; return cv;
+  }
+  function placasB(){
+    if(PL._bsb) return PL._bsb;
+    const out = [painelSol(cantosPlaca(32, 3.62, 0, 10, 4.9, 3.45, 0), placarB, '#1B1D22', null)];
+    [[-Math.PI / 4, '36'], [0, '42'], [Math.PI / 4, '36']].forEach(([th, t]) => { const [x, z] = noCampo(th, cercaR(th) - .14), img = textoB(t, '#2B2F38', '#F4F1EA'); out.push(painelSol(cantosPlaca(x, z, -th, 1.3, .8, .7, 0), () => img, '#2B2F38', null)); });
+    const acel = textoB('ACEL', INK, '#F4F1EA'); out.push(painelSol(cantosPlaca(32, 58.97, 0, 1, .38, 3.64, 0), () => acel, INK, null), painelSol(cantosPlaca(32, 58.83, Math.PI, 1, .38, 3.64, 0), () => acel, INK, null));
+    PL._bsb = out; return out;
+  }
+  /* o taco (gira do ombro, passa por cima da casa e termina do outro lado) e o capacete de quem rebate */
+  function tacoB(D, e, agora){
+    const cy = Math.cos(e.yaw), sy = Math.sin(e.yaw), gx = e.x + .25 * sy - .15 * cy, gz = e.z + .25 * cy + .15 * sy, gy = 1.04;
+    const s = D.sw ? Math.min(1, (agora - D.sw) / SW_DUR) : 0, psi = lerpK(s, [[0, -1.77], [.32, 0], [1, 2]]), tilt = lerpK(s, [[0, 1], [.2, .45], [.32, .1], [.6, .3], [1, .9]]);
+    const piv = [gx, gy, gz], T = [{ roll: tilt, piv }, { yaw: psi, piv }], G = [{ yaw: e.yaw, piv: [e.x, 0, e.z] }];
+    return [solido(B(gx - .04, gy - .03, gz - .03, .5, .06, .06, '#C8955A'), T, '#C8955A', 'eu', {}), solido(B(gx + .44, gy - .045, gz - .045, .44, .09, .09, '#C8955A'), T, '#C8955A', 'eu', {}), solido(B(gx - .08, gy - .035, gz - .035, .18, .07, .07, INK), T, INK, 'eu', {}),
+      solido(B(e.x - .28, 1.36, e.z - .28, .56, .2, .56, INK), G, INK, 'eu', {}), solido(B(e.x - .2, 1.36, e.z + .28, .4, .05, .2, VERMELHAO), G, VERMELHAO, 'eu', {}), solido(B(e.x - .29, 1.36, e.z - .29, .58, .04, .58, VERMELHAO), G, VERMELHAO, 'eu', {})];
+  }
+  function solidosBeisebol(){
+    const D = S.desafio && ehBeisebol(S.desafio.Q) ? S.desafio : null, agora = Date.now(), out = [], T = timeB();
+    /* o lançador no montinho, o catcher e o juiz atrás da casa e o time no campo */
+    const f = D && D.fase !== 'fim' ? Math.max(0, Math.min(1, (agora - D.t0) / ANIM_B)) : 0;
+    out.push(...atleta(MONTE.x, MONTE.z + .1, 0, { pose: f > 0 && f < 1 ? 'arremesso' : 'pronto', f, pele: '#E8B98A' }));
+    out.push(...atleta(32.06, 51.35, Math.PI, { pose: 'agachado', pele: '#8E5B33' }), ...atleta(32.55, 52.3, Math.PI, { pose: 'juiz', pele: '#F0C9A0' }));
+    T.J.forEach(j => out.push(...atleta(j.x, j.z, j.yaw, { pose: j.corre ? 'corre' : 'pronto', passo: j.passo, pele: j.pele })));
+    if(D && S.eu) out.push(...tacoB(D, S.eu, agora));
+    out.push(...fogosB(agora), ...placasB());
+    const bp = bolaAgora(); if(bp) out.push(esfera(bp[0], bp[1], bp[2], BOLA_B, PAPEL, 'eu', { desenho: 'beisebol', gira: (agora - (D && D.voo ? D.voo.t0 : 0)) / 1000 * 14 }));
+    return out;
   }
   /* ---------- v3.50 · a corrida ----------
      Montado, o boneco anda como veículo: frente acelera, trás freia (e dá ré), os lados viram, e a câmera fica atrás.
@@ -2808,7 +3124,7 @@
   }
   function portaCasa(){
     const b = C.$('cs-porta'); if(!b) return;
-    if(S.desafio){ const D = S.desafio, txt = D.fase === 'mira' ? D.Q.botao : D.fase === 'voo' ? '…' : 'Fim!'; S.perto = null; if(b.dataset.txt !== txt){ b.dataset.txt = txt; b.hidden = false; b.innerHTML = `${ico('raio')}<span>${txt}</span>`; } b.classList.remove('morde'); return; }
+    if(S.desafio){ const D = S.desafio, txt = ehBeisebol(D.Q) ? ((D.fase === 'espera' || D.fase === 'arremesso') && !D.sw ? D.Q.botao : D.fase === 'fim' ? 'Fim!' : '…') : D.fase === 'mira' ? D.Q.botao : D.fase === 'voo' ? '…' : 'Fim!'; S.perto = null; if(b.dataset.txt !== txt){ b.dataset.txt = txt; b.hidden = false; b.innerHTML = `${ico('raio')}<span>${txt}</span>`; } b.classList.remove('morde'); return; }
     if(S.corrida && S.corrida.kart){ const R = S.corrida, it = R.item && ITENS_K[R.item], txt = R.fim ? 'Chegou!' : R.roleta ? '…' : it ? `Usar: ${it.nome}${R.itemN > 1 ? ` x${R.itemN}` : ''}` : 'Sem item'; S.perto = null; if(b.dataset.txt !== txt){ b.dataset.txt = txt; b.hidden = false; b.innerHTML = `${ico(R.fim ? 'check' : it ? it.ico : 'raio')}<span>${txt}</span>`; } b.classList.toggle('vazio', !it && !R.fim); b.classList.remove('morde'); return; }
     b.classList.remove('vazio');
     if(S.corrida){ const txt = S.corrida.fim ? 'Chegou!' : 'Desistir'; S.perto = null; if(b.dataset.txt !== txt){ b.dataset.txt = txt; b.hidden = false; b.innerHTML = `${ico(S.corrida.fim ? 'check' : 'x')}<span>${txt}</span>`; } b.classList.remove('morde'); return; }
@@ -3258,7 +3574,7 @@
     if(!S.aberta) return;
     if(S.modo === 'colocar') cancelaGhost();
     S.aberta = false; S.lugar = ''; cancelAnimationFrame(S.raf); S.raf = 0; S.teclas.clear(); S.padTh = null; S.perto = null; if(S.pad) S.pad.solta();
-    S.disco = null; S.discoAtual = ''; S.ouvindo = ''; S.pesca = null; S.corrida = null; S.desafio = null; S.distPesca = null; S.kartVivo = null; if(C.beats) C.beats.para();
+    S.disco = null; S.discoAtual = ''; S.ouvindo = ''; S.pesca = null; S.corrida = null; S.desafio = null; S.bsb = null; S.distPesca = null; S.kartVivo = null; if(C.beats) C.beats.para();
     const pq = C.$('cs-pesca'); if(pq) pq.hidden = true;
     clearTimeout(S.salvaT); if(S.sujo) salva();
     if(S.el){ S.el.hidden = true; }
