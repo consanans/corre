@@ -4244,6 +4244,13 @@
   });
 
   C.verso = { miniVeiculo, trocaVeiculo, veiculoDe, alturaPulo, PULO_MS,
+    /* v3.65 · a busca do Corre leva direto pra um lugar da cidade (o mesmo "ir pra lá" do Mapa, de graça). false = a cidade
+       ainda não tá pronta (ou você tá dentro de um lugar 3D); null = esse lugar não existe aqui (ex.: sem casa ainda) */
+    irPara: nome => {
+      if(!V.vivo || !V.cid || !V.eu || (C.casa && C.casa.aberta && C.casa.aberta())) return false;
+      const l = lugares().find(x => x.nome === nome), p = l && pertoLivre(l.x, l.y); if(!p) return null;
+      teleporta(p.x, p.y); return true;
+    },
     /* a casa avisa que você pulou lá dentro (quem tá na casa vê) */
     marcaPulo: () => { if(!V.eu) return; V.eu.puN = ((V.eu.puN || 0) % 999) + 1; enviaPos(true); },
     publiImg, publiLogo, publiSheet, PUBLI, logoSharks, meuSid: () => sid, kartManda: d => { if(V.rede && V.rede.kart && C.casa && C.casa.aberta()) V.rede.kart(Object.assign({ sid }, d)); },

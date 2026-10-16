@@ -164,6 +164,7 @@
     const nav = LISTA.map(x => x === 'praca' ? `<div class="lado-praca">${PRACA.map(um).join('')}</div>` : x.startsWith('g:') ? grupoLado(x.slice(2), D, active) : tem(x) ? um(x) : '').join('');
     return `<aside class="lado" aria-label="Menu do Corre">
       <a class="wm lado-wm" href="#/" aria-label="Corre, início"><span class="lado-wm-t">Corre</span><span class="lado-wm-c" aria-hidden="true">C</span><span class="wm-tag" aria-hidden="true">rede</span></a>
+      <button type="button" class="lado-procura" data-act="procura" aria-label="Procurar no Corre" title="Procurar (/)" aria-haspopup="dialog">${ico('lupa')}<span class="lado-procura-t">Procurar</span><kbd aria-hidden="true">/</kbd></button>
       <nav class="lado-nav" aria-label="Navegação">${nav}
         ${mais.length ? `<details class="lado-mais"><summary class="lado-i" title="Mais"${mais.includes(active) ? ' aria-current="page"' : ''}><span class="mi-ic">${ico('dots')}</span><span class="mi-t">Mais</span></summary>
           <div class="lado-mais-m" role="menu">${mais.map(k => itemSimples([k].concat(D[k]), 'lado')).join('')}</div></details>` : ''}
@@ -204,6 +205,7 @@
         <a class="wm" href="#/" aria-label="Corre, início">Corre<span class="wm-tag" aria-hidden="true">rede</span></a>
         ${!st.user ? `<a class="hl" href="#/">Entrar</a>` : ''}
       </nav>
+      ${logged ? `<button type="button" class="hdr-procura" data-act="procura" aria-label="Procurar no Corre" title="Procurar" aria-haspopup="dialog">${ico('lupa')}</button>` : ''}
       ${logged ? `<button type="button" class="sino hdr-sino" data-act="sino" data-sino${idSe(false, 'sino')} aria-label="Avisos e agenda" title="Avisos">${ico('bell')}<span class="sino-n num" hidden></span></button>` : ''}
       ${logged ? `<button type="button" class="oculto-btn" data-act="oculto" aria-pressed="${C.oculto}" aria-label="${C.oculto ? 'Mostrar valores' : 'Esconder valores'}" title="${C.oculto ? 'Mostrar valores' : 'Esconder valores'}">${ico(C.oculto ? 'eyeoff' : 'eye')}</button>` : ''}
       ${st.user && !me ? `<details class="me" id="me">
@@ -216,6 +218,263 @@
     ${logged ? `<nav class="tabbar tbx" aria-label="Navegação">${BARRA.filter(tem).map(k => { const [h, l, i] = DEST(me)[k]; return itemMenu(k, h, l, i, 'tb-i', k === active, false); }).join('')}</nav>
       ${POSTAR.includes(cru || active) ? `<button type="button" class="tb-postar" data-act="lado-postar" aria-label="Postar no feed">${ico('plus')}</button>` : ''}` : ''}`;
   };
+
+  /* ---------------- v3.65 · procurar ---------------- */
+  /* O Thales pediu uma barra pra procurar grupos, gente, ferramentas "etc". É uma busca só, de qualquer página: a barra no
+     alto do menu (computador), a lupa no alto (celular), a tecla / ou Ctrl+K. Ferramentas e lugares da cidade se acham aqui
+     mesmo, na hora (sem banco); gente, grupos e posts vão no banco, e o banco só devolve o que a pessoa já podia ver */
+  const semAcento = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+  const palavras = s => semAcento(s).split(/[^a-z0-9]+/).filter(Boolean);
+  /* a nota de um resultado: cada palavra digitada tem que começar uma palavra do nome (vale 3) ou do apelido (vale 1);
+     nome que começa com o que foi digitado ganha mais. Por começo de palavra: "ana" não acha a "Banca" */
+  function nota(q, nome, kw){
+    const Q = palavras(q); if(!Q.length) return 0;
+    const N = palavras(nome), K = palavras(kw); let n = 0;
+    for(const w of Q){ if(N.some(x => x.startsWith(w))) n += 3; else if(K.some(x => x.startsWith(w))) n += 1; else return 0; }
+    return n + (semAcento(nome).startsWith(Q.join(' ')) ? 3 : 0);
+  }
+  /* pinta de marca-texto o pedaço que bateu (sem ligar pra acento: "joao" marca o "João") */
+  function marca(txt, q){
+    const ch = [...String(txt || '')], nz = ch.map(c => semAcento(c)), pos = []; let soma = 0;
+    nz.forEach(z => { pos.push(soma); soma += z.length; });
+    const plano = nz.join(''), on = ch.map(() => false);
+    palavras(q).forEach(w => {
+      const m = new RegExp('(^|[^a-z0-9])' + w).exec(plano); if(!m) return;
+      const ini = m.index + m[1].length, fim = ini + w.length; pos.forEach((p, i) => { if(p >= ini && p < fim) on[i] = true; });
+    });
+    let out = '', dentro = false;
+    ch.forEach((c, i) => { if(on[i] !== dentro){ out += on[i] ? '<mark>' : '</mark>'; dentro = on[i]; } out += esc(c); });
+    return out + (dentro ? '</mark>' : '');
+  }
+  /* as ferramentas e os atalhos do app: o menu inteiro (DEST, o que a pessoa tem) e mais o que mora dentro das páginas */
+  const FERR = () => {
+    const D = DEST(st.me);
+    return [
+      ['inicio', 'O feed: quem você segue e o que é pra você', 'feed home timeline posts comeco'],
+      ['msg', 'Conversas, pedidos e o papo dos grupos', 'chat conversa direct dm inbox papo mensagem'],
+      ['grupos', 'Gente do mesmo corre num lugar só', 'comunidade turma galera'],
+      ['avisos', 'Notificações e a agenda do dia', 'notificacao notificacoes sino agenda alerta lembrete'],
+      ['studio', 'Programa e posta no Instagram', 'instagram post programar agendar calendario conteudo redes sociais legenda reels'],
+      ['houzi', 'Marca, logo e brandbook', 'branding logo logotipo logomarca marca identidade visual brandbook paleta'],
+      ['horus', 'Caça de clientes no mapa', 'clientes leads prospeccao prospectar abordagem radar empresas'],
+      ['marcas', 'Teus trabalhos e a vitrine do que você vende', 'portfolio catalogo vitrine trabalhos produtos loja'],
+      ['verso', 'A cidade do Corre', 'cidade jogo game mapa pixel'],
+      ['mural', 'Pedidos de serviço: quem faz o quê', 'pedido pedidos servico freela trabalho quem faz contratar'],
+      ['corre', 'Do orçamento ao dinheiro na conta', 'vendas venda grana dinheiro financeiro caixa receita despesa orcamento lucro'],
+      ['carteira', 'Teu saldo de correal', 'correal saldo moeda'],
+      ['planos', 'Assinaturas e faturas', 'assinatura assinar pagar pagamento fatura plano preco pix boleto cartao'],
+      ['banca', 'As manchetes do teu assunto', 'noticias noticia manchetes jornal'],
+      ['refs', 'Referências e datas do teu nicho', 'referencias inspiracao nicho datas comemorativas'],
+      ['rolo', 'Filmes em 360', 'filme filmes cinema'],
+      ['perfil', 'Como os outros te veem', 'eu conta bio'],
+      ['salvos', 'Os posts que você guardou', 'salvo guardado guardados favoritos']
+    ].filter(([k]) => tem(k)).map(([k, d, kw]) => ({ k, h: D[k][0], a: D[k][0] ? '' : (k === 'avisos' ? 'sino' : k), t: D[k][1], i: D[k][2], d, kw })).concat([
+      { k: 'estilo', h: '#/estilo', t: 'Estilo de vida', i: 'calc', d: 'Quanto custa o teu mês', kw: 'custo vida calculadora meta gastos' },
+      { k: 'editar', h: '#/editar', t: 'Editar perfil', i: 'edit', d: 'Foto, nome, bio e quem vê teus dados', kw: 'foto nome bio desbaratinado privacidade conta capa ferramentas' },
+      { k: 'postar', a: 'lado-postar', t: 'Postar no feed', i: 'plus', d: 'Escrever um post', kw: 'publicar post novo escrever' },
+      { k: 'story', a: 'st-novo', t: 'Postar story', i: 'plus', d: 'Some em 24 horas', kw: 'story stories' },
+      { k: 'msg-nova', a: 'msg-nova', t: 'Nova mensagem', i: 'send', d: 'Chamar alguém pra conversar', kw: 'mandar mensagem conversar chamar' },
+      { k: 'gr-novo', a: 'gr-novo', t: 'Criar grupo', i: 'gente', d: 'Juntar a tua turma', kw: 'novo grupo comunidade' },
+      { k: 'mural-novo', h: '#/mural/novo', t: 'Fixar um pedido no Mural', i: 'tacha', d: 'Quem faz te manda proposta', kw: 'pedir servico orcamento' },
+      { k: 'push', a: 'push-ajustes', t: 'Avisos no celular', i: 'bell', d: 'Liga e desliga as notificações', kw: 'notificacao notificacoes push celular' },
+      { k: 'manual', a: 'manual', t: 'Manual do Corre', i: 'manual', d: 'Como usar cada coisa', kw: 'ajuda duvida tutorial como funciona' },
+      { k: 'privacidade', h: 'privacidade.html', t: 'Privacidade', i: 'lock', d: 'O que o Corre guarda e por quê', kw: 'dados lgpd termos' }
+    /* um atalho que é botão só aparece se o módulo dele carregou (sem o Grupos, nada de "Criar grupo") */
+    ]).filter(f => !f.a || C.acts[f.a]).map(f => ({ tipo: 'f', key: 'f:' + f.k, t: f.t, s: f.d, i: f.i, h: f.h || '', a: f.a || '', kw: f.kw }));
+  };
+  /* os lugares da cidade (os nomes são os do Mapa do Correverso: K.lugares em verso.js). Tocou, vai direto pra lá */
+  const LUGARES_V = [
+    ['Tua casa', 'home', 'Decorar e receber gente', 'casa decorar moveis toca discos lar'],
+    ['Feira do Corre', 'toldo', 'As barracas das ferramentas', 'feira barracas barraca'],
+    ['Autódromo do Café', 'carro', 'Corrida de moto e de carro', 'corrida moto carro pista autodromo largada'],
+    ['Pista do Zerão', 'carro', 'Kart com os bichos, 4 pistas', 'kart patinete corrida bichos jet'],
+    ['Zerão', 'verso', 'Quadras com desafio: futsal e basquete', 'quadra quadras futsal basquete desafio bola'],
+    ['Píer do Igapó', 'peixe', 'Torneio de pesca', 'pesca pescar peixe torneio'],
+    ['Lago Igapó', 'verso', 'O lago da cidade', 'lago agua'],
+    ['ACEL · Beisebol', 'verso', 'Desafio de rebatida do Red Sharks', 'beisebol baseball red sharks rebatida'],
+    ['Sebo', 'musica', 'Discos pro teu toca-discos', 'discos disco vinil musica'],
+    ['Estádio do Café', 'verso', 'O estádio da cidade', 'futebol estadio'],
+    ['Aeroporto', 'aviao', 'Voo pra qualquer canto da cidade', 'voo voar aviao viajar paraquedas'],
+    ['Bosque dos Ipês', 'verso', 'Ipê florido o ano inteiro', 'bosque ipe ipes arvores'],
+    ['Gleba Palhano', 'verso', 'Os prédios altos', 'predios gleba']
+  ].map(([t, i, s, kw]) => ({ tipo: 'v', key: 'v:' + t, t, s, i, lugar: t, kw }));
+  /* o que a pessoa abriu pela busca fica no aparelho (por login), pra voltar com um toque */
+  const REC_K = 'corre-procura';
+  const recentes = () => { try{ const o = JSON.parse(localStorage.getItem(REC_K) || 'null'); return o && st.me && o.u === st.me.id && Array.isArray(o.L) ? o.L.slice(0, 6) : []; }catch(e){ return []; } };
+  const guardaRecente = o => { if(!st.me || o.tipo === 'm' || o.tipo === 't') return; try{ const x = Object.assign({}, o); delete x.kw; localStorage.setItem(REC_K, JSON.stringify({ u: st.me.id, L: [x].concat(recentes().filter(r => r.key !== o.key)).slice(0, 6) })); }catch(e){} };
+  /* o que tá em alta no feed (as hashtags da semana), guardado por 5 minutos */
+  let altaCache = null;
+  const emAlta = async () => {
+    if(altaCache && Date.now() - altaCache.t < 3e5) return altaCache.L;
+    let L = []; try{ L = ((await api.rpc('corre_em_alta', { dias: 7 })) || []).filter(x => x && x.tag).slice(0, 8); }catch(e){}
+    altaCache = { t: Date.now(), L }; return L;
+  };
+  /* o banco: gente (pelo @, pelo nome e pelo que faz), grupos e posts com o texto. Cada um pode falhar sozinho */
+  async function noBanco(q){
+    const cru = String(q || '').trim().replace(/^[@#]+/, '').slice(0, 60), like = '%' + cru.replace(/[%_\\]/g, '') + '%', z = semAcento(cru);
+    if(cru.length < 2) return { gente: [], grupos: [], posts: [] };
+    const pp = c => api.q('corre_perfis', { ilike: { [c]: like }, eq: { visibilidade: 'publico' }, limit: 8 }).catch(() => []);
+    const [a, b, c, g, ps] = await Promise.all([pp('handle'), pp('nome'), cru.length >= 3 ? pp('faz') : [],
+      C.views.grupos ? api.rpc('corre_grupos_lista', { p_busca: cru, p_lim: 6 }).catch(() => []) : [],
+      cru.length >= 3 ? api.q('corre_feed', { join: 'perfil', order: ['created_at', false], limit: 4, is: { fio: null, grupo: null }, ilike: { texto: like } }).catch(() => []) : []]);
+    /* a ordem da gente: o @ que começa igual, o nome que começa igual, o resto */
+    const vistos = new Set(), gente = [];
+    const pontua = p => (semAcento(p.handle).startsWith(z) ? 6 : 0) + (palavras(p.nome).some(w => w.startsWith(z)) ? 4 : 0) + (semAcento(p.nome).includes(z) || semAcento(p.handle).includes(z) ? 2 : 0) + (p.id === C.uid() ? -1 : 0);
+    a.concat(b, c).forEach(p => { if(p && p.id && p.handle && !vistos.has(p.id)){ vistos.add(p.id); gente.push(p); } });
+    gente.sort((x, y) => pontua(y) - pontua(x));
+    return { gente: gente.slice(0, 6), grupos: (g || []).slice(0, 5), posts: (ps || []).filter(p => p && p.id && p.texto).slice(0, 3) };
+  }
+  /* um pedaço do post em volta do que bateu */
+  const trecho = (t, q) => {
+    const s = String(t || '').replace(/\s+/g, ' ').trim(), i = Math.max(0, semAcento(s).indexOf(semAcento(String(q).trim().replace(/^[@#]+/, ''))));
+    const ini = Math.max(0, i - 34), fim = Math.min(s.length, ini + 110);
+    return (ini ? '…' : '') + s.slice(ini, fim) + (fim < s.length ? '…' : '');
+  };
+  const umaPessoa = p => ({ tipo: 'p', key: 'p:' + p.id, t: p.nome || '@' + p.handle, s: '@' + p.handle + (p.faz ? ' · ' + p.faz : ''), h: '#/@' + p.handle, av: { nome: p.nome || p.handle, avatar_url: p.avatar_url || '', aberto: !!p.aberto } });
+  const umGrupo = g => ({ tipo: 'g', key: 'g:' + g.slug, t: g.nome, s: `${Number(g.membros_n) === 1 ? '1 membro' : `${Number(g.membros_n) || 0} membros`} · ${g.fechado ? 'fechado' : 'aberto'}${g.eu && g.eu.estado === 'ativo' ? ' · você tá dentro' : ''}`, h: '#/g/' + g.slug, gav: { nome: g.nome, cor: g.cor, capa_url: g.capa_url } });
+  const umPost = (p, q) => { const a = p.perfil || {}; return { tipo: 'post', key: 'post:' + p.id, t: trecho(p.texto, q), s: '@' + (a.handle || '') + (p.created_at && C.rel ? ' · ' + C.rel(p.created_at) : ''), h: '#/p/' + p.id, av: { nome: a.nome || a.handle || '', avatar_url: a.avatar_url || '' } }; };
+
+  const P = { q: '', seq: 0, lista: [], ativo: -1, banco: null, bancoQ: '', t: 0 };
+  const icone = o => o.av ? avatar(o.av, 's') : o.gav && C.grupos ? C.grupos.av(o.gav, 's') : `<span class="pq-ic pq-ic-${o.tipo}">${ico(o.i)}</span>`;
+  const rotulo = { f: 'ferramenta', v: 'na cidade', p: 'perfil', g: 'grupo', post: 'post', m: 'mural', t: 'hashtag' };
+  function itemHTML(o, q){
+    const n = P.lista.push(o) - 1, abre = o.h ? `a href="${esc(o.h)}"` : 'button type="button"', fecha = o.h ? 'a' : 'button';
+    return `<${abre} class="pq-it pq-${o.tipo}" role="option" id="pq-o-${n}" data-pq="${n}" aria-selected="false" tabindex="-1">${icone(o)}<span class="pq-tx"><b>${q ? marca(o.t, q) : esc(o.t)}</b>${o.s ? `<small>${q ? marca(o.s, q) : esc(o.s)}</small>` : ''}</span><span class="pq-tipo">${rotulo[o.tipo] || ''}</span></${fecha}>`;
+  }
+  const secao = (id, titulo, L, q, extra) => L.length ? `<div class="pq-sec pq-sec-${id}" role="group" aria-labelledby="pq-s-${id}"><p class="pq-k" id="pq-s-${id}"><span>${titulo}</span>${extra || ''}</p>${L.map(o => itemHTML(o, q)).join('')}</div>` : '';
+  /* sem nada digitado: o que a pessoa abriu antes, os atalhos de sempre e o que tá em alta */
+  async function pintaVazio(){
+    const res = $('pq-res'); if(!res) return;
+    P.lista = []; const rec = recentes(), F = FERR(), por = k => F.find(f => f.key === 'f:' + k);
+    const atalhos = ['studio', 'houzi', 'horus', 'corre', 'verso', 'mural', 'grupos', 'planos'].map(por).filter(Boolean);
+    res.innerHTML = secao('rec', 'Recentes', rec, '', `<button type="button" class="pq-limpa" data-pq-limpa>limpar</button>`)
+      + `<div class="pq-sec" role="group" aria-labelledby="pq-s-at"><p class="pq-k" id="pq-s-at"><span>Atalhos</span></p><div class="pq-chips">${atalhos.map(o => { const n = P.lista.push(o) - 1; return `<a class="pq-chip" href="${esc(o.h)}" data-pq="${n}" tabindex="-1">${ico(o.i)}<span>${esc(o.t)}</span></a>`; }).join('')}</div></div>
+      <div class="pq-sec pq-alta" id="pq-alta" hidden></div>
+      <p class="pq-nada pq-como">Procura gente pelo nome, pelo @ ou pelo que faz (fotógrafo, DJ, bolo), um grupo, uma ferramenta, um lugar do Correverso ou um #assunto.</p>`;
+    marcaAtivo(-1);
+    const seq = P.seq, L = await emAlta(), el = $('pq-alta');
+    if(!el || seq !== P.seq || !L.length) return;
+    el.hidden = false;
+    el.innerHTML = `<p class="pq-k"><span>Em alta no Corre</span></p><div class="pq-chips">${L.map(x => `<button type="button" class="pq-chip pq-tag" data-pq-tag="${esc(x.tag)}" tabindex="-1">#${esc(x.tag)}</button>`).join('')}</div>`;
+  }
+  function pinta(){
+    const res = $('pq-res'); if(!res) return;
+    const q = P.q.trim(); if(!q) return pintaVazio();
+    P.lista = [];
+    const tag = /^#[\p{L}\p{N}_]{2,}$/u.test(q) ? q.slice(1).toLowerCase() : '';
+    const pontua = L => L.map(o => ({ o, n: nota(q, o.t, o.kw) })).filter(x => x.n).sort((a, b) => b.n - a.n).map(x => x.o);
+    const F = tag ? [] : pontua(FERR()).slice(0, 5), V = tag ? [] : pontua(LUGARES_V).slice(0, 4);
+    /* hashtag não vai no banco (o "#tag no feed" leva pros posts); o resto, com 2 letras ou mais */
+    const vaiNoBanco = !/^#/.test(q) && q.replace(/^@+/, '').length >= 2, B = P.bancoQ === q ? P.banco : null, esperando = vaiNoBanco && !B;
+    const gente = B ? B.gente.map(umaPessoa) : [], grupos = B ? B.grupos.map(umGrupo) : [], posts = B ? B.posts.map(p => umPost(p, q)) : [];
+    const mais = [];
+    if(tag && C.acts['fd-tag']) mais.push({ tipo: 't', key: 't:' + tag, t: `#${tag} no feed`, s: 'Os posts com essa hashtag', i: 'fogo', tag });
+    if(C.mural && C.mural.procura && q.replace(/^[@#]+/, '').length >= 2) mais.push({ tipo: 'm', key: 'm', t: `Procurar "${q.replace(/^[@#]+/, '')}" no Mural`, s: 'Pedidos de serviço de quem precisa', i: 'tacha', mural: q.replace(/^[@#]+/, '') });
+    /* ferramenta que bateu pelo nome vem primeiro ("studio"); bateu só pelo apelido ("foto"), a gente vem antes */
+    const forte = F.length && nota(q, F[0].t, '') > 0;
+    const blocos = [
+      ['f', 'Ferramentas', F], ['v', 'No Correverso', V], ['p', 'Gente', gente], ['g', 'Grupos', grupos], ['post', 'Posts', posts]
+    ];
+    const ordem = forte ? blocos : [blocos[2], blocos[3], blocos[0], blocos[1], blocos[4]];
+    const html = ordem.map(([id, t, L]) => secao(id, t, L, id === 'post' ? q.replace(/^[@#]+/, '') : q)).join('');
+    const nadaAinda = !html && !esperando;
+    res.innerHTML = html
+      + (esperando ? `<div class="pq-sec pq-espera" aria-hidden="true"><p class="pq-k"><span>Gente e grupos</span></p><i></i><i></i><i></i></div>` : '')
+      + (nadaAinda ? `<p class="pq-nada">Nada com "${esc(q)}" por aqui. Tenta o @ da pessoa, o nome do grupo ou o que ela faz.</p>` : '')
+      + secao('m', 'Mais', mais, '');
+    marcaAtivo(P.lista.length ? 0 : -1);
+    const st2 = $('pq-status'); if(st2) st2.textContent = esperando ? 'Procurando…' : `${P.lista.length} ${P.lista.length === 1 ? 'resultado' : 'resultados'}`;
+  }
+  /* o item aceso (setas do teclado e o Enter): o leitor de tela ouve pelo aria-activedescendant */
+  function marcaAtivo(n){
+    const inp = $('pq-q'), its = [...document.querySelectorAll('#pq-res [data-pq]')];
+    P.ativo = its.length ? Math.max(-1, Math.min(n, its.length - 1)) : -1;
+    its.forEach((el, i) => { el.classList.toggle('on', i === P.ativo); if(el.getAttribute('role') === 'option') el.setAttribute('aria-selected', String(i === P.ativo)); });
+    const el = its[P.ativo];
+    if(inp){ if(el && el.id) inp.setAttribute('aria-activedescendant', el.id); else inp.removeAttribute('aria-activedescendant'); }
+    if(el && P.teclado) el.scrollIntoView({ block: 'nearest' });
+  }
+  async function procura(){
+    const q = P.q.trim(), seq = ++P.seq;
+    pinta();
+    if(q.replace(/^[@#]+/, '').length < 2 || /^#/.test(q)){ $('pq-q') && $('pq-q').closest('.pq').classList.remove('carregando'); return; }
+    const caixa = $('pq-q') && $('pq-q').closest('.pq'); if(caixa) caixa.classList.add('carregando');
+    const B = await noBanco(q);
+    if(seq !== P.seq || !$('pq-res')) return;
+    if(caixa) caixa.classList.remove('carregando');
+    P.banco = B; P.bancoQ = q; P.teclado = false; pinta();
+  }
+  /* ir pra um lugar da cidade: abre o Correverso (se não tiver aberto) e espera a cidade ficar pronta pra levar a pessoa.
+     Se uma folha tá aberta lá (a primeira entrada pede o boneco), espera ela fechar */
+  function vaiLugar(nome){
+    C.closeSheet();
+    if(C.casa && C.casa.aberta && C.casa.aberta() && C.casa.fechar) C.casa.fechar();
+    if(location.hash !== '#/verso' || !(C.verso && C.verso.vivo && C.verso.vivo())) go('#/verso');
+    const t0 = Date.now();
+    const tenta = () => {
+      if(location.hash !== '#/verso') return;
+      const sh = $('sheet'), r = (!sh || sh.hidden) && C.verso && C.verso.irPara ? C.verso.irPara(nome) : false;
+      if(r === true) return toast(`Chegou: ${nome}.`);
+      if(r === null) return toast(nome === 'Tua casa' ? 'Você ainda não tem casa na cidade.' : `Não achei ${nome} nesta cidade.`);
+      if(Date.now() - t0 < 60000) setTimeout(tenta, 350);
+    };
+    setTimeout(tenta, 350);
+  }
+  /* abriu um resultado */
+  function vai(o, e){
+    guardaRecente(o);
+    if(o.lugar) return vaiLugar(o.lugar);
+    if(o.h){
+      /* link de verdade: o navegador navega e a rota fecha a folha. Já tava nessa página: só fecha */
+      if(o.h === location.hash || (o.h === '#/' && !location.hash)){ if(e) e.preventDefault(); C.closeSheet(); }
+      return;
+    }
+    C.closeSheet();
+    const b = document.createElement('button');
+    if(o.tag){ b.dataset.t = o.tag; return C.acts['fd-tag'](b); }
+    if(o.mural) return C.mural.procura(o.mural);
+    const f = o.a && C.acts[o.a];
+    if(f) Promise.resolve(f(b)).catch(err => toast(C.errMsg(err)));
+  }
+  function abreProcura(){
+    if(!st.user || !st.me) return;
+    const ja = $('sheet'); if(ja && !ja.hidden && ja.classList.contains('procura')){ const i = $('pq-q'); if(i){ i.focus(); i.select(); } return; }
+    P.q = ''; P.banco = null; P.bancoQ = ''; P.teclado = false;
+    const panel = C.sheet(`<div class="pq">
+      <div class="pq-barra">${ico('lupa', 'pq-lupa')}<input class="pq-in" id="pq-q" type="search" placeholder="${innerWidth < 420 ? 'Procurar no Corre' : 'Procurar gente, grupos, ferramentas…'}" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search" maxlength="60" autofocus
+        role="combobox" aria-expanded="true" aria-controls="pq-res" aria-autocomplete="list" aria-label="Procurar no Corre"><button type="button" class="pq-fecha" data-close aria-label="Fechar a busca"><kbd>Esc</kbd><span>Fechar</span></button></div>
+      <i class="pq-barrinha" aria-hidden="true"></i>
+      <div class="pq-res" id="pq-res" role="listbox" aria-label="Resultados"></div>
+      <p class="pq-dica" aria-hidden="true"><span><kbd>↑</kbd><kbd>↓</kbd> escolhe</span><span><kbd>Enter</kbd> abre</span><span><kbd>/</kbd> procura de qualquer página</span></p>
+      <p class="sr-only" id="pq-status" role="status" aria-live="polite"></p></div>`, 'procura');
+    const inp = $('pq-q');
+    inp.addEventListener('input', () => { P.q = inp.value; P.teclado = false; clearTimeout(P.t); pinta(); P.t = setTimeout(procura, 200); });
+    inp.addEventListener('keydown', e => {
+      if(e.key === 'ArrowDown' || e.key === 'ArrowUp'){ e.preventDefault(); P.teclado = true; const n = document.querySelectorAll('#pq-res [data-pq]').length; if(n) marcaAtivo(P.ativo < 0 ? (e.key === 'ArrowDown' ? 0 : n - 1) : (P.ativo + (e.key === 'ArrowDown' ? 1 : -1) + n) % n); }
+      else if(e.key === 'Enter'){ e.preventDefault(); const el = document.querySelectorAll('#pq-res [data-pq]')[P.ativo]; if(el) el.click(); }
+    });
+    panel.addEventListener('pointermove', e => { const el = e.target.closest('#pq-res [data-pq]'); if(!el || el.classList.contains('on')) return; P.teclado = false; marcaAtivo([...document.querySelectorAll('#pq-res [data-pq]')].indexOf(el)); });
+    panel.addEventListener('click', e => {
+      if(e.target.closest('[data-pq-limpa]')){ try{ localStorage.removeItem(REC_K); }catch(_){} pintaVazio(); inp.focus(); return; }
+      const t = e.target.closest('[data-pq-tag]'); if(t){ vai({ tipo: 't', tag: String(t.dataset.pqTag || '').toLowerCase() }, e); return; }
+      const el = e.target.closest('[data-pq]'); if(!el) return;
+      const o = P.lista[Number(el.dataset.pq)]; if(o) vai(o, e);
+    });
+    pintaVazio();
+  }
+  C.procura = abreProcura;
+  C.acts.procura = () => abreProcura();
+  /* / e Ctrl+K abrem a busca (o / não vale com o cursor num campo; nenhum dos dois dentro de um lugar 3D, que usa o teclado) */
+  addEventListener('keydown', e => {
+    if(C.EMBED || !st.user || !st.me || e.defaultPrevented) return;
+    const ctrlK = (e.key === 'k' || e.key === 'K') && (e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey, barra = e.key === '/' && !e.ctrlKey && !e.metaKey && !e.altKey;
+    if(!ctrlK && !barra) return;
+    const t = e.target, digitando = !!t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName || ''));
+    if((barra && digitando) || (C.casa && C.casa.aberta && C.casa.aberta()) || document.querySelector('dialog[open]')) return;
+    const sh = $('sheet'); if(barra && sh && !sh.hidden && !sh.classList.contains('procura')) return;
+    if($('story') && !$('story').hidden) return;
+    e.preventDefault(); abreProcura();
+  });
 
   /* Corre: vendas e grana na mesma página, sem abas. #/vendas e #/grana caem aqui, na seção certa */
   C.views.corre = async function(app, foco){

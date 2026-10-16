@@ -694,5 +694,7 @@
     if(id === 'mu-u'){ encheCidades(e.target.value, 'mu-c-l'); }
     if(id === 'mu-r') forca();
   });
-  C.mural = { CATS, catDe, catsDe, calor, prefs };
+  /* v3.65 · a busca do Corre abre o Mural na aba "Tudo" já filtrando pelo que a pessoa procurou */
+  const procura = q => { M.quem = logado() ? C.st.user.id : ''; M.tab = 'tudo'; M.cat = ''; M.q = String(q || '').trim().slice(0, 60); C.go('#/mural'); };
+  C.mural = { CATS, catDe, catsDe, calor, prefs, procura };
 })();

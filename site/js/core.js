@@ -134,7 +134,9 @@
     lab: '<path d="M9.5 3.5h5"/><path d="M10.5 3.5v5.4L5.2 18.2a1.6 1.6 0 0 0 1.4 2.3h10.8a1.6 1.6 0 0 0 1.4-2.3L13.5 8.9V3.5"/><path d="M7.6 14.5h8.8"/>',
     toldo: '<path d="M3.5 9 5.2 4.5h13.6L20.5 9"/><path d="M3.5 9a2.83 2.83 0 0 0 5.67 0 2.83 2.83 0 0 0 5.66 0 2.83 2.83 0 0 0 5.67 0"/><path d="M5 11.6v8.9h14v-8.9"/><path d="M10 20.5v-5h4v5"/>',
     /* v3.49 · o peixe do Torneio de Pesca do Igapó */
-    peixe: '<path d="M3 12c3.2-4.6 9.2-5.4 13.8-1.2L21 8v8l-4.2-2.8C12.2 17.4 6.2 16.6 3 12z"/><circle cx="8" cy="11.2" r=".9"/>'
+    peixe: '<path d="M3 12c3.2-4.6 9.2-5.4 13.8-1.2L21 8v8l-4.2-2.8C12.2 17.4 6.2 16.6 3 12z"/><circle cx="8" cy="11.2" r=".9"/>',
+    /* v3.65 · a lupa da busca */
+    lupa: '<circle cx="10.5" cy="10.5" r="6.5"/><path d="m20.5 20.5-5.4-5.4"/>'
   };
   const ico = (k, cls) => `<svg class="ic${cls ? ' ' + cls : ''}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${I[k] || ''}</svg>`;
 
