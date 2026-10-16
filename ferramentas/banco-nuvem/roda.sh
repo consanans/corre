@@ -60,6 +60,11 @@ testa teste360.sql 17
 delta delta-v361.sql 'delta v3.61 ok'
 delta delta-v361.sql 'delta v3.61 ok'
 testa teste361.sql 4
+# v3.66: a loja de skins (o avatar em corre_perfis.verso, como na produção), o delta 2x e as checagens
+$P -f "$AQUI/semente366.sql"
+delta delta-v366.sql 'delta v3.66 ok'
+delta delta-v366.sql 'delta v3.66 ok'
+testa teste366.sql 16
 . "$AQUI/virada343.sh"
 if grep -q 'FALHOU\|ERROR' $D/saida; then echo "deu FALHOU ou erro (acima)"; exit 1; fi
 echo "tudo ok: $(grep -c '^ok:' $D/saida) checagens"

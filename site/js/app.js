@@ -278,6 +278,7 @@
       { k: 'mural-novo', h: '#/mural/novo', t: 'Fixar um pedido no Mural', i: 'tacha', d: 'Quem faz te manda proposta', kw: 'pedir servico orcamento' },
       { k: 'push', a: 'push-ajustes', t: 'Avisos no celular', i: 'bell', d: 'Liga e desliga as notificações', kw: 'notificacao notificacoes push celular' },
       { k: 'manual', a: 'manual', t: 'Manual do Corre', i: 'manual', d: 'Como usar cada coisa', kw: 'ajuda duvida tutorial como funciona' },
+      { k: 'loja', a: 'cvr-loja', t: 'Ateliê: loja de skins', i: 'star', d: 'Skins pro teu avatar, pagas em correal', kw: 'skin skins loja roupa fantasia uniforme avatar comprar atelie' },
       { k: 'privacidade', h: 'privacidade.html', t: 'Privacidade', i: 'lock', d: 'O que o Corre guarda e por quê', kw: 'dados lgpd termos' }
     /* um atalho que é botão só aparece se o módulo dele carregou (sem o Grupos, nada de "Criar grupo") */
     ]).filter(f => !f.a || C.acts[f.a]).map(f => ({ tipo: 'f', key: 'f:' + f.k, t: f.t, s: f.d, i: f.i, h: f.h || '', a: f.a || '', kw: f.kw }));
@@ -293,6 +294,7 @@
     ['Lago Igapó', 'verso', 'O lago da cidade', 'lago agua'],
     ['ACEL · Beisebol', 'verso', 'Desafio de rebatida do Red Sharks', 'beisebol baseball red sharks rebatida'],
     ['Sebo', 'musica', 'Discos pro teu toca-discos', 'discos disco vinil musica'],
+    ['Ateliê', 'star', 'A loja de skins', 'skin skins loja roupa fantasia uniforme atelie'],
     ['Estádio do Café', 'verso', 'O estádio da cidade', 'futebol estadio'],
     ['Aeroporto', 'aviao', 'Voo pra qualquer canto da cidade', 'voo voar aviao viajar paraquedas'],
     ['Bosque dos Ipês', 'verso', 'Ipê florido o ano inteiro', 'bosque ipe ipes arvores'],

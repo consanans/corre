@@ -2971,3 +2971,37 @@ html.embed .msg-pg{height:calc(100dvh - 40px)}
   .pq-it{min-height:60px}
 }
 @media (prefers-reduced-motion:reduce){ .sheet.procura .panel{animation:none} .pq.carregando .pq-barrinha{animation:none;transform:none;opacity:.8} .pq-espera i{animation:none} }
+
+/* v3.66 · o Ateliê, a loja de skins do Correverso (o Thales: "coloca muitas skins fabulosas para serem compradas").
+   Cartões no jeito da casa (borda preta, sombra deslocada), o provador em pixel grande; a lendária tem a faixa dourada
+   que passa brilhando, a rara é lilás e a de estilo é rosa. Dinheiro não: o preço é correal, na cor do texto */
+.sheet.lj-sheet .panel{width:min(1040px,100%)}
+.lj-topo{margin:2px 0 6px;font-size:15px;line-height:1.5}
+.lj-g{display:flex;align-items:center;gap:8px;margin:16px 0 8px;font-family:var(--font-mono);font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-2)}
+.lj-g::before{content:'';width:12px;height:12px;border:2px solid var(--ink);background:var(--lj,var(--paper))}
+.lj-g-lendaria{--lj:#E2B04A}.lj-g-rara{--lj:var(--lav)}.lj-g-estilo{--lj:var(--pink)}
+.lj-l{display:grid;grid-template-columns:repeat(auto-fill,minmax(228px,1fr));gap:12px;margin:0;padding:0;list-style:none}
+.lj-card{position:relative;display:grid;grid-template-columns:84px 1fr;grid-template-rows:1fr auto;gap:4px 12px;padding:12px;border:2px solid var(--ink);border-radius:16px;background:var(--paper);box-shadow:4px 4px 0 var(--lj,var(--ink));overflow:hidden}
+.lj-card.lj-lendaria{--lj:#E2B04A}.lj-card.lj-rara{--lj:var(--lav)}.lj-card.lj-estilo{--lj:var(--pink)}
+.lj-card.lj-lendaria::after{content:'';position:absolute;inset:0;background:linear-gradient(115deg,transparent 35%,rgb(255 232 140 / 45%) 48%,transparent 60%) -120% 0/250% 100% no-repeat;animation:lj-brilho 3.2s ease-in-out infinite;pointer-events:none}
+@keyframes lj-brilho{0%,30%{background-position:-120% 0}70%,100%{background-position:220% 0}}
+.lj-cv{grid-row:1 / 3;width:84px;height:auto;aspect-ratio:32/34;align-self:center;border:2px solid var(--ink);border-radius:10px;background:#E6DECD;image-rendering:pixelated;image-rendering:crisp-edges}
+.lj-tx{min-width:0;display:flex;flex-direction:column;gap:3px}
+.lj-tx b{font-size:16px;font-weight:850;line-height:1.2}
+.lj-tx small{color:var(--muted);font-size:12.5px;line-height:1.35}
+.lj-rar{align-self:flex-start;padding:2px 7px;border:1.5px solid var(--ink);border-radius:999px;background:var(--lj);font-family:var(--font-mono);font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+.lj-acao{position:relative;z-index:1;display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-start;gap:8px;min-height:34px}
+.lj-acao .ic{width:16px;height:16px}
+.lj-compra{font-variant-numeric:tabular-nums}
+.lj-preco{display:inline-flex;align-items:center;gap:5px;font-weight:800;font-variant-numeric:tabular-nums}
+.lj-tua{display:inline-flex;align-items:center;gap:4px;font-size:13px;font-weight:800}
+.lj-msg{color:var(--muted);font-size:13px}
+.lj-card.tua{background:#FFFDF2}
+/* no avatar: a fileira do Ateliê, com cadeado e preço */
+.cvr-ch-loja button{display:inline-flex;align-items:center;gap:5px}
+.cvr-ch-loja button .ic{width:12px;height:12px}
+.cvr-ch-loja button i{font-style:normal;padding-left:6px;margin-left:2px;border-left:1.5px solid currentColor;opacity:.8}
+.cvr-av-loja .lbl-s{display:inline-flex;align-items:center;gap:5px}
+.cvr-av-loja .lbl-s .ic{width:14px;height:14px}
+@media (max-width:640px){ .lj-l{grid-template-columns:1fr} .lj-card{grid-template-columns:72px 1fr} .lj-cv{width:72px} }
+@media (prefers-reduced-motion:reduce){ .lj-card.lj-lendaria::after{animation:none;display:none} }

@@ -397,8 +397,8 @@
   const HOUZI_EX = {"spec":{"v":1,"territorio":"editorial","amostra":1,"nome":"Grão Torto","tagline":"café de esquina","nicho":"cafe","cidade":"Londrina, PR","desde":"2021","pers":[0.35,0.55,0.55,0.35,0.2],"modo":"branding","campos":["cafe","rua"],"logo":{"arranjo":"wordmark","caixa":"titulo","track":0.005,"efeito":"","gesto":"troca","tagline":true,"corTexto":"texto","trocaPor":"ideia"},"simbolo":{"tipo":"ideia","icone":"xicara","ideia":"grao","estilo":"linha","seed":84829},"tipo":{"display":"lora-bolditalic","texto":"lora-regular"},"cores":{"p":"#2B2B2E","s":"#D8D4CB","a":"#B8913A","ink":"#161618","paper":"#F6F2EA","fundo":"paper","esquema":"receita","receita":"Grafite e Ouro"},"textura":"papel","aplic":["revista","sacola","cartao","instagram","copo","fachada"],"seed":273184829,"descr":"Café de bairro, torra própria"},"voz":{"conceito":"Grão Torto é o café que trata cada detalhe como página de revista.","manifesto":"Grão Torto acredita que pressa é inimiga do bom. Por isso cada café é pensado como uma página de revista: com respiro, com ritmo, com intenção. É pra quem acorda cedo que repara. Que lê a legenda inteira. Que volta pela segunda vez.","taglines":["Grão Torto. Pra ler devagar.","A pausa boa do dia, com tempo.","O detalhe é a história.","Feito com atenção em Londrina.","Menos, e melhor."],"e":["calma","precisa","elegante"],"nao_e":["barulhenta","apressada","exagerada"],"fala":["Pensado com calma, feito pra durar.","Nem tudo precisa ser pra ontem.","A pausa boa do dia, no detalhe."],"nao_fala":["IMPERDÍVEL!!!","Só hoje, corre!","O melhor do Brasil."],"bio":"café de esquina · Café em Londrina. Chama no direct.","wa":"Olá, que bom ter você aqui. Aqui é o Grão Torto. Me conta o que procura e eu te ajudo com calma.","ia":false}};
   function demoApi(){
     const KEY = 'corre-demo-v2', mem = {};
-    const T = ['corre_perfis', 'corre_portfolio', 'corre_destaques', 'corre_stories', 'corre_insta', 'corre_contas', 'corre_lancamentos', 'corre_rolo_salvos', 'corre_leads', 'corre_posts', 'corre_feed', 'corre_curtidas', 'corre_comentarios', 'corre_seguindo', 'corre_story_curtidas', 'corre_visitas', 'corre_estilo', 'corre_produtos', 'corre_mural', 'corre_mural_propostas', 'corre_vendas', 'corre_refs', 'corre_lead_fotos', 'corre_mural_chat', 'corre_verso_bloq', 'corre_votos', 'corre_salvos', 'corre_recomendacoes', 'corre_feed_vistas', 'corre_avisos_lidos', 'corre_conversas', 'corre_conversa_membros', 'corre_mensagens', 'corre_push', 'corre_push_pref', 'corre_grupos', 'corre_grupo_membros', 'corre_houzi_marcas', 'corre_correal', 'corre_correal_log', 'corre_tarefa_vez', 'corre_ig_contas', 'corre_houzi_privado', 'corre_assinaturas', 'corre_asaas_clientes'];
-    const PRIV = ['corre_contas', 'corre_lancamentos', 'corre_rolo_salvos', 'corre_leads', 'corre_posts', 'corre_visitas', 'corre_estilo', 'corre_produtos', 'corre_mural', 'corre_mural_propostas', 'corre_vendas', 'corre_refs', 'corre_lead_fotos', 'corre_verso_bloq', 'corre_votos', 'corre_salvos', 'corre_feed_vistas', 'corre_avisos_lidos', 'corre_push', 'corre_push_pref', 'corre_correal', 'corre_correal_log', 'corre_tarefa_vez', 'corre_ig_contas', 'corre_houzi_privado', 'corre_assinaturas', 'corre_asaas_clientes'];
+    const T = ['corre_perfis', 'corre_portfolio', 'corre_destaques', 'corre_stories', 'corre_insta', 'corre_contas', 'corre_lancamentos', 'corre_rolo_salvos', 'corre_leads', 'corre_posts', 'corre_feed', 'corre_curtidas', 'corre_comentarios', 'corre_seguindo', 'corre_story_curtidas', 'corre_visitas', 'corre_estilo', 'corre_produtos', 'corre_mural', 'corre_mural_propostas', 'corre_vendas', 'corre_refs', 'corre_lead_fotos', 'corre_mural_chat', 'corre_verso_bloq', 'corre_votos', 'corre_salvos', 'corre_recomendacoes', 'corre_feed_vistas', 'corre_avisos_lidos', 'corre_conversas', 'corre_conversa_membros', 'corre_mensagens', 'corre_push', 'corre_push_pref', 'corre_grupos', 'corre_grupo_membros', 'corre_houzi_marcas', 'corre_correal', 'corre_correal_log', 'corre_tarefa_vez', 'corre_ig_contas', 'corre_houzi_privado', 'corre_assinaturas', 'corre_asaas_clientes', 'corre_skins'];
+    const PRIV = ['corre_contas', 'corre_lancamentos', 'corre_rolo_salvos', 'corre_leads', 'corre_posts', 'corre_visitas', 'corre_estilo', 'corre_produtos', 'corre_mural', 'corre_mural_propostas', 'corre_vendas', 'corre_refs', 'corre_lead_fotos', 'corre_verso_bloq', 'corre_votos', 'corre_salvos', 'corre_feed_vistas', 'corre_avisos_lidos', 'corre_push', 'corre_push_pref', 'corre_correal', 'corre_correal_log', 'corre_tarefa_vez', 'corre_ig_contas', 'corre_houzi_privado', 'corre_assinaturas', 'corre_asaas_clientes', 'corre_skins'];
     const now = () => new Date().toISOString();
     const inH = h => new Date(Date.now() + h * 36e5).toISOString();
     /* o mesmo do corre_tarefa_valor (delta-v338 + delta-v3391: 3 tarefas por uniforme) */
@@ -572,6 +572,8 @@
       if(!u || !['houzi', 'horus'].includes(prod) || !d.t.corre_perfis.some(p => p.id === u) || d.t.corre_assinaturas.some(a => a.dono === u && a.produto === prod)) return;
       d.t.corre_assinaturas.push({ id: rid(), dono: u, produto: prod, nivel: 1, valor: prod === 'houzi' ? 29.90 : 9.90, status: 'teste', teste_ate: new Date(Date.now() + 30 * 864e5).toISOString(), pago_ate: null, asaas_assinatura: null, link: '', created_at: now(), updated_at: now() });
     };
+    /* v3.66 · o preço de uma skin da loja no demo, em centavos (0 = não é da loja). A vitrine mora no verso.js */
+    const skinPrecoDemo = k => { const x = ((C.verso && C.verso.SKINS_LOJA) || []).find(s => s[0] === k); return x ? centDe(x[2]) : 0; };
     const plTrava = (d, u, prod) => { plGarante(d, u, prod); if(!plAcesso(d, u, prod)) throw { message: 'o teste grátis acabou', hint: prod + '_assinatura', code: 'P0001' }; };
     const plMeu = (d, u) => {
       if(!u) return null;
@@ -674,6 +676,8 @@
       if(t === 'corre_leads' && r.ref && mine.some(x => x.ref === r.ref && x.id !== r.id)) throw { code: '23505' };
       if(t === 'corre_leads' && isNew) plTrava(d, uid, 'horus');
       if(t === 'corre_perfis' && d.t.corre_perfis.some(x => x.handle === r.handle && x.id !== r.id)) throw { code: '23505' };
+      /* v3.66: a trava do avatar (gatilho corre_perfis_skin): skin da loja que a pessoa não comprou sai, o resto salva */
+      if(t === 'corre_perfis' && r.verso && typeof r.verso === 'object' && skinPrecoDemo(r.verso.skin) && !(d.t.corre_skins || []).some(x => x.dono === r.id && x.skin === r.verso.skin)) r.verso = Object.assign({}, r.verso, { skin: '' });
     }
     /* MURAL na demonstração: as mesmas regras das funções do banco (delta-mural.sql) */
     const MU_CATS = ['social', 'design', 'foto_video', 'site', 'trafego', 'musica', 'eventos', 'reforma', 'tecnica', 'aulas', 'beleza', 'tattoo', 'moda', 'comida', 'frete', 'juridico', 'casa', 'outros'];
@@ -1235,6 +1239,23 @@
       },
       async rpc(n, a){
         const d = read();
+        /* ---- v3.66: a loja de skins (mesma conta do delta-v366.sql: o preço é o da vitrine, o cadeado é o da carteira,
+           comprar de novo não cobra, saldo curto não mexe em nada) ---- */
+        if(n === 'corre_skins_minhas' || n === 'corre_skin_compra'){
+          const eu = uidOf(d); if(!eu) throw { message: 'permission denied', code: '42501' };
+          d.t.corre_skins = d.t.corre_skins || [];
+          const precos = {}; ((C.verso && C.verso.SKINS_LOJA) || []).forEach(x => { precos[x[0]] = x[2]; });
+          const w = d.t.corre_correal.find(x => x.dono === eu), saldoC = () => centDe(w ? w.saldo : 0), minhas = () => d.t.corre_skins.filter(x => x.dono === eu).map(x => x.skin);
+          if(n === 'corre_skins_minhas') return { minhas: minhas(), precos, saldo: saldoC() / 100 };
+          const k = String(a.p_skin || ''), p = skinPrecoDemo(k);
+          if(!p) return { ok: false, saldo: 0, preco: null };
+          if(minhas().includes(k)) return { ok: true, ja: true, saldo: saldoC() / 100, preco: p / 100 };
+          if(saldoC() < p) return { ok: false, saldo: saldoC() / 100, preco: p / 100 };
+          w.saldo = (saldoC() - p) / 100; w.gasto = (centDe(w.gasto) + p) / 100; w.updated_at = now();
+          d.t.corre_correal_log.push({ id: rid(), dono: eu, valor: -p / 100, motivo: 'skin:' + k, created_at: now() });
+          d.t.corre_skins.push({ dono: eu, skin: k, preco: p / 100, created_at: now() }); write(d);
+          return { ok: true, saldo: w.saldo, preco: p / 100 };
+        }
         /* ---- v3.38: o correal (mesma conta do delta-v338.sql: 20 segundos no mínimo). v3.43 (delta-v343.sql): em
            centavos. A tarefa paga 3 centavos por ponto, cortado no teto de 1,00 por dia; o gasto tira o preço inteiro
            ou não tira nada. As contas aqui dentro são em centavos inteiros e só viram número com vírgula na saída,

@@ -214,6 +214,32 @@
      Todos desenhados pro Corre. px(x, y, w, h, cor) como nos personagens; o = { lado, costas, hy, fase, sentado } ---------- */
   const SKINS = [['', 'Sem uniforme'], ['policial', 'Policial'], ['bombeiro', 'Bombeiro'], ['ladrao', 'Ladrão'], ['medico', 'Médico'], ['chef', 'Chef'], ['astronauta', 'Astronauta'], ['pirata', 'Pirata'],
     ['ninja', 'Ninja'], ['super', 'Super Corre'], ['motoboy', 'Motoboy'], ['craque', 'Craque'], ['detetive', 'Detetive'], ['cientista', 'Cientista'], ['rei', 'Rei']];
+  /* v3.66 · as skins da loja: [chave, nome, preço de reserva, raridade, a frase da vitrine]. Quem manda no preço é o banco
+     (corre_skins_loja, delta-v366.sql); esse aqui só aparece se o banco não responder. Lendária 1,00, rara 0,60, estilo 0,30 */
+  const SKINS_LOJA = [
+    ['farao', 'Faraó', 1, 'lendaria', 'Nemes listrado de azul e ouro, colar largo e o brilho do templo.'],
+    ['diva', 'Diva do Calçadão', 1, 'lendaria', 'Vestido longo de paetê rosa, estola de pluma e tiara de strass.'],
+    ['carnaval', 'Destaque da Avenida', 1, 'lendaria', 'Leque de plumas maior que você e macacão de lantejoula dourada.'],
+    ['samurai', 'Samurai do Igapó', 1, 'lendaria', 'Armadura vermelha, elmo com crista de ouro e a bandeira do ipê nas costas.'],
+    ['cavaleiro', 'Cavaleiro de Prata', 1, 'lendaria', 'Armadura que reluz, elmo com pluma rosa e capa azul.'],
+    ['galaxia', 'Galáxia', 1, 'lendaria', 'Roupa de céu de noite com estrelas que piscam e capacete-bolha.'],
+    ['cangaceiro', 'Cangaceiro', .6, 'rara', 'Chapéu de couro meia-lua com estrela, cartucheira e lenço vermelho.'],
+    ['peao', 'Peão da Expo', .6, 'rara', 'Chapéu de caubói, camisa xadrez, fivela gigante e bota.'],
+    ['mc', 'MC de Ouro', .6, 'rara', 'Moletom preto, corrente grossa, boné de aba reta e óculos dourados.'],
+    ['mago', 'Mago Lilás', .6, 'rara', 'Túnica de estrelas, chapéu com lua e cajado de cristal.'],
+    ['vampiro', 'Vampiro Chique', .6, 'rara', 'Capa preta, gola vermelha alta, colete vinho e caninos.'],
+    ['anjo', 'Anjo', .6, 'rara', 'Asas brancas, auréola de ouro e túnica até o chão.'],
+    ['luchador', 'Lutador Mascarado', .6, 'rara', 'Máscara de luta livre, capa curta e cinturão de campeão.'],
+    ['fada', 'Fada do Ipê', .6, 'rara', 'Asas de borboleta, saia de tule e coroa de flor de ipê.'],
+    ['capeta', 'Capetinha', .3, 'estilo', 'Chifrinhos, colete vermelho e rabo de seta.'],
+    ['mumia', 'Múmia', .3, 'estilo', 'Enrolada da cabeça aos pés, com o olho aceso.'],
+    ['piloto', 'Piloto Turbo', .3, 'estilo', 'Macacão branco com faixa quadriculada e capacete rosa.'],
+    ['rockeiro', 'Rockeiro', .3, 'estilo', 'Jaqueta de couro com tachas, bandana e a guitarra nas costas.']
+  ];
+  const LOJA = {}; SKINS_LOJA.forEach(x => { LOJA[x[0]] = x; }); Object.setPrototypeOf(LOJA, null);
+  const RARIDADE = { lendaria: 'Lendária', rara: 'Rara', estilo: 'Estilo' };
+  /* todas as skins que o avatar aceita (o desenho de quem passa na cidade também passa por aqui) */
+  const SKINS_TODAS = SKINS.concat(SKINS_LOJA.map(x => [x[0], x[1]]));
   const SKIN = {};
   {
     const NAVY = '#1F3D7A', VERM = '#E2412E', OURO = '#E2B04A', BR = '#F4F3EF', CEU = '#9CC9F0', ACO = '#8F96A0', BEGE = '#C9B79C', VINHO = '#7A1F3D', CIANO = '#38E1FF', MARROM = '#8C5A2E', VISOR = '#1B2A5A', CHUMBO = '#2B2F38';
@@ -265,6 +291,286 @@
       atras: (px, o) => { if(o.costas) return; if(o.lado) px(-6, -16, 4, 12, VINHO); else px(-7, -16, 14, 12, VINHO); },
       tronco: (px, o) => { if(o.costas){ px(-6, -16, 12, 12, VINHO); px(-6, -5, 12, 1, PAPEL); px(-4, -5, 1, 1, INK); px(1, -5, 1, 1, INK); return; } if(o.lado){ px(-2, -7, 4, 4, VERM); px(-2, -4, 4, 1, PAPEL); cinto(px, o, OURO); return; } px(-4, -7, 8, 4, VERM); px(-4, -4, 8, 1, PAPEL); px(-4, -15, 1, 8, PAPEL); px(3, -15, 1, 8, PAPEL); px(-4, -13, 1, 1, INK); px(3, -11, 1, 1, INK); px(-4, -9, 1, 1, INK); cinto(px, o, OURO); },
       cabeca: (px, o) => { const hy = o.hy; px(-4, hy - 2, 8, 2, OURO); px(-4, hy - 3, 1, 1, OURO); px(-1, hy - 3, 2, 1, OURO); px(3, hy - 3, 1, 1, OURO); if(!o.costas) px(-1, hy - 2, 2, 1, ROSA); } };
+    /* ---------- v3.66 · as skins da loja (o Thales: "coloca muitas skins fabulosas para serem compradas") ----------
+       18 uniformes pagos em correal, todos desenhados pro Corre. Mesmo jeito dos de cima, mais duas coisas: a saia
+       comprida (diva, mago, anjo) cobre as pernas, e o "fx" desenha por cima de tudo o brilho que pisca (o boneco é
+       desenhado a cada quadro, então o brilho anda sozinho). Nada passa de 31 pontos de altura (cabe na prévia). */
+    const LAPIS = '#1F4FA8', OURO2 = '#F2D06B', PRATA = '#DDE3EA', COURO = '#8C5A2E', COURO2 = '#5A3A1E', VINHO2 = '#5A1428', SANGUE = '#B4152E',
+      ROXO = '#6A4FB3', ROXO2 = '#4A3585', NOITE = '#1B1440', PLUMA = '#FFF1F7', BAND = '#E8DFC8', BAND2 = '#C9B79C', ASA = '#F4F3EF', ASA2 = '#D3D8E0',
+      BOLHA = 'rgba(206,232,255,.7)', FADA = 'rgba(255,79,154,.5)', FADA2 = 'rgba(198,166,255,.55)';
+    /* o brilho: dois pontinhos que acendem em cruz, apagam e pulam pra outro lugar da lista */
+    const brilho = (px, L, c, n) => { const t = Math.floor(performance.now() / 150); for(let i = 0; i < (n || 2); i++){ const p = L[(t * 3 + i * 7) % L.length], f = (t + i * 2) % 4; if(f === 3) continue; px(p[0], p[1], 1, 1, '#FFFFFF'); if(f === 1){ px(p[0] - 1, p[1], 1, 1, c); px(p[0] + 1, p[1], 1, 1, c); px(p[0], p[1] - 1, 1, 1, c); px(p[0], p[1] + 1, 1, 1, c); } } };
+    /* saia até o chão (sentado, só até o joelho): na frente, de costas e de lado */
+    const saia = (px, o, c, c2) => {
+      if(o.sentado){ if(o.lado) px(-3, -8, 7, 3, c); else px(-5, -8, 10, 3, c); return; }
+      if(o.lado){ px(-3, -8, 6, 5, c); px(-4, -3, 8, 2, c); px(2, -8, 1, 5, c2); return; }
+      px(-5, -8, 10, 5, c); px(-6, -3, 12, 2, c); px(4, -8, 1, 5, c2); px(5, -3, 1, 2, c2);
+    };
+    SKIN.farao = { R: '#F3E9D2', L: '#F3E9D2', T: OURO, cobre: true, manga: 'curta', perna: 'bermuda', loja: true,
+      tronco: (px, o) => {
+        if(o.lado){ px(-2, -15, 4, 1, OURO); px(-2, -14, 4, 1, LAPIS); px(-2, -13, 4, 1, OURO); px(-1, -12, 3, 1, OURO); cinto(px, o, OURO, LAPIS); return; }
+        px(-4, -15, 8, 1, OURO); px(-4, -14, 8, 1, LAPIS); px(-3, -13, 6, 1, OURO); if(!o.costas){ px(-2, -12, 4, 1, LAPIS); px(-1, -11, 2, 1, OURO); }
+        px(-7, -12, 3, 1, OURO); px(4, -12, 3, 1, OURO); cinto(px, o, OURO, LAPIS); if(!o.costas) px(-1, -8, 2, 3, OURO);
+      },
+      cabeca: (px, o) => {
+        const hy = o.hy;
+        if(o.lado){ px(-5, hy - 1, 9, 3, OURO); px(-5, hy, 9, 1, LAPIS); for(let r = 0; r < 9; r++) px(-5, hy + 2 + r, 3, 1, r % 2 ? LAPIS : OURO); px(3, hy - 2, 1, 2, OURO); px(3, hy + 4, 1, 1, INK); return; }
+        px(-5, hy - 1, 10, 3, OURO); px(-5, hy, 10, 1, LAPIS);
+        for(let r = 0; r < 9; r++){ const c = r % 2 ? LAPIS : OURO; px(-6, hy + 2 + r, 2, 1, c); px(4, hy + 2 + r, 2, 1, c); }
+        if(o.costas){ px(-4, hy + 2, 8, 6, OURO); for(let r = 0; r < 6; r += 2) px(-4, hy + 2 + r, 8, 1, LAPIS); px(-2, hy + 8, 4, 2, OURO); return; }
+        px(-1, hy - 3, 2, 2, OURO); px(0, hy - 3, 1, 1, SANGUE); px(-4, hy + 4, 1, 1, INK); px(3, hy + 4, 1, 1, INK); px(-1, hy + 7, 2, 2, LAPIS);
+      },
+      fx: (px, o) => brilho(px, o.lado ? [[-1, -15], [1, -13], [-4, -22], [2, -23], [-4, -16]] : [[-3, -15], [2, -13], [-5, -22], [4, -16], [-6, -18], [0, -11], [5, -12]], OURO2) };
+    SKIN.diva = { R: ROSA, L: ROSA, T: PRATA, luva: PAPEL, manga: 'curta', loja: true,
+      tronco: (px, o) => {
+        saia(px, o, ROSA, '#D93A80');
+        if(o.lado){ px(-3, -16, 5, 2, PLUMA); px(-4, -15, 1, 1, PLUMA); for(let r = -14; r < -2; r += 3) px(-2 + (r & 1), r, 1, 1, '#FFB3D1'); return; }
+        for(let r = -14; r < -2; r += 2) for(let x = -4 + (r & 2 ? 1 : 0); x < 4; x += 3) px(x, r, 1, 1, '#FFB3D1');
+        px(-6, -16, 12, 2, PLUMA); px(-7, -15, 1, 1, PLUMA); px(6, -15, 1, 1, PLUMA); px(-7, -14, 2, 4, PLUMA); px(5, -14, 2, 4, PLUMA); px(-7, -11, 1, 1, '#FFE0EE'); px(6, -11, 1, 1, '#FFE0EE');
+      },
+      cabeca: (px, o) => {
+        const hy = o.hy;
+        if(o.lado){ px(-3, hy - 1, 6, 1, PRATA); px(0, hy - 2, 1, 1, PRATA); px(-1, hy + 5, 1, 2, PRATA); return; }
+        px(-3, hy - 1, 6, 1, PRATA); px(-1, hy - 2, 2, 1, PRATA); if(!o.costas){ px(0, hy - 3, 1, 1, '#38E1FF'); px(-5, hy + 5, 1, 2, PRATA); px(4, hy + 5, 1, 2, PRATA); }
+      },
+      fx: (px, o) => brilho(px, o.lado ? [[-2, -12], [1, -9], [-3, -5], [2, -3], [0, -24]] : [[-3, -13], [2, -11], [-4, -7], [3, -5], [0, -9], [-5, -3], [4, -2], [0, -26]], '#FFB3D1', 3) };
+    SKIN.carnaval = { R: OURO, L: OURO, T: OURO, manga: 'curta', loja: true,
+      atras: (px, o) => {
+        const P = [ROSA, AMARELO, LILAS, LARANJA, ROSA, AMARELO, LILAS, LARANJA, ROSA];
+        if(o.lado){ for(let i = 0; i < 4; i++) px(-6 - i, -30 + i * 3, 2, 16 - i * 2, P[i]); return; }
+        if(o.costas) return;
+        for(let i = 0; i < 9; i++){ const x = -13 + i * 3, top = -30 + Math.abs(i - 4) * 2; px(x, top, 2, -12 - top, P[i]); px(x, top - 1, 2, 1, PAPEL); }
+      },
+      tronco: (px, o) => {
+        if(o.costas){ const P = [ROSA, AMARELO, LILAS, LARANJA, ROSA, AMARELO, LILAS, LARANJA, ROSA]; for(let i = 0; i < 9; i++){ const x = -13 + i * 3, top = -30 + Math.abs(i - 4) * 2; px(x, top, 2, -12 - top, P[i]); px(x, top - 1, 2, 1, PAPEL); } return; }
+        if(o.lado){ px(-2, -9, 4, 1, ROSA); px(-1, -14, 1, 1, OURO2); px(0, -11, 1, 1, OURO2); return; }
+        for(let r = -15; r < -8; r += 2) for(let x = -4 + (r & 2 ? 1 : 0); x < 4; x += 2) px(x, r, 1, 1, OURO2);
+        px(-4, -9, 8, 1, ROSA); px(-1, -9, 2, 1, LILAS); px(-7, -13, 3, 1, ROSA); px(4, -13, 3, 1, ROSA);
+      },
+      cabeca: (px, o) => { const hy = o.hy; px(-4, hy, 8, 1, OURO); if(o.lado){ px(-4, hy - 3, 2, 3, ROSA); return; } if(!o.costas){ px(-1, hy - 1, 2, 2, ROSA); px(-3, hy - 3, 1, 3, AMARELO); px(2, hy - 3, 1, 3, LILAS); } },
+      fx: (px, o) => brilho(px, o.lado ? [[-1, -13], [0, -10], [-7, -26], [-8, -20]] : [[-3, -14], [2, -12], [-12, -22], [11, -22], [-1, -30], [0, -10], [-6, -28], [6, -27]], OURO2, 3) };
+    SKIN.samurai = { R: SANGUE, L: INK, T: COURO2, cobre: true, loja: true,
+      atras: (px, o) => { if(o.lado){ px(-4, -29, 1, 15, COURO2); px(-8, -29, 4, 6, INK); px(-7, -27, 2, 2, ROSA); px(-7, -27, 1, 1, AMARELO); return; } if(o.costas) return; px(5, -29, 1, 15, COURO2); px(6, -29, 4, 6, INK); px(7, -27, 2, 2, ROSA); px(8, -26, 1, 1, AMARELO); },
+      tronco: (px, o) => {
+        const d = sombra(SANGUE, .65);
+        if(o.lado){ [-14, -12, -10].forEach(y => px(-2, y, 4, 1, d)); px(-3, -15, 4, 4, SANGUE); px(-3, -12, 4, 1, INK); cinto(px, o, INK, OURO); px(-3, -8, 6, 3, SANGUE); px(-3, -6, 6, 1, INK); return; }
+        [-14, -12, -10].forEach(y => { px(-4, y, 8, 1, d); if(!o.costas){ px(-3, y, 1, 1, OURO); px(2, y, 1, 1, OURO); } });
+        px(-8, -15, 4, 4, SANGUE); px(-8, -12, 4, 1, INK); px(4, -15, 4, 4, SANGUE); px(4, -12, 4, 1, INK); px(-8, -14, 4, 1, d); px(4, -14, 4, 1, d);
+        cinto(px, o, INK, OURO); px(-5, -8, 10, 3, SANGUE); px(-5, -6, 10, 1, INK); px(-1, -8, 1, 3, INK);
+        if(o.costas){ px(-6, -29, 1, 15, COURO2); px(-10, -29, 4, 6, INK); px(-9, -27, 2, 2, ROSA); px(-9, -26, 1, 1, AMARELO); }
+      },
+      cabeca: (px, o) => {
+        const hy = o.hy;
+        if(o.lado){ px(-5, hy - 2, 9, 4, INK); px(-6, hy + 2, 4, 4, INK); px(-6, hy + 3, 4, 1, SANGUE); px(3, hy - 5, 1, 3, OURO); px(1, hy + 5, 3, 3, SANGUE); px(2, hy + 6, 2, 1, INK); return; }
+        px(-5, hy - 2, 10, 4, INK); px(-1, hy - 2, 2, 1, OURO);
+        if(o.costas){ px(-6, hy + 2, 12, 4, INK); px(-6, hy + 3, 12, 1, SANGUE); px(-6, hy + 5, 12, 1, SANGUE); return; }
+        px(-6, hy + 1, 2, 2, INK); px(4, hy + 1, 2, 2, INK);
+        px(-3, hy - 4, 1, 2, OURO); px(-4, hy - 6, 1, 2, OURO); px(2, hy - 4, 1, 2, OURO); px(3, hy - 6, 1, 2, OURO);
+        px(-4, hy + 5, 8, 3, SANGUE); px(-2, hy + 6, 4, 1, INK); px(-4, hy + 5, 1, 1, sombra(SANGUE, .7));
+      },
+      fx: (px, o) => brilho(px, o.lado ? [[3, -28], [3, -26], [-1, -13]] : [[-4, -29], [3, -29], [-3, -27], [2, -27], [-3, -14], [2, -12]], OURO2) };
+    SKIN.cavaleiro = { R: '#C9CDD3', L: '#AEB4BD', T: '#6B7480', luva: ACO, cobre: true, loja: true,
+      atras: (px, o) => { if(o.costas) return; if(o.lado) px(-5, -15, 3, 12, AZUL); else px(-7, -15, 14, 12, AZUL); },
+      tronco: (px, o) => {
+        if(o.costas){ px(-6, -15, 12, 13, AZUL); px(-3, -14, 1, 11, sombra(AZUL, .75)); px(2, -14, 1, 11, sombra(AZUL, .75)); return; }
+        if(o.lado){ px(-2, -14, 1, 4, PAPEL); cinto(px, o, COURO2, OURO); return; }
+        px(-3, -14, 2, 4, PAPEL); px(0, -15, 1, 7, ACO); px(-1, -12, 2, 2, ROSA); px(-7, -15, 3, 2, '#E9ECF0'); px(4, -15, 3, 2, '#E9ECF0'); cinto(px, o, COURO2, OURO);
+        px(-4, -6, 4, 1, '#E9ECF0'); px(0, -6, 4, 1, '#E9ECF0');
+      },
+      cabeca: (px, o) => {
+        const hy = o.hy, R = '#C9CDD3';
+        if(o.lado){ px(-5, hy - 1, 9, 9, R); px(0, hy + 3, 4, 1, INK); px(2, hy + 5, 1, 1, INK); px(-3, hy - 5, 3, 4, ROSA); px(-5, hy - 4, 2, 4, ROSA); px(-4, hy, 1, 3, PAPEL); return; }
+        px(-5, hy - 1, 10, 9, R); px(4, hy - 1, 1, 9, ACO); px(-1, hy - 5, 2, 4, ROSA);
+        if(o.costas){ px(-1, hy - 1, 2, 6, ROSA); return; }
+        px(0, hy - 6, 3, 2, ROSA); px(-4, hy + 3, 8, 1, INK); px(-1, hy + 5, 1, 2, INK); px(1, hy + 5, 1, 2, INK); px(-4, hy, 1, 3, PAPEL);
+      },
+      fx: (px, o) => brilho(px, o.lado ? [[-2, -13], [-4, -22], [1, -18]] : [[-3, -14], [-4, -22], [3, -20], [-6, -15], [5, -15], [0, -10]], '#FFFFFF') };
+    SKIN.galaxia = { R: NOITE, L: NOITE, T: LILAS, loja: true,
+      tronco: (px, o) => {
+        if(o.lado){ px(-2, -15, 4, 1, LILAS); px(-2, -9, 4, 1, LILAS); return; }
+        px(-4, -15, 8, 1, LILAS); px(-4, -9, 8, 1, LILAS); px(-1, -9, 2, 1, ROSA);
+        if(!o.costas){ px(-3, -13, 1, 1, '#8F86E8'); px(-2, -12, 1, 1, '#8F86E8'); px(0, -12, 1, 1, '#8F86E8'); px(1, -11, 1, 1, '#8F86E8'); }
+      },
+      cabeca: (px, o) => {
+        const hy = o.hy;
+        if(o.lado){ px(-4, hy - 3, 8, 1, BOLHA); px(-5, hy - 2, 1, 1, BOLHA); px(4, hy - 2, 1, 1, BOLHA); px(-6, hy - 1, 1, 8, BOLHA); px(5, hy - 1, 1, 8, BOLHA); px(4, hy, 1, 2, 'rgba(255,255,255,.85)'); return; }
+        px(-4, hy - 3, 8, 1, BOLHA); px(-5, hy - 2, 1, 1, BOLHA); px(4, hy - 2, 1, 1, BOLHA); px(-6, hy - 1, 1, 8, BOLHA); px(5, hy - 1, 1, 8, BOLHA); px(-5, hy + 7, 1, 1, BOLHA); px(4, hy + 7, 1, 1, BOLHA);
+        if(!o.costas) px(-5, hy - 1, 1, 2, 'rgba(255,255,255,.85)');
+      },
+      /* a roupa é o céu: estrelas que acendem e apagam no corpo todo */
+      fx: (px, o) => {
+        const t = Math.floor(performance.now() / 220), L = o.lado ? [[-1, -13], [0, -11], [-1, -6], [0, -3], [1, -14]] : [[-3, -14], [2, -13], [-2, -10], [3, -11], [-3, -5], [2, -4], [-6, -12], [5, -10], [1, -6], [-1, -3]];
+        L.forEach((p, i) => { const f = (t + i * 3) % 5; if(f < 2) px(p[0], p[1], 1, 1, f ? AMARELO : '#FFFFFF'); else if(f === 2) px(p[0], p[1], 1, 1, ROSA); });
+        brilho(px, o.lado ? [[-5, -24], [4, -20]] : [[-5, -24], [4, -19]], '#CDE6FF', 1);
+      } };
+    SKIN.cangaceiro = { R: COURO, L: '#6B4A2E', T: '#3B2D22', cobre: true, loja: true,
+      tronco: (px, o) => {
+        if(o.lado){ for(let i = 0; i < 7; i++) px(-2 + (i >> 1), -15 + i, 1, 1, i % 2 ? '#3B2D22' : OURO); px(0, -15, 2, 2, VERM); cinto(px, o, '#3B2D22', OURO); return; }
+        for(let i = 0; i < 7; i++){ const c = i % 2 ? '#3B2D22' : OURO; px(-4 + i, -15 + i, 1, 1, c); if(!o.costas) px(3 - i, -15 + i, 1, 1, c); }
+        if(!o.costas){ px(-2, -15, 4, 2, VERM); px(-1, -13, 2, 1, VERM); px(-4, -15, 1, 8, sombra(COURO, .75)); px(3, -15, 1, 8, sombra(COURO, .75)); }
+        cinto(px, o, '#3B2D22', OURO); px(-7, -11, 3, 1, OURO); px(4, -11, 3, 1, OURO);
+      },
+      cabeca: (px, o) => {
+        const hy = o.hy, d = sombra(COURO, .72);
+        if(o.lado){ px(-5, hy - 3, 9, 3, COURO); px(-6, hy - 1, 12, 1, d); px(1, hy - 6, 3, 3, COURO); px(2, hy - 5, 1, 1, OURO); px(-3, hy - 2, 1, 1, OURO); return; }
+        if(o.costas){ px(-6, hy - 4, 12, 4, COURO); px(-3, hy - 6, 6, 2, COURO); px(-6, hy - 1, 12, 1, d); return; }
+        px(-7, hy - 2, 14, 2, COURO); px(-6, hy - 4, 12, 2, COURO); px(-4, hy - 6, 8, 2, COURO); px(-2, hy - 7, 4, 1, COURO); px(-7, hy - 1, 14, 1, d);
+        px(-1, hy - 5, 2, 2, OURO); px(0, hy - 6, 1, 1, OURO); px(-2, hy - 4, 1, 1, OURO); px(1, hy - 4, 1, 1, OURO);
+        px(-5, hy - 3, 1, 1, OURO); px(4, hy - 3, 1, 1, OURO); px(-3, hy - 5, 1, 1, OURO); px(2, hy - 5, 1, 1, OURO);
+      } };
+    SKIN.peao = { R: '#C8322E', L: '#2F4F8F', T: '#6B4A2E', loja: true,
+      tronco: (px, o) => {
+        const X = '#7A1F1F';
+        if(o.lado){ px(0, -15, 1, 8, X); px(-2, -12, 4, 1, X); cinto(px, o, COURO2); px(0, -9, 2, 2, OURO); px(-2, -4, 3, 2, '#6B4A2E'); return; }
+        px(-3, -15, 1, 8, X); px(1, -15, 1, 8, X); px(-4, -13, 8, 1, X); px(-4, -10, 8, 1, X); px(-7, -12, 3, 1, X); px(4, -12, 3, 1, X);
+        if(!o.costas){ px(-2, -15, 1, 1, PAPEL); px(1, -15, 1, 1, PAPEL); }
+        cinto(px, o, COURO2); if(!o.costas){ px(-2, -9, 4, 2, OURO); px(-1, -9, 2, 1, OURO2); }
+        px(-4, -4, 4, 2, '#6B4A2E'); px(0, -4, 4, 2, '#6B4A2E');
+      },
+      cabeca: (px, o) => {
+        const hy = o.hy, CH = '#C9A46A', d = sombra(CH, .72);
+        if(o.lado){ px(-4, hy - 3, 7, 3, CH); px(-7, hy, 13, 1, CH); px(5, hy - 1, 1, 1, CH); px(-7, hy - 1, 1, 1, CH); px(-4, hy - 1, 7, 1, COURO2); return; }
+        px(-4, hy - 3, 8, 3, CH); px(-1, hy - 3, 2, 1, d); px(-7, hy, 14, 1, CH); px(-7, hy - 1, 1, 1, CH); px(6, hy - 1, 1, 1, CH); px(-4, hy - 1, 8, 1, COURO2);
+      } };
+    SKIN.mc = { R: '#16181E', L: '#2B2F38', T: PAPEL, loja: true,
+      tronco: (px, o) => {
+        if(o.lado){ px(-2, -15, 2, 1, '#2B2F38'); px(1, -14, 1, 2, OURO); px(1, -12, 1, 2, OURO2); return; }
+        if(o.costas){ px(-3, -15, 6, 2, '#2B2F38'); return; }
+        px(-2, -10, 4, 2, '#2B2F38');
+        px(-3, -15, 1, 2, OURO); px(2, -15, 1, 2, OURO); px(-2, -13, 1, 1, OURO); px(1, -13, 1, 1, OURO); px(-1, -12, 2, 1, OURO); px(-1, -11, 2, 2, OURO2); px(4, -9, 3, 1, OURO);
+      },
+      cabeca: (px, o) => {
+        const hy = o.hy;
+        if(o.lado){ px(-4, hy - 1, 8, 3, INK); px(4, hy + 2, 3, 1, OURO); px(1, hy + 4, 3, 1, OURO); px(2, hy + 4, 1, 1, INK); return; }
+        px(-4, hy - 1, 8, 3, INK); px(3, hy - 1, 1, 3, '#2B2F38');
+        if(o.costas){ px(-2, hy + 1, 4, 1, OURO); return; }
+        px(-5, hy + 2, 10, 1, OURO); px(-1, hy, 2, 1, OURO); px(-4, hy + 4, 8, 1, OURO); px(-3, hy + 4, 2, 1, INK); px(1, hy + 4, 2, 1, INK);
+      },
+      fx: (px, o) => { if(!o.costas) brilho(px, o.lado ? [[1, -12], [1, -14]] : [[-1, -11], [0, -10], [-3, -15], [2, -14]], OURO2, 1); } };
+    SKIN.mago = { R: ROXO, L: ROXO, T: '#3B2D22', loja: true,
+      tronco: (px, o) => {
+        saia(px, o, ROXO, ROXO2); cinto(px, o, OURO);
+        if(o.lado){ px(-1, -13, 1, 1, AMARELO); px(0, -6, 1, 1, AMARELO); return; }
+        px(-3, -13, 1, 1, AMARELO); px(2, -11, 1, 1, AMARELO); px(-2, -6, 1, 1, PAPEL); px(2, -4, 1, 1, AMARELO); px(-4, -3, 1, 1, PAPEL);
+        if(!o.costas){ px(7, -15, 1, 9, COURO); px(6, -17, 3, 2, '#38E1FF'); px(7, -18, 1, 1, '#9CEBFF'); }
+      },
+      cabeca: (px, o) => {
+        const hy = o.hy;
+        px(-6, hy, 12, 1, ROXO); px(-4, hy - 1, 8, 1, ROXO2); px(-4, hy - 3, 8, 2, ROXO); px(-3, hy - 5, 6, 2, ROXO); px(-2, hy - 7, 4, 2, ROXO); px(-1, hy - 8, 2, 1, ROXO); px(1, hy - 8, 2, 1, ROXO);
+        if(!o.costas){ px(-1, hy - 4, 2, 2, AMARELO); px(-1, hy - 4, 1, 1, ROXO); px(2, hy - 2, 1, 1, AMARELO); }
+      },
+      fx: (px, o) => { if(!o.costas && !o.lado) brilho(px, [[7, -18], [6, -17], [8, -16]], '#9CEBFF', 1); } };
+    SKIN.vampiro = { R: VINHO2, L: INK, T: INK, loja: true,
+      atras: (px, o) => { if(o.costas) return; if(o.lado){ px(-6, -16, 4, 15, INK); px(-3, -16, 1, 15, SANGUE); } else px(-8, -16, 16, 15, INK); },
+      tronco: (px, o) => {
+        if(o.costas){ px(-7, -16, 14, 15, INK); px(-6, -18, 12, 3, SANGUE); px(-6, -18, 1, 1, INK); px(5, -18, 1, 1, INK); return; }
+        if(o.lado){ px(-3, -18, 2, 4, SANGUE); px(1, -15, 1, 3, PAPEL); return; }
+        px(-1, -15, 2, 3, PAPEL); px(-1, -12, 2, 1, OURO); px(-4, -15, 1, 8, INK); px(3, -15, 1, 8, INK);
+        px(-7, -18, 2, 4, SANGUE); px(5, -18, 2, 4, SANGUE); px(-7, -19, 1, 1, SANGUE); px(6, -19, 1, 1, SANGUE);
+      },
+      cabeca: (px, o) => { if(o.lado || o.costas) return; const hy = o.hy; px(-1, hy + 6, 1, 1, PAPEL); px(1, hy + 6, 1, 1, PAPEL); px(-1, hy, 2, 1, INK); } };
+    SKIN.anjo = { R: PAPEL, L: PAPEL, T: OURO, loja: true,
+      atras: (px, o) => {
+        if(o.costas) return;
+        if(o.lado){ px(-7, -20, 5, 12, ASA); px(-8, -18, 1, 8, ASA2); px(-6, -9, 3, 2, ASA2); return; }
+        [[-11, -19, 5, 2], [-12, -17, 6, 3], [-11, -14, 5, 3], [-10, -11, 4, 2]].forEach(([x, y, w, h]) => { px(x, y, w, h, ASA); px(-x - w, y, w, h, ASA); });
+        px(-12, -15, 1, 3, ASA2); px(11, -15, 1, 3, ASA2); px(-10, -12, 1, 1, ASA2); px(9, -12, 1, 1, ASA2);
+      },
+      tronco: (px, o) => {
+        saia(px, o, PAPEL, '#DDE3EA'); cinto(px, o, OURO);
+        if(o.costas){ px(-9, -19, 7, 11, ASA); px(2, -19, 7, 11, ASA); px(-9, -11, 1, 3, ASA2); px(8, -11, 1, 3, ASA2); px(-3, -18, 1, 9, ASA2); px(2, -18, 1, 9, ASA2); }
+      },
+      cabeca: (px, o) => { const hy = o.hy; if(o.lado){ px(-3, hy - 5, 6, 1, OURO); px(-2, hy - 4, 4, 1, OURO2); return; } px(-3, hy - 5, 6, 1, OURO); px(-4, hy - 4, 1, 1, OURO); px(3, hy - 4, 1, 1, OURO); px(-3, hy - 3, 6, 1, OURO2); },
+      fx: (px, o) => brilho(px, [[-3, -28], [2, -28], [0, -26]], OURO2, 1) };
+    SKIN.luchador = { R: AZUL, L: AZUL, T: PAPEL, cobre: true, manga: 'curta', loja: true,
+      atras: (px, o) => { if(o.costas) return; if(o.lado) px(-5, -16, 3, 9, OURO); else px(-6, -16, 12, 9, OURO); },
+      tronco: (px, o) => {
+        if(o.costas){ px(-6, -16, 12, 9, OURO); px(-6, -8, 12, 1, AZUL); return; }
+        if(o.lado){ px(-2, -10, 4, 2, OURO); px(1, -10, 1, 2, OURO2); px(-2, -4, 3, 1, AZUL); return; }
+        px(-4, -15, 1, 2, OURO); px(3, -15, 1, 2, OURO); px(-4, -10, 8, 2, OURO); px(-2, -10, 4, 2, OURO2); px(-1, -10, 2, 1, ROSA);
+        px(-4, -4, 4, 1, AZUL); px(0, -4, 4, 1, AZUL);
+      },
+      cabeca: (px, o) => {
+        const hy = o.hy;
+        if(o.lado){ px(-4, hy, 8, 8, AZUL); px(2, hy + 3, 2, 2, PAPEL); px(3, hy + 4, 1, 1, INK); px(1, hy + 2, 3, 1, OURO); px(-4, hy + 3, 2, 1, OURO); px(2, hy + 6, 1, 1, '#3B1A1A'); return; }
+        px(-4, hy, 8, 8, AZUL); px(-1, hy, 2, 3, OURO);
+        if(o.costas){ for(let r = 2; r < 7; r++) px(-1 + (r % 2), hy + r, 1, 1, PAPEL); return; }
+        px(-3, hy + 3, 2, 2, PAPEL); px(1, hy + 3, 2, 2, PAPEL); px(-2, hy + 4, 1, 1, INK); px(1, hy + 4, 1, 1, INK);
+        px(-4, hy + 2, 2, 1, OURO); px(2, hy + 2, 2, 1, OURO); px(-4, hy + 5, 1, 1, ROSA); px(3, hy + 5, 1, 1, ROSA); px(-1, hy + 6, 2, 1, '#3B1A1A');
+      } };
+    SKIN.fada = { R: LILAS, L: '#FFB3D1', T: ROSA, manga: 'curta', loja: true,
+      atras: (px, o) => {
+        if(o.costas) return;
+        if(o.lado){ px(-7, -21, 4, 7, FADA); px(-6, -14, 3, 5, FADA2); px(-7, -21, 1, 1, ROSA); return; }
+        px(-11, -21, 6, 7, FADA); px(5, -21, 6, 7, FADA); px(-10, -13, 5, 5, FADA2); px(5, -13, 5, 5, FADA2);
+        px(-11, -21, 1, 1, ROSA); px(10, -21, 1, 1, ROSA); px(-9, -18, 1, 1, AMARELO); px(8, -18, 1, 1, AMARELO);
+      },
+      tronco: (px, o) => {
+        if(o.costas){ px(-9, -21, 7, 7, FADA); px(2, -21, 7, 7, FADA); px(-8, -13, 5, 5, FADA2); px(3, -13, 5, 5, FADA2); }
+        if(o.lado){ px(-3, -9, 6, 2, '#E8D4FF'); return; }
+        px(-6, -9, 12, 2, '#E8D4FF'); px(-5, -7, 10, 1, '#E8D4FF'); px(-6, -9, 1, 1, LILAS); px(5, -9, 1, 1, LILAS);
+        if(!o.costas){ px(-1, -15, 2, 1, ROSA); px(-1, -13, 2, 2, '#FFB3D1'); }
+      },
+      cabeca: (px, o) => {
+        const hy = o.hy;
+        if(o.lado){ px(-4, hy - 1, 8, 1, '#FFB3D1'); px(-3, hy - 2, 2, 2, ROSA); px(1, hy - 2, 2, 2, AMARELO); return; }
+        px(-4, hy - 1, 8, 1, '#FFB3D1'); px(-4, hy - 2, 2, 2, ROSA); px(-1, hy - 2, 2, 2, AMARELO); px(2, hy - 2, 2, 2, ROSA);
+      },
+      fx: (px, o) => brilho(px, o.lado ? [[-6, -19], [-5, -12], [-7, -16]] : [[-9, -19], [8, -19], [-7, -11], [7, -11], [-11, -15], [10, -15]], '#FFB3D1') };
+    SKIN.capeta = { R: VERM, L: SANGUE, T: INK, loja: true,
+      atras: (px, o) => {
+        if(o.costas) return;
+        if(o.lado){ px(-5, -7, 2, 1, VERM); px(-6, -9, 1, 2, VERM); px(-7, -11, 1, 2, VERM); px(-8, -12, 3, 1, VERM); px(-7, -13, 1, 1, VERM); return; }
+        px(4, -7, 2, 1, VERM); px(6, -8, 1, 2, VERM); px(7, -10, 1, 2, VERM); px(6, -12, 3, 2, VERM); px(7, -13, 1, 1, VERM);
+      },
+      tronco: (px, o) => {
+        if(o.costas){ px(-1, -8, 2, 1, VERM); px(0, -7, 1, 3, VERM); px(-1, -4, 3, 1, VERM); return; }
+        if(o.lado) return;
+        px(-2, -15, 4, 1, SANGUE); px(-1, -14, 2, 1, SANGUE); px(-4, -9, 8, 1, INK);
+      },
+      cabeca: (px, o) => {
+        const hy = o.hy, C2 = '#E2412E';
+        if(o.lado){ px(1, hy - 2, 1, 2, C2); px(2, hy - 3, 1, 1, C2); return; }
+        px(-4, hy - 2, 1, 2, C2); px(-5, hy - 3, 1, 1, C2); px(3, hy - 2, 1, 2, C2); px(4, hy - 3, 1, 1, C2);
+      } };
+    SKIN.mumia = { R: BAND, L: BAND, T: BAND2, luva: BAND, cobre: true, loja: true,
+      tronco: (px, o) => {
+        if(o.lado){ px(-2, -14, 3, 1, BAND2); px(-1, -11, 3, 1, BAND2); px(-2, -5, 3, 1, BAND2); px(-2, -8, 1, 3, BAND); return; }
+        px(-4, -14, 5, 1, BAND2); px(-1, -12, 5, 1, BAND2); px(-4, -10, 4, 1, BAND2); px(-7, -13, 3, 1, BAND2); px(4, -11, 3, 1, BAND2);
+        px(-4, -5, 4, 1, BAND2); px(0, -3, 4, 1, BAND2);
+        if(!o.costas){ px(4, -10, 2, 1, BAND); px(5, -9, 1, 2, BAND); }
+      },
+      cabeca: (px, o) => {
+        const hy = o.hy;
+        px(-4, hy, 8, 8, BAND); px(-4, hy + 1, 8, 1, BAND2); px(-4, hy + 6, 8, 1, BAND2);
+        if(o.lado){ px(2, hy + 3, 2, 2, '#2B2F38'); px(3, hy + 4, 1, 1, AMARELO); return; }
+        if(o.costas){ px(-4, hy + 3, 8, 1, BAND2); px(3, hy + 4, 2, 1, BAND); return; }
+        px(-3, hy + 3, 6, 2, '#2B2F38'); px(-2, hy + 4, 1, 1, AMARELO); px(1, hy + 4, 1, 1, AMARELO);
+      } };
+    SKIN.piloto = { R: PAPEL, L: PAPEL, T: INK, luva: ROSA, cobre: true, loja: true,
+      tronco: (px, o) => {
+        if(o.lado){ px(-2, -15, 1, 8, ROSA); for(let i = 0; i < 4; i++) px(-2 + i, -11, 1, 1, i % 2 ? INK : PAPEL); px(-2, -7, 1, 5, ROSA); return; }
+        px(-1, -15, 2, 8, ROSA); for(let i = 0; i < 8; i++) px(-4 + i, -11, 1, 1, i % 2 ? INK : PAPEL);
+        if(!o.costas){ px(2, -14, 2, 1, AMARELO); px(-4, -14, 2, 1, AZUL); }
+        px(-4, -7, 1, 5, ROSA); px(3, -7, 1, 5, ROSA); px(-7, -15, 3, 1, ROSA); px(4, -15, 3, 1, ROSA);
+      },
+      cabeca: (px, o) => { capacete(px, o, PAPEL, VISOR, ROSA); if(!o.costas && !o.lado) px(-1, o.hy - 2, 2, 3, ROSA); if(o.lado) px(-2, o.hy - 2, 2, 3, ROSA); } };
+    SKIN.rockeiro = { R: INK, L: '#2B2F38', T: INK, loja: true,
+      atras: (px, o) => { if(o.costas || o.lado) return; px(4, -24, 1, 9, COURO2); px(4, -26, 2, 2, INK); px(3, -25, 1, 1, PRATA); },
+      tronco: (px, o) => {
+        const TA = '#C9CDD3';
+        if(o.costas){ px(-3, -12, 6, 4, '#E2412E'); px(-2, -14, 4, 2, '#E2412E'); px(-1, -12, 2, 1, INK); px(-2, -10, 4, 1, INK); px(-4, -16, 1, 2, COURO2); px(-5, -24, 1, 8, COURO2); px(-6, -26, 2, 2, INK); return; }
+        if(o.lado){ px(1, -14, 1, 4, TA); px(-2, -15, 1, 1, TA); px(-1, -5, 2, 1, PAPEL); return; }
+        px(-1, -15, 2, 8, '#F4F3EF'); px(-1, -12, 2, 1, ROSA); px(-3, -15, 1, 3, '#2B2F38'); px(2, -15, 1, 3, '#2B2F38'); px(2, -12, 1, 4, TA);
+        px(-7, -15, 1, 1, TA); px(-5, -15, 1, 1, TA); px(4, -15, 1, 1, TA); px(6, -15, 1, 1, TA);
+        px(-3, -5, 2, 1, PAPEL); px(1, -4, 2, 1, PAPEL);
+      },
+      cabeca: (px, o) => {
+        const hy = o.hy;
+        if(o.lado){ px(-4, hy + 1, 8, 1, INK); px(-5, hy + 1, 1, 2, INK); return; }
+        px(-4, hy + 1, 8, 1, INK); px(-2, hy + 1, 1, 1, PAPEL); px(1, hy + 1, 1, 1, PAPEL); px(4, hy + 1, 1, 2, INK);
+        if(!o.costas) px(-5, hy + 5, 1, 1, PRATA);
+      } };
   }
   const idx = (L, v, d) => Number.isInteger(v) && v >= 0 && v < L.length ? v : d;
   function avPadrao(seed){
@@ -276,7 +582,7 @@
     const d = avPadrao(seed); v = v && typeof v === 'object' ? v : {};
     return { pele: idx(PELES, v.pele, d.pele), cabelo: enumOk(CABELOS, v.cabelo, d.cabelo), corCabelo: idx(CAB_CORES, v.corCabelo, d.corCabelo), barba: enumOk(BARBAS, v.barba, 'nada'), topo: enumOk(TOPOS, v.topo, d.topo), oculos: enumOk(OCULOS, v.oculos === 'redondo' ? 'grau' : v.oculos, d.oculos),
       roupa: enumOk(ROUPAS, v.roupa, d.roupa), corRoupa: idx(ROUPA_CORES, v.corRoupa, d.corRoupa), estampa: enumOk(ESTAMPAS, v.estampa, 'nada'), corrente: enumOk(CORRENTES, v.corrente, 'nada'), perna: enumOk(PERNAS, v.perna, 'calca'), corCalca: idx(CALCA_CORES, v.corCalca, d.corCalca), tenis: idx(TENIS_CORES, v.tenis, d.tenis),
-      skate: v.skate === true, personagem: enumOk(PERSONAGENS, v.personagem, ''), skin: enumOk(SKINS, v.skin, ''),
+      skate: v.skate === true, personagem: enumOk(PERSONAGENS, v.personagem, ''), skin: enumOk(SKINS_TODAS, v.skin, ''),
       veiculo: typeof v.veiculo === 'string' && C.veiculos && C.veiculos.porK(v.veiculo) ? v.veiculo : '', vcor: Number.isInteger(v.vcor) && v.vcor >= 0 && v.vcor < 24 ? v.vcor : null };
   }
   /* o que o boneco leva na mão (comida dos trucks e quiosques, o peixe do píer), em pixels a partir da mão */
@@ -440,6 +746,8 @@
       if(!PO || PO.braco) for(let r = 0; r < 8; r++){ const c = r === 7 ? MAO : roupa === 'regata' ? P : roupa === 'camiseta' && r >= 3 ? P : R; px(-1 + (r > 3 ? fase : 0), -15 + r, 3, 1, c); }
       if(!(PO && PO.dentro)) extras();
     }
+    /* v3.66 · o brilho das skins da loja, por cima de tudo */
+    if(SK && SK.fx && !(PO && PO.dentro)) SK.fx(px, o);
     fimVeiculo();
     ctx.restore();
   }
@@ -1164,6 +1472,13 @@
        direita do primeiro par vira Sebo) e ele aparece no mapa */
     if(!enche.some(f => f.t === 'loja' && f.lojas.some(l => l.nome === 'SEBO'))){ const f = enche.find(x => x.t === 'loja'); if(f) f.lojas[1].nome = 'SEBO'; }
     enche.forEach(f => { if(f.t === 'loja') f.lojas.forEach((l, i) => { if(l.nome === 'SEBO') K.lugares.push({ nome: 'Sebo', x: portaLoja(f, i), y: f.base + 22 }); }); });
+    /* v3.66: o Ateliê é a loja de skins. A cidade sempre tem um: uma loja de um par sem Sebo (ou a outra do par do Sebo),
+       de vitrine alta, toldo rosa e placa preta */
+    if(!enche.some(f => f.t === 'loja' && f.lojas.some(l => l.nome === 'ATELIE'))){
+      const fs = enche.filter(x => x.t === 'loja'), f = fs.find(x => !x.lojas.some(l => l.nome === 'SEBO')) || fs[0];
+      if(f){ const i = f.lojas[0].nome === 'SEBO' ? 1 : 0; if(f.lojas[i].nome !== 'SEBO') Object.assign(f.lojas[i], { nome: 'ATELIE', toldo: ROSA, placa: INK, placaCor: AMARELO, alto: true, luz: true }); }
+    }
+    enche.forEach(f => { if(f.t === 'loja') f.lojas.forEach((l, i) => { if(l.nome === 'ATELIE') K.lugares.push({ nome: 'Ateliê', x: portaLoja(f, i), y: f.base + 22 }); }); });
     /* os dois quarteirões */
     let dois = null;
     if(esp){ const a = lotXY(6, 2), b = lotXY(7, 2); dois = { id: esp.id, p: esp, handle: esp.handle, nome: esp.nome, x: a.x, w: 2 * LW + RUA, base: a.y + LH - 34, blocos: [a, b], portaX: a.x + 154 }; grade[2][6] = grade[2][7] = { t: 'dois' }; }
@@ -1429,7 +1744,7 @@
     /* v3.49: no começo do Píer do Igapó, a entrada do Torneio de Pesca */
     if(c.torneio) P.push({ x: c.torneio.x, y: c.torneio.y, tipo: 'torneio' });
     /* v3.48: a porta do Sebo entra no Sebo (os caixotes de disco) */
-    c.enche.forEach(f => { if(f.t === 'loja') f.lojas.forEach((l, i) => { if(l.nome === 'SEBO') P.push({ x: portaLoja(f, i), y: f.base + 8, tipo: 'sebo' }); }); });
+    c.enche.forEach(f => { if(f.t === 'loja') f.lojas.forEach((l, i) => { if(l.nome === 'SEBO') P.push({ x: portaLoja(f, i), y: f.base + 8, tipo: 'sebo' }); else if(l.nome === 'ATELIE') P.push({ x: portaLoja(f, i), y: f.base + 8, tipo: 'atelie' }); }); });
     /* o aquário: na porta, o jogo */
     if(c.centro.aquario) P.push({ x: c.centro.aquario.x + LW / 2, y: c.centro.aquario.base + 8, tipo: 'aquario', jogo: 'killer' });
     /* v3.40: o embarque do aeroporto */
@@ -3656,7 +3971,7 @@
       if(j && T.fase === 'jogando'){ b.disabled = j.t === 'seq'; b.innerHTML = `${ico('raio')} ${esc(j.t === 'tempo' ? j.verbo : j.t === 'segura' ? 'Segura: ' + j.verbo.toLowerCase() : 'Usa as setas')}`; return; }
       b.innerHTML = `${ico('raio')} ${esc(p.et.acao)}${ag ? '…' : ''}`; b.disabled = !!ag; return; }
     b.disabled = false;
-    b.innerHTML = p.tipo === 'aeroporto' ? `${ico('aviao')} Voar (${C.correalTxt(precoVoo())})` : p.tipo === 'sebo' ? `${ico('musica')} Entrar no Sebo` : p.tipo === 'torneio' ? `${ico('peixe')} Torneio de Pesca` : p.tipo === 'beisebol' ? `${ico('raio')} Jogar beisebol na ACEL` : p.tipo === 'quadra' ? `${ico('raio')} ${p.k === 'quadra-futsal' ? 'Desafio de pênalti' : 'Desafio de arremesso'}` : p.tipo === 'publi' ? `${ico('ext')} ${esc((PUBLI[p.k] || {}).nome || '')}: baixar o app` : p.tipo === 'pista' ? `${ico('raio')} ${p.k === 'moto' ? 'Autódromo do Café' : 'Corrida de patinete'}` : p.tipo === 'civico' ? `${ico('raio')} ${esc(CIVICOS[p.k].entra)}` : p.tipo === 'barraca' ? (aberta(p.b) ? `${ico(p.b.ico)} ${esc(p.b.botao)}` : `${ico('eye')} Hórus desligado: ligar`) : p.tipo === 'comida' ? `${ico('banca')} ${esc(COMIDAS[p.k][0])}` : p.tipo === 'aquario' ? `${ico('play')} Jogar ${esc(JOGOS[p.jogo].titulo)}` : p.tipo === 'banco' ? (p.pesca ? `${ico('gente')} Pescar no ${p.b.lugar.startsWith('Deck') ? 'deck' : 'píer'}` : `${ico('gente')} Sentar ${p.b.degrau ? 'na Concha' : 'no banco'}`) : p.tipo === 'mural' ? `${ico('tacha')} Abrir o Mural` : p.tipo === 'banca' ? `${ico('banca')} Banca do dia` : p.tipo === 'lote' ? `${ico('plus')} Lote livre` : meu ? `${ico('home')} Tua casa` : `${ico('home')} Bater na porta de @${esc(p.c.handle)}`;
+    b.innerHTML = p.tipo === 'aeroporto' ? `${ico('aviao')} Voar (${C.correalTxt(precoVoo())})` : p.tipo === 'sebo' ? `${ico('musica')} Entrar no Sebo` : p.tipo === 'atelie' ? `${ico('star')} Ateliê: skins` : p.tipo === 'torneio' ? `${ico('peixe')} Torneio de Pesca` : p.tipo === 'beisebol' ? `${ico('raio')} Jogar beisebol na ACEL` : p.tipo === 'quadra' ? `${ico('raio')} ${p.k === 'quadra-futsal' ? 'Desafio de pênalti' : 'Desafio de arremesso'}` : p.tipo === 'publi' ? `${ico('ext')} ${esc((PUBLI[p.k] || {}).nome || '')}: baixar o app` : p.tipo === 'pista' ? `${ico('raio')} ${p.k === 'moto' ? 'Autódromo do Café' : 'Corrida de patinete'}` : p.tipo === 'civico' ? `${ico('raio')} ${esc(CIVICOS[p.k].entra)}` : p.tipo === 'barraca' ? (aberta(p.b) ? `${ico(p.b.ico)} ${esc(p.b.botao)}` : `${ico('eye')} Hórus desligado: ligar`) : p.tipo === 'comida' ? `${ico('banca')} ${esc(COMIDAS[p.k][0])}` : p.tipo === 'aquario' ? `${ico('play')} Jogar ${esc(JOGOS[p.jogo].titulo)}` : p.tipo === 'banco' ? (p.pesca ? `${ico('gente')} Pescar no ${p.b.lugar.startsWith('Deck') ? 'deck' : 'píer'}` : `${ico('gente')} Sentar ${p.b.degrau ? 'na Concha' : 'no banco'}`) : p.tipo === 'mural' ? `${ico('tacha')} Abrir o Mural` : p.tipo === 'banca' ? `${ico('banca')} Banca do dia` : p.tipo === 'lote' ? `${ico('plus')} Lote livre` : meu ? `${ico('home')} Tua casa` : `${ico('home')} Bater na porta de @${esc(p.c.handle)}`;
   }
   function tamanhoTela(){
     const st = C.$('cvr-stage'); if(!st || !V.cv) return;
@@ -4114,6 +4429,7 @@
     if(p.tipo === 'pista' && p.k === 'patinete' && C.casa && C.casa.escolhePista){ C.casa.escolhePista(); return; }
     if(p.tipo === 'pista'){ if(C.casa && C.casa.LUGARES && C.casa.LUGARES[p.k]){ if(C.versoSom) C.versoSom.porta(); C.casa.abrir({ lugar: p.k }); } return; }
     if(p.tipo === 'torneio'){ if(C.casa && C.casa.LUGARES && C.casa.LUGARES.pesca){ if(C.versoSom) C.versoSom.porta(); C.casa.abrir({ lugar: 'pesca' }); } return; }
+    if(p.tipo === 'atelie'){ if(C.versoSom) C.versoSom.porta(); lojaSheet(); return; }
     if(p.tipo === 'sebo'){ if(C.casa && C.casa.LUGARES && C.casa.LUGARES.sebo){ if(C.versoSom) C.versoSom.porta(); C.casa.abrir({ lugar: 'sebo' }); } return; }
     if(p.tipo === 'mural'){ abreBalcao(BC_MURAL); return; }
     if(p.tipo === 'banca'){ abreBalcao(BC_BANCA); return; }
@@ -4158,15 +4474,94 @@
       <p class="fine">A voz abre sozinha quando os dois estão perto e de mic ligado, e fecha quando alguém se afasta ou desliga. Ela vai direto entre os dois aparelhos: o Corre não grava nada. Bloquear esconde a pessoa pra você e ela nunca mais conecta a voz contigo.</p></div>`);
     document.querySelectorAll('.cvr-mini').forEach(cv => { try{ miniAvatar(cv, avLimpo(JSON.parse(cv.dataset.av))); }catch(e){} });
   }
+  /* ---------- v3.66 · o Ateliê: a loja de skins ----------
+     As 18 skins da loja (SKINS_LOJA) se compram com correal e são da pessoa pra sempre. Quem diz o que ela tem e quanto
+     custa é o banco (corre_skins_minhas e corre_skin_compra, delta-v366.sql); o banco também tira a skin paga de quem
+     salvar o avatar sem ter comprado. Sem o delta, a loja mostra tudo e diz que abre em breve. */
+  const LJ = { uid: '', minhas: new Set(), precos: {}, ok: null, carregando: null };
+  const precoSkin = k => { const v = Number(LJ.precos[k]); return v > 0 ? v : (LOJA[k] ? LOJA[k][2] : 0); };
+  const tenhoSkin = k => !k || !LOJA[k] || LJ.minhas.has(k);
+  function carregaLoja(){
+    const u = C.uid() || ''; if(LJ.uid !== u){ LJ.uid = u; LJ.minhas = new Set(); LJ.ok = null; }
+    if(!u) return Promise.resolve(LJ);
+    return LJ.carregando || (LJ.carregando = C.api.rpc('corre_skins_minhas', {}).then(r => {
+      if(LJ.uid !== u) return LJ;
+      LJ.minhas = new Set(Array.isArray(r && r.minhas) ? r.minhas.map(String) : []); LJ.precos = (r && r.precos && typeof r.precos === 'object') ? r.precos : {}; LJ.ok = true;
+      if(r && r.saldo != null) C.correalSet(r.saldo);
+      return LJ;
+    }).catch(() => { LJ.ok = false; return LJ; }).finally(() => { LJ.carregando = null; }));
+  }
+  /* vestir (ou tirar, com k = ''): grava no perfil e troca o boneco na cidade e na casa. O personagem sai, senão a skin
+     não aparece (o personagem ganha do uniforme) */
+  async function vesteSkin(k){
+    const me = C.st.me; if(!me || !tenhoSkin(k)) return false;
+    const v = Object.assign({}, me.verso && typeof me.verso === 'object' ? me.verso : {}, { skin: k || '', personagem: '' });
+    await C.saveMe({ verso: v });
+    if(V.eu){ V.eu.av = avLimpo(C.st.me.verso, me.id); anunciar(); }
+    const S3 = C.casa && C.casa.estado && C.casa.estado(); if(S3 && S3.eu && C.casa.aberta && C.casa.aberta()) S3.eu.av = avLimpo(C.st.me.verso, me.id);
+    return true;
+  }
+  /* comprar: confere a carteira, pergunta sempre, e o banco desconta (ou não mexe em nada) */
+  async function compraSkin(k){
+    const x = LOJA[k]; if(!x) return false;
+    await Promise.all([carregaLoja(), C.correalCarrega().catch(() => {})]);
+    if(tenhoSkin(k)) return true;
+    if(LJ.ok === false){ C.toast('O Ateliê ainda tá arrumando a vitrine. As skins chegam já, já.', 3800); return false; }
+    const preco = precoSkin(k), saldo = Number(C.correal.saldo) || 0;
+    if(!C.correalCobre(saldo, preco)){ C.toast(`${x[1]} sai por ${C.correalTxt(preco)} e você tem ${C.correalFmt(saldo)}. Faz uns trampos no Correverso (até ${C.correalFmt(C.correal.teto)} por dia) e volta.`, 5200); return false; }
+    const sim = await C.confirma({ ico: 'correal', titulo: 'Comprar ' + x[1], texto: `Sai por <b>${C.correalTxt(preco)}</b>. Você tem <b>${C.correalFmt(saldo)}</b>. Comprou, é tua pra sempre.`, sim: `Comprar por ${C.correalFmt(preco)}`, nao: 'Agora não' });
+    if(!sim) return false;
+    let r = null; try{ r = await C.api.rpc('corre_skin_compra', { p_skin: k }); }catch(e){ C.toast(C.errMsg(e, 'Não deu pra comprar agora.')); return false; }
+    if(!r || !r.ok){ if(r && r.saldo != null) C.correalSet(r.saldo); C.toast(r && r.preco == null ? 'Essa skin não tá à venda.' : 'Não deu: o saldo não cobre.', 3600); return false; }
+    LJ.minhas.add(k); C.correalSet(r.saldo); if(V.vivo) correalUI(true);
+    if(C.versoSom) C.versoSom.moeda();
+    return true;
+  }
+  /* o botão de cada skin na vitrine: comprar, vestir ou tirar */
+  function acaoLoja(k){
+    const av = C.st.me ? avLimpo(C.st.me.verso, C.st.me.id) : null, vestindo = !!av && !av.personagem && av.skin === k;
+    if(LJ.ok === null) return '<span class="lj-msg">…</span>';
+    if(LJ.ok === false && !tenhoSkin(k)) return `<span class="lj-preco">${ico('correal')} ${C.correalFmt(precoSkin(k))}</span><span class="lj-msg">em breve</span>`;
+    if(tenhoSkin(k)) return vestindo ? `<span class="lj-tua">${ico('check')} Vestindo</span><button type="button" class="btn sm" data-act="cvr-lj-tira">Tirar</button>`
+      : `<span class="lj-tua">${ico('check')} É tua</span><button type="button" class="btn sm pri" data-act="cvr-lj-veste" data-k="${k}">Vestir</button>`;
+    return `<button type="button" class="btn sm pri lj-compra" data-act="cvr-lj-compra" data-k="${k}" aria-label="Comprar ${esc(LOJA[k][1])} por ${C.correalTxt(precoSkin(k))}">${ico('correal')} ${C.correalFmt(precoSkin(k))}</button>`;
+  }
+  const pintaLoja = () => document.querySelectorAll('.lj-acao[data-k]').forEach(el => { el.innerHTML = acaoLoja(el.dataset.k); el.closest('.lj-card').classList.toggle('tua', tenhoSkin(el.dataset.k)); });
+  function lojaSheet(){
+    const me = C.st.me; if(!me){ C.toast('Entra no Corre pra abrir o Ateliê.'); return; }
+    const card = x => `<li class="lj-card lj-${x[3]}"><canvas class="lj-cv" width="32" height="34" data-k="${x[0]}" aria-hidden="true"></canvas><div class="lj-tx"><span class="lj-rar">${RARIDADE[x[3]]}</span><b>${esc(x[1])}</b><small>${esc(x[4])}</small></div><div class="lj-acao" data-k="${x[0]}"></div></li>`;
+    const grupo = (r, t) => `<h3 class="lj-g lj-g-${r}">${t}</h3><ul class="lj-l">${SKINS_LOJA.filter(x => x[3] === r).map(card).join('')}</ul>`;
+    C.sheet(`<div class="form lj"><div class="sheet-head"><h2>${ico('star')} Ateliê do Corre</h2><button type="button" class="cbtn plain" data-close aria-label="Fechar">${ico('x')}</button></div>
+      <p class="lj-topo">Skins pra vestir na cidade e dentro das casas, desenhadas aqui. Paga uma vez em correal e é tua pra sempre. Você tem <b class="num" data-correal-saldo>${C.correal.saldo == null ? '…' : C.correalFmt(C.correal.saldo)}</b> <span data-correal-unid>${C.correalUnid(C.correal.saldo || 0)}</span>.</p>
+      ${grupo('lendaria', 'Lendárias · com brilho')}${grupo('rara', 'Raras')}${grupo('estilo', 'Estilo')}
+      <p class="fine">Correal não é dinheiro: se ganha fazendo trampo no Correverso (até ${C.correalFmt(C.correal.teto)} por dia). O Ateliê sempre pergunta antes de descontar. Os 14 uniformes de antes seguem de graça, no teu avatar.</p></div>`, 'wide lj-sheet');
+    pintaLoja();
+    carregaLoja().then(pintaLoja); C.correalCarrega().catch(() => {});
+    /* o provador: cada skin no teu boneco, girando devagar */
+    const cvs = [...document.querySelectorAll('.lj-cv')], base = avLimpo(me.verso, me.id), dirs = ['baixo', 'dir', 'cima', 'esq'];
+    let ult = 0, f = 0;
+    const roda = ts => {
+      if(!cvs.length || !cvs[0].isConnected) return;
+      if(ts - ult > 120){
+        ult = ts; f++;
+        cvs.forEach((cv, i) => { const av = Object.assign({}, base, { personagem: '', skin: cv.dataset.k }); miniAvatar(cv, av, dirs[(Math.floor(f / 12) + i) % 4], f * .8); });
+      }
+      requestAnimationFrame(roda);
+    };
+    requestAnimationFrame(roda);
+  }
   function avatarSheet(primeira){
     const me = C.st.me; let av = avLimpo(me.verso, me.id);
     const sw = (k, L) => `<div class="cvr-sw" role="radiogroup">${L.map((c, i) => `<button type="button" role="radio" data-k="${k}" data-v="${i}" aria-checked="${av[k] === i}" style="--c:${c}" aria-label="${k} ${i + 1}"></button>`).join('')}</div>`;
     const ch = (k, L) => `<div class="cvr-ch" role="radiogroup">${L.map(([v, n]) => `<button type="button" role="radio" data-k="${k}" data-s="${v}" aria-checked="${av[k] === v}">${n}</button>`).join('')}</div>`;
+    /* v3.66: as skins do Ateliê, com o cadeado e o preço de quem ainda não tem */
+    const chLoja = () => `<div class="cvr-ch cvr-ch-loja" role="radiogroup">${SKINS_LOJA.map(x => `<button type="button" role="radio" data-k="skin" data-s="${x[0]}" data-loja="${x[0]}" aria-checked="${av.skin === x[0]}">${tenhoSkin(x[0]) ? '' : ico('lock')}${esc(x[1])}${tenhoSkin(x[0]) ? '' : `<i>${C.correalFmt(precoSkin(x[0]))}</i>`}</button>`).join('')}</div>`;
     C.sheet(`<div class="form cvr-av"><div class="sheet-head"><h2>${primeira ? 'Monta teu avatar' : 'Teu avatar'}</h2><button type="button" class="cbtn plain" data-close aria-label="Fechar">${ico('x')}</button></div>
       <div class="cvr-av-cols"><div class="cvr-av-prev"><canvas id="cvr-prev" width="32" height="34" aria-label="Prévia do avatar"></canvas><div class="acts"><button type="button" class="btn sm" id="cvr-gira">Girar</button><button type="button" class="btn sm" id="cvr-sorte">Sortear</button></div></div>
       <div class="cvr-av-f">
         <div class="fld"><span class="lbl-s">Personagem</span>${ch('personagem', PERSONAGENS)}<small class="fine">Escolhe um e anda pela cidade como ele. "Você mesmo" usa o boneco montado aqui embaixo.</small></div>
         <div class="fld"><span class="lbl-s">Uniforme</span>${ch('skin', SKINS)}<small class="fine">Vai por cima do teu boneco (pele, cabelo e barba ficam). Na cidade e dentro das casas.</small></div>
+        <div class="fld cvr-av-loja"><span class="lbl-s">${ico('star')} Do Ateliê</span>${chLoja()}<small class="fine">Toca pra provar. A que tem cadeado se compra com correal na hora de salvar. <button type="button" class="lnk" data-act="cvr-loja">Abrir o Ateliê</button></small></div>
         <div class="fld"><span class="lbl-s">Pele</span>${sw('pele', PELES)}</div>
         <div class="fld"><span class="lbl-s">Cabelo</span>${ch('cabelo', CABELOS)}${sw('corCabelo', CAB_CORES)}</div>
         <div class="fld"><span class="lbl-s">Barba</span>${ch('barba', BARBAS)}</div>
@@ -4185,9 +4580,13 @@
     document.querySelector('.cvr-av').addEventListener('click', e => { const b = e.target.closest('[data-k]'); if(!b) return; av[b.dataset.k] = b.dataset.s != null ? b.dataset.s : Number(b.dataset.v); marca(); });
     C.$('cvr-gira').addEventListener('click', () => { di = (di + 1) % 4; });
     C.$('cvr-sorte').addEventListener('click', () => { av = avPadrao(Math.random()); marca(); });
+    /* a fileira do Ateliê pinta o cadeado de novo quando o banco responde o que a pessoa tem */
+    carregaLoja().then(() => document.querySelectorAll('.cvr-av [data-loja]').forEach(b => { const k = b.dataset.loja, x = LOJA[k]; b.innerHTML = `${tenhoSkin(k) ? '' : ico('lock')}${esc(x[1])}${tenhoSkin(k) ? '' : `<i>${C.correalFmt(precoSkin(k))}</i>`}`; }));
     C.$('cvr-av-ok').addEventListener('click', async ev => {
       const bt = ev.currentTarget; if(bt.disabled) return; bt.disabled = true;
-      try{ await C.saveMe({ verso: Object.assign({}, me.verso && typeof me.verso === 'object' ? me.verso : {}, av) }); if(V.eu) V.eu.av = avLimpo(av, me.id); anunciar(); C.closeSheet(); C.toast('Avatar salvo.'); }
+      /* v3.66: provou uma skin do Ateliê que não é tua: compra antes (o banco tiraria ela do avatar) */
+      if(av.skin && LOJA[av.skin] && !tenhoSkin(av.skin)){ const ok = await compraSkin(av.skin).catch(() => false); if(!ok){ bt.disabled = false; return; } av.personagem = ''; }
+      try{ await C.saveMe({ verso: Object.assign({}, me.verso && typeof me.verso === 'object' ? me.verso : {}, av) }); if(V.eu) V.eu.av = avLimpo(C.st.me.verso, me.id); anunciar(); C.closeSheet(); C.toast('Avatar salvo.'); }
       catch(e){ bt.disabled = false; C.toast(C.errMsg(e, 'Não deu pra salvar o avatar.')); }
     });
   }
@@ -4214,6 +4613,11 @@
     'cvr-veste': el => vesteUniforme(el.dataset.u),
     'cvr-uni': el => vesteUniforme(el.dataset.u || ''),
     'cvr-avatar': () => avatarSheet(false),
+    /* v3.66: o Ateliê (a loja de skins) */
+    'cvr-loja': () => lojaSheet(),
+    'cvr-lj-compra': async el => { const k = el.dataset.k; el.disabled = true; try{ if(await compraSkin(k)){ await vesteSkin(k); C.toast(`${LOJA[k][1]} é tua e já tá vestindo.`, 3600); } }catch(e){ C.toast(C.errMsg(e, 'Não deu pra vestir agora.')); }finally{ pintaLoja(); } },
+    'cvr-lj-veste': async el => { el.disabled = true; try{ await vesteSkin(el.dataset.k); }catch(e){ C.toast(C.errMsg(e, 'Não deu pra vestir agora.')); } pintaLoja(); },
+    'cvr-lj-tira': async el => { el.disabled = true; try{ await vesteSkin(''); }catch(e){ C.toast(C.errMsg(e, 'Não deu agora.')); } pintaLoja(); },
     /* v3.55: "Pra casa" levanta do banco e larga a vara (antes chegava sentado, pescando na porta) */
     'cvr-casa': () => { if(!V.eu || !V.casa) return; V.alvo = null; V.eu.sit = false; V.eu.pesca = null; V.eu.x = V.casa.x; V.eu.y = V.casa.y; V.entrando = .55; anunciar(); portaUI(); },
     'cvr-gente': () => genteSheet(),
@@ -4243,7 +4647,7 @@
     }
   });
 
-  C.verso = { miniVeiculo, trocaVeiculo, veiculoDe, alturaPulo, PULO_MS,
+  C.verso = { miniVeiculo, trocaVeiculo, veiculoDe, alturaPulo, PULO_MS, SKINS_LOJA, loja: lojaSheet, compraSkin, vesteSkin, carregaLoja, skinsMinhas: () => [...LJ.minhas],
     /* v3.65 · a busca do Corre leva direto pra um lugar da cidade (o mesmo "ir pra lá" do Mapa, de graça). false = a cidade
        ainda não tá pronta (ou você tá dentro de um lugar 3D); null = esse lugar não existe aqui (ex.: sem casa ainda) */
     irPara: nome => {

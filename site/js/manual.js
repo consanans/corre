@@ -6,10 +6,11 @@
   'use strict';
   const C = window.Corre, { esc, ico } = C;
   /* sobe esse número a cada atualização: quem já viu recebe de novo, abrindo nas novidades */
-  const VERSAO = '3.65';
+  const VERSAO = '3.66';
   const K = 'corre-manual-visto';
 
   const NOVIDADES = [
+    ['star', 'O Ateliê: skins pra comprar', 'O Correverso ganhou o Ateliê, uma loja de skins, com 18 roupas novas desenhadas aqui: Faraó, Diva do Calçadão, Destaque da Avenida, Samurai do Igapó, Cavaleiro de Prata e Galáxia (as lendárias, que brilham), mais Cangaceiro, Peão da Expo, MC de Ouro, Mago Lilás, Vampiro Chique, Anjo, Lutador Mascarado, Fada do Ipê, Capetinha, Múmia, Piloto Turbo e Rockeiro. Lendária sai 1,00 correal, rara 0,60 e de estilo 0,30; compra uma vez e é tua pra sempre, na cidade e dentro das casas. O Ateliê tem porta na cidade (tá no Mapa e na busca) e também aparece no teu avatar, onde dá pra provar antes. Os uniformes de antes seguem de graça.'],
     ['lupa', 'Procurar no Corre', 'Agora dá pra procurar tudo num lugar só: gente (pelo nome, pelo @ ou pelo que faz, tipo fotógrafo ou DJ), grupos, posts, as ferramentas do app e os lugares do Correverso (toca e vai direto pra lá). No computador é a barra no alto do menu (ou a tecla /); no celular, a lupa no alto da tela. Sem digitar nada, aparecem os teus recentes, os atalhos e o que tá em alta.'],
     ['raio', 'Placa da corrida', 'A placa de bandeira quadriculada do Autódromo do Café, no portão do Estádio, agora diz CORRIDA: lá dentro tem moto e carro.'],
     ['bell', 'Avisos com outro acabamento', 'Os avisos rápidos que aparecem no alto da tela ganharam cara nova: cartão escuro com a barrinha amarela, uma linha embaixo que mostra quanto tempo falta pra sumir, e entrada suave. Pra fechar antes, é só tocar nele.'],
