@@ -340,7 +340,7 @@
     app.innerHTML = C.header('editar') + `<main class="wrap">
       <h2 class="sec-t"><span class="hl">Editar perfil</span></h2>
       <section class="card">${profileForm(st.me, false)}</section>
-      <section class="card danger"><h2 class="ch">Apagar meu perfil</h2><p class="note">Apaga perfil, catálogo, vendas e orçamentos, clientes do Hórus, pedidos e propostas do Mural, referências, portfólio, stories, destaques, vitrine, contas e lançamentos. Não dá pra desfazer.</p>
+      <section class="card danger"><h2 class="ch">Apagar meu perfil</h2><p class="note">Apaga perfil, catálogo, vendas e orçamentos, clientes do Hórus, pedidos e propostas do Mural, referências, portfólio, stories, destaques, vitrine, contas e lançamentos, e cancela os planos pagos. Não dá pra desfazer.</p>
         <div class="seguir-row"><input class="inp" id="del-h" placeholder="Digite teu @ pra confirmar" autocapitalize="none" spellcheck="false" aria-label="Digite teu @ pra confirmar"><button type="button" class="btn ghost" data-act="apagar-conta">${ico('trash')} Apagar tudo</button></div></section>
     </main>`;
     bindForm(false);
@@ -794,6 +794,9 @@
     'apagar-conta': async () => {
       const v = ($('del-h').value || '').trim().replace(/^@/, '').toLowerCase();
       if(v !== st.me.handle){ toast('Digite teu @ certinho pra confirmar.'); $('del-h').focus(); return; }
+      /* v3.61: plano pago rodando no Asaas é cancelado antes (o perfil some, mas o Asaas seguiria cobrando todo mês) */
+      try{ if(C.planos && C.planos.cancelaTudo) await C.planos.cancelaTudo(); }
+      catch(e){ toast(C.errMsg(e, 'Não deu pra cancelar teus planos agora. Cancela em Financeiro › Planos e tenta de novo.'), 5200); return; }
       try{ if(C.push) await C.push.sair(); await api.del('corre_perfis', { id: st.user.id }); toast('Perfil apagado.'); await api.logout(); st.user = null; st.me = null; st.loadedFor = null; go('#/'); }
       catch(e){ toast(C.errMsg(e)); }
     }

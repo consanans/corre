@@ -12,6 +12,7 @@
 //  3. acao "link" { produto }: o link da fatura em aberto (pra pagar agora).
 //  4. ?asaas=aviso: o Asaas avisando (pagou, venceu, cancelou). Confere o token do aviso; cada aviso vale uma vez.
 //     Pra o Asaas conseguir chamar, a função fica sem "Verify JWT" (o login de quem usa o app é conferido aqui dentro).
+//     acao "confere" { produto } (v3.61): olha no Asaas se a fatura já foi paga (se o aviso não chegou, o plano liga assim).
 //  5. acao "asaas" (só o fundador, em Financeiro › Planos): confere a chave e cadastra (ou acerta) o webhook no Asaas
 //     pela API, com o token certo. Ninguém precisa copiar token de um painel pro outro.
 //
@@ -46,6 +47,9 @@ const PRODUTOS: Record<string, string> = { studio: 'Studio', houzi: 'Studio Houz
 /* o preço de cada plano (o Studio pelo nível: quantas redes) */
 const preco = (produto: string, nivel: number) =>
   produto === 'houzi' ? 29.9 : produto === 'horus' ? 9.9 : nivel >= 4 ? 79.9 : nivel === 3 ? 69.9 : nivel === 2 ? 59.9 : 0;
+/* v3.61: o nível do Studio que vale é o do valor que foi PAGO (trocar de plano só libera mais redes quando a fatura
+   com o valor novo é paga; antes, subir pro "4 ou mais" liberava na hora e dava pra voltar sem pagar) */
+const nivelDoValor = (v: number, antes: number) => v >= 79.89 ? 4 : v >= 69.89 ? 3 : v >= 59.89 ? 2 : antes;
 const descricao = (produto: string, nivel: number) =>
   produto === 'studio' ? `Corre · Studio, ${nivel >= 4 ? '4 ou mais redes sociais' : `${nivel} redes sociais`}` : `Corre · ${PRODUTOS[produto]}`;
 
@@ -94,13 +98,31 @@ async function faturaAberta(sub: string) {
   return L[0] ? { link: String(L[0].invoiceUrl || ''), vence: String(L[0].dueDate || '') } : null;
 }
 
+/* v3.61: confere direto no Asaas o que já foi pago. É a rede de segurança do aviso: se ele não chegou (fila do webhook
+   pausada, chave trocada antes de religar), quem pagou não fica travado; o app chama ao abrir os Planos */
+async function confere(admin: any, a: any) {
+  const o = await asaas(`/subscriptions/${encodeURIComponent(a.asaas_assinatura)}/payments?limit=50`);
+  const pagos = (o?.data || []).filter((p: any) => ['CONFIRMED', 'RECEIVED', 'RECEIVED_IN_CASH'].includes(p.status))
+    .sort((x: any, y: any) => String(y.dueDate).localeCompare(String(x.dueDate)));
+  if (!pagos.length) return false;
+  const ate = maisUmMes(String(pagos[0].dueDate).slice(0, 10));
+  if (a.pago_ate && a.pago_ate >= ate) return false;
+  const muda: Record<string, unknown> = { pago_ate: ate, status: a.status === 'cancelada' ? 'cancelada' : 'ativa', link: '', updated_at: agora() };
+  if (a.produto === 'studio') muda.nivel = nivelDoValor(Number(pagos[0].value), a.nivel);
+  const { error } = await admin.from('corre_assinaturas').update(muda).eq('id', a.id);
+  return !error;
+}
+
 /* ---------- o aviso do Asaas ---------- */
 async function aviso(req: Request, admin: any) {
   const tok = await tokenAviso();
   if (!tok || !igual(req.headers.get('asaas-access-token') || '', tok)) return json({ erro: 'token' }, 401);
   let ev: any = null; try { ev = await req.json(); } catch (_) { return json({ erro: 'corpo' }, 400); }
-  const id = String(ev?.id || ''), tipo = String(ev?.event || '');
-  if (!id || !tipo) return json({ ok: true, ignorado: 'sem id' });
+  const tipo = String(ev?.event || '');
+  if (!tipo) return json({ ok: true, ignorado: 'sem evento' });
+  /* v3.61: aviso sem "id" (formato antigo do Asaas) não pode ser jogado fora, senão quem pagou fica sem o plano:
+     a chave vira o evento + a cobrança + a situação dela */
+  const id = String(ev?.id || `${tipo}:${ev?.payment?.id || ev?.subscription?.id || ''}:${ev?.payment?.status || ''}`).slice(0, 200);
   const { data: ja } = await admin.from('corre_asaas_eventos').select('id').eq('id', id).maybeSingle();
   if (ja) return json({ ok: true, repetido: true });
   const pg = ev.payment || null, subId = String(pg?.subscription || ev.subscription?.id || '');
@@ -112,6 +134,7 @@ async function aviso(req: Request, admin: any) {
       /* pagou: cobre até um mês depois do vencimento da fatura (nunca encurta o que já tinha) */
       const ate = maisUmMes(String(pg.dueDate || hojeBR()).slice(0, 10));
       muda.status = 'ativa'; muda.pago_ate = !a.pago_ate || a.pago_ate < ate ? ate : a.pago_ate; muda.link = '';
+      if (a.produto === 'studio' && Number(pg?.value) > 0) muda.nivel = nivelDoValor(Number(pg.value), a.nivel);
     } else if (tipo === 'PAYMENT_CREATED' || tipo === 'PAYMENT_UPDATED') {
       if (pg?.invoiceUrl && ['PENDING', 'OVERDUE'].includes(pg.status)) muda.link = String(pg.invoiceUrl);
     } else if (tipo === 'PAYMENT_OVERDUE') {
@@ -162,6 +185,11 @@ Deno.serve(async (req) => {
       return json({ ok: true, link: f?.link || '', vence: f?.vence || '' });
     }
 
+    if (acao === 'confere') {
+      if (!a?.asaas_assinatura) return json({ ok: true, ativou: false });
+      return json({ ok: true, ativou: await confere(admin, a) });
+    }
+
     if (acao === 'cancelar') {
       if (!a?.asaas_assinatura || a.status === 'cancelada') return json({ ok: true, ja: true });
       await asaas(`/subscriptions/${encodeURIComponent(a.asaas_assinatura)}`, 'DELETE').catch((e: any) => { if (e?.status !== 404) throw e; });
@@ -175,15 +203,17 @@ Deno.serve(async (req) => {
 
     /* já assinou e segue valendo: no Studio, outro nível troca o valor; senão, devolve a fatura em aberto */
     if (a?.asaas_assinatura && a.status !== 'cancelada') {
-      const trocou = produto === 'studio' && nivel !== a.nivel;
+      /* troca quando o preço pedido é outro que o da assinatura (o nível pago só muda quando a fatura nova é paga) */
+      const trocou = produto === 'studio' && Math.abs(valor - Number(a.valor || 0)) > 0.001;
       if (trocou) {
         const corpo = { value: valor, description: descricao(produto, nivel), updatePendingPayments: true };
         await asaas(`/subscriptions/${encodeURIComponent(a.asaas_assinatura)}`, 'PUT', corpo)
           .catch((e: any) => (e?.status === 404 || e?.status === 405 ? asaas(`/subscriptions/${encodeURIComponent(a.asaas_assinatura)}`, 'POST', corpo) : Promise.reject(e)));
       }
       const f = await faturaAberta(a.asaas_assinatura).catch(() => null);
-      await admin.from('corre_assinaturas').update({ nivel, valor, link: f?.link || a.link || '', updated_at: agora() }).eq('id', a.id);
-      return json({ ok: true, link: f?.link || '', trocou });
+      /* o nível fica o que foi pago; o aviso da próxima fatura paga (já com o valor novo) é que troca */
+      await admin.from('corre_assinaturas').update({ valor, link: f?.link || a.link || '', updated_at: agora() }).eq('id', a.id);
+      return json({ ok: true, link: f?.link || '', trocou, nivel_pago: a.nivel });
     }
 
     /* o cliente no Asaas (a primeira vez: nome e CPF/CNPJ) */
@@ -202,16 +232,24 @@ Deno.serve(async (req) => {
 
     /* a assinatura: no teste grátis, a primeira cobrança vence no último dia do teste */
     const noTeste = !!(a?.teste_ate && Date.parse(a.teste_ate) > Date.now());
-    const vence = noTeste ? new Date(Date.parse(a.teste_ate) - 3 * 3600e3).toISOString().slice(0, 10) : hojeBR();
+    /* v3.61: quem cancelou e assina de novo ainda no período pago só paga quando ele acaba (antes vencia hoje: pagava dobrado) */
+    const pagoAte = a?.pago_ate && a.pago_ate > hojeBR() ? String(a.pago_ate) : '';
+    const vence = noTeste ? new Date(Date.parse(a.teste_ate) - 3 * 3600e3).toISOString().slice(0, 10) : pagoAte || hojeBR();
     const s = await asaas('/subscriptions', 'POST', {
       customer: cliente, billingType: 'UNDEFINED', value: valor, nextDueDate: vence < hojeBR() ? hojeBR() : vence, cycle: 'MONTHLY',
       description: descricao(produto, nivel), externalReference: `${user.id}:${produto}`,
     });
     const sub = String(s.id || ''); if (!sub) return json({ erro: 'asaas', detalhe: 'O Asaas não devolveu a assinatura.' }, 502);
     const f = await faturaAberta(sub).catch(() => null);
-    const linha = { dono: user.id, produto, nivel, valor, status: noTeste ? 'teste' : 'pendente', asaas_assinatura: sub, link: f?.link || '', updated_at: agora() };
+    const linha = { dono: user.id, produto, nivel: pagoAte && a ? a.nivel : nivel, valor, status: noTeste ? 'teste' : pagoAte ? 'ativa' : 'pendente', asaas_assinatura: sub, link: f?.link || '', updated_at: agora() };
     const { error } = a ? await admin.from('corre_assinaturas').update(linha).eq('id', a.id) : await admin.from('corre_assinaturas').insert(linha);
-    if (error) { console.error('assinar/banco:', error.message); return json({ erro: 'banco' }, 500); }
+    if (error) {
+      /* v3.61: o banco não guardou (dois toques ao mesmo tempo, por exemplo): a assinatura que acabou de nascer no Asaas
+         sai, senão ela cobraria a pessoa sem o Corre saber */
+      console.error('assinar/banco:', error.message);
+      await asaas(`/subscriptions/${encodeURIComponent(sub)}`, 'DELETE').catch(() => null);
+      return json({ erro: 'banco' }, 500);
+    }
     return json({ ok: true, link: f?.link || '', vence, teste: noTeste });
   } catch (e: any) {
     if (e && e.msg) { console.error('asaas:', e.status, e.msg); return json({ erro: 'asaas', detalhe: e.msg }, 502); }

@@ -182,6 +182,7 @@
     if(/plano_gratis/.test(m)) return 'Chegou no limite de redes sociais do teu plano.';
     /* v3.60: acabou o teste grátis (o banco diz no hint; a função imagem, no código) */
     if(/horus_assinatura/.test(m) || (e && e.code === 'horus_assinatura')) return 'O teste grátis do Hórus acabou. Assina em Planos (R$ 9,90 por mês) pra seguir caçando; os leads que você tem continuam aqui.';
+    if(/assinatura_ativa/.test(m)) return 'Tem plano pago rodando. Cancela em Financeiro › Planos antes de apagar o perfil.';
     if(/houzi_assinatura/.test(m) || (e && e.code === 'houzi_assinatura')) return 'O teste grátis do Studio Houzi acabou. Assina em Planos (R$ 29,90 por mês) pra criar e mexer nas marcas; as que você fez continuam aqui.';
     if(/limite de (\d+)/.test(m)) return `Chegou no limite (${RegExp.$1}).`;
     if(e && e.code === '23505') return 'Isso já tá aqui.';
@@ -1478,6 +1479,7 @@
         if(!['studio', 'houzi', 'horus'].includes(prod)) throw { code: 'produto', status: 400 };
         let a = d.t.corre_assinaturas.find(x => x.dono === u && x.produto === prod);
         if(B.acao === 'link'){ if(!a || !a.asaas_assinatura) throw { code: 'sem_assinatura', status: 404 }; return { ok: true, link: '', vence: '', demo: true }; }
+        if(B.acao === 'confere') return { ok: true, ativou: false, demo: true };
         if(B.acao === 'cancelar'){ if(!a || !a.asaas_assinatura || a.status === 'cancelada') return { ok: true, ja: true }; a.status = 'cancelada'; a.link = ''; a.updated_at = now(); write(d); return { ok: true, pago_ate: a.pago_ate, teste_ate: a.teste_ate, demo: true }; }
         if(B.acao !== 'assinar') throw { code: 'acao', status: 400 };
         const nivel = prod === 'studio' ? Math.max(2, Math.min(4, Math.round(Number(B.nivel) || 2))) : 1;

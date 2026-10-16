@@ -2836,3 +2836,7 @@ html.embed .msg-pg{height:calc(100dvh - 40px)}
 .stz > .pl-faixa{max-width:1100px;margin:0 auto 18px}
 .pl-asaas{border-style:dashed}
 .pl-estado.ruim{background:#FDECEF;color:var(--bad)}
+
+/* v3.61 · a marca que ficou fora do plano aparece na porta do Studio, apagada, com o caminho pra assinar */
+.st-porta-mk.fora{opacity:.55;border-style:dashed}
+.st-porta-mk.fora small{color:var(--bad)}

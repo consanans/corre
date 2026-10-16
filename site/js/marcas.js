@@ -15,6 +15,12 @@
   /* v3.60: o nome do plano do Studio (o fundador não paga; quem assinou tem o Plano Studio) */
   const nomePlano = () => pro() ? 'Plano Corre+' : C.acesso && C.acesso.fundador ? 'Fundador' : C.acesso && C.acesso.planos && C.acesso.planos.studio && C.acesso.planos.studio.acesso ? 'Plano Studio' : lim() > 1 ? 'Plano grátis + liberadas' : 'Plano grátis';
   const comRede = () => M.list.filter(m => m.rede);
+  /* v3.61: as redes que o plano cobre (as mais antigas primeiro). Quem tinha o "4 ou mais" e cancelou (ou não pagou)
+     segue com as marcas e as redes guardadas, mas só as que cabem no plano abrem o painel e o Studio */
+  const noPlano = () => { const L = comRede().slice().sort((a, b) => String(a.created_at || '').localeCompare(String(b.created_at || ''))).slice(0, lim()); return M.list.filter(m => L.includes(m)); };
+  const foraDoPlano = m => !!m.rede && !noPlano().includes(m);
+  const foraHTML = m => `<main class="wrap"><section class="card mk-head">${C.marcaLogo(m, 'l')}<div><h1>${esc(m.marca)}</h1><p class="note">@${esc(m.rede)} tá fora do teu plano agora: ele cobre ${nRedes(lim())}. A marca e tudo dela seguem guardados; o painel e o Studio dela voltam quando o plano cobrir de novo.</p></div><div class="acts"><button type="button" class="btn pri" data-act="mk-plus">${ico('cartao')} Quero mais redes</button><a class="btn" href="#/marcas">Voltar</a></div></section></main>`;
+  const acessoPronto = () => (C.acesso || !C.acessoCarrega ? null : C.acessoCarrega());
   const cleanIg = v => String(v || '').trim().replace(/^https?:\/\/(www\.)?instagram\.com\//i, '').replace(/^@/, '').replace(/[/?#].*$/, '');
 
   /* logo ou monograma em adesivo */
@@ -131,20 +137,22 @@
     marcaDentro(true);
     app.innerHTML = C.header('studio-dentro') + `<div class="st-barra" role="banner"><span class="st-barra-t">${ico('magia')} Studio</span><span class="st-barra-sp"></span><button type="button" class="btn sm" data-act="studio-trocar" title="Trocar marca">${ico('marcas')} <span class="st-l">Trocar marca</span></button><button type="button" class="btn sm pri" data-act="studio-sair">${ico('prev')} <span class="st-l">Sair do Studio</span><span class="st-s">Sair</span></button></div><main class="wrap studio" id="sd"><section class="card"><p>Abrindo o Studio…</p></section></main>`;
     document.body.classList.add('em-studio');
-    try{ await carregar(); }catch(e){}
+    try{ await Promise.all([carregar(), acessoPronto()]); }catch(e){}
     if(!C.$('sd')) return;
-    if(C.studio) C.studio.mount(C.$('sd'), { com: comRede(), sem: M.list.filter(m => !m.rede), id: id === 'entrar' ? '' : id });
+    const mk = M.list.find(x => x.id === id);
+    if(mk && foraDoPlano(mk)){ C.$('sd').outerHTML = foraHTML(mk); return; }
+    if(C.studio) C.studio.mount(C.$('sd'), { com: noPlano(), sem: M.list.filter(m => !m.rede), id: id === 'entrar' ? '' : id });
   };
   async function porta(app){
     app.innerHTML = C.header('studio') + '<main class="wrap st-porta-w"><section class="card"><p>Abrindo a porta do Studio…</p></section></main>';
-    try{ await carregar(); }catch(e){}
-    const com = comRede(), sem = M.list.filter(m => !m.rede);
+    try{ await Promise.all([carregar(), acessoPronto()]); }catch(e){}
+    const com = noPlano(), sem = M.list.filter(m => !m.rede), fora = comRede().filter(m => !com.includes(m));
     if(!/^#\/studio\/?$/.test(location.hash)) return;
     app.innerHTML = C.header('studio') + `<main class="wrap st-porta-w"><section class="st-porta">
       <span class="st-porta-k">${ico('magia')} Studio</span>
       <h1>Entra no Studio.</h1>
       <p>Programa o mês inteiro de uma vez: a IA faz as artes com a cara da marca e escreve as legendas (ou você sobe as tuas), e ${C.ig && !C.ig.aberto() ? 'cada post entra na agenda, no dia e na hora (a postagem automática no Instagram chega em breve)' : 'cada post sai sozinho no Instagram, no dia e na hora'}. Escolhe com qual marca vai trampar agora.</p>
-      ${com.length ? `<div class="st-porta-l">${com.length > 1 ? `<button type="button" class="st-porta-mk todas" data-act="studio-entrar" data-id="todas"><span class="sd-todas" aria-hidden="true">${com.slice(0, 3).map(x => `<i style="--c:${esc(x.cor || '#FFE800')}"></i>`).join('')}</span><b>Todas as marcas</b><small>${com.length} marcas</small></button>` : ''}${com.map(m => `<button type="button" class="st-porta-mk" data-act="studio-entrar" data-id="${m.id}">${C.marcaLogo(m, 'l')}<b>${esc(m.marca)}</b><small>@${esc(m.rede)}</small></button>`).join('')}</div>`
+      ${com.length ? `<div class="st-porta-l">${com.length > 1 ? `<button type="button" class="st-porta-mk todas" data-act="studio-entrar" data-id="todas"><span class="sd-todas" aria-hidden="true">${com.slice(0, 3).map(x => `<i style="--c:${esc(x.cor || '#FFE800')}"></i>`).join('')}</span><b>Todas as marcas</b><small>${com.length} marcas</small></button>` : ''}${com.map(m => `<button type="button" class="st-porta-mk" data-act="studio-entrar" data-id="${m.id}">${C.marcaLogo(m, 'l')}<b>${esc(m.marca)}</b><small>@${esc(m.rede)}</small></button>`).join('')}${fora.map(m => `<button type="button" class="st-porta-mk fora" data-act="mk-plus">${C.marcaLogo(m, 'l')}<b>${esc(m.marca)}</b><small>fora do plano</small></button>`).join('')}</div>`
         : `<p class="st-porta-v"><b>${sem.length ? 'Liga o Instagram de uma marca pra entrar.' : 'Põe a primeira marca que você trampa.'}</b> Com o @ da marca, o Studio puxa as últimas postagens dela como referência pra IA.</p>`}
       <div class="acts">${sem.slice(0, 3).map(m => `<button type="button" class="btn sm" data-act="mk-edit" data-id="${m.id}">${ico('ig')} Ligar o Insta da ${esc(m.marca)}</button>`).join('')}<button type="button" class="btn sm" data-act="mk-nova">${ico('plus')} Nova marca</button></div>
     </section>${C.ig ? `<p class="sd-ig sd-auto st-porta-ig" id="st-porta-ig" data-ig-linha data-rede="${esc(com.length === 1 ? com[0].rede : '')}">${C.ig.linha()}</p>` : ''}</main>`;
@@ -156,12 +164,13 @@
   C.views.marca = async function(app, id){
     app.innerHTML = C.header('marcas') + '<main class="wrap"><section class="card"><p>Abrindo o painel…</p></section></main>';
     let m = null;
-    try{ await carregar(); m = M.list.find(x => x.id === id); }catch(e){}
+    try{ await Promise.all([carregar(), acessoPronto()]); m = M.list.find(x => x.id === id); }catch(e){}
     if(!m){ app.innerHTML = C.header('marcas') + '<main class="wrap"><section class="card"><p>Essa marca não tá no teu portfólio.</p><div class="acts"><a class="btn pri" href="#/marcas">Ver portfólio</a></div></section></main>'; return; }
     if(!m.rede){
       app.innerHTML = C.header('marcas') + `<main class="wrap"><section class="card mk-head">${C.marcaLogo(m, 'l')}<div><h1>${esc(m.marca)}</h1><p class="note">Liga a rede social dessa marca pra abrir o painel.${pro() || lim() === Infinity ? '' : ` No teu plano, ${lim() === 1 ? '1 marca tem' : lim() + ' marcas têm'} painel.`}</p></div><div class="acts"><button type="button" class="btn pri" data-act="mk-edit" data-id="${m.id}">Ligar rede social</button><a class="btn" href="#/marcas">Voltar</a></div></section></main>`;
       return;
     }
+    if(foraDoPlano(m)){ app.innerHTML = C.header('marcas') + foraHTML(m); return; }
     const nm = C.norm(m.marca), ym = C.hojeBR().slice(0, 7);
     let ls = [];
     try{ ls = (await C.api.q('corre_lancamentos', { eq: { dono: C.uid() }, gt: { valor: 0 }, order: ['data', false], limit: 2000 })).filter(l => C.norm(l.cliente) === nm && l.categoria !== 'transferencia'); }catch(e){}

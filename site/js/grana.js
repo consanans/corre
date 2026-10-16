@@ -494,6 +494,8 @@
   /* dinheiro aqui é preço de vitrine: não esconde com o olho da grana (o C.money esconde) */
   const reais = v => 'R$ ' + Number(v).toFixed(2).replace('.', ',');
   const nivelNome = n => n >= 4 ? '4 ou mais redes' : n === 1 ? '1 rede' : n + ' redes';
+  /* o nível pelo valor (a mesma conta da função: o que vale é o preço) */
+  const nivelDoValor = (v, antes) => { v = Number(v) || 0; return v >= 79.89 ? 4 : v >= 69.89 ? 3 : v >= 59.89 ? 2 : antes; };
   const precoDe = (prod, nivel) => prod === 'studio' ? STUDIO[Math.max(2, Math.min(4, nivel || 2))] : PRECO[prod];
   /* datas: o teste é um instante (timestamptz), o pago é um dia; tudo na hora de Brasília */
   const diaDe = iso => iso ? C.hojeBR(new Date(iso)) : '';
@@ -519,7 +521,9 @@
       return p.acesso ? { txt: 'Ativo.', bts: p.assinado ? ['cancelar'] : [] } : { txt: `O teste grátis acabou em ${ddmm(tz)}.`, bts: p.assinado ? ['pagar', 'cancelar'] : ['assinar'], fora: true };
     }
     if(st === 'pendente') return p.acesso ? { txt: `Ativo até ${ddmm(fimPago)}. Tem uma fatura esperando.`, bts: ['pagar', 'cancelar'] } : { txt: 'Esperando o pagamento da primeira fatura.', bts: ['pagar', 'cancelar'], fora: true };
-    if(st === 'ativa') return { txt: `Ativo${prod === 'studio' ? `, ${nivelNome(p.nivel)}` : ''}. Pago até ${ddmm(fimPago)}; renova sozinho.`, bts: prod === 'studio' ? ['trocar', 'cancelar'] : ['cancelar'] };
+    /* v3.61: o nível do Studio é o pago; pediu outro, ele vale quando a fatura com o valor novo for paga */
+    const pede = prod === 'studio' && p.assinado ? nivelDoValor(p.valor, p.nivel) : 0, troca = pede && pede !== p.nivel ? ` Na próxima fatura paga: ${nivelNome(pede)}.` : '';
+    if(st === 'ativa') return { txt: `Ativo${prod === 'studio' ? `, ${nivelNome(p.nivel)}` : ''}. Pago até ${ddmm(fimPago)}; renova sozinho.${troca}`, bts: (p.link || troca ? ['pagar'] : []).concat(prod === 'studio' ? ['trocar', 'cancelar'] : ['cancelar']) };
     if(st === 'atrasada') return p.acesso ? { txt: `A fatura venceu. Paga até ${ddmm(mais(fimPago, 3))} pra não parar.`, bts: ['pagar', 'cancelar'] } : { txt: 'Parado: a fatura venceu.', bts: ['pagar', 'cancelar'], fora: true };
     /* cancelada: o que foi pago (ou o teste) vale até o fim */
     const vale = [fimPago ? mais(fimPago, 3) : '', tz].filter(Boolean).sort().pop();
@@ -575,6 +579,12 @@
     await C.acessoCarrega();
     if(rota !== C.rota) return;
     pinta();
+    /* v3.61: plano assinado esperando pagamento? Confere direto no Asaas (se o aviso de pagamento não chegou, liga aqui) */
+    const P = (C.acesso && C.acesso.planos) || {};
+    const espera = Object.keys(P).filter(k => P[k].assinado && P[k].status !== 'cancelada' && (!P[k].acesso || P[k].status === 'pendente' || P[k].status === 'atrasada'));
+    if(!espera.length) return;
+    const r = await Promise.all(espera.map(k => C.api.fn('pagamento', { acao: 'confere', produto: k }).catch(() => null)));
+    if(r.some(x => x && x.ativou) && rota === C.rota){ await C.acessoCarrega(); pinta(); C.toast('Pagamento confirmado. O plano tá ligado.', 3600); }
   };
 
   /* ---------- assinar ---------- */
@@ -589,7 +599,7 @@
     const A = C.acesso;
     if(!A){ C.toast('Os planos chegam em breve. Por enquanto tá tudo liberado.'); return; }
     const p = plano(prod), ja = !!(p && p.assinado && p.status !== 'cancelada'), teste = noTeste(p);
-    const nAtual = ja && prod === 'studio' ? p.nivel : 0, nIni = Math.max(2, Math.min(4, nivelPedido || (nAtual ? nAtual : 2)));
+    const nAtual = ja && prod === 'studio' ? nivelDoValor(p.valor, p.nivel) : 0, nIni = Math.max(2, Math.min(4, nivelPedido || (nAtual ? nAtual : 2)));
     const quando = teste ? `Você tá no teste grátis até ${ddmm(diaDe(p.teste_ate))}: a primeira cobrança vence nesse dia, e nada sai antes.`
       : ja ? 'Muda o valor da próxima fatura em diante.' : 'A primeira fatura vence hoje: ela abre numa aba nova pra pagar no Pix, boleto ou cartão. Pagou, o plano liga sozinho.';
     C.sheet(`<form class="form pl-form" id="pl-f"><div class="sheet-head"><h2>${ja ? 'Trocar de plano' : 'Assinar o ' + NOME[prod]}</h2><button type="button" class="cbtn plain" data-close aria-label="Fechar">${ico('x')}</button></div>
@@ -622,14 +632,25 @@
         }
         C.closeSheet();
         C.toast(r.demo ? (r.teste ? 'Assinado (demonstração: nada foi cobrado).' : 'Plano ligado (demonstração: nada foi cobrado).')
-          : r.trocou ? 'Plano trocado. Vale da próxima fatura em diante.' : r.teste ? `Assinado. A primeira cobrança vence em ${ddmm(r.vence)}.` : abriu ? 'A fatura abriu numa aba nova. Pagou, o plano liga sozinho.' : 'Assinado. A fatura também vai pro teu e-mail.', 4200);
+          : r.trocou ? 'Pedido feito. O plano novo vale quando a fatura com o valor novo for paga (dá pra pagar agora, em Pagar a fatura).' : r.teste ? `Assinado. A primeira cobrança vence em ${ddmm(r.vence)}.` : abriu ? 'A fatura abriu numa aba nova. Pagou, o plano liga sozinho.' : 'Assinado. A fatura também vai pro teu e-mail.', 4200);
         C.refreshPlanos();
-      }catch(err){ leva(w, ''); mostra(erroTxt(err)); }
+      }catch(err){
+        leva(w, '');
+        /* o cadastro do Asaas sumiu (troca do sandbox pra conta de verdade, por exemplo): pede nome e CPF de novo */
+        if(err && (err.code === 'nome' || err.code === 'doc') && !C.$('pl-nome') && C.acesso){ C.acesso.cliente = false; assinarSheet(prod, body.nivel); const e2 = C.$('pl-erro'); if(e2){ e2.textContent = 'Confirma teu nome e CPF ou CNPJ pra assinar.'; e2.hidden = false; } return; }
+        mostra(erroTxt(err));
+      }
     });
+  }
+  /* v3.61: antes de apagar o perfil, cancela o que tá rodando no Asaas (senão a cobrança seguiria) */
+  async function cancelaTudo(){
+    await C.acessoCarrega();
+    const P = (C.acesso && C.acesso.planos) || {};
+    for(const prod of Object.keys(P)) if(P[prod].assinado && P[prod].status !== 'cancelada') await C.api.fn('pagamento', { acao: 'cancelar', produto: prod });
   }
   /* depois de assinar, pagar ou cancelar: a página aberta (Planos, Hórus, Studio Houzi, Studio) se refaz */
   C.refreshPlanos = () => { if(C.$('pl')) pinta(); else C.refresh(); };
-  C.planos = { assinar: assinarSheet, nome: NOME, preco: precoDe };
+  C.planos = { assinar: assinarSheet, nome: NOME, preco: precoDe, cancelaTudo };
 
   Object.assign(C.acts, {
     /* só o fundador: a função confere a chave e cadastra o webhook no Asaas (o token nunca passa pela tela) */

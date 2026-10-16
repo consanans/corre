@@ -56,6 +56,10 @@ $P -f "$AQUI/semente360.sql"
 delta delta-v360.sql 'delta v3.60 ok'
 delta delta-v360.sql 'delta v3.60 ok'
 testa teste360.sql 17
+# v3.61: perfil com plano rodando no Asaas não se apaga
+delta delta-v361.sql 'delta v3.61 ok'
+delta delta-v361.sql 'delta v3.61 ok'
+testa teste361.sql 4
 . "$AQUI/virada343.sh"
 if grep -q 'FALHOU\|ERROR' $D/saida; then echo "deu FALHOU ou erro (acima)"; exit 1; fi
 echo "tudo ok: $(grep -c '^ok:' $D/saida) checagens"
