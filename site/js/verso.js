@@ -2906,6 +2906,8 @@
     /* pescando: na hora certa, fisga (ou não) e joga a linha de novo */
     if(e.pesca && e.sit && Date.now() > e.pesca.ate){ const agora = Date.now(), r = Math.random(); if(r < .6){ e.item = { k: 'peixe', ate: agora + 8000 }; falaAuto(1); } else if(r < .7){ e.item = { k: 'bota', ate: agora + 8000 }; falaAuto(3); } else falaAuto(2); e.pesca = { ate: agora + 6000 + Math.random() * 5000 }; enviaPos(true); }
     /* quadro lento (celular fraco): o boneco anda em passos de até 50 ms, pra a velocidade não depender do quadro */
+    /* v3.58: no minijogo parado o boneco não anda (as setas são do jogo) */
+    if(V.tarefa && V.tarefa.fase === 'jogando'){ kx = ky = 0; V.alvo = null; }
     const np = Math.max(1, Math.ceil(dtReal / .05 - 1e-9));
     if(V.voo) passoVoo(dtReal);
     else for(let i = 0; i < np; i++) andaEu(e, kx, ky, dtReal / np, fator);
@@ -2917,7 +2919,7 @@
       r.mov = d > 1.5 || r.mov && d > .5; if(r.mov){ r.passo += dt * 11; if(Math.abs(ax) > Math.abs(ay)) r.dir = ax < 0 ? 'esq' : 'dir'; else if(Math.abs(ay) > .5) r.dir = ay < 0 ? 'cima' : 'baixo'; }
       if(r.mic && V.peers.get(r.sid)){ const p = V.peers.get(r.sid); if(p.an) p.nivel = p.an(); }
     }
-    bots(dt); carros(dt); bolas(dt); passoNpcs(dt); passoTarefa(dt);
+    bots(dt); carros(dt); bolas(dt); passoNpcs(dt); passoTarefa(dt); mjUI();
     if(V.tarefa && (!V.tarefaUiT || t - V.tarefaUiT > .25)){ V.tarefaUiT = t; tarefaUI(); }
     if(V.anEu) V.nivelEu = V.anEu();
     const z = V.z, cw = V.cssW, ch = V.cssH;
@@ -3117,6 +3119,9 @@
     if(V.tarefa) largaTarefa(true);
     let etapas; try{ etapas = def.monta().filter(Boolean); }catch(e){ etapas = null; }
     if(!etapas || !etapas.length){ C.toast('Essa tarefa não deu pra montar agora. Tenta outra.'); return false; }
+    /* v3.58: o minijogo de cada etapa e a entrega que pode mudar de endereço no caminho */
+    const MJ = MJ_JOGOS[u + ':' + k]; if(MJ) etapas.forEach((e, i) => { if(MJ[i]) e.jogo = Object.assign({}, MJ[i]); });
+    if(u === 'motoboy' && (k === 'entrega' || k === 'acai') && Math.random() < .55) etapas[etapas.length - 1].troca = k;
     V.tarefa = { u, k, def, etapas, i: 0, fase: 'ir', desde: Date.now(), ate: def.tempo ? Date.now() + def.tempo * 1000 : 0, gols0: V.gols || 0 };
     marcaPegou(u, k);
     /* v3.38: o banco marca o começo (é ele que paga o correal no fim, conferindo o tempo). Tarefa que o banco ainda não
@@ -3130,8 +3135,9 @@
   function largaTarefa(quieto){
     const T = V.tarefa; if(!T) return;
     T.etapas.forEach(e => { if(e.sid) tiraNpc(e.sid); });
+    if(T.mj && T.mj.P) T.mj.P.forEach(p => { if(p.sid) tiraNpc(p.sid); });
     V.tarefa = null; V.portaT = null; if(V.eu && V.eu.item && V.eu.item.tarefa) V.eu.item = null;
-    tarefaUI(); portaUI(); if(!quieto) C.toast('Largou a tarefa.');
+    tarefaUI(); portaUI(); mjUI(true); if(!quieto) C.toast('Largou a tarefa.');
   }
   /* os figurantes das tarefas (o ladrão que foge, quem passou mal): bonecos locais, só na tua tela */
   const pele6 = () => Math.floor(Math.random() * 6);
@@ -3171,7 +3177,21 @@
     const agora = Date.now();
     if(T.ate && agora > T.ate){ const nome = T.def.nome; largaTarefa(true); C.toast(`Não deu tempo: ${nome}. Pega de novo quando quiser.`, 3600); return; }
     const et = T.etapas[T.i]; if(!et){ concluiTarefa(); return; }
+    /* v3.58: o minijogo parado (o boneco fica no lugar até acabar ou largar) */
+    if(T.fase === 'jogando'){ mjPasso(T, et, dt); return; }
     const d = Math.hypot(et.x - e.x, et.y - e.y);
+    /* v3.58: a entrega que muda de endereço quando você chega perto (uma vez só, e o relógio ganha 35 s) */
+    if(et.troca && !et.trocou && T.fase === 'ir' && d < 170){ et.trocou = true; const n = trocaEndereco(et); if(n){ Object.assign(et, n); if(T.ate) T.ate += 35000; V.portaT = null; C.toast(`${n.aviso} +35 s no relógio.`, 3800); tarefaUI(); portaUI(); return; } }
+    /* v3.58: o minijogo que anda (focos, pontos, quente ou frio) começa quando você chega perto */
+    if(et.jogo && andaNoJogo(et.jogo) && T.fase === 'ir'){
+      if(!T.mj && d < (et.jogo.t === 'caca' ? et.jogo.r * 1.3 : 230)){ T.mj = mjAnda(et); C.toast(et.jogo.dica, 3400); }
+      if(T.mj) mjPasso(T, et, dt);
+      if(V.tarefa !== T || T.etapas[T.i] !== et || !et.jogo) return;
+      const j = T.mj, porta = !!(j && j.t === 'focos' && j.F.some(f => f.vida > 0 && Math.hypot(f.x - e.x, f.y - e.y) < 42));
+      if(porta && !V.portaT){ V.portaT = { tipo: 'tarefa', x: e.x, y: e.y, et, focos: true }; portaUI(); }
+      else if(!porta && V.portaT){ V.portaT = null; if(j) j.hold = false; portaUI(); }
+      return;
+    }
     if(T.fase === 'agindo'){
       if(d > RAIO_T + 30 || e.mov){ T.fase = 'ir'; T.agir0 = 0; tarefaUI(); portaUI(); C.toast('Fica parado no lugar pra terminar.', 1800); return; }
       if(agora - T.agir0 >= et.dur * 1000) etapaFeita();
@@ -3190,8 +3210,13 @@
   /* o botão amarelo da etapa: começa a ação (fica uns segundos parado) */
   function agirTarefa(){
     const T = V.tarefa; if(!T || !V.eu) return; const et = T.etapas[T.i]; if(!et || !et.acao) return;
+    /* v3.58: no minijogo, o botão é do jogo */
+    if(T.fase === 'jogando'){ if(T.mj && T.mj.t === 'tempo') mjToque(); return; }
+    if(T.mj && T.mj.anda) return;
     if(Math.hypot(et.x - V.eu.x, et.y - V.eu.y) > RAIO_T + 10){ C.toast('Chega mais perto.'); return; }
-    V.alvo = null; V.eu.mov = false; T.fase = 'agindo'; T.agir0 = Date.now(); tarefaUI(); portaUI();
+    V.alvo = null; V.eu.mov = false;
+    if(et.jogo && !andaNoJogo(et.jogo)){ T.fase = 'jogando'; T.mj = mjNovo(et); tarefaUI(); portaUI(); mjUI(true); C.toast(et.jogo.dica, 3200); return; }
+    T.fase = 'agindo'; T.agir0 = Date.now(); tarefaUI(); portaUI();
   }
   function etapaFeita(){
     const T = V.tarefa, e = V.eu; if(!T) return; const et = T.etapas[T.i];
@@ -3203,6 +3228,221 @@
     if(T.i >= T.etapas.length){ concluiTarefa(); return; }
     tarefaUI(); portaUI(); C.toast(`Feito. Agora: ${T.etapas[T.i].rotulo}.`, 2400);
   }
+  /* ---------- v3.58 · os minijogos das tarefas ----------
+     O Thales: "melhorar as missões na cidade pra que elas se tornem minimamente mais complexas do que ficar parado em
+     um lugar". Cada ação que era "fica uns segundos parado" virou um minijogo curto, do jeito da história:
+       tempo   a faixa rosa: o ponteiro vai e volta e o botão acerta quando ele passa nela (virar o smash, apitar,
+               massagem, embaixadinha). Cada acerto acelera; errou demais, começa de novo
+       seq     as setas: digita a sequência antes do tempo acabar (triagem, sensor, painel do foguete, mão leve)
+       segura  a força: segurar sobe, soltar desce, e o nível tem que ficar na faixa que anda (rechear, encher o frasco,
+               hastear, puxar o barco, respirar)
+       focos   o fogo em 3 focos na fachada: chega em cada um e segura o botão (a mangueira); largou, o fogo cresce
+       pontos  gente ou coisa espalhada em volta: passa em cada uma (vacina, galhos floridos)
+       caca    quente ou frio: a coisa tá escondida numa área e o placar diz se tá esquentando (pista, pegada, baú)
+     Os três últimos deixam andar; os outros seguram o boneco no lugar. A entrega do motoboy pode mudar de endereço no
+     meio do caminho (o relógio ganha um tempo). A chave é "uniforme:tarefa", e cada item é a etapa (null = sem jogo) */
+  const MJ_JOGOS = {
+    'policial:transito': [{ t: 'tempo', n: 5, e: 3, per: 1.1, faixa: .22, verbo: 'Apitar!', dica: 'Apita quando o carro passar na faixa rosa.' }],
+    'bombeiro:fogo': [{ t: 'focos', dica: 'São 3 focos na fachada: chega em cada um e segura o botão (a mangueira). Largou, o fogo cresce.' }],
+    'bombeiro:gato': [{ t: 'tempo', n: 3, e: 3, per: .9, faixa: .2, verbo: 'Pegar!', dica: 'O gato pula de galho em galho: pega quando ele passar na faixa.' }],
+    'bombeiro:treino': [{ t: 'tempo', n: 6, e: 3, per: .7, faixa: .28, verbo: 'Subir!', dica: 'Um degrau por vez, no ritmo da faixa.' }],
+    'medico:socorro': [{ t: 'tempo', n: 8, e: 3, per: .62, faixa: .3, verbo: 'Massagem!', dica: 'Massagem no ritmo: aperta quando o ponteiro passar na faixa.' }],
+    'medico:vacina': [{ t: 'pontos', n: 5, r: 210, marca: 'gente', dica: 'Tem 5 pessoas esperando a vacina pela Feira: chega perto de cada uma.' }],
+    'medico:plantao': [{ t: 'seq', n: 3, tam: 3, dica: 'Cada paciente da triagem tem um código: as setas na ordem, antes do tempo.' }],
+    'chef:pastel': [{ t: 'tempo', n: 5, e: 3, per: 1, faixa: .2, verbo: 'Tirar!', dica: 'Tira o pastel do óleo quando ele dourar (a faixa rosa).' }],
+    'chef:smash': [{ t: 'tempo', n: 5, e: 3, per: .85, faixa: .16, verbo: 'Virar!', dica: 'Vira o smash na hora: nem cru, nem queimado.' }],
+    'chef:churros': [{ t: 'segura', meta: 4, lim: 22, verbo: 'Rechear', dica: 'Segura pra apertar o bico: o recheio tem que ficar na faixa rosa.' }],
+    'craque:embaixadinha': [{ t: 'tempo', n: 8, e: 3, per: .75, faixa: .26, verbo: 'Toque!', dica: 'Toca na bola quando ela descer na faixa. Deixou cair 4 vezes, recomeça.' }],
+    'ladrao:pipoca': [{ t: 'seq', n: 1, tam: 4, dica: 'Mão leve: as setas na ordem antes do pipoqueiro virar.' }, null],
+    'ladrao:churros': [{ t: 'seq', n: 1, tam: 5, dica: 'Mão leve: as setas na ordem antes do tio do churros virar.' }, null],
+    'detetive:pistas': [0, 1, 2].map(() => ({ t: 'caca', r: 110, dica: 'A pista tá escondida por aqui: anda e vê se tá quente ou frio.' })),
+    'detetive:testemunha': [{ t: 'tempo', n: 4, e: 3, per: 1.2, faixa: .2, verbo: 'Anotar!', dica: 'Anota quando ele falar o detalhe importante (a faixa rosa).' }],
+    'detetive:rastro': [0, 1, 2].map(() => ({ t: 'caca', r: 90, dica: 'A pegada tá por aqui: anda e vê se tá quente ou frio.' })),
+    'cientista:amostra': [{ t: 'segura', meta: 3.5, lim: 20, verbo: 'Encher', dica: 'Segura pra encher o frasco devagar: a água tem que ficar na faixa rosa.' }, null],
+    'cientista:ipe': [{ t: 'pontos', n: 5, r: 150, marca: 'flor', dica: 'Tem 5 galhos floridos marcados em volta do ipê: passa em cada um.' }],
+    'cientista:clima': [0, 1, 2].map(() => ({ t: 'seq', n: 1, tam: 4, dica: 'Digita o código do sensor: as setas na ordem.' })),
+    'pirata:tesouro': [{ t: 'caca', r: 120, dica: 'O baú tá enterrado na areia: anda e vê se tá quente ou frio.' }],
+    'pirata:bandeira': [{ t: 'segura', meta: 4, lim: 22, verbo: 'Hastear', dica: 'Segura pra puxar a corda: a bandeira tem que subir na faixa rosa.' }],
+    'pirata:mapa': [0, 1, 2].map(() => ({ t: 'caca', r: 80, dica: 'O pedaço do mapa tá por aqui: quente ou frio.' })),
+    'astronauta:contagem': [{ t: 'seq', n: 3, tam: 3, dica: 'Liga o painel do foguete: as setas na ordem, três vezes.' }],
+    'astronauta:treino': [{ t: 'tempo', n: 6, e: 3, per: .8, faixa: .26, verbo: 'Puxar!', dica: 'Uma barra por vez, no ritmo da faixa.' }],
+    'astronauta:estrelas': [{ t: 'seq', n: 2, tam: 5, dica: 'Liga as estrelas da constelação: as setas na ordem.' }],
+    'ninja:meditar': [{ t: 'segura', meta: 6, lim: 28, verbo: 'Respirar', calmo: true, dica: 'Segura pra puxar o ar, solta pra soltar: a respiração acompanha a faixa.' }],
+    'super:resgate': [{ t: 'segura', meta: 4, lim: 22, verbo: 'Puxar', dica: 'Segura pra puxar o barco: a força tem que ficar na faixa rosa.' }],
+    'super:pipa': [{ t: 'tempo', n: 3, e: 3, per: .9, faixa: .18, verbo: 'Soltar!', dica: 'A pipa balança no vento: solta quando ela passar na faixa.' }],
+    'rei:fita': [{ t: 'tempo', n: 2, e: 2, per: 1, faixa: .14, verbo: 'Cortar!', dica: 'Corta a fita bem no laço: dos dois lados.' }],
+    'rei:discurso': [{ t: 'seq', n: 3, tam: 3, dica: 'Cada frase do discurso é uma sequência: errou, o povo vaia e você recomeça a frase.' }],
+    'rei:visita': [0, 1, 2].map(() => ({ t: 'tempo', n: 2, e: 3, per: 1, faixa: .26, verbo: 'Acenar!', dica: 'Acena quando o povo olhar pra você (a faixa rosa).' }))
+  };
+  /* o jeito de cada minijogo, numa palavra (a folha do Trampo mostra) */
+  const MJ_ROTULO = { tempo: 'na hora certa', seq: 'setas', segura: 'na força certa', focos: 'focos de fogo', pontos: 'espalhados', caca: 'quente ou frio' };
+  const mjDe = (u, k) => { const L = MJ_JOGOS[u + ':' + k]; return L ? L.find(Boolean) || null : null; };
+  const DIRS = ['cima', 'dir', 'baixo', 'esq'], SETA = { cima: '↑', dir: '→', baixo: '↓', esq: '←' };
+  const SETAK = { ArrowUp: 'cima', w: 'cima', ArrowRight: 'dir', d: 'dir', ArrowDown: 'baixo', s: 'baixo', ArrowLeft: 'esq', a: 'esq' };
+  const andaNoJogo = j => !!j && (j.t === 'focos' || j.t === 'pontos' || j.t === 'caca');
+  const deSegurar = j => !!j && (j.t === 'segura' || j.t === 'focos');
+  /* quente ou frio: cinco faixas, do azul ao vermelho (nada de verde) */
+  const TEMPS = [['Gelado', '#38E1FF'], ['Frio', '#9CC9F0'], ['Morno', '#F2EC54'], ['Quente', '#FF8A3D'], ['Fervendo', '#E2412E']];
+  const tempDe = (j, e) => { const d = Math.hypot(j.alvo.x - e.x, j.alvo.y - e.y), f = d / Math.max(40, j.r); return f > 1.15 ? 0 : f > .75 ? 1 : f > .45 ? 2 : f > .22 ? 3 : 4; };
+  const somMj = bom => { const S = C.versoSom; if(S && S[bom ? 'acerto' : 'erro']) S[bom ? 'acerto' : 'erro'](); };
+  function mjAviso(msg){ C.toast(msg, 1800); }
+  function seqRodada(j){ const L = j.tam + j.i; j.seq = Array.from({ length: L }, () => DIRS[Math.floor(Math.random() * 4)]); j.pos = 0; j.t0 = Date.now(); j.lim = 2600 + 650 * L; }
+  /* o jogo parado (tempo, seq, segura) começa no botão amarelo */
+  function mjNovo(et){
+    const j = Object.assign({}, et.jogo), agora = Date.now();
+    if(j.t === 'tempo') Object.assign(j, { ok: 0, err: 0, per0: j.per, u: 0, dir: 1, zc: .25 + Math.random() * .5, flash: null });
+    if(j.t === 'seq') Object.assign(j, { i: 0, err: 0 }), seqRodada(j);
+    if(j.t === 'segura') Object.assign(j, { nivel: 0, hold: false, acc: 0, t0: agora, ph: Math.random() * 6, faixa: j.faixa || .26 });
+    return j;
+  }
+  /* o figurante da vacina: fica em pé esperando e depois vai embora */
+  function npcParado(p){
+    const sid = 'npc-' + Math.random().toString(36).slice(2, 8);
+    const av = avLimpo({ pele: pele6(), cabelo: sorteio(['curto', 'coque', 'raspado']), roupa: 'camiseta', corRoupa: Math.floor(Math.random() * 8) }, sid);
+    V.remotos.set(sid, { sid, bot: true, npc: true, nome: sorteio(['Dona Lurdes', 'Seu Tião', 'Kauã', 'Bia', 'Seu Nakamura', 'Dona Rosa']), av, x: p.x, y: p.y, dir: 'baixo', passo: 0, mov: false, sit: false, fala: { t: 'vacina aqui!', ate: Date.now() + 9e9 } });
+    return sid;
+  }
+  /* o jogo que anda (focos, pontos, caca) começa sozinho quando você chega perto */
+  function mjAnda(et){
+    const j = Object.assign({}, et.jogo), cx = et.x, cy = et.y;
+    if(j.t === 'caca'){ const a = Math.random() * Math.PI * 2, r = j.r * (.4 + Math.random() * .55); j.alvo = pertoLivre(cx + Math.cos(a) * r, cy + Math.sin(a) * r * .7) || { x: cx, y: cy }; j.cx = cx; j.cy = cy; j.temp = -1; }
+    if(j.t === 'pontos'){
+      j.P = [];
+      for(let i = 0; i < j.n; i++){ const a = i / j.n * Math.PI * 2 + Math.random() * .7, r = j.r * (.45 + Math.random() * .5), p = pertoLivre(cx + Math.cos(a) * r, cy + Math.sin(a) * r * .7) || { x: cx + (i - 2) * 30, y: cy }; const q = { x: p.x, y: p.y, ok: false }; if(j.marca === 'gente') q.sid = npcParado(q); j.P.push(q); }
+    }
+    if(j.t === 'focos'){
+      const fx0 = et.fx != null ? et.fx : cx, fy0 = et.fy != null ? et.fy : cy - 70;
+      j.F = [-1, 0, 1].map(k => { const p = pertoLivre(cx + k * 78, cy) || { x: cx + k * 78, y: cy }; return { x: p.x, y: p.y, fx: fx0 + k * 78, fy: fy0 + (k ? 10 : -16), vida: 1 }; }); j.hold = false;
+    }
+    j.anda = true; return j;
+  }
+  function mjFim(T){
+    const j = T.mj; T.mj = null; T.fase = 'ir';
+    if(j && j.P) j.P.forEach(p => { if(p.sid){ const r = V.remotos.get(p.sid); if(r && !r.vai) tiraNpc(p.sid); } });
+    somMj(true); mjUI(true); etapaFeita();
+  }
+  /* um quadro do jogo */
+  function mjPasso(T, et, dt){
+    const j = T.mj, e = V.eu, agora = Date.now(); if(!j || !e) return;
+    if(j.t === 'tempo'){ j.u += j.dir * dt / j.per; if(j.u >= 1){ j.u = 2 - j.u; j.dir = -1; } if(j.u <= 0){ j.u = -j.u; j.dir = 1; } }
+    else if(j.t === 'seq'){ if(agora - j.t0 > j.lim){ j.err++; somMj(false); mjAviso('Acabou o tempo: outra sequência.'); seqRodada(j); } }
+    else if(j.t === 'segura'){
+      j.nivel = clamp(j.nivel + (j.hold ? 1.15 : -.95) * dt * (j.calmo ? .7 : 1), 0, 1);
+      if(Math.abs(j.nivel - mjZona(j, agora)) <= j.faixa / 2) j.acc += dt;
+      if(j.acc >= j.meta){ mjFim(T); return; }
+      if(agora - j.t0 > j.lim * 1000){ somMj(false); mjAviso('Perdeu o ritmo: começa de novo.'); Object.assign(j, { acc: 0, t0: agora }); }
+    } else if(j.t === 'focos'){
+      let vivos = 0;
+      j.F.forEach(f => { if(f.vida <= 0) return; const perto = Math.hypot(f.x - e.x, f.y - e.y) < 42;
+        if(perto && j.hold) f.vida = Math.max(0, f.vida - dt / 1.7); else f.vida = Math.min(1, f.vida + dt * .07);
+        if(f.vida <= 0){ somMj(true); if(j.F.some(g => g.vida > 0)) C.toast(`Um foco apagado. Faltam ${j.F.filter(g => g.vida > 0).length}.`, 1600); } else vivos++; });
+      if(!vivos){ mjFim(T); return; }
+    } else if(j.t === 'pontos'){
+      j.P.forEach(p => { if(p.ok || Math.hypot(p.x - e.x, p.y - e.y) > 30) return; p.ok = true; somMj(true);
+        if(p.sid){ const r = V.remotos.get(p.sid); if(r){ r.fala = { t: sorteio(['valeu!', 'nem doeu', 'obrigado!', 'ufa']), ate: Date.now() + 3000 }; r.vai = { x: r.x + (Math.random() - .5) * 500, y: r.y + 260, ate: Date.now() + 20000 }; } }
+        const falta = j.P.filter(q => !q.ok).length; if(falta) C.toast(`${j.n - falta}/${j.n}. Falta${falta > 1 ? 'm' : ''} ${falta}.`, 1400); });
+      if(j.P.every(p => p.ok)){ mjFim(T); return; }
+    } else if(j.t === 'caca'){
+      const tp = tempDe(j, e); if(tp !== j.temp){ if(j.temp >= 0 && tp > j.temp && tp >= 3) somMj(true); j.temp = tp; }
+      /* achou: a etapa volta a ser a de sempre (o botão amarelo examina/cava ali) */
+      if(Math.hypot(j.alvo.x - e.x, j.alvo.y - e.y) < 26){ et.x = j.alvo.x; et.y = j.alvo.y; et.dur = Math.min(et.dur || 2, 1.5); et.jogo = null; T.mj = null; somMj(true); C.toast('Achou! Agora: ' + (et.acao || 'pega') + '.', 1800); mjUI(true); }
+    }
+  }
+  const mjProg = j => (j.t === 'tempo' ? j.ok / j.n : j.t === 'seq' ? (j.i + j.pos / Math.max(1, j.seq.length)) / j.n : j.t === 'segura' ? j.acc / j.meta : 0);
+  const mjZona = (j, agora) => .5 + (j.calmo ? .26 : .3) * Math.sin((agora - j.t0) / 1000 * (j.calmo ? .55 : .95) + j.ph);
+  /* o toque na hora certa (botão amarelo, espaço, Enter, o Pular do celular) */
+  function mjToque(){
+    const T = V.tarefa, j = T && T.mj; if(!j || j.t !== 'tempo' || T.fase !== 'jogando') return false;
+    const agora = Date.now();
+    if(Math.abs(j.u - j.zc) <= j.faixa / 2){
+      j.ok++; j.flash = { bom: true, ate: agora + 280 }; j.per = Math.max(.4, j.per * .93); somMj(true);
+      /* a faixa nova cai longe do ponteiro (não dá pra ficar martelando no mesmo lugar) */
+      let zc = j.zc; for(let k = 0; k < 8 && Math.abs(zc - j.u) < .3; k++) zc = .15 + Math.random() * .7; j.zc = zc;
+      if(j.ok >= j.n){ mjFim(T); return true; }
+    } else {
+      j.err++; j.flash = { bom: false, ate: agora + 280 }; somMj(false);
+      if(j.err > j.e){ mjAviso('Errou demais: começa de novo.'); Object.assign(j, { ok: 0, err: 0, per: j.per0 }); }
+    }
+    mjUI(true); return true;
+  }
+  function mjSeta(d){
+    const T = V.tarefa, j = T && T.mj; if(!j || j.t !== 'seq' || T.fase !== 'jogando') return false;
+    if(j.seq[j.pos] === d){ j.pos++; somMj(true); if(j.pos >= j.seq.length){ j.i++; if(j.i >= j.n){ mjFim(T); return true; } seqRodada(j); } }
+    else { j.err++; somMj(false); mjAviso('Seta errada: outra sequência.'); seqRodada(j); }
+    mjUI(true); return true;
+  }
+  /* segurar (a força, a mangueira): o botão amarelo, o espaço, o Enter ou o Pular */
+  function mjHold(on){ const T = V.tarefa, j = T && T.mj; if(!deSegurar(j)) return false; j.hold = !!on; return true; }
+  /* o que o botão faz quando aperta: tempo toca, segura e focos começam a segurar */
+  function mjAperta(){ const T = V.tarefa, j = T && T.mj; if(!j) return false; if(j.t === 'tempo') return mjToque(); if(j.t === 'focos' && !V.portaT) return false; if(deSegurar(j)) return mjHold(true); return j.t === 'seq' && T.fase === 'jogando'; }
+  function mjLarga(){ const T = V.tarefa; if(!T || T.fase !== 'jogando') return; T.mj = null; T.fase = 'ir'; mjUI(true); tarefaUI(); portaUI(); C.toast('Largou o jogo. O botão amarelo começa de novo.', 2200); }
+  /* quanto falta, em poucas letras (o chip do alto) */
+  function mjResumo(j, e){
+    if(j.t === 'tempo') return `${j.ok}/${j.n}`;
+    if(j.t === 'seq') return `${j.i + 1}/${j.n}`;
+    if(j.t === 'segura') return `${Math.min(100, Math.round(j.acc / j.meta * 100))}%`;
+    if(j.t === 'focos') return `focos ${j.F.filter(f => f.vida <= 0).length}/${j.F.length}`;
+    if(j.t === 'pontos') return `${j.P.filter(p => p.ok).length}/${j.n}`;
+    if(j.t === 'caca') return TEMPS[Math.max(0, tempDe(j, e))][0].toLowerCase();
+    return '';
+  }
+  /* o painel do minijogo, em cima do botão amarelo. Refaz o HTML só quando muda o placar; o ponteiro anda a cada quadro */
+  function mjUI(forca){
+    const el = C.$('cvr-mj'); if(!el) return;
+    const T = V.tarefa, j = T && T.mj, e = V.eu, mostra = !!(j && e && (T.fase === 'jogando' || j.anda));
+    if(!mostra){ if(!el.hidden){ el.hidden = true; el.dataset.k = ''; el.innerHTML = ''; } return; }
+    el.hidden = false;
+    const et = T.etapas[T.i] || {}, agora = Date.now(), tp = j.t === 'caca' ? tempDe(j, e) : 0;
+    const k = [j.t, T.i, j.ok, j.err, j.i, j.pos, j.seq && j.seq.join(''), j.F && j.F.map(f => (f.vida > 0 ? 1 : 0)).join(''), j.P && j.P.filter(p => p.ok).length, tp, j.flash && j.flash.ate > agora ? (j.flash.bom ? 'b' : 'm') : ''].join('|');
+    if(forca || el.dataset.k !== k){
+      el.dataset.k = k;
+      const titulo = j.t === 'focos' ? 'Apagar o fogo' : j.t === 'caca' ? `Procurando ${et.rotulo || ''}` : et.acao || T.def.nome;
+      let corpo = '';
+      if(j.t === 'tempo') corpo = `<div class="mj-barra${j.flash && j.flash.ate > agora ? (j.flash.bom ? ' bom' : ' mau') : ''}"><i class="mj-zona" style="left:${((j.zc - j.faixa / 2) * 100).toFixed(1)}%;width:${(j.faixa * 100).toFixed(1)}%"></i><i class="mj-cur"></i></div>
+        <div class="mj-pips">${Array.from({ length: j.n }, (_, i) => `<i class="${i < j.ok ? 'on' : ''}"></i>`).join('')}<span>${j.err ? `erros ${j.err}/${j.e + 1}` : ''}</span></div>`;
+      if(j.t === 'seq') corpo = `<div class="mj-seq">${j.seq.map((d, i) => `<i class="${i < j.pos ? 'on' : i === j.pos ? 'vez' : ''}">${SETA[d]}</i>`).join('')}</div><div class="mj-tempo"><i></i></div>
+        <div class="mj-setas">${['esq', 'cima', 'baixo', 'dir'].map(d => `<button type="button" tabindex="-1" data-act="cvr-mj-seta" data-d="${d}" aria-label="Seta ${d}">${SETA[d]}</button>`).join('')}</div>`;
+      if(j.t === 'segura') corpo = `<div class="mj-barra"><i class="mj-zona"></i><i class="mj-nivel"></i></div><div class="mj-prog"><i></i></div>`;
+      if(j.t === 'focos') corpo = `<div class="mj-pips">${j.F.map(f => `<i class="${f.vida <= 0 ? 'on' : ''}"></i>`).join('')}<span>${j.F.filter(f => f.vida <= 0).length} de ${j.F.length} apagados</span></div>`;
+      if(j.t === 'pontos') corpo = `<div class="mj-pips">${j.P.map(p => `<i class="${p.ok ? 'on' : ''}"></i>`).join('')}<span>${j.P.filter(p => p.ok).length} de ${j.n}</span></div>`;
+      if(j.t === 'caca') corpo = `<div class="mj-temp" style="--c:${TEMPS[tp][1]}"><b>${TEMPS[tp][0]}</b><i><i style="width:${(tp + 1) * 20}%"></i></i></div>`;
+      el.className = 'cvr-mj mj-' + j.t;
+      el.innerHTML = `<div class="mj-h"><b>${esc(titulo)}</b><span>${esc(mjResumo(j, e))}</span>${T.fase === 'jogando' ? '<button type="button" class="mj-x" tabindex="-1" data-act="cvr-mj-larga" aria-label="Largar o jogo">×</button>' : ''}</div>${corpo}<small>${esc(j.dica || '')}</small>`;
+    }
+    /* o que anda a cada quadro, só no estilo */
+    if(j.t === 'tempo'){ const c = el.querySelector('.mj-cur'); if(c) c.style.left = (j.u * 100).toFixed(1) + '%'; }
+    if(j.t === 'seq'){ const b = el.querySelector('.mj-tempo i'); if(b) b.style.width = Math.max(0, 100 - (agora - j.t0) / j.lim * 100).toFixed(1) + '%'; }
+    if(j.t === 'segura'){ const zc = mjZona(j, agora), z = el.querySelector('.mj-zona'), n = el.querySelector('.mj-nivel'), p = el.querySelector('.mj-prog i');
+      if(z){ z.style.left = ((zc - j.faixa / 2) * 100).toFixed(1) + '%'; z.style.width = (j.faixa * 100).toFixed(1) + '%'; } if(n) n.style.left = (j.nivel * 100).toFixed(1) + '%'; if(p) p.style.width = Math.min(100, j.acc / j.meta * 100).toFixed(1) + '%';
+      el.classList.toggle('dentro', Math.abs(j.nivel - zc) <= j.faixa / 2); }
+  }
+  /* a entrega que muda de endereço no meio do caminho (o motoboy ganha um tempo no relógio) */
+  function trocaEndereco(et){
+    if(et.troca === 'acai'){ const ts = V.cid.glebaR.torres.filter(t => Math.hypot(t.x + t.w / 2 - et.x, t.base + 18 - et.y) > 150); if(!ts.length) return null; const t = sorteio(ts); return Object.assign(livre({ x: t.x + t.w / 2, y: t.base + 18 }), { rotulo: 'outra torre da Gleba', aviso: 'Mudou de torre: o açaí é na outra portaria da Gleba.' }); }
+    const hs = V.cid.casas.filter(h => Math.hypot(h.portaX - et.x, h.base + 14 - et.y) > 400); if(!hs.length) return null;
+    const h = sorteio(hs); return Object.assign(livre({ x: h.portaX, y: h.base + 14 }), { rotulo: 'a casa de @' + h.handle, aviso: `O cliente mudou o endereço: agora é na casa de @${h.handle}.` });
+  }
+  /* no mundo: os focos com a água, a gente e as flores pra visitar, a área da procura */
+  function desenhaMj(L, ctx, t, vis, T){
+    const j = T.mj, e = V.eu; if(!j || !e) return;
+    if(j.t === 'focos') j.F.forEach(f => { if(f.vida <= 0 || !vis(f.fx, f.fy, 160)) return;
+      L.push({ y: f.fy + 200, f: () => fogo(ctx, f.fx, f.fy, t, .25 + f.vida * .75) });
+      L.push({ y: f.y + 1, f: () => { ctx.strokeStyle = ROSA; ctx.lineWidth = Math.max(2, 1.05 / V.k); ctx.setLineDash([5, 4]); ctx.beginPath(); ctx.ellipse(f.x, f.y, 26, 10, 0, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]); } });
+      if(j.hold && Math.hypot(f.x - e.x, f.y - e.y) < 42) L.push({ y: 9e6, f: () => agua(ctx, e.x, e.y - 14, f.fx, f.fy + 16, t) }); });
+    if(j.t === 'pontos') j.P.forEach(p => { if(p.ok || !vis(p.x, p.y, 80)) return;
+      L.push({ y: p.y + 1, f: () => { ctx.strokeStyle = ROSA; ctx.lineWidth = Math.max(2, 1.05 / V.k); ctx.setLineDash([5, 4]); ctx.beginPath(); ctx.ellipse(p.x, p.y, 20, 8, 0, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]); } });
+      if(!p.sid) L.push({ y: p.y, f: () => { flor(ctx, p.x, p.y, t); brilho(ctx, p.x, p.y - 10, t); } }); });
+    if(j.t === 'caca' && vis(j.cx, j.cy, j.r + 60)){
+      L.push({ y: j.cy - j.r, f: () => { ctx.strokeStyle = 'rgba(255,79,154,.75)'; ctx.lineWidth = Math.max(2, 1.05 / V.k); ctx.setLineDash([8, 6]); ctx.beginPath(); ctx.ellipse(j.cx, j.cy, j.r, j.r * .62, 0, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]); } });
+      /* fervendo, o chão brilha de leve em volta (perto, mas sem entregar o ponto) */
+      if(tempDe(j, e) >= 4) L.push({ y: j.alvo.y, f: () => brilho(ctx, j.alvo.x + Math.sin(t * 2) * 10, j.alvo.y - 4, t) });
+    }
+  }
+  function flor(ctx, x, y, t){
+    const u = Math.max(1, 1.05 / V.k), b = Math.round(Math.sin(t * 2 + x) * 1.5);
+    ctx.fillStyle = '#8D5A3B'; ctx.fillRect(x - u, y - 12, 2 * u, 12);
+    [[-4, -16], [4, -16], [0, -20], [0, -12]].forEach(([dx, dy], i) => { ctx.fillStyle = i % 2 ? ROSA : AMARELO; ctx.fillRect(x + dx - 2 + b, y + dy - 2, 4, 4); });
+  }
   async function concluiTarefa(){
     const T = V.tarefa; if(!T) return; V.tarefa = null; V.portaT = null;
     if(V.eu && V.eu.item && V.eu.item.tarefa){ V.eu.item = null; }
@@ -3211,7 +3451,7 @@
     const feitas = tarefasFeitas(); feitas[T.u] = (feitas[T.u] || 0) + 1;
     const antes = patenteDe(T.u, feitas[T.u] - 1), depois = patenteDe(T.u, feitas[T.u]);
     const me = C.st.me, uAgora = meuUniforme(), verso = Object.assign({}, me && me.verso && typeof me.verso === 'object' ? me.verso : {}, uAgora ? { skin: uAgora, personagem: '' } : {}, { tarefas: feitas, pontos: ((me && me.verso && me.verso.pontos) || 0) + T.def.pontos });
-    tarefaUI(); portaUI(); falaAuto(6);
+    tarefaUI(); portaUI(); mjUI(true); falaAuto(6);
     const prox = naOrdem(T.u).find(t => t.k !== T.k);
     C.toast(`Tarefa feita: ${T.def.nome}${depois !== antes ? ` · subiu pra ${depois}!` : '.'}${prox ? ` Próxima no Trampo: ${prox.nome}.` : ''}`, 3800);
     try{ await C.saveMe({ verso }); if(V.eu) anunciar(); }catch(e){ C.toast(C.errMsg(e, 'Não deu pra guardar a tarefa na carteira.')); }
@@ -3288,29 +3528,34 @@
     const d = Math.hypot(et.x - V.eu.x, et.y - V.eu.y), m = Math.round(d / 10), ang = Math.atan2(et.y - V.eu.y, et.x - V.eu.x), seta = ['→', '↘', '↓', '↙', '←', '↖', '↑', '↗'][((Math.round(ang / (Math.PI / 4)) % 8) + 8) % 8];
     const resto = T.ate ? Math.max(0, Math.ceil((T.ate - Date.now()) / 1000)) : 0;
     const prog = T.fase === 'agindo' ? Math.min(1, (Date.now() - T.agir0) / (et.dur * 1000)) : 0;
-    const txt = T.fase === 'agindo' ? `${et.acao}… ${Math.round(prog * 100)}%` : et.gols != null ? `${et.rotulo} · gols ${Math.min(et.gols, (V.gols || 0) - T.gols0)}/${et.gols}` : `${et.rotulo} · ${seta} ${m} m`;
+    const txt = T.mj ? `${T.mj.t === 'caca' ? 'procurando ' + et.rotulo : T.mj.t === 'focos' ? 'apagando o fogo' : T.mj.t === 'pontos' ? et.rotulo : et.acao} · ${mjResumo(T.mj, V.eu)}` : T.fase === 'agindo' ? `${et.acao}… ${Math.round(prog * 100)}%` : et.gols != null ? `${et.rotulo} · gols ${Math.min(et.gols, (V.gols || 0) - T.gols0)}/${et.gols}` : `${et.rotulo} · ${seta} ${m} m`;
     el.innerHTML = `<b>${esc(T.def.nome)}</b><span>${esc(txt)}${T.etapas.length > 1 ? ` · ${T.i + 1}/${T.etapas.length}` : ''}${resto ? ` · ${Math.floor(resto / 60)}:${String(resto % 60).padStart(2, '0')}` : ''}</span>`;
   }
   /* o alvo no mapa (seta rosa), os efeitos (fogo, gato, pista, fita, contagem, água na hora de apagar) e a festa */
   function desenhaTarefa(L, ctx, t, vis){
     const T = V.tarefa, agora = Date.now();
     if(T){
-      const et = T.etapas[T.i];
-      if(et && vis(et.x, et.y, 120)){
+      const et = T.etapas[T.i], j = T.mj, escondeAlvo = !!(j && j.anda);
+      /* v3.58: com o minijogo que anda, o alvo vira os focos, a gente espalhada ou a área da procura */
+      if(et && vis(et.x, et.y, 120) && !escondeAlvo){
         L.push({ y: et.y + 1, f: () => { ctx.strokeStyle = ROSA; ctx.lineWidth = Math.max(2, 1.05 / V.k); ctx.setLineDash([6, 4]); ctx.beginPath(); ctx.ellipse(et.x, et.y, RAIO_T * .6, RAIO_T * .25, 0, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]); } });
-        L.push({ y: et.y + 9e5, f: () => { ctx.save(); ctx.translate(et.x, et.y - 46 + Math.round(Math.sin(t * 4) * 3)); ctx.beginPath(); ctx.moveTo(-9, -14); ctx.lineTo(9, -14); ctx.lineTo(0, 0); ctx.closePath(); forma(ctx, ROSA, 2); ctx.restore(); } });
+      }
+      if(et && vis(et.x, et.y, 120)){
+        if(!escondeAlvo) L.push({ y: et.y + 9e5, f: () => { ctx.save(); ctx.translate(et.x, et.y - 46 + Math.round(Math.sin(t * 4) * 3)); ctx.beginPath(); ctx.moveTo(-9, -14); ctx.lineTo(9, -14); ctx.lineTo(0, 0); ctx.closePath(); forma(ctx, ROSA, 2); ctx.restore(); } });
         const ef = et.efeito, fx = et.fx != null ? et.fx : et.x, fy = et.fy != null ? et.fy : et.y;
-        if(ef === 'fogo') L.push({ y: fy + 200, f: () => fogo(ctx, fx, fy, t, T.fase === 'agindo' ? 1 - (agora - T.agir0) / (et.dur * 1000) : 1) });
+        if(ef === 'fogo' && !(j && j.F)) L.push({ y: fy + 200, f: () => fogo(ctx, fx, fy, t, T.fase === 'agindo' ? 1 - (agora - T.agir0) / (et.dur * 1000) : 1) });
         if(ef === 'gato') L.push({ y: fy + 200, f: () => gatinho(ctx, fx, fy, t) });
-        if(ef === 'brilho') L.push({ y: et.y, f: () => brilho(ctx, et.x, et.y - 6, t) });
-        if(ef === 'fita') L.push({ y: et.y - 1, f: () => fita(ctx, et.x, et.y, T.fase === 'agindo' ? (agora - T.agir0) / (et.dur * 1000) : 0) });
-        if(T.fase === 'agindo'){
-          const p = (agora - T.agir0) / (et.dur * 1000);
+        if(ef === 'brilho' && !escondeAlvo) L.push({ y: et.y, f: () => brilho(ctx, et.x, et.y - 6, t) });
+        const pj = j && T.fase === 'jogando' ? mjProg(j) : null;
+        if(ef === 'fita') L.push({ y: et.y - 1, f: () => fita(ctx, et.x, et.y, pj != null ? pj : T.fase === 'agindo' ? (agora - T.agir0) / (et.dur * 1000) : 0) });
+        if(T.fase === 'agindo' || pj != null){
+          const p = pj != null ? pj : (agora - T.agir0) / (et.dur * 1000);
           if(ef === 'fogo') L.push({ y: 9e6, f: () => agua(ctx, V.eu.x, V.eu.y - 14, fx, fy + 20, t) });
           if(ef === 'contagem') L.push({ y: 9e6, f: () => pixPlaca(ctx, String(Math.max(0, Math.ceil(et.dur - p * et.dur))), V.eu.x, V.eu.y - 58, { fundo: INK, cor: '#38E1FF', borda: '#38E1FF' }) });
           if(ef === 'suor' || ef === 'vapor' || ef === 'apito') L.push({ y: 9e6, f: () => gotas(ctx, V.eu.x, V.eu.y - 36, t, ef) });
         }
       }
+      if(T.mj) desenhaMj(L, ctx, t, vis, T);
       if(T.feita && T.feita.ate > agora && vis(T.feita.x, T.feita.y, 60)){ const f = T.feita; L.push({ y: 9e6, f: () => brilho(ctx, f.x, f.y - 12, t, true) }); }
     }
     if(V.festa && V.festa.ate > agora && vis(V.festa.x, V.festa.y, 80)){ const f = V.festa, p = 1 - (f.ate - agora) / 1800; L.push({ y: 9e6, f: () => confete(ctx, f.x, f.y - 20, p) }); }
@@ -3362,7 +3607,7 @@
     const unis = SKINS.map(([k, n]) => { const on = !souPers && k === u, f = !on && k && k === foco;
       return `<button type="button" class="cvr-uni${on ? ' on' : ''}${f ? ' foco' : ''}" data-act="cvr-uni" data-u="${esc(k)}" aria-pressed="${on}" title="${esc(k ? 'Vestir: ' + n : 'Tirar o uniforme (a tua roupa)')}"><canvas class="cvr-mini" data-av="${avDe(k)}" width="18" height="28" aria-hidden="true"></canvas><b>${esc(k ? n : 'Minha roupa')}</b><small>${k ? (feitas[k] ? esc(patenteDe(k, feitas[k])) : `${(TAREFAS[k] || []).length} tarefas`) : 'sem uniforme'}</small></button>`; }).join('');
     const tarefa = (t, i) => { const ativa = T && T.u === foco && T.k === t.k;
-      return `<li class="cvr-tf${ativa ? ' on' : ''}"><div><b>${esc(t.nome)}</b><small>${esc(t.desc)}</small><span class="tag">+${C.correalTxt(valorTarefa(t.pontos))}${t.tempo ? ` · ${t.tempo} s` : ''}</span>${!ativa && lista.length > 1 && t.k === ultima ? '<span class="tag cvr-tf-ult">a última que você pegou</span>' : ''}</div>${ativa ? `<button type="button" class="btn sm ghost" data-act="cvr-larga-tarefa">Largar</button>` : `<button type="button" class="btn sm${i === 0 ? ' pri' : ''}" data-act="cvr-pega-tarefa" data-u="${esc(foco)}" data-k="${esc(t.k)}">${u === foco ? 'Pegar' : 'Vestir e pegar'}</button>`}</li>`; };
+      return `<li class="cvr-tf${ativa ? ' on' : ''}"><div><b>${esc(t.nome)}</b><small>${esc(t.desc)}</small><span class="tag">+${C.correalTxt(valorTarefa(t.pontos))}${t.tempo ? ` · ${t.tempo} s` : ''}</span>${mjDe(foco, t.k) ? `<span class="tag cvr-tf-mj">${MJ_ROTULO[mjDe(foco, t.k).t]}</span>` : foco === 'motoboy' && (t.k === 'entrega' || t.k === 'acai') ? '<span class="tag cvr-tf-mj">pode mudar o endereço</span>' : ''}${!ativa && lista.length > 1 && t.k === ultima ? '<span class="tag cvr-tf-ult">a última que você pegou</span>' : ''}</div>${ativa ? `<button type="button" class="btn sm ghost" data-act="cvr-larga-tarefa">Largar</button>` : `<button type="button" class="btn sm${i === 0 ? ' pri' : ''}" data-act="cvr-pega-tarefa" data-u="${esc(foco)}" data-k="${esc(t.k)}">${u === foco ? 'Pegar' : 'Vestir e pegar'}</button>`}</li>`; };
     const carteira = Object.keys(PATENTES).filter(k => feitas[k] > 0).map(k => `<span class="tag">${esc(nomeUni(k))}: ${feitas[k]} · ${esc(patenteDe(k, feitas[k]))}</span>`).join('');
     C.sheet(`<div class="form cvr-trampo"><div class="sheet-head"><h2>${ico('raio')} ${c ? esc(c.nome) : 'Trampo'}</h2><button type="button" class="cbtn plain" data-close aria-label="Fechar">${ico('x')}</button></div>
       <div class="cvr-unis-w"><span class="lbl-s">Uniforme: toca e o boneco troca na hora</span><div class="cvr-unis" role="group" aria-label="Uniforme">${unis}</div></div>
@@ -3403,7 +3648,11 @@
     if(V.eu && V.eu.sit){ b.hidden = false; b.innerHTML = `${ico('up')} Levantar`; return; }
     const p = V.porta; b.hidden = !p; if(!p) return;
     const meu = p.tipo === 'casa' && p.c.id === (C.st.me && C.st.me.id);
-    if(p.tipo === 'tarefa'){ const T = V.tarefa, ag = T && T.fase === 'agindo'; b.innerHTML = `${ico('raio')} ${esc(p.et.acao)}${ag ? '…' : ''}`; b.disabled = !!ag; return; }
+    if(p.tipo === 'tarefa'){ const T = V.tarefa, ag = T && T.fase === 'agindo', j = T && T.mj;
+      /* v3.58: no minijogo o botão diz o que fazer agora (as setas não usam ele) */
+      if(j && j.t === 'focos'){ b.innerHTML = `${ico('raio')} Segura: apagar`; b.disabled = false; return; }
+      if(j && T.fase === 'jogando'){ b.disabled = j.t === 'seq'; b.innerHTML = `${ico('raio')} ${esc(j.t === 'tempo' ? j.verbo : j.t === 'segura' ? 'Segura: ' + j.verbo.toLowerCase() : 'Usa as setas')}`; return; }
+      b.innerHTML = `${ico('raio')} ${esc(p.et.acao)}${ag ? '…' : ''}`; b.disabled = !!ag; return; }
     b.disabled = false;
     b.innerHTML = p.tipo === 'aeroporto' ? `${ico('aviao')} Voar (${C.correalTxt(precoVoo())})` : p.tipo === 'sebo' ? `${ico('musica')} Entrar no Sebo` : p.tipo === 'torneio' ? `${ico('peixe')} Torneio de Pesca` : p.tipo === 'beisebol' ? `${ico('raio')} Jogar beisebol na ACEL` : p.tipo === 'quadra' ? `${ico('raio')} ${p.k === 'quadra-futsal' ? 'Desafio de pênalti' : 'Desafio de arremesso'}` : p.tipo === 'publi' ? `${ico('ext')} ${esc((PUBLI[p.k] || {}).nome || '')}: baixar o app` : p.tipo === 'pista' ? `${ico('raio')} ${p.k === 'moto' ? 'Autódromo do Café' : 'Corrida de patinete'}` : p.tipo === 'civico' ? `${ico('raio')} ${esc(CIVICOS[p.k].entra)}` : p.tipo === 'barraca' ? (aberta(p.b) ? `${ico(p.b.ico)} ${esc(p.b.botao)}` : `${ico('eye')} Hórus desligado: ligar`) : p.tipo === 'comida' ? `${ico('banca')} ${esc(COMIDAS[p.k][0])}` : p.tipo === 'aquario' ? `${ico('play')} Jogar ${esc(JOGOS[p.jogo].titulo)}` : p.tipo === 'banco' ? (p.pesca ? `${ico('gente')} Pescar no ${p.b.lugar.startsWith('Deck') ? 'deck' : 'píer'}` : `${ico('gente')} Sentar ${p.b.degrau ? 'na Concha' : 'no banco'}`) : p.tipo === 'mural' ? `${ico('tacha')} Abrir o Mural` : p.tipo === 'banca' ? `${ico('banca')} Banca do dia` : p.tipo === 'lote' ? `${ico('plus')} Lote livre` : meu ? `${ico('home')} Tua casa` : `${ico('home')} Bater na porta de @${esc(p.c.handle)}`;
   }
@@ -3584,10 +3833,13 @@
       <div class="cvr-top"><span class="cvr-tt">${ico('verso')} Correverso</span><span class="cvr-on" id="cvr-on"></span><button type="button" class="cvr-live" id="cvr-live" data-act="cvr-gente" hidden></button><span class="cvr-zona" id="cvr-zona" hidden></span><button type="button" class="cvr-tarefa" id="cvr-tarefa" data-act="cvr-trampo" hidden></button><button type="button" class="cvr-correal" id="cvr-correal" data-act="carteira" title="Carteira de correal" aria-label="Carteira de correal">${ico('correal')}<b class="num" data-correal-saldo>${C.correal.saldo == null ? '…' : C.correalFmt(C.correal.saldo)}</b></button><button type="button" class="cvr-som" id="cvr-som" data-act="cvr-som" aria-pressed="false" hidden></button></div>
       <p class="cvr-hint" id="cvr-hint" hidden></p>
       <button type="button" class="cvr-mapinha" id="cvr-mapinha" data-act="cvr-mapa" title="Mapa" aria-label="Minimapa: onde você tá na cidade. Toca pra abrir o mapa grande e viajar"><canvas id="cvr-mapinha-cv" width="140" height="104" aria-hidden="true"></canvas></button>
+      <div class="cvr-mj" id="cvr-mj" hidden></div>
       <button type="button" class="cvr-porta" id="cvr-porta" data-act="cvr-porta" hidden></button>
       <div class="cvr-bar"><button type="button" class="cvr-b mic" id="cvr-mic" data-act="cvr-mic" aria-pressed="false"></button><button type="button" class="cvr-b" data-act="cvr-avatar" title="Avatar" aria-label="Avatar">${ico('eu')}<span>Avatar</span></button><button type="button" class="cvr-b" data-act="cvr-garagem" title="Garagem: como você anda pela cidade" aria-label="Garagem">${ico('carro')}<span>Garagem</span></button><button type="button" class="cvr-b" data-act="cvr-casa" title="Voltar pra casa" aria-label="Voltar pra casa">${ico('home')}<span>Pra casa</span></button><button type="button" class="cvr-b" data-act="cvr-mapa" title="Mapa" aria-label="Mapa">${ico('mapa')}<span>Mapa</span></button><button type="button" class="cvr-b" data-act="cvr-falar" title="Falar uma frase" aria-label="Falar uma frase" aria-expanded="false">${ico('chat')}<span>Falar</span></button><button type="button" class="cvr-b" data-act="cvr-gente" title="Quem tá na cidade" aria-label="Quem tá na cidade">${ico('gente')}<span>Gente</span></button><button type="button" class="cvr-b" data-act="cvr-trampo" title="Trampo: as tarefas do teu uniforme" aria-label="Trampo">${ico('raio')}<span>Trampo</span></button></div>
       <div class="cvr-falas" id="cvr-falas" hidden>${FALAS.map((f, i) => `<button type="button" data-act="cvr-fala" data-i="${i}">${esc(f)}</button>`).join('')}</div>`;
     V.cv = C.$('cvr-cv'); V.ctx = V.cv.getContext('2d');
+    /* v3.58: o botão amarelo no minijogo responde no toque (não espera o clique) e segura enquanto o dedo tá nele */
+    { const bp = C.$('cvr-porta'); bp.addEventListener('pointerdown', () => { if(mjAperta()) V.mjIgn = Date.now(); }); ['pointerup', 'pointercancel', 'pointerleave'].forEach(ev => bp.addEventListener(ev, () => mjHold(false))); }
     tamanhoTela();
     C.correalCarrega().then(() => correalUI(false)).catch(() => {});
     /* você sai pela porta da tua casa; se acabou de sair da cidade (Mural, Banca, casa de alguém...), volta pra onde tava */
@@ -3619,7 +3871,7 @@
     V.tAnt = 0; V.fxT = performance.now() / 1000; V.fxMed = null; V.raf = requestAnimationFrame(laco);
     /* v3.40: o controle de videogame na tela (celular), a música e os sons da cidade */
     V.voo = null; V.passoN = 0;
-    if(C.pad && C.pad.toque()){ V.pad = C.pad.cria(st, { pula: () => pula() }); st.classList.add('toque'); padRotulo(); }
+    if(C.pad && C.pad.toque()){ V.pad = C.pad.cria(st, { pula: () => { if(!mjAperta()) pula(); }, soltou: () => mjHold(false) }); st.classList.add('toque'); padRotulo(); }
     if(C.versoSom) C.versoSom.entra(C.$('cvr-som'), () => ({ voz: [...V.peers.values()].some(p => p.estado === 'aovivo'), pausa: !!V.jogo, casa: !!(C.casa && C.casa.aberta()), balcao: !!BC.aberto }));
   }
   function aoSairDaRota(){ if(!/^#\/verso/.test(location.hash)) sair(); }
@@ -3658,6 +3910,17 @@
     /* v3.43: Espaço ou Enter num grupo do menu (ou na Carteira, no sino) que a pessoa alcançou pelo Tab abre ele, não pula */
     if(C.teclaDoMenu && C.teclaDoMenu(e)) return;
     const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+    /* v3.58: no minijogo da tarefa, as setas digitam a sequência e o espaço/Enter tocam ou seguram */
+    const Tm = V.tarefa, mj = Tm && Tm.mj && (Tm.fase === 'jogando' || Tm.mj.t === 'focos') ? Tm.mj : null;
+    if(mj){
+      if(mj.t === 'seq' && SETAK[k]){ e.preventDefault(); V.teclas.clear(); if(e.type === 'keydown' && !e.repeat) mjSeta(SETAK[k]); return; }
+      if(k === ' ' || k === 'Enter'){
+        if(mj.t === 'tempo'){ e.preventDefault(); if(e.type === 'keydown' && !e.repeat) mjToque(); return; }
+        if(deSegurar(mj) && (mj.t !== 'focos' || V.portaT || e.type === 'keyup')){ e.preventDefault(); if(e.type === 'keyup' || !e.repeat) mjHold(e.type === 'keydown'); return; }
+        if(mj.t === 'seq'){ e.preventDefault(); return; }
+      }
+      if(mj.t !== 'focos' && TECLAS.has(k)){ e.preventDefault(); V.teclas.clear(); return; }
+    }
     if(TECLAS.has(k)){ e.preventDefault(); if(e.type === 'keydown') V.teclas.add(k); else V.teclas.delete(k); }
     /* v3.40: espaço pula (de moto e de carro, buzina); B buzina (ou toca a campainha da bike) */
     else if(k === ' '){ e.preventDefault(); if(e.type === 'keydown' && !e.repeat) pula(); }
@@ -3856,7 +4119,7 @@
     if(p.tipo === 'comida'){ come(p.k); return; }
     if(p.tipo === 'aquario'){ abreJogo(p.jogo); return; }
     if(p.tipo === 'civico'){ trampoSheet(p.k); return; }
-    if(p.tipo === 'tarefa'){ agirTarefa(); return; }
+    if(p.tipo === 'tarefa'){ if(V.mjIgn && Date.now() - V.mjIgn < 800){ V.mjIgn = 0; return; } agirTarefa(); return; }
     if(p.tipo === 'lote'){
       C.sheet(`<div class="form"><div class="sheet-head"><h2>Lote livre</h2><button type="button" class="cbtn plain" data-close aria-label="Fechar">${ico('x')}</button></div>
         <p>Cada perfil novo na vitrine do Corre ganha um quarteirão aqui, com casa própria. Chama quem faz corre contigo.</p>
@@ -3955,6 +4218,8 @@
     'cvr-mapa': () => { if(V.cid) mapaSheet(); },
     'cvr-ir-lugar': el => { const l = lugares()[Number(el.dataset.i)]; if(!l) return; const p = pertoLivre(l.x, l.y); if(p) teleporta(p.x, p.y); },
     'cvr-porta': () => abrePorta(),
+    'cvr-mj-seta': el => mjSeta(el.dataset.d),
+    'cvr-mj-larga': () => mjLarga(),
     'cvr-falar': el => { const m = C.$('cvr-falas'); if(!m) return; m.hidden = !m.hidden; el.setAttribute('aria-expanded', String(!m.hidden)); },
     'cvr-fala': el => { const i = Number(el.dataset.i); if(!FALAS[i] || !V.eu) return; V.eu.fala = { t: FALAS[i], ate: Date.now() + 4500 }; if(V.rede && V.rede.emo) V.rede.emo(i); const m = C.$('cvr-falas'); if(m) m.hidden = true; const b = document.querySelector('[data-act="cvr-falar"]'); if(b) b.setAttribute('aria-expanded', 'false'); },
     'cvr-convite': () => C.copy(`Bora pro Corre: ${location.origin}${location.pathname}`, 'Convite copiado.'),
