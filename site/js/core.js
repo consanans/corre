@@ -1474,6 +1474,7 @@
         if(name !== 'pagamento') throw { code: 'nofn' };
         const d = read(), u = uidOf(d), B = b || {}, prod = String(B.produto || '');
         if(!u) throw { code: 'login', status: 401 };
+        if(B.acao === 'asaas'){ if(!plFund(d, u)) throw { code: 'fundador', status: 403 }; return { ok: true, ambiente: 'demo', webhook: 'criado' }; }
         if(!['studio', 'houzi', 'horus'].includes(prod)) throw { code: 'produto', status: 400 };
         let a = d.t.corre_assinaturas.find(x => x.dono === u && x.produto === prod);
         if(B.acao === 'link'){ if(!a || !a.asaas_assinatura) throw { code: 'sem_assinatura', status: 404 }; return { ok: true, link: '', vence: '', demo: true }; }

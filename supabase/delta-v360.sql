@@ -37,8 +37,12 @@ create table if not exists public.corre_assinaturas (
   unique (dono, produto)
 );
 alter table public.corre_assinaturas enable row level security;
-drop policy if exists "assinaturas: vejo as minhas" on public.corre_assinaturas;
-create policy "assinaturas: vejo as minhas" on public.corre_assinaturas for select using (dono = auth.uid());
+-- sem DROP: o conector do Supabase trava em comando que apaga (pede uma confirmação que não chega)
+do $$ begin
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'corre_assinaturas' and policyname = 'assinaturas: vejo as minhas') then
+    create policy "assinaturas: vejo as minhas" on public.corre_assinaturas for select using (dono = auth.uid());
+  end if;
+end $$;
 revoke all on public.corre_assinaturas from anon, authenticated;
 grant select on public.corre_assinaturas to authenticated;
 
@@ -154,8 +158,7 @@ begin
   return new;
 end $$;
 revoke all on function public.corre_horus_plano() from public, anon, authenticated;
-drop trigger if exists corre_leads_plano on public.corre_leads;
-create trigger corre_leads_plano before insert on public.corre_leads for each row execute function public.corre_horus_plano();
+create or replace trigger corre_leads_plano before insert on public.corre_leads for each row execute function public.corre_horus_plano();
 
 create or replace function public.corre_houzi_plano() returns trigger
 language plpgsql security definer set search_path = public as $$
@@ -171,8 +174,7 @@ begin
   return new;
 end $$;
 revoke all on function public.corre_houzi_plano() from public, anon, authenticated;
-drop trigger if exists corre_houzi_plano on public.corre_houzi_marcas;
-create trigger corre_houzi_plano before insert or update on public.corre_houzi_marcas for each row execute function public.corre_houzi_plano();
+create or replace trigger corre_houzi_plano before insert or update on public.corre_houzi_marcas for each row execute function public.corre_houzi_plano();
 
 commit;
 

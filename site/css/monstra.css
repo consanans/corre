@@ -2834,3 +2834,5 @@ html.embed .msg-pg{height:calc(100dvh - 40px)}
 .pl-faixa.forte{background:#FDECEF;border-color:var(--bad)}
 .pl-faixa.forte > .ic{color:var(--bad)}
 .stz > .pl-faixa{max-width:1100px;margin:0 auto 18px}
+.pl-asaas{border-style:dashed}
+.pl-estado.ruim{background:#FDECEF;color:var(--bad)}

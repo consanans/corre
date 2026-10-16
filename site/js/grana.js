@@ -564,6 +564,8 @@
     el.innerHTML = `<header class="pl-topo"><p class="pl-kick">Planos</p><h1>Paga só a ferramenta que trabalha por você.</h1>
         <p>A rede, as mensagens, o Correverso, o Mural e Vendas e Grana são de graça. Pix, boleto ou cartão, pelo Asaas; cancela quando quiser, aqui mesmo.</p></header>
       <div class="pl-lista">${['studio', 'houzi', 'horus'].map(cartao).join('')}</div>
+      ${C.acesso.fundador ? `<article class="pl-card pl-asaas"><header><span class="pl-ico">${ico('cartao')}</span><div><h2>Asaas</h2><p>Só você vê. Confere a chave do Asaas e cadastra lá o aviso de pagamento, com o token certo. Toca de novo sempre que trocar a chave.</p></div></header>
+        <p class="pl-estado" id="pl-asaas-st">A chave fica só nos Secrets do Supabase (ASAAS_API_KEY).</p><div class="acts"><button type="button" class="btn sm pri" data-act="pl-asaas">${ico('check')} Ligar o Asaas</button></div></article>` : ''}
       <p class="fine pl-fine">O nome e o CPF ou CNPJ vão só pro Asaas, que emite a cobrança: o Corre não guarda. Cancelou, o que já foi pago vale até o fim do mês pago.</p>`;
   }
   C.views.planos = async function(app){
@@ -630,6 +632,17 @@
   C.planos = { assinar: assinarSheet, nome: NOME, preco: precoDe };
 
   Object.assign(C.acts, {
+    /* só o fundador: a função confere a chave e cadastra o webhook no Asaas (o token nunca passa pela tela) */
+    'pl-asaas': async el => {
+      const st = C.$('pl-asaas-st'), diz = (t, ruim) => { if(st){ st.textContent = t; st.classList.toggle('ruim', !!ruim); } };
+      el.disabled = true; diz('Falando com o Asaas…');
+      try{
+        const r = await C.api.fn('pagamento', { acao: 'asaas' }) || {};
+        diz(r.ambiente === 'sandbox' ? 'Ligado no sandbox (teste, sem dinheiro de verdade). O aviso de pagamento tá cadastrado.' : r.ambiente === 'demo' ? 'Demonstração: nada foi pro Asaas.' : 'Ligado na conta de verdade. O aviso de pagamento tá cadastrado no Asaas.');
+      }catch(e){
+        diz(e && e.code === 'config' ? 'Falta a chave: Supabase › Edge Functions › Secrets › ASAAS_API_KEY.' : e && e.code === 'asaas' ? 'O Asaas respondeu: ' + (e.detalhe || 'erro') : e && (e.code === 'nofn' || e.status === 404) ? 'A função pagamento ainda não tá no ar.' : erroTxt(e), true);
+      }finally{ if(el.isConnected) el.disabled = false; }
+    },
     'pl-assinar': el => assinarSheet(el.dataset.p, Number(el.dataset.n) || 0),
     'pl-pagar': async el => {
       const prod = el.dataset.p, p = plano(prod);

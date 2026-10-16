@@ -12,11 +12,13 @@
 //  3. acao "link" { produto }: o link da fatura em aberto (pra pagar agora).
 //  4. ?asaas=aviso: o Asaas avisando (pagou, venceu, cancelou). Confere o token do aviso; cada aviso vale uma vez.
 //     Pra o Asaas conseguir chamar, a função fica sem "Verify JWT" (o login de quem usa o app é conferido aqui dentro).
+//  5. acao "asaas" (só o fundador, em Financeiro › Planos): confere a chave e cadastra (ou acerta) o webhook no Asaas
+//     pela API, com o token certo. Ninguém precisa copiar token de um painel pro outro.
 //
 // Segredos (Supabase > Edge Functions > Secrets):
-//   ASAAS_API_KEY        a chave da API do Asaas (Asaas > Integrações > Chave de API). Começa com $aact_
-//   ASAAS_WEBHOOK_TOKEN  um texto qualquer, longo, igual ao "Token de autenticação" do webhook no Asaas
-//   ASAAS_AMBIENTE       opcional: "sandbox" (pra testar com dinheiro de mentira) ou "producao" (padrão)
+//   ASAAS_API_KEY        a chave da API do Asaas (Asaas > Integrações > Chave de API). É o único obrigatório.
+//   ASAAS_AMBIENTE       opcional: "sandbox" ou "producao". Sem ele, vale o que a chave diz ($aact_hmlg_ é o sandbox)
+//   ASAAS_WEBHOOK_TOKEN  opcional: o token do aviso. Sem ele, sai da própria chave (HMAC), sempre igual pra mesma chave
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
 const CORS = {
@@ -25,7 +27,21 @@ const CORS = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 const env = (k: string, d = '') => Deno.env.get(k) || d;
-const ASAAS = env('ASAAS_AMBIENTE') === 'sandbox' ? 'https://api-sandbox.asaas.com/v3' : 'https://api.asaas.com/v3';
+/* o ambiente: o que o segredo disser; senão a chave de teste do Asaas se entrega pelo começo ($aact_hmlg_) */
+const sandbox = () => env('ASAAS_AMBIENTE') ? env('ASAAS_AMBIENTE') === 'sandbox' : /^\$?aact_hmlg_/.test(env('ASAAS_API_KEY'));
+const ASAAS = () => sandbox() ? 'https://api-sandbox.asaas.com/v3' : 'https://api.asaas.com/v3';
+const FUNDADOR = 'd1e9f6ac-f5d7-4723-8b02-eb0d1d7137b0';
+/* os avisos que o Corre escuta (o resto o Asaas nem manda) */
+const EVENTOS = ['PAYMENT_CREATED', 'PAYMENT_UPDATED', 'PAYMENT_CONFIRMED', 'PAYMENT_RECEIVED', 'PAYMENT_OVERDUE', 'PAYMENT_REFUNDED',
+  'PAYMENT_CHARGEBACK_REQUESTED', 'PAYMENT_CHARGEBACK_DISPUTE', 'SUBSCRIPTION_DELETED', 'SUBSCRIPTION_INACTIVATED'];
+/* o token do aviso: o do segredo, ou um HMAC da chave (64 letras, nunca aparece em tela nenhuma) */
+async function tokenAviso() {
+  if (env('ASAAS_WEBHOOK_TOKEN')) return env('ASAAS_WEBHOOK_TOKEN');
+  const k = env('ASAAS_API_KEY'); if (!k) return '';
+  const ck = await crypto.subtle.importKey('raw', new TextEncoder().encode(k), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  const sig = new Uint8Array(await crypto.subtle.sign('HMAC', ck, new TextEncoder().encode('corre · aviso do asaas')));
+  return 'corre' + Array.from(sig, b => b.toString(16).padStart(2, '0')).join('');
+}
 const PRODUTOS: Record<string, string> = { studio: 'Studio', houzi: 'Studio Houzi', horus: 'Hórus' };
 /* o preço de cada plano (o Studio pelo nível: quantas redes) */
 const preco = (produto: string, nivel: number) =>
@@ -62,7 +78,7 @@ function igual(a: string, b: string) {
 
 /* o Asaas: devolve o JSON ou joga { status, msg } com a primeira mensagem de erro dele */
 async function asaas(caminho: string, metodo = 'GET', corpo?: unknown) {
-  const r = await fetch(ASAAS + caminho, {
+  const r = await fetch(ASAAS() + caminho, {
     method: metodo,
     headers: { access_token: env('ASAAS_API_KEY'), 'Content-Type': 'application/json', 'User-Agent': 'Corre (app.corresocial.com)' },
     body: corpo === undefined ? undefined : JSON.stringify(corpo),
@@ -80,7 +96,7 @@ async function faturaAberta(sub: string) {
 
 /* ---------- o aviso do Asaas ---------- */
 async function aviso(req: Request, admin: any) {
-  const tok = env('ASAAS_WEBHOOK_TOKEN');
+  const tok = await tokenAviso();
   if (!tok || !igual(req.headers.get('asaas-access-token') || '', tok)) return json({ erro: 'token' }, 401);
   let ev: any = null; try { ev = await req.json(); } catch (_) { return json({ erro: 'corpo' }, 400); }
   const id = String(ev?.id || ''), tipo = String(ev?.event || '');
@@ -133,6 +149,7 @@ Deno.serve(async (req) => {
   let body: any = null;
   try { body = await req.json(); } catch (_) { return json({ erro: 'corpo' }, 400); }
   const acao = String(body?.acao || ''), produto = String(body?.produto || '');
+  if (acao === 'asaas') return await ligaAsaas(user, SB_URL);
   if (!PRODUTOS[produto]) return json({ erro: 'produto' }, 400);
   if (!env('ASAAS_API_KEY')) return json({ erro: 'config' }, 503);
   const { data: a } = await admin.from('corre_assinaturas').select('*').eq('dono', user.id).eq('produto', produto).maybeSingle();
@@ -201,3 +218,24 @@ Deno.serve(async (req) => {
     console.error('pagamento:', e?.message || e); return json({ erro: 'rede' }, 502);
   }
 });
+
+/* ---------- o fundador liga o Asaas: confere a chave e deixa o webhook cadastrado, com o token certo ---------- */
+async function ligaAsaas(user: any, SB_URL: string) {
+  if (user.id !== FUNDADOR) return json({ erro: 'fundador' }, 403);
+  const amb = sandbox() ? 'sandbox' : 'producao';
+  if (!env('ASAAS_API_KEY')) return json({ erro: 'config', ambiente: amb }, 503);
+  const url = SB_URL.replace(/\/+$/, '') + '/functions/v1/pagamento?asaas=aviso';
+  try {
+    await asaas('/customers?limit=1');
+    const L = await asaas('/webhooks?limit=50');
+    const ja = (L?.data || []).find((w: any) => String(w.url || '') === url);
+    const corpo = { name: 'Corre', url, email: env('ASAAS_EMAIL', 'contato@houzirecords.com.br'), enabled: true, interrupted: false,
+      apiVersion: 3, authToken: await tokenAviso(), sendType: 'SEQUENTIALLY', events: EVENTOS };
+    if (ja?.id) await asaas(`/webhooks/${encodeURIComponent(ja.id)}`, 'PUT', corpo);
+    else await asaas('/webhooks', 'POST', corpo);
+    return json({ ok: true, ambiente: amb, webhook: ja?.id ? 'atualizado' : 'criado' });
+  } catch (e: any) {
+    if (e && e.msg) { console.error('asaas/ligar:', e.status, e.msg); return json({ erro: 'asaas', detalhe: e.msg, ambiente: amb }, 502); }
+    return json({ erro: 'rede', ambiente: amb }, 502);
+  }
+}
