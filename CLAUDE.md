@@ -106,6 +106,7 @@ O app tem três modos (`core.js`): **de verdade** (config.js com `SUPABASE_URL` 
   - **Funções (precisam de Deploy):** `instagram` (a fila não devolve o detalhe dos posts dos outros), `imagem` (marca/nomes só contam o uso do dia com resposta boa), `banca` (código de caractere inválido derrubava o feed).
   - **Ficou de fora (decisão ou banco):** o G colorido do botão do Google tem verde (#34A853), mas é regra da marca do Google; dois reembolsos de correal do mesmo tipo ao mesmo tempo devolvem um só (precisa mudar o `corre_correal_devolve` pra devolver pelo id do gasto); foto subida e largada sem salvar fica no Storage; quem manda movimento/kart pelo canal não é conferido no servidor (precisaria de token assinado por código).
   - Testes: scratchpad/v355/revisao.cjs (na 3.54 falhava 9 de 13; na 3.55, 13 ok) e pier.cjs (6 baldes alcançáveis andando); regressão das versões 3.44 a 3.54 verde.
+- **Todo mundo segue o @consanans (conferido em 16/10/2026, só leitura):** já existe no banco o trigger `corre_perfis_segue_fundador` (AFTER INSERT em `corre_perfis`, função `corre_segue_fundador`, SECURITY DEFINER): perfil novo, público ou mocado, segue o fundador (id `d1e9f6ac-f5d7-4723-8b02-eb0d1d7137b0`). Os 20 perfis de então seguiam, os 4 mocados inclusive. Ele não tá em nenhum delta do repositório (veio de antes). Deixar de seguir continua liberado (política "seguindo: deixo"). Seguidor mocado aparece só na contagem, sem nome.
 - **Próximos (a fila do Thales):** vazia.
 
 ## Antes (v3.44, 14/10/2026)
