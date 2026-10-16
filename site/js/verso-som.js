@@ -1,8 +1,9 @@
 /* CORRE · CORREVERSO · O SOM DA CIDADE (v3.40).
    Tudo aqui é tocado ao vivo no aparelho pelo WebAudio: nada é baixado, nada é gravação de ninguém.
-   · A musiquinha "Rua do Corre": trilha original do Corre, num clima de videogame de pixel com um pé no lo-fi
-     (96 batidas por minuto, com balanço). Fica baixinha quando tem conversa no mic e pausa dentro das casas (lá tocam
-     os discos) e no aquário.
+   · A música da cidade (v3.62: o Thales pediu "algo mais música clássica", "jazz"): uma rodada de três, uma depois da
+     outra: "Rua do Corre" (o tema original do Corre) em trio de jazz, o Prelúdio em Dó de Bach e o Cânone em Ré de
+     Pachelbel (os dois em domínio público, arranjados aqui). Fica baixinha quando tem conversa no mic e pausa dentro
+     das casas (lá tocam os discos) e no aquário.
    · Os sons da cidade: passo (muda na calçada, na grama, na madeira do píer, no piso de casa), pulo e aterrissagem,
      carro passando perto, buzina ao longe, passarinho nos parques, gente no Calçadão e na Feira, água no Lago, o motor
      do teu veículo (carro, moto, scooter), a catraca da bike, o zumbido do patinete, o skate rolando, a buzina e a
@@ -20,36 +21,87 @@
   const hz = m => 440 * Math.pow(2, (m - 69) / 12);
   const sorte = (a, b) => a + Math.random() * (b - a);
 
-  /* ---------- a música: 16 compassos (A e B), em loop ---------- */
-  const BPM = 96, BT = 60 / BPM, BAR = 4 * BT, E8 = BT / 2, SW = .17;
-  const pos8 = (bar, k) => bar * BAR + k * E8 + (k % 2 ? SW * E8 : 0);
-  const ACORDES = ['F', 'G', 'Em', 'Am', 'F', 'G', 'C', 'C', 'Dm', 'G', 'C', 'Am', 'Dm', 'E', 'Am', 'G'];
-  const VOZES = { F: ['F3', 'A3', 'C4'], G: ['G3', 'B3', 'D4'], Em: ['E3', 'G3', 'B3'], Am: ['A3', 'C4', 'E4'], C: ['G3', 'C4', 'E4'], Dm: ['F3', 'A3', 'D4'], E: ['E3', 'G#3', 'B3'] };
-  const RAIZ = { F: 'F2', G: 'G2', Em: 'E2', Am: 'A2', C: 'C2', Dm: 'D2', E: 'E2' };
-  /* a melodia, compasso por compasso: [nota, colcheias] ('-' é pausa) */
+  /* ---------- a música ----------
+     O tema "Rua do Corre" (16 compassos, A e B): a melodia, compasso por compasso, em colcheias ([nota, colcheias];
+     '-' é pausa). Desde a v3.62 ele toca em trio de jazz: vibrafone no tema, piano no acompanhamento e no solo,
+     contrabaixo andando e prato de condução, com o balanço do swing */
   const MEL = [
     'C5:1 F5:1 A5:2 G5:1 F5:1 E5:2', 'D5:1 G5:1 B5:2 A5:1 G5:1 D5:2', 'E5:2 G5:1 B5:1 A5:2 G5:2', 'E5:3 C5:1 A4:4',
     'C5:1 F5:1 A5:2 G5:1 A5:1 C6:2', 'B5:2 A5:1 G5:1 F5:2 D5:2', 'E5:1 G5:1 C6:2 B5:1 G5:1 E5:2', 'C5:6 -:2',
     'A4:1 D5:1 F5:2 E5:1 D5:1 A4:2', 'B4:1 D5:1 G5:2 F5:1 D5:1 B4:2', 'C5:1 E5:1 G5:2 A5:2 G5:2', 'E5:4 -:2 C5:1 D5:1',
     'F5:2 E5:1 D5:1 A5:2 F5:2', 'G#5:2 B5:1 G#5:1 E5:4', 'A5:1 G5:1 E5:2 C5:2 E5:2', 'D5:2 G4:1 B4:1 D5:4'
   ];
-  function partitura(){
-    const ev = [];
-    ACORDES.forEach((a, bar) => {
-      const t0 = bar * BAR, r = midi(RAIZ[a]), B = bar >= 8;
-      ev.push([t0 + .01, 'pad', VOZES[a].map(midi), BAR * .96, .07]);
-      [[0, r, 3, .3], [3, r + 12, 1, .2], [4, r + 7, 2, .26], [6, r, 2, .24]].forEach(([k, m, d, v]) => ev.push([pos8(bar, k), 'baixo', m, d * E8 * .9, v]));
-      [0, 4].concat(B && bar % 2 ? [7] : []).forEach(k => ev.push([pos8(bar, k), 'bumbo', .5]));
-      [2, 6].forEach(k => ev.push([pos8(bar, k), 'caixa', .16]));
-      for(let k = 0; k < 8; k++) ev.push([pos8(bar, k), 'chimbal', k % 2 ? .035 : .05]);
-      let k = 0;
-      MEL[bar].split(' ').forEach(tk => { const [n, q] = tk.split(':'), d = Number(q); if(n !== '-') ev.push([pos8(bar, k), 'lead', midi(n), d * E8 * .92, B ? .13 : .14]); k += d; });
-    });
-    ev.push([15 * BAR + 6 * E8, 'brilho', midi('D6'), .5, .05], [15 * BAR + 7 * E8, 'brilho', midi('G6'), .5, .045]);
-    return ev.sort((a, b) => a[0] - b[0]);
+  const ordena = ev => ev.sort((a, b) => a[0] - b[0]);
+  /* 1. "Rua do Corre" em trio de jazz: tema, um coro de solo de piano e o tema de novo, e termina num Dó com nona */
+  function jazz(){
+    const B = 60 / 128, BARj = 4 * B, E = B / 2, SWj = .34;
+    const p8 = (bar, k) => bar * BARj + k * E + (k % 2 ? SWj * E : 0);
+    const CH = ['Fmaj7', 'G7', 'Em7', 'Am7', 'Fmaj7', 'G7', 'Cmaj7', 'C6', 'Dm7', 'G7', 'Cmaj7', 'Am7', 'Dm7', 'E7b9', 'Am7', 'G7'];
+    /* vozes sem a fundamental (quem faz a fundamental é o baixo), no meio do teclado */
+    const VZ = { Fmaj7: ['A3', 'C4', 'E4', 'G4'], G7: ['F3', 'A3', 'B3', 'E4'], Em7: ['G3', 'B3', 'D4', 'F#4'], Am7: ['G3', 'B3', 'C4', 'E4'], Cmaj7: ['E3', 'G3', 'B3', 'D4'], C6: ['E3', 'G3', 'A3', 'D4'], Dm7: ['F3', 'A3', 'C4', 'E4'], E7b9: ['D4', 'F4', 'G#4', 'B4'] };
+    const RZ = { Fmaj7: 'F2', G7: 'G2', Em7: 'E2', Am7: 'A2', Cmaj7: 'C3', C6: 'C3', Dm7: 'D2', E7b9: 'E2' };
+    const TER = { Fmaj7: 4, G7: 4, Em7: 3, Am7: 3, Cmaj7: 4, C6: 4, Dm7: 3, E7b9: 4 };
+    /* a escala do solo: Dó maior; no E7(b9), a menor harmônica (o sol sustenido) */
+    const escala = a => { const pc = a === 'E7b9' ? [9, 11, 0, 2, 4, 5, 8] : [0, 2, 4, 5, 7, 9, 11], out = []; for(let m = 60; m <= 83; m++) if(pc.includes(m % 12)) out.push(m); return out; };
+    let sd = 11; const rnd = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+    const ev = [], CORO = 3; let nota = 72;
+    for(let c = 0; c < CORO; c++) for(let b = 0; b < 16; b++){
+      const bar = c * 16 + b, a = CH[b], px = CH[(b + 1) % 16], r = midi(RZ[a]), nr = midi(RZ[px]);
+      /* o baixo anda: fundamental, terça, quinta e a nota de passagem pra próxima fundamental */
+      [r, r + TER[a], r + 7, nr > r ? nr - 1 : nr + 1].forEach((m, q) => ev.push([bar * BARj + q * B, 'contra', m, B * .92, q ? .22 : .28]));
+      /* o piano no ritmo do charleston (no 1 e no "e" do 2) */
+      ev.push([p8(bar, 0), 'piano', VZ[a].map(midi), E * 1.3, .05], [p8(bar, 3), 'piano', VZ[a].map(midi), E * 2.8, .045]);
+      [0, 2, 3, 4, 6, 7].forEach(k => ev.push([p8(bar, k), 'ride', k % 2 ? .028 : .042]));
+      [2, 6].forEach(k => ev.push([p8(bar, k), 'chick', .045]));
+      if(c !== 1){ let k = 0; MEL[b].split(' ').forEach(tk => { const [n, q] = tk.split(':'), d = Number(q); if(n !== '-') ev.push([p8(bar, k), 'vibra', midi(n), d * E * .95, .15]); k += d; }); }
+      else {
+        /* o solo: colcheias que andam pela escala, começando numa nota do acorde e respirando a cada dois compassos */
+        const sc = escala(a), alvo = VZ[a].map(n => midi(n) + 12).reduce((x, y) => (Math.abs(y - nota) < Math.abs(x - nota) ? y : x));
+        let j = sc.indexOf(sc.reduce((x, y) => (Math.abs(y - alvo) < Math.abs(x - alvo) ? y : x))), dir = rnd() < .5 ? 1 : -1;
+        const n8 = b % 2 ? 6 : 8;
+        for(let k = 0; k < n8; k++){ ev.push([p8(bar, k), 'piano', [sc[j]], E * .9, k % 2 ? .07 : .085]); nota = sc[j]; if(rnd() < .2) dir = -dir; j += dir * (rnd() < .8 ? 1 : 2); if(j < 2 || j > sc.length - 3) dir = -dir; j = Math.max(0, Math.min(sc.length - 1, j)); }
+      }
+    }
+    const f = CORO * 16 * BARj;
+    ev.push([f, 'contra', midi('C2'), BARj * 1.6, .3], [f, 'piano', ['E3', 'G3', 'B3', 'D4', 'A4'].map(midi), BARj * 1.6, .06], [f, 'vibra', midi('C6'), BARj * 1.6, .14], [f, 'ride', .05]);
+    return { ev: ordena(ev), volta: f + BARj * 2.2 };
   }
-  const VOLTA = 16 * BAR;
-
+  /* 2. Bach, Prelúdio em Dó (O Cravo Bem Temperado, BWV 846), no piano: cada compasso é um acorde aberto em arpejo */
+  function bach(){
+    const Q = 60 / 66, S = Q / 4, BARb = 4 * Q;
+    const H = ['C3 E3 G3 C4 E4', 'C3 D3 A3 D4 F4', 'B2 D3 G3 D4 F4', 'C3 E3 G3 C4 E4', 'C3 E3 A3 E4 A4', 'C3 D3 F#3 A3 D4', 'B2 D3 G3 D4 G4', 'B2 C3 E3 G3 C4',
+      'A2 C3 E3 G3 C4', 'D2 A2 D3 F#3 C4', 'G2 B2 D3 G3 B3', 'G2 Bb2 E3 G3 C#4', 'F2 A2 D3 A3 D4', 'F2 Ab2 D3 F3 B3', 'E2 G2 C3 G3 C4', 'E2 F2 A2 C3 F3',
+      'D2 F2 A2 C3 F3', 'G1 D2 G2 B2 F3', 'C2 E2 G2 C3 E3', 'C2 G2 Bb2 C3 E3', 'F1 F2 A2 C3 E3', 'F#1 C2 A2 C3 Eb3', 'Ab1 F2 B2 C3 D3', 'G1 F2 G2 B2 D3',
+      'G1 E2 G2 C3 E3', 'G1 D2 G2 C3 F3', 'G1 D2 G2 B2 F3', 'G1 Eb2 A2 C3 F#3', 'G1 E2 G2 C3 G3', 'G1 D2 G2 C3 F3', 'G1 D2 G2 B2 F3', 'C1 C2 G2 Bb2 E3'];
+    const ev = [];
+    H.forEach((acorde, bar) => {
+      const m = acorde.split(' ').map(midi), forte = .8 + .2 * Math.sin(bar / H.length * Math.PI);
+      [0, 1].forEach(h => { const t0 = bar * BARb + h * 2 * Q;
+        [m[0], m[1], m[2], m[3], m[4], m[2], m[3], m[4]].forEach((n, j) => ev.push([t0 + j * S, 'piano', [n], j === 0 ? 2 * Q : j === 1 ? 2 * Q - S : .7, (j === 0 ? .28 : j === 1 ? .21 : .175) * forte])); });
+    });
+    const f = H.length * BARb;
+    ev.push([f, 'piano', ['C2', 'C3', 'E3', 'G3', 'C4', 'E4'].map(midi), BARb * 1.5, .17]);
+    return { ev: ordena(ev), volta: f + BARb * 1.8 };
+  }
+  /* 3. Pachelbel, Cânone em Ré: o baixo de sempre (ré, lá, si, fá sustenido, sol, ré, sol, lá) no violoncelo e três
+     violinos que entram de dois em dois compassos tocando a mesma linha */
+  function canon(){
+    const Q = 60 / 58, BARc = 4 * Q;
+    const BAIXO = ['D3', 'A2', 'B2', 'F#2', 'G2', 'D2', 'G2', 'A2'].map(midi);
+    const V1 = 'F#5 E5 D5 C#5 B4 A4 B4 C#5'.split(' ').map(n => [n, 2]), V2 = 'D5 C#5 B4 A4 G4 F#4 G4 E4'.split(' ').map(n => [n, 1]);
+    const V3 = 'D4 F#4 A4 G4 F#4 D4 F#4 E4 D4 B3 D4 A4 G4 B4 A4 G4'.split(' ').map(n => [n, .5]);
+    const linha = [...V1, ...V2, ...V2, ...V3, ...V3], VOZ = 3, BARS = 2 + 2 * (VOZ - 1) + 12;
+    const ev = [];
+    for(let q = 0; q < BARS * 4; q++) ev.push([q * Q, 'cello', BAIXO[q % 8], Q * .96, .13]);
+    for(let v = 0; v < VOZ; v++){ let t = (2 + 2 * v) * BARc; linha.forEach(([n, d]) => { ev.push([t, 'violino', midi(n), d * Q * .97, .055]); t += d * Q; }); }
+    const f = BARS * BARc;
+    ev.push([f, 'cello', midi('D2'), BARc * 1.5, .14], [f, 'violino', midi('D4'), BARc * 1.5, .05], [f, 'violino', midi('F#4'), BARc * 1.5, .045], [f, 'violino', midi('A4'), BARc * 1.5, .045], [f, 'violino', midi('D5'), BARc * 1.5, .05]);
+    return { ev: ordena(ev), volta: f + BARc * 1.8 };
+  }
+  /* a rodada: toca uma, respira e entra a outra */
+  const FAIXAS = [{ k: 'jazz', nome: 'Rua do Corre, em trio de jazz', faz: jazz }, { k: 'bach', nome: 'Bach · Prelúdio em Dó', faz: bach }, { k: 'canon', nome: 'Pachelbel · Cânone em Ré', faz: canon }];
+  let faixas = null, fi = 0;
+  const prontas = () => faixas || (faixas = FAIXAS.map(f => Object.assign({ k: f.k, nome: f.nome }, f.faz())));
   /* ---------- a mesa: música, efeitos e ambiente, cada um no seu canal ---------- */
   let ac = null, master = null, bus = null, musOut = null, fx = null, amb = null, ruido = null, marrom = null, onda = null;
   let timer = 0, ev = [], i = 0, t0 = 0, musicaOn = false;
@@ -129,8 +181,62 @@
     s.connect(f); f.connect(g); g.connect(bus); s.start(t, Math.random() * .5); s.stop(t + dur + .02);
     if(caixa){ const o = ac.createOscillator(), go = ac.createGain(); o.type = 'triangle'; o.frequency.value = 190; go.gain.setValueAtTime(.0001, t); go.gain.exponentialRampToValueAtTime(v * .5, t + .004); go.gain.exponentialRampToValueAtTime(.0001, t + .08); o.connect(go); go.connect(bus); o.start(t); o.stop(t + .1); }
   }
+  /* v3.62 · os instrumentos do trio e da orquestrinha */
+  /* piano: duas ondas, ataque rápido e o brilho que vai fechando; o grave soa mais tempo que o agudo */
+  function piano(t, m, d, v){
+    const f = hz(m), o = ac.createOscillator(), o2 = ac.createOscillator(), g = ac.createGain(), g2 = ac.createGain(), lp = ac.createBiquadFilter();
+    o.type = 'triangle'; o.frequency.value = f; o2.type = 'sine'; o2.frequency.value = f * 2; o2.detune.value = 4; g2.gain.value = .3;
+    const fim = t + Math.min(Math.max(.7, 2.8 - (m - 48) * .035), d + .3);
+    lp.type = 'lowpass'; lp.frequency.setValueAtTime(Math.min(9000, f * 9), t); lp.frequency.exponentialRampToValueAtTime(Math.max(320, f * 2), t + 1.1);
+    g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(v, t + .005); g.gain.exponentialRampToValueAtTime(v * .38, t + .22); g.gain.exponentialRampToValueAtTime(.0001, fim);
+    o.connect(lp); o2.connect(g2); g2.connect(lp); lp.connect(g); g.connect(bus);
+    o.start(t); o2.start(t); o.stop(fim + .05); o2.stop(fim + .05);
+  }
+  /* vibrafone: o seno com o brilho de quatro vezes acima, e o tremolo do motor */
+  function vibra(t, m, d, v){
+    const f = hz(m), o = ac.createOscillator(), o4 = ac.createOscillator(), g = ac.createGain(), g4 = ac.createGain(), tr = ac.createGain(), lfo = ac.createOscillator(), lg = ac.createGain();
+    o.type = 'sine'; o.frequency.value = f; o4.type = 'sine'; o4.frequency.value = f * 4;
+    const fim = t + Math.min(2.4, d + .9);
+    g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(v, t + .004); g.gain.exponentialRampToValueAtTime(.0001, fim);
+    g4.gain.setValueAtTime(.0001, t); g4.gain.exponentialRampToValueAtTime(v * .25, t + .003); g4.gain.exponentialRampToValueAtTime(.0001, t + .25);
+    tr.gain.value = .78; lfo.frequency.value = 5.2; lg.gain.value = .22; lfo.connect(lg); lg.connect(tr.gain);
+    o.connect(g); o4.connect(g4); g.connect(tr); g4.connect(tr); tr.connect(bus);
+    o.start(t); o4.start(t); lfo.start(t); o.stop(fim + .05); o4.stop(t + .3); lfo.stop(fim + .05);
+  }
+  /* contrabaixo: a corda pinçada, grave e redonda */
+  function contra(t, m, d, v){
+    const f = hz(m), o = ac.createOscillator(), o2 = ac.createOscillator(), g = ac.createGain(), g2 = ac.createGain(), lp = ac.createBiquadFilter();
+    o.type = 'sine'; o.frequency.value = f; o2.type = 'triangle'; o2.frequency.value = f; g2.gain.value = .45;
+    lp.type = 'lowpass'; lp.frequency.setValueAtTime(900, t); lp.frequency.exponentialRampToValueAtTime(380, t + .25);
+    g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(v, t + .012); g.gain.exponentialRampToValueAtTime(v * .45, t + .16); g.gain.exponentialRampToValueAtTime(.0001, t + d + .08);
+    o.connect(g); o2.connect(g2); g2.connect(g); g.connect(lp); lp.connect(bus);
+    o.start(t); o2.start(t); o.stop(t + d + .12); o2.stop(t + d + .12);
+  }
+  /* prato de condução e o chimbal no pé */
+  function prato(t, v, chick){
+    const s = ac.createBufferSource(), hp = ac.createBiquadFilter(), bp = ac.createBiquadFilter(), g = ac.createGain(), dur = chick ? .06 : .5;
+    s.buffer = ruido; hp.type = 'highpass'; hp.frequency.value = chick ? 6500 : 5200; bp.type = 'peaking'; bp.frequency.value = chick ? 9000 : 7600; bp.gain.value = 6; bp.Q.value = 1.2;
+    g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(v, t + .002); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+    s.connect(hp); hp.connect(bp); bp.connect(g); g.connect(bus); s.start(t, Math.random() * .5); s.stop(t + dur + .02);
+  }
+  /* cordas: duas serras um pouco desafinadas entre si, o arco que entra devagar e o vibrato que chega depois */
+  function corda(t, m, d, v, grave){
+    const f = hz(m), o1 = ac.createOscillator(), o2 = ac.createOscillator(), g = ac.createGain(), lp = ac.createBiquadFilter(), lfo = ac.createOscillator(), lg = ac.createGain();
+    o1.type = 'sawtooth'; o2.type = 'sawtooth'; o1.frequency.value = f; o2.frequency.value = f; o1.detune.value = -6; o2.detune.value = 7;
+    lfo.frequency.value = 5.3; lg.gain.setValueAtTime(0, t); lg.gain.linearRampToValueAtTime(f * .005, t + Math.min(.6, d * .6)); lfo.connect(lg); lg.connect(o1.frequency); lg.connect(o2.frequency);
+    lp.type = 'lowpass'; lp.frequency.value = grave ? 850 : 2300; lp.Q.value = .6;
+    const at = grave ? .06 : Math.min(.16, d * .3);
+    g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(v, t + at); g.gain.setValueAtTime(v, t + Math.max(at, d - .05)); g.gain.setTargetAtTime(.0001, t + Math.max(at, d - .05), grave ? .12 : .2);
+    o1.connect(lp); o2.connect(lp); lp.connect(g); g.connect(bus);
+    o1.start(t); o2.start(t); lfo.start(t); o1.stop(t + d + 1); o2.stop(t + d + 1); lfo.stop(t + d + 1);
+  }
   function toca(e, base){
     const t = base + e[0], tipo = e[1];
+    if(tipo === 'piano'){ e[2].forEach(m => piano(t, m, e[3], e[4])); return; }
+    if(tipo === 'vibra') return vibra(t, e[2], e[3], e[4]);
+    if(tipo === 'contra') return contra(t, e[2], e[3], e[4]);
+    if(tipo === 'ride' || tipo === 'chick') return prato(t, e[2], tipo === 'chick');
+    if(tipo === 'violino' || tipo === 'cello') return corda(t, e[2], e[3], e[4], tipo === 'cello');
     if(tipo === 'lead') lead(t, e[2], e[3], e[4]);
     else if(tipo === 'pad') pad(t, e[2], e[3], e[4]);
     else if(tipo === 'baixo') baixo(t, e[2], e[3], e[4]);
@@ -142,7 +248,10 @@
     if(!ac || !musicaOn || ac.state !== 'running') return;
     const ate = ac.currentTime + .8;
     while(true){
-      if(i >= ev.length){ i = 0; t0 += VOLTA; }
+      if(i >= ev.length){ const F = prontas(); t0 += F[fi].volta; fi = (fi + 1) % F.length; ev = F[fi].ev; i = 0; pinta();
+        /* trocou de música: o nome aparece rapidinho (na hora em que ela começa a soar) */
+        const nome = F[fi].nome, quando = Math.max(0, (t0 + (ev[0] ? ev[0][0] : 0) - ac.currentTime) * 1000);
+        setTimeout(() => { if(musicaOn && modoAtual === 'tudo' && !st().pausa && !st().casa) C.toast('♪ ' + nome, 2600); }, quando); }
       if(t0 + ev[i][0] >= ate) break;
       if(t0 + ev[i][0] > ac.currentTime - .05) try{ toca(ev[i], t0); }catch(e){}
       i++;
@@ -353,7 +462,7 @@
   function porta(){ if(!fxOk()) return; const t = ac.currentTime + .01; estalo(t, 600, 1.8, .12, .07); tom(t, 160, 120, .12, .06, 'triangle'); estalo(t + .14, 520, 1.6, .1, .05); }
 
   /* ---------- liga, pausa, sai: quem manda é o modo e o estado da cidade ---------- */
-  function monta(){ const AC = window.AudioContext || window.webkitAudioContext; if(!AC) return false; ac = new AC(); mesa(); ev = partitura(); return true; }
+  function monta(){ const AC = window.AudioContext || window.webkitAudioContext; if(!AC) return false; ac = new AC(); mesa(); ev = prontas()[fi].ev; return true; }
   function nivela(x, v, tc){ if(!ac || !x) return; const t = ac.currentTime; x.gain.cancelScheduledValues(t); x.gain.setValueAtTime(x.gain.value, t); x.gain.setTargetAtTime(v, t, tc || .8); }
   /* o que deve tocar agora (e em que volume) */
   function confere(){
@@ -412,7 +521,7 @@
       const tocando = modoAtual === 'tudo' && musicaOn && ac && ac.state === 'running', r = ROT[modoAtual];
       el.classList.toggle('on', modoAtual !== 'mudo');
       el.setAttribute('aria-pressed', String(modoAtual !== 'mudo'));
-      el.title = r[1]; el.setAttribute('aria-label', 'Som: ' + r[0]);
+      el.title = tocando && faixas ? `Tocando: ${faixas[fi].nome}. ${r[1]}` : r[1]; el.setAttribute('aria-label', 'Som: ' + r[0]);
       el.innerHTML = `<span class="cvr-eq" aria-hidden="true">${tocando ? '<i></i><i></i><i></i>' : ico(modoAtual === 'mudo' ? 'mudo' : 'som')}</span><span class="cvr-som-tx">${esperando && modoAtual !== 'mudo' ? 'Toca pra ouvir' : r[0]}</span>`;
     });
   }
@@ -433,12 +542,23 @@
       faz();
       const buf = await off.startRendering(), d = buf.getChannelData(0);
       let pk = 0, sq = 0, nan = false; for(let n = 0; n < d.length; n++){ const v = d[n]; if(Number.isNaN(v)){ nan = true; continue; } const a = Math.abs(v); if(a > pk) pk = a; sq += v * v; }
-      return { pico: +pk.toFixed(3), rms: +Math.sqrt(sq / d.length).toFixed(4), nan };
+      return { pico: +pk.toFixed(3), rms: +Math.sqrt(sq / d.length).toFixed(4), nan, _buf: buf };
     }finally{ clearInterval(mot && mot.tic); [ac, master, bus, musOut, fx, amb, ruido, marrom, onda, ativo, modoAtual, estado, mot, avi, amb0] = salva; }
   }
-  async function amostra(seg){
-    const r = await renderiza(seg, () => partitura().filter(e => e[0] < seg).forEach(e => toca(e, 0)));
-    return r && Object.assign(r, { volta: +VOLTA.toFixed(2), notas: partitura().length });
+  /* uma faixa (0 jazz, 1 Bach, 2 Pachelbel), os primeiros "seg" segundos */
+  async function amostra(seg, n){
+    const F = prontas()[n || 0], r = await renderiza(seg, () => F.ev.filter(e => e[0] < seg).forEach(e => toca(e, 0)));
+    if(!r) return r;
+    /* com "wav": o trecho em WAV (mono, 22 kHz, 16 bits, em base64), pra ouvir fora do app */
+    let wav = '';
+    if(arguments[2]){
+      const d = r._buf.getChannelData(0), n2 = Math.floor(d.length / 2), dv = new DataView(new ArrayBuffer(44 + n2 * 2)), w = (o, t) => [...t].forEach((ch, k) => dv.setUint8(o + k, ch.charCodeAt(0)));
+      w(0, 'RIFF'); dv.setUint32(4, 36 + n2 * 2, true); w(8, 'WAVEfmt '); dv.setUint32(16, 16, true); dv.setUint16(20, 1, true); dv.setUint16(22, 1, true); dv.setUint32(24, 22050, true); dv.setUint32(28, 44100, true); dv.setUint16(32, 2, true); dv.setUint16(34, 16, true); w(36, 'data'); dv.setUint32(40, n2 * 2, true);
+      for(let k = 0; k < n2; k++){ const v = Math.max(-1, Math.min(1, (d[2 * k] + d[2 * k + 1]) / 2 * 3)); dv.setInt16(44 + k * 2, v * 32767, true); }
+      const u = new Uint8Array(dv.buffer); let bin = ''; for(let k = 0; k < u.length; k += 32768) bin += String.fromCharCode.apply(null, u.subarray(k, k + 32768)); wav = btoa(bin);
+    }
+    delete r._buf;
+    return Object.assign(r, { volta: +F.volta.toFixed(2), notas: F.ev.length, nome: F.nome }, wav ? { wav } : {});
   }
   /* cada efeito, um depois do outro (o estado "running" do contexto off-line não vale aqui: chama direto) */
   async function amostraFx(){
@@ -469,6 +589,6 @@
     botao(b){ if(b && !botoes.includes(b)){ botoes.push(b); pinta(); } },
     sai, alterna, modo: () => modoAtual, tocando: () => musicaOn && modoAtual === 'tudo', ativo: () => ativo,
     passo, pulo, cai, buzina, carroPassa, motor, ambiente, aviao, moeda, porta, taco, luva, taiko, acerto, erro,
-    amostra, amostraFx, nome: 'Rua do Corre'
+    amostra, amostraFx, faixas: () => prontas().map(f => f.nome), faixa: () => prontas()[fi].nome
   };
 })();

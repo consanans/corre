@@ -693,7 +693,7 @@
     if(BC.aberto) m.tr = 1;
     if(V.jogo) m.jg = 1;
     /* dentro de uma casa: quem passa vê "em casa"; quem tá na mesma casa te vê lá dentro (e a voz fica entre vocês) */
-    if(C.casa && C.casa.aberta()){ m.ec = 1; m.casa = C.casa.sala(); const pq = C.casa.placar ? C.casa.placar() : null; if(pq && pq.c > 0){ m.pk = pq.c; m.pr = pq.r; } const cr = C.casa.corrida ? C.casa.corrida() : null; if(cr && cr.tc > 0){ m.tc = cr.tc; m.td = cr.td; } const qd = C.casa.quadra ? C.casa.quadra() : null; if(qd && qd.qp > 0){ m.qp = qd.qp; m.qd = qd.qd; } const km = C.casa.kartMeta ? C.casa.kartMeta() : null; if(km){ m.kp = km.kp; m.kpt = km.kpt; } const q = C.casa.pos(); if(q){ m.cx = Math.round(q.x * 10) / 10; m.cz = Math.round(q.z * 10) / 10; m.cy = Math.round((q.y || 0) * 10) / 10; m.cd = Math.round(q.yaw * 100) / 100; }
+    if(C.casa && C.casa.aberta()){ m.ec = 1; m.casa = C.casa.sala(); const pq = C.casa.placar ? C.casa.placar() : null; if(pq && pq.c > 0){ m.pk = pq.c; m.pr = pq.r; } const cr = C.casa.corrida ? C.casa.corrida() : null; if(cr && cr.tc > 0){ m.tc = cr.tc; m.td = cr.td; if(cr.tv) m.tv = cr.tv; } const qd = C.casa.quadra ? C.casa.quadra() : null; if(qd && qd.qp > 0){ m.qp = qd.qp; m.qd = qd.qd; } const km = C.casa.kartMeta ? C.casa.kartMeta() : null; if(km){ m.kp = km.kp; m.kpt = km.kpt; } const q = C.casa.pos(); if(q){ m.cx = Math.round(q.x * 10) / 10; m.cz = Math.round(q.z * 10) / 10; m.cy = Math.round((q.y || 0) * 10) / 10; m.cd = Math.round(q.yaw * 100) / 100; }
       const dsc = C.casa.disco && C.casa.disco(); if(dsc && dsc.t){ m.disco = dsc.k || ''; m.discoT = dsc.t; } }
     /* no ar, o teu nome e o teu @ não viajam na presença (qualquer um escreveria qualquer coisa ali): vêm do servidor */
     return C.LIVE ? m : Object.assign(m, { uid: me.id || '', handle: pub ? me.handle : '', nome: pub ? String(me.nome || '').slice(0, 40) : 'perfil mocado' });
@@ -823,6 +823,8 @@
           pk: Number.isInteger(m.pk) && m.pk > 0 && m.pk < 100000 ? m.pk : 0, pr: Number.isInteger(m.pr) && m.pr >= 0 && m.pr < 1e6 ? m.pr : -1,
           /* v3.50: o melhor tempo do dia na pista (centésimos) e o dia */
           tc: Number.isInteger(m.tc) && m.tc > 0 && m.tc < 360000 ? m.tc : 0, td: Number.isInteger(m.td) && m.td >= 0 ? m.td : -1,
+          /* v3.62: de qual veículo é o tempo (1 moto, 3 hatch, 4 SUV, 5 picape; sem nada, era moto) */
+          tv: Number.isInteger(m.tv) && m.tv >= 1 && m.tv <= 5 ? m.tv : 1,
           /* v3.51: os pontos do melhor desafio do dia na quadra e o dia */
           qp: Number.isInteger(m.qp) && m.qp > 0 && m.qp <= 40 ? m.qp : 0, qd: Number.isInteger(m.qd) && m.qd >= 0 ? m.qd : -1,
           /* v3.53: o bicho da corrida de kart (0 a 5) e quando ele foi escolhido (desempata quem pegou primeiro) */
@@ -842,7 +844,7 @@
       ui();
     },
     /* passo a passo vem por broadcast (qualquer um manda): salto grande não vale, quem viaja se anuncia pela presença */
-    mv(d){ if(!d || d.sid === sid) return; const r = V.remotos.get(d.sid); if(!r || !coordOk(d.x, d.y)) return; if(Math.hypot(d.x - r.tx, d.y - r.ty) > 700) return; r.tx = d.x; r.ty = d.y; if(['baixo', 'cima', 'esq', 'dir'].includes(d.dir)) r.dir = d.dir; r.mov = !!d.mov; r.sit = !!d.sit; if(d.mic != null && !!d.mic !== r.mic){ r.mic = !!d.mic; ui(); } if(Number.isFinite(d.cx) && Number.isFinite(d.cz)){ if(r.hx == null){ r.hxv = d.cx; r.hzv = d.cz; r.hyv = Number.isFinite(d.cy) ? clamp(d.cy, 0, 8) : 0; } r.hx = clamp(d.cx, -1, 81); r.hz = clamp(d.cz, -1, 81); r.hy = Number.isFinite(d.cy) ? clamp(d.cy, 0, 8) : 0; r.hyaw = Number.isFinite(d.cd) ? d.cd : 0; r.hmov = d.cm === 1; r.hmt = d.mt === 1 || d.mt === 2 ? d.mt : 0; kartMv(r, d); } r.item = typeof d.it === 'string' && ITEM_MAO[d.it] ? d.it : null; r.pesca = d.pe === 1; r.visto = r.sinal = Date.now();
+    mv(d){ if(!d || d.sid === sid) return; const r = V.remotos.get(d.sid); if(!r || !coordOk(d.x, d.y)) return; if(Math.hypot(d.x - r.tx, d.y - r.ty) > 700) return; r.tx = d.x; r.ty = d.y; if(['baixo', 'cima', 'esq', 'dir'].includes(d.dir)) r.dir = d.dir; r.mov = !!d.mov; r.sit = !!d.sit; if(d.mic != null && !!d.mic !== r.mic){ r.mic = !!d.mic; ui(); } if(Number.isFinite(d.cx) && Number.isFinite(d.cz)){ if(r.hx == null){ r.hxv = d.cx; r.hzv = d.cz; r.hyv = Number.isFinite(d.cy) ? clamp(d.cy, 0, 8) : 0; } r.hx = clamp(d.cx, -1, 81); r.hz = clamp(d.cz, -1, 81); r.hy = Number.isFinite(d.cy) ? clamp(d.cy, 0, 8) : 0; r.hyaw = Number.isFinite(d.cd) ? d.cd : 0; r.hmov = d.cm === 1; r.hmt = Number.isInteger(d.mt) && d.mt >= 1 && d.mt <= 5 ? d.mt : 0; kartMv(r, d); } r.item = typeof d.it === 'string' && ITEM_MAO[d.it] ? d.it : null; r.pesca = d.pe === 1; r.visto = r.sinal = Date.now();
       /* v3.40: o pulo (cada pulo novo tem um número) e o avião/paraquedas */
       if(Number.isInteger(d.pu)){ if(r.puN != null && d.pu !== r.puN) r.puT = performance.now(); r.puN = d.pu; }
       r.vo = d.vo === 1 || d.vo === 2 ? d.vo : 0; r.pq = d.pq === 1; },
