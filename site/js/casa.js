@@ -2002,8 +2002,27 @@
   const logoRS = k => (C.verso && C.verso.logoSharks ? C.verso.logoSharks(k) : null);
   /* um ponto do corpo do atleta (x, y, z do boneco parado de frente) depois da inclinação (lean, no quadril hy) e do giro */
   const ptAtleta = (x, z, yaw, lean, hy, lx, ly, lz) => { const cp = Math.cos(lean), sp = Math.sin(lean), dy = ly - hy, y2 = dy * cp - lz * sp + hy, z2 = dy * sp + lz * cp, cy = Math.cos(yaw), sy = Math.sin(yaw); return [x + lx * cy + z2 * sy, y2, z - lx * sy + z2 * cy]; };
+  /* v3.57 · a camisa: "SHARKS" em branco (o Thales: "na camiseta escreve SHARKS e um jeito massa, em branco"), em arco,
+     letra condensada inclinada com contorno preto e sombra, e um traço por baixo que termina numa barbatana. A letra é a
+     Heros Condensed das fontes do Studio (site/lab/fontes); até ela chegar, vai a do sistema, e o desenho refaz uma vez */
+  let CAMISA = null, CAMISA_FONTE = null;
+  function camisaSharks(){
+    if(CAMISA) return CAMISA;
+    if(!CAMISA_FONTE && window.FontFace && document.fonts){ CAMISA_FONTE = new FontFace('CorreJersey', 'url(lab/fontes/heroscn-bold.otf)', { weight: '700' }); CAMISA_FONTE.load().then(f => { document.fonts.add(f); CAMISA = null; }).catch(e => { CAMISA_FONTE.erro = String(e); }); }
+    const cv = document.createElement('canvas'); cv.width = 512; cv.height = 256; const x = cv.getContext('2d'), P = '#0F1218', R0 = 560, base = 150, txt = 'SHARKS';
+    x.lineJoin = 'round'; x.font = '700 150px CorreJersey, "Arial Narrow", system-ui, sans-serif'; x.textBaseline = 'alphabetic'; x.textAlign = 'center';
+    const ws = [...txt].map(l => x.measureText(l).width * .92), tot = ws.reduce((a, b) => a + b, 0), esc = Math.min(1, 380 / tot);
+    /* o traço da barbatana: sai de baixo do S, passa sob o nome e sobe na ponta */
+    const traco = () => { x.beginPath(); x.moveTo(40, 196); x.quadraticCurveTo(240, 250, 418, 214); x.quadraticCurveTo(452, 204, 470, 168); x.quadraticCurveTo(476, 206, 452, 224); x.quadraticCurveTo(250, 268, 40, 196); x.closePath(); };
+    const letras = (fn) => { let s = -tot * esc / 2; [...txt].forEach((l, i) => { const w = ws[i] * esc, th = (s + w / 2) / R0; s += w;
+      x.save(); x.translate(244 + Math.sin(th) * R0, base + R0 - Math.cos(th) * R0); x.rotate(th); x.transform(1, 0, -.22, 1, 0, 0); x.scale(esc, 1); fn(l); x.restore(); }); };
+    x.save(); x.translate(7, 7); x.fillStyle = 'rgba(15,18,24,.55)'; traco(); x.fill(); letras(l => x.fillText(l, 0, 0)); x.restore();
+    x.lineWidth = 9; x.strokeStyle = P; traco(); x.stroke(); x.fillStyle = '#FFFFFF'; x.fill();
+    letras(l => { x.lineWidth = 12; x.strokeStyle = P; x.strokeText(l, 0, 0); x.fillStyle = '#FFFFFF'; x.fillText(l, 0, 0); });
+    CAMISA = cv; return cv;
+  }
   /* o monograma RS num pedaço do uniforme: de x0 a x1, de y0 a y1, colado na frente (lz) */
-  const rsNoCorpo = (x, z, yaw, lean, hy, x0, x1, y0, y1, lz, cor) => painelSol([ptAtleta(x, z, yaw, lean, hy, x0, y1, lz), ptAtleta(x, z, yaw, lean, hy, x1, y1, lz), ptAtleta(x, z, yaw, lean, hy, x1, y0, lz), ptAtleta(x, z, yaw, lean, hy, x0, y0, lz)], () => logoRS('rs'), cor, null);
+  const rsNoCorpo = (x, z, yaw, lean, hy, x0, x1, y0, y1, lz, cor, img) => painelSol([ptAtleta(x, z, yaw, lean, hy, x0, y1, lz), ptAtleta(x, z, yaw, lean, hy, x1, y1, lz), ptAtleta(x, z, yaw, lean, hy, x1, y0, lz), ptAtleta(x, z, yaw, lean, hy, x0, y0, lz)], img || (() => logoRS('rs')), cor, null);
   /* o time do campo (a máquina): cada um no seu lugar; quem tá perto de onde a bola vai cair corre atrás dela */
   function timeB(){
     if(!S.bsb) S.bsb = { J: POS_B.map(([x, z], i) => ({ x, z, x0: x, z0: z, yaw: Math.atan2(HP.x - x, HP.z - z), pele: PELES_B[i % PELES_B.length], passo: 0, corre: false, alvo: null })), fogos: [] };
@@ -2026,7 +2045,7 @@
     const lean = o.pose === 'pronto' ? .22 : ag ? .25 : o.pose === 'arremesso' ? lerpK(f, [[0, 0], [.3, -.12], [.55, -.1], [.68, .5], [1, .3]]) : 0;
     const TL = lean ? { pitch: lean, piv: [x, hy, z] } : null;
     add(B(x - .25, hy, z - .12, .5, .5, .24, R), TL);
-    if(!juiz){ add(B(x - .25, hy + .44, z - .131, .5, .04, .01, PAPEL), TL); add(B(x - .26, hy, z - .13, .52, .06, .26, INK), TL); if(!ag) out.push(rsNoCorpo(x, z, yaw, lean, hy, -.16, .16, hy + .1, hy + .42, .13, VERMELHAO)); }
+    if(!juiz){ add(B(x - .25, hy + .44, z - .131, .5, .04, .01, PAPEL), TL); add(B(x - .26, hy, z - .13, .52, .06, .26, INK), TL); if(!ag) out.push(rsNoCorpo(x, z, yaw, lean, hy, -.235, .235, hy + .19, hy + .425, .13, VERMELHAO, camisaSharks)); }
     add(B(x - .25, hy + .5, z - .25, .5, .5, .5, P), TL);
     add(B(x - .16, hy + .76, z + .25, .08, .08, .01, INK), TL); add(B(x + .08, hy + .76, z + .25, .08, .08, .01, INK), TL);
     if(ag) add(B(x - .27, hy + .52, z + .25, .54, .42, .05, '#2B2F38'), TL);
@@ -3663,6 +3682,7 @@
     /* pros testes: anda até uma ação como o toque faria ('d3' = decoração 3, 'i0' = móvel 0) */
     vaiAcao: id => { const a = acoes().find(x => x.id === id); if(a) vaiNaAcao(a); return !!a; }, ITENS, CAT, ESTACOES, encosta, alturaItem: (it, i) => alturaItem(it, i), COMODOS: () => COMODOS, planta: () => PL, plantaDe, lerCasa, miniatura, tela, serial, previa, acoes, disco: () => S.disco, discoAtual: () => S.discoAtual, poeDisco, AGENTES, agenteDe: () => agenteDe(S.dono),
     sala: () => (S.aberta && S.dono ? String(S.dono.id || '') : ''), lugar: () => (S.aberta ? S.lugar || '' : ''), LUGARES,
+    camisa: () => camisaSharks(),
     placar: () => (S.aberta && S.lugar === 'pesca' && S.placar && S.placar.r === rodadaAgora() ? { c: Math.round(S.placar.kg * 100), r: S.placar.r % 1e6 } : null), quadra: () => { const Q = quadraAqui(); if(!Q) return null; return { qp: melhorQuadra(Q), qd: diaBR() % 1e5 }; },
     corrida: () => { const P = pistaAqui(); if(!P) return null; const m = melhorHoje(P); return { tc: m ? Math.round(m / 10) : 0, td: diaBR() % 1e5 }; },
     pos: () => (S.aberta && S.eu ? Object.assign({ x: S.eu.x, y: S.eu.y || 0, z: S.eu.z, yaw: S.eu.yaw, andando: !!(S.eu.andando || (S.corrida && Math.abs(S.eu.vel || 0) > .3)), mt: S.corrida ? (S.corrida.P.veic === 'moto' ? 1 : 2) : 0 }, kartPos()) : null), gente,
