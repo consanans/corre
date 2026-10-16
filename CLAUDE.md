@@ -1,6 +1,6 @@
 # Corre: guia pro Claude Code
 
-O Corre (app.corresocial.com) é a rede social e a ferramenta de trabalho do Thales (@consanans, Londrina). É pra quem vive do próprio corre: feed, mensagens, grupos, Studio (programa e posta no Instagram), Vendas e Grana, Hórus (caça de clientes), Mural, Rolo 360, Correverso (cidade em pixel com casa 3D) e Studio Houzi (branding). Versão atual: **3.66** (16/10/2026; no ar, a 3.60).
+O Corre (app.corresocial.com) é a rede social e a ferramenta de trabalho do Thales (@consanans, Londrina). É pra quem vive do próprio corre: feed, mensagens, grupos, Studio (programa e posta no Instagram), Vendas e Grana, Hórus (caça de clientes), Mural, Rolo 360, Correverso (cidade em pixel com casa 3D) e Studio Houzi (branding). Versão atual: **3.67** (16/10/2026; no ar, a 3.60).
 
 **Com o Thales:** português, curto e direto. Ele não é programador: explica o que muda pra ele, não o código.
 
@@ -43,7 +43,7 @@ O app tem três modos (`core.js`): **de verdade** (config.js com `SUPABASE_URL` 
 
 ## Fluxo de uma versão
 1. Mexe em `site/js` e `site/css`, **nunca nos .min**.
-2. Em `site/js/manual.js`: sobe a `VERSAO` e atualiza as `NOVIDADES`.
+2. Em `site/js/manual.js`: sobe a `VERSAO` e atualiza as `NOVIDADES`: só o que é super relevante pra galera (o Thales, v3.67), no máximo 8, o mais novo em cima, uma ou duas frases cada. Conserto, acabamento e detalhe técnico não entram (ficam aqui no CLAUDE.md).
 3. Teste novo `test/tNN.js` cobrindo o que mudou, no fim de `test/lista.txt`. Suíte inteira verde e lint com 0 erros.
 4. Se mudou o banco: `supabase/delta-vXXX.sql` (idempotente; entra na `CADEIA` de `ferramentas/banco-teste/roda.mjs` e roda 2x lá), e o fim do `schema.sql` acompanha.
 5. `npm run build -- X.YY`, seção no `LEIA-ME.txt` e `npm run zip`.
@@ -148,6 +148,7 @@ O app tem três modos (`core.js`): **de verdade** (config.js com `SUPABASE_URL` 
   - **Banco (`supabase/delta-v366.sql`, sem DROP):** `corre_skins` (dono, skin, preco; a pessoa só lê as dela, ninguém escreve direto), `corre_skins_loja()` (a vitrine com o preço: é o único lugar do preço), `corre_skin_preco(k)`, `corre_skin_compra(k)` (pelo login, mesmo cadeado da carteira; já tinha não cobra; saldo curto não mexe em nada; extrato `skin:k`), `corre_skins_minhas()` (compradas, preços e saldo) e o gatilho `corre_perfis_skin` (BEFORE INSERT/UPDATE OF verso: skin paga não comprada vira '' e o resto do avatar salva; o servidor passa). Teste: `semente366.sql` (a coluna `verso`) + `teste366.sql` (16) no `roda.sh` (117 no total).
   - **A loja (verso.js, bloco "v3.66 · o Ateliê"):** `LJ` (o que a pessoa tem, por login), `carregaLoja`, `compraSkin` (confere a carteira, `C.confirma` sempre, `corre_skin_compra`), `vesteSkin` (grava `verso.skin` e tira o personagem; troca o boneco na cidade e na casa), `lojaSheet` (o "Ateliê do Corre": cartões por raridade, provador animado com o teu boneco, Comprar/Vestir/Tirar). Ações `cvr-loja`, `cvr-lj-compra` (compra e já veste), `cvr-lj-veste`, `cvr-lj-tira`. No avatar, a fileira "Do Ateliê" (`chLoja`, cadeado e preço de quem não tem): prova sem comprar; salvar com uma que não é tua pede a compra antes. Sem o delta, a vitrine mostra tudo com "em breve". Na cidade, sempre tem uma loja ATELIE (toldo rosa, placa preta; numa loja de par sem Sebo, ou a outra do par do Sebo), no Mapa ("Ateliê") e com porta `tipo: 'atelie'` ("Ateliê: skins", abre a vitrine). Na busca: o atalho "Ateliê: loja de skins" e o lugar "Ateliê". O demo imita o banco (`skinPrecoDemo` em core.js, a compra e a trava no `rules`). CSS no bloco `/* v3.66 ·` do monstra.css (a lendária tem a faixa que passa brilhando). Teste: scratchpad/v366/loja.cjs (pc 26, celular 24), galeria.cjs (2D) e gal3d.cjs (3D); regressão: busca 36, tarefas 37, sebo 22, revisão 13, robô pc e celular sem erro.
   - **Produção:** rodar o `delta-v366.sql` e subir o zip (sem o delta o site funciona; a loja só não vende).
+- **v3.67, o "O que tem de novo" enxuto (o Thales: "pode colocar apenas as coisas super relevantes pra galera"):** as `NOVIDADES` do manual.js passaram de 48 textos longos (um por versão, com conserto e detalhe técnico) pra 8 curtos: Ateliê, Procurar, Autódromo, Tarefas com minijogo, Kart ao vivo, Jogos pela cidade, Desbaratinado e Planos. A regra ficou no topo da lista e no "Fluxo de uma versão". A página do Perfil no manual ainda dizia "mocado"; agora diz desbaratinado.
 - **Próximos (a fila do Thales):** vazia.
 
 ## Antes (v3.44, 14/10/2026)
