@@ -540,6 +540,13 @@ Deno.serve(async (req) => {
   const admin = SERV ? createClient(SB_URL, SERV, { auth: { persistSession: false, autoRefreshToken: false } }) : null;
   const X: Extra = { pago: 0, tipo: '', saldo: null };
   const acao = String(body?.acao || '');
+  /* v3.60 · Hórus e Studio Houzi são planos: o primeiro uso começa os 30 dias de graça; depois, só assinado.
+     Se o banco ainda não tem o delta v3.60 (a função não existe), segue como antes. */
+  const produto = ['abordagem', 'resposta', 'montar'].includes(acao) ? 'horus' : acao === 'marca' || acao === 'nomes' ? 'houzi' : '';
+  if (produto) {
+    const { data: ac, error: eAc } = await sb.rpc('corre_teste_comeca', { p_produto: produto });
+    if (!eAc && ac && ac.acesso && ac.acesso[produto] === false) return json({ erro: produto + '_assinatura' }, 402);
+  }
   const r = acao === 'legenda' ? await legenda(sb, user, body, KEY, X)
     : acao === 'pauta' ? await pauta(sb, user, body, KEY, X)
     : acao === 'abordagem' || acao === 'resposta' ? await horus(sb, user, body, KEY, X)

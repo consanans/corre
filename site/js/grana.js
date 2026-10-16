@@ -475,3 +475,181 @@
   } });
   C.granaParse = { parseOFX, parseCSV };
 })();
+
+/* ---------------- v3.60 · os planos, pagos pelo Asaas ----------------
+   O Thales (16/10/2026): "1 rede social de graça, 2 redes 59,90, 3 redes 69,90, 4 ou mais 79,90; Studio Houzi 29,90 por
+   mês (30 dias de graça); Hórus 9,90 por mês (30 dias de graça); quero usar Asaas". O preço que vale é o da função
+   "pagamento" (a pessoa nunca manda valor); aqui é só a vitrine. Quem diz quem tem acesso é o banco (C.acesso). */
+(function(){
+  'use strict';
+  const C = window.Corre, ico = C.ico, esc = C.esc;
+  const NOME = { studio: 'Studio', houzi: 'Studio Houzi', horus: 'Hórus' };
+  const PRECO = { houzi: 29.90, horus: 9.90 }, STUDIO = { 2: 59.90, 3: 69.90, 4: 79.90 };
+  const ICO = { studio: 'magia', houzi: 'houzi', horus: 'eye' };
+  const SOBRE = {
+    studio: 'Programa e posta no Instagram de cada marca que você toca. Uma rede social é de graça.',
+    houzi: 'Marca com conceito: naming, logo, cores, voz e o brandbook vivo. 30 dias de graça.',
+    horus: 'O radar de clientes: caça, aquece e lembra de quem comprar de você. 30 dias de graça.'
+  };
+  /* dinheiro aqui é preço de vitrine: não esconde com o olho da grana (o C.money esconde) */
+  const reais = v => 'R$ ' + Number(v).toFixed(2).replace('.', ',');
+  const nivelNome = n => n >= 4 ? '4 ou mais redes' : n === 1 ? '1 rede' : n + ' redes';
+  const precoDe = (prod, nivel) => prod === 'studio' ? STUDIO[Math.max(2, Math.min(4, nivel || 2))] : PRECO[prod];
+  /* datas: o teste é um instante (timestamptz), o pago é um dia; tudo na hora de Brasília */
+  const diaDe = iso => iso ? C.hojeBR(new Date(iso)) : '';
+  const ddmm = d => d ? d.slice(8, 10) + '/' + d.slice(5, 7) : '';
+  const mais = (d, n) => new Date(Date.parse(d + 'T12:00:00Z') + n * 864e5).toISOString().slice(0, 10);
+  const faltam = iso => Math.max(0, Math.ceil((Date.parse(iso) - Date.now()) / 864e5));
+  const plano = prod => (C.acesso && C.acesso.planos && C.acesso.planos[prod]) || null;
+  const noTeste = p => !!(p && p.teste_ate && Date.parse(p.teste_ate) > Date.now());
+
+  /* o estado de um plano em uma frase, e os botões que cabem */
+  function estado(prod){
+    const A = C.acesso, p = plano(prod);
+    if(A.fundador) return { txt: 'Fundador: liberado, sem pagar.', bts: [] };
+    if(!p || (prod === 'studio' && !p.assinado && p.status !== 'cancelada')){
+      if(prod === 'studio') return { txt: `Grátis: 1 rede social. Você usa ${A.usadas || 0}.`, bts: ['assinar'] };
+      return { txt: 'Os 30 dias grátis começam no teu primeiro uso.', bts: ['assinar'] };
+    }
+    const tz = diaDe(p.teste_ate), fimPago = p.pago_ate || '', st = p.status;
+    if(st === 'teste'){
+      if(noTeste(p)) return p.assinado
+        ? { txt: `Assinado. Grátis até ${ddmm(tz)}; a primeira cobrança vence nesse dia.`, bts: ['pagar', 'cancelar'] }
+        : { txt: `Teste grátis: ${faltam(p.teste_ate) === 1 ? 'falta 1 dia' : `faltam ${faltam(p.teste_ate)} dias`} (até ${ddmm(tz)}).`, bts: ['assinar'] };
+      return p.acesso ? { txt: 'Ativo.', bts: p.assinado ? ['cancelar'] : [] } : { txt: `O teste grátis acabou em ${ddmm(tz)}.`, bts: p.assinado ? ['pagar', 'cancelar'] : ['assinar'], fora: true };
+    }
+    if(st === 'pendente') return p.acesso ? { txt: `Ativo até ${ddmm(fimPago)}. Tem uma fatura esperando.`, bts: ['pagar', 'cancelar'] } : { txt: 'Esperando o pagamento da primeira fatura.', bts: ['pagar', 'cancelar'], fora: true };
+    if(st === 'ativa') return { txt: `Ativo${prod === 'studio' ? `, ${nivelNome(p.nivel)}` : ''}. Pago até ${ddmm(fimPago)}; renova sozinho.`, bts: prod === 'studio' ? ['trocar', 'cancelar'] : ['cancelar'] };
+    if(st === 'atrasada') return p.acesso ? { txt: `A fatura venceu. Paga até ${ddmm(mais(fimPago, 3))} pra não parar.`, bts: ['pagar', 'cancelar'] } : { txt: 'Parado: a fatura venceu.', bts: ['pagar', 'cancelar'], fora: true };
+    /* cancelada: o que foi pago (ou o teste) vale até o fim */
+    const vale = [fimPago ? mais(fimPago, 3) : '', tz].filter(Boolean).sort().pop();
+    return p.acesso ? { txt: `Cancelado. Vale até ${ddmm(vale)}.`, bts: ['assinar'] } : { txt: 'Cancelado.', bts: ['assinar'], fora: true };
+  }
+  const BOTAO = {
+    assinar: prod => `<button type="button" class="btn sm pri" data-act="pl-assinar" data-p="${prod}">${ico('cartao')} Assinar</button>`,
+    trocar: prod => `<button type="button" class="btn sm" data-act="pl-assinar" data-p="${prod}">${ico('troca')} Trocar de plano</button>`,
+    pagar: prod => `<button type="button" class="btn sm pri" data-act="pl-pagar" data-p="${prod}">${ico('ext')} Pagar a fatura</button>`,
+    cancelar: prod => `<button type="button" class="btn sm ghost" data-act="pl-cancelar" data-p="${prod}">Cancelar</button>`
+  };
+
+  /* a faixa do teste grátis no alto do Hórus e do Studio Houzi ('' quando não tem o que dizer) */
+  C.planoFaixa = prod => {
+    const A = C.acesso; if(!A || A.fundador) return '';
+    const p = plano(prod), preco = reais(PRECO[prod]);
+    let txt = '', bt = '', forte = false;
+    if(!p) txt = `Os 30 dias grátis do ${NOME[prod]} começam no teu primeiro uso. Depois, ${preco} por mês.`;
+    else if(!p.acesso){ forte = true; txt = p.status === 'teste' && !p.assinado ? `O teste grátis do ${NOME[prod]} acabou. Assina por ${preco} por mês pra seguir; o que você já fez continua aqui.` : `O ${NOME[prod]} tá parado: ${p.assinado && p.status !== 'cancelada' ? 'a fatura venceu' : 'o plano acabou'}. O que você já fez continua aqui.`; bt = p.assinado && p.status !== 'cancelada' ? 'pagar' : 'assinar'; }
+    else if(p.status === 'teste' && !p.assinado && noTeste(p)){ const n = faltam(p.teste_ate); txt = `Teste grátis: ${n === 1 ? 'falta 1 dia' : `faltam ${n} dias`}. Depois, ${preco} por mês.`; bt = 'assinar'; }
+    else if(p.status === 'atrasada'){ forte = true; txt = `A fatura do ${NOME[prod]} venceu. Paga até ${ddmm(mais(p.pago_ate || C.hojeBR(), 3))} pra não parar.`; bt = 'pagar'; }
+    if(!txt) return '';
+    return `<div class="pl-faixa${forte ? ' forte' : ''}" role="${forte ? 'alert' : 'status'}">${ico(forte ? 'lock' : 'clock')}<span>${esc(txt)}</span>${bt ? BOTAO[bt](prod) : '<a class="btn sm ghost" href="#/planos">Planos</a>'}</div>`;
+  };
+
+  /* ---------- a página ---------- */
+  function cartao(prod){
+    const p = plano(prod), e = estado(prod);
+    const nv = prod === 'studio' ? (p && p.assinado && p.acesso ? p.nivel : 1) : 0;
+    const escada = prod === 'studio' ? `<ul class="pl-escada">${[[1, 'Grátis'], [2, reais(STUDIO[2])], [3, reais(STUDIO[3])], [4, reais(STUDIO[4])]].map(([n, v]) => `<li${n === nv ? ' class="eu"' : ''}><span>${nivelNome(n)}</span><b>${v}</b></li>`).join('')}</ul><p class="pl-mes">por mês</p>`
+      : `<p class="pl-preco"><b>${reais(PRECO[prod])}</b> por mês</p>`;
+    return `<article class="pl-card${e.fora ? ' fora' : ''}" id="pl-${prod}">
+      <header><span class="pl-ico">${ico(ICO[prod])}</span><div><h2>${NOME[prod]}</h2><p>${esc(SOBRE[prod])}</p></div></header>
+      ${escada}
+      <p class="pl-estado" data-pl-estado>${esc(e.txt)}</p>
+      ${e.bts.length ? `<div class="acts">${e.bts.map(b => BOTAO[b](prod)).join('')}</div>` : ''}
+    </article>`;
+  }
+  function pinta(){
+    const el = C.$('pl'); if(!el) return;
+    if(!C.acesso){ el.innerHTML = `<section class="card"><h1 class="ch">Planos</h1><p class="note">Os planos chegam em breve. Por enquanto tá tudo liberado.</p></section>`; return; }
+    el.innerHTML = `<header class="pl-topo"><p class="pl-kick">Planos</p><h1>Paga só a ferramenta que trabalha por você.</h1>
+        <p>A rede, as mensagens, o Correverso, o Mural e Vendas e Grana são de graça. Pix, boleto ou cartão, pelo Asaas; cancela quando quiser, aqui mesmo.</p></header>
+      <div class="pl-lista">${['studio', 'houzi', 'horus'].map(cartao).join('')}</div>
+      <p class="fine pl-fine">O nome e o CPF ou CNPJ vão só pro Asaas, que emite a cobrança: o Corre não guarda. Cancelou, o que já foi pago vale até o fim do mês pago.</p>`;
+  }
+  C.views.planos = async function(app){
+    document.title = 'Planos · Corre';
+    const rota = C.rota;
+    app.innerHTML = C.header('planos') + `<main class="wrap"><section class="pl" id="pl"><p class="note">Abrindo os planos…</p></section></main>`;
+    await C.acessoCarrega();
+    if(rota !== C.rota) return;
+    pinta();
+  };
+
+  /* ---------- assinar ---------- */
+  const ERRO = { nome: 'Escreve o nome completo (ou a razão social).', doc: 'Confere o CPF ou o CNPJ.', login: 'Entra de novo no Corre e tenta outra vez.',
+    config: 'O pagamento ainda não tá ligado no Corre. Tenta mais tarde.', nofn: 'O pagamento ainda não tá ligado no Corre. Tenta mais tarde.', sem_assinatura: 'Não achei a assinatura desse plano.' };
+  const erroTxt = e => (e && e.code === 'asaas' && e.detalhe) ? 'O Asaas recusou: ' + e.detalhe : (e && (ERRO[e.code] || (e.status === 404 && ERRO.nofn))) || C.errMsg(e, 'Não deu pra falar com o pagamento agora.');
+  /* a aba da fatura abre no toque (depois de esperar a resposta, o navegador bloqueia a janela nova) */
+  const abaNova = () => { if(C.DEMO) return null; try{ return window.open('', '_blank'); }catch(e){ return null; } };
+  const leva = (w, link) => { if(!w) return false; if(!link){ try{ w.close(); }catch(e){} return false; } try{ w.opener = null; w.location.href = link; return true; }catch(e){ return false; } };
+
+  function assinarSheet(prod, nivelPedido){
+    const A = C.acesso;
+    if(!A){ C.toast('Os planos chegam em breve. Por enquanto tá tudo liberado.'); return; }
+    const p = plano(prod), ja = !!(p && p.assinado && p.status !== 'cancelada'), teste = noTeste(p);
+    const nAtual = ja && prod === 'studio' ? p.nivel : 0, nIni = Math.max(2, Math.min(4, nivelPedido || (nAtual ? nAtual : 2)));
+    const quando = teste ? `Você tá no teste grátis até ${ddmm(diaDe(p.teste_ate))}: a primeira cobrança vence nesse dia, e nada sai antes.`
+      : ja ? 'Muda o valor da próxima fatura em diante.' : 'A primeira fatura vence hoje: ela abre numa aba nova pra pagar no Pix, boleto ou cartão. Pagou, o plano liga sozinho.';
+    C.sheet(`<form class="form pl-form" id="pl-f"><div class="sheet-head"><h2>${ja ? 'Trocar de plano' : 'Assinar o ' + NOME[prod]}</h2><button type="button" class="cbtn plain" data-close aria-label="Fechar">${ico('x')}</button></div>
+      ${prod === 'studio' ? `<fieldset class="fld pl-niveis"><legend>Quantas redes sociais o Corre acompanha</legend>${[2, 3, 4].map(n => `<label class="pl-nivel"><input type="radio" name="pl-n" value="${n}"${n === nIni ? ' checked' : ''}><span>${nivelNome(n)}${n === nAtual ? ' <small>(o teu hoje)</small>' : ''}</span><b>${reais(STUDIO[n])}</b></label>`).join('')}<small class="hint">A primeira rede social segue de graça; o plano é o total. Por mês.</small></fieldset>`
+        : `<p class="pl-preco"><b>${reais(PRECO[prod])}</b> por mês</p>`}
+      <p class="note">${esc(quando)}</p>
+      ${A.cliente || ja ? '' : `<div class="fld"><label for="pl-nome">Nome completo ou razão social</label><input class="inp" id="pl-nome" maxlength="100" autocomplete="name" required value="${esc((C.st.me && C.st.me.nome) || '')}"></div>
+      <div class="fld"><label for="pl-doc">CPF ou CNPJ</label><input class="inp" id="pl-doc" inputmode="numeric" maxlength="18" autocomplete="off" required aria-describedby="pl-doc-h"><span class="hint" id="pl-doc-h">Vai só pro Asaas, que emite a cobrança. O Corre não guarda.</span></div>`}
+      <p class="fine" id="pl-erro" role="alert" hidden></p>
+      <div class="acts"><button type="submit" class="btn pri">${ja ? 'Trocar' : teste ? 'Assinar (sem cobrar agora)' : 'Assinar e pagar'}</button><button type="button" class="btn ghost" data-close>Agora não</button></div>
+      <p class="fine">Cancela quando quiser, em Financeiro › Planos.</p>
+    </form>`);
+    C.umaVez(C.$('pl-f'), async () => {
+      const er = C.$('pl-erro'), mostra = t => { if(er){ er.textContent = t; er.hidden = false; } else C.toast(t); };
+      const body = { acao: 'assinar', produto: prod };
+      if(prod === 'studio') body.nivel = Number((document.querySelector('input[name="pl-n"]:checked') || {}).value) || 2;
+      if(prod === 'studio' && ja && body.nivel === nAtual){ C.closeSheet(); return; }
+      const nm = C.$('pl-nome'), dc = C.$('pl-doc');
+      if(nm){ body.nome = nm.value.replace(/\s+/g, ' ').trim(); if(body.nome.length < 3){ mostra(ERRO.nome); nm.focus(); return; } }
+      if(dc){ body.doc = C.docOk(dc.value); if(!body.doc){ mostra(ERRO.doc); dc.focus(); return; } }
+      const w = !teste && !ja ? abaNova() : null;
+      try{
+        const r = await C.api.fn('pagamento', body) || {};
+        const abriu = leva(w, r.link);
+        await C.acessoCarrega();
+        if(r.link && !abriu && !teste && !ja){
+          /* o navegador barrou a aba nova: o link fica na folha, num toque */
+          const f = C.$('pl-f'); if(f) f.innerHTML = `<div class="sheet-head"><h2>Falta pagar</h2><button type="button" class="cbtn plain" data-close aria-label="Fechar">${ico('x')}</button></div><p class="note">A assinatura tá feita. Abre a fatura pra pagar no Pix, boleto ou cartão; pagou, o plano liga sozinho.</p><div class="acts"><a class="btn pri" href="${esc(r.link)}" target="_blank" rel="noopener">${ico('ext')} Abrir a fatura</a></div>`;
+          C.refreshPlanos(); return;
+        }
+        C.closeSheet();
+        C.toast(r.demo ? (r.teste ? 'Assinado (demonstração: nada foi cobrado).' : 'Plano ligado (demonstração: nada foi cobrado).')
+          : r.trocou ? 'Plano trocado. Vale da próxima fatura em diante.' : r.teste ? `Assinado. A primeira cobrança vence em ${ddmm(r.vence)}.` : abriu ? 'A fatura abriu numa aba nova. Pagou, o plano liga sozinho.' : 'Assinado. A fatura também vai pro teu e-mail.', 4200);
+        C.refreshPlanos();
+      }catch(err){ leva(w, ''); mostra(erroTxt(err)); }
+    });
+  }
+  /* depois de assinar, pagar ou cancelar: a página aberta (Planos, Hórus, Studio Houzi, Studio) se refaz */
+  C.refreshPlanos = () => { if(C.$('pl')) pinta(); else C.refresh(); };
+  C.planos = { assinar: assinarSheet, nome: NOME, preco: precoDe };
+
+  Object.assign(C.acts, {
+    'pl-assinar': el => assinarSheet(el.dataset.p, Number(el.dataset.n) || 0),
+    'pl-pagar': async el => {
+      const prod = el.dataset.p, p = plano(prod);
+      if(C.DEMO){ C.toast('Na demonstração não tem fatura de verdade.'); return; }
+      const w = abaNova(); el.disabled = true;
+      try{
+        const r = await C.api.fn('pagamento', { acao: 'link', produto: prod }) || {}, link = r.link || (p && p.link) || '';
+        if(!link){ leva(w, ''); C.toast('Nenhuma fatura em aberto agora. Se acabou de pagar, o plano liga em instantes.', 4200); return; }
+        if(!leva(w, link)) C.sheet(`<div class="form"><div class="sheet-head"><h2>A fatura</h2><button type="button" class="cbtn plain" data-close aria-label="Fechar">${ico('x')}</button></div><p class="note">Pix, boleto ou cartão. Pagou, o plano liga sozinho.</p><div class="acts"><a class="btn pri" href="${esc(link)}" target="_blank" rel="noopener">${ico('ext')} Abrir a fatura</a></div></div>`);
+      }catch(err){ leva(w, ''); C.toast(erroTxt(err)); }
+      finally{ if(el.isConnected) el.disabled = false; }
+    },
+    'pl-cancelar': async el => {
+      const prod = el.dataset.p, p = plano(prod);
+      const fim = p && [p.pago_ate ? mais(p.pago_ate, 3) : '', diaDe(p.teste_ate)].filter(Boolean).sort().pop();
+      const sim = await C.confirma({ ico: 'cartao', titulo: `Cancelar o ${NOME[prod]}?`, texto: fim && fim >= C.hojeBR() ? `Não vem mais cobrança. O que já foi pago vale até <b>${ddmm(fim)}</b>.` : 'Não vem mais cobrança, e o plano para.', sim: 'Cancelar o plano', nao: 'Manter' });
+      if(!sim) return;
+      el.disabled = true;
+      try{ await C.api.fn('pagamento', { acao: 'cancelar', produto: prod }); await C.acessoCarrega(); C.toast('Plano cancelado.'); C.refreshPlanos(); }
+      catch(err){ C.toast(erroTxt(err)); if(el.isConnected) el.disabled = false; }
+    }
+  });
+})();

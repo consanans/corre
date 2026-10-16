@@ -98,6 +98,7 @@
     bell: '<path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 1.5h-15z"/><path d="M10 20.5a2.2 2.2 0 0 0 4 0"/>',
     recibo: '<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6M9 16h3"/>',
     marcador: '<path d="M7 3.5h10v17l-5-4-5 4z"/>',
+    cartao: '<rect x="3" y="5.5" width="18" height="13" rx="2"/><path d="M3 10h18M7 15h4"/>',
     calc: '<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 7h8M8 12h2M12 12h0M14 12h2M8 16h2M12 16h0M14 16h2"/>',
     tacha: '<path d="M9 3.5h6"/><path d="M10 3.5v5.2L7 12h10l-3-3.3V3.5"/><path d="M12 12v8.5"/>',
     pin: '<path d="M12 21s-6.5-6-6.5-11a6.5 6.5 0 0 1 13 0c0 5-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/>',
@@ -179,6 +180,9 @@
     const m = (e && (e.message || '')) + ' ' + (e && (e.hint || ''));
     if(e && e.code === 'off') return 'O Corre ainda não tá ligado neste endereço.';
     if(/plano_gratis/.test(m)) return 'Chegou no limite de redes sociais do teu plano.';
+    /* v3.60: acabou o teste grátis (o banco diz no hint; a função imagem, no código) */
+    if(/horus_assinatura/.test(m) || (e && e.code === 'horus_assinatura')) return 'O teste grátis do Hórus acabou. Assina em Planos (R$ 9,90 por mês) pra seguir caçando; os leads que você tem continuam aqui.';
+    if(/houzi_assinatura/.test(m) || (e && e.code === 'houzi_assinatura')) return 'O teste grátis do Studio Houzi acabou. Assina em Planos (R$ 29,90 por mês) pra criar e mexer nas marcas; as que você fez continuam aqui.';
     if(/limite de (\d+)/.test(m)) return `Chegou no limite (${RegExp.$1}).`;
     if(e && e.code === '23505') return 'Isso já tá aqui.';
     if(/quota|QuotaExceeded/i.test(m) || (e && e.name === 'QuotaExceededError')) return 'Sem espaço neste navegador pra mais imagens.';
@@ -241,7 +245,7 @@
       'corre_grupo_ver', 'corre_grupos_lista', 'corre_grupos_de', 'corre_grupo_membros_lista']);
     /* chamadas que não mudam nada que a tela leia (ou que precisam vir sempre fresquinhas): não usam nem limpam a memória */
     const AO_VIVO = new Set(['corre_feed_viu', 'corre_verso_sinal', 'corre_verso_entrar', 'corre_verso_quem', 'corre_handle_livre', 'corre_avisos_n', 'corre_avisos',
-      'corre_msg_abrir', 'corre_msg_enviar', 'corre_msg_caixa', 'corre_msg_lista', 'corre_msg_lida', 'corre_msg_estado', 'corre_msg_apagar', 'corre_msg_badge', 'corre_grupo_papo']);
+      'corre_msg_abrir', 'corre_msg_enviar', 'corre_msg_caixa', 'corre_msg_lista', 'corre_msg_lida', 'corre_msg_estado', 'corre_msg_apagar', 'corre_msg_badge', 'corre_grupo_papo', 'corre_meu_acesso']);
     const copia = v => { if(v == null || typeof v !== 'object') return v; try{ return structuredClone(v); }catch(e){ return JSON.parse(JSON.stringify(v)); } };
     const limpa = () => { geracao++; CACHE.clear(); };
     function lido(chave, faz){
@@ -376,8 +380,8 @@
   const HOUZI_EX = {"spec":{"v":1,"territorio":"editorial","amostra":1,"nome":"Grão Torto","tagline":"café de esquina","nicho":"cafe","cidade":"Londrina, PR","desde":"2021","pers":[0.35,0.55,0.55,0.35,0.2],"modo":"branding","campos":["cafe","rua"],"logo":{"arranjo":"wordmark","caixa":"titulo","track":0.005,"efeito":"","gesto":"troca","tagline":true,"corTexto":"texto","trocaPor":"ideia"},"simbolo":{"tipo":"ideia","icone":"xicara","ideia":"grao","estilo":"linha","seed":84829},"tipo":{"display":"lora-bolditalic","texto":"lora-regular"},"cores":{"p":"#2B2B2E","s":"#D8D4CB","a":"#B8913A","ink":"#161618","paper":"#F6F2EA","fundo":"paper","esquema":"receita","receita":"Grafite e Ouro"},"textura":"papel","aplic":["revista","sacola","cartao","instagram","copo","fachada"],"seed":273184829,"descr":"Café de bairro, torra própria"},"voz":{"conceito":"Grão Torto é o café que trata cada detalhe como página de revista.","manifesto":"Grão Torto acredita que pressa é inimiga do bom. Por isso cada café é pensado como uma página de revista: com respiro, com ritmo, com intenção. É pra quem acorda cedo que repara. Que lê a legenda inteira. Que volta pela segunda vez.","taglines":["Grão Torto. Pra ler devagar.","A pausa boa do dia, com tempo.","O detalhe é a história.","Feito com atenção em Londrina.","Menos, e melhor."],"e":["calma","precisa","elegante"],"nao_e":["barulhenta","apressada","exagerada"],"fala":["Pensado com calma, feito pra durar.","Nem tudo precisa ser pra ontem.","A pausa boa do dia, no detalhe."],"nao_fala":["IMPERDÍVEL!!!","Só hoje, corre!","O melhor do Brasil."],"bio":"café de esquina · Café em Londrina. Chama no direct.","wa":"Olá, que bom ter você aqui. Aqui é o Grão Torto. Me conta o que procura e eu te ajudo com calma.","ia":false}};
   function demoApi(){
     const KEY = 'corre-demo-v2', mem = {};
-    const T = ['corre_perfis', 'corre_portfolio', 'corre_destaques', 'corre_stories', 'corre_insta', 'corre_contas', 'corre_lancamentos', 'corre_rolo_salvos', 'corre_leads', 'corre_posts', 'corre_feed', 'corre_curtidas', 'corre_comentarios', 'corre_seguindo', 'corre_story_curtidas', 'corre_visitas', 'corre_estilo', 'corre_produtos', 'corre_mural', 'corre_mural_propostas', 'corre_vendas', 'corre_refs', 'corre_lead_fotos', 'corre_mural_chat', 'corre_verso_bloq', 'corre_votos', 'corre_salvos', 'corre_recomendacoes', 'corre_feed_vistas', 'corre_avisos_lidos', 'corre_conversas', 'corre_conversa_membros', 'corre_mensagens', 'corre_push', 'corre_push_pref', 'corre_grupos', 'corre_grupo_membros', 'corre_houzi_marcas', 'corre_correal', 'corre_correal_log', 'corre_tarefa_vez', 'corre_ig_contas', 'corre_houzi_privado'];
-    const PRIV = ['corre_contas', 'corre_lancamentos', 'corre_rolo_salvos', 'corre_leads', 'corre_posts', 'corre_visitas', 'corre_estilo', 'corre_produtos', 'corre_mural', 'corre_mural_propostas', 'corre_vendas', 'corre_refs', 'corre_lead_fotos', 'corre_verso_bloq', 'corre_votos', 'corre_salvos', 'corre_feed_vistas', 'corre_avisos_lidos', 'corre_push', 'corre_push_pref', 'corre_correal', 'corre_correal_log', 'corre_tarefa_vez', 'corre_ig_contas', 'corre_houzi_privado'];
+    const T = ['corre_perfis', 'corre_portfolio', 'corre_destaques', 'corre_stories', 'corre_insta', 'corre_contas', 'corre_lancamentos', 'corre_rolo_salvos', 'corre_leads', 'corre_posts', 'corre_feed', 'corre_curtidas', 'corre_comentarios', 'corre_seguindo', 'corre_story_curtidas', 'corre_visitas', 'corre_estilo', 'corre_produtos', 'corre_mural', 'corre_mural_propostas', 'corre_vendas', 'corre_refs', 'corre_lead_fotos', 'corre_mural_chat', 'corre_verso_bloq', 'corre_votos', 'corre_salvos', 'corre_recomendacoes', 'corre_feed_vistas', 'corre_avisos_lidos', 'corre_conversas', 'corre_conversa_membros', 'corre_mensagens', 'corre_push', 'corre_push_pref', 'corre_grupos', 'corre_grupo_membros', 'corre_houzi_marcas', 'corre_correal', 'corre_correal_log', 'corre_tarefa_vez', 'corre_ig_contas', 'corre_houzi_privado', 'corre_assinaturas', 'corre_asaas_clientes'];
+    const PRIV = ['corre_contas', 'corre_lancamentos', 'corre_rolo_salvos', 'corre_leads', 'corre_posts', 'corre_visitas', 'corre_estilo', 'corre_produtos', 'corre_mural', 'corre_mural_propostas', 'corre_vendas', 'corre_refs', 'corre_lead_fotos', 'corre_verso_bloq', 'corre_votos', 'corre_salvos', 'corre_feed_vistas', 'corre_avisos_lidos', 'corre_push', 'corre_push_pref', 'corre_correal', 'corre_correal_log', 'corre_tarefa_vez', 'corre_ig_contas', 'corre_houzi_privado', 'corre_assinaturas', 'corre_asaas_clientes'];
     const now = () => new Date().toISOString();
     const inH = h => new Date(Date.now() + h * 36e5).toISOString();
     /* o mesmo do corre_tarefa_valor (delta-v338 + delta-v3391: 3 tarefas por uniforme) */
@@ -535,6 +539,30 @@
       if(o.join === 'perfil') rows = rows.map(r => Object.assign(r, { perfil: d.t.corre_perfis.find(p => p.id === r.dono && visible('corre_perfis', p, d)) })).filter(r => r.perfil);
       return rows;
     }
+    /* ---- v3.60: os planos na demonstração (as mesmas contas do delta-v360.sql). O fundador é o @consanans ---- */
+    const PL_FUND = 'd1e9f6ac-f5d7-4723-8b02-eb0d1d7137b0';
+    const plFund = (d, u) => { const p = d.t.corre_perfis.find(x => x.id === u); return u === PL_FUND || !!(p && p.handle === 'consanans'); };
+    const plMais = (dia, n) => new Date(Date.parse(dia + 'T12:00:00Z') + n * 864e5).toISOString().slice(0, 10);
+    const plAcesso = (d, u, prod) => plFund(d, u) || d.t.corre_assinaturas.some(a => a.dono === u && a.produto === prod
+      && ((a.teste_ate && Date.parse(a.teste_ate) > Date.now()) || (a.pago_ate && plMais(a.pago_ate, 3) >= hojeBR())));
+    const plRedes = (d, u) => {
+      const p = d.t.corre_perfis.find(x => x.id === u) || {};
+      if(plFund(d, u) || p.plano === 'pro') return 999;
+      const a = d.t.corre_assinaturas.find(x => x.dono === u && x.produto === 'studio');
+      return Math.max(Number(p.redes) || 1, 1, a && plAcesso(d, u, 'studio') ? (a.nivel >= 4 ? 999 : a.nivel) : 1);
+    };
+    const plGarante = (d, u, prod) => {
+      if(!u || !['houzi', 'horus'].includes(prod) || !d.t.corre_perfis.some(p => p.id === u) || d.t.corre_assinaturas.some(a => a.dono === u && a.produto === prod)) return;
+      d.t.corre_assinaturas.push({ id: rid(), dono: u, produto: prod, nivel: 1, valor: prod === 'houzi' ? 29.90 : 9.90, status: 'teste', teste_ate: new Date(Date.now() + 30 * 864e5).toISOString(), pago_ate: null, asaas_assinatura: null, link: '', created_at: now(), updated_at: now() });
+    };
+    const plTrava = (d, u, prod) => { plGarante(d, u, prod); if(!plAcesso(d, u, prod)) throw { message: 'o teste grátis acabou', hint: prod + '_assinatura', code: 'P0001' }; };
+    const plMeu = (d, u) => {
+      if(!u) return null;
+      const planos = {};
+      d.t.corre_assinaturas.filter(a => a.dono === u).forEach(a => { planos[a.produto] = { status: a.status, nivel: a.nivel, valor: a.valor, teste_ate: a.teste_ate, pago_ate: a.pago_ate, link: a.link, assinado: !!a.asaas_assinatura, acesso: plAcesso(d, u, a.produto) }; });
+      return { fundador: plFund(d, u), redes: plRedes(d, u), usadas: d.t.corre_portfolio.filter(x => x.dono === u && x.rede).length, cliente: d.t.corre_asaas_clientes.some(c => c.dono === u),
+        planos, acesso: { studio: true, houzi: plAcesso(d, u, 'houzi'), horus: plAcesso(d, u, 'horus') } };
+    };
     function rules(t, r, d, isNew){
       const uid = uidOf(d);
       const mine = t === 'corre_perfis' ? null : d.t[t].filter(x => x.dono === uid && x !== r);
@@ -542,7 +570,7 @@
       if(isNew && LIM[t] && mine.length >= LIM[t]) throw { message: `limite de ${LIM[t]} itens` };
       if(t === 'corre_portfolio' && r.rede){
         const me = d.t.corre_perfis.find(p => p.id === uid);
-        if((!me || me.plano !== 'pro') && mine.filter(x => x.rede && x.id !== r.id).length >= Math.max(1, Number(me && me.redes) || 1)) throw { message: 'plano gratis', hint: 'plano_gratis' };
+        if((!me || me.plano !== 'pro') && mine.filter(x => x.rede && x.id !== r.id).length >= plRedes(d, uid)) throw { message: 'plano gratis', hint: 'plano_gratis' };
       }
       if(t === 'corre_produtos' && r.preco != null && r.preco !== '') r.ganho = Math.max(Number(r.preco) - (Number(r.custo) || 0), 0);
       /* v3.40: o post só sai em conta do Instagram da própria dona (delta-v340.sql) */
@@ -627,6 +655,7 @@
       if(t === 'corre_seguindo' && (r.quem === r.segue || d.t.corre_seguindo.some(x => x !== r && x.quem === r.quem && x.segue === r.segue))) throw { code: '23505' };
       if(t === 'corre_rolo_salvos' && mine.some(x => x.frame_id === r.frame_id)) throw { code: '23505' };
       if(t === 'corre_leads' && r.ref && mine.some(x => x.ref === r.ref && x.id !== r.id)) throw { code: '23505' };
+      if(t === 'corre_leads' && isNew) plTrava(d, uid, 'horus');
       if(t === 'corre_perfis' && d.t.corre_perfis.some(x => x.handle === r.handle && x.id !== r.id)) throw { code: '23505' };
     }
     /* MURAL na demonstração: as mesmas regras das funções do banco (delta-mural.sql) */
@@ -1152,7 +1181,7 @@
           const next = Object.assign({}, r, patch);
           if(t === 'corre_perfis'){ next.plano = r.plano; next.redes = r.redes; }
           if(t === 'corre_stories'){ next.expira_em = r.expira_em; next.created_at = r.created_at; }
-          if(t === 'corre_houzi_marcas'){ next.updated_at = now(); next.slug = r.slug; next.numero = r.numero; }
+          if(t === 'corre_houzi_marcas'){ next.updated_at = now(); next.slug = r.slug; next.numero = r.numero; if(['nome', 'spec', 'voz', 'naming'].some(k => k in patch)) plTrava(d, uid, 'houzi'); }
           rules(t, next, d, false); Object.assign(r, next); out.push(Object.assign({}, r));
         });
         write(d); return out;
@@ -1376,6 +1405,8 @@
           if(l){ l.st = 'fechado'; l.prox = null; l.hist = [{ t: now(), k: 'res', v: 'Aprovou o orçamento pelo link.' }].concat(l.hist || []).slice(0, 40); }
           write(d); return { ok: true, st: 'fechado' };
         }
+        if(n === 'corre_meu_acesso') return plMeu(d, uidOf(d));
+        if(n === 'corre_teste_comeca'){ if(!uidOf(d)) throw { message: 'login', hint: 'login' }; plGarante(d, uidOf(d), a && a.p_produto); write(d); return plMeu(d, uidOf(d)); }
         if(/^corre_mural_/.test(n)){ const r = muralRpc(n, a || {}, d, uidOf(d)); write(d); return r; }
         if(/^corre_msg_/.test(n)){ const r = msgRpc(n, a || {}, d, uidOf(d)); write(d); return r; }
         if(/^corre_grupos?_/.test(n)) return grupoRpc(n, a || {}, d, uidOf(d));
@@ -1386,6 +1417,7 @@
           const nome = String(A.p_nome || '').trim(); if(nome.length < 1 || nome.length > 40) throw err('nome');
           const minhas = d.t.corre_houzi_marcas.filter(x => x.dono === u);
           if(minhas.length >= 30) throw err('limite_marcas');
+          plTrava(d, u, 'houzi'); write(d);
           if(minhas.filter(x => Date.now() - Date.parse(x.created_at) < 864e5).length >= 20) throw err('limite_dia');
           let base = nome.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
           if(base.length < 3) base = ('marca-' + base).replace(/-+$/, '');
@@ -1436,7 +1468,33 @@
         return await new Promise((ok, fail) => { const fr = new FileReader(); fr.onload = () => ok(fr.result); fr.onerror = fail; fr.readAsDataURL(small); });
       },
       async unlink(){},
-      async fn(){ throw { code: 'nofn' }; }
+      /* v3.60: a função "pagamento" de mentira: as mesmas regras e respostas, sem Asaas e sem cobrar. Assinou fora do
+         teste grátis, já conta como pago (pra dar pra ver o plano funcionando) */
+      async fn(name, b){
+        if(name !== 'pagamento') throw { code: 'nofn' };
+        const d = read(), u = uidOf(d), B = b || {}, prod = String(B.produto || '');
+        if(!u) throw { code: 'login', status: 401 };
+        if(!['studio', 'houzi', 'horus'].includes(prod)) throw { code: 'produto', status: 400 };
+        let a = d.t.corre_assinaturas.find(x => x.dono === u && x.produto === prod);
+        if(B.acao === 'link'){ if(!a || !a.asaas_assinatura) throw { code: 'sem_assinatura', status: 404 }; return { ok: true, link: '', vence: '', demo: true }; }
+        if(B.acao === 'cancelar'){ if(!a || !a.asaas_assinatura || a.status === 'cancelada') return { ok: true, ja: true }; a.status = 'cancelada'; a.link = ''; a.updated_at = now(); write(d); return { ok: true, pago_ate: a.pago_ate, teste_ate: a.teste_ate, demo: true }; }
+        if(B.acao !== 'assinar') throw { code: 'acao', status: 400 };
+        const nivel = prod === 'studio' ? Math.max(2, Math.min(4, Math.round(Number(B.nivel) || 2))) : 1;
+        const valor = prod === 'houzi' ? 29.90 : prod === 'horus' ? 9.90 : { 2: 59.90, 3: 69.90, 4: 79.90 }[nivel];
+        if(a && a.asaas_assinatura && a.status !== 'cancelada'){ const trocou = prod === 'studio' && nivel !== a.nivel; Object.assign(a, { nivel, valor, updated_at: now() }); write(d); return { ok: true, link: '', trocou, demo: true }; }
+        if(!d.t.corre_asaas_clientes.some(c => c.dono === u)){
+          if(String(B.nome || '').replace(/\s+/g, ' ').trim().length < 3) throw { code: 'nome', status: 400 };
+          if(!C.docOk(B.doc)) throw { code: 'doc', status: 400 };
+          d.t.corre_asaas_clientes.push({ dono: u, cliente: 'cus_demo_' + rid().slice(0, 8), created_at: now() });
+        }
+        const noTeste = !!(a && a.teste_ate && Date.parse(a.teste_ate) > Date.now());
+        const vence = noTeste ? hojeBR(new Date(Date.parse(a.teste_ate))) : hojeBR();
+        const linha = { nivel, valor, status: noTeste ? 'teste' : 'ativa', asaas_assinatura: 'sub_demo_' + rid().slice(0, 8), link: '', updated_at: now() };
+        /* pago agora: vale até o mesmo dia do mês que vem (31/01 vira 28/02), como o aviso do Asaas faz na função */
+        if(!noTeste){ const [y, m, dd] = vence.split('-').map(Number), ult = new Date(Date.UTC(y, m + 1, 0)).getUTCDate(); linha.pago_ate = new Date(Date.UTC(y, m, Math.min(dd, ult))).toISOString().slice(0, 10); }
+        if(a) Object.assign(a, linha); else { a = Object.assign({ id: rid(), dono: u, produto: prod, teste_ate: null, pago_ate: null, created_at: now() }, linha); d.t.corre_assinaturas.push(a); }
+        write(d); return { ok: true, link: '', vence, teste: noTeste, demo: true };
+      }
     };
   }
 
@@ -1532,6 +1590,29 @@
     if(e && e.recusou) return 'Tudo bem. O grátis de hoje acabou; amanhã tem mais (ou usa correal quando quiser).';
     if(e && e.preco != null) return `Acabou o grátis de hoje${oque ? ` (${oque})` : ''}. Cada pedido a mais sai por ${C.correalTxt(e.preco)} e você tem ${C.correalFmt(Number(e.correal) || 0)}. Correal se ganha fazendo tarefa no Correverso: centavos por tarefa, até ${C.correalFmt(C.correal.teto)} por dia.`;
     return `Hoje já deu o limite${oque ? ` de ${oque}` : ''}. Amanhã tem mais.`;
+  };
+  /* ---------------- v3.60 · os planos ----------------
+     C.acesso é o resumo do banco (corre_meu_acesso): os planos da pessoa, se tem acesso a cada um e as redes do
+     Studio. null = o banco ainda não tem o delta v3.60 (ou não respondeu): o app segue como antes, sem cobrar nada */
+  C.acesso = null;
+  C.acessoCarrega = async () => {
+    if(!C.uid()){ C.acesso = null; return null; }
+    try{ C.acesso = (await C.api.rpc('corre_meu_acesso', {})) || null; }catch(e){ C.acesso = null; }
+    return C.acesso;
+  };
+  /* começa os 30 dias grátis (Hórus e Studio Houzi; só uma vez por pessoa). O banco também começa sozinho no
+     primeiro lead ou na primeira marca; aqui é pra quem entrou e quer ver a faixa certa */
+  C.acessoComeca = async prod => {
+    try{ C.acesso = (await C.api.rpc('corre_teste_comeca', { p_produto: prod })) || C.acesso; }catch(e){}
+    return C.acesso;
+  };
+  /* CPF (11) ou CNPJ (14): só os números, com os dígitos verificadores certos (a mesma conta da função pagamento) */
+  C.docOk = v => {
+    const s = String(v || '').replace(/\D/g, '');
+    if(!/^(\d{11}|\d{14})$/.test(s) || /^(\d)\1+$/.test(s)) return '';
+    const dv = (pesos) => { const r = pesos.reduce((t, p, i) => t + Number(s[i]) * p, 0) % 11; return r < 2 ? 0 : 11 - r; };
+    if(s.length === 11) return dv([10, 9, 8, 7, 6, 5, 4, 3, 2]) === Number(s[9]) && dv([11, 10, 9, 8, 7, 6, 5, 4, 3, 2]) === Number(s[10]) ? s : '';
+    return dv([5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]) === Number(s[12]) && dv([6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]) === Number(s[13]) ? s : '';
   };
   /* salva um pedaço do meu perfil e mantém o estado em dia */
   C.saveMe = async patch => {

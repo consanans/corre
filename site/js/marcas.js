@@ -9,8 +9,11 @@
   const IG_RE = /^[A-Za-z0-9_.]{0,30}$/;
   const pro = () => (C.st.me && C.st.me.plano) === 'pro';
   /* quantas marcas podem ter rede: Pro = todas; grátis = 1, ou o que o Corre liberar (corre_perfis.redes) */
-  const lim = () => pro() ? Infinity : Math.max(1, Number(C.st.me && C.st.me.redes) || 1);
-  const nRedes = n => `${n} ${n === 1 ? 'rede social' : 'redes sociais'}`;
+  /* v3.60: quantas redes o plano libera vem do banco (corre_meu_acesso; 999 = quantas quiser) */
+  const lim = () => pro() ? Infinity : C.acesso && C.acesso.redes ? (C.acesso.redes >= 999 ? Infinity : C.acesso.redes) : Math.max(1, Number(C.st.me && C.st.me.redes) || 1);
+  const nRedes = n => n === Infinity ? 'quantas redes sociais quiser' : `${n} ${n === 1 ? 'rede social' : 'redes sociais'}`;
+  /* v3.60: o nome do plano do Studio (o fundador não paga; quem assinou tem o Plano Studio) */
+  const nomePlano = () => pro() ? 'Plano Corre+' : C.acesso && C.acesso.fundador ? 'Fundador' : C.acesso && C.acesso.planos && C.acesso.planos.studio && C.acesso.planos.studio.acesso ? 'Plano Studio' : lim() > 1 ? 'Plano grátis + liberadas' : 'Plano grátis';
   const comRede = () => M.list.filter(m => m.rede);
   const cleanIg = v => String(v || '').trim().replace(/^https?:\/\/(www\.)?instagram\.com\//i, '').replace(/^@/, '').replace(/[/?#].*$/, '');
 
@@ -40,14 +43,14 @@
 
   C.views.marcas = async function(app){
     app.innerHTML = C.header('marcas') + '<main class="wrap"><section class="card"><p>Abrindo o portfólio…</p></section></main>';
-    try{ await Promise.all([carregar(), C.catalogo ? C.catalogo.carregar(true) : null]); }catch(e){ app.innerHTML = C.header('marcas') + `<main class="wrap"><section class="card"><p>${esc(C.errMsg(e))}</p></section></main>`; return; }
+    try{ await Promise.all([carregar(), C.catalogo ? C.catalogo.carregar(true) : null, C.acesso || !C.acessoCarrega ? null : C.acessoCarrega()]); }catch(e){ app.innerHTML = C.header('marcas') + `<main class="wrap"><section class="card"><p>${esc(C.errMsg(e))}</p></section></main>`; return; }
     const usadas = comRede().length;
     app.innerHTML = C.header('marcas') + `<main class="wrap">
       <div class="hello"><h1><span class="hl">Portfólio</span></h1><p>O que você vende e pra quem já fez. Você escolhe o que aparece no perfil.</p></div>
       ${C.catalogo ? `<div id="ct-sec" class="ct-sec">${C.catalogo.secaoHTML()}</div>` : ''}
       <div class="sec-row"><h2 class="sec-t"><span class="hl">Clientes e trabalhos</span></h2></div>
       <p class="mk-intro">As marcas e clientes que você atende ou já atendeu: é a prova do teu corre no perfil. Pra quem toca rede social de cliente, cada marca ganha o painel.</p>
-      <section class="card plano"><div><b>${pro() ? 'Plano Corre+' : lim() > 1 ? 'Plano grátis + liberadas' : 'Plano grátis'}</b><span>${pro() ? `${usadas} ${usadas === 1 ? 'rede social ligada' : 'redes sociais ligadas'}` : `${usadas} de ${nRedes(lim())} ${lim() === 1 ? 'ligada' : 'ligadas'}. A marca com rede ganha o painel: grana da marca, o que sai na banca sobre ela e o estúdio de posts.`}</span></div>${!pro() && usadas >= lim() ? '<button type="button" class="btn sm" data-act="mk-plus">Quero mais marcas</button>' : ''}</section>
+      <section class="card plano"><div><b>${nomePlano()}</b><span>${pro() ? `${usadas} ${usadas === 1 ? 'rede social ligada' : 'redes sociais ligadas'}` : `${usadas} de ${nRedes(lim())} ${lim() === 1 ? 'ligada' : 'ligadas'}. A marca com rede ganha o painel: grana da marca, o que sai na banca sobre ela e o estúdio de posts.`}</span></div>${!pro() && usadas >= lim() ? '<button type="button" class="btn sm" data-act="mk-plus">Quero mais redes</button>' : ''}</section>
       ${M.sug.length ? `<section class="card sug"><h2 class="ch">Já te pagaram e não tão aqui</h2><p class="note">Vem da tua Grana. Um toque e a marca entra no portfólio.</p><div class="sug-row">${M.sug.map(s => `<button type="button" class="chip add" data-act="mk-sug" data-n="${esc(s.nome)}">${ico('plus')} ${esc(s.nome)} <small class="num">${money(s.v)}</small></button>`).join('')}</div></section>` : ''}
       <div class="mks">${M.list.map(m => C.marcaCard(m, true)).join('')}<button type="button" class="mk add" data-act="mk-nova">${ico('plus')}<b>Adicionar cliente ou trabalho</b><small>Marca que você atende, projeto ou a tua própria.</small></button></div>
     </main>`;
@@ -101,6 +104,8 @@
     });
   }
   function plusSheet(){
+    /* v3.60: com os planos no banco, mais redes é assinar o Studio (o próximo degrau já vem marcado) */
+    if(C.acesso && C.planos){ const l = lim(); C.planos.assinar('studio', l === Infinity ? 4 : Math.min(4, l + 1)); return; }
     const ja = C.st.me && C.st.me.quer_plus;
     C.sheet(`<div class="form"><div class="sheet-head"><h2>Mais marcas no Corre</h2><button type="button" class="cbtn plain" data-close aria-label="Fechar">${ico('x')}</button></div>
       <p>No teu plano o Corre acompanha <b>${nRedes(lim())}</b>. A marca sem rede continua no portfólio e aparece no teu perfil normalmente; o que ela não ganha é o painel.</p>
@@ -154,7 +159,7 @@
     try{ await carregar(); m = M.list.find(x => x.id === id); }catch(e){}
     if(!m){ app.innerHTML = C.header('marcas') + '<main class="wrap"><section class="card"><p>Essa marca não tá no teu portfólio.</p><div class="acts"><a class="btn pri" href="#/marcas">Ver portfólio</a></div></section></main>'; return; }
     if(!m.rede){
-      app.innerHTML = C.header('marcas') + `<main class="wrap"><section class="card mk-head">${C.marcaLogo(m, 'l')}<div><h1>${esc(m.marca)}</h1><p class="note">Liga a rede social dessa marca pra abrir o painel.${pro() ? '' : ` No teu plano, ${lim() === 1 ? '1 marca tem' : lim() + ' marcas têm'} painel.`}</p></div><div class="acts"><button type="button" class="btn pri" data-act="mk-edit" data-id="${m.id}">Ligar rede social</button><a class="btn" href="#/marcas">Voltar</a></div></section></main>`;
+      app.innerHTML = C.header('marcas') + `<main class="wrap"><section class="card mk-head">${C.marcaLogo(m, 'l')}<div><h1>${esc(m.marca)}</h1><p class="note">Liga a rede social dessa marca pra abrir o painel.${pro() || lim() === Infinity ? '' : ` No teu plano, ${lim() === 1 ? '1 marca tem' : lim() + ' marcas têm'} painel.`}</p></div><div class="acts"><button type="button" class="btn pri" data-act="mk-edit" data-id="${m.id}">Ligar rede social</button><a class="btn" href="#/marcas">Voltar</a></div></section></main>`;
       return;
     }
     const nm = C.norm(m.marca), ym = C.hojeBR().slice(0, 7);

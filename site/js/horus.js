@@ -579,12 +579,13 @@
   }
 
   C.views.horus = async function(app){
-    await privCarrega();
+    /* v3.60: o plano do Hórus (a faixa do teste grátis) vem junto */
+    await Promise.all([privCarrega(), C.acessoCarrega ? C.acessoCarrega() : null]);
     const c = cfg();
     app.innerHTML = C.header('horus') + `<main class="wrap wide"><section class="hz" id="hz-root" aria-label="Hórus">
       <header class="hz-top"><div class="hz-mark"><span class="hz-eye">${EYE}</span><div><h1>Hórus</h1><p id="hz-onde">radar de clientes · ${esc(c.oferta || 'teu corre')}</p></div></div>
         <div class="hz-tools"><button type="button" class="hz-btn pri" data-act="hz-novo">${ico('plus')} Lead</button>${C.horusMax ? C.horusMax.botoes() : ''}<button type="button" class="hz-btn" data-act="hz-import">${ico('up')} Importar</button><button type="button" class="hz-btn" data-act="hz-cfg">${ico('edit')} Ajustar</button></div></header>
-      <div id="hz-body"><p class="hz-muted">Ligando o radar…</p></div>
+      ${C.planoFaixa ? C.planoFaixa('horus') : ''}<div id="hz-body"><p class="hz-muted">Ligando o radar…</p></div>
     </section></main>`;
     try{ await load(); }catch(e){ C.$('hz-body').innerHTML = `<p class="hz-muted">${esc(C.errMsg(e, 'Não deu pra abrir o Hórus agora.'))}</p>`; return; }
     if(!C.$('hz-body')) return;

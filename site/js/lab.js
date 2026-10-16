@@ -153,7 +153,9 @@
     if(resto.startsWith('m/')) return bancada(app, decodeURIComponent(resto.slice(2).split('?')[0]));
     document.title = 'Studio Houzi · Corre';
     const rota = C.rota, logado = !!C.uid();
-    app.innerHTML = C.header('houzi') + `<main class="stz">
+    /* v3.60: o plano do Studio Houzi (a faixa do teste grátis no alto) */
+    if(logado && C.acessoCarrega){ await C.acessoCarrega(); if(rota !== C.rota) return; }
+    app.innerHTML = C.header('houzi') + `<main class="stz">${logado && C.planoFaixa ? C.planoFaixa('houzi') : ''}
       <section class="stz-hero">
         <p class="stz-kick">Studio Houzi <span>·</span> marca com conceito, dentro do Corre</p>
         <h1 class="stz-h1">Você já tem uma marca?</h1>

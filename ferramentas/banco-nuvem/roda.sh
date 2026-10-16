@@ -51,6 +51,11 @@ $P -f "$AQUI/semente356.sql"
 delta delta-v356.sql 'delta v3.56 ok'
 delta delta-v356.sql 'delta v3.56 ok'
 testa teste356.sql 13
+# v3.60: os planos (o pedaço da produção que o delta usa), o delta 2x e as checagens
+$P -f "$AQUI/semente360.sql"
+delta delta-v360.sql 'delta v3.60 ok'
+delta delta-v360.sql 'delta v3.60 ok'
+testa teste360.sql 17
 . "$AQUI/virada343.sh"
 if grep -q 'FALHOU\|ERROR' $D/saida; then echo "deu FALHOU ou erro (acima)"; exit 1; fi
 echo "tudo ok: $(grep -c '^ok:' $D/saida) checagens"

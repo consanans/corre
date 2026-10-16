@@ -37,7 +37,7 @@
     inicio: ['#/', 'Início', 'home'], msg: ['#/msg', 'Mensagens', 'send'], avisos: ['', 'Avisos', 'bell'], studio: ['#/studio', 'Studio', 'magia'],
     verso: ['#/verso', 'Correverso', 'verso'], corre: ['#/corre', 'Vendas e Grana', 'grana'], mural: ['#/mural', 'Mural', 'tacha'],
     houzi: ['#/houzi', 'Studio Houzi', 'houzi'], perfil: ['#/@' + me.handle, 'Meu perfil', 'eu'], grupos: ['#/grupos', 'Grupos', 'gente'],
-    horus: ['#/horus', 'Hórus', 'eye'], rolo: ['#/rolo', 'Rolo 360', 'rolo'], carteira: ['', 'Carteira de correal', 'correal'],
+    horus: ['#/horus', 'Hórus', 'eye'], rolo: ['#/rolo', 'Rolo 360', 'rolo'], carteira: ['', 'Carteira de correal', 'correal'], planos: ['#/planos', 'Planos', 'cartao'],
     marcas: ['#/marcas', 'Portfólio e catálogo', 'marcas'], salvos: ['#/salvos', 'Salvos', 'save'], banca: ['#/banca', 'Banca do dia', 'banca'], refs: ['#/refs', 'Do teu nicho', 'cal']
   });
   /* os grupos: [nome, ícone, o que mora dentro]. No computador cada um abre ali mesmo, no menu; no celular a gaveta
@@ -47,7 +47,7 @@
   const GRUPOS = {
     rede: ['Rede', 'chat', ['inicio', 'msg', 'grupos', 'avisos']],
     lab: ['Laboratório', 'lab', ['studio', 'houzi', 'horus', 'marcas']],
-    fin: ['Financeiro', 'calc', ['corre', 'carteira']],
+    fin: ['Financeiro', 'calc', ['corre', 'carteira', 'planos']],
     banca: ['Banca', 'toldo', ['banca', 'refs', 'rolo']],
     eu: ['Perfil', 'eu', ['perfil', 'salvos']]
   };
@@ -651,7 +651,8 @@
     /* erro de rede NÃO é "perfil não existe": tenta de novo e, se não der, avisa (antes caía no cadastro e a pessoa recriava o perfil) */
     st.meErro = false;
     for(let i = 0; i < 3; i++){
-      try{ st.me = await api.one('corre_perfis', { eq: { id: st.user.id } }); if(st.me) st.loadedFor = st.user.id; return; }
+      /* v3.60: com o perfil, os planos (o Studio já sabe quantas redes cabem; não espera) */
+      try{ st.me = await api.one('corre_perfis', { eq: { id: st.user.id } }); if(st.me){ st.loadedFor = st.user.id; if(C.acessoCarrega) C.acessoCarrega(); } return; }
       catch(e){ if(i < 2) await new Promise(r => setTimeout(r, 700 * (i + 1))); }
     }
     st.me = null; st.meErro = true;
