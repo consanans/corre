@@ -605,59 +605,19 @@
     ],
     entrada: { x: 7, z: 14 }, decor: PESCA_DECOR, chao: CHAO_PESCA, bloqueio: BLOQ_PESCA, padrao: [] };
 
-  /* ---------- v3.50 · as pistas: moto no Autódromo do Café e patinete no Zerão ----------
-     Uma pista é um oval: o asfalto (ou a terra) entre o oval de fora e o de dentro, a zebra, a linha de chegada
-     quadriculada e o pórtico. Quem não deixa sair do traçado é o PL.bloqueio, linha a linha da grade (25 cm); o
-     paddock, entre a pista e a porta, é livre. A largada é uma ação ("Largar"): a pessoa monta no veículo, conta
-     3, 2, 1 e faz 3 voltas contra o relógio, passando pelos três lados do oval na ordem (os pontos de controle) */
+  /* ---------- as pistas (v3.50) ----------
+     v3.59: o oval da moto saiu. A moto corre no circuito do Autódromo do Café, montado pelo mesmo motor das pistas de
+     kart (lá embaixo): sozinha contra o relógio, com rampas, costelas e obstáculos. Ficam aqui as peças que o resto usa */
   const ovalPts = (cx, cz, ax, az, n) => Array.from({ length: n }, (_, i) => { const a = i / n * Math.PI * 2; return [cx + Math.cos(a) * ax, cz + Math.sin(a) * az]; });
   const anelPts = (cx, cz, ax, az, bx, bz, a0, a1) => [[cx + Math.cos(a0) * ax, cz + Math.sin(a0) * az], [cx + Math.cos(a1) * ax, cz + Math.sin(a1) * az], [cx + Math.cos(a1) * bx, cz + Math.sin(a1) * bz], [cx + Math.cos(a0) * bx, cz + Math.sin(a0) * bz]];
-  function pista(o){
-    const { W, D, cx, cz, ax, az, larg } = o, bx = ax - larg, bz = az - larg, N = 72, chao = [], bloq = [], decor = [];
-    chao.push({ pts: ovalPts(cx, cz, ax, az, N), c: o.cor });
-    /* a zebra, por dentro e por fora */
-    for(let i = 0; i < N; i++){ const a0 = i / N * Math.PI * 2, a1 = (i + 1) / N * Math.PI * 2, c = i % 2 ? PAPEL : o.zebra;
-      chao.push({ pts: anelPts(cx, cz, ax, az, ax - .35, az - .35, a0, a1), c }, { pts: anelPts(cx, cz, bx + .35, bz + .35, bx, bz, a0, a1), c }); }
-    chao.push({ pts: ovalPts(cx, cz, bx, bz, N), c: o.dentro });
-    /* a chegada: o quadriculado atravessando a reta de baixo */
-    const nq = Math.round(larg / .35), qs = larg / nq; for(let i = 0; i < nq; i++) for(let j = 0; j < 2; j++) chao.push(ret(cx - .35 + j * .35, cz + bz + i * qs, cx + j * .35, cz + bz + (i + 1) * qs, (i + j) % 2 ? INK : PAPEL));
-    for(let z = 0; z < D; z += .25){
-      const zm = z + .125, dz = zm - cz; if(zm > cz + az) continue;
-      const ho = Math.abs(dz) < az ? ax * Math.sqrt(1 - (dz / az) ** 2) : 0;
-      if(ho <= .05){ bloq.push([0, z, W, z + .25]); continue; }
-      bloq.push([0, z, cx - ho, z + .25], [cx + ho, z, W, z + .25]);
-      if(Math.abs(dz) < bz){ const hi = bx * Math.sqrt(1 - (dz / bz) ** 2); bloq.push([cx - hi, z, cx + hi, z + .25]); }
-    }
-    /* a barreira de fora (pneu na moto, fardo de palha no patinete), aberta embaixo, onde a pista encosta no paddock */
-    const nb = Math.round(Math.PI * (ax + az) / 1.8);
-    for(let i = 0; i < nb; i++){ const a = i / nb * Math.PI * 2, gr = Math.abs(((a * 180 / Math.PI) - 90 + 540) % 360 - 180); if(gr < 32) continue;
-      const x = cx + Math.cos(a) * (ax + .3), z = cz + Math.sin(a) * (az + .3);
-      decor.push({ x, z, bl: o.barreira(i) }); }
-    /* o pórtico da chegada: um braço só, preso no miolo e passando por cima da pista (um poste do lado de fora ficaria
-       bem na frente da câmera de quem entra) */
-    const yz = cz + bz - .2, yz2 = cz + az - .35;
-    decor.push({ x: cx, z: 0, bl: [B(-.12, 0, yz - .25, .24, 3.2, .24, INK), B(-.2, 3.2, yz - .25, .4, .5, yz2 - yz + .5, INK),
-      ...Array.from({ length: Math.round((yz2 - yz) / .3) }, (_, i) => B(-.21, 3.3, yz + i * .3, .01, .3, .3, i % 2 ? PAPEL : INK)), ...[0, 1, 2, 3, 4].map(i => B(-.22, 3.55, yz + .4 + i * .5, .02, .1, .1, i < 3 ? '#E2412E' : AMARELO))] });
-    return { chao, bloq, decor, bx, bz };
-  }
   const PNEUS = i => [B(-.26, 0, -.26, .52, .22, .52, '#1B1D22'), B(-.26, .22, -.26, .52, .22, .52, i % 2 ? '#E2412E' : PAPEL), B(-.14, .44, -.14, .28, .01, .28, '#3A3E45')];
-  const FARDO = i => [B(-.4, 0, -.25, .8, .45, .5, i % 3 ? '#D9C27F' : '#C9A95E'), B(-.4, .2, -.26, .8, .04, .01, '#B8964C')];
   const ipe = (c, s) => [B(.4 * s, 0, .4 * s, .22 * s, 1.7 * s, .22 * s, '#5A3A1E'), B(0, 1.6 * s, 0, 1 * s, .6 * s, 1 * s, c), B(.2 * s, 2.2 * s, .2 * s, .6 * s, .4 * s, .6 * s, c), B(-.1 * s, 1.75 * s, .3 * s, .3 * s, .3 * s, .4 * s, c)];
   /* a arquibancada do fundo, com a torcida (cabeças coloridas, cada uma num lugar) */
   const arquibancada = (w, deg) => { const out = []; for(let k = 0; k < deg; k++) out.push(B(0, k * .45, k * .55, w, .45, (deg - k) * .55, k % 2 ? '#C9CDD3' : '#A4A8AE'));
     for(let k = 0; k < deg; k++) for(let i = 0; i < Math.floor(w / .7); i++){ if(sorte(i * 7 + k * 13) < .35) continue; out.push(B(.2 + i * .7, (k + 1) * .45, k * .55 + .15, .26, .3, .22, [ROSA, AZUL, LARANJA, LILAS, PAPEL, '#E2412E', INK][(i + k * 3) % 7]), B(.24 + i * .7, (k + 1) * .45 + .3, k * .55 + .17, .18, .18, .18, ['#C68642', '#8E5B33', '#F0C9A0', '#5A3A22'][(i + k) % 4])); }
     return out; };
-  const P_MOTO = pista({ W: 30, D: 24, cx: 15, cz: 12, ax: 13.5, az: 9.5, larg: 4.5, cor: '#3A3E45', dentro: '#D9C27F', zebra: '#E2412E', barreira: PNEUS });
   /* a largada: o totem com a bandeira quadriculada, no paddock */
   const totemLargada = cor => [B(0, 0, 0, .5, 1, .4, INK), B(.05, 1, .05, .4, .05, .3, cor), B(.22, 1.05, .15, .05, 1, .05, '#8F96A0'), ...Array.from({ length: 6 }, (_, i) => B(.27 + (i % 3) * .15, 1.6 + Math.floor(i / 3) * .15, .17, .15, .15, .01, (i + Math.floor(i / 3)) % 2 ? INK : PAPEL))];
-  const PLANTA_MOTO = { k: 'lugar-moto', W: 30, D: 24, ALT: 3,
-    comodos: [{ k: 'autodromo', nome: 'Autódromo do Café', x0: 0, z0: 0, x1: 30, z1: 24, piso: '#4A4E56', linha: 'rgba(0,0,0,.12)' }],
-    paredes: [{ a: [0, 24], b: [30, 24], ext: [0, 1], portas: [[14.4, 15.6]], entrada: true, cor: '#2B2F38' }, { a: [30, 0], b: [30, 24], ext: [1, 0], cor: '#2B2F38' }, { a: [0, 0], b: [0, 24], ext: [-1, 0], cor: '#2B2F38' }, { a: [0, 0], b: [30, 0], ext: [0, -1], cor: '#2B2F38' }],
-    entrada: { x: 15, z: 24 }, chao: P_MOTO.chao, bloqueio: P_MOTO.bloq, padrao: [],
-    decor: [...P_MOTO.decor, { x: 3, z: .2, bl: arquibancada(24, 3) }, { x: 8.5, z: 21.8, acao: 'largada', bl: totemLargada(ROSA) },
-      ...[[10, 10], [13.5, 13], [17.5, 11], [20, 13.5]].map(([x, z], i) => ({ x, z, bl: ipe([ROSA, '#FFB3D1', LILAS, ROSA][i], .8) }))] };
-  /* a pista que cada lugar usa (o oval, pra contar as voltas) e o veículo */
-  const PISTAS = { moto: { cx: 15, cz: 12, ax: 13.5, az: 9.5, larg: 4.5, vmax: 11, acel: 7, giro: 2.2, veic: 'moto', nome: 'Autódromo do Café' } };
 
   /* ---------- v3.53 · as pistas de kart do patinete ----------
      O Thales pediu três pistas "no estilo Mario Kart, percursos maiores e cheios de emoção". Cada pista é uma linha
@@ -741,7 +701,16 @@
       return { i, ia: i - Math.round(L / 2 / c.ds) - 1, ib: i + Math.round(L / 2 / c.ds) }; });
     /* as fileiras de discos (o item): quatro de lado a lado */
     const discos = []; (o.discos || []).forEach(s0 => { const i = maisReto(c, s0, .015); for(let k = 0; k < 4; k++){ const lat = -h + .65 + k * (o.larg - 1.3) / 3, p = pt(i, lat, 0); discos.push({ id: discos.length, i, lat, x: p[0], z: p[1] }); } });
-    return { c, chao, decor, grade, turbos, rampas, discos, agua, pt, h };
+    /* v3.59 · as costelas: o trecho ondulado (faixas atravessadas); sacode e segura a velocidade, e no ar passa por cima */
+    const costelas = (o.costelas || []).map(([s0, s1]) => { const i0 = Math.round(s0 * N), i1 = Math.round(s1 * N);
+      for(let i = i0; i < i1; i++) chao.push({ pts: [pt(i, h - .05, -.04), pt(i + 1, h - .05, .04), pt(i + 1, -h + .05, .04), pt(i, -h + .05, -.04)], c: i % 2 ? '#5A5E68' : '#24272D' });
+      return { i0: idxK(c, i0), i1: idxK(c, i1) }; });
+    /* v3.59 · os obstáculos: óleo (mancha no chão: quem passa derrapa), cone (derruba e perde velocidade) e a pilha de
+       pneus (bate e volta). O óleo é chão; cone e pneus são desenhados na corrida (o cone cai e levanta de novo) */
+    const obst = (o.obst || []).map(([tipo, s0, lat], id) => { const i = idxK(c, Math.round(s0 * N)), p = pt(i, lat, 0), t = c.T[i];
+      if(tipo === 'oleo') chao.push({ pts: Array.from({ length: 14 }, (_, k) => { const a = k / 14 * Math.PI * 2, r = 1 + .18 * Math.sin(k * 2.7); return [p[0] + Math.cos(a) * r * 1.15, p[1] + Math.sin(a) * r * .85]; }), c: '#121419' }, { pts: elipse(p[0] + .25, p[1] - .15, .45, .2, 10), c: '#3B3550' });
+      return { id, tipo, i, lat, x: p[0], z: p[1], yaw: Math.atan2(t[0], t[1]) }; });
+    return { c, chao, decor, grade, turbos, rampas, discos, agua, pt, h, costelas, obst };
   }
   /* espelha um bloco de decoração na profundidade (pra arquibancada olhar pro outro lado) */
   const espelhaZ = (bl, fundo) => bl.map(b => Object.assign({}, b, { z: fundo - b.z - b.d }));
@@ -775,7 +744,7 @@
     decor.push(portico(Kp, o.portico || INK, o.placa || [ROSA, PAPEL]), { x: W / 2 - 3.5, z: D - 3, acao: 'largada', bl: totemLargada(o.totem || AZUL) });
     if(o.porticoPubli){ const p = c.P[0], t = c.T[0], yw = Math.atan2(t[0], t[1]); paineis.push({ P4: cantosPlaca(p[0], p[1], yw + Math.PI, 2.6, .6, 3.6, .13), k: o.porticoPubli, v: 0, fino: true }); }
     const muro = o.muro || '#3A3E45';
-    return { k: 'lugar-' + o.k, W, D, ALT: 3, longe: 42, kart: Kp, paineis, banner: o.banner,
+    return { k: 'lugar-' + o.k, W, D, ALT: 3, longe: o.longe || 42, kart: Kp, solo: !!o.solo, paineis, banner: o.banner,
       comodos: [{ k: 'pista', nome: o.nome, x0: 0, z0: 0, x1: W, z1: D, piso: o.fora, linha: o.linha }],
       paredes: [{ a: [0, D], b: [W, D], ext: [0, 1], portas: [[W / 2 - .6, W / 2 + .6]], entrada: true, cor: muro, alt: 1.2 }, { a: [W, 0], b: [W, D], ext: [1, 0], cor: muro, alt: 1.2 }, { a: [0, 0], b: [0, D], ext: [-1, 0], cor: muro, alt: 1.2 }, { a: [0, 0], b: [W, 0], ext: [0, -1], cor: muro, alt: 1.2 }],
       entrada: { x: W / 2, z: D }, chao: [...antes, ...Kp.chao, ...depois], bloqueio: bloq, padrao: [], decor };
@@ -791,7 +760,7 @@
   function espalha(ctx, n, semente, f, cria){ const out = []; for(let k = 0; k < n * 6 && out.length < n; k++){ const x = 2 + sorte(semente + k * 3.1) * (ctx.W - 4), z = 2 + sorte(semente + k * 7.7 + 1) * (ctx.D - 4); if(!ctx.livre(x, z, f) || out.some(q => Math.hypot(q.x - x, q.z - z) < 2.6)) continue; out.push({ x, z, bl: cria(out.length) }); } ctx.decor.push(...out); return out; }
 
   const KART_DEF = {
-    patinete: { k: 'patinete', rk: 'kz', nome: 'Circuito do Zerão', sub: 'Parque, lago e capivara atravessando. Rampa por cima do córrego.', W: 74, D: 60, larg: 4.2,
+    patinete: { k: 'patinete', rk: 'kz', nome: 'Circuito do Zerão', sub: 'Parque, lago e capivara atravessando. Rampa por cima do córrego.', W: 74, D: 60, larg: 5,
       pts: [[25.3, 50.6], [39.1, 50.6], [52.9, 50.6], [63.25, 48.3], [67.85, 40.25], [65.55, 32.2], [57.5, 30.47], [54.62, 23.57], [62.1, 18.4], [67.6, 11.8], [63.5, 5.9], [51.75, 5.75], [44.27, 8.62], [41.97, 16.1], [45.42, 25.3], [37.95, 31.62], [30.47, 25.3], [30.47, 14.95], [27.02, 6.9], [18.4, 5.75], [10.35, 8.05], [6.9, 16.1], [10.92, 24.15], [6.9, 32.2], [9.2, 41.4], [14.95, 48.3]],
       cor: '#3A3E45', zebra: [VERM, PAPEL], beira: PAPEL, fora: '#D9C27F', linha: 'rgba(60,40,10,.05)', muro: '#C9A95E', portico: INK, placa: [ROSA, PAPEL], totem: AZUL,
       turbos: [[.04, 0], [.395, 0], [.62, 1], [.875, 0]], rampas: [.41, .89], corrego: .425, discos: [.08, .47, .78], perigo: { tipo: 'capivara', s: .53, alcance: 7.5, vel: .9, pausa: 2600 }, publi: [{ k: 'nexwin', n: 4 }],
@@ -805,7 +774,7 @@
         espalha(K, 22, 11, 1.6, j => arvoreK([ROSA, '#FFB3D1', LILAS, '#E8643A'][j % 4], ['#FFB3D1', ROSA, '#B79CFF', '#F08A5D'][j % 4], .9 + sorte(j) * .5));
         [[6, 55], [45, 55]].forEach(([x, z]) => K.decor.push({ x, z, bl: espelhaZ(torcida(20, 3, [ROSA, AZUL, LARANJA, LILAS, PAPEL, VERM]), 1.65) }));
       } },
-    'patinete-cafe': { k: 'patinete-cafe', rk: 'kc', nome: 'Terreiro de Café', sub: 'Terra roxa, zigue-zague entre as leiras, túnel da tulha e trator na pista.', W: 74, D: 60, larg: 4.2,
+    'patinete-cafe': { k: 'patinete-cafe', rk: 'kc', nome: 'Terreiro de Café', sub: 'Terra roxa, zigue-zague entre as leiras, túnel da tulha e trator na pista.', W: 74, D: 60, larg: 5,
       pts: [[46.0, 50.6], [32.2, 50.6], [18.4, 50.6], [9.2, 46.0], [5.75, 36.8], [6.9, 25.3], [6.9, 13.8], [11.5, 5.75], [23.0, 5.75], [36.8, 5.75], [50.6, 5.75], [62.1, 6.9], [66.7, 13.8], [63.25, 20.12], [54.05, 20.12], [46.57, 24.72], [37.95, 19.55], [29.32, 24.72], [21.27, 20.12], [15.52, 24.15], [16.1, 32.2], [22.42, 36.8], [31.05, 35.65], [39.1, 40.25], [48.3, 35.65], [57.5, 34.5], [65.55, 39.1], [65.55, 47.15], [57.5, 50.6]],
       cor: '#8E3B2A', zebra: [PAPEL, '#5A2418'], beira: '#E8D9C0', fora: '#D8C9A8', linha: 'rgba(90,60,30,.06)', muro: '#7A4E2A', portico: '#5A3A1E', placa: ['#7A3A22', '#F2D3A0'], totem: LARANJA, rampa: ['#6B4A2E', '#F2D3A0'],
       turbos: [[.035, 0], [.335, 0], [.455, 0], [.845, 0]], rampas: [.19, .86], discos: [.07, .52, .76], perigo: { tipo: 'trator', s: .8, alcance: 8, vel: 1.4, pausa: 2000 }, publi: [{ k: 'nexwin', n: 4 }], publiFase: .1,
@@ -822,7 +791,7 @@
         const cx = [30, 28], ch = [52, 44.5]; if(K.livre(cx[0], cx[1], 2.5)) K.decor.push({ x: cx[0], z: cx[1], bl: [...[[-1, -1], [1, -1], [-1, 1], [1, 1]].map(([a, b]) => B(a * .9 - .1, 0, b * .9 - .1, .2, 3.2, .2, '#6B4A2E')), B(-1.2, 3.2, -1.2, 2.4, 1.6, 2.4, '#9AA0A8'), B(-1.3, 4.8, -1.3, 2.6, .2, 2.6, '#7A3A22')] });
         if(K.livre(ch[0], ch[1], 2)) K.decor.push({ x: ch[0], z: ch[1], bl: [B(-1.2, 0, -1, 2.4, 1.6, 2, TIJ), B(-.4, 1.6, -.4, .8, 3.4, .8, TIJ), B(-.5, 5, -.5, 1, .2, 1, INK)] });
       } },
-    'patinete-noite': { k: 'patinete-noite', rk: 'kn', nome: 'Noite no Calçadão', sub: 'Asfalto, neon, avenida de turbo, salto na rampa de skate e o busão cruzando.', W: 74, D: 60, larg: 4.2,
+    'patinete-noite': { k: 'patinete-noite', rk: 'kn', nome: 'Noite no Calçadão', sub: 'Asfalto, neon, avenida de turbo, salto na rampa de skate e o busão cruzando.', W: 74, D: 60, larg: 5,
       pts: [[27.6, 50.6], [41.4, 50.6], [55.2, 50.6], [64.4, 48.3], [66.7, 39.1], [66.7, 27.6], [66.7, 16.1], [63.25, 8.05], [54.05, 5.75], [39.1, 5.75], [24.15, 5.75], [11.5, 6.9], [6.9, 13.8], [8.05, 23.0], [14.95, 27.6], [23.0, 25.3], [29.9, 19.55], [39.1, 16.1], [47.15, 19.55], [49.45, 27.6], [44.85, 34.5], [36.8, 35.65], [27.6, 36.8], [19.5, 38], [11.5, 40.5], [8.6, 46], [14, 50.6]],
       cor: '#26282F', zebra: [ROSA, AZUL], beira: '#8F96A0', fora: '#3A3E48', linha: 'rgba(255,255,255,.04)', muro: '#1B1D22', portico: '#2B2F38', placa: [AZUL, ROSA], totem: ROSA, rampa: ['#2E5BFF', '#FF4F9A'], neon: true,
       turbos: [[.04, 0], [.075, 0], [.2, 0], [.36, 1], [.395, -1], [.43, 1], [.955, 0]], rampas: [.215, .45], discos: [.1, .5, .7], perigo: { tipo: 'busao', s: .835, alcance: 8, vel: 3.2, pausa: 1800 }, publi: [{ k: 'nexwin', n: 4 }], publiFase: .2,
@@ -844,7 +813,7 @@
       } },
     /* a Arena JET: a pista da parceira (patinete elétrico de aluguel), com placa, LED, a marca no chão, as vagas de
        patinete e de power bank, e a van da JET cruzando a pista */
-    'patinete-jet': { k: 'patinete-jet', rk: 'kj', nome: 'Arena JET', sub: 'A arena da JET, parceira do Corre: patinete elétrico de aluguel. Placa pra todo lado, avenida de turbo e a van da JET cruzando.', W: 74, D: 60, larg: 4.2,
+    'patinete-jet': { k: 'patinete-jet', rk: 'kj', nome: 'Arena JET', sub: 'A arena da JET, parceira do Corre: patinete elétrico de aluguel. Placa pra todo lado, avenida de turbo e a van da JET cruzando.', W: 74, D: 60, larg: 5,
       pts: [[27.6,  50.6], [43.7,  50.6], [57.5,  49.45], [65.55,  43.7], [66.7,  34.5], [59.8,  29.32], [50.6,  31.62], [43.7,  36.8], [35.65,  37.38], [29.9,  31.05], [32.2,  23.0], [40.25,  18.97], [51.75,  18.97], [60.95,  16.1], [65.55,  9.2], [59.8,  4.6], [46.0,  5.75], [32.2,  5.75], [18.4,  5.75], [9.2,  9.2], [6.9,  18.4], [12.65,  25.3], [17.25,  33.35], [11.5,  40.82], [9.2,  47.15], [16.1,  51.17]],
       cor: '#1E2026', zebra: ['#307FE2', PAPEL], beira: PAPEL, fora: '#2B2F38', linha: 'rgba(48,127,226,.16)', muro: '#307FE2', portico: INK, placa: ['#307FE2', PAPEL], totem: '#307FE2', rampa: ['#307FE2', PAPEL], porticoPubli: 'jet', banner: 'jet',
       turbos: [[.03, 0], [.31, 0], [.6, 0], [.66, 1], [.7, -1], [.94, 0]], rampas: [.08, .645], discos: [.14, .45, .8], perigo: { tipo: 'van', s: .3, alcance: 6, vel: 2.4, pausa: 2200 },
@@ -1014,7 +983,36 @@
   };
 
   /* v3.53: as pistas de kart só ficam prontas aqui (o cenário usa a torcida, que é das quadras) */
+  /* v3.59 · o Autódromo do Café de verdade (o Thales: "arrumar a pista de moto pra uma pista de verdade: circuito maior,
+     rampas, obstáculos"). Volta de 365 m: a reta dos boxes, a curva longa, os esses, o grampo lá em cima, a reta de
+     cima com os dois saltos de motocross, o miolo com o terceiro salto, as costelas e a reta de volta. Brita por fora
+     das curvas (fora da pista anda devagar), muro de pneu atrás dela, óleo, cone e pilha de pneu na pista, e o trator do
+     café cruzando depois do grampo. Moto sozinha contra o relógio (sem bicho e sem item): é "solo" pro motor do kart */
+  const PNEU_K = (j, yw) => PNEUS(j).map(b => Object.assign(b, { yaw: yw, piv: [0, 0, 0] }));
+  const MOTO_DEF = { k: 'moto', rk: 'mc', solo: true, nome: 'Autódromo do Café', sub: 'O circuito da moto: grampo, esses, saltos de motocross, costelas e óleo na pista.', W: 96, D: 74, larg: 6, longe: 52,
+    pts: [[30, 62], [48, 62], [66, 62], [80, 60.5], [87, 53], [87.5, 44], [82, 37], [73, 35], [66, 30], [68, 22], [76, 17], [86, 14], [88, 7.5], [80, 5], [66, 5.5], [50, 5.5], [36, 5.5], [24, 5.5], [14, 8], [8.5, 15], [9, 24], [16, 29], [26, 28], [34, 22], [44, 22], [52, 27], [53, 36], [46, 43], [36, 44], [26, 41], [16, 42], [9.5, 48.5], [10, 57], [18, 62]],
+    cor: '#3A3E45', zebra: [VERM, PAPEL], beira: PAPEL, fora: '#D9C27F', linha: 'rgba(60,40,10,.05)', muro: '#2B2F38', portico: INK, placa: [VERM, PAPEL], totem: ROSA, rampa: ['#3A3E45', AMARELO],
+    turbos: [[.035, 0], [.43, 0], [.875, 0]], rampas: [.455, .51, .725], costelas: [[.8, .845]],
+    obst: [['cone', .06, 1.7], ['cone', .068, -1.7], ['cone', .076, 1.7], ['cone', .084, -1.7], ['cone', .092, 1.7], ['oleo', .14, 1.1], ['pneus', .3, 1.8], ['oleo', .62, -1], ['pneus', .655, -1.8], ['cone', .77, 0], ['pneus', .9, 1.7], ['oleo', .93, -.9]],
+    perigo: { tipo: 'trator', s: .4, alcance: 8, vel: 1.4, pausa: 2200 }, publi: [{ k: 'nexwin', n: 5 }], publiFase: .05,
+    tema(K){
+      const { c, h } = K;
+      /* a brita: a faixa de pedrinha por fora de toda curva, e o muro de pneu atrás dela */
+      for(let i = 0; i < c.N; i += 2){ const k = (c.K[i] + c.K[idxK(c, i + 1)] + c.K[idxK(c, i + 2)]) / 3; if(Math.abs(k) < 1 / 30) continue; const l = k > 0 ? -1 : 1;
+        K.antes.push({ pts: [ptK(c, i, l * (h - .1), -.05), ptK(c, i + 2, l * (h - .1), .05), ptK(c, i + 2, l * (h + 2.6), .05), ptK(c, i, l * (h + 2.6), -.05)], c: (i / 2) % 3 ? '#CFC6B4' : '#C2B8A4' }); }
+      const passo = Math.max(1, Math.round(1.05 / c.ds)); let j = 0;
+      for(let i = 0; i < c.N; i += passo){ const k = (c.K[idxK(c, i - 2)] + c.K[i] + c.K[idxK(c, i + 2)]) / 3; if(Math.abs(k) < 1 / 30) continue; const l = k > 0 ? -1 : 1, p = ptK(c, i, l * (h + 3), 0);
+        if(longeDaLinha(c, p[0], p[1]) < h + 2.6 || p[0] < 1 || p[1] < 1 || p[0] > K.W - 1 || p[1] > K.D - 1) continue; K.decor.push({ x: p[0], z: p[1], bl: PNEU_K(j++, Math.atan2(c.T[i][0], c.T[i][1])) }); }
+      /* as arquibancadas da reta dos boxes, a torre da cronometragem e os boxes */
+      [[4, 66.5], [62, 66.5]].forEach(([x, z]) => K.decor.push({ x, z, bl: arquibancada(28, 3) }));
+      if(K.livre(56, 51, 1.5)) K.decor.push({ x: 56, z: 51, bl: [B(-1, 0, -1, 2, 4.2, 2, '#E6E2DA'), B(-1.2, 4.2, -1.2, 2.4, 1.3, 2.4, '#9CC9F0'), B(-1.3, 5.5, -1.3, 2.6, .25, 2.6, VERM), B(-.9, 4.3, 1.21, 1.8, 1.1, .01, INK), B(-.9, 2.2, 1.01, 1.8, .5, .02, VERM)] });
+      for(let x = 22; x < 50; x += 4.4) if(K.livre(x + 2, 50, 1)) K.decor.push({ x, z: 48.6, bl: [B(0, 0, 0, 4, 2.4, 2.6, '#C9CDD3'), B(.2, 0, 2.6, 3.6, 2, .02, '#3A3E45'), B(-.1, 2.4, -.1, 4.2, .2, 2.9, VERM), B(1.2, 1.5, 2.62, 1.6, .5, .02, PAPEL)] });
+      /* os ipês do miolo */
+      espalha(K, 16, 71, 1.8, j => ipe([ROSA, '#FFB3D1', LILAS, '#E8643A'][j % 4], .9 + sorte(j) * .4));
+    } };
   const PLANTAS_KART = {}; Object.keys(KART_DEF).forEach(k => { PLANTAS_KART[k] = plantaKart(KART_DEF[k]); });
+  const PLANTA_MOTO = plantaKart(MOTO_DEF);
+  const PISTA_MOTO = { kart: true, solo: true, k: 'moto', rk: 'mc', nome: MOTO_DEF.nome, sub: MOTO_DEF.sub, veic: 'moto', vmax: 12.5, acel: 8, giro: 2.4, Kp: PLANTA_MOTO.kart, def: MOTO_DEF };
   const PISTA_KART = k => ({ kart: true, k, rk: KART_DEF[k].rk, nome: KART_DEF[k].nome, sub: KART_DEF[k].sub, veic: 'patinete', vmax: 10, acel: 7.5, giro: 2.45, Kp: PLANTAS_KART[k].kart, def: KART_DEF[k] });
   const LUGARES = {
     horus: { titulo: 'Casa do Hórus', planta: PLANTA_HORUS, ola: 'Casa do Hórus. O radar é o altar do meio: chega e toca.',
@@ -1061,8 +1059,7 @@
     pesca: { titulo: 'Torneio de Pesca', sai: 'Sair pra rua', planta: PLANTA_PESCA, ola: 'Torneio de Pesca do Igapó. Vai num balde da beira e toca; quando a boia afundar, puxa! A rodada é de 3 minutos.',
       estacoes: () => [],
       itens: [['podio', 2.2, 12.4, 0, 0, 0], ['capivara_ouro', 4.3, 12.5, 0, 0, 0], ['caixa_termica', 8.6, 12.6, 0, 0, 0], ['banco_madeira', 11.4, 12.9, 0, 0, 0], ['poste', 5.2, 11.6, 0, 0, 0]] },
-    moto: { titulo: 'Autódromo do Café', sai: 'Sair pra rua', planta: PLANTA_MOTO, ola: 'Autódromo do Café. Vai no totem da bandeira e toca em Largar: 3 voltas de moto contra o relógio.', estacoes: () => [], corrida: PISTAS.moto,
-      itens: [['poste', 1, 21.6, 0, 0, 0], ['poste', 28, 21.6, 0, 0, 0], ['cone', 11, 22.2, 0, 0, 0], ['cone', 19, 22.2, 0, 0, 0]] },
+    moto: { titulo: 'Autódromo do Café', sai: 'Sair pra rua', planta: PLANTA_MOTO, ola: 'Autódromo do Café. Vai no totem da bandeira e toca em Largar: 3 voltas de moto no circuito, contra o relógio. Rampa, costela, óleo, cone e pneu na pista.', estacoes: () => [], corrida: PISTA_MOTO },
     /* v3.53: as três pistas de kart do patinete (a placa da cidade abre a escolha) */
     ...Object.fromEntries(Object.keys(KART_DEF).map(k => [k, { titulo: KART_DEF[k].nome, sai: 'Sair pra rua', planta: PLANTAS_KART[k], ola: `${KART_DEF[k].nome}. Vai no totem da bandeira, escolhe teu bicho e larga: sempre seis na pista (quem faltar, a máquina pilota).`, estacoes: () => [], corrida: PISTA_KART(k) }])),
     'quadra-futsal': { titulo: 'Quadra do Zerão', sai: 'Sair pra rua', planta: PLANTA_FUTSAL, ola: 'Quadra do Zerão. Na caixa de bolas, toca em "Desafio de pênalti": 10 cobranças contra o goleiro.', estacoes: () => [], desafio: DESAFIOS.futsal,
@@ -1685,7 +1682,9 @@
   function mover(e, dx, dz){
     const n = nivelDe(e.y), preso = bate(e.x, e.z, n);
     /* se já nasceu dentro de alguma coisa (móvel velho na soleira), pode andar até sair */
-    const tenta = (nx, nz) => { if(!preso && bate(nx, nz, n)) return false; const y = alturaEm(nx, nz, e.y); if(Math.abs(y - e.y) > .6) return false; e.x = nx; e.z = nz; e.y = y; return true; };
+    /* v3.59: voando da rampa (corrida), a altura do chão não é degrau: segue em frente (antes travava no ar) */
+    const voa = e === S.eu && S.corrida && S.corrida.pulo;
+    const tenta = (nx, nz) => { if(!preso && bate(nx, nz, n)) return false; const y = alturaEm(nx, nz, e.y); if(!voa && Math.abs(y - e.y) > .6) return false; e.x = nx; e.z = nz; if(!voa) e.y = y; return true; };
     tenta(e.x + dx, e.z); tenta(e.x, e.z + dz);
   }
   /* um lugar livre perto de um ponto (pro boneco nascer sem ficar preso) */
@@ -1797,7 +1796,7 @@
     return out;
   }
   const acaoPraMim = a => a.a !== 'skate' || S.meu;
-  const rotuloAcao = a => a.a === 'desafio' ? `${(quadraAqui() || {}).nome || 'Desafio'} (${TENT})` : a.a === 'largada' ? (PL && PL.kart ? 'Escolher bicho e largar' : `Largar (${VOLTAS} voltas)`) : a.a === 'pesca' ? 'Pescar aqui' : a.a === 'skate' ? (C.st.me && C.st.me.verso && C.st.me.verso.skate ? 'Largar o skate' : 'Pegar o skate') : a.a === 'jogo' ? 'Jogar Killer Ocean' : (S.discoAtual ? '♪ ' + (C.beats ? C.beats.nome(S.discoAtual) : 'tocando') : '♪ Discos');
+  const rotuloAcao = a => a.a === 'desafio' ? `${(quadraAqui() || {}).nome || 'Desafio'} (${TENT})` : a.a === 'largada' ? (comBicho() ? 'Escolher bicho e largar' : `Largar (${VOLTAS} voltas)`) : a.a === 'pesca' ? 'Pescar aqui' : a.a === 'skate' ? (C.st.me && C.st.me.verso && C.st.me.verso.skate ? 'Largar o skate' : 'Pegar o skate') : a.a === 'jogo' ? 'Jogar Killer Ocean' : (S.discoAtual ? '♪ ' + (C.beats ? C.beats.nome(S.discoAtual) : 'tocando') : '♪ Discos');
   /* vai até a frente e faz */
   function vaiNaAcao(a){
     if(!S.eu || !a || !acaoPraMim(a)) return;
@@ -2250,10 +2249,10 @@
   const recCorrida = () => { try{ const o = JSON.parse(localStorage.getItem('corre-corrida') || '{}'); return o && typeof o === 'object' ? o : {}; }catch(e){ return {}; } };
   const guardaCorrida = o => { try{ localStorage.setItem('corre-corrida', JSON.stringify(o)); }catch(e){} };
   const pistaAqui = () => (S.aberta && S.lugar && LUGARES[S.lugar] && LUGARES[S.lugar].corrida) || null;
+  /* v3.59: pista de kart com os bichos (a da moto também usa o motor do kart, mas sozinha: sem bicho e sem item) */
+  const comBicho = () => !!(PL && PL.kart && !PL.solo);
   const melhorHoje = P => { const r = P && recCorrida()[P.rk || P.veic]; return r && r.dia === diaBR() ? r.ms : 0; };
-  const angPista = (P, x, z) => Math.atan2((z - P.cz) / (P.az - P.larg / 2), (x - P.cx) / (P.ax - P.larg / 2)) * 180 / Math.PI;
-  const difAng = (a, b) => Math.abs((((a - b) % 360) + 540) % 360 - 180);
-  const ALVOS = [0, -90, 180, 90], VOLTAS = 3;
+  const VOLTAS = 3;
   function rankingCorrida(P){
     const hoje = diaBR() % 1e5, out = [], meu = melhorHoje(P);
     if(meu) out.push({ nome: 'você', ms: meu, eu: true });
@@ -2262,12 +2261,8 @@
   }
   function largar(){
     const P = pistaAqui(), e = S.eu; if(!P || !e || S.corrida) return;
-    if(P.kart){ bichoSheet(); return; }
-    const mx = P.ax - P.larg / 2, mz = P.az - P.larg / 2, a = 100 * Math.PI / 180;
-    e.x = P.cx + Math.cos(a) * mx; e.z = P.cz + Math.sin(a) * mz; e.yaw = Math.atan2(Math.sin(a) * mx, -Math.cos(a) * mz); e.vel = 0; e.andando = false;
-    S.alvo = null; S.rota = []; S.acao = null; S.teclas.clear(); S.cam.th = e.yaw + Math.PI; S.cam.tx = e.x; S.cam.tz = e.z;
-    S.corrida = { P, larga: Date.now() + 3000, alvo: 0, voltas: [], tv: 0 };
-    painelCorrida(true); if(C.verso && C.verso.enviaPos) C.verso.enviaPos(true);
+    if(P.solo){ largarKart(P, null); return; }
+    bichoSheet();
   }
   function desmonta(desistiu){
     const R = S.corrida; if(!R) return; S.corrida = null;
@@ -2276,68 +2271,9 @@
     if(desistiu) C.toast('Desistiu da corrida.', 1600);
     painelCorrida(true); if(C.verso && C.verso.enviaPos) C.verso.enviaPos(true);
   }
-  function chegada(){
-    const R = S.corrida, P = R.P, total = Date.now() - R.larga, rec = recCorrida(), hoje = diaBR();
-    R.fim = Date.now(); R.total = total;
-    const meu = rec[P.veic] && rec[P.veic].dia === hoje ? rec[P.veic].ms : 0, bateu = !meu || total < meu, sempre = rec[P.veic + 'Rec'] || 0, recorde = !sempre || total < sempre;
-    if(bateu) rec[P.veic] = { dia: hoje, ms: total }; if(recorde) rec[P.veic + 'Rec'] = total; guardaCorrida(rec);
-    const lista = rankingCorrida(P), pos = lista.findIndex(x => x.eu) + 1;
-    C.toast(`Chegou! ${tempoTxt(total)}${recorde ? ', teu recorde' : bateu ? ', o teu melhor de hoje' : ''}${lista.length > 1 ? `. ${pos}º do dia na pista` : ''}.`, 5000);
-    if(C.verso && C.verso.anunciar) C.verso.anunciar();
-    setTimeout(() => { if(S.corrida === R) desmonta(); }, 2600);
-  }
-  function contaVolta(){
-    const R = S.corrida, e = S.eu, P = R.P, agora = Date.now();
-    if(difAng(angPista(P, e.x, e.z), ALVOS[R.alvo]) > 14) return;
-    R.alvo++;
-    if(R.alvo < ALVOS.length) return;
-    R.alvo = 0; const tv = agora - (R.tv || R.larga); R.voltas.push(tv); R.tv = agora;
-    if(R.voltas.length >= VOLTAS) chegada(); else C.toast(`Volta ${R.voltas.length}: ${tempoTxt(tv)}`, 1600);
-  }
-  function passoVeiculo(dt){
-    const e = S.eu, R = S.corrida, P = R.P, k = S.teclas, agora = Date.now();
-    if(R.kart){ passoKart(dt); return; }
-    let ac = 0, vi = 0;
-    if(k.has('w') || k.has('ArrowUp')) ac += 1; if(k.has('s') || k.has('ArrowDown')) ac -= 1;
-    if(k.has('d') || k.has('ArrowRight')) vi += 1; if(k.has('a') || k.has('ArrowLeft')) vi -= 1;
-    const pv = S.pad && S.pad.vetor ? S.pad.vetor() : null;
-    if(pv && pv.m && !ac && !vi){ ac = Math.max(-1, Math.min(1, -pv.y * 1.4)); vi = Math.max(-1, Math.min(1, pv.x * 1.4)); }
-    S.alvo = null; S.rota = []; S.acao = null;
-    const solto = agora >= R.larga && !R.fim;
-    if(solto && !R.vai){ R.vai = 1; C.toast('Vai!', 900); }
-    if(!solto) ac = 0;
-    let v = e.vel || 0;
-    if(ac > 0) v += P.acel * ac * dt;
-    else if(ac < 0) v -= (v > 0 ? P.acel * 1.8 : P.acel * .5) * -ac * dt;
-    else v -= Math.sign(v) * Math.min(Math.abs(v), 2.5 * dt);
-    v = Math.max(-2.5, Math.min(P.vmax, v));
-    if(Math.abs(v) > .2) e.yaw -= vi * P.giro * dt * Math.min(1, Math.abs(v) / 3) * Math.sign(v);
-    const sx = Math.sin(e.yaw) * v * dt, sz = Math.cos(e.yaw) * v * dt, ox = e.x, oz = e.z;
-    mover(e, sx, sz);
-    const andou = Math.hypot(e.x - ox, e.z - oz), quer = Math.hypot(sx, sz);
-    if(quer > .001 && andou < quer * .6) v *= .55;
-    e.vel = v; e.andando = false;
-    const c = S.cam, f = Math.min(1, dt * 6); c.tx += (e.x - c.tx) * f; c.tz += (e.z - c.tz) * f; c.ty += (e.y + 1.1 - c.ty) * f;
-    let d = e.yaw + Math.PI - c.th; d = Math.atan2(Math.sin(d), Math.cos(d)); c.th += d * Math.min(1, dt * 4);
-    if(solto) contaVolta();
-  }
-  function painelCorrida(forca){
-    const el = C.$('cs-pesca'), P = pistaAqui(); if(!el || !P) return;
-    if(P.kart){ painelKart(forca); return; }
-    el.classList.remove('kart');
-    el.hidden = false;
-    const agora = Date.now(); if(!forca && agora - (S.painelT || 0) < 120) return; S.painelT = agora;
-    const R = S.corrida, sempre = recCorrida()[P.veic + 'Rec'] || 0, toque = !!S.pad;
-    let topo, dica;
-    if(R && agora < R.larga){ topo = `Largada em ${Math.ceil((R.larga - agora) / 1000)}`; dica = 'Segura: sai no "Vai!".'; }
-    else if(R && !R.fim){ topo = `Volta ${Math.min(VOLTAS, R.voltas.length + 1)}/${VOLTAS} · ${tempoTxt(agora - R.larga)}`; dica = toque ? 'No direcional: pra cima acelera, pros lados vira.' : 'Frente acelera, trás freia, os lados viram.'; }
-    else if(R && R.fim){ topo = `Chegou: ${tempoTxt(R.total)}`; dica = 'Volta pro paddock e larga de novo quando quiser.'; }
-    else { topo = `${esc(P.nome)} · melhor do dia`; dica = 'Vai no totem da bandeira e toca em Largar.'; }
-    const lista = rankingCorrida(P), eu = lista.findIndex(x => x.eu), mostra = lista.slice(0, 3); if(eu > 2) mostra.push(lista[eu]);
-    const html = `<b class="cs-pesca-t">${ico('raio')} ${topo}</b><ol>${mostra.length ? mostra.map(x => `<li${x.eu ? ' class="eu"' : ''}><i>${lista.indexOf(x) + 1}º</i><span>${esc(x.nome)}</span><b>${tempoTxt(x.ms)}</b></li>`).join('') : '<li><i></i><span>Ninguém correu hoje ainda.</span><b></b></li>'}</ol><small>${dica}${sempre ? ` Recorde: ${tempoTxt(sempre)}.` : ''}</small>`;
-    el.classList.toggle('morde', !!(R && agora < R.larga));
-    if(el.dataset.h !== html){ el.dataset.h = html; el.innerHTML = html; }
-  }
+  /* toda pista corre no motor do kart (a moto é "solo") */
+  function passoVeiculo(dt){ passoKart(dt); }
+  function painelCorrida(forca){ if(pistaAqui()) painelKart(forca); }
   /* ---------- v3.53 · a corrida de kart ----------
      No grid: você (4º lugar) e cinco personagens do Correverso, cada um no seu patinete. Semáforo de 3 luzes; segurar o
      acelerador quando acende a segunda dá a largada perfeita (turbo), segurar desde antes da primeira afoga. 3 voltas.
@@ -2372,8 +2308,8 @@
   const latDe = (c, i, x, z) => { const p = c.P[i], t = c.T[i]; return (x - p[0]) * -t[1] + (z - p[1]) * t[0]; };
   const perto = (c, i, alvo, jan) => { const d = ((i - alvo) % c.N + c.N + c.N / 2) % c.N - c.N / 2; return Math.abs(d) <= jan; };
   function largarKart(P, vivo){
-    if(!bichoOk(S.kartBicho)) return;
-    const e = S.eu, c = P.Kp.c, g = P.Kp.grade, eu = vivo ? Math.max(0, vivo.quem.indexOf(C.verso.meuSid())) : 3, meu = g[eu], p = ptK(c, meu.i, meu.lat, 0), t = c.T[idxK(c, meu.i)];
+    if(!P.solo && !bichoOk(S.kartBicho)) return;
+    const e = S.eu, c = P.Kp.c, g = P.Kp.grade, eu = vivo ? Math.max(0, vivo.quem.indexOf(C.verso.meuSid())) : P.solo ? 0 : 3, meu = g[eu], p = ptK(c, meu.i, meu.lat, 0), t = c.T[idxK(c, meu.i)];
     e.x = p[0]; e.z = p[1]; e.y = 0; e.yaw = Math.atan2(t[0], t[1]); e.vel = 0; e.andando = false;
     S.alvo = null; S.rota = []; S.acao = null; S.teclas.clear(); S.cam.th = e.yaw + Math.PI; S.cam.tx = e.x; S.cam.tz = e.z;
     /* sempre seis: ao vivo, as pessoas ficam nos primeiros lugares do grid (na ordem da lista de quem largou) e a máquina
@@ -2383,14 +2319,14 @@
     const slots = vivo ? g.map((x, n) => n).filter(n => n >= vivo.quem.length) : [0, 1, 2, 4, 5];
     const roda = !vivo || vivo.quem[0] === C.verso.meuSid();
     /* v3.55: dois com o mesmo bicho sobrava bicho sem lugar no grid (e a largada quebrava): só entra quem cabe */
-    const rivais = livres.slice(0, slots.length).map((j, n) => { const b = BICHOS_K[j], sl = g[slots[n]]; return Object.assign({}, b, { idx: j, av: avBicho(j), s: sl.i * c.ds, sAlvo: sl.i * c.ds, lat: sl.lat, latAlvo: sl.lat, v: 0, vmax: P.vmax * b.f, estilo: (sorte(j * 7.3 + 1) - .5) * 1.4, item: null, itemT: 0, boostAte: 0, rodouAte: 0, puloT: 0, fim: 0, remoto: !roda }); });
-    S.corrida = { P, kart: true, vivo: vivo ? { id: vivo.id, quem: vivo.quem.slice(0, 6), bichos: vivo.bichos.slice(0, 6), host: vivo.quem[0], roda } : null, cpuT: 0, cpuVisto: Date.now(), larga: Date.now() + (vivo ? vivo.em : 4000), voltas: [], tv: 0, lap: 0, prog: meu.i * c.ds, si: idxK(c, meu.i), item: null, itemN: 0, roleta: 0, sorteado: null, boostAte: 0, drift: null, pulo: null, hopT: 0, rodouAte: 0, chic: [], ondas: [], rivais, discOff: {}, cam0: { ph: S.cam.ph, dist: S.cam.dist }, acelDesde: 0, longeT: 0, contraT: 0, progAnt: 0, yawVis: 0, segura: false, pulaT: 0 };
+    const rivais = P.solo ? [] : livres.slice(0, slots.length).map((j, n) => { const b = BICHOS_K[j], sl = g[slots[n]]; return Object.assign({}, b, { idx: j, av: avBicho(j), s: sl.i * c.ds, sAlvo: sl.i * c.ds, lat: sl.lat, latAlvo: sl.lat, v: 0, vmax: P.vmax * b.f, estilo: (sorte(j * 7.3 + 1) - .5) * 1.4, item: null, itemT: 0, boostAte: 0, rodouAte: 0, puloT: 0, fim: 0, remoto: !roda }); });
+    S.corrida = { P, kart: true, vivo: vivo ? { id: vivo.id, quem: vivo.quem.slice(0, 6), bichos: vivo.bichos.slice(0, 6), host: vivo.quem[0], roda } : null, cpuT: 0, cpuVisto: Date.now(), larga: Date.now() + (vivo ? vivo.em : 4000), voltas: [], tv: 0, lap: 0, prog: meu.i * c.ds, si: idxK(c, meu.i), item: null, itemN: 0, roleta: 0, sorteado: null, boostAte: 0, drift: null, pulo: null, hopT: 0, rodouAte: 0, chic: [], ondas: [], rivais, discOff: {}, obsOff: {}, caido: {}, cam0: { ph: S.cam.ph, dist: S.cam.dist }, acelDesde: 0, longeT: 0, contraT: 0, progAnt: 0, yawVis: 0, segura: false, pulaT: 0 };
     painelCorrida(true); if(C.verso && C.verso.enviaPos) C.verso.enviaPos(true);
   }
   /* a posição de todo mundo: quem chegou, na ordem; o resto pelo quanto andou */
   function ordemKart(R){
     const tot = R.P.Kp.c.tot, nb = i => (bichoOk(i) ? BICHOS_K[i].nome : 'alguém');
-    const lista = [{ nome: `você · ${nb(S.kartBicho)}`, eu: true, prog: R.prog, tempo: R.fim ? R.total : 0 }];
+    const lista = [{ nome: R.P.solo ? 'você' : `você · ${nb(S.kartBicho)}`, eu: true, prog: R.prog, tempo: R.fim ? R.total : 0 }];
     if(R.vivo) gente().forEach(r => { if(r.kl === R.vivo.id && R.vivo.quem.includes(r.sid)) lista.push({ nome: `${nb(r.kp)} · @${r.handle || 'alguém'}`, prog: (r.kg || 0) / 10, tempo: r.kfId === R.vivo.id ? r.kfT || 0 : 0 }); });
     R.rivais.forEach(r => lista.push({ nome: R.vivo ? `${r.nome} · máquina` : r.nome, prog: r.s, tempo: r.fim ? r.tempo : 0, r }));
     return lista.sort((a, b) => (a.tempo && b.tempo) ? a.tempo - b.tempo : a.tempo ? -1 : b.tempo ? 1 : b.prog - a.prog).map((x, i) => Object.assign(x, { pos: i + 1, fim: !!x.tempo, volta: Math.min(VOLTAS, Math.max(1, Math.floor(x.prog / tot) + 1)) }));
@@ -2417,7 +2353,8 @@
     const pos = ordemKart(R).find(x => x.eu).pos;
     if(R.vivo) mandaKart({ t: 'fim', id: R.vivo.id, ms: total });
     if(PL && PL.banner) setTimeout(() => { if(S.aberta && PL && PL.banner) bannerPubli(PL.banner); }, 2500);
-    C.toast(`${pos === 1 ? 'Primeiro lugar!' : `Chegou em ${pos}º.`} ${tempoTxt(total)}${recorde ? ', teu recorde' : bateu ? ', o teu melhor de hoje' : ''}.`, 5200);
+    if(P.solo){ const lista = rankingCorrida(P), p2 = lista.findIndex(x => x.eu) + 1; C.toast(`Chegou! ${tempoTxt(total)}${recorde ? ', teu recorde' : bateu ? ', o teu melhor de hoje' : ''}${lista.length > 1 ? `. ${p2}º do dia na pista` : ''}.`, 5200); }
+    else C.toast(`${pos === 1 ? 'Primeiro lugar!' : `Chegou em ${pos}º.`} ${tempoTxt(total)}${recorde ? ', teu recorde' : bateu ? ', o teu melhor de hoje' : ''}.`, 5200);
     if(C.verso && C.verso.anunciar) C.verso.anunciar();
     setTimeout(() => { if(S.corrida === R) desmonta(); }, 7000);
   }
@@ -2456,12 +2393,15 @@
     if(R.longeT && agora - R.longeT > 2500){ const p = ptK(c, R.si, 0, 0), t = c.T[R.si]; e.x = p[0]; e.z = p[1]; e.yaw = Math.atan2(t[0], t[1]); e.vel = 0; R.longeT = 0; R.drift = null; C.toast('De volta pra pista.', 1300); si = R.si; }
     let d = si - R.si; if(d > c.N / 2) d -= c.N; else if(d < -c.N / 2) d += c.N; R.si = si; R.prog += d * c.ds;
     const naAgua = P.Kp.agua && !R.pulo && perto(c, si, P.Kp.agua.i0 + 2, 2) && Math.abs(lat) < h + 7;
+    /* v3.59: nas costelas a moto sacode e não passa de 72% (no ar, passa por cima) */
+    const naCostela = !R.pulo && Math.abs(lat) < h && P.Kp.costelas.some(cs => (cs.i0 <= cs.i1 ? si >= cs.i0 && si <= cs.i1 : si >= cs.i0 || si <= cs.i1));
     /* a velocidade: turbo, fora da pista, água */
     const boost = R.boostAte > agora;
-    let vmax = P.vmax; if(fora && !R.pulo) vmax = 4.4; if(naAgua) vmax = 3; if(boost) vmax = P.vmax * 1.45;
+    let vmax = P.vmax; if(fora && !R.pulo) vmax = 4.4; if(naAgua) vmax = 3; if(naCostela) vmax = Math.min(vmax, P.vmax * .72); if(boost) vmax = P.vmax * 1.45;
     let v = e.vel || 0;
     if(!R.pulo){
-      if(boost) v += P.acel * 2.2 * dt;
+      /* v3.59: o turbo empurra até o teto dele (antes somava mais rápido do que o teto segurava e passava de 30 m/s) */
+      if(boost) v += P.acel * 2.2 * dt * (v < vmax ? 1 : 0);
       else if(ac > 0) v += P.acel * ac * dt * (v > vmax ? 0 : 1);
       else if(ac < 0) v -= (v > 0 ? P.acel * 1.8 : P.acel * .5) * -ac * dt;
       else v -= Math.sign(v) * Math.min(Math.abs(v), 2.5 * dt);
@@ -2485,7 +2425,7 @@
     /* rampa: quem passa rápido voa */
     if(!R.pulo) P.Kp.rampas.forEach(rp => { if(!R.pulo && Math.abs(lat) < h && v > 3.5 && perto(c, si, rp.ib, 1)) { R.pulo = { t0: agora, dur: 260 + v * 62, alt: .45 + v * .085, truque: agora - R.pulaT < 160 }; R.drift = null; } });
     if(R.pulo){ const u = (agora - R.pulo.t0) / R.pulo.dur; if(u >= 1){ if(R.pulo.truque){ R.boostAte = Math.max(R.boostAte, agora + 850); e.vel = Math.max(e.vel, P.vmax * 1.15); C.toast('Manobra!', 900); } R.pulo = null; e.y = 0; } else e.y = R.pulo.alt * 4 * u * (1 - u); }
-    else { const hu = (agora - R.hopT) / 200; e.y = hu >= 0 && hu < 1 ? .16 * Math.sin(Math.PI * hu) : 0; }
+    else { const hu = (agora - R.hopT) / 200; e.y = hu >= 0 && hu < 1 ? .16 * Math.sin(Math.PI * hu) : 0; if(naCostela) e.y = Math.max(e.y, .09 * Math.abs(Math.sin(R.prog * Math.PI / 1.2))); }
     /* seta de turbo */
     if(!R.pulo) P.Kp.turbos.forEach(tb => { if(perto(c, si, tb.i, 2) && Math.abs(lat - tb.lat) < .95){ if(R.boostAte < agora + 600) R.boostAte = agora + 1100; e.vel = Math.max(e.vel, P.vmax * 1.3); } });
     /* disco: a roleta */
@@ -2495,6 +2435,11 @@
     if(!R.pulo){ for(let j = R.chic.length - 1; j >= 0; j--){ const g = R.chic[j]; if(agora - g.t0 > 500 && Math.hypot(g.x - e.x, g.z - e.z) < .6){ R.chic.splice(j, 1); if(rodou(R, 1000, .3)) C.toast('Pisou no chiclete!', 1200); } } }
     if(solto) perigoAgora(P, agora).forEach(o => { if(bateuPerigo(o, e.x, e.z, .3) && e.y < .8 && rodou(R, 1100, -.25)) C.toast(o.tipo === 'capivara' ? 'Bateu na capivara! (ela tá bem)' : o.tipo === 'trator' ? 'Bateu no trator!' : o.tipo === 'van' ? 'Bateu na van da JET!' : 'Bateu no busão!', 1500); });
     R.chic = R.chic.filter(g => g.ate > agora);
+    /* v3.59: os obstáculos da pista (óleo derrapa, cone cai e segura a moto, pneu bate e devolve) */
+    if(solto && !R.pulo && e.y < .5) P.Kp.obst.forEach(ob => { if((R.obsOff[ob.id] || 0) > agora) return; const d = Math.hypot(ob.x - e.x, ob.z - e.z);
+      if(ob.tipo === 'oleo' && d < 1.05 && Math.abs(e.vel || 0) > 3){ R.obsOff[ob.id] = agora + 1500; if(rodou(R, 1000, .5)) C.toast('Derrapou no óleo!', 1300); }
+      else if(ob.tipo === 'cone' && d < .5){ R.obsOff[ob.id] = agora + 6000; R.caido[ob.id] = { t0: agora, ang: Math.atan2(ob.x - e.x, ob.z - e.z) }; e.vel = (e.vel || 0) * .7; }
+      else if(ob.tipo === 'pneus' && d < .9){ R.obsOff[ob.id] = agora + 900; const nx = (e.x - ob.x) / (d || 1), nz = (e.z - ob.z) / (d || 1); mover(e, nx * (.95 - d), nz * (.95 - d)); if(rodou(R, 800, -.2)) C.toast('Bateu nos pneus!', 1200); } });
     /* os rivais */
     passoRivais(dt, R, agora, agora >= R.larga);
     /* contramão */
@@ -2556,7 +2501,13 @@
     el.hidden = false; const agora = Date.now(); if(!forca && agora - (S.painelT || 0) < 120) return; S.painelT = agora;
     const R = S.corrida && S.corrida.kart ? S.corrida : null, sempre = recCorrida()[P.rk + 'Rec'] || 0, toque = !!S.pad;
     let topo, dica, corpo;
-    if(R){
+    if(R && P.solo){
+      /* v3.59: a moto, sozinha contra o relógio: a volta, o tempo e o placar do dia */
+      const tempo = R.fim ? R.total : Math.max(0, agora - R.larga), lista = rankingCorrida(P), eu = lista.findIndex(x => x.eu), mostra = lista.slice(0, 3); if(eu > 2) mostra.push(lista[eu]);
+      topo = agora < R.larga ? (agora < R.larga - 3000 ? 'Prepara…' : `Largada em ${Math.ceil((R.larga - agora) / 1000)}`) : R.fim ? `Chegou: ${tempoTxt(R.total)}` : `Volta ${Math.min(VOLTAS, R.lap + 1)}/${VOLTAS} · ${tempoTxt(tempo)}`;
+      corpo = `<ol>${mostra.length ? mostra.map(x => `<li${x.eu ? ' class="eu"' : ''}><i>${lista.indexOf(x) + 1}º</i><span>${esc(x.nome)}</span><b>${tempoTxt(x.ms)}</b></li>`).join('') : '<li><i></i><span>Ninguém correu hoje ainda.</span><b></b></li>'}</ol>`;
+      dica = agora < R.larga ? 'Segura o acelerador quando acender a segunda luz: largada perfeita.' : R.fim ? 'Volta pro paddock e larga de novo quando quiser.' : toque ? 'Na rampa, aperta Pular no ar: manobra e turbo. Desvia do óleo, dos cones e dos pneus.' : 'Na rampa, Espaço no ar: manobra e turbo. Espaço virando derrapa. Desvia do óleo, dos cones e dos pneus.';
+    } else if(R){
       const ord = ordemKart(R), eu = ord.find(x => x.eu), tempo = R.fim ? R.total : Math.max(0, agora - R.larga);
       topo = agora < R.larga ? (agora < R.larga - 3000 ? 'Prepara…' : `Largada em ${Math.ceil((R.larga - agora) / 1000)}`) : R.fim ? `Chegou em ${eu.pos}º · ${tempoTxt(R.total)}` : `${eu.pos}º de 6 · Volta ${Math.min(VOLTAS, R.lap + 1)}/${VOLTAS} · ${tempoTxt(tempo)}`;
       const it = R.roleta ? ITENS_K[Object.keys(ITENS_K)[Math.floor(agora / 90) % 4]] : R.item ? ITENS_K[R.item] : null;
@@ -2571,7 +2522,7 @@
     } else {
       topo = `${esc(P.nome)} · melhor do dia`; const lista = rankingCorrida(P), eu = lista.findIndex(x => x.eu), mostra = lista.slice(0, 3); if(eu > 2) mostra.push(lista[eu]);
       corpo = `<ol>${mostra.length ? mostra.map(x => `<li${x.eu ? ' class="eu"' : ''}><i>${lista.indexOf(x) + 1}º</i><span>${esc(x.nome)}</span><b>${tempoTxt(x.ms)}</b></li>`).join('') : '<li><i></i><span>Ninguém correu hoje ainda.</span><b></b></li>'}</ol>`;
-      dica = 'Vai no totem da bandeira, escolhe teu bicho e larga: sempre seis na pista.';
+      dica = P.solo ? 'Vai no totem da bandeira e toca em Largar: 3 voltas de moto contra o relógio.' : 'Vai no totem da bandeira, escolhe teu bicho e larga: sempre seis na pista.';
     }
     const html = `<b class="cs-pesca-t">${ico('raio')} ${topo}</b>${corpo}<small>${dica}${sempre ? ` Recorde: ${tempoTxt(sempre)}.` : ''}</small>`;
     el.classList.toggle('morde', !!(R && agora < R.larga)); el.classList.add('kart');
@@ -2616,6 +2567,14 @@
       if(e && R.boostAte > agora) out.push(...fogo(e.x, e.y || 0, e.z, e.yaw + R.yawVis, t));
       if(e && R.drift && R.drift.n){ const cor = R.drift.n === 2 ? ROSA : LARANJA, yw = e.yaw + R.yawVis; for(let k = 0; k < 4; k++){ const a = t * 30 + k * 1.7, sx = e.x - Math.sin(yw) * .55 + Math.cos(yw) * (k < 2 ? .14 : -.14) + Math.sin(a) * .08, sz = e.z - Math.cos(yw) * .55 - Math.sin(yw) * (k < 2 ? .14 : -.14) + Math.cos(a) * .08; out.push(esfera(sx, .06 + Math.abs(Math.sin(a * 1.3)) * .12, sz, .035 + (k % 2) * .02, cor, null, { semTraco: true, alpha: .95 })); } }
     }
+    /* v3.59: os obstáculos de pé: o cone (derrubado fica deitado uns segundos) e a pilha de pneus */
+    P.Kp.obst.forEach(ob => {
+      if(ob.tipo === 'cone'){ const cd = R && R.caido[ob.id] && agora - R.caido[ob.id].t0 < 5500 ? R.caido[ob.id] : null, u = cd ? Math.min(1, (agora - cd.t0) / 250) : 0;
+        const T = cd ? [{ pitch: u * 1.45, piv: [ob.x, 0, ob.z] }, { yaw: cd.ang, piv: [ob.x, 0, ob.z] }] : null;
+        [B(ob.x - .2, 0, ob.z - .2, .4, .06, .4, '#1B1D22'), B(ob.x - .13, .06, ob.z - .13, .26, .18, .26, LARANJA), B(ob.x - .1, .24, ob.z - .1, .2, .1, .2, PAPEL), B(ob.x - .07, .34, ob.z - .07, .14, .14, .14, LARANJA)].forEach(b => out.push(solido(b, T, b.c, null, {})));
+      } else if(ob.tipo === 'pneus'){ const g = [{ yaw: ob.yaw, piv: [ob.x, 0, ob.z] }];
+        [[-.3, 0, 0], [.3, 0, 1], [0, .22, 2]].forEach(([dx, y, j]) => PNEUS(j).forEach(b => { const bb = Object.assign({}, b, { x: b.x + ob.x + dx, y: b.y + y, z: b.z + ob.z }); out.push(solido(bb, g, bb.c, null, {})); })); }
+    });
     /* o perigo: capivaras, trator ou busão */
     perigoAgora(P, agora).forEach((o, j) => { out.push(...corpoPerigo(o, t, j)); });
     return out;
@@ -2670,7 +2629,7 @@
     return `<svg viewBox="0 0 48 44" aria-hidden="true">${D[k] || ''}</svg>`;
   }
   function bichoSheet(){
-    const P = pistaAqui(); if(!P || !P.kart) return;
+    const P = pistaAqui(); if(!P || !P.kart || P.solo) return;
     const outros = gente().filter(r => bichoOk(r.kp)), meu = S.kartBicho, vivos = outros.filter(r => r.kp !== meu);
     C.sheet(`<div class="form cs-bichos"><div class="sheet-head"><h2>${ico('raio')} Escolhe teu bicho</h2><button type="button" class="cbtn plain" data-close aria-label="Fechar">${ico('x')}</button></div>
       <p class="note">Seis bichos fixos, sempre seis na largada. Cada pessoa da pista pega um (dá pra fazer corrida ao vivo, numa live); quem sobrar, a máquina pilota.</p>
@@ -2688,7 +2647,7 @@
   }
   /* o que chega dos outros da pista (o verso.js já conferiu o formato e que é da mesma sala) */
   function kartEvento(d, r){
-    if(!S.aberta || !PL || !PL.kart) return; const agora = Date.now(), R = S.corrida;
+    if(!S.aberta || !comBicho()) return; const agora = Date.now(), R = S.corrida;
     if(d.t === 'larga'){
       S.kartVivo = { id: d.id, quem: d.quem, bichos: d.bichos, ate: agora + 6 * 60e3, rivais: [], visto: agora };
       if(d.quem.includes(C.verso.meuSid()) && bichoOk(S.kartBicho) && !R){ C.closeSheet(); largarKart(pistaAqui(), { id: d.id, quem: d.quem, bichos: d.bichos, em: Math.max(1500, d.em - 150) }); C.toast(`Corrida ao vivo! @${(r && r.handle) || 'alguém'} deu a largada.`, 2400); }
@@ -3025,11 +2984,11 @@
     let solidos = [...solidosParedes(cam), ...solidosAndares(), ...solidosFixos(), ...solidosItens(), ...solidosAnimados(t), ...extras, ...solidosDisco(t), ...solidosPesca(t), ...solidosDesafio(), ...solidosKart(t), ...solidosPaineis()];
     const mv = S.corrida && S.eu ? S.corrida.P.veic : '', RK = S.corrida && S.corrida.kart ? S.corrida : null;
     const yv = S.eu ? S.eu.yaw + (RK ? RK.yawVis + ((RK.rodouAte || 0) > Date.now() ? (Date.now() - RK.rodouT0) / 1000 * 9 : 0) : 0) : 0;
-    const bichoEu = PL && PL.kart && bichoOk(S.kartBicho) ? S.kartBicho : null, avEu = bichoEu != null ? avBicho(bichoEu) : S.eu && S.eu.av;
+    const bichoEu = comBicho() && bichoOk(S.kartBicho) ? S.kartBicho : null, avEu = bichoEu != null ? avBicho(bichoEu) : S.eu && S.eu.av;
     if(mv) solidos.push(...veiculo3d(mv, S.eu.x, S.eu.y, S.eu.z, yv, RK ? (RK.P.def.corEu || (bichoEu != null ? BICHOS_K[bichoEu].cor : corVeic(mv, S.eu.av))) : corVeic(mv, S.eu.av), 'eu'));
     if(S.eu) solidos.push(...sobe(boneco(avEu, S.eu.x, S.eu.z, yv, S.eu.passo, mv ? false : S.eu.andando), S.eu.y + (mv ? VEIC_3D[mv].alt : puloCasa(S.eu) * PULO_ALT)));
     const fracoG = embaixoDoMezanino();
-    gente().forEach(r => { const rv = r.hmt === 1 ? 'moto' : r.hmt === 2 ? 'patinete' : '', bk = PL && PL.kart && bichoOk(r.kp) ? r.kp : null;
+    gente().forEach(r => { const rv = r.hmt === 1 ? 'moto' : r.hmt === 2 ? 'patinete' : '', bk = comBicho() && bichoOk(r.kp) ? r.kp : null;
       if(rv) solidos.push(...veiculo3d(rv, r.hxv, r.hyv || 0, r.hzv, r.hyaw || 0, bk != null ? BICHOS_K[bk].cor : corVeic(rv, r.av), 'gente:' + r.sid));
       solidos.push(...sobe(boneco(bk != null ? avBicho(bk) : r.av, r.hxv, r.hzv, r.hyaw || 0, r.hpasso || 0, rv ? false : !!r.hand).map(b => { b.dono = 'gente:' + r.sid; if(fracoG && (r.hyv || 0) > 1.5) b.alpha = .22; return b; }), (r.hyv || 0) + (rv ? VEIC_3D[rv].alt : C.verso.alturaPulo ? C.verso.alturaPulo(r) * PULO_ALT : 0))); });
     if(S.ghost){ const g = S.ghost, it = ITEM[g.k]; if(it) solidos.push(...solidosItem(it, g.x, g.z, g.r, null, g.ok ? { alpha: .62 } : { alpha: .62, cru: true, traco: VERM }, alturaItem(it, g), M.blocos(it, g.c).concat(M.anima(it, animaA(t), g.c, 0))).map(s => { if(!g.ok) s.c = VERM; return s; })); }
@@ -3075,7 +3034,7 @@
       tickPesca();
       if(pistaAqui()) painelCorrida();
       tickDesafio();
-      if(PL && PL.kart && (!S.bichoT || t - S.bichoT > 1)){ S.bichoT = t; confereBicho(); }
+      if(comBicho() && (!S.bichoT || t - S.bichoT > 1)){ S.bichoT = t; confereBicho(); }
       /* v3.55: 5 s sem notícia da máquina, os bichos de quem assiste saem da pista (antes ficavam parados lá até a próxima corrida) */
       if(!S.corrida && S.kartVivo && S.kartVivo.rivais){ const KV = S.kartVivo; if(Date.now() - KV.visto > 5000) KV.rivais.length = 0; KV.rivais.forEach(o => { if(Date.now() - KV.visto > 2500) o.v = 0; o.s += o.v * dt; o.s += (o.sAlvo - o.s) * Math.min(1, dt * 4); }); }
       /* celular fraco (quadro lento): o boneco anda em passos de até 50 ms, pra a velocidade não depender do quadro
@@ -3154,7 +3113,7 @@
   function portaCasa(){
     const b = C.$('cs-porta'); if(!b) return;
     if(S.desafio){ const D = S.desafio, txt = ehBeisebol(D.Q) ? ((D.fase === 'espera' || D.fase === 'arremesso') && !D.sw ? D.Q.botao : D.fase === 'fim' ? 'Fim!' : '…') : D.fase === 'mira' ? D.Q.botao : D.fase === 'voo' ? '…' : 'Fim!'; S.perto = null; if(b.dataset.txt !== txt){ b.dataset.txt = txt; b.hidden = false; b.innerHTML = `${ico('raio')}<span>${txt}</span>`; } b.classList.remove('morde'); return; }
-    if(S.corrida && S.corrida.kart){ const R = S.corrida, it = R.item && ITENS_K[R.item], txt = R.fim ? 'Chegou!' : R.roleta ? '…' : it ? `Usar: ${it.nome}${R.itemN > 1 ? ` x${R.itemN}` : ''}` : 'Sem item'; S.perto = null; if(b.dataset.txt !== txt){ b.dataset.txt = txt; b.hidden = false; b.innerHTML = `${ico(R.fim ? 'check' : it ? it.ico : 'raio')}<span>${txt}</span>`; } b.classList.toggle('vazio', !it && !R.fim); b.classList.remove('morde'); return; }
+    if(S.corrida && S.corrida.kart && !S.corrida.P.solo){ const R = S.corrida, it = R.item && ITENS_K[R.item], txt = R.fim ? 'Chegou!' : R.roleta ? '…' : it ? `Usar: ${it.nome}${R.itemN > 1 ? ` x${R.itemN}` : ''}` : 'Sem item'; S.perto = null; if(b.dataset.txt !== txt){ b.dataset.txt = txt; b.hidden = false; b.innerHTML = `${ico(R.fim ? 'check' : it ? it.ico : 'raio')}<span>${txt}</span>`; } b.classList.toggle('vazio', !it && !R.fim); b.classList.remove('morde'); return; }
     b.classList.remove('vazio');
     if(S.corrida){ const txt = S.corrida.fim ? 'Chegou!' : 'Desistir'; S.perto = null; if(b.dataset.txt !== txt){ b.dataset.txt = txt; b.hidden = false; b.innerHTML = `${ico(S.corrida.fim ? 'check' : 'x')}<span>${txt}</span>`; } b.classList.remove('morde'); return; }
     if(S.pesca){ const txt = S.pesca.fase === 'morde' ? 'Puxar!' : 'Puxar'; S.perto = null; if(b.dataset.txt !== txt){ b.dataset.txt = txt; b.hidden = false; b.innerHTML = `${ico('peixe')}<span>${txt}</span>`; } b.classList.toggle('morde', S.pesca.fase === 'morde'); return; }
@@ -3167,7 +3126,7 @@
   }
   function acaoPerto(){
     if(S.desafio){ dispara(); return; }
-    if(S.corrida && S.corrida.kart){ usaItem(); return; }
+    if(S.corrida && S.corrida.kart && !S.corrida.P.solo){ usaItem(); return; }
     if(S.corrida){ if(!S.corrida.fim) desmonta(true); return; }
     if(S.pesca){ puxa(); return; }
     if(!S.perto && !pertoDe()){ const L = corredoresVivo(); if(L.length){ S.segue = S.segue == null ? 0 : (S.segue + 1) % L.length; S.arrastou = 0; portaCasa(); return; } }
@@ -3591,7 +3550,7 @@
     const st = C.$('cs-sair-t'); if(st) st.textContent = L ? L.sai || 'Sair pra Feira' : 'Sair pra rua';
     S.titulo = document.title; document.title = nomeC + ' · Correverso';
     barra();
-    if(PL && PL.kart && S.kartBicho == null){ let b = null; try{ b = parseInt(localStorage.getItem('corre-kart-bicho'), 10); }catch(e){} if(bichoOk(b)){ S.kartBicho = b; S.kartBichoT = Math.floor(Date.now() / 1000) % 1e8; } }
+    if(comBicho() && S.kartBicho == null){ let b = null; try{ b = parseInt(localStorage.getItem('corre-kart-bicho'), 10); }catch(e){} if(bichoOk(b)){ S.kartBicho = b; S.kartBichoT = Math.floor(Date.now() / 1000) % 1e8; } }
     if(PL && PL.banner) setTimeout(() => { if(S.aberta && PL && PL.banner) bannerPubli(PL.banner); }, 1800);
     S.resT = performance.now(); S.resMed = null; S.aberta = true; S.tAnt = 0;
     if(!S.hist){ try{ history.pushState({ cvrCasa: 1 }, ''); S.hist = true; }catch(e){} }
@@ -3687,10 +3646,10 @@
     corrida: () => { const P = pistaAqui(); if(!P) return null; const m = melhorHoje(P); return { tc: m ? Math.round(m / 10) : 0, td: diaBR() % 1e5 }; },
     pos: () => (S.aberta && S.eu ? Object.assign({ x: S.eu.x, y: S.eu.y || 0, z: S.eu.z, yaw: S.eu.yaw, andando: !!(S.eu.andando || (S.corrida && Math.abs(S.eu.vel || 0) > .3)), mt: S.corrida ? (S.corrida.P.veic === 'moto' ? 1 : 2) : 0 }, kartPos()) : null), gente,
     /* v3.53: a corrida ao vivo (o bicho na presença, os eventos da sala) */
-    kartMeta: () => (S.aberta && PL && PL.kart && bichoOk(S.kartBicho) ? { kp: S.kartBicho, kpt: S.kartBichoT || 0 } : null), kartEvento };
+    kartMeta: () => (S.aberta && comBicho() && bichoOk(S.kartBicho) ? { kp: S.kartBicho, kpt: S.kartBichoT || 0 } : null), kartEvento };
   /* o que vai no movimento durante a corrida ao vivo: o bicho, quanto andou e a chegada */
   function kartPos(){
-    if(!PL || !PL.kart || !bichoOk(S.kartBicho)) return {};
+    if(!comBicho() || !bichoOk(S.kartBicho)) return {};
     const R = S.corrida, o = { kp: S.kartBicho };
     if(R && R.kart && R.vivo){ o.kl = R.vivo.id; o.kg = Math.round(R.prog * 10); if(R.fim) o.kf = Math.round(R.total / 10); }
     return o;
