@@ -46,6 +46,11 @@ testa teste343.sql 38
 delta delta-v345.sql 'delta v3.45 ok'
 delta delta-v345.sql 'delta v3.45 ok'
 testa teste345.sql 8
+# v3.56: o pedaço da produção que o delta mexe (cópia), o delta 2x e as checagens
+$P -f "$AQUI/semente356.sql"
+delta delta-v356.sql 'delta v3.56 ok'
+delta delta-v356.sql 'delta v3.56 ok'
+testa teste356.sql 13
 . "$AQUI/virada343.sh"
 if grep -q 'FALHOU\|ERROR' $D/saida; then echo "deu FALHOU ou erro (acima)"; exit 1; fi
 echo "tudo ok: $(grep -c '^ok:' $D/saida) checagens"

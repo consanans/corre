@@ -412,6 +412,8 @@
       try{ d = JSON.parse(localStorage.getItem(KEY)); }catch(e){}
       d = d || mem.d || seed();
       T.forEach(t => { if(!d.t[t]) d.t[t] = []; });
+      /* v3.56: perfil mocado (escondido) virou público e desbaratinado, como no banco (delta-v356.sql) */
+      d.t.corre_perfis.forEach(p => { if(p.visibilidade === 'mocado'){ p.visibilidade = 'publico'; p.desbaratinado = true; } });
       /* v3.43: o correal ganhou centavos e o que já existia foi dividido por 10, como no banco (delta-v343.sql): quem
          tinha 9 na demonstração fica com 0,90, que compra o mesmo que os 9 compravam */
       if(!d.v343){
@@ -495,6 +497,8 @@
     const gMembro = (d, g, u) => !!u && d.t.corre_grupo_membros.find(m => m.grupo === g && m.membro === u && m.estado === 'ativo');
     const gVe = (d, g, u) => { if(!g) return true; const x = d.t.corre_grupos.find(y => y.id === g); return !!x && (!x.fechado || !!gMembro(d, g, u)); };
     const gMod = (d, g, u) => { const m = gMembro(d, g, u); return !!m && (m.papel === 'dono' || m.papel === 'mod'); };
+    /* v3.56: os dados de um desbaratinado só pra quem segue (e pra ele mesmo); igual à corre_ve_conteudo do banco */
+    const veDados = (d, id, u) => { const p = d.t.corre_perfis.find(x => x.id === id); return !!p && p.visibilidade === 'publico' && (!p.desbaratinado || id === u || d.t.corre_seguindo.some(s => s.quem === u && s.segue === id)); };
     function visible(t, r, d){
       const uid = uidOf(d);
       if(t === 'corre_grupos') return true;
@@ -510,11 +514,12 @@
       if(t === 'corre_comentarios') return d.t.corre_feed.some(f => f.id === r.post_id && visible('corre_feed', f, d)) && (r.dono === uid || pub(r.dono));
       if(t === 'corre_story_curtidas') return r.dono === uid || d.t.corre_stories.some(s => s.id === r.story_id && s.dono === uid);
       if(t === 'corre_mural_chat') return !r.oculto;
-      if(t === 'corre_recomendacoes') return r.dono === uid || r.para === uid || (r.status === 'aceita' && pub(r.para) && pub(r.dono));
+      if(t === 'corre_recomendacoes') return r.dono === uid || r.para === uid || (r.status === 'aceita' && veDados(d, r.para, uid) && pub(r.dono));
       if(r.dono === uid) return true;
       if(PRIV.includes(t)) return false;
       const p = d.t.corre_perfis.find(x => x.id === r.dono);
       if(!p || p.visibilidade !== 'publico') return false;
+      if(!(t === 'corre_feed' && r.grupo) && !veDados(d, p.id, uid)) return false;
       if(t === 'corre_portfolio') return !!r.publico;
       if(t === 'corre_stories') return new Date(r.expira_em) > new Date() || !!r.destaque_id;
       return true;
@@ -852,7 +857,7 @@
         return G.filter(ok).sort((x, y) => meu(y) - meu(x) || y.membros_n - x.membros_n || String(y.ativo_em).localeCompare(String(x.ativo_em))).slice(0, Math.min(Math.max(Number(a.p_lim) || 60, 1), 200)).map(linha);
       }
       if(n === 'corre_grupos_de'){
-        const p = d.t.corre_perfis.find(x => x.id === a.p_perfil); if(!p || (p.visibilidade !== 'publico' && p.id !== uid)) return [];
+        const p = d.t.corre_perfis.find(x => x.id === a.p_perfil); if(!p || !veDados(d, p.id, uid)) return [];
         return GM.filter(m => m.membro === p.id && m.estado === 'ativo').map(m => ({ m, g: G.find(x => x.id === m.grupo) })).filter(o => o.g && gVe(d, o.g.id, uid))
           .sort((x, y) => (x.m.papel === 'dono' ? 0 : 1) - (y.m.papel === 'dono' ? 0 : 1) || y.g.membros_n - x.g.membros_n)
           .map(o => ({ id: o.g.id, slug: o.g.slug, nome: o.g.nome, cor: o.g.cor, capa_url: o.g.capa_url, fechado: o.g.fechado, membros_n: o.g.membros_n, papel: o.m.papel }));
@@ -1277,7 +1282,7 @@
           const p = d.t.corre_perfis.find(x => x.id === a.p);
           const est = (d.t.corre_estilo || []).find(x => x.dono === a.p) || {};
           const mostraMeta = !!est.meta_perfil && Number(est.meta_dia) > 0;
-          if(!p || (p.grana_mostra === 'nada' && !mostraMeta) || (p.visibilidade !== 'publico' && p.id !== uidOf(d))) return null;
+          if(!p || (p.grana_mostra === 'nada' && !mostraMeta) || !veDados(d, p.id, uidOf(d))) return null;
           const metaDe = tudo => { if(!mostraMeta) return null; const [y, m, dd] = hojeBR().split('-').map(Number); let tot = 0, ant = 0, hj = 0;
             for(let dt = new Date(y, m - 1, 1); dt.getMonth() === m - 1; dt.setDate(dt.getDate() + 1)){ const w = dt.getDay(), ok = est.meta_dias === 'todos' || (est.meta_dias === 'seg_sab' ? w !== 0 : w !== 0 && w !== 6); if(!ok) continue; tot++; if(dt.getDate() < dd) ant++; else if(dt.getDate() === dd) hj = 1; }
             return { pct: Math.min(999, Math.floor(tudo / (Number(est.meta_dia) * Math.max(tot, 1)) * 100)), ritmo: Math.round((ant + hj) / Math.max(tot, 1) * 100) }; };
@@ -1336,7 +1341,7 @@
         if(n === 'corre_em_alta'){
           const lim = Date.now() - Math.min(Math.max(Number(a && a.dias) || 7, 1), 30) * 864e5, m = {};
           d.t.corre_feed.forEach(f => {
-            const p = d.t.corre_perfis.find(x => x.id === f.dono); if(!p || p.visibilidade !== 'publico' || f.grupo || Date.parse(f.created_at) < lim) return;
+            const p = d.t.corre_perfis.find(x => x.id === f.dono); if(!p || p.visibilidade !== 'publico' || p.desbaratinado || f.grupo || Date.parse(f.created_at) < lim) return;
             (String(f.texto || '').match(/#[\p{L}\p{N}_]{2,40}/gu) || []).forEach(hs => { const k = hs.slice(1).toLowerCase(), e = m[k] = m[k] || { tag: k, n: 0, g: new Set() }; e.n++; e.g.add(f.dono); });
           });
           return Object.values(m).map(e => ({ tag: e.tag, n: e.n, gente: e.g.size })).sort((x, y) => y.gente - x.gente || y.n - x.n || x.tag.localeCompare(y.tag)).slice(0, 10);

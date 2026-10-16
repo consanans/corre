@@ -2744,3 +2744,9 @@ html.embed .msg-pg{height:calc(100dvh - 40px)}
 /* v3.55 · revisão geral: o verde-água do jogo do Aquário (matiz 183) caía na faixa proibida; vira o ciano da cidade */
 .cvr-jogo-top{border-bottom-color:#38E1FF}
 .cvr-jogo-t b,.cvr-jogo-load{color:#38E1FF}
+/* v3.56 · Desbaratinado: o aviso no perfil de quem não segue, no lugar dos posts, stories e portfólio */
+.pf-desb{display:flex;align-items:flex-start;gap:12px;margin-top:14px}
+.pf-desb>.ic{flex:none;width:28px;height:28px;margin-top:2px}
+.pf-desb b{display:block;font-size:16px}
+.pf-desb p{margin:4px 0 0;color:var(--muted,#5A6070)}
+.vis .opt b .ic{width:15px;height:15px;vertical-align:-2px;margin-right:2px}

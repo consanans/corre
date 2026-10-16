@@ -711,6 +711,8 @@
         el.setAttribute('aria-pressed', String(!on)); el.textContent = on ? 'Seguir' : 'Seguindo'; el.classList.toggle('pri', on);
         if(n){ const v = Math.max(0, +n.textContent + (on ? -1 : 1)); n.textContent = v; const l = C.$('pf-seg-l'); if(l) l.textContent = v === 1 ? 'seguidor' : 'seguidores'; }
         if(F.seguindo){ if(on) F.seguindo.delete(id); else F.seguindo.add(id); }
+        /* v3.56: no perfil de um desbaratinado, seguir abre os dados (e deixar de seguir fecha): a página se refaz */
+        if(el.dataset.desb === '1' && el.closest('.prof-page') && C.refresh) setTimeout(C.refresh, 250);
       }catch(e){ if(!(e && e.code === '23505')) C.toast(C.errMsg(e)); }
       finally{ el.disabled = false; }
     }
@@ -755,7 +757,7 @@
       if(!n){ const lista = await C.api.q('corre_seguindo', { eq: { segue: p.id } }).catch(() => []); seg.length = lista.length; }
       if(n && n.seguindo != null) sigo.length = Number(n.seguindo);
       const eu = !!uid && meu.length > 0;
-      const btn = uid && uid !== p.id ? `<button type="button" class="btn ${eu ? '' : 'pri'}" data-act="fd-seguir" data-id="${p.id}" aria-pressed="${eu}">${eu ? 'Seguindo' : 'Seguir'}</button>` : '';
+      const btn = uid && uid !== p.id ? `<button type="button" class="btn ${eu ? '' : 'pri'}" data-act="fd-seguir" data-id="${p.id}"${C.desb && C.desb(p) ? ' data-desb="1"' : ''} aria-pressed="${eu}">${eu ? 'Seguindo' : 'Seguir'}</button>` : '';
       return { btn, nums: `<div class="pf-nums"><span><b class="num">${posts.length}</b> ${posts.length === 1 ? 'post' : 'posts'}</span><button type="button" class="pf-n" data-act="pf-lista" data-id="${p.id}" data-h="${esc(p.handle)}" data-t="seguidores" title="Ver quem segue @${esc(p.handle)}"><b class="num" id="pf-seg">${seg.length}</b> <span id="pf-seg-l">${seg.length === 1 ? 'seguidor' : 'seguidores'}</span></button><button type="button" class="pf-n" data-act="pf-lista" data-id="${p.id}" data-h="${esc(p.handle)}" data-t="seguindo" title="Ver quem @${esc(p.handle)} segue"><b class="num" id="pf-sigo">${sigo.length}</b> seguindo</button></div>` };
     },
     /* publicar algo pronto (frame do Rolo, arte do estúdio) */

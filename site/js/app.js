@@ -27,6 +27,10 @@
   /* a casa do fundador (o loft) é dele por id, mesmo que o @ mude */
   C.fundadorId = () => FUNDADOR;
   /* ferramentas ligadas no perfil (corre_perfis.ferramentas): o Hórus liga e desliga; o Studio tá sempre na porta */
+  /* v3.56: Desbaratinado = perfil público com os dados (posts, stories, portfólio, grana) só pra quem segue.
+     O "mocado" de antes (perfil escondido) virou isso no banco (delta-v356); até lá, conta igual */
+  const desb = p => !!(p && (p.desbaratinado || p.visibilidade === 'mocado'));
+  C.desb = desb;
   C.ferr = k => { const f = (st.me && st.me.ferramentas && typeof st.me.ferramentas === 'object') ? st.me.ferramentas : {}; if(k === 'studio') return f.studio !== false; return f[k] === undefined ? !!C.DEMO : f[k] === true; };
   /* cada lugar do menu: [endereço, nome, ícone]. Sem endereço é botão (o sino abre os avisos; a carteira abre por cima) */
   const DEST = me => ({
@@ -316,8 +320,8 @@
       ${C.meuCorre ? C.meuCorre.campos(v) : ''}
       <fieldset class="fld"><legend>Teu corre fica</legend>
         <div class="vis">
-          <label class="opt"><input type="radio" name="visibilidade" value="publico" ${v.visibilidade !== 'mocado' ? 'checked' : ''}><span class="dot"></span><span><b>Na vitrine</b><small>Qualquer pessoa vê teu perfil e te acha em "Gente no Corre".</small></span></label>
-          <label class="opt"><input type="radio" name="visibilidade" value="mocado" ${v.visibilidade === 'mocado' ? 'checked' : ''}><span class="dot"></span><span><b>Mocado</b><small>Só você vê. Dá pra abrir quando quiser.</small></span></label>
+          <label class="opt"><input type="radio" name="desbaratinado" value="" ${desb(v) ? '' : 'checked'}><span class="dot"></span><span><b>Na vitrine</b><small>Qualquer pessoa vê teu perfil, teus posts, stories e portfólio, e te acha em "Gente no Corre".</small></span></label>
+          <label class="opt"><input type="radio" name="desbaratinado" value="1" ${desb(v) ? 'checked' : ''}><span class="dot"></span><span><b>${ico('lock')} Desbaratinado</b><small>Teu perfil aparece pra todo mundo, mas posts, stories, destaques, portfólio e a grana só quem te segue vê.</small></span></label>
         </div>
       </fieldset>
       <label class="switch pf-trampo"><input type="checkbox" name="aberto" ${v.aberto ? 'checked' : ''}><span class="sw" aria-hidden="true"></span><span><b>Aberto pra trampo</b><small>Põe um aro amarelo na tua foto e o selo no perfil: quem passa sabe que você tá pegando trabalho novo.</small></span></label>
@@ -434,7 +438,8 @@
         bio: String(fd.get('bio') || '').trim(),
         cidade: String(fd.get('cidade') || '').trim(),
         instagram: String(fd.get('instagram') || '').trim().replace(/^@/, ''),
-        visibilidade: fd.get('visibilidade') === 'mocado' ? 'mocado' : 'publico',
+        /* v3.56: o perfil é sempre público; quem quer fechar os dados pra quem não segue fica Desbaratinado */
+        visibilidade: 'publico',
         aberto: fd.get('aberto') === 'on',
         avatar_url: $('f-av').value
       };
@@ -447,10 +452,18 @@
         Object.assign(p, { categoria: mc.categoria, faz: mc.faz, vende_pra: mc.vende_pra, whats_publico: mc.whats_publico, no_mural: mc.no_mural });
       }
       const antes = isNew || !st.me ? null : { categoria: st.me.categoria || '', faz: st.me.faz || '' };
+      /* o Desbaratinado só vai quando o banco já tem a coluna (delta-v356) ou quando a pessoa escolheu; sem o delta, salva o resto */
+      const querDesb = fd.get('desbaratinado') === '1';
+      if(querDesb || (st.me && 'desbaratinado' in st.me)) p.desbaratinado = querDesb;
+      const semColuna = e => /desbaratinado/i.test(String((e && e.message) || '') + String((e && e.hint) || '') + String((e && e.details) || ''));
       const b = $('pf-ok'); b.disabled = true;
       try{
         if(isNew){
-          try{ const r = await api.ins('corre_perfis', Object.assign({ id: st.user.id }, p)); st.me = r[0]; }
+          try{
+            let r; try{ r = await api.ins('corre_perfis', Object.assign({ id: st.user.id }, p)); }
+            catch(e0){ if(!('desbaratinado' in p) || !semColuna(e0)) throw e0; delete p.desbaratinado; r = await api.ins('corre_perfis', Object.assign({ id: st.user.id }, p)); toast('O Desbaratinado ainda não tá ligado no Corre. Teu perfil foi salvo na vitrine.', 4200); }
+            st.me = r[0];
+          }
           catch(e1){
             /* o perfil já existia (a tela de cadastro abriu por um tropeço de rede): entra com ele em vez de dizer que o @ tem dono */
             const ja = e1 && e1.code === '23505' ? await api.one('corre_perfis', { eq: { id: st.user.id } }).catch(() => null) : null;
@@ -458,7 +471,10 @@
             st.me = ja; st.loadedFor = st.user.id; toast('Teu perfil já existia. Entrando nele.'); go('#/'); return;
           }
         }
-        else await C.saveMe(p);
+        else {
+          try{ await C.saveMe(p); }
+          catch(e2){ if(!('desbaratinado' in p) || !semColuna(e2)) throw e2; delete p.desbaratinado; await C.saveMe(p); toast('O Desbaratinado ainda não tá ligado no Corre. O resto foi salvo.', 4200); }
+        }
         if(mc && C.meuCorre) await C.meuCorre.aplicar(antes, mc.orc);
         st.loadedFor = st.user.id;
         /* entrou pelo link de alguém: já segue quem chamou */
@@ -478,7 +494,7 @@
     const cards = C.home.slice().sort((a, b) => a.o - b.o);
     /* v3.43: os atalhos seguem a ordem dos grupos do menu (Laboratório, Financeiro, Banca), pro olho achar no mesmo lugar */
     app.innerHTML = C.header('inicio') + `<main class="wrap home">
-      <div class="hello"><h1><span class="hl">E aí, ${esc(C.firstName(me.nome))}.</span></h1><p>Teu corre tá <b>${me.visibilidade === 'mocado' ? 'mocado' : 'na vitrine'}</b>. <a href="#/@${esc(me.handle)}">Ver meu perfil</a></p></div>
+      <div class="hello"><h1><span class="hl">E aí, ${esc(C.firstName(me.nome))}.</span></h1><p>Teu corre tá <b>${desb(me) ? 'desbaratinado' : 'na vitrine'}</b>. <a href="#/@${esc(me.handle)}">Ver meu perfil</a></p></div>
       <nav class="atalhos" aria-label="Tuas ferramentas"><a class="atalho" href="#/studio">${ico('magia')}<span>Studio</span></a>${C.views.houzi ? `<a class="atalho" href="#/houzi">${ico('houzi')}<span>Studio Houzi</span></a>` : ''}<a class="atalho" href="#/corre">${ico('grana')}<span>Vendas e Grana</span></a><a class="atalho" href="#/banca">${ico('banca')}<span>Banca do dia</span></a><a class="atalho" href="#/refs">${ico('cal')}<span>Do teu nicho</span></a><a class="atalho" href="#/rolo">${ico('rolo')}<span>Rolo 360</span></a>${C.ferr('horus') ? `<a class="atalho" href="#/horus">${ico('eye')}<span>Hórus</span></a>` : ''}<a class="atalho ghost" href="#/@${esc(me.handle)}">${ico('plus')}<span>Teu corre</span></a></nav>
       <section class="card sbar-card" aria-label="Stories" id="h-stories"><div class="sbar"><p class="sb-empty">Carregando stories…</p></div></section>
       <div id="h-grupos" class="h-grupos"></div>
@@ -546,15 +562,18 @@
       return;
     }
     document.title = `${p.nome} (@${p.handle}) · Corre`;
-    const [stories, ds, mks, igs, grana, vit] = await Promise.all([
+    const [stories, ds, mks, igs, grana, vit, sigoEle] = await Promise.all([
       api.q('corre_stories', { eq: { dono: p.id }, gt: { expira_em: new Date().toISOString() }, order: ['created_at', true] }).catch(() => []),
       C.destaquesDe(p.id).catch(() => []),
       api.q('corre_portfolio', { eq: { dono: p.id }, order: ['ordem', true] }).catch(() => []),
       api.q('corre_insta', { eq: { dono: p.id }, order: ['ordem', true] }).catch(() => []),
       api.rpc('corre_grana_publica', { p: p.id }).catch(() => null),
-      api.rpc('corre_vitrine', { p: p.id }).catch(() => null)
+      api.rpc('corre_vitrine', { p: p.id }).catch(() => null),
+      st.user && !mine && desb(p) ? api.q('corre_seguindo', { eq: { quem: st.user.id, segue: p.id } }).catch(() => []) : []
     ]);
     if(rota !== C.rota) return;
+    /* v3.56: desbaratinado e você não segue: o perfil aparece, os dados não (o banco já não manda; aqui é o aviso) */
+    const fechado = !mine && desb(p) && !(sigoEle && sigoEle.length);
     const itens = (vit && vit.itens) || [], orcOn = (p.horus || {}).orcamento === 'on', catN = C.meuCorre ? C.meuCorre.catNome(p.categoria) : '';
     const linkOrc = (it) => `#/orcamento/${encodeURIComponent(p.handle)}${it ? '?item=' + encodeURIComponent(it) : ''}`;
     const waP = p.whats_publico ? `https://wa.me/55${p.whats_publico}?text=${encodeURIComponent(`Oi, ${C.firstName(p.nome)}! Vi teu perfil no Corre.`)}` : '';
@@ -602,13 +621,14 @@
       </section>
       ${mine ? ferramentasHTML() : ''}
       ${vitHTML}
+      ${fechado ? `<section class="card pf-desb">${ico('lock')}<div><b>@${esc(p.handle)} tá desbaratinado.</b><p>${st.user ? 'Segue' : 'Entra no Corre e segue'} pra ver os posts, stories, destaques e o portfólio.</p></div></section>` : `
       ${ds.length || mine ? `<h2 class="sec-t"><span class="hl">Destaques</span></h2><section class="card">${C.destaquesHTML(ds, mine)}</section>` : ''}
       <div id="pf-grupos" class="pf-grupos"></div>
       <h2 class="sec-t"><span class="hl">Posts</span></h2>
       <div class="feed-main solo" id="pf-feed"></div>
       ${mks.length || mine ? `<div class="sec-row"><h2 class="sec-t"><span class="hl">Portfólio</span></h2>${mine ? '<a class="btn sm" href="#/marcas">Gerenciar</a>' : ''}</div>${mks.length ? `<div class="mks">${mks.map(m => C.marcaCard(m, false)).join('')}</div>` : '<div class="empty">Coloca as marcas que você tá tocando em Portfólio.</div>'}` : ''}
       <div id="pf-recs" class="pf-recs"></div>
-      ${igs.length || mine ? `<div class="sec-row"><h2 class="sec-t"><span class="hl">No Instagram</span></h2>${mine && igs.length < 12 ? `<button type="button" class="btn sm" data-act="ig-add">${ico('plus')} Post</button>` : ''}</div>${igs.length ? `<div class="igs">${igs.map(g => `<figure class="ig">${mine ? `<button type="button" class="ig-del" data-act="ig-del" data-id="${g.id}" aria-label="Tirar post da vitrine">${ico('x')}</button>` : ''}<iframe src="${esc(igEmbed(g.url))}" title="Post do Instagram" loading="lazy" scrolling="no" allowtransparency="true"></iframe></figure>`).join('')}</div>` : '<div class="empty">Escolhe até 12 posts teus pra vitrine. Cola o link do post ou do reel.</div>'}` : ''}
+      ${igs.length || mine ? `<div class="sec-row"><h2 class="sec-t"><span class="hl">No Instagram</span></h2>${mine && igs.length < 12 ? `<button type="button" class="btn sm" data-act="ig-add">${ico('plus')} Post</button>` : ''}</div>${igs.length ? `<div class="igs">${igs.map(g => `<figure class="ig">${mine ? `<button type="button" class="ig-del" data-act="ig-del" data-id="${g.id}" aria-label="Tirar post da vitrine">${ico('x')}</button>` : ''}<iframe src="${esc(igEmbed(g.url))}" title="Post do Instagram" loading="lazy" scrolling="no" allowtransparency="true"></iframe></figure>`).join('')}</div>` : '<div class="empty">Escolhe até 12 posts teus pra vitrine. Cola o link do post ou do reel.</div>'}` : ''}`}
     </main>`;
     st.pfStories = ring ? [{ perfil: p, stories }] : null;
     /* sem login: depois de entrar, volta pra esse perfil */
@@ -616,9 +636,11 @@
     if(mine && C.correalCarrega) C.correalCarrega();
     if(C.feed){
       C.feed.seguirHTML(p).then(r => { const a = $('pf-nums'), b = $('pf-seguir'); if(a) a.innerHTML = r.nums; if(b) b.innerHTML = r.btn; }).catch(() => {});
-      C.feed.mountPerfil($('pf-feed'), p);
-      if(C.grupos) C.grupos.doPerfil($('pf-grupos'), p);
-      if(C.feed.recs) C.feed.recs($('pf-recs'), p).catch(() => {});
+      if(!fechado){
+        C.feed.mountPerfil($('pf-feed'), p);
+        if(C.grupos) C.grupos.doPerfil($('pf-grupos'), p);
+        if(C.feed.recs) C.feed.recs($('pf-recs'), p).catch(() => {});
+      }
     }
   }
 
