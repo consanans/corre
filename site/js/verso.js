@@ -1343,7 +1343,7 @@
     const e = { R, fx: R.x + 14, fy: R.y + 14, fw: R.w - 28, fh: R.h - 28 };
     const c = e.campo = { x: e.fx + 80, y: e.fy + 120, w: e.fw - 160, h: e.fh - 200 };
     e.portao = { y: c.y + c.h / 2 - 36, h: 72 };
-    /* v3.50: a largada da corrida de moto, no portão da esquerda do Estádio (o Autódromo do Café é do lado) */
+    /* v3.50: a largada da corrida, no portão da esquerda do Estádio (o Autódromo do Café é do lado). v3.64: a placa diz CORRIDA (tem moto e carro) */
     e.largada = { x: R.x + 34, y: e.portao.y + e.portao.h / 2 + 10 }; K.lugares.push({ nome: 'Autódromo do Café', x: e.largada.x, y: e.largada.y + 20 });
     const fim = e.fy + e.fh, dx = e.fx + e.fw, sul = c.y + c.h;
     K.sol.push({ x: e.fx, y: e.fy, w: e.fw, h: c.y - e.fy });
@@ -1606,7 +1606,7 @@
       const cx = c.x + c.w / 2, cy = c.y + c.h / 2; for(let a = 0; a < 44; a++){ const an = a / 44 * Math.PI * 2; ctx.fillRect(sn(cx + Math.cos(an) * 48), sn(cy + Math.sin(an) * 48), L, L); }
       const ah = c.h * .5, aw = c.w * .13; linhas(ctx, c.x + 14, cy - ah / 2, aw, ah); linhas(ctx, c.x + c.w - 14 - aw, cy - ah / 2, aw, ah);
       ctx.fillStyle = '#E6E9EE'; linhas(ctx, c.x + 2, cy - 22, 12, 44); linhas(ctx, c.x + c.w - 14, cy - 22, 12, 44);
-      placaLargada(ctx, e.largada, 'MOTO');
+      placaLargada(ctx, e.largada, 'CORRIDA');
     },
     /* v3.40 · o aeroporto: grama seca, o pátio de concreto, a pista com as faixas, a cabeceira e as luzes */
     aeroporto(ctx, R, vx, vy, vw, vh){
