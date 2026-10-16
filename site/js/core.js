@@ -136,7 +136,11 @@
     /* v3.49 · o peixe do Torneio de Pesca do Igapó */
     peixe: '<path d="M3 12c3.2-4.6 9.2-5.4 13.8-1.2L21 8v8l-4.2-2.8C12.2 17.4 6.2 16.6 3 12z"/><circle cx="8" cy="11.2" r=".9"/>',
     /* v3.65 · a lupa da busca */
-    lupa: '<circle cx="10.5" cy="10.5" r="6.5"/><path d="m20.5 20.5-5.4-5.4"/>'
+    lupa: '<circle cx="10.5" cy="10.5" r="6.5"/><path d="m20.5 20.5-5.4-5.4"/>',
+    /* v3.70: o Tudo do menu (quatro quadrados) e as setinhas de mudar a ordem no Ajeitar */
+    grade: '<rect x="4" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.6"/>',
+    sobe: '<path d="m6 15 6-6 6 6"/>',
+    desce: '<path d="m6 9 6 6 6-6"/>'
   };
   const ico = (k, cls) => `<svg class="ic${cls ? ' ' + cls : ''}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${I[k] || ''}</svg>`;
 

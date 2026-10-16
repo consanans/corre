@@ -6,14 +6,14 @@
   'use strict';
   const C = window.Corre, { esc, ico } = C;
   /* sobe esse número a cada atualização: quem já viu recebe de novo, abrindo nas novidades */
-  const VERSAO = '3.69';
+  const VERSAO = '3.70';
   const K = 'corre-manual-visto';
 
   /* O que tem de novo: só o que é super relevante pra galera (o Thales, v3.67). No máximo 8, o mais novo em cima, uma ou
      duas frases cada, no jeito de quem conta pro amigo. Conserto, acabamento e detalhe técnico não entram aqui (moram no
      CLAUDE.md); novidade grande que chega empurra a mais velha pra fora */
   const NOVIDADES = [
-    ['clock', 'Menu esperto', 'O menu avisa onde tem coisa pra fazer: post que sai hoje, cliente pra retornar, cobrança vencida, pedido novo no Mural. No celular, a gaveta abre com o "Pra hoje" e os atalhos do que você mais usa.'],
+    ['recibo', 'Menu novo: a Comanda', 'No alto do menu, a comanda do teu dia: post atrasado, cliente pra retornar, cobrança vencida. Zerou, carimbo de tudo em dia. Embaixo, os teus blocos: o Corre monta pelo que você mais usa, ou você fixa e arrasta do teu jeito.'],
     ['star', 'Ateliê: skins novas', '18 skins pro teu boneco, de Faraó a Diva do Calçadão, compradas com correal. O Ateliê tá no mapa da cidade, e dá pra provar antes no teu avatar.'],
     ['lupa', 'Procurar', 'Gente, grupos, posts, ferramentas e lugares da cidade numa busca só. No computador é a barra no alto do menu (ou a tecla /); no celular, a lupa no alto da tela.'],
     ['carro', 'Autódromo do Café', 'Circuito de verdade, com saltos e obstáculos. Corre de moto ou de carro, 3 voltas contra o relógio, e vê quem fez o melhor tempo do dia.'],
