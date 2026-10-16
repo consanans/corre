@@ -958,7 +958,7 @@
     BASES_B.forEach(([x, z]) => out.push({ pts: [[x, z - .32], [x + .32, z], [x, z + .32], [x - .32, z]], c: PAPEL }));
     [[24.6, 53.4], [39.4, 53.4]].forEach(([x, z]) => out.push(disco2d(x, z, .75, TERRA_R2)));
     /* o escudo do Londrina Red Sharks pintado no gramado do meio do campo (o desenho é o mesmo da cidade, verso.js) */
-    out.push({ img: () => (C.verso && C.verso.logoSharks ? C.verso.logoSharks() : null), P4: [[25, .01, 15.5], [39, .01, 15.5], [39, .01, 26.4], [25, .01, 26.4]] });
+    out.push({ img: () => (C.verso && C.verso.logoSharks ? C.verso.logoSharks() : null), P4: [[25, .01, 15.6], [39, .01, 15.6], [39, .01, 26.47], [25, .01, 26.47]] });
     return out;
   })();
   const BEISEBOL_DECOR = (() => {
@@ -1999,6 +1999,11 @@
   const PELES_B = ['#F0C9A0', '#C68642', '#8E5B33', '#E8B98A', '#5A3A22', '#F3D3B0', '#A86B3C', '#D9A07A', '#B97B55'];
   const lerpK = (f, K) => { if(f <= K[0][0]) return K[0][1]; for(let i = 1; i < K.length; i++) if(f <= K[i][0]){ const [a, va] = K[i - 1], [b, vb] = K[i]; return va + (vb - va) * (f - a) / (b - a); } return K[K.length - 1][1]; };
   const ehBeisebol = Q => !!Q && Q.esporte === 'beisebol';
+  const logoRS = k => (C.verso && C.verso.logoSharks ? C.verso.logoSharks(k) : null);
+  /* um ponto do corpo do atleta (x, y, z do boneco parado de frente) depois da inclinação (lean, no quadril hy) e do giro */
+  const ptAtleta = (x, z, yaw, lean, hy, lx, ly, lz) => { const cp = Math.cos(lean), sp = Math.sin(lean), dy = ly - hy, y2 = dy * cp - lz * sp + hy, z2 = dy * sp + lz * cp, cy = Math.cos(yaw), sy = Math.sin(yaw); return [x + lx * cy + z2 * sy, y2, z - lx * sy + z2 * cy]; };
+  /* o monograma RS num pedaço do uniforme: de x0 a x1, de y0 a y1, colado na frente (lz) */
+  const rsNoCorpo = (x, z, yaw, lean, hy, x0, x1, y0, y1, lz, cor) => painelSol([ptAtleta(x, z, yaw, lean, hy, x0, y1, lz), ptAtleta(x, z, yaw, lean, hy, x1, y1, lz), ptAtleta(x, z, yaw, lean, hy, x1, y0, lz), ptAtleta(x, z, yaw, lean, hy, x0, y0, lz)], () => logoRS('rs'), cor, null);
   /* o time do campo (a máquina): cada um no seu lugar; quem tá perto de onde a bola vai cair corre atrás dela */
   function timeB(){
     if(!S.bsb) S.bsb = { J: POS_B.map(([x, z], i) => ({ x, z, x0: x, z0: z, yaw: Math.atan2(HP.x - x, HP.z - z), pele: PELES_B[i % PELES_B.length], passo: 0, corre: false, alvo: null })), fogos: [] };
@@ -2021,13 +2026,13 @@
     const lean = o.pose === 'pronto' ? .22 : ag ? .25 : o.pose === 'arremesso' ? lerpK(f, [[0, 0], [.3, -.12], [.55, -.1], [.68, .5], [1, .3]]) : 0;
     const TL = lean ? { pitch: lean, piv: [x, hy, z] } : null;
     add(B(x - .25, hy, z - .12, .5, .5, .24, R), TL);
-    if(!juiz){ add(B(x - .25, hy + .32, z + .121, .5, .05, .01, PAPEL), TL); add(B(x - .07, hy + .1, z + .121, .14, .16, .01, PAPEL), TL); add(B(x - .25, hy + .32, z - .131, .5, .05, .01, PAPEL), TL); add(B(x - .26, hy, z - .13, .52, .06, .26, INK), TL); }
+    if(!juiz){ add(B(x - .25, hy + .44, z - .131, .5, .04, .01, PAPEL), TL); add(B(x - .26, hy, z - .13, .52, .06, .26, INK), TL); if(!ag) out.push(rsNoCorpo(x, z, yaw, lean, hy, -.16, .16, hy + .1, hy + .42, .13, VERMELHAO)); }
     add(B(x - .25, hy + .5, z - .25, .5, .5, .5, P), TL);
     add(B(x - .16, hy + .76, z + .25, .08, .08, .01, INK), TL); add(B(x + .08, hy + .76, z + .25, .08, .08, .01, INK), TL);
     if(ag) add(B(x - .27, hy + .52, z + .25, .54, .42, .05, '#2B2F38'), TL);
     /* o boné: a copa preta com o botão vermelho e a aba vermelha (o juiz, todo preto) */
-    add(B(x - .27, hy + .94, z - .27, .54, .11, .54, INK), TL); add(B(x - .2, hy + .94, z + (ag ? -.47 : .27), .4, .04, .2, juiz ? INK : VERMELHAO), TL);
-    if(!juiz){ add(B(x - .05, hy + 1.05, z - .05, .1, .03, .1, VERMELHAO), TL); add(B(x - .27, hy + .94, z - .27, .54, .03, .54, VERMELHAO), TL); }
+    add(B(x - .27, hy + .94, z - .27, .54, .2, .54, INK), TL); add(B(x - .2, hy + .94, z + (ag ? -.47 : .27), .4, .04, .2, juiz ? INK : VERMELHAO), TL);
+    if(!juiz){ add(B(x - .05, hy + 1.14, z - .05, .1, .03, .1, VERMELHAO), TL); if(!ag) out.push(rsNoCorpo(x, z, yaw, lean, hy, -.12, .12, hy + .985, hy + 1.13, .275, INK)); }
     /* os braços: o direito (lado -x) arremessa por cima; o esquerdo leva a luva */
     const braco = (sx, ang, luva) => { const T2 = { pitch: ang, piv: [x, hy + .46, z] }; add(B(x + sx, hy + .18, z - .1, .14, .32, .2, R), T2, TL); add(B(x + sx, hy, z - .1, .14, .18, .2, P), T2, TL); if(luva) add(B(x + sx - .06, hy - .14, z - .12, .26, .26, .3, '#8E5B33'), T2, TL); };
     let aD = -sw, aE = sw;
@@ -2147,7 +2152,7 @@
   const textoB = (t, fundo, cor) => { const cv = document.createElement('canvas'); cv.width = 256; cv.height = 128; const x = cv.getContext('2d'); x.fillStyle = fundo; x.fillRect(0, 0, 256, 128); x.fillStyle = cor; x.textAlign = 'center'; x.textBaseline = 'middle'; x.font = '900 84px "Archivo", system-ui, sans-serif'; x.fillText(t, 128, 68); return cv; };
   let PLACAR_B = null, PLACAR_K = '';
   function placarB(){
-    const D = S.desafio && ehBeisebol(S.desafio.Q) ? S.desafio : null, rec = melhorQuadra(DESAFIOS.beisebol), k = D ? [D.n, D.pts, D.hr || 0, D.fase === 'res' ? D.res : ''].join('|') : 'parado|' + rec;
+    const D = S.desafio && ehBeisebol(S.desafio.Q) ? S.desafio : null, rec = melhorQuadra(DESAFIOS.beisebol), escu = logoRS('escudo'), k = (D ? [D.n, D.pts, D.hr || 0, D.fase === 'res' ? D.res : ''].join('|') : 'parado|' + rec) + (escu ? '|e' : '');
     if(PLACAR_B && PLACAR_K === k) return PLACAR_B; PLACAR_K = k;
     const cv = PLACAR_B || document.createElement('canvas'); cv.width = 512; cv.height = 256; const x = cv.getContext('2d');
     x.fillStyle = '#121419'; x.fillRect(0, 0, 512, 256); x.fillStyle = VERMELHAO; x.fillRect(0, 0, 512, 62);
@@ -2155,6 +2160,11 @@
     if(D && D.fase === 'res' && D.res === 'hr'){ x.fillStyle = '#FFE14A'; x.font = '900 76px "Archivo", system-ui, sans-serif'; x.fillText('HOME RUN!', 256, 160); }
     else {
       const L = D ? [['ARREMESSO', `${Math.min(TENT, D.n + 1)}/${TENT}`], ['PONTOS', String(D.pts)], ['HOME RUNS', String(D.hr || 0)]] : [['DESAFIO DE', 'REBATIDA'], ['MELHOR DO DIA', rec ? `${rec} PTS` : '-']];
+      /* parado, o escudo do Red Sharks na esquerda e o desafio do lado */
+      if(!D && escu){ const w = 196, h = w * escu.naturalHeight / escu.naturalWidth; x.drawImage(escu, 14, 64 + (190 - h) / 2, w, h);
+        x.textAlign = 'center'; x.fillStyle = '#FFB347'; x.font = '700 30px system-ui, sans-serif'; x.fillText('DESAFIO DE', 360, 104); x.fillText('REBATIDA', 360, 140);
+        x.font = '700 22px system-ui, sans-serif'; x.fillText('MELHOR DO DIA', 360, 186); x.fillStyle = '#FFE9B0'; x.font = '900 38px system-ui, sans-serif'; x.fillText(rec ? `${rec} PTS` : '-', 360, 224);
+        PLACAR_B = cv; return cv; }
       x.font = '700 30px system-ui, sans-serif';
       L.forEach(([a, b], i) => { const y = 102 + i * 52; x.textAlign = 'left'; x.fillStyle = '#FFB347'; x.fillText(a, 30, y); x.textAlign = 'right'; x.fillStyle = '#FFE9B0'; x.fillText(b, 482, y); });
     }

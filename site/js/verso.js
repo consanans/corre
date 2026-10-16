@@ -1635,7 +1635,7 @@
       ctx.fillRect(hp.x - 4, hp.y - 4, 8, 5); ctx.fillRect(hp.x - 2, hp.y + 1, 4, 2); ctx.fillRect(a.monte.x - 4, a.monte.y - 1, 8, L);
       a.bases.forEach(b => { ctx.fillRect(b.x - 3, b.y - 3, 6, 6); });
       /* v3.57: o escudo do Londrina Red Sharks pintado no gramado do meio do campo */
-      { const im = logoSharks(), w = 150, h = w * im.height / im.width; ctx.save(); ctx.imageSmoothingEnabled = true; ctx.globalAlpha = .92; ctx.drawImage(im, hp.x - w / 2, hp.y - 262 - h / 2, w, h); ctx.restore(); }
+      { const im = logoSharks(); if(im){ const w = 150, h = w * im.naturalHeight / im.naturalWidth; ctx.save(); ctx.imageSmoothingEnabled = true; ctx.globalAlpha = .92; ctx.drawImage(im, hp.x - w / 2, hp.y - 262 - h / 2, w, h); ctx.restore(); } }
       /* a cerca escura com o friso amarelo (por cima de tudo do chão) e os números */
       a.cerca.forEach(p => { ctx.fillStyle = '#2B2F38'; ctx.fillRect(sn(p.x - 5), sn(p.y - 9), 10, 9); ctx.fillStyle = '#F2C230'; ctx.fillRect(sn(p.x - 5), sn(p.y - 10), 10, 2); });
       [[-Math.PI / 4, '36'], [0, '42'], [Math.PI / 4, '36']].forEach(([th, n]) => { const r = a.raio(th) + 1; pixTxt(ctx, n, hp.x + Math.sin(th) * r, hp.y - Math.cos(th) * r - 5, 1, '#F4F3EF', 'c'); });
@@ -1813,36 +1813,14 @@
     return cv;
   }
   /* a marca sozinha (o patinete da JET leva no guidão, no deque, atrás e na bandeirinha): letra branca no azul */
-  /* v3.57 · o escudo do Londrina Red Sharks (o time de beisebol da ACEL), pintado no meio do campo: o tubarão vermelho
-     saltando por cima da bola, e o nome embaixo. Desenho nosso, nas cores do time (nenhum arquivo baixado); chegando o
-     logo oficial, é só trocar este desenho. Fundo transparente, feito uma vez */
-  let SHARKS = null;
-  function logoSharks(){
-    if(SHARKS) return SHARKS;
-    const cv = document.createElement('canvas'); cv.width = 512; cv.height = 400; const x = cv.getContext('2d'), R = '#D9252B', P = '#0F1218';
-    x.lineJoin = 'round'; x.lineCap = 'round';
-    /* a bola */
-    x.beginPath(); x.arc(256, 168, 98, 0, Math.PI * 2); x.fillStyle = '#FFFFFF'; x.fill(); x.lineWidth = 10; x.strokeStyle = P; x.stroke();
-    x.strokeStyle = R; x.lineWidth = 7; x.beginPath(); x.arc(106, 168, 116, -.62, .62); x.stroke(); x.beginPath(); x.arc(406, 168, 116, Math.PI - .62, Math.PI + .62); x.stroke();
-    /* o tubarão: corpo, barbatana, rabo e nadadeira (contorno preto grosso, barriga clara) */
-    const corpo = () => { x.beginPath(); x.moveTo(78, 214); x.quadraticCurveTo(190, 70, 432, 112); x.quadraticCurveTo(470, 122, 478, 140); x.quadraticCurveTo(420, 178, 336, 176); x.quadraticCurveTo(220, 172, 116, 232); x.closePath(); };
-    const forma = (pts, cor) => { x.beginPath(); pts.forEach(([a, b], i) => (i ? x.lineTo(a, b) : x.moveTo(a, b))); x.closePath(); x.fillStyle = cor; x.fill(); x.lineWidth = 10; x.strokeStyle = P; x.stroke(); };
-    forma([[244, 100], [206, 18], [318, 92]], R);
-    forma([[96, 214], [24, 146], [66, 214], [30, 286], [122, 230]], R);
-    corpo(); x.fillStyle = R; x.fill(); x.lineWidth = 12; x.strokeStyle = P; x.stroke();
-    x.save(); corpo(); x.clip(); x.beginPath(); x.moveTo(120, 240); x.quadraticCurveTo(250, 150, 480, 146); x.lineTo(480, 240); x.closePath(); x.fillStyle = '#F4F1EA'; x.fill(); x.restore();
-    corpo(); x.lineWidth = 12; x.strokeStyle = P; x.stroke();
-    forma([[296, 168], [262, 236], [346, 174]], R);
-    /* a boca com os dentes, as guelras e o olho */
-    x.beginPath(); x.moveTo(372, 160); x.quadraticCurveTo(420, 150, 462, 138); x.lineWidth = 6; x.strokeStyle = P; x.stroke();
-    x.fillStyle = '#FFFFFF'; for(let i = 0; i < 6; i++){ const a = 380 + i * 13, b = 158 - i * 3.2; x.beginPath(); x.moveTo(a, b); x.lineTo(a + 6, b + 9); x.lineTo(a + 12, b - 2); x.closePath(); x.fill(); }
-    x.lineWidth = 5; [0, 1, 2].forEach(i => { x.beginPath(); x.moveTo(330 - i * 14, 124 + i * 2); x.quadraticCurveTo(322 - i * 14, 142, 330 - i * 14, 160); x.stroke(); });
-    x.beginPath(); x.arc(410, 124, 9, 0, Math.PI * 2); x.fillStyle = '#FFFFFF'; x.fill(); x.lineWidth = 4; x.stroke(); x.beginPath(); x.arc(412, 124, 4, 0, Math.PI * 2); x.fillStyle = P; x.fill();
-    /* o nome */
-    x.textAlign = 'center'; x.textBaseline = 'middle';
-    x.font = '900 44px "Archivo", system-ui, sans-serif'; x.lineWidth = 10; x.strokeStyle = P; x.strokeText('LONDRINA', 256, 300); x.fillStyle = '#FFFFFF'; x.fillText('LONDRINA', 256, 300);
-    x.font = '900 72px "Archivo", system-ui, sans-serif'; x.lineWidth = 16; x.strokeStyle = '#FFFFFF'; x.strokeText('RED SHARKS', 256, 356); x.lineWidth = 8; x.strokeStyle = P; x.strokeText('RED SHARKS', 256, 356); x.fillStyle = R; x.fillText('RED SHARKS', 256, 356);
-    SHARKS = cv; return cv;
+  /* v3.57 · os símbolos do Londrina Red Sharks (o time de beisebol da ACEL), que o Thales mandou: o escudo (o tubarão
+     sobre o escudo, vai pintado no meio do campo) e o monograma RS (vai no uniforme). Os arquivos estão em site/img, com
+     o fundo tirado; enquanto não carregam, devolve null e quem desenha pula */
+  const SHARKS = Object.create(null);
+  function logoSharks(k){
+    k = k === 'rs' ? 'rs' : 'escudo'; let im = SHARKS[k];
+    if(!im){ im = SHARKS[k] = new Image(); im.decoding = 'async'; im.src = `img/redsharks-${k}.png?v=3.57`; }
+    return im.complete && im.naturalWidth ? im : null;
   }
   function publiLogo(k, W, H){
     const P = PUBLI[k]; if(!P) return null; W = W || 256; H = H || 128; const chave = 'logo|' + k + W + 'x' + H; let cv = PUBLI_IMG.get(chave); if(cv) return cv;
