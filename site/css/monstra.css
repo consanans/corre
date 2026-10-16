@@ -3005,3 +3005,11 @@ html.embed .msg-pg{height:calc(100dvh - 40px)}
 .cvr-av-loja .lbl-s .ic{width:14px;height:14px}
 @media (max-width:640px){ .lj-l{grid-template-columns:1fr} .lj-card{grid-template-columns:72px 1fr} .lj-cv{width:72px} }
 @media (prefers-reduced-motion:reduce){ .lj-card.lj-lendaria::after{animation:none;display:none} }
+
+/* v3.68 · a assinatura da página de entrar (o Thales: "um produto Houzi Records X Simonini Software"), embaixo do
+   cartão, na faixa escura do pé: letra de máquina miúda, os nomes em branco e o × em amarelo, como crédito de collab */
+.login-assina{max-width:min(560px,calc(100vw - 32px));margin:22px auto 6px;text-align:center;font-family:var(--font-mono);font-size:11.5px;line-height:1.7;letter-spacing:.14em;text-transform:uppercase;color:var(--night-ink-2)}
+.login-assina b{color:#fff;font-weight:700;white-space:nowrap}
+/* tela estreita: quebra antes do ×, que fica junto da Simonini */
+.login-assina .la-x{white-space:nowrap}
+.login-assina i{display:inline-block;margin:0 5px;color:var(--yellow);font-style:normal;font-size:15px;line-height:1;transform:translateY(1px)}

@@ -541,6 +541,7 @@
         </div>
         <p class="fine">Ao entrar, você concorda com a <a href="privacidade.html">Política de privacidade</a>.</p>
       </section>
+      <p class="login-assina">Um produto <b>Houzi Records</b> <span class="la-x"><i aria-hidden="true">×</i><span class="sr-only">e</span> <b>Simonini Software</b></span></p>
     </main>`;
     botaoGoogle();
   }

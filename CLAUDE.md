@@ -1,6 +1,6 @@
 # Corre: guia pro Claude Code
 
-O Corre (app.corresocial.com) é a rede social e a ferramenta de trabalho do Thales (@consanans, Londrina). É pra quem vive do próprio corre: feed, mensagens, grupos, Studio (programa e posta no Instagram), Vendas e Grana, Hórus (caça de clientes), Mural, Rolo 360, Correverso (cidade em pixel com casa 3D) e Studio Houzi (branding). Versão atual: **3.67** (16/10/2026; no ar, a 3.60).
+O Corre (app.corresocial.com) é a rede social e a ferramenta de trabalho do Thales (@consanans, Londrina). É pra quem vive do próprio corre: feed, mensagens, grupos, Studio (programa e posta no Instagram), Vendas e Grana, Hórus (caça de clientes), Mural, Rolo 360, Correverso (cidade em pixel com casa 3D) e Studio Houzi (branding). Versão atual: **3.68** (16/10/2026; no ar, a 3.67).
 
 **Com o Thales:** português, curto e direto. Ele não é programador: explica o que muda pra ele, não o código.
 
@@ -150,6 +150,7 @@ O app tem três modos (`core.js`): **de verdade** (config.js com `SUPABASE_URL` 
   - **Produção:** rodar o `delta-v366.sql` e subir o zip (sem o delta o site funciona; a loja só não vende).
 - **v3.67, o "O que tem de novo" enxuto (o Thales: "pode colocar apenas as coisas super relevantes pra galera"):** as `NOVIDADES` do manual.js passaram de 48 textos longos (um por versão, com conserto e detalhe técnico) pra 8 curtos: Ateliê, Procurar, Autódromo, Tarefas com minijogo, Kart ao vivo, Jogos pela cidade, Desbaratinado e Planos. A regra ficou no topo da lista e no "Fluxo de uma versão". A página do Perfil no manual ainda dizia "mocado"; agora diz desbaratinado.
 - **Posts da conta @corre (16/10/2026, o Thales pediu: "faça novos posts da conta corre retroativos até hoje" e "faça até dia 31"):** a conta oficial é `@corre` (id `45ff37aa-aa4f-4438-9414-54b5fd94f240`), com posts de novidade (só do que já tá no ar), curiosidade (fato conferido) e dica, no tom curto com hashtag no fim. Pelo conector: 20 posts retroativos de 10/10 até 16/10 (gravados direto no `corre_feed` com a data, como `postgres`; a `corre_trava_criacao` só força a hora pro app) e 32 agendados de 16/10 às 22h até 31/10 às 20h (Brasília). Post com data no futuro aparece na hora no topo do feed, então os agendados ficam na fila `corre_feed_fila` (`supabase/corre-fila-posts.sql`: RLS sem política, o app não lê; `corre_feed_fila_solta()` solta o que venceu, com a hora marcada, `skip locked`) e o job `corre-fila-posts` do pg_cron (de 10 em 10 min) chama ela. A lista inteira tá em `docs/posts-corre-outubro.txt`. Planos não foram anunciados: o Asaas ainda tá no sandbox.
+- **v3.68, a assinatura no login (o Thales: "na página de login você coloca 'um produto Houzi Records X Simonini Software'"):** `.login-assina` embaixo do cartão de entrar (`viewLogin` em app.js), na faixa escura do pé: letra de máquina miúda em caixa alta, os nomes em branco e o × em amarelo (o leitor de tela ouve "e"); em tela estreita quebra antes do ×. CSS no bloco `/* v3.68 ·` do monstra.css. Sem novidade no manual (não é coisa pra galera), só a `VERSAO`.
 - **Próximos (a fila do Thales):** vazia.
 
 ## Antes (v3.44, 14/10/2026)
