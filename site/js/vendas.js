@@ -167,7 +167,7 @@
         if(novo) await C.api.ins('corre_produtos', Object.assign(row, { ordem: lista().length }));
         else await C.api.upd('corre_produtos', { id: p.id }, row);
         if(p.foto_url && p.foto_url !== row.foto_url && C.api.unlink) C.api.unlink(p.foto_url);
-        await carregar(true); C.closeSheet(); depois(); C.toast(novo ? `${nome} tá no catálogo.` : 'Salvo.');
+        C.prende(row.foto_url); await carregar(true); C.closeSheet(); depois(); C.toast(novo ? `${nome} tá no catálogo.` : 'Salvo.');
       }catch(err){ C.toast(C.errMsg(err)); }
     });
   }
@@ -215,13 +215,14 @@
       const f = await C.pickFile('image/*'); if(!f) return;
       box.dataset.subindo = '1'; box.classList.add('subindo');
       try{
-        const url = await C.api.upload(await C.shrink(f, 1000, .82));
-        if(fu.value && fu.value !== fu.dataset.orig && C.api.unlink) C.api.unlink(fu.value);
+        /* v3.74: solta até salvar (fechou a folha sem salvar, ela sai do Storage) */
+        const url = C.solta(await C.api.upload(await C.shrink(f, 1000, .82)));
+        if(fu.value && fu.value !== fu.dataset.orig && C.api.unlink){ C.prende(fu.value); C.api.unlink(fu.value); }
         fu.value = url; pintaFoto();
       }catch(e){ C.toast(e && e.code === 'tipo' ? 'Escolhe uma imagem (JPG ou PNG).' : 'Não deu pra subir a foto agora.'); }
       finally{ box.dataset.subindo = ''; box.classList.remove('subindo'); }
     },
-    'ct-foto-x': () => { const fu = C.$('ct-fu'); if(!fu) return; if(fu.value && fu.value !== fu.dataset.orig && C.api.unlink) C.api.unlink(fu.value); fu.value = ''; pintaFoto(); }
+    'ct-foto-x': () => { const fu = C.$('ct-fu'); if(!fu) return; if(fu.value && fu.value !== fu.dataset.orig && C.api.unlink){ C.prende(fu.value); C.api.unlink(fu.value); } fu.value = ''; pintaFoto(); }
   });
 
   C.vendas = { carregar, invalidar, resumoHTML, ritmoHorus, painelHTML, daMarca, escolhe: () => itemSheet(null), conta };

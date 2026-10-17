@@ -65,7 +65,8 @@ const json = (body: unknown, status = 200) =>
 /* v3.38 · CORREAL: a moeda do Correverso. O grátis do dia acabou? Se a pessoa topou (correal: true no pedido), o banco
    desconta o preço da carteira dela (corre_correal_gasta, pelo login dela) e a IA trabalha; se a IA falhar depois do
    desconto, a função devolve (corre_correal_devolve, com a chave de serviço). Preço e saldo ficam no banco. */
-type Extra = { pago: number; tipo: string; saldo: number | null };
+/* v3.74: gasto = o recibo (o id da linha do extrato) que o banco devolve; a devolução vai por ele */
+type Extra = { pago: number; tipo: string; saldo: number | null; gasto?: number };
 async function vaga(sb: any, tipo: string, lim: number, feitas: number, body: any, X: Extra): Promise<Response | null> {
   if (feitas < lim && await cota(sb, tipo, lim)) return null;
   const { data: w, error: ew } = await sb.rpc('corre_correal_meu');
@@ -76,7 +77,7 @@ async function vaga(sb: any, tipo: string, lim: number, feitas: number, body: an
   if (body?.correal !== true) return json(info, 429);
   const { data: g, error: eg } = await sb.rpc('corre_correal_gasta', { p_tipo: tipo });
   if (eg || !g?.ok) return json({ ...info, correal: Number(g?.saldo ?? saldo) || 0, sem_correal: true }, 429);
-  X.pago = Number(g.preco) || preco; X.tipo = tipo; X.saldo = Number(g.saldo);
+  X.pago = Number(g.preco) || preco; X.tipo = tipo; X.saldo = Number(g.saldo); X.gasto = Number(g.gasto) || 0;
   return null;
 }
 /* fecha o pedido: deu certo com correal, a resposta leva o saldo; deu errado depois do desconto, devolve */
@@ -87,7 +88,10 @@ async function fecha(r: Response, X: Extra, admin: any, uid: string) {
   if (r.status >= 400) {
     let saldo = X.saldo;
     if (admin) {
-      const { data, error } = await admin.rpc('corre_correal_devolve', { p_dono: uid, p_tipo: X.tipo });
+      /* v3.74: pelo recibo do gasto (duas IAs do mesmo tipo falhando juntas devolvem as duas); sem recibo, ou sem o
+         delta-v374.sql no banco, pelo tipo, como antes */
+      let { data, error } = X.gasto ? await admin.rpc('corre_correal_devolve_gasto', { p_dono: uid, p_gasto: X.gasto }) : { data: null, error: { message: 'sem recibo' } };
+      if (error) ({ data, error } = await admin.rpc('corre_correal_devolve', { p_dono: uid, p_tipo: X.tipo }));
       if (error) console.error('correal devolve:', error.message); else if (data?.ok) saldo = Number(data.saldo);
     } else console.error('correal: sem SUPABASE_SERVICE_ROLE_KEY pra devolver', X.tipo);
     return json({ ...j, correal: saldo, devolvido: saldo !== X.saldo }, r.status);

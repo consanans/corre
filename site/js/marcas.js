@@ -82,11 +82,12 @@
     C.$('mk-up').addEventListener('click', async () => {
       const f = await C.pickFile('image/*'); if(!f) return;
       const b = C.$('mk-up'); b.disabled = true; b.textContent = 'Subindo…';
-      try{ const blob = await C.shrink(f, 360, .88, true); logo = await C.api.upload(blob); prev(); b.innerHTML = `${ico('camera')} Trocar logo`; }
+      /* v3.74: o logo novo fica solto até salvar (fechou sem salvar, sai do Storage); trocou de novo, o de antes sai na hora */
+      try{ const blob = await C.shrink(f, 360, .88, true), novoLogo = C.solta(await C.api.upload(blob)); C.soltaFora(logo); logo = novoLogo; prev(); b.innerHTML = `${ico('camera')} Trocar logo`; }
       catch(e){ C.toast(C.errMsg(e, 'Não deu pra subir a imagem.')); b.innerHTML = `${ico('camera')} Pôr logo`; }
       finally{ b.disabled = false; }
     });
-    const nl = C.$('mk-nologo'); if(nl) nl.addEventListener('click', () => { logo = ''; prev(); nl.remove(); });
+    const nl = C.$('mk-nologo'); if(nl) nl.addEventListener('click', () => { C.soltaFora(logo); logo = ''; prev(); nl.remove(); });
     const del = C.$('mk-del');
     if(del) del.addEventListener('click', async () => {
       const q = C.$('mk-delq'); if(q.hidden){ q.hidden = false; del.classList.add('armed'); return; }
@@ -104,7 +105,7 @@
       try{
         if(novo) await C.api.ins('corre_portfolio', row); else await C.api.upd('corre_portfolio', { id: m.id }, row);
         if(m.logo_url && m.logo_url !== logo) C.api.unlink(m.logo_url);
-        C.closeSheet(); C.toast(novo ? 'Marca no portfólio.' : 'Marca salva.'); volta();
+        C.prende(logo); C.closeSheet(); C.toast(novo ? 'Marca no portfólio.' : 'Marca salva.'); volta();
       }catch(err){ if(/plano_gratis/.test((err && (err.hint || err.message)) || '')) plusSheet(); else C.toast(C.errMsg(err)); }
       finally{ b.disabled = false; }
     });

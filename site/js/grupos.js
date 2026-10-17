@@ -212,9 +212,11 @@
       b.disabled = true; b.textContent = g ? 'Salvando…' : 'Criando…';
       try{
         let capa = GR.capaUrl && !/^blob:/.test(GR.capaUrl) ? GR.capaUrl : '';
-        if(GR.capa){ const blob = await C.shrink(GR.capa, 1600, .84); capa = await C.api.upload(blob); }
+        let subiu = '';
+        if(GR.capa){ const blob = await C.shrink(GR.capa, 1600, .84); capa = subiu = await C.api.upload(blob); }
         const args = { p_nome: nome, p_descricao: C.$('gr-desc').value.trim(), p_regras: C.$('gr-regras').value.trim(), p_tags: tags, p_cor: cor, p_capa_url: capa, p_fechado: fechado };
-        const r = g ? await rpc('corre_grupo_editar', Object.assign({ p_grupo: g.id }, args)) : await rpc('corre_grupo_criar', args);
+        /* v3.74: o banco recusou (nome repetido, por exemplo), a capa que acabou de subir sai do Storage */
+        const r = await (g ? rpc('corre_grupo_editar', Object.assign({ p_grupo: g.id }, args)) : rpc('corre_grupo_criar', args)).catch(e => { if(subiu) C.api.unlink(subiu); throw e; });
         C.closeSheet();
         C.toast(g ? 'Grupo salvo.' : 'Grupo no ar. Chama a galera: o link tá em "Chamar gente".', 3800);
         if(g){ GR.g = r; C.go(`#/g/${r.slug}/sobre`); C.refresh(); } else C.go(`#/g/${r.slug}`);

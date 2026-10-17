@@ -336,7 +336,8 @@
     try{
       let midia_url = '';
       if(F.foto){ const b = await C.shrink(F.foto, 1600, .86); midia_url = await C.api.upload(b); }
-      const raiz = await C.feed.publicar(Object.assign({ texto, midia_url, tipo: 'post' }, enquete ? { enquete } : {}, gid ? { grupo: gid } : {}));
+      /* v3.74: o banco recusou o post, a foto que acabou de subir não fica largada no Storage */
+      const raiz = await C.feed.publicar(Object.assign({ texto, midia_url, tipo: 'post' }, enquete ? { enquete } : {}, gid ? { grupo: gid } : {})).catch(e => { if(midia_url) C.api.unlink(midia_url); throw e; });
       /* o fio: cada pedaço é um post teu, pendurado no primeiro */
       let foram = 0;
       for(const x of extras){ try{ const r = await C.api.ins('corre_feed', { texto: x, fio: raiz.id }); if(r && r[0]){ guarda([Object.assign(r[0], { perfil: C.st.me })]); if(C.push && MARCA.test(x)) C.push.avisa('post', r[0].id); } foram++; }catch(e){ C.toast(erroPost(e)); break; } }

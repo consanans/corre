@@ -69,6 +69,10 @@ testa teste366.sql 16
 delta delta-v372.sql 'delta v3.72 ok'
 delta delta-v372.sql 'delta v3.72 ok'
 testa teste372.sql 10
+# v3.74: a devolução de correal pelo recibo do gasto
+delta delta-v374.sql 'delta v3.74 ok'
+delta delta-v374.sql 'delta v3.74 ok'
+testa teste374.sql 9
 . "$AQUI/virada343.sh"
 if grep -q 'FALHOU\|ERROR' $D/saida; then echo "deu FALHOU ou erro (acima)"; exit 1; fi
 echo "tudo ok: $(grep -c '^ok:' $D/saida) checagens"

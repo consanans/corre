@@ -3810,6 +3810,8 @@
   const rotuloCorreal = m => {
     const [tipo, a, b] = String(m || '').split(':');
     if(tipo === 'tarefa'){ const t = (TAREFAS[a] || []).find(x => x.k === b); return t ? t.nome : 'Tarefa'; }
+    /* v3.74: a compra no Ateliê aparecia como "IA" no extrato (o "skin:farao" caía no rótulo da IA) */
+    if(tipo === 'skin'){ const sk = LOJA[a]; return sk ? `Ateliê: ${sk[1]}` : 'Ateliê'; }
     const ia = { imagem: 'Imagem com IA', legenda: 'Legenda ou pauta com IA', abordagem: 'Hórus com IA', marca: 'Studio Houzi com IA', voo: 'Voo no Aeroporto' }[a] || 'IA';
     if(a === 'voo') return tipo === 'volta' ? 'Voo no Aeroporto: devolvido' : ia;
     return tipo === 'volta' ? `${ia}: devolvido (a IA falhou)` : ia;

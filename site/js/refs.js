@@ -158,7 +158,8 @@
     C.$('rf-f').addEventListener('click', e => { const b = e.target.closest('[data-rf-tag]'); if(!b) return; const t = b.dataset.rfTag; if(tags.has(t)) tags.delete(t); else tags.add(t); b.setAttribute('aria-pressed', String(tags.has(t))); });
     C.$('rf-up').addEventListener('click', async () => {
       const f = await C.pickFile('image/*'); if(!f) return; const b = C.$('rf-up'); b.disabled = true; b.textContent = 'Subindo…';
-      try{ const blob = await C.shrink(f, 1000, .82); img = await C.api.upload(blob); C.$('rf-im').innerHTML = `<img src="${esc(img)}" alt="">`; }catch(e){ C.toast(C.errMsg(e, 'Não deu pra subir a foto.')); }
+      /* v3.74: a foto nova fica solta até guardar (fechou sem guardar, sai do Storage); trocou de novo, a de antes sai na hora */
+      try{ const blob = await C.shrink(f, 1000, .82), nova = C.solta(await C.api.upload(blob)); C.soltaFora(img); img = nova; C.$('rf-im').innerHTML = `<img src="${esc(img)}" alt="">`; }catch(e){ C.toast(C.errMsg(e, 'Não deu pra subir a foto.')); }
       finally{ b.disabled = false; b.innerHTML = `${ico('camera')} Trocar`; }
     });
     C.umaVez(C.$('rf-f'), async e => {
@@ -168,7 +169,7 @@
       else if(url && !/^https?:\/\//i.test(url)) url = 'https://' + url;
       const pv = C.$('rf-v').value.trim(), row = { titulo, url: url.slice(0, 500), img_url: img, porque: C.$('rf-p').value.trim().slice(0, 300), tags: [...tags].slice(0, 8),
         preco: pv ? (C.catalogo ? C.catalogo.parseReais(pv) : Number(pv)) : null, produto_id: C.$('rf-pi').value || null };
-      try{ if(novo) await C.api.ins('corre_refs', row); else await C.api.upd('corre_refs', { id: r.id }, row); C.closeSheet(); await carregar(true); pinta(); C.toast(novo ? 'Guardada.' : 'Salva.'); }
+      try{ if(novo) await C.api.ins('corre_refs', row); else await C.api.upd('corre_refs', { id: r.id }, row); C.prende(img); if(!novo && r.img_url && r.img_url !== img && C.api.unlink) C.api.unlink(r.img_url); C.closeSheet(); await carregar(true); pinta(); C.toast(novo ? 'Guardada.' : 'Salva.'); }
       catch(err){ C.toast(C.errMsg(err)); }
     });
   }

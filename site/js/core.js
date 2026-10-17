@@ -182,7 +182,16 @@
     const f = sh.querySelector('[autofocus], .panel button, .panel input'); if(f) setTimeout(() => f.focus(), 30);
     return sh.querySelector('.panel');
   }
-  function closeSheet(){ const sh = $('sheet'); if(!sh || sh.hidden) return; sh.hidden = true; sh.innerHTML = ''; const st = $('story'); if(!st || st.hidden) document.body.classList.remove('locked'); if(lastFocus && lastFocus.focus) try{ lastFocus.focus(); }catch(e){} if(C.onSheetClose) C.onSheetClose(); }
+  function closeSheet(){ const sh = $('sheet'); if(!sh || sh.hidden) return; sh.hidden = true; sh.innerHTML = ''; const st = $('story'); if(!st || st.hidden) document.body.classList.remove('locked'); if(lastFocus && lastFocus.focus) try{ lastFocus.focus(); }catch(e){} soltasFora(); if(C.onSheetClose) C.onSheetClose(); }
+  /* v3.74 · A FOTO SOLTA: a foto que sobe na hora de escolher (o logo da marca, a foto da referência, a do item do catálogo)
+     ficava largada no Storage quando a pessoa fechava a folha sem salvar. Quem sobe marca como solta (C.solta); quem salva
+     prende (C.prende, antes de fechar); trocou de foto antes de salvar, a de antes sai na hora (C.soltaFora); fechar a folha
+     apaga as que sobraram soltas. Só mexe no que subiu agora: foto que já estava salva nunca entra aqui */
+  const SOLTAS = new Set();
+  function soltasFora(){ if(!SOLTAS.size) return; const l = [...SOLTAS]; SOLTAS.clear(); l.forEach(u => { try{ const r = C.api && C.api.unlink && C.api.unlink(u); if(r && r.catch) r.catch(() => {}); }catch(e){} }); }
+  C.solta = url => { if(url) SOLTAS.add(url); return url; };
+  C.prende = (...urls) => { urls.forEach(u => SOLTAS.delete(u)); };
+  C.soltaFora = url => { if(url && SOLTAS.has(url)){ SOLTAS.delete(url); try{ const r = C.api.unlink(url); if(r && r.catch) r.catch(() => {}); }catch(e){} } };
 
   /* v3.38 · CORREAL: os preços da IA em correal (os mesmos do banco; quem manda é o banco) */
   /* v3.40: o voo do Aeroporto de Londrina (Correverso) também sai em correal */

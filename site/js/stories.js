@@ -133,7 +133,8 @@
       try{
         const row = { texto, fundo: modo === 'texto' ? fundo : '' };
         if(modo === 'foto'){ const blob = await C.shrink(file, 1440, .84); row.midia_url = await C.api.upload(blob); }
-        await C.api.ins('corre_stories', row);
+        /* v3.74: o banco recusou, a foto que acabou de subir sai do Storage */
+        await C.api.ins('corre_stories', row).catch(e => { if(row.midia_url) C.api.unlink(row.midia_url); throw e; });
         if(url) URL.revokeObjectURL(url);
         C.closeSheet(); C.toast('Story no ar.'); C.refresh && C.refresh();
       }catch(e){ C.toast(C.errMsg(e, 'Não deu pra postar agora.')); b.disabled = false; b.textContent = 'Postar story'; }

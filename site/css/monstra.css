@@ -3295,3 +3295,9 @@ html.embed .msg-pg{height:calc(100dvh - 40px)}
 .pl-aceite:has(input:focus-visible){outline:3px solid var(--focus);outline-offset:2px}
 .pl-desiste{margin:0;padding:9px 12px;border:2px dashed var(--ink);border-radius:12px;font-size:14px;line-height:1.4}
 .pl-fine a{color:var(--ink);font-weight:800}
+
+/* v3.74 · a faxina: a barra do calendário do Studio passava 4 px da tela de 320 (o mês do meio tinha largura mínima e não
+   quebrava, e empurrava o "Hoje" pra fora). Agora o título encolhe e, se precisar, corta com reticências; em tela bem
+   estreita, os botões e a letra ficam um tico menores */
+@media (max-width:640px){ .sd-nav h2{min-width:0;overflow:hidden;text-overflow:ellipsis} }
+@media (max-width:360px){ .sd-nav{gap:6px} .sd-nav h2{font-size:17px} .sd-nav .rnd{width:34px;height:34px} }
