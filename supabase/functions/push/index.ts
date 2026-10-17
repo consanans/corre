@@ -49,13 +49,21 @@ async function hmac(chave: Uint8Array, dado: Uint8Array) {
 
 /* ---------- as chaves do Corre (VAPID) ---------- */
 type Vapid = { pub: string, priv: CryptoKey };
-let VAPID: Vapid | null = null, VAPID_DE = '';
+let VAPID: Vapid | null = null, VAPID_DE = '', MOTIVO = '';
+/* v3.72b: por que as chaves não valeram, sem mostrar chave nenhuma (os nomes com "vapid" que a função enxerga e o
+   tamanho de cada valor); vai no registro da função e na resposta, pro Thales e o Claude acharem o erro de colar */
+function motivo(pub: string, d: string) {
+  let nomes: string[] = [];
+  try { nomes = Object.keys(Deno.env.toObject()).filter(k => /vapid/i.test(k)); } catch (_) { /* sem lista */ }
+  const letras = (v: string) => v.replace(/[A-Za-z0-9_-]/g, '').length;
+  return `nomes=${JSON.stringify(nomes)} publica=${pub.length} (fora do alfabeto: ${letras(pub)}) privada=${d.length} (fora do alfabeto: ${letras(d)})`;
+}
 async function vapid(): Promise<Vapid | null> {
   const pub = env('VAPID_PUBLIC_KEY'), d = env('VAPID_PRIVATE_KEY');
   if (VAPID && VAPID_DE === pub + d) return VAPID;
-  if (!/^[A-Za-z0-9_-]{87}$/.test(pub) || !/^[A-Za-z0-9_-]{43}$/.test(d)) return null;
+  if (!/^[A-Za-z0-9_-]{87}$/.test(pub) || !/^[A-Za-z0-9_-]{43}$/.test(d)) { MOTIVO = 'formato: ' + motivo(pub, d); return null; }
   const p = deB64u(pub);
-  if (p.length !== 65 || p[0] !== 4) return null;
+  if (p.length !== 65 || p[0] !== 4) { MOTIVO = 'a pública não é uma chave P-256'; return null; }
   try {
     const priv = await crypto.subtle.importKey('jwk', { kty: 'EC', crv: 'P-256', x: b64u(p.slice(1, 33)), y: b64u(p.slice(33)), d, ext: true },
       { name: 'ECDSA', namedCurve: 'P-256' }, false, ['sign']);
@@ -63,9 +71,9 @@ async function vapid(): Promise<Vapid | null> {
     const ver = await crypto.subtle.importKey('raw', p, { name: 'ECDSA', namedCurve: 'P-256' }, false, ['verify']);
     const prova = enc.encode('corre · par de chaves');
     const sig = await crypto.subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, priv, prova);
-    if (!await crypto.subtle.verify({ name: 'ECDSA', hash: 'SHA-256' }, ver, sig, prova)) return null;
-    VAPID = { pub, priv }; VAPID_DE = pub + d; return VAPID;
-  } catch (_) { return null; }
+    if (!await crypto.subtle.verify({ name: 'ECDSA', hash: 'SHA-256' }, ver, sig, prova)) { MOTIVO = 'o par não casa (a privada é de outra geração)'; return null; }
+    VAPID = { pub, priv }; VAPID_DE = pub + d; MOTIVO = ''; return VAPID;
+  } catch (e) { MOTIVO = 'importar: ' + String(e).slice(0, 160); return null; }
 }
 /* a assinatura VAPID: um JWT por serviço (aud = a origem do endereço), vale 12 horas; guardado enquanto vale */
 const JWTS = new Map<string, { t: string, ate: number }>();
@@ -157,7 +165,7 @@ Deno.serve(async (req) => {
   let body: any = null;
   try { body = await req.json(); } catch (_) { return json({ erro: 'corpo' }, 400); }
   const v = await vapid();
-  if (!v) return json({ erro: 'sem_chave' }, 503);
+  if (!v) { console.warn('[push] sem_chave', MOTIVO); return json({ erro: 'sem_chave', motivo: MOTIVO }, 503); }
   const acao = String(body?.acao || '');
 
   if (acao === 'chave') return json({ chave: v.pub });
