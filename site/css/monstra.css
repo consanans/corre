@@ -3097,7 +3097,6 @@ html.embed .msg-pg{height:calc(100dvh - 40px)}
 .tl-ic{position:relative;display:grid;place-items:center;flex:none}
 .tl-ic .ic{width:22px;height:22px;color:var(--yellow)}
 .tl-t{min-width:0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
-.tl-c{display:none}
 .tls .tl[aria-current="page"]{background:var(--yellow);border-color:var(--ink);color:var(--ink);font-weight:850;box-shadow:3px 3px 0 var(--pink)}
 .tls .tl[aria-current="page"] .tl-ic .ic{color:var(--ink);stroke-width:2.5}
 .tl .sinal{position:absolute;top:-8px;right:-6px;justify-content:center;min-width:22px;height:22px;margin:0;padding:0 6px;border:2px solid var(--night);font-size:11.5px;line-height:1}
@@ -3163,8 +3162,8 @@ html.embed .msg-pg{height:calc(100dvh - 40px)}
   .lado-tudo:not([open]):has(.lado-tudo-m .sinal:not([hidden])) > summary .mi-ic::after{content:"";position:absolute;top:-3px;right:-5px;width:10px;height:10px;border-radius:50%;background:var(--orange);border:2px solid var(--night)}
 }
 @media (min-width:1280px){
-  /* largo: o Procurar encolhe pra caber as Mensagens e o sino do lado; a Comanda inteira; os blocos em três colunas e a
-     praça lado a lado (assim o Correverso e o Mural ficam à vista num notebook) */
+  /* largo: o Procurar encolhe pra caber as Mensagens e o sino do lado; a Comanda inteira (o resto do largo tá no bloco
+     da v3.71: o menu em coluna) */
   .lado-busca{flex-direction:row;align-items:center;gap:4px}
   .lado-busca .lado-procura{flex:1;min-width:0;width:auto}
   .lado-busca .lado-procura .lado-procura-t{min-width:0;overflow:hidden;text-overflow:ellipsis}
@@ -3174,24 +3173,8 @@ html.embed .msg-pg{height:calc(100dvh - 40px)}
   .cm-lado{display:block}
   .lado-cmm{display:none}
   .tls-lado .tls-k{display:flex}
-  .tls-lado .tls{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
-  .tls-lado .tl{flex-direction:column;justify-content:center;gap:5px;width:auto;min-height:62px;padding:8px 4px 7px;border:1.5px solid #34303A;border-radius:14px;background:var(--night-2);text-align:center}
-  .tls-lado .tl:hover{background:#2C2931;border-color:var(--yellow)}
-  .tls-lado .tl-c{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12.5px;font-weight:750}
-  .tls-lado .tl-fixa{display:inline-flex}
-  .tls-lado .tl[aria-current="page"]{background:var(--yellow);box-shadow:3px 3px 0 var(--pink)}
-  .tls-lado .tl[aria-current="page"] .tl-ic .ic{color:var(--ink)}
-  .tls-lado .tl-aqui{border:1.5px dashed var(--yellow);background:none}
-  .tls-lado .tl .sinal{top:-8px;right:-6px;min-width:22px;width:auto;height:22px;padding:0 6px;font-size:11.5px;color:var(--ink)}
   .lado-tudo > summary{align-self:stretch}
-  .lado-tudo-seta{display:block;width:16px;height:16px;margin-left:auto;opacity:.55}
-  .lado-praca{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0 4px}
-  .lado-praca .lado-i.lado-verso,.lado-praca .lado-i.lado-mural{flex-direction:column;justify-content:center;gap:4px;min-height:66px;margin:0;padding:6px 4px}
-  .lado-praca .lado-verso .mi-t{font-size:12.5px}
-  .lado-praca .lado-mural .mi-t{font-size:17px}
-  .lado-praca .lado-i .tb-bola .ic{width:24px;height:24px}
-  .lado-praca .sinal{position:absolute;top:-8px;right:-6px;min-width:22px;height:22px;justify-content:center;margin:0;padding:0 6px}
-  .lado-i.lado-mural:has(.sinal:not([hidden])){padding-right:4px}
+  .lado-tudo-seta{display:block;width:16px;height:16px;margin-left:auto;opacity:.55;transition:transform .15s}
   /* a Comanda do menu: 3 pedidos, o "+N" abre o resto */
   .cm-lado:not(.toda) .cm-l:nth-child(n+4){display:none}
 }
@@ -3236,3 +3219,68 @@ html.embed .msg-pg{height:calc(100dvh - 40px)}
 @media (max-width:380px){ .aj-b{width:31px} .aj-i{gap:6px} }
 @media (prefers-reduced-motion:reduce){ .tls .tl{transition:none} }
 .aj-cheio{flex-basis:100%;margin:0 0 2px}
+/* v3.71 · o menu em coluna (o Thales: "tenta verticalizar o menu mais"). Tudo um embaixo do outro: os Teus viram lista
+   (o nome inteiro, o número do sinal na direita) dentro de um cartão de noite, a página aberta em marca-texto; o
+   Correverso e o Mural voltam um embaixo do outro; e o Tudo desce ali mesmo no menu, com os grupos em coluna e uma
+   linha-guia (no menu estreito ele segue balão do lado). Na gaveta do celular, os Teus também em lista */
+@media (min-width:1280px){
+  .tls-lado .tls{display:flex;flex-direction:column;gap:2px;padding:5px;border-radius:18px;background:var(--night-2)}
+  .tls-lado .tl{flex-direction:row;justify-content:flex-start;gap:12px;width:auto;min-height:42px;padding:0 10px 0 12px;border:0;border-radius:13px;background:none;
+    font-size:15.5px;font-weight:650;text-align:left}
+  .tls-lado .tl:hover{background:#2C2931}
+  .tls-lado .tl-ic .ic{width:21px;height:21px}
+  .tls-lado .tl-t{display:block;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tls-lado .tl[aria-current="page"]{background:var(--yellow);color:var(--ink);font-weight:850;box-shadow:3px 3px 0 var(--pink)}
+  .tls-lado .tl[aria-current="page"] .tl-ic .ic{color:var(--ink)}
+  .tls-lado .tl .sinal{position:static;flex:none;margin-left:auto;min-width:22px;width:auto;height:22px;padding:0 6px;border:0;justify-content:center;font-size:11.5px;color:var(--ink)}
+  .tls-lado .tl-aqui{border:1.5px dashed var(--yellow);background:none}
+  .tls-lado .tl-fixa{position:static;display:inline-flex;flex:none;margin-left:auto;border:0;transform:none}
+  /* a praça, um embaixo do outro */
+  .lado-praca{gap:6px;margin:12px 0 6px}
+  .lado-praca .lado-i.lado-verso,.lado-i.lado-mural{min-height:48px}
+  /* o Tudo descendo no menu */
+  .lado-mais-m.lado-tudo-m{position:static;width:auto;max-height:none;overflow:visible;margin:4px 0 6px 25px;padding:0 0 4px 10px;border:0;border-left:2px solid var(--night-2);border-radius:0;
+    background:none;box-shadow:none;color:var(--night-ink);animation:none}
+  .lado-tudo-m .tudo-k{display:none}
+  .lado-tudo-m .tudo-g{display:flex;flex-direction:column;gap:2px}
+  .lado-tudo-m .tudo-ck{margin:10px 8px 4px;color:var(--night-ink-2)}
+  .lado-tudo-m .tudo-c:first-child .tudo-ck{margin-top:4px}
+  .lado-tudo-m .tudo-i{min-height:40px;padding:0 10px;border-radius:12px;color:var(--night-ink);font-size:15px;font-weight:600}
+  .lado-tudo-m .tudo-i:hover{background:var(--night-2)}
+  .lado-tudo-m .tudo-i[aria-current="page"]{background:var(--yellow);color:var(--ink);font-weight:800}
+  .lado-tudo-m .tudo-i .sino-n,.lado-tudo-m .tudo-i .msg-n{border-color:var(--night)}
+  .lado-tudo[open] > summary .lado-tudo-seta{transform:rotate(90deg)}
+}
+@media (max-width:900px){
+  .gaveta .tls{display:flex;flex-direction:column;gap:2px;padding:5px;border-radius:18px;background:var(--night-2)}
+  .gaveta .tls .tl{gap:14px;min-height:48px;padding:0 12px;border:0;border-radius:13px;background:none;font-size:16.5px;font-weight:700}
+  .gaveta .tls .tl:hover,.gaveta .tls .tl:active{background:#2C2931}
+  .gaveta .tl-t{display:block;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .gaveta .tl .sinal{position:static;flex:none;margin-left:auto;border:0}
+  .gaveta .tls .tl-aqui{border:1.5px dashed var(--yellow)}
+  .gaveta .tl-fixa{position:static;flex:none;margin-left:auto;border:0;transform:none}
+}
+/* o pé do menu: o Postar e a tua conta juntos (no estreito, um embaixo do outro, como antes) */
+@media (min-width:901px){
+  .lado-pe{flex:none;display:flex;flex-direction:column;align-items:stretch;margin-top:auto}
+  .lado-pe .lado-conta{margin-top:0}
+}
+@media (min-width:1280px){
+  /* a lista dos Teus encosta na esquerda (no estreito ela é a coluna de ícones, centrada) */
+  .tls-lado .tls{align-items:stretch}
+  .tls-lado .tl{min-height:40px}
+  /* a Comanda do menu: cada pedido numa linha (o texto inteiro no title), pra sobrar lugar pra praça */
+  .cm-lado .cm{margin:10px 6px 14px;padding:10px 12px 9px}
+  .cm-lado .cm .cm-l{padding:4px 0}
+  .cm-lado .cm .cm-l span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .cm-lado .cm-h{margin-bottom:4px;padding-bottom:6px}
+  .cm-lado .cm-t{margin-top:4px;padding-top:6px}
+  .cm-lado .cm-prox{margin-top:6px}
+  /* o pé numa linha: a tua foto na esquerda, o Postar esticado do lado */
+  .lado-pe{flex-direction:row;align-items:center;gap:8px;padding-top:10px}
+  .lado-pe .lado-conta{order:-1;flex:none;padding-top:0}
+  .lado-pe .lado-eu{padding:4px}
+  .lado-pe .lado-eu > span:not(.av),.lado-pe .lado-eu > .ic{display:none}
+  .lado-pe .lado-post{flex:1;align-self:center;min-height:48px;margin:0}
+}
+@media (prefers-reduced-motion:reduce){ .lado-tudo-seta{transition:none} }

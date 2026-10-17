@@ -234,16 +234,14 @@
   /* a barra do celular: os 4 primeiros dos Teus, com o Correverso no meio */
   const barra = () => { const L = completa(teus(), 4, []); return [L[0], L[1], 'verso', L[2], L[3]].filter(Boolean); };
   /* um bloco dos Teus. O número do sinal fica no canto; as palavras, na Comanda */
-  /* o nome curto dos blocos de três colunas (computador largo); o inteiro vai no aria-label e no title */
-  const CURTO = { corre: 'Vendas', houzi: 'Houzi', marcas: 'Portfólio', carteira: 'Correal', refs: 'Nicho', banca: 'Banca', perfil: 'Perfil', msg: 'Papo' };
   const blocoHTML = (k, D, active) => {
     const [h, l, i] = D[k], m = k === 'msg';
-    const dentro = `<span class="tl-ic">${ico(i)}${m ? '<span class="msg-n num" hidden></span>' : ''}</span><span class="tl-t">${l}</span><span class="tl-c" aria-hidden="true">${CURTO[k] || l}</span>${m ? '' : sinalHTML(k, true)}`;
+    const dentro = `<span class="tl-ic">${ico(i)}${m ? '<span class="msg-n num" hidden></span>' : ''}</span><span class="tl-t">${l}</span>${m ? '' : sinalHTML(k, true)}`;
     return h ? `<a class="tl tl-${k}" href="${esc(h)}" title="${l}" aria-label="${l}"${m ? ' data-msg' : ''}${k === active ? ' aria-current="page"' : ''}>${dentro}</a>`
       : `<button type="button" class="tl tl-${k}" data-act="${k}" title="${l}" aria-label="${l}" aria-haspopup="dialog">${dentro}</button>`;
   };
   /* a página aberta que não tá à vista no menu aparece tracejada, com o "fixar": um toque e ela entra nos Teus */
-  const fantasmaHTML = (k, D) => `<button type="button" class="tl tl-aqui" data-act="menu-fixa" data-k="${k}" title="Fixar no menu" aria-label="Você tá em ${D[k][1]}. Fixar no menu"><span class="tl-ic">${ico(D[k][2])}</span><span class="tl-t">${D[k][1]}</span><span class="tl-c" aria-hidden="true">${CURTO[k] || D[k][1]}</span><span class="tl-fixa">${ico('pin')}fixar</span></button>`;
+  const fantasmaHTML = (k, D) => `<button type="button" class="tl tl-aqui" data-act="menu-fixa" data-k="${k}" title="Fixar no menu" aria-label="Você tá em ${D[k][1]}. Fixar no menu"><span class="tl-ic">${ico(D[k][2])}</span><span class="tl-t">${D[k][1]}</span><span class="tl-fixa">${ico('pin')}fixar</span></button>`;
   const teusHTML = (L, D, active, onde) => {
     const vis = L.concat(onde === 'lado' ? ['mural', 'msg', 'verso', 'avisos'] : barra());
     const aqui = active && D[active] && FIXAVEL(active) && !vis.includes(active) ? fantasmaHTML(active, D) : '';
@@ -258,7 +256,7 @@
     if(!SN.pronto) return `<div class="cm" aria-busy="true">${cab}<p class="cm-carrega">conferindo a fila…</p></div>`;
     const L = praHoje(), n = L.length;
     return `<div class="cm${n ? '' : ' cm-ok'}" role="group" aria-label="Comanda de hoje: ${n ? (n === 1 ? '1 pedido na fila' : `${n} pedidos na fila`) : 'tudo em dia'}">${cab}
-      ${n ? `<div class="cm-ls">${L.map((k, i) => `<a class="cm-l ${SN.v[k].nivel}" href="${SN_IR[k][0]}"><i>${String(i + 1).padStart(2, '0')}</i><span>${esc(SN.v[k].diz)}</span>${ico('next', 'cm-seta')}</a>`).join('')}</div>
+      ${n ? `<div class="cm-ls">${L.map((k, i) => `<a class="cm-l ${SN.v[k].nivel}" href="${SN_IR[k][0]}" title="${esc(SN.v[k].diz)}"><i>${String(i + 1).padStart(2, '0')}</i><span>${esc(SN.v[k].diz)}</span>${ico('next', 'cm-seta')}</a>`).join('')}</div>
         ${n > 3 ? `<button type="button" class="cm-mais" data-act="cm-mais">+ ${n - 3} na fila</button>` : ''}<p class="cm-t"><span>na fila</span><b>${n}</b></p>` : '<p class="cm-carimbo"><span>Tudo em dia</span></p>'}
       ${SN.prox ? `<p class="cm-prox">${ico('clock')}<span>Próximo post: ${esc(SN.prox)}</span></p>` : ''}</div>`;
   }
@@ -355,9 +353,9 @@
           <div class="lado-mais-m lado-tudo-m">${tudoHTML(D, active)}</div></details>
       </nav>
       <i class="lado-trilho" aria-hidden="true"></i>
-      <button type="button" class="btn pri lado-post" data-act="lado-postar" title="Postar no feed">${ico('plus')}<span>Postar</span></button>
-      <details class="me lado-conta"${idSe(true, 'me')}><summary class="lado-eu" aria-label="Tua conta">${avatar(me, 's')}<span><b>${esc(me.nome || '')}</b><small>@${esc(me.handle)}</small></span>${ico('dots')}</summary>
-        <div class="me-menu">${contaHTML(me, false, active)}</div></details>
+      <div class="lado-pe"><button type="button" class="btn pri lado-post" data-act="lado-postar" title="Postar no feed">${ico('plus')}<span>Postar</span></button>
+      <details class="me lado-conta"${idSe(true, 'me')}><summary class="lado-eu" aria-label="Tua conta" title="${esc(me.nome || '')} (@${esc(me.handle)})">${avatar(me, 's')}<span><b>${esc(me.nome || '')}</b><small>@${esc(me.handle)}</small></span>${ico('dots')}</summary>
+        <div class="me-menu">${contaHTML(me, false, active)}</div></details></div>
     </aside>`;
   };
   /* a barra do celular (v3.70: os Teus, com o Correverso no meio) */
@@ -1352,11 +1350,11 @@
     m.style.bottom = sobe ? Math.round(Math.max(12, innerHeight - r.bottom - 6)) + 'px' : 'auto';
   });
   addEventListener('resize', () => document.querySelectorAll('details.lado-mais[open], details.lado-conta[open]').forEach(m => { m.open = false; }));
-  /* abriu um grupo do menu (clique, Enter ou Espaço viram clique): se a lista rola, o último item dele aparece inteiro.
-     Os grupos não entram nas listas de cima (fechar ao tocar fora ou com o Esc): não ficam por cima de nada */
+  /* abriu o Tudo descendo no menu largo (v3.71; clique, Enter ou Espaço viram clique): se a lista rola, ele aparece
+     inteiro. No menu estreito ele é balão do lado e não mexe na rolagem */
   document.addEventListener('click', e => {
-    const s = e.target.closest('.lado-g > summary'); if(!s) return;
-    setTimeout(() => { const d = s.parentElement; if(d.open) aVista(d.querySelector('.lado-g-m > :last-child')); }, 0);
+    const s = e.target.closest('.lado-tudo > summary'); if(!s || !matchMedia('(min-width: 1280px)').matches) return;
+    setTimeout(() => { const d = s.parentElement; if(d.open) aVista(d.querySelector('.lado-tudo-m .tudo-c:last-child > :last-child')); }, 0);
   });
   /* tocar em "Correverso" já estando em #/verso não muda o endereço, então o navegador não avisa ninguém:
      se a cidade tiver parada (voltou pelo botão voltar, aba restaurada...), abre de novo */
