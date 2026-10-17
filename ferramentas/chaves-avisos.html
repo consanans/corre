@@ -1,0 +1,82 @@
+<!doctype html>
+<!-- CORRE · as chaves dos avisos no celular (v3.72). Gera o par de chaves VAPID NO APARELHO de quem abre (WebCrypto do
+     navegador): nada sai daqui, nada fica guardado. O Thales abre esta página (dois cliques no arquivo), toca em Gerar e
+     cola os dois valores nos Secrets da função "push" no Supabase. A chave privada nunca passa pelo chat nem pelo
+     repositório. Gera UMA vez: trocar depois obriga todo mundo a ligar os avisos de novo. -->
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chaves dos avisos</title>
+<style>
+  :root{ --ink:#141216; --paper:#FFFFFF; --paper-2:#F4F3EF; --yellow:#FFE800; --pink:#FF48B0; --muted:#646068; --night:#0C0A0F; }
+  *{ box-sizing:border-box }
+  body{ margin:0; min-height:100vh; padding:28px 16px 48px; background:var(--night); color:var(--ink); font:16px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif }
+  main{ max-width:640px; margin:0 auto; padding:24px 22px; background:var(--paper); border:2px solid var(--ink); border-radius:20px; box-shadow:6px 6px 0 var(--pink) }
+  h1{ margin:0 0 6px; font-size:28px; line-height:1.1; font-weight:900 }
+  .sub{ margin:0 0 18px; color:var(--muted) }
+  ol{ padding-left:22px } li{ margin:6px 0 }
+  button{ font:inherit; font-weight:800; cursor:pointer; border:2px solid var(--ink); border-radius:999px; padding:10px 18px; background:var(--paper) }
+  .pri{ background:var(--yellow); box-shadow:3px 3px 0 var(--ink); font-size:17px }
+  .pri:active{ transform:translate(2px,2px); box-shadow:1px 1px 0 var(--ink) }
+  .k{ margin:16px 0 0; padding:14px; border:2px solid var(--ink); border-radius:14px; background:var(--paper-2) }
+  .k b{ display:block; font-family:ui-monospace,Menlo,monospace; font-size:14px; letter-spacing:.04em }
+  .k code{ display:block; margin:8px 0 10px; padding:10px; overflow-wrap:anywhere; background:#fff; border:1.5px dashed var(--ink); border-radius:8px; font:13.5px/1.4 ui-monospace,Menlo,monospace }
+  .k small{ display:block; color:var(--muted); margin-top:6px }
+  .alerta{ margin:18px 0 0; padding:12px 14px; border-left:6px solid var(--pink); background:#FFE2F1; border-radius:8px }
+  .ok{ margin:14px 0 0; font-weight:800 }
+  [hidden]{ display:none !important }
+</style>
+</head>
+<body>
+<main>
+  <h1>Chaves dos avisos no celular</h1>
+  <p class="sub">Pra função <b>push</b> do Corre mandar aviso. As chaves nascem aqui, no teu computador, e não vão pra lugar nenhum além do lugar onde você colar.</p>
+  <button type="button" class="pri" id="gera">Gerar as chaves</button>
+  <p class="ok" id="erro" hidden></p>
+  <div id="saida" hidden>
+    <div class="k"><b>VAPID_PUBLIC_KEY</b><code id="pub"></code><button type="button" data-copia="pub">Copiar</button><small>A pública: pode aparecer pra qualquer um.</small></div>
+    <div class="k"><b>VAPID_PRIVATE_KEY</b><code id="priv"></code><button type="button" data-copia="priv">Copiar</button><small>A privada: só nos Secrets do Supabase. Não manda pra ninguém (nem pro Claude).</small></div>
+    <p class="ok" id="copiado" hidden>Copiado.</p>
+    <h2>Onde colar</h2>
+    <ol>
+      <li>Supabase › projeto <b>CORRE</b> › <b>Edge Functions</b> › <b>Secrets</b>.</li>
+      <li><b>Add new secret</b>: nome <b>VAPID_PUBLIC_KEY</b>, valor a primeira chave.</li>
+      <li>De novo: nome <b>VAPID_PRIVATE_KEY</b>, valor a segunda.</li>
+      <li>Salva e fecha esta página. Pronto: as chaves somem daqui.</li>
+    </ol>
+    <p class="alerta"><b>Uma vez só.</b> Se gerar de novo e trocar nos Secrets, todo mundo que ligou os avisos precisa ligar de novo.</p>
+  </div>
+</main>
+<script>
+'use strict';
+const b64u = b => { let s = ''; for(const x of new Uint8Array(b)) s += String.fromCharCode(x); return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); };
+document.getElementById('gera').addEventListener('click', async () => {
+  const erro = document.getElementById('erro');
+  try{
+    if(!window.crypto || !crypto.subtle) throw new Error('sem cripto');
+    const par = await crypto.subtle.generateKey({ name: 'ECDSA', namedCurve: 'P-256' }, true, ['sign', 'verify']);
+    const pub = b64u(await crypto.subtle.exportKey('raw', par.publicKey)), d = (await crypto.subtle.exportKey('jwk', par.privateKey)).d;
+    /* confere o par antes de mostrar (o mesmo teste que a função faz) */
+    const prova = new TextEncoder().encode('corre · par de chaves');
+    const sig = await crypto.subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, par.privateKey, prova);
+    if(!(await crypto.subtle.verify({ name: 'ECDSA', hash: 'SHA-256' }, par.publicKey, sig, prova)) || pub.length !== 87 || d.length !== 43) throw new Error('par');
+    document.getElementById('pub').textContent = pub;
+    document.getElementById('priv').textContent = d;
+    document.getElementById('saida').hidden = false; erro.hidden = true;
+    document.getElementById('gera').hidden = true;
+  }catch(e){
+    erro.hidden = false;
+    erro.textContent = 'Esse navegador não conseguiu gerar. Abre esta página no Chrome (no computador) e tenta de novo.';
+  }
+});
+document.addEventListener('click', async e => {
+  const b = e.target.closest('[data-copia]'); if(!b) return;
+  const t = document.getElementById(b.dataset.copia).textContent;
+  try{ await navigator.clipboard.writeText(t); }
+  catch(er){ const r = document.createRange(); r.selectNodeContents(document.getElementById(b.dataset.copia)); const s = getSelection(); s.removeAllRanges(); s.addRange(r); document.execCommand('copy'); }
+  const c = document.getElementById('copiado'); c.hidden = false; c.textContent = b.dataset.copia === 'pub' ? 'Copiei a VAPID_PUBLIC_KEY.' : 'Copiei a VAPID_PRIVATE_KEY.';
+});
+</script>
+</body>
+</html>
