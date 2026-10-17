@@ -1,6 +1,6 @@
 # Corre: guia pro Claude Code
 
-O Corre (app.corresocial.com) é a rede social e a ferramenta de trabalho do Thales (@consanans, Londrina). É pra quem vive do próprio corre: feed, mensagens, grupos, Studio (programa e posta no Instagram), Vendas e Grana, Hórus (caça de clientes), Mural, Rolo 360, Correverso (cidade em pixel com casa 3D) e Studio Houzi (branding). Versão atual: **3.71** (17/10/2026; no ar, a 3.67).
+O Corre (app.corresocial.com) é a rede social e a ferramenta de trabalho do Thales (@consanans, Londrina). É pra quem vive do próprio corre: feed, mensagens, grupos, Studio (programa e posta no Instagram), Vendas e Grana, Hórus (caça de clientes), Mural, Rolo 360, Correverso (cidade em pixel com casa 3D) e Studio Houzi (branding). Versão atual: **3.71** (17/10/2026; no ar, a 3.71: conferido em app.corresocial.com).
 
 **Com o Thales:** português, curto e direto. Ele não é programador: explica o que muda pra ele, não o código.
 
