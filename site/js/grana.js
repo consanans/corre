@@ -504,6 +504,13 @@
   const faltam = iso => Math.max(0, Math.ceil((Date.parse(iso) - Date.now()) / 864e5));
   const plano = prod => (C.acesso && C.acesso.planos && C.acesso.planos[prod]) || null;
   const noTeste = p => !!(p && p.teste_ate && Date.parse(p.teste_ate) > Date.now());
+  /* v3.72: a versão dos Termos de uso que a pessoa aceita ao assinar (a mesma do data-versao do termos.html; a função
+     anota). Mudou algo importante nos termos, sobe as duas juntas */
+  const TERMOS_V = '2026-10-17';
+  /* v3.72: o que dá pra desistir com devolução (o direito de arrependimento, 7 dias do primeiro pagamento). Quem diz é a
+     função, ao abrir os Planos; aqui fica só o que ela respondeu, por produto */
+  const DV = {};
+  const dias = d => Math.round((Date.parse(d + 'T12:00:00Z') - Date.parse(C.hojeBR() + 'T12:00:00Z')) / 864e5);
 
   /* o estado de um plano em uma frase, e os botões que cabem */
   function estado(prod){
@@ -533,7 +540,8 @@
     assinar: prod => `<button type="button" class="btn sm pri" data-act="pl-assinar" data-p="${prod}">${ico('cartao')} Assinar</button>`,
     trocar: prod => `<button type="button" class="btn sm" data-act="pl-assinar" data-p="${prod}">${ico('troca')} Trocar de plano</button>`,
     pagar: prod => `<button type="button" class="btn sm pri" data-act="pl-pagar" data-p="${prod}">${ico('ext')} Pagar a fatura</button>`,
-    cancelar: prod => `<button type="button" class="btn sm ghost" data-act="pl-cancelar" data-p="${prod}">Cancelar</button>`
+    cancelar: prod => `<button type="button" class="btn sm ghost" data-act="pl-cancelar" data-p="${prod}">Cancelar</button>`,
+    desistir: prod => `<button type="button" class="btn sm" data-act="pl-desistir" data-p="${prod}">${ico('prev')} Desistir e receber de volta</button>`
   };
 
   /* a faixa do teste grátis no alto do Hórus e do Studio Houzi ('' quando não tem o que dizer) */
@@ -559,18 +567,19 @@
       <header><span class="pl-ico">${ico(ICO[prod])}</span><div><h2>${NOME[prod]}</h2><p>${esc(SOBRE[prod])}</p></div></header>
       ${escada}
       <p class="pl-estado" data-pl-estado>${esc(e.txt)}</p>
-      ${e.bts.length ? `<div class="acts">${e.bts.map(b => BOTAO[b](prod)).join('')}</div>` : ''}
+      ${DV[prod] ? `<p class="pl-desiste">Mudou de ideia? Até <b>${ddmm(DV[prod].ate)}</b> dá pra desistir e receber os <b>${reais(DV[prod].valor)}</b> de volta.</p>` : ''}
+      ${e.bts.length || DV[prod] ? `<div class="acts">${e.bts.concat(DV[prod] ? ['desistir'] : []).map(b => BOTAO[b](prod)).join('')}</div>` : ''}
     </article>`;
   }
   function pinta(){
     const el = C.$('pl'); if(!el) return;
     if(!C.acesso){ el.innerHTML = `<section class="card"><h1 class="ch">Planos</h1><p class="note">Os planos chegam em breve. Por enquanto tá tudo liberado.</p></section>`; return; }
     el.innerHTML = `<header class="pl-topo"><p class="pl-kick">Planos</p><h1>Paga só a ferramenta que trabalha por você.</h1>
-        <p>A rede, as mensagens, o Correverso, o Mural e Vendas e Grana são de graça. Pix, boleto ou cartão, pelo Asaas; cancela quando quiser, aqui mesmo.</p></header>
+        <p>A rede, as mensagens, o Correverso, o Mural e Vendas e Grana são de graça. Pix, boleto ou cartão, pelo Asaas; renova sozinho todo mês e cancela quando quiser, aqui mesmo.</p></header>
       <div class="pl-lista">${['studio', 'houzi', 'horus'].map(cartao).join('')}</div>
       ${C.acesso.fundador ? `<article class="pl-card pl-asaas"><header><span class="pl-ico">${ico('cartao')}</span><div><h2>Asaas</h2><p>Só você vê. Confere a chave do Asaas e cadastra lá o aviso de pagamento, com o token certo. Toca de novo sempre que trocar a chave.</p></div></header>
         <p class="pl-estado" id="pl-asaas-st">A chave fica só nos Secrets do Supabase (ASAAS_API_KEY).</p><div class="acts"><button type="button" class="btn sm pri" data-act="pl-asaas">${ico('check')} Ligar o Asaas</button></div></article>` : ''}
-      <p class="fine pl-fine">O nome e o CPF ou CNPJ vão só pro Asaas, que emite a cobrança: o Corre não guarda. Cancelou, o que já foi pago vale até o fim do mês pago.</p>`;
+      <p class="fine pl-fine">O nome e o CPF ou CNPJ vão só pro Asaas, que emite a cobrança: o Corre não guarda. Cancelou, o que já foi pago vale até o fim do mês pago. Desistiu em até 7 dias do primeiro pagamento, devolvemos tudo. Tá tudo nos <a href="termos.html" target="_blank" rel="noopener">Termos de uso</a>.</p>`;
   }
   C.views.planos = async function(app){
     document.title = 'Planos · Corre';
@@ -582,14 +591,34 @@
     /* v3.61: plano assinado esperando pagamento? Confere direto no Asaas (se o aviso de pagamento não chegou, liga aqui) */
     const P = (C.acesso && C.acesso.planos) || {};
     const espera = Object.keys(P).filter(k => P[k].assinado && P[k].status !== 'cancelada' && (!P[k].acesso || P[k].status === 'pendente' || P[k].status === 'atrasada'));
-    if(!espera.length) return;
-    const r = await Promise.all(espera.map(k => C.api.fn('pagamento', { acao: 'confere', produto: k }).catch(() => null)));
-    if(r.some(x => x && x.ativou) && rota === C.rota){ await C.acessoCarrega(); pinta(); C.toast('Pagamento confirmado. O plano tá ligado.', 3600); }
+    if(espera.length){
+      const r = await Promise.all(espera.map(k => C.api.fn('pagamento', { acao: 'confere', produto: k }).catch(() => null)));
+      if(r.some(x => x && x.ativou) && rota === C.rota){ await C.acessoCarrega(); pinta(); C.toast('Pagamento confirmado. O plano tá ligado.', 3600); }
+    }
+    await desisteVe(rota);
   };
+  /* v3.72: a desistência fica à vista (o Decreto 7.962 pede o caminho claro, no mesmo lugar em que se assinou). Só
+     pergunta de plano pago há pouco: o primeiro pagamento cobre um mês, então quem tem menos de 20 dias pela frente já
+     passou dos 7 */
+  async function desisteVe(rota){
+    const A = C.acesso, P = (A && A.planos) || {};
+    if(!A || A.fundador) return;
+    const k = Object.keys(P).filter(x => P[x].assinado && P[x].acesso && P[x].pago_ate && ['ativa', 'cancelada'].includes(P[x].status) && dias(P[x].pago_ate) >= 20);
+    const antes = JSON.stringify(DV);
+    Object.keys(DV).forEach(x => { if(!k.includes(x)) delete DV[x]; });
+    await Promise.all(k.map(async x => {
+      const r = await C.api.fn('pagamento', { acao: 'desistir', produto: x, ver: true }).catch(() => null);
+      if(r && r.pode) DV[x] = { valor: Number(r.valor) || 0, ate: String(r.ate || ''), boleto: !!r.boleto }; else delete DV[x];
+    }));
+    if(JSON.stringify(DV) !== antes && rota === C.rota) pinta();
+  }
 
   /* ---------- assinar ---------- */
   const ERRO = { nome: 'Escreve o nome completo (ou a razão social).', doc: 'Confere o CPF ou o CNPJ.', login: 'Entra de novo no Corre e tenta outra vez.',
-    config: 'O pagamento ainda não tá ligado no Corre. Tenta mais tarde.', nofn: 'O pagamento ainda não tá ligado no Corre. Tenta mais tarde.', sem_assinatura: 'Não achei a assinatura desse plano.' };
+    config: 'O pagamento ainda não tá ligado no Corre. Tenta mais tarde.', nofn: 'O pagamento ainda não tá ligado no Corre. Tenta mais tarde.', sem_assinatura: 'Não achei a assinatura desse plano.',
+    termos: 'Marca que leu e aceita os Termos de uso pra assinar.' };
+  const NAO_DESISTE = { prazo: 'Passou dos 7 dias do primeiro pagamento. Dá pra cancelar: não vem mais cobrança.', ja: 'A desistência pelo app já foi usada nesse plano. Escreve pro contato@houzirecords.com.br que a gente resolve.',
+    devolvido: 'Esse pagamento já foi devolvido.', sem_pagamento: 'Não achei pagamento pra devolver nesse plano.' };
   const erroTxt = e => (e && e.code === 'asaas' && e.detalhe) ? 'O Asaas recusou: ' + e.detalhe : (e && (ERRO[e.code] || (e.status === 404 && ERRO.nofn))) || C.errMsg(e, 'Não deu pra falar com o pagamento agora.');
   /* a aba da fatura abre no toque (depois de esperar a resposta, o navegador bloqueia a janela nova) */
   const abaNova = () => { if(C.DEMO) return null; try{ return window.open('', '_blank'); }catch(e){ return null; } };
@@ -608,13 +637,16 @@
       <p class="note">${esc(quando)}</p>
       ${A.cliente || ja ? '' : `<div class="fld"><label for="pl-nome">Nome completo ou razão social</label><input class="inp" id="pl-nome" maxlength="100" autocomplete="name" required value="${esc((C.st.me && C.st.me.nome) || '')}"></div>
       <div class="fld"><label for="pl-doc">CPF ou CNPJ</label><input class="inp" id="pl-doc" inputmode="numeric" maxlength="18" autocomplete="off" required aria-describedby="pl-doc-h"><span class="hint" id="pl-doc-h">Vai só pro Asaas, que emite a cobrança. O Corre não guarda.</span></div>`}
+      <label class="pl-aceite"><input type="checkbox" id="pl-termos" required><span>Li e aceito os <a href="termos.html" target="_blank" rel="noopener">Termos de uso</a>. Renova sozinho todo mês até eu cancelar; desistindo em até 7 dias do primeiro pagamento, recebo tudo de volta.</span></label>
       <p class="fine" id="pl-erro" role="alert" hidden></p>
       <div class="acts"><button type="submit" class="btn pri">${ja ? 'Trocar' : teste ? 'Assinar (sem cobrar agora)' : 'Assinar e pagar'}</button><button type="button" class="btn ghost" data-close>Agora não</button></div>
       <p class="fine">Cancela quando quiser, em Financeiro › Planos.</p>
     </form>`);
     C.umaVez(C.$('pl-f'), async () => {
       const er = C.$('pl-erro'), mostra = t => { if(er){ er.textContent = t; er.hidden = false; } else C.toast(t); };
-      const body = { acao: 'assinar', produto: prod };
+      const body = { acao: 'assinar', produto: prod, termos: TERMOS_V };
+      /* o navegador já segura (required), mas a folha refeita ou um leitor de tela podem passar: confere aqui também */
+      const tm = C.$('pl-termos'); if(tm && !tm.checked){ mostra(ERRO.termos); tm.focus(); return; }
       if(prod === 'studio') body.nivel = Number((document.querySelector('input[name="pl-n"]:checked') || {}).value) || 2;
       if(prod === 'studio' && ja && body.nivel === nAtual){ C.closeSheet(); return; }
       const nm = C.$('pl-nome'), dc = C.$('pl-doc');
@@ -637,7 +669,7 @@
       }catch(err){
         leva(w, '');
         /* o cadastro do Asaas sumiu (troca do sandbox pra conta de verdade, por exemplo): pede nome e CPF de novo */
-        if(err && (err.code === 'nome' || err.code === 'doc') && !C.$('pl-nome') && C.acesso){ C.acesso.cliente = false; assinarSheet(prod, body.nivel); const e2 = C.$('pl-erro'); if(e2){ e2.textContent = 'Confirma teu nome e CPF ou CNPJ pra assinar.'; e2.hidden = false; } return; }
+        if(err && (err.code === 'nome' || err.code === 'doc') && !C.$('pl-nome') && C.acesso){ C.acesso.cliente = false; assinarSheet(prod, body.nivel); const e2 = C.$('pl-erro'); if(e2){ e2.textContent = 'Confirma teu nome e CPF ou CNPJ pra assinar.'; e2.hidden = false; } const t2 = C.$('pl-termos'); if(t2) t2.checked = true; return; }
         mostra(erroTxt(err));
       }
     });
@@ -649,7 +681,7 @@
     for(const prod of Object.keys(P)) if(P[prod].assinado && P[prod].status !== 'cancelada') await C.api.fn('pagamento', { acao: 'cancelar', produto: prod });
   }
   /* depois de assinar, pagar ou cancelar: a página aberta (Planos, Hórus, Studio Houzi, Studio) se refaz */
-  C.refreshPlanos = () => { if(C.$('pl')) pinta(); else C.refresh(); };
+  C.refreshPlanos = () => { if(C.$('pl')){ pinta(); desisteVe(C.rota); } else C.refresh(); };
   C.planos = { assinar: assinarSheet, nome: NOME, preco: precoDe, cancelaTudo };
 
   Object.assign(C.acts, {
@@ -679,11 +711,30 @@
     'pl-cancelar': async el => {
       const prod = el.dataset.p, p = plano(prod);
       const fim = p && [p.pago_ate ? mais(p.pago_ate, 3) : '', diaDe(p.teste_ate)].filter(Boolean).sort().pop();
-      const sim = await C.confirma({ ico: 'cartao', titulo: `Cancelar o ${NOME[prod]}?`, texto: fim && fim >= C.hojeBR() ? `Não vem mais cobrança. O que já foi pago vale até <b>${ddmm(fim)}</b>.` : 'Não vem mais cobrança, e o plano para.', sim: 'Cancelar o plano', nao: 'Manter' });
+      const dv = DV[prod];
+      const sim = await C.confirma({ ico: 'cartao', titulo: `Cancelar o ${NOME[prod]}?`, texto: (fim && fim >= C.hojeBR() ? `Não vem mais cobrança. O que já foi pago vale até <b>${ddmm(fim)}</b>.` : 'Não vem mais cobrança, e o plano para.')
+        + (dv ? ` Quer o dinheiro de volta? Até ${ddmm(dv.ate)}, toca em <b>Desistir e receber de volta</b>.` : ''), sim: dv ? 'Só cancelar' : 'Cancelar o plano', nao: 'Manter' });
       if(!sim) return;
       el.disabled = true;
       try{ await C.api.fn('pagamento', { acao: 'cancelar', produto: prod }); await C.acessoCarrega(); C.toast('Plano cancelado.'); C.refreshPlanos(); }
       catch(err){ C.toast(erroTxt(err)); if(el.isConnected) el.disabled = false; }
+    },
+    /* v3.72: o direito de arrependimento (CDC, art. 49): até 7 dias do primeiro pagamento, devolve tudo e o plano para */
+    'pl-desistir': async el => {
+      const prod = el.dataset.p, dv = DV[prod]; if(!dv) return;
+      const sim = await C.confirma({ ico: 'cartao', titulo: `Desistir do ${NOME[prod]}?`,
+        texto: `Você recebe os <b>${reais(dv.valor)}</b> de volta${dv.boleto ? ' (foi no boleto: o Asaas pede a conta onde você quer receber)' : ''}. O plano para agora e não vem mais cobrança.`, sim: 'Desistir e receber de volta', nao: 'Manter o plano' });
+      if(!sim) return;
+      el.disabled = true;
+      try{
+        const r = await C.api.fn('pagamento', { acao: 'desistir', produto: prod }) || {};
+        delete DV[prod]; await C.acessoCarrega(); C.refreshPlanos();
+        if(r.pode === false){ C.toast(NAO_DESISTE[r.motivo] || NAO_DESISTE.sem_pagamento, 5200); return; }
+        if(r.boleto) C.sheet(`<div class="form"><div class="sheet-head"><h2>Falta dizer a conta</h2><button type="button" class="cbtn plain" data-close aria-label="Fechar">${ico('x')}</button></div>
+          <p class="note">O plano parou. O boleto não volta sozinho: ${r.link ? 'abre o link do Asaas e diz em qual conta você quer receber os ' + esc(reais(r.devolvido)) + '.' : 'escreve pro <a href="mailto:contato@houzirecords.com.br">contato@houzirecords.com.br</a> com o teu @ e a conta onde quer receber.'}</p>
+          ${r.link ? `<div class="acts"><a class="btn pri" href="${esc(r.link)}" target="_blank" rel="noopener">${ico('ext')} Dizer a conta</a></div>` : ''}</div>`);
+        else C.toast(`Pronto: os ${reais(r.devolvido)} tão voltando${r.demo ? ' (demonstração: nada foi cobrado)' : ' (no Pix, pra conta que pagou; no cartão, na fatura dele)'}. O plano parou.`, 6000);
+      }catch(err){ C.toast(erroTxt(err)); if(el.isConnected) el.disabled = false; }
     }
   });
 })();

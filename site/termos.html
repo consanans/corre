@@ -1,0 +1,189 @@
+<!doctype html>
+<!-- CORRE · os Termos de uso (v3.72). A versão (data-versao no <main>) é a que o app manda quando a pessoa marca
+     "Li e aceito" (TERMOS_V em grana.js): mudou algo importante aqui, sobe as duas juntas. -->
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Termos de uso · Corre</title>
+<link rel="icon" href="favicon.ico?v=1" sizes="32x32">
+<link rel="icon" href="favicon.svg?v=1" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png?v=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<link rel="stylesheet" href="css/corre.css">
+<style>
+  :root{--pink-tint:#FFE3F0;--yellow-tint:#FBF8CF;--blue-tint:#E4E9FF}
+  body{background-image:linear-gradient(120deg,var(--pink-tint),var(--yellow-tint) 55%,var(--blue-tint))}
+  .doc{width:min(760px,100%);margin:0 auto;padding-inline:var(--gut);padding-block:28px 72px;display:flex;flex-direction:column;gap:18px}
+  .doc h1{font-family:var(--font-display);font-variation-settings:"wdth" 100;font-weight:900;font-size:clamp(30px,5vw,44px);line-height:1.05}
+  .doc h2{font-family:var(--font-display);font-variation-settings:"wdth" 108;font-weight:900;font-size:20px;margin-top:6px;scroll-margin-top:16px}
+  .doc p,.doc li{max-width:66ch;color:var(--ink-2)}
+  .doc ul{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px}
+  /* o resumo: o combinado em 30 segundos, num papel de marca-texto */
+  .resumo{background:var(--yellow-tint);border:2px solid var(--ink);border-radius:14px;padding:14px 16px;box-shadow:4px 4px 0 var(--pink)}
+  .resumo b.t{display:block;font-family:var(--font-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px}
+  .sumario{display:flex;flex-wrap:wrap;gap:6px 10px;font-size:14px}
+  .sumario a{color:var(--ink);text-decoration-thickness:1px;text-underline-offset:3px}
+  /* os preços: linha a linha (tabela não cabe numa tela de 320) */
+  .precos{list-style:none;padding:0 !important;gap:0 !important;border:1.5px solid var(--line);border-radius:12px;overflow:hidden}
+  .precos li{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:10px 14px;max-width:none}
+  .precos li + li{border-top:1.5px solid var(--line)}
+  .precos li span small{display:block;color:var(--muted);font-size:13px}
+  .precos li b{white-space:nowrap;color:var(--ink)}
+  .quem{border-left:5px solid var(--pink);padding-left:12px}
+</style>
+</head>
+<body>
+<header class="hdr"><a class="brand sm" href="./">Corre</a></header>
+<main class="doc" data-versao="2026-10-17">
+  <section class="card" style="display:flex;flex-direction:column;gap:14px">
+    <span class="mono" style="color:var(--muted)">Valem a partir de 17 de outubro de 2026 · versão 2026-10-17</span>
+    <h1>Termos de uso do Corre</h1>
+    <p>O Corre é a rede e a ferramenta de trabalho de quem vive do próprio corre. Estes termos são o combinado entre você e quem faz o Corre: o que é de graça, o que é pago, como a cobrança funciona, como cancelar ou desistir, e as regras pra todo mundo trabalhar em paz. Usar o Corre é concordar com eles. Pra assinar um plano, o app pede que você marque que leu e aceita.</p>
+
+    <div class="resumo" role="note">
+      <b class="t">O combinado em 30 segundos</b>
+      <ul>
+        <li>A rede, as mensagens, os grupos, o Correverso, o Mural, Vendas e Grana e o Studio com 1 rede social são de graça.</li>
+        <li>Plano pago <b>renova sozinho todo mês</b>, até você cancelar. Sem fidelidade e sem multa.</li>
+        <li>Cancela em <b>Financeiro › Planos</b>, num toque. O que já foi pago vale até o fim do mês pago.</li>
+        <li>Desistiu em até <b>7 dias do primeiro pagamento</b>? Devolvemos tudo, pelo próprio app.</li>
+        <li>Correal não é dinheiro.</li>
+      </ul>
+    </div>
+
+    <nav class="sumario" aria-label="Nesta página">
+      <a href="#quem">Quem faz</a><a href="#conta">A conta</a><a href="#planos">Planos e preços</a><a href="#teste">Teste grátis</a><a href="#cobranca">Cobrança</a><a href="#atraso">Atraso</a><a href="#trocar">Trocar de plano</a><a href="#cancelar">Cancelar</a><a href="#desistir">Desistir em 7 dias</a><a href="#correal">Correal</a><a href="#regras">Regras</a><a href="#conteudo">O que é teu</a><a href="#falhas">Quando algo falha</a><a href="#mudancas">Mudanças</a><a href="#contato">Fale com a gente</a>
+    </nav>
+
+    <h2 id="quem">1. Quem faz o Corre</h2>
+    <p class="quem">O Corre (app.corresocial.com) é um serviço da <b>Houzi Produtora Ltda</b> (Houzi), CNPJ 28.415.207/0001-46, Rua Cornélio Procópio, 26, loja 34, Aurora, Londrina (PR), CEP 86060-420. Responsável: Thales Malassise Luiz. Fale com a gente: <a href="mailto:contato@houzirecords.com.br">contato@houzirecords.com.br</a>.</p>
+
+    <h2 id="conta">2. A tua conta</h2>
+    <ul>
+      <li>Você entra com a conta Google (ou a da Apple). A conta é de uma pessoa ou de um negócio: não se empresta nem se vende.</li>
+      <li>O que você posta, manda e vende pelo Corre é responsabilidade tua. Cuida do teu acesso: o que for feito na tua conta conta como teu.</li>
+      <li>Pra assinar um plano, você precisa ter 18 anos ou mais (ou assinar pela tua empresa) e informar o teu nome e o CPF ou CNPJ de verdade: é com eles que saem a cobrança e a nota fiscal.</li>
+      <li>Você apaga o teu perfil quando quiser, em Editar perfil. Com plano rodando, o app cancela os planos antes.</li>
+    </ul>
+
+    <h2 id="planos">3. O que é de graça e o que é pago</h2>
+    <p><b>De graça, sempre:</b> o feed, as mensagens, os grupos, os avisos, o Correverso, o Mural, Vendas e Grana, o Portfólio e o Studio com 1 rede social.</p>
+    <p><b>Os planos</b>, por mês:</p>
+    <ul class="precos">
+      <li><span>Studio, 2 redes sociais<small>programa e posta em 2 redes</small></span><b>R$ 59,90</b></li>
+      <li><span>Studio, 3 redes sociais</span><b>R$ 69,90</b></li>
+      <li><span>Studio, 4 ou mais redes sociais</span><b>R$ 79,90</b></li>
+      <li><span>Studio Houzi<small>naming, logo, cores, voz e brandbook · 30 dias grátis</small></span><b>R$ 29,90</b></li>
+      <li><span>Hórus<small>caça de clientes, abordagem e lembretes · 30 dias grátis</small></span><b>R$ 9,90</b></li>
+    </ul>
+    <p>No Studio, o plano é o total (a primeira rede já tá dentro). O preço que vale é o que aparece em Financeiro › Planos na hora de assinar, e ele é o final: não tem taxa a mais.</p>
+
+    <h2 id="teste">4. Teste grátis</h2>
+    <ul>
+      <li>O Studio Houzi e o Hórus têm 30 dias grátis, uma vez por pessoa. Os dias começam no teu primeiro uso (a primeira marca no Studio Houzi, o primeiro cliente no Hórus).</li>
+      <li>No teste não sai cobrança nenhuma, e o Corre não pede cartão.</li>
+      <li>Se você assinar durante o teste, a primeira cobrança vence no último dia dele. Cancelou antes, não paga nada.</li>
+      <li>Acabou o teste sem assinar: a ferramenta trava pra coisa nova, e o que você já fez continua lá, guardado.</li>
+    </ul>
+
+    <h2 id="cobranca">5. Como a cobrança funciona</h2>
+    <ul>
+      <li>Quem cobra é o <b>Asaas</b> (Asaas Gestão Financeira, instituição de pagamento autorizada pelo Banco Central), em nome da Houzi.</li>
+      <li>A assinatura é <b>mensal e renova sozinha</b>, no mesmo dia de cada mês, até você cancelar. A fatura vai pro teu e-mail e fica em Financeiro › Planos.</li>
+      <li>Você paga no Pix, no boleto ou no cartão, escolhendo na própria fatura. O Corre não vê nem guarda dado de cartão.</li>
+      <li>Pagou, o plano liga sozinho: no Pix e no cartão, na hora; no boleto, quando o banco compensa (até 3 dias úteis).</li>
+      <li>A nota fiscal de serviço sai no nome e no CPF ou CNPJ que você informou, e vai pro teu e-mail.</li>
+    </ul>
+
+    <h2 id="atraso">6. Se a fatura atrasar</h2>
+    <ul>
+      <li>O plano segue funcionando por mais 3 dias depois do vencimento.</li>
+      <li>Depois disso, a ferramenta pausa até o pagamento, e o que você já fez continua guardado. Pagou, ela volta sozinha.</li>
+      <li>O Corre não cobra multa nem juros de atraso.</li>
+    </ul>
+
+    <h2 id="trocar">7. Trocar de plano (Studio)</h2>
+    <ul>
+      <li>Dá pra mudar o número de redes quando quiser, em Financeiro › Planos. O valor novo vale da próxima fatura em diante.</li>
+      <li>Subiu de plano: as redes a mais liberam quando a fatura com o valor novo for paga (dá pra pagar na hora, em "Pagar a fatura").</li>
+      <li>Desceu de plano: as marcas com rede acima do plano ficam guardadas, mas trancadas no Studio; as mais antigas seguem abertas.</li>
+    </ul>
+
+    <h2 id="cancelar">8. Cancelar</h2>
+    <ul>
+      <li>Cancela quando quiser, em <b>Financeiro › Planos › Cancelar</b>. Sem fidelidade, sem multa e sem precisar falar com ninguém.</li>
+      <li>Cancelou, não vem mais cobrança. O que você já pagou vale até o fim do mês pago (mais os 3 dias de folga). Depois, a ferramenta trava pra coisa nova e o que você fez fica guardado.</li>
+      <li>Fora dos 7 dias da desistência (abaixo), o mês que já foi pago não é devolvido em parte.</li>
+      <li>Apagar o perfil cancela todos os planos antes.</li>
+    </ul>
+
+    <h2 id="desistir">9. Desistir em 7 dias e receber de volta</h2>
+    <p>É o direito de arrependimento do Código de Defesa do Consumidor (art. 49): quem contrata pela internet pode desistir em até 7 dias.</p>
+    <ul>
+      <li>Pagou a primeira fatura de um plano e não quer mais? Em até <b>7 dias contados do pagamento</b>, toca em <b>Desistir e receber de volta</b>, em Financeiro › Planos (o mesmo lugar onde você assinou). Devolvemos <b>o valor inteiro</b>, sem perguntar o motivo.</li>
+      <li>O plano para na hora, e nada mais é cobrado.</li>
+      <li>No <b>Pix</b>, o dinheiro volta pra conta que pagou. No <b>cartão</b>, o estorno vai pro mesmo cartão e aparece na fatura dele (pode levar uma ou duas faturas, conforme o banco). No <b>boleto</b>, o Asaas abre um link pra você dizer em qual conta quer receber.</li>
+      <li>Os 7 dias valem pro primeiro pagamento de cada assinatura (as renovações não contam). No teste grátis não tem o que devolver: é só cancelar.</li>
+      <li>Pelo app, a desistência vale uma vez por plano. Se você assinar e desistir de novo do mesmo plano, o pedido é pelo e-mail, e a gente responde em até 5 dias.</li>
+      <li>Também dá pra desistir pelo e-mail <a href="mailto:contato@houzirecords.com.br">contato@houzirecords.com.br</a>, com o teu @ e o plano. Confirmamos o pedido por e-mail.</li>
+    </ul>
+
+    <h2 id="correal">10. Correal</h2>
+    <ul>
+      <li>Correal é a moeda do Correverso e <b>não é dinheiro</b>: não se compra com real, não se vende, não se transfere e não vale nada fora do Corre.</li>
+      <li>Você ganha fazendo tarefa na cidade e gasta em coisas do próprio Corre (a IA além do grátis do dia, voos, skins do Ateliê). O app sempre pergunta antes de gastar.</li>
+      <li>O que se gasta em correal não volta em dinheiro, nem na desistência de um plano. Os preços e o ganho em correal podem mudar pra manter o jogo justo; o saldo que você já tem não some por isso.</li>
+    </ul>
+
+    <h2 id="regras">11. Regras de convivência</h2>
+    <p>Não vale, no Corre:</p>
+    <ul>
+      <li>conteúdo ilegal, ódio, racismo, ameaça, assédio ou perseguição;</li>
+      <li>qualquer conteúdo sexual envolvendo menor de idade (vai direto pras autoridades);</li>
+      <li>golpe, pirâmide, venda de coisa proibida ou pedido falso no Mural;</li>
+      <li>se passar por outra pessoa ou marca, ou usar foto, texto e marca de outros sem ter o direito;</li>
+      <li>spam, robô, raspagem de dados, ataque ou tentativa de furar a segurança do app ou da conta dos outros;</li>
+      <li>usar o Hórus pra insistir com quem pediu pra não ser procurado;</li>
+      <li>trapaça no Correverso (mexer no app pra ganhar correal, pontos ou corrida).</li>
+    </ul>
+    <p>Quem quebrar as regras pode ter o conteúdo tirado e a conta suspensa ou apagada. Se a conta tiver plano pago, ele é cancelado e não vem cobrança nova. Viu algo errado? Escreve pro e-mail.</p>
+    <p>O que você combina com outra pessoa pelo Corre (no Mural, num orçamento, numa venda, numa mensagem) é entre vocês: o Corre não é parte do negócio, não recebe por ele e não garante o pagamento nem a entrega.</p>
+
+    <h2 id="conteudo">12. O que é teu</h2>
+    <ul>
+      <li>O que você posta e cria é teu. Você deixa o Corre guardar e mostrar esse conteúdo do jeito que escolheu (no feed, no perfil, nos grupos, no Mural) e publicar no Instagram o que você programou. Apagou, sai do Corre.</li>
+      <li>As marcas do Studio Houzi (o nome, o logo, as cores e os textos que você cria) são tuas pra usar no teu negócio. O Corre ajuda a criar, mas não garante que o nome ou o desenho estão livres: antes de registrar no INPI, faz a busca.</li>
+      <li>O que a IA escreve ou desenha pode sair errado ou parecido com algo que já existe. Confere antes de usar ou postar.</li>
+      <li>O Corre em si (o app, o nome, o desenho, o Correverso e os personagens) é da Houzi.</li>
+    </ul>
+
+    <h2 id="falhas">13. Quando algo falha</h2>
+    <ul>
+      <li>A gente trabalha pro Corre ficar no ar, mas ele pode ter pausa, erro ou mudança. Mudança grande a gente avisa no app.</li>
+      <li>O Studio publica no Instagram pela conta que você conectou, só o que você programou; quem aceita ou recusa é a Meta. Se ela travar ou mudar as regras, o post pode não sair, e o motivo aparece no post. Detalhes em <a href="privacidade.html#instagram">Privacidade › Instagram conectado</a>.</li>
+      <li>Se uma ferramenta paga ficar fora do ar por culpa nossa por mais de 3 dias seguidos, ou deixar de existir, devolvemos a parte do mês pago que você não usou.</li>
+      <li>O Corre responde pelo serviço como manda o Código de Defesa do Consumidor. Não responde por negócio entre usuários nem por falha de serviço de fora que não depende da gente (Meta, Google, banco, operadora).</li>
+    </ul>
+
+    <h2 id="privacidade">14. Privacidade</h2>
+    <p>O que o Corre guarda e por quê tá na <a href="privacidade.html">Política de privacidade</a>. Quando você assina ou troca de plano, o Corre guarda que você aceitou estes termos (a versão, o plano, o valor e a hora), como prova do combinado.</p>
+
+    <h2 id="mudancas">15. Mudanças nestes termos</h2>
+    <ul>
+      <li>Quando mudar algo importante, a gente avisa no app antes, e a data no alto desta página muda.</li>
+      <li><b>Preço novo</b> de plano: avisamos com pelo menos 30 dias, e ele só vale a partir da fatura seguinte a esse prazo. Não concordou, cancela antes, sem custo.</li>
+      <li>Pra assinar ou trocar de plano depois de uma mudança, o app pede o "Li e aceito" de novo.</li>
+    </ul>
+
+    <h2 id="contato">16. Fale com a gente</h2>
+    <p>Dúvida, reclamação, cancelamento ou desistência: <a href="mailto:contato@houzirecords.com.br">contato@houzirecords.com.br</a>. Respondemos em até 5 dias.</p>
+
+    <h2 id="lei">17. Lei e foro</h2>
+    <p>Valem as leis do Brasil, entre elas o Código de Defesa do Consumidor, o Marco Civil da Internet e a Lei Geral de Proteção de Dados. Se precisar ir à Justiça, o foro é o da cidade de quem é consumidor; entre empresas, o de Londrina (PR).</p>
+  </section>
+</main>
+</body>
+</html>

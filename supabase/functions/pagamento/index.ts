@@ -15,6 +15,12 @@
 //     acao "confere" { produto } (v3.61): olha no Asaas se a fatura já foi paga (se o aviso não chegou, o plano liga assim).
 //  5. acao "asaas" (só o fundador, em Financeiro › Planos): confere a chave e cadastra (ou acerta) o webhook no Asaas
 //     pela API, com o token certo. Ninguém precisa copiar token de um painel pro outro.
+//  6. v3.72: "assinar" só vai com { termos: a versão dos Termos de uso que a pessoa marcou } e a função anota o aceite
+//     (corre_termos_aceites, a prova do combinado). acao "desistir" { produto, ver? }: o direito de arrependimento do
+//     Código de Defesa do Consumidor (art. 49), pela mesma ferramenta em que a pessoa assinou (Decreto 7.962/2013,
+//     art. 5º). Até 7 dias depois do primeiro pagamento de uma assinatura, devolve tudo e o plano para na hora. Com
+//     "ver", só diz se pode e quanto volta. Pix e cartão o Asaas devolve sozinho; boleto, ele dá um link pra pessoa dizer
+//     a conta onde recebe. Pelo app, uma vez por plano (corre_assinaturas.desistiu_em); depois, pelo e-mail.
 //
 // Segredos (Supabase > Edge Functions > Secrets):
 //   ASAAS_API_KEY        a chave da API do Asaas (Asaas > Integrações > Chave de API). É o único obrigatório.
@@ -52,6 +58,14 @@ const preco = (produto: string, nivel: number) =>
 const nivelDoValor = (v: number, antes: number) => v >= 79.89 ? 4 : v >= 69.89 ? 3 : v >= 59.89 ? 2 : antes;
 const descricao = (produto: string, nivel: number) =>
   produto === 'studio' ? `Corre · Studio, ${nivel >= 4 ? '4 ou mais redes sociais' : `${nivel} redes sociais`}` : `Corre · ${PRODUTOS[produto]}`;
+/* v3.72: a desistência em 7 dias (CDC, art. 49) e o que conta como pago no Asaas */
+const PRAZO_DESISTE = 7;
+const PAGO = ['CONFIRMED', 'RECEIVED', 'RECEIVED_IN_CASH'];
+const DEVOLVIDO = ['REFUNDED', 'REFUND_REQUESTED', 'REFUND_IN_PROGRESS', 'CHARGEBACK_REQUESTED', 'CHARGEBACK_DISPUTE'];
+/* o dia em que a pessoa pagou (o cartão aprovado conta: é ali que o dinheiro sai dela) */
+const diaPago = (p: any) => String(p?.clientPaymentDate || p?.paymentDate || p?.confirmedDate || p?.dueDate || '').slice(0, 10);
+const diasEntre = (a: string, b: string) => Math.round((Date.parse(b + 'T12:00:00Z') - Date.parse(a + 'T12:00:00Z')) / 864e5);
+const maisDias = (dia: string, n: number) => new Date(Date.parse(dia + 'T12:00:00Z') + n * 864e5).toISOString().slice(0, 10);
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...CORS, 'Content-Type': 'application/json' } });
@@ -113,6 +127,13 @@ async function confere(admin: any, a: any) {
   return !error;
 }
 
+/* v3.72: anota o aceite dos Termos (a versão, o plano, o valor e a hora: a prova do combinado). Sem o delta-v372.sql a
+   tabela não existe: avisa no log e a assinatura segue */
+async function anotaAceite(admin: any, dono: string, versao: string, produto: string, nivel: number, valor: number, acao: string) {
+  const { error } = await admin.from('corre_termos_aceites').insert({ dono, versao, produto, nivel: produto === 'studio' ? nivel : 1, valor, acao });
+  if (error) console.warn('aceite:', error.message);
+}
+
 /* ---------- o aviso do Asaas ---------- */
 async function aviso(req: Request, admin: any) {
   const tok = await tokenAviso();
@@ -140,8 +161,9 @@ async function aviso(req: Request, admin: any) {
     } else if (tipo === 'PAYMENT_OVERDUE') {
       muda.status = a.status === 'cancelada' ? 'cancelada' : 'atrasada'; if (pg?.invoiceUrl) muda.link = String(pg.invoiceUrl);
     } else if (tipo === 'PAYMENT_REFUNDED' || tipo === 'PAYMENT_CHARGEBACK_REQUESTED' || tipo === 'PAYMENT_CHARGEBACK_DISPUTE') {
-      /* devolveu o dinheiro: o período pago acaba hoje */
-      muda.status = 'atrasada'; muda.pago_ate = new Date(Date.now() - 3 * 3600e3 - 4 * 864e5).toISOString().slice(0, 10);
+      /* devolveu o dinheiro: o período pago acaba hoje (v3.72: cancelada segue cancelada; a desistência cancela antes
+         de o aviso do estorno chegar, e "atrasada" mostraria uma fatura pra pagar) */
+      muda.status = a.status === 'cancelada' ? 'cancelada' : 'atrasada'; muda.pago_ate = new Date(Date.now() - 3 * 3600e3 - 4 * 864e5).toISOString().slice(0, 10);
     } else if (tipo === 'SUBSCRIPTION_DELETED' || tipo === 'SUBSCRIPTION_INACTIVATED') {
       muda.status = 'cancelada'; muda.link = '';
     }
@@ -197,7 +219,43 @@ Deno.serve(async (req) => {
       return json({ ok: true, pago_ate: a.pago_ate, teste_ate: a.teste_ate });
     }
 
+    if (acao === 'desistir') {
+      const nao = (motivo: string) => json({ ok: true, pode: false, motivo });
+      if (!a?.asaas_assinatura) return nao('sem_pagamento');
+      if (a.desistiu_em) return nao('ja');
+      /* pela lista de cobranças (e não pela da assinatura): quem cancelou antes de desistir também acha o pagamento */
+      const o = await asaas(`/payments?subscription=${encodeURIComponent(a.asaas_assinatura)}&limit=50`);
+      const L = o?.data || [];
+      if (L.some((p: any) => DEVOLVIDO.includes(p.status))) return nao('devolvido');
+      const pagos = L.filter((p: any) => PAGO.includes(p.status)).sort((x: any, y: any) => diaPago(x).localeCompare(diaPago(y)));
+      if (!pagos.length) return nao('sem_pagamento');
+      const p = pagos[0], dia = diaPago(p), ate = maisDias(dia, PRAZO_DESISTE);
+      /* só o primeiro pagamento de cada assinatura: renovou, os 7 dias já passaram */
+      if (pagos.length > 1 || hojeBR() > ate) return nao('prazo');
+      const valor = Number(p.value) || 0, boleto = String(p.billingType || '') === 'BOLETO';
+      if (body?.ver) return json({ ok: true, pode: true, valor, pago_em: dia, ate, boleto });
+      /* primeiro o dinheiro: se o Asaas recusar o estorno, nada muda (dá pra tentar de novo, ou escrever pro e-mail) */
+      let link = '';
+      if (boleto) {
+        /* boleto não volta sozinho: o Asaas dá um link pra pessoa dizer a conta onde recebe */
+        const r = await asaas(`/payments/${encodeURIComponent(p.id)}/bankSlip/refund`, 'POST', {});
+        link = String(r?.requestUrl || r?.url || r?.link || '');
+      } else await asaas(`/payments/${encodeURIComponent(p.id)}/refund`, 'POST', { description: 'Desistência em 7 dias (CDC, art. 49)' });
+      /* depois, nada mais é cobrado: a assinatura sai do Asaas e o plano para hoje (sem os 3 dias de folga) */
+      await asaas(`/subscriptions/${encodeURIComponent(a.asaas_assinatura)}`, 'DELETE').catch((e: any) => { if (e?.status !== 404) console.error('desistir/cancelar:', e?.status, e?.msg); });
+      const fim = new Date(Date.now() - 3 * 3600e3 - 4 * 864e5).toISOString().slice(0, 10);
+      const { error } = await admin.from('corre_assinaturas').update({ status: 'cancelada', pago_ate: fim, link: '', updated_at: agora() }).eq('id', a.id);
+      if (error) console.error('desistir/banco:', error.message);
+      /* a marca de "já desistiu" vai à parte: sem o delta-v372.sql a coluna não existe, e o resto não pode cair junto */
+      const { error: e2 } = await admin.from('corre_assinaturas').update({ desistiu_em: agora() }).eq('id', a.id);
+      if (e2) console.warn('desistir: sem a coluna desistiu_em (falta o delta-v372.sql):', e2.message);
+      return json({ ok: true, devolvido: valor, boleto, link });
+    }
+
     if (acao !== 'assinar') return json({ erro: 'acao' }, 400);
+    /* v3.72: sem o "Li e aceito os Termos de uso" não tem assinatura (o app manda a versão que a pessoa viu) */
+    const termos = String(body?.termos || '');
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(termos)) return json({ erro: 'termos' }, 400);
     const nivel = produto === 'studio' ? Math.max(2, Math.min(4, Math.round(Number(body?.nivel) || 2))) : 1;
     const valor = preco(produto, nivel);
 
@@ -213,6 +271,7 @@ Deno.serve(async (req) => {
       const f = await faturaAberta(a.asaas_assinatura).catch(() => null);
       /* o nível fica o que foi pago; o aviso da próxima fatura paga (já com o valor novo) é que troca */
       await admin.from('corre_assinaturas').update({ valor, link: f?.link || a.link || '', updated_at: agora() }).eq('id', a.id);
+      if (trocou) await anotaAceite(admin, user.id, termos, produto, nivel, valor, 'trocar');
       return json({ ok: true, link: f?.link || '', trocou, nivel_pago: a.nivel });
     }
 
@@ -250,6 +309,7 @@ Deno.serve(async (req) => {
       await asaas(`/subscriptions/${encodeURIComponent(sub)}`, 'DELETE').catch(() => null);
       return json({ erro: 'banco' }, 500);
     }
+    await anotaAceite(admin, user.id, termos, produto, nivel, valor, 'assinar');
     return json({ ok: true, link: f?.link || '', vence, teste: noTeste });
   } catch (e: any) {
     if (e && e.msg) { console.error('asaas:', e.status, e.msg); return json({ erro: 'asaas', detalhe: e.msg }, 502); }

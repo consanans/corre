@@ -3284,3 +3284,14 @@ html.embed .msg-pg{height:calc(100dvh - 40px)}
   .lado-pe .lado-post{flex:1;align-self:center;min-height:48px;margin:0}
 }
 @media (prefers-reduced-motion:reduce){ .lado-tudo-seta{transition:none} }
+
+/* v3.72 · pronto pra cobrar de verdade: o "Li e aceito os Termos de uso" na folha de assinar (caixa grande, fácil de
+   tocar; marcada, fica no marca-texto) e a desistência em 7 dias no cartão do plano (o direito de arrependimento à
+   vista, no mesmo lugar em que se assinou) */
+.pl-aceite{display:flex;align-items:flex-start;gap:10px;padding:11px 12px;border:2.5px solid var(--line);border-radius:14px;cursor:pointer;font-size:14.5px;line-height:1.4;color:var(--ink-2)}
+.pl-aceite input{width:22px;height:22px;flex:none;margin:0;accent-color:var(--ink)}
+.pl-aceite a{color:var(--ink);font-weight:800}
+.pl-aceite:has(input:checked){border-color:var(--ink);background:var(--yellow);color:var(--ink)}
+.pl-aceite:has(input:focus-visible){outline:3px solid var(--focus);outline-offset:2px}
+.pl-desiste{margin:0;padding:9px 12px;border:2px dashed var(--ink);border-radius:12px;font-size:14px;line-height:1.4}
+.pl-fine a{color:var(--ink);font-weight:800}

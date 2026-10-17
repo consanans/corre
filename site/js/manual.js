@@ -6,7 +6,7 @@
   'use strict';
   const C = window.Corre, { esc, ico } = C;
   /* sobe esse número a cada atualização: quem já viu recebe de novo, abrindo nas novidades */
-  const VERSAO = '3.71';
+  const VERSAO = '3.72';
   const K = 'corre-manual-visto';
 
   /* O que tem de novo: só o que é super relevante pra galera (o Thales, v3.67). No máximo 8, o mais novo em cima, uma ou
@@ -20,7 +20,7 @@
     ['raio', 'Tarefas com minijogo', 'O Trampo da cidade virou joguinho: cada tarefa pede ritmo, sequência ou mira. Fez, ganha correal.'],
     ['gente', 'Kart ao vivo', 'Quatro pistas e seis bichos pra escolher. Corre com quem tá na pista na hora; faltou gente, a máquina completa.'],
     ['fogo', 'Jogos pela cidade', 'Torneio de pesca no Igapó, pênalti e arremesso nas quadras do Zerão e rebatida de beisebol na ACEL.'],
-    ['cartao', 'Planos', 'A rede, as mensagens, o Correverso, o Mural e Vendas e Grana seguem de graça. Studio com mais redes, Studio Houzi e Hórus têm plano; os dois últimos começam com 30 dias grátis. Fica em Financeiro › Planos.']
+    ['cartao', 'Planos', 'A rede, as mensagens, o Correverso, o Mural e Vendas e Grana seguem de graça. Studio com mais redes, Studio Houzi e Hórus têm plano; os dois últimos começam com 30 dias grátis. Fica em Financeiro › Planos, e desistindo em até 7 dias do primeiro pagamento, volta tudo.']
   ];
   /* cada página: o que é, pra que serve no teu dia, e o botão que leva lá */
   const PAGINAS = [

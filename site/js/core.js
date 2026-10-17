@@ -1522,7 +1522,19 @@
         if(B.acao === 'link'){ if(!a || !a.asaas_assinatura) throw { code: 'sem_assinatura', status: 404 }; return { ok: true, link: '', vence: '', demo: true }; }
         if(B.acao === 'confere') return { ok: true, ativou: false, demo: true };
         if(B.acao === 'cancelar'){ if(!a || !a.asaas_assinatura || a.status === 'cancelada') return { ok: true, ja: true }; a.status = 'cancelada'; a.link = ''; a.updated_at = now(); write(d); return { ok: true, pago_ate: a.pago_ate, teste_ate: a.teste_ate, demo: true }; }
+        /* v3.72: a desistência em 7 dias, como a função (o pagamento da demonstração é o pago_em da assinatura) */
+        if(B.acao === 'desistir'){
+          const nao = motivo => ({ ok: true, pode: false, motivo, demo: true });
+          if(!a || !a.asaas_assinatura || !a.pago_em) return nao('sem_pagamento');
+          if(a.desistiu_em) return nao('ja');
+          const ate = plMais(a.pago_em, 7);
+          if(hojeBR() > ate) return nao('prazo');
+          if(B.ver) return { ok: true, pode: true, valor: Number(a.valor) || 0, pago_em: a.pago_em, ate, boleto: false, demo: true };
+          Object.assign(a, { status: 'cancelada', pago_ate: plMais(hojeBR(), -4), link: '', desistiu_em: now(), updated_at: now() });
+          write(d); return { ok: true, devolvido: Number(a.valor) || 0, boleto: false, link: '', demo: true };
+        }
         if(B.acao !== 'assinar') throw { code: 'acao', status: 400 };
+        if(!/^\d{4}-\d{2}-\d{2}$/.test(String(B.termos || ''))) throw { code: 'termos', status: 400 };
         const nivel = prod === 'studio' ? Math.max(2, Math.min(4, Math.round(Number(B.nivel) || 2))) : 1;
         const valor = prod === 'houzi' ? 29.90 : prod === 'horus' ? 9.90 : { 2: 59.90, 3: 69.90, 4: 79.90 }[nivel];
         if(a && a.asaas_assinatura && a.status !== 'cancelada'){ const trocou = prod === 'studio' && nivel !== a.nivel; Object.assign(a, { nivel, valor, updated_at: now() }); write(d); return { ok: true, link: '', trocou, demo: true }; }
@@ -1535,7 +1547,7 @@
         const vence = noTeste ? hojeBR(new Date(Date.parse(a.teste_ate))) : hojeBR();
         const linha = { nivel, valor, status: noTeste ? 'teste' : 'ativa', asaas_assinatura: 'sub_demo_' + rid().slice(0, 8), link: '', updated_at: now() };
         /* pago agora: vale até o mesmo dia do mês que vem (31/01 vira 28/02), como o aviso do Asaas faz na função */
-        if(!noTeste){ const [y, m, dd] = vence.split('-').map(Number), ult = new Date(Date.UTC(y, m + 1, 0)).getUTCDate(); linha.pago_ate = new Date(Date.UTC(y, m, Math.min(dd, ult))).toISOString().slice(0, 10); }
+        if(!noTeste){ const [y, m, dd] = vence.split('-').map(Number), ult = new Date(Date.UTC(y, m + 1, 0)).getUTCDate(); linha.pago_ate = new Date(Date.UTC(y, m, Math.min(dd, ult))).toISOString().slice(0, 10); linha.pago_em = vence; }
         if(a) Object.assign(a, linha); else { a = Object.assign({ id: rid(), dono: u, produto: prod, teste_ate: null, pago_ate: null, created_at: now() }, linha); d.t.corre_assinaturas.push(a); }
         write(d); return { ok: true, link: '', vence, teste: noTeste, demo: true };
       }

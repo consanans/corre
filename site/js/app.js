@@ -335,7 +335,7 @@
       ${gavetaHTML(me, active)}
       <span class="gv-k">Conta</span>` : `<a href="#/@${esc(me.handle)}">${ico('eu')}Meu perfil</a><a href="#/salvos">${ico('save')}Salvos</a>`}
       <a href="#/editar">${ico('edit')}Editar perfil</a><button type="button" data-act="st-novo">${ico('plus')}Postar story</button>${C.push ? `<button type="button" data-act="push-ajustes">${ico('bell')}Avisos no celular</button>` : ''}<button type="button" data-act="manual">${ico('manual')}Manual do Corre</button>
-      <a href="privacidade.html">${ico('lock')}Privacidade</a><button type="button" data-act="sair">${ico('prev')}Sair</button>`;
+      <a href="privacidade.html">${ico('lock')}Privacidade</a><a href="termos.html">${ico('check')}Termos de uso</a><button type="button" data-act="sair">${ico('prev')}Sair</button>`;
   /* o menu da esquerda (computador). v3.70: a marca com as Mensagens e o sino do lado, o Procurar, a Comanda (no menu
      estreito, o ícone com o número), os Teus, a praça e o Tudo. Postar e a conta seguem embaixo */
   const lado = (active, me) => {
@@ -468,7 +468,7 @@
       ${logged ? `<button type="button" class="oculto-btn" data-act="oculto" aria-pressed="${C.oculto}" aria-label="${C.oculto ? 'Mostrar valores' : 'Esconder valores'}" title="${C.oculto ? 'Mostrar valores' : 'Esconder valores'}">${ico(C.oculto ? 'eyeoff' : 'eye')}</button>` : ''}
       ${st.user && !me ? `<details class="me" id="me">
         <summary aria-label="Menu da conta">${avatar({ nome: st.user.email }, 's')}</summary>
-        <div class="me-menu"><a href="privacidade.html">Privacidade</a><button type="button" data-act="sair">Sair</button></div>
+        <div class="me-menu"><a href="privacidade.html">Privacidade</a><a href="termos.html">Termos de uso</a><button type="button" data-act="sair">Sair</button></div>
       </details>` : ''}
     </header>
     ${volta ? `<nav class="migalha" aria-label="Voltar"><a href="${esc(volta[0])}">${ico('prev')} ${esc(volta[1])}</a></nav>` : ''}
@@ -536,7 +536,8 @@
       { k: 'push', a: 'push-ajustes', t: 'Avisos no celular', i: 'bell', d: 'Liga e desliga as notificações', kw: 'notificacao notificacoes push celular' },
       { k: 'manual', a: 'manual', t: 'Manual do Corre', i: 'manual', d: 'Como usar cada coisa', kw: 'ajuda duvida tutorial como funciona' },
       { k: 'loja', a: 'cvr-loja', t: 'Ateliê: loja de skins', i: 'star', d: 'Skins pro teu avatar, pagas em correal', kw: 'skin skins loja roupa fantasia uniforme avatar comprar atelie' },
-      { k: 'privacidade', h: 'privacidade.html', t: 'Privacidade', i: 'lock', d: 'O que o Corre guarda e por quê', kw: 'dados lgpd termos' }
+      { k: 'privacidade', h: 'privacidade.html', t: 'Privacidade', i: 'lock', d: 'O que o Corre guarda e por quê', kw: 'dados lgpd' },
+      { k: 'termos', h: 'termos.html', t: 'Termos de uso', i: 'check', d: 'Planos, cobrança, cancelar e desistir em 7 dias', kw: 'termos contrato regras cancelar cancelamento desistir devolver reembolso estorno arrependimento cdc consumidor' }
     /* um atalho que é botão só aparece se o módulo dele carregou (sem o Grupos, nada de "Criar grupo") */
     ]).filter(f => !f.a || C.acts[f.a]).map(f => ({ tipo: 'f', key: 'f:' + f.k, t: f.t, s: f.d, i: f.i, h: f.h || '', a: f.a || '', kw: f.kw }));
   };
@@ -798,7 +799,7 @@
           <span class="eb-loja">${ico('cel')}<span><small>App pra iPhone</small><b>iOS</b></span></span>
           <span class="eb-loja">${ico('cel')}<span><small>App pra celular</small><b>Android</b></span></span>
         </div>
-        <p class="fine">Ao entrar, você concorda com a <a href="privacidade.html">Política de privacidade</a>.</p>
+        <p class="fine">Ao entrar, você concorda com os <a href="termos.html">Termos de uso</a> e a <a href="privacidade.html">Política de privacidade</a>.</p>
       </section>
       <p class="login-assina">Um produto <b>Houzi Records</b> <span class="la-x"><i aria-hidden="true">×</i><span class="sr-only">e</span> <b>Simonini Software</b></span></p>
     </main>`;
@@ -1029,7 +1030,7 @@
           <div id="people"><div class="empty">Carregando quem tá no Corre…</div></div>
         </aside>
       </div>
-      <p class="foot"><a href="privacidade.html">Privacidade</a> <span class="credit">Londrina desenhada no traço da Monstra</span></p>
+      <p class="foot"><a href="privacidade.html">Privacidade</a> <a href="termos.html">Termos</a> <span class="credit">Londrina desenhada no traço da Monstra</span></p>
     </main>`;
     if(C.correMes) C.correMes($('h-corre'));
     C.storiesBar().then(h => { const el = $('h-stories'); if(el) el.innerHTML = h; });
