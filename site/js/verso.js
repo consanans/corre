@@ -1195,7 +1195,9 @@
   }
   const FALAS = ['Oi!', 'Bora trocar ideia?', 'Top!', 'Haha', 'Valeu!', 'Partiu lago?', 'Liga o mic!'];
   /* balões que a cidade solta sozinha (comendo, pescando, gol); viajam como 100 + índice */
-  const FALAS_AUTO = ['nham nham', 'fisgou!', 'hmm… nada', 'uma bota…', 'golaço!', 'na cesta!', 'tarefa feita!', 'bi-bi!', 'trim-trim!', 'uhuuu!'];
+  const FALAS_AUTO = ['nham nham', 'fisgou!', 'hmm… nada', 'uma bota…', 'golaço!', 'na cesta!', 'tarefa feita!', 'bi-bi!', 'trim-trim!', 'uhuuu!',
+    /* v3.76: as manobras da pista de skate */
+    'ollie!', 'kickflip!', 'heelflip!', 'shove-it!', 'tre flip!', 'air!', 'frontside 180!', 'indy grab!', '540 do zerão!', '50-50 grind!', 'caiu!'];
   function falaAuto(i){ if(!V.eu || !FALAS_AUTO[i]) return; V.eu.fala = { t: FALAS_AUTO[i], ate: Date.now() + 3500 }; if(V.rede && V.rede.emo) try{ V.rede.emo(100 + i); }catch(e){} }
   /* quem é quem: o nome e o @ de cada um vêm do servidor. Enquanto não vem (ou se ninguém confirmou), é visitante */
   function aplicaQuem(r){
@@ -1620,19 +1622,32 @@
     const z = { R, cx: R.x + R.w / 2, cy: R.y + R.h / 2 + 26, rx: 296, ry: 436 };
     /* v3.50: a largada da corrida de patinete, em cima da pista de caminhada (do lado direito do oval) */
     z.largada = { x: z.cx + z.rx - 19, y: z.cy }; K.lugares.push({ nome: 'Pista do Zerão', x: z.largada.x, y: z.largada.y + 20 });
-    z.quadras = [{ tipo: 'futsal', x: z.cx - 96, y: z.cy - 252, w: 192, h: 112 }, { tipo: 'basquete', x: z.cx - 84, y: z.cy - 36, w: 168, h: 100 }];
-    z.areia = { x: z.cx - 176, y: z.cy + 168, w: 146, h: 96 };
+    /* v3.76 (o Thales: "a quadra de basquete do lado da pista de skate, que é como é hoje, e lá em cima um campo de
+       futebol"): o campo em cima (é ele que leva pro desafio de pênalti), os trucks, o parquinho e as barras no meio,
+       e embaixo a quadra de basquete colada na pista de skate */
+    /* o campo cabe dentro da grama do oval (a quina de cima fica a 18 da pista de caminhada) e termina antes das placas dos trucks */
+    z.quadras = [{ tipo: 'futsal', campo: true, x: z.cx - 120, y: z.cy - 336, w: 240, h: 160 }, { tipo: 'basquete', x: z.cx - 196, y: z.cy + 120, w: 168, h: 100 }];
+    z.areia = { x: z.cx - 200, y: z.cy - 28, w: 146, h: 96 };
     const qb = z.quadras[1];
     K.decor.push({ tipo: 'tabela', x: qb.x + 10, y: qb.y + qb.h / 2 + 8, lado: 1 }, { tipo: 'tabela', x: qb.x + qb.w - 10, y: qb.y + qb.h / 2 + 8, lado: -1 });
     K.decor.push({ tipo: 'escorrega', x: z.areia.x + 40, y: z.areia.y + 62 }, { tipo: 'balanco', x: z.areia.x + 110, y: z.areia.y + 64 });
-    [0, 1, 2].forEach(i => K.decor.push({ tipo: 'barra', x: z.cx + 70 + i * 40, y: z.cy + 236 - (i % 2) * 14 }));
-    [['SMASH', '#E2412E'], ['PASTEL', AMARELO], ['CHURROS', ROSA]].forEach(([nome, cor], i) => { const tr = { id: 'tr' + i, x: z.cx + (i - 1) * 104, base: z.cy - 292, nome, cor }; K.trucks.push(tr); K.sol.push({ x: tr.x - 42, y: tr.base - 22, w: 84, h: 22 }); });
-    [200, 160, 20, -20, 120, 60].forEach(a => { const an = a * Math.PI / 180; K.bancos.push({ x: Math.round(z.cx + Math.cos(an) * (z.rx - 62)), y: Math.round(z.cy + Math.sin(an) * (z.ry - 62)), lugar: 'Zerão' }); });
+    /* v3.76: a pista de skate no quarto de baixo à direita (as barras da academia foram pra baixo do parquinho, e a árvore
+       e o banco que ficavam ali saíram). Bowl, rampa (quarter), caixote com rampa dos dois lados, corrimão e borda */
+    const sk = z.skate = { x0: z.cx - 20, y0: z.cy + 80, x1: z.cx + 240, y1: z.cy + 290, erx: z.rx - 46, ery: z.ry - 46 };
+    sk.bowl = { x: z.cx + 178, y: z.cy + 140, rx: 46, ry: 30 };
+    sk.caixote = { x: z.cx + 72, y: z.cy + 168, w: 52, h: 24, r: 18 };
+    sk.quarter = { x0: z.cx - 10, x1: z.cx + 118, y0: z.cy + 236, y1: z.cy + 266 };
+    sk.trilhos = [{ x0: z.cx + 52, x1: z.cx + 128, y: z.cy + 214, tipo: 'corrimao' }, { x0: z.cx - 6, x1: z.cx + 44, y: z.cy + 122, tipo: 'borda' }];
+    K.lugares.push({ nome: 'Pista de skate', x: z.cx + 60, y: z.cy + 205 }); K.zonas.push({ nome: 'Pista de skate', x: sk.x0, y: sk.y0, w: sk.x1 - sk.x0, h: sk.y1 - sk.y0 });
+    K.decor.push({ tipo: 'placa', x: z.cx + 112, y: z.cy + 98, txt: 'SKATE', s: 2, fundo: ROSA, h: 26 });
+    [0, 1, 2].forEach(i => K.decor.push({ tipo: 'barra', x: z.cx + 80 + i * 40, y: z.cy + 34 - (i % 2) * 14 }));
+    [['SMASH', '#E2412E'], ['PASTEL', AMARELO], ['CHURROS', ROSA]].forEach(([nome, cor], i) => { const tr = { id: 'tr' + i, x: z.cx + (i - 1) * 104, base: z.cy - 60, nome, cor }; K.trucks.push(tr); K.sol.push({ x: tr.x - 42, y: tr.base - 22, w: 84, h: 22 }); });
+    [200, 160, -20, 120, 60].forEach(a => { const an = a * Math.PI / 180; K.bancos.push({ x: Math.round(z.cx + Math.cos(an) * (z.rx - 62)), y: Math.round(z.cy + Math.sin(an) * (z.ry - 62)), lugar: 'Zerão' }); });
     for(let y = R.y + 60; y < R.y + R.h - 10; y += 80) for(let x = R.x + 30; x < R.x + R.w - 20; x += 76){
       const jx = x + (sorte() - .5) * 30, jy = y + (sorte() - .5) * 30, e = ((jx - z.cx) / z.rx) ** 2 + ((jy - z.cy) / z.ry) ** 2;
       if(e > 1.18 && sorte() < .8 && Math.abs(jx - z.cx) > (jy < z.cy - z.ry + 30 ? 90 : 40)) K.arv.push({ x: Math.round(jx), y: Math.round(jy), cor: pega(IPES, sorte), g: sorte() < .3 });
     }
-    [[z.cx + 150, z.cy - 110], [z.cx - 160, z.cy - 104], [z.cx + 160, z.cy + 96], [z.cx - 170, z.cy + 92]].forEach(([x, y]) => K.arv.push({ x, y, cor: pega(IPES, sorte), g: true }));
+    [[z.cx + 205, z.cy - 104], [z.cx - 212, z.cy - 108], [z.cx + 206, z.cy + 46]].forEach(([x, y]) => K.arv.push({ x, y, cor: pega(IPES, sorte), g: true }));
     K.decor.push({ tipo: 'placa2', x: z.cx, y: z.cy - z.ry - 4, txt: 'ZERAO', s: 2, fundo: AMARELO, h: 30 });
     K.lugares.push({ nome: 'Zerão', x: z.cx, y: z.cy - z.ry + 18 });
     return z;
@@ -1842,7 +1857,7 @@
       b.x += b.vx * dt; b.y += b.vy * dt; b.rot += v * dt / 6;
       const m = 7, cy = q.y + q.h / 2;
       /* a meta do futsal (no meio das laterais curtas) e a cesta do basquete (perto da tabela) */
-      if(futsal && Math.abs(b.y - cy) < 15 && ((b.x <= q.x + m && b.vx < 0) || (b.x >= q.x + q.w - m && b.vx > 0))){ b.gol = agora; if(b.meu){ falaAuto(4); V.gols = (V.gols || 0) + 1; } return; }
+      if(futsal && Math.abs(b.y - cy) < (q.campo ? 18 : 15) && ((b.x <= q.x + m && b.vx < 0) || (b.x >= q.x + q.w - m && b.vx > 0))){ b.gol = agora; if(b.meu){ falaAuto(4); V.gols = (V.gols || 0) + 1; } return; }
       if(!futsal && Math.abs(b.y - (cy + 4)) < 9 && ((b.x <= q.x + 16 && b.x >= q.x + 8 && b.vx < 0) || (b.x >= q.x + q.w - 16 && b.x <= q.x + q.w - 8 && b.vx > 0)) && v > 90){ b.gol = agora; if(b.meu) falaAuto(5); return; }
       if(b.x < q.x + m){ b.x = q.x + m; b.vx = -b.vx * .62; } else if(b.x > q.x + q.w - m){ b.x = q.x + q.w - m; b.vx = -b.vx * .62; }
       if(b.y < q.y + m){ b.y = q.y + m; b.vy = -b.vy * .62; } else if(b.y > q.y + q.h - m){ b.y = q.y + q.h - m; b.vy = -b.vy * .62; }
@@ -1897,6 +1912,21 @@
   function linhas(ctx, x, y, w, h){ const L = Math.max(2, 1.05 / V.k); ctx.fillRect(x, y, w, L); ctx.fillRect(x, y + h - L, w, L); ctx.fillRect(x, y, L, h); ctx.fillRect(x + w - L, y, L, h); }
   function quadraChao(ctx, q){
     const L = Math.max(2, 1.05 / V.k), cx = q.x + q.w / 2, cy = q.y + q.h / 2;
+    /* v3.76 · o campo de futebol do Zerão: grama em faixas, as linhas, o círculo, as duas áreas, a marca do pênalti e as traves */
+    if(q.campo){
+      /* a grama do campo é palha mais escura que a do parque (senão o campo some), com as faixas do corte */
+      ctx.fillStyle = pad(ctx, '#C4A25A'); ctx.fillRect(q.x, q.y, q.w, q.h);
+      ctx.fillStyle = 'rgba(255,236,170,.22)'; for(let x = q.x + 8; x < q.x + q.w - 8; x += 32) ctx.fillRect(x, q.y + 8, 16, q.h - 16);
+      ctx.beginPath(); ctx.rect(q.x, q.y, q.w, q.h); traco(ctx, '#9C7C3A', 2);
+      ctx.fillStyle = '#F4F3EF'; linhas(ctx, q.x + 8, q.y + 8, q.w - 16, q.h - 16); ctx.fillRect(cx - L / 2, q.y + 8, L, q.h - 16);
+      for(let a = 0; a < 36; a++){ const an = a / 36 * Math.PI * 2; ctx.fillRect(sn(cx + Math.cos(an) * 26), sn(cy + Math.sin(an) * 26), L, L); }
+      ctx.fillRect(cx - L, cy - L, L * 2, L * 2);
+      [1, -1].forEach(l => { const xg = l > 0 ? q.x + 8 : q.x + q.w - 8, dir = l; linhas(ctx, dir > 0 ? xg : xg - 40, cy - 46, 40, 92); linhas(ctx, dir > 0 ? xg : xg - 16, cy - 24, 16, 48); ctx.fillRect(xg + dir * 28 - L, cy - L, L * 2, L * 2); });
+      ctx.fillStyle = '#E6E9EE'; linhas(ctx, q.x - 6, cy - 18, 14, 36); linhas(ctx, q.x + q.w - 8, cy - 18, 14, 36);
+      ctx.fillStyle = 'rgba(244,243,239,.35)'; for(let y = cy - 16; y < cy + 16; y += 4){ ctx.fillRect(q.x - 6, y, 12, L / 2); ctx.fillRect(q.x + q.w - 6, y, 12, L / 2); }
+      pixPlaca(ctx, 'DESAFIO', q.x + 30, q.y + q.h - 16, { fundo: AMARELO, cor: INK, max: 10 });
+      return;
+    }
     ctx.fillStyle = pad(ctx, q.tipo === 'futsal' ? '#3D6FB6' : '#C8643B'); ctx.fillRect(q.x, q.y, q.w, q.h);
     ctx.fillStyle = '#F4F3EF'; linhas(ctx, q.x + 6, q.y + 6, q.w - 12, q.h - 12); ctx.fillRect(cx - L / 2, q.y + 6, L, q.h - 12);
     const rr = Math.min(q.w, q.h) * .16; for(let a = 0; a < 28; a++){ const an = a / 28 * Math.PI * 2; ctx.fillRect(sn(cx + Math.cos(an) * rr), sn(cy + Math.sin(an) * rr), L, L); }
@@ -1963,6 +1993,7 @@
       ctx.fillStyle = '#F4F3EF'; for(let i = 0; i < 140; i += 2){ const an = i / 140 * Math.PI * 2; ctx.fillRect(sn(z.cx + Math.cos(an) * (z.rx - 19)), sn(z.cy + Math.sin(an) * (z.ry - 19)), u * 2, u * 2); }
       z.quadras.forEach(q => quadraChao(ctx, q));
       ctx.fillStyle = pad(ctx, '#E8D29A'); ctx.fillRect(z.areia.x, z.areia.y, z.areia.w, z.areia.h); ctx.beginPath(); ctx.rect(z.areia.x, z.areia.y, z.areia.w, z.areia.h); traco(ctx, '#B89A5A', 2);
+      pistaSkate(ctx, z);
       placaLargada(ctx, z.largada, 'PATINETE');
     },
     bosque(ctx, R, vx, vy, vw, vh){
@@ -3282,14 +3313,16 @@
     const agora = Date.now(), mostra = quemAparece(agora), gente = [...V.remotos.values()].filter(r => mostra.has(r.sid) && vis(r.x, r.y, 60));
     gente.forEach(r => L.push({ y: r.y + (r.sit ? 1 : 0), f: () => boneco(ctx, r, t, false) }));
     if(V.eu) L.push({ y: V.eu.y + (V.eu.sit ? 1 : 0), f: () => boneco(ctx, V.eu, t, true) });
+    if(V.eu && V.sk && V.sk.grind) L.push({ y: V.eu.y + 2, f: () => faiscas(ctx, V.eu.x, V.eu.y, t) });
     desenhaTarefa(L, ctx, t, vis);
     L.sort((a, b) => a.y - b.y).forEach(o => o.f());
     if(V.rio && V.rio.fase === 'salto') saltoPeixe(ctx, t);
     if(V.alvo){ ctx.strokeStyle = ROSA; ctx.lineWidth = Math.max(2, 1.05 / k0); ctx.beginPath(); ctx.ellipse(V.alvo.x, V.alvo.y, 10 + Math.sin(t * 6) * 2, 4, 0, 0, Math.PI * 2); ctx.stroke(); }
-    if(V.porta && !(V.eu && V.eu.sit)){ const p = V.porta; ctx.save(); ctx.translate(p.x, p.y - (p.tipo === 'banco' ? 34 : 4) + Math.round(Math.sin(t * 4) * 2)); ctx.beginPath(); ctx.moveTo(-8, -12); ctx.lineTo(8, -12); ctx.lineTo(0, 0); ctx.closePath(); forma(ctx, AMARELO, 2); ctx.restore(); }
+    if(V.porta && !(V.eu && V.eu.sit)){ const p = V.porta; ctx.save(); ctx.translate(p.x, p.y - (p.tipo === 'banco' ? 34 : p.tipo === 'morador' ? 48 / V.k : 4) + Math.round(Math.sin(t * 4) * 2)); ctx.beginPath(); ctx.moveTo(-8, -12); ctx.lineTo(8, -12); ctx.lineTo(0, 0); ctx.closePath(); forma(ctx, AMARELO, 2); ctx.restore(); }
     desenhaVoos(ctx, t, gente);
     /* nomes e balões por cima de tudo */
     gente.forEach(r => nomeDe(ctx, r, false, agora)); if(V.eu) nomeDe(ctx, V.eu, true, agora);
+    if(V.baloes && V.baloes.length){ V.baloes.forEach(b => balaoLongo(ctx, b[0], b[1], b[2])); V.baloes.length = 0; }
   }
   /* ---------- mapa: a cidade inteira numa tela, com viagem rápida ---------- */
   const lugares = () => (V.casa ? [{ nome: 'Tua casa', x: V.casa.x, y: V.casa.y }] : []).concat(V.cid.lugares);
@@ -3317,10 +3350,11 @@
     const l = c.lago; ctx.fillStyle = '#C9D0D8'; l.bandas[0][1].forEach(q => ctx.fillRect(X(q.x), Y(q.t), 1, Math.max(1, Math.round((q.b - q.t) / S))));
     ctx.fillStyle = '#2F7FC1'; l.cols.forEach(q => ctx.fillRect(X(q.x), Y(q.t), 1, Math.max(1, Math.round((q.b - q.t) / S))));
     const z = c.zerao; ctx.strokeStyle = '#A4553A'; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(X(z.cx), Y(z.cy), z.rx / S - 1, z.ry / S - 1, 0, 0, Math.PI * 2); ctx.stroke();
+    if(z.skate){ const s = z.skate; ctx.fillStyle = '#A4A8AE'; ctx.fillRect(X(s.x0), Y(s.y0), Math.round((s.x1 - s.x0 - 30) / S), Math.round((s.y1 - s.y0 - 50) / S)); ctx.fillStyle = '#6A7078'; ctx.fillRect(X(s.bowl.x) - 2, Y(s.bowl.y) - 1, 4, 3); }
     const e = c.estadio.campo; ctx.fillStyle = '#2E5BFF'; ctx.fillRect(X(e.x) - 4, Y(e.y) - 6, Math.round(e.w / S) + 8, Math.round(e.h / S) + 10); ctx.fillStyle = '#D9C27F'; ctx.fillRect(X(e.x), Y(e.y), Math.round(e.w / S), Math.round(e.h / S));
     ctx.fillStyle = '#7F8A96'; c.gleba.forEach(g => ctx.fillRect(X(g.x), Y(g.base - 40), Math.max(2, Math.round(g.w / S)), 3));
     [['LAGO IGAPO', l.x + l.w / 2, l.y + l.h / 2], ['ZERAO', z.cx, z.cy], ['BOSQUE', c.bosque.cx, c.bosque.cy], ['CENTRO', c.praca.cx, c.praca.y + LH + 40], ['ESTADIO', c.estadio.campo.x + c.estadio.campo.w / 2, c.estadio.campo.y + c.estadio.campo.h / 2], ['GLEBA', c.glebaR.R.x + c.glebaR.R.w / 2, c.glebaR.R.y + LH / 2]].concat(c.feira ? [['FEIRA', c.feira.R.x + c.feira.R.w / 2, c.feira.R.y + c.feira.R.h + 30]] : []).concat(c.aeroporto ? [['AEROPORTO', c.aeroporto.R.x + c.aeroporto.R.w / 2, c.aeroporto.R.y + 120]] : []).concat(c.acel ? [['ACEL', c.acel.hp.x, c.acel.hp.y - 250]] : []).concat(rio ? [['RIO TIBAGI', c.W * .55, rio.cyF(c.W * .55)]] : []).forEach(([t, x, y]) => pixPlaca(ctx, t, X(x), Y(y), { fundo: PAPEL }));
-    const mostra = quemAparece(); ctx.fillStyle = PAPEL; for(const r of V.remotos.values()) if(mostra.has(r.sid)) ctx.fillRect(X(r.x) - 1, Y(r.y) - 1, 3, 3);
+    const mostra = quemAparece(); ctx.fillStyle = PAPEL; for(const r of V.remotos.values()) if(mostra.has(r.sid) && !r.npc) ctx.fillRect(X(r.x) - 1, Y(r.y) - 1, 3, 3);
     if(V.eu && Date.now() % 1000 < 650){ ctx.fillStyle = INK; ctx.fillRect(X(V.eu.x) - 3, Y(V.eu.y) - 3, 7, 7); ctx.fillStyle = ROSA; ctx.fillRect(X(V.eu.x) - 2, Y(V.eu.y) - 2, 5, 5); }
   }
   function mapaSheet(){
@@ -3362,12 +3396,30 @@
   /* ---------- v3.40 · o pulo, o veículo de cada um ---------- */
   const PULO_MS = 480, PULO_PX = 11;
   /* a altura do pulo agora (0 a 1, uma parábola) */
-  const alturaPulo = o => { const t0 = o && o.puT; if(!t0) return 0; const f = (performance.now() - t0) / PULO_MS; return f > 0 && f < 1 ? 4 * f * (1 - f) : 0; };
+  const alturaPulo = o => { const t0 = o && o.puT; if(!t0) return 0; const f = (performance.now() - t0) / (o.puMs || PULO_MS); return f > 0 && f < 1 ? 4 * f * (1 - f) * (o.puH || 1) : 0; };
   /* o veículo de alguém: o da garagem (ou o skate de antes da garagem) */
-  const veiculoDe = o => { const av = o && o.av; if(!av) return ''; return av.veiculo && C.veiculos && C.veiculos.porK(av.veiculo) ? av.veiculo : av.skate ? 'skate' : ''; };
+  const veiculoDe = o => { const av = o && o.av; if(!av) return ''; if(!o.barco && !o.sit && naPistaSkate(o.x, o.y)) return 'skate'; return av.veiculo && C.veiculos && C.veiculos.porK(av.veiculo) ? av.veiculo : av.skate ? 'skate' : ''; };
   const veiculoInfo = o => { const k = veiculoDe(o); return k && C.veiculos ? C.veiculos.porK(k) : null; };
   const MIC_B = ['01110', '01110', '01110', '10001', '01110', '00100', '01110'];
+  /* v3.76 · o balão de fala comprida (os moradores): quebra em linhas de até 24 letras (no máximo 4), numa caixa só,
+     com o biquinho embaixo apontando pra quem fala. yb é onde ficaria o meio do balão de uma linha */
+  function quebraLinhas(t, n){
+    const L = []; let l = '';
+    txtN(t).split(/\s+/).forEach(w => { while(w.length > n){ if(l){ L.push(l); l = ''; } L.push(w.slice(0, n)); w = w.slice(n); } if(!w) return; if(!l) l = w; else if((l + ' ' + w).length <= n) l += ' ' + w; else { L.push(l); l = w; } });
+    if(l) L.push(l); return L.slice(0, 4);
+  }
+  function balaoLongo(ctx, t, x, yb){
+    const L = quebraLinhas(t, 24), [cx, cy, md] = ptBase(ctx, x, yb), w = Math.max(...L.map(l => pixLarg(l, 1))), pad = 3, lh = 7, h = L.length * lh - 2 + pad * 2;
+    const x0 = cx - Math.floor(w / 2) - pad, y0 = cy + 4 - h;
+    ctx.save(); naBase(ctx);
+    ctx.fillStyle = INK; ctx.fillRect(x0 - 1, y0 - 1, w + pad * 2 + 2, h + 2); ctx.fillStyle = PAPEL; ctx.fillRect(x0, y0, w + pad * 2, h);
+    ctx.fillStyle = INK; ctx.fillRect(cx - 1, y0 + h + 1, 3, 1); ctx.fillRect(cx, y0 + h + 2, 1, 1);
+    ctx.restore();
+    L.forEach((l, i) => pixTxt(ctx, l, x, yb + (y0 + pad + i * lh + 2 - cy) / md, 1, INK, 'c'));
+  }
   function nomeDe(ctx, o, eu, agora){
+    /* v3.76: dois moradores conversando: só aparece o nome de quem tá falando (lado a lado, as plaquinhas se encavalavam) */
+    if(o.morador && o.papo && !o.papo.eu && !(o.fala && o.fala.ate > (agora || Date.now()))) return;
     const vk = o.sit || o.barco ? '' : veiculoDe(o), sobe = vk && C.veiculos ? C.veiculos.pose(vk, 'frente').sobe : 0;
     const nm = eu ? 'voce' : o.eu ? 'voce · outro aparelho' : o.handle ? '@' + o.handle : (o.nome || 'visitante'), y = o.y - ((o.sit || o.barco ? 28 : 31) + sobe + alturaPulo(o) * PULO_PX + (emParaquedas(o) ? 22 : 0)) / V.k - altVoo(o);
     let yb = y - 13 / V.k;
@@ -3377,8 +3429,10 @@
     else if(!eu && o.pt > 0 && o.av && o.av.skin && !o.av.personagem && PATENTES[o.av.skin]){ pixPlaca(ctx, PATENTES[o.av.skin][o.pt].toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''), o.x, yb, { fundo: '#38E1FF' }); yb -= 13 / V.k; }
     /* v3.75: no barco, a maior piapara do dia vai em cima do nome */
     if(o.barco){ const kg = eu ? piaparaHoje() : o.pd === diaBR() % 1e5 ? o.pp / 100 : 0; if(kg > 0){ pixPlaca(ctx, 'PIAPARA ' + kgTxt(kg) + 'KG', o.x, yb, { fundo: '#9CC9F0' }); yb -= 13 / V.k; } }
-    if(o.fala && o.fala.ate > (agora || Date.now())){ const b = pixPlaca(ctx, o.fala.t, o.x, yb, { fundo: PAPEL, max: 24 }); ctx.save(); naBase(ctx); ctx.fillStyle = INK; const tx = b.ix + Math.floor(b.w / 2); ctx.fillRect(tx - 1, b.iy + b.h, 3, 1); ctx.fillRect(tx, b.iy + b.h + 1, 1, 1); ctx.restore(); }
-    const r = pixPlaca(ctx, nm, o.x, y, { fundo: eu ? AMARELO : o.eu ? '#FFF7A8' : PAPEL, max: o.eu ? 22 : 16 });
+    /* v3.76: o balão comprido fica pra depois de todos os nomes (senão a plaquinha de quem tá do lado tampa a fala) */
+    if(o.fala && o.fala.ate > (agora || Date.now()) && txtN(o.fala.t).length > 24) (V.baloes || (V.baloes = [])).push([o.fala.t, o.x, yb]);
+    else if(o.fala && o.fala.ate > (agora || Date.now())){ const b = pixPlaca(ctx, o.fala.t, o.x, yb, { fundo: PAPEL, max: 24 }); ctx.save(); naBase(ctx); ctx.fillStyle = INK; const tx = b.ix + Math.floor(b.w / 2); ctx.fillRect(tx - 1, b.iy + b.h, 3, 1); ctx.fillRect(tx, b.iy + b.h + 1, 1, 1); ctx.restore(); }
+    const r = pixPlaca(ctx, nm, o.x, y, { fundo: eu ? AMARELO : o.eu ? '#FFF7A8' : o.morador ? '#F2D8A7' : PAPEL, max: o.eu ? 22 : 16 });
     /* v3.54: de patinete (o da JET), a marca vai do lado do nome */
     if(vk === 'patinete') pixPlaca(ctx, 'JET', o.x - (r.w / 2 + 11) / V.k, y, { fundo: '#307FE2', cor: PAPEL, borda: INK });
     if(eu ? V.mic : o.mic){
@@ -3441,7 +3495,9 @@
       /* v3.75: o barco dos outros também deixa rastro na água */
       if(r.barco && r.mov && performance.now() - (r.raT || 0) > 110){ r.raT = performance.now(); rastro(r.x - (r.bl < 0 ? -1 : 1) * meioBarco(), r.y + 1); }
     }
-    bots(dt); carros(dt); bolas(dt); passoNpcs(dt); passoTarefa(dt); mjUI(); rioPasso(dt); rioUI();
+    if(e.mov || V.voo) V.paradoT = 0; else if(!V.paradoT) V.paradoT = Date.now();
+    skatePasso(dtReal);
+    bots(dt); passoMoradores(dt); carros(dt); bolas(dt); passoNpcs(dt); passoTarefa(dt); mjUI(); rioPasso(dt); rioUI();
     if(V.tarefa && (!V.tarefaUiT || t - V.tarefaUiT > .25)){ V.tarefaUiT = t; tarefaUI(); }
     if(V.anEu) V.nivelEu = V.anEu();
     const z = V.z, cw = V.cssW, ch = V.cssH;
@@ -3454,6 +3510,8 @@
     const k = Math.min(1, dt * 6); V.cam.x += (tx - V.cam.x) * k; V.cam.y += (ty - V.cam.y) * k;
     /* v3.75: no barco, a única porta é a do píer (pra descer), e de um pouco mais longe (o barco não encosta) */
     let melhor = null, md = e.barco ? 100 : PORTA_R; if(!V.voo) for(const p of V.portas){ if(e.barco && (p.tipo !== 'barco' || !e.barco.livre)) continue; const d = Math.hypot(p.x - e.x, p.y - e.y); if(d < md){ md = d; melhor = p; } }
+    /* v3.76: perto de um morador (e de nenhuma porta mais perto), o botão é "Trocar ideia" */
+    if(!e.barco && !V.voo && V.moradores){ let fala = null, df = 80; for(const m of V.moradores){ const d = Math.hypot(m.x - e.x, m.y - e.y); if(m.papo && m.papo.eu && d < df){ df = d; fala = m; } else if(!fala && d < Math.min(md, 56)){ md = d; melhor = m.porta; } } if(fala) melhor = fala.porta; }
     if(V.portaT && !V.voo && !e.barco) melhor = V.portaT;
     if(melhor !== V.porta){ V.porta = melhor; portaUI(); }
     const zn = zonaDe(e.x, e.y); if(zn !== V.zona){ V.zona = zn; const zb = C.$('cvr-zona'); if(zb){ zb.hidden = !zn; zb.innerHTML = zn ? `${ico('pin')} ${esc(zn)}` : ''; } }
@@ -3701,6 +3759,257 @@
       }
     }
   }
+  /* ---------- v3.76 · a pista de skate do Zerão ----------
+     Concreto com junta, o bowl, a rampa (quarter), o caixote com rampa dos dois lados, o corrimão e a borda, tudo baixo:
+     o skate passa por cima e ninguém bate em nada. Dentro da pista todo mundo anda de skate (até quem tá a pé ou de
+     carro: é pela posição, então os outros veem igual, sem nada novo na rede).
+     O jogo: espaço (ou o Pular do celular) é ollie; a rampa, as rampas do caixote e a beira do bowl jogam pro alto
+     sozinhas. No ar, apertar de novo é a manobra: cedo (até 35% do pulo) sai kickflip, heelflip, shove-it, 180 ou indy;
+     no meio (35% a 60%) sai tre flip ou 540; depois disso é tarde e você cai. Andando ao longo do corrimão ou da borda,
+     grind. Manobra emendada em menos de 2,6 s sobe o combo (até x8); cair zera. A sessão acaba quando sai da pista,
+     e o recorde do dia e da vida ficam no aparelho. O nome da manobra aparece em cima de você pra quem tá perto. */
+  const naPistaSkate = (x, y) => { const z = V.cid && V.cid.zerao, s = z && z.skate; if(!s || x < s.x0 || x > s.x1 || y < s.y0 || y > s.y1) return false; const dx = (x - z.cx) / s.erx, dy = (y - z.cy) / s.ery; return dx * dx + dy * dy < 1; };
+  const MANOBRAS = { ollie: ['ollie!', 50], kickflip: ['kickflip!', 100], heelflip: ['heelflip!', 100], shove: ['shove-it!', 80], tre: ['tre flip!', 250], air: ['air!', 150], f180: ['frontside 180!', 200], indy: ['indy grab!', 300], d540: ['540 do zerão!', 600], grind: ['50-50 grind!', 0], caiu: ['caiu!', 0] };
+  const SK_K = 'corre-skate';
+  const ptsTxt = n => Math.round(n).toLocaleString('pt-BR');
+  /* o oval em blocos de 6 (o do Zerão é de 12: no bowl ficava quadrado demais) */
+  function ovalFino(ctx, cx, cy, rx, ry, cor){ const B = 6; ctx.fillStyle = cor; for(let x = Math.floor((cx - rx) / B) * B; x < cx + rx; x += B){ const dx = (x + B / 2 - cx) / rx; if(Math.abs(dx) >= 1) continue; const h = ry * Math.sqrt(1 - dx * dx), t = Math.round((cy - h) / 2) * 2, b = Math.round((cy + h) / 2) * 2; if(b > t) ctx.fillRect(x, t, B, b - t); } }
+  function pistaSkate(ctx, z){
+    const s = z.skate; if(!s) return; const B = 12, u = 1 / V.k;
+    /* o concreto vai até a beira do oval (em blocos, como o resto do Zerão), com junta e o meio-fio escuro na beirada */
+    const borda = x => { const f = (x + B / 2 - z.cx) / s.erx; if(Math.abs(f) >= 1) return s.y0; return Math.min(s.y1, Math.round((z.cy + s.ery * Math.sqrt(1 - f * f)) / B) * B); };
+    ctx.fillStyle = pad(ctx, 'concreto'); for(let x = s.x0; x < s.x1; x += B){ const yb = borda(x); if(yb > s.y0) ctx.fillRect(x, s.y0, B, yb - s.y0); }
+    ctx.fillStyle = 'rgba(15,18,24,.12)'; for(let x = s.x0; x < s.x1; x += B){ const yb = borda(x); if(yb <= s.y0) continue; if((x - s.x0) % 48 === 0) ctx.fillRect(x, s.y0, u, yb - s.y0); for(let y = s.y0 + 48; y < yb; y += 48) ctx.fillRect(x, y, B, u); }
+    ctx.fillStyle = 'rgba(15,18,24,.3)'; for(let x = s.x0; x < s.x1; x += B){ const yb = borda(x); if(yb > s.y0) ctx.fillRect(x, yb - 3, B, 3); }
+    /* o bowl: a beira clara, a parede e o fundo mais escuros, a luz na parede de cima e o ralo */
+    const b = s.bowl;
+    ovalFino(ctx, b.x, b.y, b.rx + 4, b.ry + 3, '#D6D9DE'); ovalFino(ctx, b.x, b.y, b.rx, b.ry, '#8A9098'); ovalFino(ctx, b.x, b.y, b.rx - 9, b.ry - 7, '#777D85'); ovalFino(ctx, b.x, b.y, b.rx - 20, b.ry - 15, '#676D75');
+    ctx.fillStyle = 'rgba(255,255,255,.2)'; ctx.fillRect(b.x - b.rx + 12, b.y - b.ry + 2, b.rx * 2 - 24, 4);
+    ctx.fillStyle = '#2B2F38'; ctx.fillRect(b.x - 3, b.y - 2, 6, 4);
+    /* a rampa: a parede sobe clareando até a cantoneira de ferro e o deck em cima */
+    const q = s.quarter, H = q.y1 - q.y0;
+    [['#A4A9B0', 0], ['#B0B5BC', .22], ['#BCC1C7', .44], ['#C9CDD3', .62]].forEach(([c, f]) => { ctx.fillStyle = c; ctx.fillRect(q.x0, q.y0 + H * f, q.x1 - q.x0, H * .24 + 1); });
+    ctx.fillStyle = '#E6E9EE'; ctx.fillRect(q.x0, q.y1 - 9, q.x1 - q.x0, 2 * u + 1); ctx.fillStyle = '#2B2F38'; ctx.fillRect(q.x0, q.y1 - 7, q.x1 - q.x0, u + .5);
+    ctx.fillStyle = pad(ctx, 'escuro'); ctx.fillRect(q.x0, q.y1 - 6, q.x1 - q.x0, 6);
+    /* o caixote: rampa dos dois lados, o tampo com cantoneira, a frente e a pichação */
+    const f = s.caixote, x0 = f.x - f.w / 2, y0 = f.y - f.h / 2;
+    ctx.fillStyle = '#B2B7BE'; ctx.fillRect(x0 - f.r, y0, f.r / 2, f.h); ctx.fillRect(x0 + f.w + f.r / 2, y0, f.r / 2, f.h);
+    ctx.fillStyle = '#C4C8CE'; ctx.fillRect(x0 - f.r / 2, y0, f.r / 2, f.h); ctx.fillRect(x0 + f.w, y0, f.r / 2, f.h);
+    ctx.fillStyle = '#D3D6DB'; ctx.fillRect(x0, y0, f.w, f.h - 7); ctx.fillStyle = '#7D838B'; ctx.fillRect(x0, y0 + f.h - 7, f.w, 7);
+    ctx.fillStyle = '#EEF0F3'; ctx.fillRect(x0, y0, f.w, 2 * u + 1);
+    pixTxt(ctx, 'CORRE', f.x, y0 + f.h - 3.5, 1, ROSA, 'c');
+    /* o corrimão (três pés e o cano) e a borda (o banco de concreto baixo com a quina de ferro) */
+    s.trilhos.forEach(t => {
+      ctx.fillStyle = 'rgba(15,18,24,.25)'; ctx.fillRect(t.x0 + 2, t.y + 1, t.x1 - t.x0, 4);
+      if(t.tipo === 'corrimao'){ ctx.fillStyle = '#2B2F38'; [t.x0 + 3, (t.x0 + t.x1) / 2, t.x1 - 5].forEach(x => ctx.fillRect(x, t.y - 8, 2 * u + 1, 9)); ctx.fillStyle = '#D6D9DE'; ctx.fillRect(t.x0, t.y - 10, t.x1 - t.x0, 3 * u + 1); ctx.fillStyle = '#8E949C'; ctx.fillRect(t.x0, t.y - 10 + 3 * u + 1, t.x1 - t.x0, u); }
+      else { ctx.fillStyle = '#9AA0A8'; ctx.fillRect(t.x0, t.y - 9, t.x1 - t.x0, 10); ctx.fillStyle = '#C9CED6'; ctx.fillRect(t.x0, t.y - 9, t.x1 - t.x0, 3); ctx.fillStyle = '#EEF0F3'; ctx.fillRect(t.x0, t.y - 9, t.x1 - t.x0, u + .5); }
+    });
+  }
+  function faiscas(ctx, x, y, t){ const u = Math.max(1, 1.05 / V.k), K = [AMARELO, LARANJA, PAPEL]; for(let i = 0; i < 7; i++){ const a = t * 23 + i * 1.9, r = 3 + (i * 7 + Math.floor(t * 40)) % 9; ctx.fillStyle = K[i % 3]; ctx.fillRect(Math.round(x - 8 + Math.cos(a) * r) - u, Math.round(y - 1 - Math.abs(Math.sin(a)) * r * .6), 2 * u, 2 * u); } }
+  function skRec(){ try{ const o = JSON.parse(localStorage.getItem(SK_K) || 'null'); return o && typeof o === 'object' ? o : {}; }catch(e){ return {}; } }
+  const skHoje = () => { const o = skRec(); return o.dia === diaBR() ? Number(o.pts) || 0 : 0; };
+  const falaSkate = k => { const i = FALAS_AUTO.indexOf(MANOBRAS[k][0]); if(i >= 0) falaAuto(i); };
+  /* o pulo da pista: ollie (no chão) ou rampa (a rampa, o caixote, a beira do bowl), cada um com duração e altura */
+  function skSalta(tipo, dur, alt){
+    const e = V.eu, S = V.sk, agora = performance.now(); if(!e || !S) return;
+    e.puT = agora; e.puMs = dur; e.puH = alt; e.puN = ((e.puN || 0) % 999) + 1; enviaPos(true);
+    S.ar = { tipo, t0: agora, dur, extra: 0, bail: false };
+    if(C.versoSom) C.versoSom.pulo('skate');
+  }
+  /* apertou no ar: cedo é manobra, no meio é manobra grande, tarde é queda */
+  function skManobra(){
+    const A = V.sk && V.sk.ar; if(!A || A.extra || A.bail) return;
+    const f = (performance.now() - A.t0) / A.dur;
+    if(f < .35) A.extra = 1; else if(f < .6) A.extra = 2; else A.bail = true;
+    if(C.versoSom && !A.bail) C.versoSom.passo('madeira', .7);
+  }
+  function skPontua(k, base){
+    const S = V.sk, agora = performance.now();
+    S.mult = agora - (S.ultimo || 0) < 2600 ? Math.min(8, S.mult + 1) : 1; S.ultimo = agora;
+    const p = Math.round(base * S.mult); S.pts += p; S.ult = { k, p, mult: S.mult, ate: agora + 1600 };
+    falaSkate(k); skUI(true);
+  }
+  function skAterrissa(){
+    const S = V.sk, A = S.ar, e = V.eu; S.ar = null; S.pousou = performance.now(); e.puMs = 0; e.puH = 0;
+    if(A.bail){ S.mult = 1; S.ultimo = 0; S.ult = { k: 'caiu', p: 0, mult: 1, ate: performance.now() + 1600 }; falaSkate('caiu'); if(C.versoSom){ C.versoSom.erro(); C.versoSom.cai(1); } skUI(true); return; }
+    const k = A.tipo === 'ollie' ? (A.extra === 2 ? 'tre' : A.extra === 1 ? sorteio(['kickflip', 'heelflip', 'shove']) : 'ollie') : (A.extra === 2 ? 'd540' : A.extra === 1 ? sorteio(['f180', 'indy']) : 'air');
+    if(C.versoSom) C.versoSom.cai(.55);
+    skPontua(k, MANOBRAS[k][1]);
+  }
+  function skFim(){
+    const S = V.sk; S.on = false; S.ar = null; S.grind = null; if(V.eu){ V.eu.puMs = 0; V.eu.puH = 0; }
+    if(!(S.pts > 0)) return;
+    const o = skRec(), hoje = diaBR(); if(o.dia !== hoje){ o.dia = hoje; o.pts = 0; }
+    const dia = S.pts > o.pts, vida = S.pts > (o.max || 0); if(dia) o.pts = S.pts; if(vida) o.max = S.pts;
+    try{ localStorage.setItem(SK_K, JSON.stringify(o)); }catch(e){}
+    C.toast(`Sessão de skate: ${ptsTxt(S.pts)} pontos.${vida ? ' O teu recorde de todos os tempos!' : dia ? ' O teu recorde de hoje!' : ''}`, 3600);
+  }
+  function skatePasso(dt){
+    const e = V.eu; if(!e) return;
+    const S = V.sk || (V.sk = { on: false }), agora = performance.now();
+    if(S.px != null && dt > 0){ const vx = (e.x - S.px) / dt, vy = (e.y - S.py) / dt; S.vx = S.vx == null ? vx : S.vx * .6 + vx * .4; S.vy = S.vy == null ? vy : S.vy * .6 + vy * .4; }
+    S.px = e.x; S.py = e.y;
+    const dentro = !e.barco && !V.voo && !e.sit && naPistaSkate(e.x, e.y);
+    if(!dentro){ if(S.on) skFim(); skUI(); return; }
+    if(!S.on){ Object.assign(S, { on: true, pts: 0, mult: 1, ultimo: 0, ar: null, grind: null, ult: null, noBowl: false, pousou: 0 });
+      let ja = '1'; try{ ja = localStorage.getItem(SK_K + '-dica'); if(!ja) localStorage.setItem(SK_K + '-dica', '1'); }catch(err){}
+      if(!ja) C.toast('Pista de skate! Espaço pula (no celular, o Pular); no ar, aperta de novo pra manobra. Tarde demais, cai. As rampas te jogam pro alto.', 6000); }
+    const s = V.cid.zerao.skate, v = Math.hypot(S.vx || 0, S.vy || 0);
+    if(S.ar){ if(agora >= S.ar.t0 + S.ar.dur) skAterrissa(); skUI(); return; }
+    /* a rampa (descendo pra ela), as rampas do caixote (de lado, indo pro caixote) e a beira do bowl (saindo dele) */
+    const q = s.quarter, f = s.caixote, b = s.bowl, noBowl = ((e.x - b.x) / b.rx) ** 2 + ((e.y - b.y) / b.ry) ** 2 < 1;
+    let lanca = null;
+    if(v > 100 && S.vy > 70 && e.x > q.x0 && e.x < q.x1 && e.y > q.y0 && e.y < q.y1 - 4) lanca = 'quarter';
+    else if(v > 100 && Math.abs(e.y - f.y) < f.h / 2 + 3 && ((S.vx > 80 && e.x > f.x - f.w / 2 - f.r && e.x < f.x - f.w / 2 + 2) || (S.vx < -80 && e.x < f.x + f.w / 2 + f.r && e.x > f.x + f.w / 2 - 2))) lanca = 'caixote';
+    else if(S.noBowl && !noBowl && v > 110) lanca = 'bowl';
+    S.noBowl = noBowl;
+    if(lanca && agora - (S.pousou || 0) > 300){ if(S.grind) S.grind = null; skSalta('rampa', lanca === 'caixote' ? 720 : 880, lanca === 'caixote' ? 2.1 : 2.7); skUI(); return; }
+    /* o corrimão e a borda: andando ao longo deles, grind (faísca e o barulho do ferro) */
+    const t = v > 100 && Math.abs(S.vx) > Math.abs(S.vy) * 2 ? s.trilhos.find(r => e.x > r.x0 && e.x < r.x1 && Math.abs(e.y - r.y) < 8) : null;
+    if(t){ if(!S.grind) S.grind = { t0: agora }; if(agora - (S.chT || 0) > 75){ S.chT = agora; if(C.versoSom && C.versoSom.grind) C.versoSom.grind(); } }
+    else if(S.grind){ const g = S.grind; S.grind = null; if(agora - g.t0 > 140) skPontua('grind', Math.max(60, Math.round((agora - g.t0) / 1000 * 300))); }
+    skUI();
+  }
+  /* o placar da sessão, em cima do botão amarelo (as peças do minijogo das tarefas) */
+  function skUI(forca){
+    const el = C.$('cvr-sk'); if(!el) return;
+    const S = V.sk; if(!S || !S.on){ if(!el.hidden){ el.hidden = true; el.dataset.k = ''; el.innerHTML = ''; } return; }
+    const agora = performance.now(), ult = S.ult && S.ult.ate > agora ? S.ult : null, rec = Math.max(skHoje(), S.pts);
+    const linha = ult ? (ult.k === 'caiu' ? 'CAIU! O combo zerou.' : `${MANOBRAS[ult.k][0].replace('!', '').toUpperCase()} +${ptsTxt(ult.p)}${ult.mult > 1 ? ' · combo x' + ult.mult : ''}`) : S.grind ? 'GRIND…' : 'Espaço pula; no ar, aperta de novo pra manobra.';
+    const k = [ptsTxt(S.pts), linha, rec].join('|'); if(!forca && el.dataset.k === k) return;
+    el.dataset.k = k; el.hidden = false;
+    el.innerHTML = `<div class="mj-h"><b>Pista de skate</b><span>${ptsTxt(S.pts)}</span></div><small>${esc(linha)} · recorde de hoje ${ptsTxt(rec)}</small>`;
+    el.classList.toggle('caiu', !!(ult && ult.k === 'caiu'));
+  }
+  /* ---------- v3.76 · os moradores: gente da cidade que anda, senta e, quando para, troca ideia ----------
+     São do aparelho de cada um (como o trânsito): cada morador tem um canto da cidade, anda por ali, senta nos bancos e
+     tem o seu jeito de falar. Você parou perto, ele puxa assunto; o botão amarelo pede mais uma ("Trocar ideia com...").
+     Quando dois se cruzam, às vezes param e conversam entre eles. Fala comprida vai num balão de até 4 linhas.
+     A letra da cidade não tem aspas, parênteses nem porcentagem: as frases ficam sem eles. */
+  const MORADORES = [
+    { nome: 'Seu Nenê', onde: 'Feira do Corre', voz: 150, av: { pele: 3, cabelo: 'raspado', corCabelo: 4, barba: 'barba', skin: 'chef' },
+      frases: ['Pastel de vento não tem aqui. Aqui o vento é de graça.', 'Caldo de cana com limão cura tudo. Menos boleto.', 'Pastel de queijo, de carne e de queijo com mais queijo.', 'Na feira é freguês. No Insta é seguidor. A fome é a mesma.', 'Trinta anos de feira e ainda não sei fechar pastel calado.'] },
+    { nome: 'Dona Cida', onde: 'Calçadão', voz: 330, av: { pele: 1, cabelo: 'coque', corCabelo: 4, oculos: 'grau', roupa: 'moletom', corRoupa: 5, corCalca: 3 },
+      frases: ['No meu tempo o Calçadão era chique. Continua, eu que fiquei mais.', 'Fiquei sabendo de tudo. Não contei nada. Ainda.', 'Meu neto falou que eu viralizei. Fui no posto ver se tem vacina.', 'Tu tá comendo direito, piá? Tá com cara de quem vive de café.', 'Fofoca não, minha filha. É jornalismo de calçada.'] },
+    { nome: 'Kauê', onde: 'Pista de skate', voz: 240, av: { pele: 4, cabelo: 'cacheado', corCabelo: 0, topo: 'bonetras', roupa: 'regata', corRoupa: 1, perna: 'bermuda', corCalca: 1, tenis: 1, skate: true },
+      frases: ['Caí três vezes hoje. Uma foi de propósito, pra filmar.', 'Shape novo, joelho velho.', 'No Zerão o vento empurra. Eu digo que foi manobra.', 'Minha mãe acha que skate é fase. Tô na fase faz doze anos.'] },
+    { nome: 'Tia Neide', onde: 'Gleba Palhano', voz: 290, av: { pele: 5, cabelo: 'black', corCabelo: 0, roupa: 'camiseta', corRoupa: 2, estampa: 'estrela', corCalca: 4 },
+      frases: ['Bolo de pote de ninho com morango. Aceito pix e elogio.', 'Já vendi bolo pro prédio inteiro. O porteiro virou meu gerente.', 'A dieta começa segunda. Faz quinze anos que é segunda.', 'Bolo no pote é bolo que não aceita bagunça.'] },
+    { nome: 'Seu Massao', onde: 'Porto do Tibagi', voz: 160, av: { pele: 0, cabelo: 'curto', corCabelo: 4, topo: 'bone', roupa: 'jaqueta', corRoupa: 3, corCalca: 3 },
+      frases: ['Piapara grande gosta de corredeira. Joga perto das pedras.', 'A melhor isca é paciência. A segunda é massa de pão.', 'Quem puxa na beliscada volta com história, não com peixe.', 'No Tibagi o peixe te observa. Fala baixo.', 'Pescador não mente. Só arredonda o peso pra cima.'] },
+    { nome: 'Lari', onde: 'Museu de Arte', voz: 300, av: { pele: 2, cabelo: 'longo', corCabelo: 5, oculos: 'grau', roupa: 'moletom', corRoupa: 0, corCalca: 0, tenis: 2 },
+      frases: ['Fiz o logo em cinco minutos. Levei dez anos pra fazer em cinco.', 'Cliente pediu pra deixar mais clean. Tirei ele do projeto.', 'Minha paleta não tem verde. Questão de princípio.', 'Cobrei por hora, achou caro. Cobrei por projeto, achou demorado.', 'Aumenta o logo? Aumento. O preço junto.'] },
+    { nome: 'Juninho Coach', onde: 'Calçadão', voz: 210, av: { pele: 1, cabelo: 'moicano', corCabelo: 3, oculos: 'escuro', roupa: 'jaqueta', corRoupa: 6, corrente: 'ouro', corCalca: 0, tenis: 0 },
+      frases: ['Acordo cinco da manhã, banho gelado, sete dígitos. Os dígitos são da senha do wi-fi.', 'Não existe crise. Existe você sem a minha mentoria.', 'Tô vendendo curso de como vender curso.', 'Mindset de tubarão. Conta de sardinha.'] },
+    { nome: 'Valdir da Vina', onde: 'Autódromo do Café', voz: 140, av: { pele: 2, cabelo: 'curto', corCabelo: 1, barba: 'cavanhaque', topo: 'bone', roupa: 'camiseta', corRoupa: 7, corCalca: 2 },
+      frases: ['Cachorro-quente aqui é com vina, piá. Salsicha é coisa de paulista.', 'Purê, batata palha, milho, ervilha e fé.', 'Vina dupla pra quem perdeu o ônibus e a paciência.', 'Dia de jogo eu vendo o dobro. Dia de derrota, o triplo.'] },
+    { nome: 'Seu Bené', onde: 'Catedral', voz: 130, av: { pele: 3, cabelo: 'raspado', corCabelo: 4, barba: 'barba', roupa: 'camiseta', corRoupa: 3, corCalca: 2, tenis: 1 },
+      frases: ['Saí de casa às sete e cheguei às sete. Da noite.', 'Rotatória em Londrina é labirinto: todo mundo entra, ninguém sai.', 'Buzinei pra capivara. Ela nem olhou. Respeito.', 'Trinta anos de volante e o GPS ainda quer me ensinar.'] },
+    { nome: 'Brenda', onde: 'Lago Igapó', voz: 340, av: { pele: 2, cabelo: 'longo', corCabelo: 3, oculos: 'escuro', roupa: 'camiseta', corRoupa: 2, perna: 'bermuda', corCalca: 4, tenis: 2 },
+      frases: ['Olha essa luz no Igapó. Sem filtro. Mentira, são três.', 'Ganhei um copo de uma marca. Agradeci em quatro stories.', 'Tô de detox digital. Posto tudo amanhã.', 'Meu engajamento caiu. Acho que foi Mercúrio. Ou o almoço.'] },
+    /* o professor só conta coisa que é verdade */
+    { nome: 'Prof. Ataíde', onde: 'Bosque dos Ipês', voz: 175, av: { pele: 4, cabelo: 'curto', corCabelo: 4, barba: 'barba', oculos: 'grau', roupa: 'jaqueta', corRoupa: 7, corCalca: 3 },
+      frases: ['Londrina quer dizer pequena Londres. Quem fundou foi uma companhia inglesa.', 'Terra roxa é vermelha. Os italianos diziam terra rossa, e rossa virou roxa.', 'O Igapó é lago feito: represaram o ribeirão Cambé no fim dos anos 50.', 'Capivara é o maior roedor do mundo. E o mais calmo do Igapó.', 'O ipê floresce sem folha. Primeiro a festa, depois a roupa.'] },
+    { nome: 'Gabi', onde: 'Zerão', voz: 310, av: { pele: 4, cabelo: 'trancas', corCabelo: 0, topo: 'fone', roupa: 'regata', corRoupa: 4, perna: 'bermuda', corCalca: 0, tenis: 3 },
+      frases: ['Três voltas no Zerão: duas correndo, uma procurando o fone.', 'Meu relógio disse que eu dormi mal. Concordei com ele.', 'Corro pra pagar os pecados do pastel de domingo.'] },
+    { nome: 'Tonhão do Som', onde: 'Concha Acústica', voz: 120, av: { pele: 5, cabelo: 'black', corCabelo: 0, topo: 'fone', roupa: 'regata', corRoupa: 0, corrente: 'ouro', corCalca: 0, tenis: 3 },
+      frases: ['Esse som aqui toca até pensamento.', 'A cidade tocou Bach hoje. Eu dancei arrocha mesmo.', 'Grave bom é o que faz a pipoca pular do saco.'] },
+    { nome: 'Rafa do Pix', onde: 'Sebo', voz: 230, av: { pele: 3, cabelo: 'curto', corCabelo: 0, skin: 'motoboy' },
+      frases: ['Aceito pix, débito, crédito e elogio. Elogio não volta troco.', 'Tô devendo pra mim mesmo. Já negociei os juros.', 'Entrego em quinze minutos. Ou em quinze minutos e meia hora.'] }
+  ];
+  /* as que qualquer morador pode soltar (entram de vez em quando no meio das dele) */
+  const FRASES_TODOS = ['Tô no corre desde as seis. Do sofá pro celular, mas é corre.', 'Cliente pediu pra ontem. Entreguei anteontem que vem.', 'Meu chefe é exigente. Sou eu.', 'Mandei orçamento faz três dias. Visualizou e foi ver o mar.',
+    'O algoritmo me ama. Só esqueceu de avisar.', 'Café é meu sócio majoritário.', 'Calorão em Londrina: até a sombra procura sombra.', 'Choveu terra vermelha no meu tênis branco. De novo.',
+    'Freela bom é o que paga. O resto é portfólio.', 'Já seguiu o @consanans? Foi ele que fez a cidade.'];
+  /* quando dois moradores se cruzam: um fala, o outro responde (e às vezes o primeiro fecha) */
+  const PAPOS = [
+    ['Viu a piapara do Massao?', 'Vi a foto. Tava de lado pra parecer maior.'],
+    ['Bora no Zerão amanhã cedo?', 'Cedo que horas? Antes do meio-dia é madrugada.'],
+    ['Calor, né?', 'Calor? Eu tô é assando.'],
+    ['Fechei um freela de logo.', 'Pagou?', 'Pagou em exposição.'],
+    ['Me empresta um correal?', 'Correal não é dinheiro, piá.', 'Então me empresta dinheiro.'],
+    ['Dizem que tem rio novo na cidade.', 'O rio é velho. A gente que descobriu agora.'],
+    ['Cadê o busão?', 'Passou.', 'Quando?', 'Ano passado.'],
+    ['Vamos de pastel?', 'Pastel é refeição completa: massa, recheio e ar.'],
+    ['A capivara tá me olhando.', 'Ela olha todo mundo. É fiscal do Igapó.'],
+    ['Postou hoje?', 'Postei ontem. Hoje eu tô vendo quem curtiu.'],
+    ['Viu o kart dos bichos?', 'Vi. Perdi pra uma capivara de patinete.']
+  ];
+  const embaralha = L => { const a = L.slice(); for(let i = a.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  function criaMoradores(){
+    const c = V.cid, L = lugares(), calcadao = L.find(l => l.nome === 'Calçadão') || { x: c.praca.cx, y: c.praca.cy };
+    return MORADORES.map((d, i) => {
+      const o = L.find(l => l.nome === d.onde) || calcadao, p = pertoLivre(o.x + (i % 3 - 1) * 40, o.y + 30) || { x: o.x, y: o.y + 30 };
+      const m = { sid: 'mor-' + i, bot: true, npc: true, morador: true, nome: d.nome, d, av: avLimpo(d.av, 'morador' + i), x: p.x, y: p.y, dir: 'baixo', passo: 0, mov: false, sit: false, mic: false,
+        casa: { x: p.x, y: p.y }, esp: 1 + Math.random() * 4, alvo: null, papo: null, papoT: 0, falouEu: 0, fila: [], vel: 58 + Math.random() * 18 };
+      m.porta = { tipo: 'morador', m, x: m.x, y: m.y };
+      return m;
+    });
+  }
+  /* a próxima frase do morador: as dele, embaralhadas, com duas das de todo mundo no meio */
+  function proximaFrase(m){ if(!m.fila.length) m.fila = embaralha(m.d.frases.concat(embaralha(FRASES_TODOS).slice(0, 2))); return m.fila.pop(); }
+  const olhaPra = (m, x, y) => { if(m.sit) return; const dx = x - m.x, dy = y - m.y; m.dir = Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 'esq' : 'dir') : (dy < 0 ? 'cima' : 'baixo'); };
+  function comecaPapo(quem, linhas, eu){
+    const agora = Date.now(), p = { dono: quem[0], quem, linhas, i: 0, prox: agora + (eu ? 0 : 350), eu: !!eu };
+    quem.forEach(m => { m.papo = p; m.alvo = null; m.mov = false; });
+  }
+  /* o botão amarelo perto de um morador: mais uma (se ele tá no meio de um papo com outro, espera acabar) */
+  function trocaIdeia(m){
+    if(!m || (m.papo && !m.papo.eu)) return;
+    const agora = Date.now(); if(agora - (m.botaoT || 0) < 1000) return; m.botaoT = agora;
+    comecaPapo([m], [[m, proximaFrase(m)]], true);
+  }
+  function passoMoradores(dt){
+    const L = V.moradores, e = V.eu; if(!L || !L.length || !e) return;
+    const agora = Date.now(), parado = !e.mov && !e.barco && !V.voo && V.paradoT && agora - V.paradoT > 650;
+    /* só um puxa assunto com você por vez: o mais perto (senão dois falavam junto e o botão ia pro outro) */
+    let puxa = null; if(parado && !L.some(x => x.papo && x.papo.eu)){ let dm = 70; for(const m of L){ const d = Math.hypot(e.x - m.x, e.y - m.y); if(!m.papo && agora - m.falouEu > 40000 && d < dm){ dm = d; puxa = m; } } }
+    for(const m of L){
+      m.porta.x = m.x; m.porta.y = m.y;
+      const p = m.papo;
+      if(p){
+        m.mov = false;
+        /* cada um olha pra quem tá falando com ele; quem conduz o papo é o primeiro */
+        if(p.eu) olhaPra(m, e.x, e.y); else { const o = p.quem.find(x => x !== m); if(o) olhaPra(m, o.x, o.y); }
+        /* alguém da roda já tá noutro papo: este acaba (senão ele falava as duas conversas, ou ficava sem quem conduz) */
+        if(p.quem.some(x => x.papo !== p)){ fimPapo(p, agora); continue; }
+        if(p.dono !== m) continue;
+        if(p.eu && Math.hypot(e.x - m.x, e.y - m.y) > 220){ fimPapo(p, agora); continue; }
+        if(agora >= p.prox){
+          if(p.i < p.linhas.length){
+            const [quem, t] = p.linhas[p.i++], dur = 1800 + t.length * 60;
+            quem.fala = { t, ate: agora + dur }; p.prox = agora + dur + 250;
+            if(C.versoSom && C.versoSom.papo && Math.hypot(quem.x - e.x, quem.y - e.y) < 320) C.versoSom.papo(t.length, quem.d.voz);
+          } else fimPapo(p, agora);
+        }
+        continue;
+      }
+      /* você parou perto: ele puxa assunto (cada morador, no máximo uma vez a cada 40 s) */
+      if(m === puxa){ m.falouEu = agora; comecaPapo([m], [[m, proximaFrase(m)]], true); continue; }
+      /* cruzou com outro morador: às vezes param e conversam */
+      if(agora - m.papoT > 35000){
+        const o = L.find(x => x !== m && !x.papo && agora - x.papoT > 35000 && Math.hypot(x.x - m.x, x.y - m.y) < 46);
+        if(o && Math.random() < dt * 1.5){ const d = sorteio(PAPOS); comecaPapo([m, o], d.map((t, k) => [k % 2 ? o : m, t])); continue; }
+      }
+      /* o passeio: banco, encontrar alguém ou um canto perto de casa */
+      m.esp -= dt;
+      if(m.esp <= 0 && !m.alvo){
+        m.sit = false; const r = Math.random;
+        const bancos = V.cid.bancos.filter(b => !b.degrau && Math.hypot(b.x - m.casa.x, b.y - m.casa.y) < 520);
+        const perto = L.filter(x => x !== m && Math.hypot(x.x - m.x, x.y - m.y) < 650);
+        if(r() < .35 && bancos.length){ const b = sorteio(bancos); m.alvo = { x: b.x, y: b.y + 2, banco: true }; }
+        else if(r() < .25 && perto.length){ const o = sorteio(perto); m.alvo = { x: o.x + (r() < .5 ? -30 : 30), y: o.y + 6 }; }
+        else m.alvo = { x: clamp(m.casa.x + (r() - .5) * 520, 30, V.cid.W - 30), y: clamp(m.casa.y + (r() - .5) * 300, TOPO, V.cid.H - 30) };
+      }
+      if(m.alvo){
+        const ax = m.alvo.x - m.x, ay = m.alvo.y - m.y, d = Math.hypot(ax, ay);
+        if(d < 5){ m.sit = !!m.alvo.banco; m.dir = 'baixo'; m.alvo = null; m.esp = (m.sit ? 9 : 2.5) + Math.random() * 6; m.mov = false; }
+        else { const ox = m.x, oy = m.y; mover(m, ax / d * m.vel * dt, ay / d * m.vel * dt); m.mov = true; m.passo += dt * (m.av.skate ? 7 : 9); m.dir = Math.abs(ax) > Math.abs(ay) ? (ax < 0 ? 'esq' : 'dir') : (ay < 0 ? 'cima' : 'baixo'); if(Math.hypot(m.x - ox, m.y - oy) < .05){ m.alvo = null; m.esp = .8; m.mov = false; } }
+      }
+    }
+  }
+  /* só solta quem ainda tá neste papo (quem já entrou noutro segue nele) */
+  function fimPapo(p, agora){ p.quem.forEach(m => { if(m.papo !== p) return; m.papo = null; m.papoT = agora; m.esp = 1.2 + Math.random() * 2.5; }); }
   function passoTarefa(dt){
     const T = V.tarefa, e = V.eu; if(!T || !e) return;
     const agora = Date.now();
@@ -4193,7 +4502,7 @@
       if(j && T.fase === 'jogando'){ b.disabled = j.t === 'seq'; b.innerHTML = `${ico('raio')} ${esc(j.t === 'tempo' ? j.verbo : j.t === 'segura' ? 'Segura: ' + j.verbo.toLowerCase() : 'Usa as setas')}`; return; }
       b.innerHTML = `${ico('raio')} ${esc(p.et.acao)}${ag ? '…' : ''}`; b.disabled = !!ag; return; }
     b.disabled = false;
-    b.innerHTML = p.tipo === 'barco' ? `${ico('peixe')} Pegar um barquinho` : p.tipo === 'aeroporto' ? `${ico('aviao')} Voar (${C.correalTxt(precoVoo())})` : p.tipo === 'sebo' ? `${ico('musica')} Entrar no Sebo` : p.tipo === 'atelie' ? `${ico('star')} Ateliê: skins` : p.tipo === 'torneio' ? `${ico('peixe')} Torneio de Pesca` : p.tipo === 'beisebol' ? `${ico('raio')} Jogar beisebol na ACEL` : p.tipo === 'quadra' ? `${ico('raio')} ${p.k === 'quadra-futsal' ? 'Desafio de pênalti' : 'Desafio de arremesso'}` : p.tipo === 'publi' ? `${ico('ext')} ${esc((PUBLI[p.k] || {}).nome || '')}: baixar o app` : p.tipo === 'pista' ? `${ico('raio')} ${p.k === 'moto' ? 'Autódromo do Café' : 'Corrida de patinete'}` : p.tipo === 'civico' ? `${ico('raio')} ${esc(CIVICOS[p.k].entra)}` : p.tipo === 'barraca' ? (aberta(p.b) ? `${ico(p.b.ico)} ${esc(p.b.botao)}` : `${ico('eye')} Hórus desligado: ligar`) : p.tipo === 'comida' ? `${ico('banca')} ${esc(COMIDAS[p.k][0])}` : p.tipo === 'aquario' ? `${ico('play')} Jogar ${esc(JOGOS[p.jogo].titulo)}` : p.tipo === 'banco' ? (p.pesca ? `${ico('gente')} Pescar no ${p.b.lugar.startsWith('Deck') ? 'deck' : 'píer'}` : `${ico('gente')} Sentar ${p.b.degrau ? 'na Concha' : 'no banco'}`) : p.tipo === 'mural' ? `${ico('tacha')} Abrir o Mural` : p.tipo === 'banca' ? `${ico('banca')} Banca do dia` : p.tipo === 'lote' ? `${ico('plus')} Lote livre` : meu ? `${ico('home')} Tua casa` : `${ico('home')} Bater na porta de @${esc(p.c.handle)}`;
+    b.innerHTML = p.tipo === 'morador' ? `${ico('chat')} Trocar ideia com ${esc(p.m.nome)}` : p.tipo === 'barco' ? `${ico('peixe')} Pegar um barquinho` : p.tipo === 'aeroporto' ? `${ico('aviao')} Voar (${C.correalTxt(precoVoo())})` : p.tipo === 'sebo' ? `${ico('musica')} Entrar no Sebo` : p.tipo === 'atelie' ? `${ico('star')} Ateliê: skins` : p.tipo === 'torneio' ? `${ico('peixe')} Torneio de Pesca` : p.tipo === 'beisebol' ? `${ico('raio')} Jogar beisebol na ACEL` : p.tipo === 'quadra' ? `${ico('raio')} ${p.k === 'quadra-futsal' ? 'Desafio de pênalti' : 'Desafio de arremesso'}` : p.tipo === 'publi' ? `${ico('ext')} ${esc((PUBLI[p.k] || {}).nome || '')}: baixar o app` : p.tipo === 'pista' ? `${ico('raio')} ${p.k === 'moto' ? 'Autódromo do Café' : 'Corrida de patinete'}` : p.tipo === 'civico' ? `${ico('raio')} ${esc(CIVICOS[p.k].entra)}` : p.tipo === 'barraca' ? (aberta(p.b) ? `${ico(p.b.ico)} ${esc(p.b.botao)}` : `${ico('eye')} Hórus desligado: ligar`) : p.tipo === 'comida' ? `${ico('banca')} ${esc(COMIDAS[p.k][0])}` : p.tipo === 'aquario' ? `${ico('play')} Jogar ${esc(JOGOS[p.jogo].titulo)}` : p.tipo === 'banco' ? (p.pesca ? `${ico('gente')} Pescar no ${p.b.lugar.startsWith('Deck') ? 'deck' : 'píer'}` : `${ico('gente')} Sentar ${p.b.degrau ? 'na Concha' : 'no banco'}`) : p.tipo === 'mural' ? `${ico('tacha')} Abrir o Mural` : p.tipo === 'banca' ? `${ico('banca')} Banca do dia` : p.tipo === 'lote' ? `${ico('plus')} Lote livre` : meu ? `${ico('home')} Tua casa` : `${ico('home')} Bater na porta de @${esc(p.c.handle)}`;
   }
   function tamanhoTela(){
     const st = C.$('cvr-stage'); if(!st || !V.cv) return;
@@ -4372,7 +4681,7 @@
       <div class="cvr-top"><span class="cvr-tt">${ico('verso')} Correverso</span><span class="cvr-on" id="cvr-on"></span><button type="button" class="cvr-live" id="cvr-live" data-act="cvr-gente" hidden></button><span class="cvr-zona" id="cvr-zona" hidden></span><button type="button" class="cvr-tarefa" id="cvr-tarefa" data-act="cvr-trampo" hidden></button><button type="button" class="cvr-correal" id="cvr-correal" data-act="carteira" title="Carteira de correal" aria-label="Carteira de correal">${ico('correal')}<b class="num" data-correal-saldo>${C.correal.saldo == null ? '…' : C.correalFmt(C.correal.saldo)}</b></button><button type="button" class="cvr-som" id="cvr-som" data-act="cvr-som" aria-pressed="false" hidden></button></div>
       <p class="cvr-hint" id="cvr-hint" hidden></p>
       <button type="button" class="cvr-mapinha" id="cvr-mapinha" data-act="cvr-mapa" title="Mapa" aria-label="Minimapa: onde você tá na cidade. Toca pra abrir o mapa grande e viajar"><canvas id="cvr-mapinha-cv" width="140" height="104" aria-hidden="true"></canvas></button>
-      <div class="cvr-mj" id="cvr-mj" hidden></div><div class="cvr-mj cvr-rio" id="cvr-rio" hidden></div>
+      <div class="cvr-mj" id="cvr-mj" hidden></div><div class="cvr-mj cvr-rio" id="cvr-rio" hidden></div><div class="cvr-mj cvr-sk" id="cvr-sk" hidden></div>
       <button type="button" class="cvr-porta" id="cvr-porta" data-act="cvr-porta" hidden></button>
       <div class="cvr-bar"><button type="button" class="cvr-b mic" id="cvr-mic" data-act="cvr-mic" aria-pressed="false"></button><button type="button" class="cvr-b" data-act="cvr-avatar" title="Avatar" aria-label="Avatar">${ico('eu')}<span>Avatar</span></button><button type="button" class="cvr-b" data-act="cvr-garagem" title="Garagem: como você anda pela cidade" aria-label="Garagem">${ico('carro')}<span>Garagem</span></button><button type="button" class="cvr-b" data-act="cvr-casa" title="Voltar pra casa" aria-label="Voltar pra casa">${ico('home')}<span>Pra casa</span></button><button type="button" class="cvr-b" data-act="cvr-mapa" title="Mapa" aria-label="Mapa">${ico('mapa')}<span>Mapa</span></button><button type="button" class="cvr-b" data-act="cvr-falar" title="Falar uma frase" aria-label="Falar uma frase" aria-expanded="false">${ico('chat')}<span>Falar</span></button><button type="button" class="cvr-b" data-act="cvr-gente" title="Quem tá na cidade" aria-label="Quem tá na cidade">${ico('gente')}<span>Gente</span></button><button type="button" class="cvr-b" data-act="cvr-trampo" title="Trampo: as tarefas do teu uniforme" aria-label="Trampo">${ico('raio')}<span>Trampo</span></button></div>
       <div class="cvr-falas" id="cvr-falas" hidden>${FALAS.map((f, i) => `<button type="button" data-act="cvr-fala" data-i="${i}">${esc(f)}</button>`).join('')}</div>`;
@@ -4389,8 +4698,10 @@
     voltaGrava(null); V.saiPor = '';
     V.eu = { sid, x: ini.x, y: ini.y, dir: 'baixo', passo: 0, mov: false, av: avLimpo(me.verso, me.id) };
     V.cam.x = ini.x; V.cam.y = ini.y - 40; V.entrando = lv && !vt.porta ? 0 : .55; V.alvo = null; V.remotos = new Map(); V.peers = new Map(); V.espera = new Map(); V.mudos = new Set();
-    V.vivo = true; V.online = null; V.tarefa = null; V.portaT = null; V.festa = null; V.gols = 0; V.rio = null; V.rastro = [];
+    V.vivo = true; V.online = null; V.tarefa = null; V.portaT = null; V.festa = null; V.gols = 0; V.rio = null; V.rastro = []; V.sk = null;
     V.bots = [];
+    /* v3.76: os moradores (do aparelho de cada um, como os bots da demonstração: entram no V.remotos com npc) */
+    V.moradores = criaMoradores(); V.moradores.forEach(m => V.remotos.set(m.sid, m)); V.paradoT = 0;
     if(C.DEMO){
       V.cid.casas.filter(c => c.p.ex || /^ex\d/.test(c.id)).slice(0, 3).forEach((c, i) => {
         const b = { sid: 'bot-' + c.id, bot: true, uid: c.id, handle: c.handle, nome: c.nome, av: avLimpo(c.p.verso, c.id), mic: i === 0, x: c.portaX, y: c.base + 40, dir: 'baixo', passo: 0, mov: false, esp: 1 + i, casa: { x: c.portaX, y: c.base } };
@@ -4436,7 +4747,7 @@
     V.peers = new Map();
     const r = V.rede; V.rede = null; if(r) tenta(() => r.sair());
     tenta(() => { removeEventListener('keydown', tecla); removeEventListener('keyup', tecla); removeEventListener('blur', soltar); removeEventListener('resize', tamanhoTela); removeEventListener('hashchange', aoSairDaRota); removeEventListener('pagehide', sair); });
-    V.teclas.clear(); V.remotos = new Map(); V.bots = []; V.carros = []; V.bolas = []; V.tarefa = null; V.portaT = null; V.porta = null;
+    V.teclas.clear(); V.remotos = new Map(); V.bots = []; V.moradores = []; V.carros = []; V.bolas = []; V.tarefa = null; V.portaT = null; V.porta = null;
     tenta(desmontaBalcao);
   }
   const TECLAS = new Set(['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'a', 'd', 'w', 's']);
@@ -4472,6 +4783,8 @@
   function pula(){
     const e = V.eu; if(!e || V.voo || !V.vivo) return;
     if(e.sit){ e.sit = false; e.pesca = null; portaUI(); enviaPos(true); return; }
+    /* v3.76: na pista de skate o pulo é ollie; no ar, apertar de novo é a manobra */
+    if(V.sk && V.sk.on && !e.barco){ if(V.sk.ar) skManobra(); else if(alturaPulo(e) === 0) skSalta('ollie', 540, 1.1); return; }
     const vi = veiculoInfo(e);
     if(vi && vi.botao === 'buzina'){ buzina(); return; }
     if(alturaPulo(e) > 0) return;
@@ -4901,6 +5214,7 @@
     if(p.tipo === 'torneio'){ if(C.casa && C.casa.LUGARES && C.casa.LUGARES.pesca){ if(C.versoSom) C.versoSom.porta(); C.casa.abrir({ lugar: 'pesca' }); } return; }
     if(p.tipo === 'atelie'){ if(C.versoSom) C.versoSom.porta(); lojaSheet(); return; }
     if(p.tipo === 'barco'){ embarca(p.pier); return; }
+    if(p.tipo === 'morador'){ trocaIdeia(p.m); return; }
     if(p.tipo === 'sebo'){ if(C.casa && C.casa.LUGARES && C.casa.LUGARES.sebo){ if(C.versoSom) C.versoSom.porta(); C.casa.abrir({ lugar: 'sebo' }); } return; }
     if(p.tipo === 'mural'){ abreBalcao(BC_MURAL); return; }
     if(p.tipo === 'banca'){ abreBalcao(BC_BANCA); return; }

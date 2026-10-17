@@ -3311,3 +3311,9 @@ html.embed .msg-pg{height:calc(100dvh - 40px)}
 .cvr-porta.rio-ja{animation:rio-ja .38s steps(2,jump-none) infinite alternate}
 @keyframes rio-ja{from{background:var(--yellow);color:var(--ink)}to{background:var(--pink);color:#fff}}
 @media (prefers-reduced-motion:reduce){ .cvr-porta.rio-ja{animation:none;background:var(--pink);color:#fff} }
+
+/* v3.76 · o placar da pista de skate (as peças do minijogo das tarefas); caiu, o nome fica vermelho */
+.cvr-sk{padding:6px 10px 6px}
+.cvr-sk .mj-h{margin-bottom:2px}
+.cvr-sk small{margin-top:2px}
+.cvr-sk.caiu .mj-h b{color:#C2261B}

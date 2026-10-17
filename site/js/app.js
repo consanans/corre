@@ -548,6 +548,7 @@
     ['Autódromo do Café', 'carro', 'Corrida de moto e de carro', 'corrida moto carro pista autodromo largada'],
     ['Pista do Zerão', 'carro', 'Kart com os bichos, 4 pistas', 'kart patinete corrida bichos jet'],
     ['Zerão', 'verso', 'Quadras com desafio: futsal e basquete', 'quadra quadras futsal basquete desafio bola'],
+    ['Pista de skate', 'raio', 'Bowl, rampa, caixote e corrimão no Zerão', 'skate shape manobra ollie kickflip bowl rampa zerao pista'],
     ['Píer do Igapó', 'peixe', 'Torneio de pesca', 'pesca pescar peixe torneio'],
     ['Lago Igapó', 'verso', 'O lago da cidade', 'lago agua'],
     ['Porto do Tibagi', 'peixe', 'Barquinho e pesca da piapara no rio', 'rio tibagi barco barquinho pesca pescar piapara peixe porto'],
