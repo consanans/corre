@@ -8,6 +8,13 @@ select case when (select count(*) from corre_termos_aceites where dono = '000000
   then 'ok: o servidor anota o aceite (versão, plano, valor e hora)' else 'FALHOU: o aceite não ficou' end;
 select case when pg_temp.tenta($$insert into corre_termos_aceites (dono, versao, produto) values ('00000000-0000-0000-0000-0000000000c1', 'sim', 'horus')$$) = '23514'
   then 'ok: versão que não é data é recusada' else 'FALHOU: aceitou versão qualquer' end;
+-- a função (service_role) grava o aceite, e só isso
+set role service_role;
+select case when pg_temp.tenta($$insert into corre_termos_aceites (dono, versao, produto, valor) values ('00000000-0000-0000-0000-0000000000c1', '2026-10-17', 'studio', 59.90)$$) = 'passou'
+  then 'ok: a chave de serviço grava o aceite' else 'FALHOU: a função não consegue gravar o aceite' end;
+select case when pg_temp.tenta($$select count(*) from corre_termos_aceites$$) = '42501'
+  then 'ok: a chave de serviço não lê os aceites' else 'FALHOU: service_role lê' end;
+reset role;
 -- o app (authenticated e anon) não lê nem escreve
 set role authenticated;
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000c1', false), set_config('request.jwt.claim.role', 'authenticated', false);

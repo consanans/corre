@@ -68,7 +68,7 @@ testa teste366.sql 16
 # v3.72: o aceite dos Termos e a marca da desistência em 7 dias
 delta delta-v372.sql 'delta v3.72 ok'
 delta delta-v372.sql 'delta v3.72 ok'
-testa teste372.sql 8
+testa teste372.sql 10
 . "$AQUI/virada343.sh"
 if grep -q 'FALHOU\|ERROR' $D/saida; then echo "deu FALHOU ou erro (acima)"; exit 1; fi
 echo "tudo ok: $(grep -c '^ok:' $D/saida) checagens"

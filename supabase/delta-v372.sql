@@ -32,6 +32,10 @@ create index if not exists corre_termos_aceites_dono on public.corre_termos_acei
 alter table public.corre_termos_aceites enable row level security;
 -- sem política: o app não lê nem grava (a função usa o servidor, que passa pelo RLS)
 revoke all on public.corre_termos_aceites from anon, authenticated;
+-- a função grava com a chave de serviço. Neste projeto o Supabase não dá mais leitura nem escrita pro service_role em
+-- tabela nova (ver o delta-v341.sql): sem este grant o aceite não seria anotado. Só gravar; ler é coisa do painel
+grant insert on public.corre_termos_aceites to service_role;
+revoke truncate, references, trigger on public.corre_termos_aceites from service_role;
 
 -- 2. a desistência em 7 dias, uma vez por plano pelo app
 alter table public.corre_assinaturas add column if not exists desistiu_em timestamptz;
@@ -41,4 +45,5 @@ commit;
 select case when to_regclass('public.corre_termos_aceites') is not null
   and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'corre_assinaturas' and column_name = 'desistiu_em')
   and (select relrowsecurity from pg_class where oid = 'public.corre_termos_aceites'::regclass)
+  and has_table_privilege('service_role', 'public.corre_termos_aceites', 'INSERT')
   then 'delta v3.72 ok' else 'NÃO TERMINOU: falta o aceite ou a desistência' end as resultado;

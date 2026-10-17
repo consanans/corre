@@ -1,5 +1,7 @@
 -- Supabase de mentira: só o que os deltas usam
 create role anon; create role authenticated; create role service_role;
+-- como lá: o service_role passa por cima da RLS (conferido na produção em 17/10/2026: rolbypassrls = true)
+alter role service_role bypassrls;
 -- como no Supabase de verdade: função NOVA (create, ou drop + create) ganha EXECUTE pra anon, authenticated e service_role,
 -- além do PUBLIC. É isso que faz o delta ter que refazer o revoke/grant de toda função que ele recria.
 alter default privileges in schema public grant execute on functions to anon, authenticated, service_role;
