@@ -550,6 +550,8 @@
     ['Zerão', 'verso', 'Quadras com desafio: futsal e basquete', 'quadra quadras futsal basquete desafio bola'],
     ['Píer do Igapó', 'peixe', 'Torneio de pesca', 'pesca pescar peixe torneio'],
     ['Lago Igapó', 'verso', 'O lago da cidade', 'lago agua'],
+    ['Porto do Tibagi', 'peixe', 'Barquinho e pesca da piapara no rio', 'rio tibagi barco barquinho pesca pescar piapara peixe porto'],
+    ['Prainha do Tibagi', 'verso', 'Areia, guarda-sol e o outro píer do rio', 'prainha praia areia rio tibagi'],
     ['ACEL · Beisebol', 'verso', 'Desafio de rebatida do Red Sharks', 'beisebol baseball red sharks rebatida'],
     ['Sebo', 'musica', 'Discos pro teu toca-discos', 'discos disco vinil musica'],
     ['Ateliê', 'star', 'A loja de skins', 'skin skins loja roupa fantasia uniforme atelie'],

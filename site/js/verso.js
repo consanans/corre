@@ -597,6 +597,9 @@
     caldo: (px, x, y) => { px(x + 1, y - 1, 3, 5, '#E8D9A0'); px(x + 1, y - 1, 3, 1, '#F4F3EF'); px(x + 3, y - 4, 1, 3, '#FF4F9A'); },
     peixe: (px, x, y) => { px(x, y, 5, 2, '#7FA7C9'); px(x + 5, y - 1, 1, 4, '#5C86A8'); px(x + 1, y, 1, 1, '#0F1218'); px(x, y + 1, 5, 1, '#B7D3E8'); },
     bota: (px, x, y) => { px(x + 1, y - 3, 2, 5, '#5A4634'); px(x + 1, y + 2, 4, 1, '#3B2D22'); px(x + 1, y - 3, 2, 1, '#8C7A66'); },
+    /* v3.75: os peixes do Tibagi: a piapara (prata, três manchas e a nadadeira amarelada) e o lambari (rabo vermelho) */
+    piapara: (px, x, y) => { px(x - 1, y, 8, 2, '#DDE2E8'); px(x, y - 1, 6, 1, '#C9CED6'); px(x - 1, y + 2, 7, 1, '#B7BEC7'); px(x, y, 1, 1, '#0F1218'); px(x + 2, y + 1, 1, 1, '#1B1D22'); px(x + 4, y + 1, 1, 1, '#1B1D22'); px(x + 7, y - 1, 1, 5, '#E8A04A'); px(x + 2, y - 2, 2, 1, '#E8A04A'); },
+    lambari: (px, x, y) => { px(x, y, 4, 2, '#E6EAEE'); px(x + 4, y - 1, 1, 4, '#E2412E'); px(x + 1, y, 1, 1, '#0F1218'); px(x, y + 1, 4, 1, '#C9CED6'); },
     /* as coisas das tarefas: o gato resgatado, a caixa da entrega, a amostra do lago, o pergaminho */
     gato: (px, x, y) => { px(x, y, 6, 3, '#FF8A3D'); px(x + 1, y - 3, 4, 3, '#FF8A3D'); px(x + 1, y - 4, 1, 1, '#FF8A3D'); px(x + 4, y - 4, 1, 1, '#FF8A3D'); px(x + 2, y - 2, 1, 1, '#0F1218'); px(x + 4, y - 2, 1, 1, '#0F1218'); px(x + 6, y + 1, 2, 1, '#FF8A3D'); },
     caixa: (px, x, y) => { px(x, y - 1, 6, 5, '#E2412E'); px(x + 1, y, 4, 3, '#F4F3EF'); px(x + 2, y + 1, 2, 1, '#E2412E'); },
@@ -641,7 +644,7 @@
     if(pers){
       pers(px, { lado, costas, l1: fase > 0 ? 1 : 0, l2: fase < 0 ? 1 : 0, sentado });
       const it = ex.item && ITEM_MAO[ex.item] ? ITEM_MAO[ex.item] : null; if(it && dir !== 'cima' && !(PO && PO.dentro)) it(px, lado ? 4 : 6, -11);
-      if(ex.pesca && sentado){ for(let i = 0; i < 8; i++) px(5 + (i >> 1), -8 - i, 1, 1, '#8C5A2E'); px(9, -15, 1, 1, '#8C5A2E'); for(let i = 0; i < 9; i++) px(10, -14 + i, 1, 1, 'rgba(15,18,24,.45)'); px(10, -5, 1, 1, '#FF4F9A'); }
+      if((ex.pesca || ex.vara) && sentado){ for(let i = 0; i < 8; i++) px(5 + (i >> 1), -8 - i, 1, 1, '#8C5A2E'); px(9, -15, 1, 1, '#8C5A2E'); if(!ex.vara){ for(let i = 0; i < 9; i++) px(10, -14 + i, 1, 1, 'rgba(15,18,24,.45)'); px(10, -5, 1, 1, '#FF4F9A'); } }
       fimVeiculo(); ctx.restore(); return;
     }
     /* o que leva na mão: na frente, do lado direito; de lado, na frente do braço; de costas não aparece */
@@ -649,7 +652,7 @@
     const extras = () => {
       if(item && dir !== 'cima') item(px, lado ? 3 : 5, -11);
       /* a vara de pescar: sobe pra direita, a linha desce até a água com a boia rosa */
-      if(ex.pesca && sentado){ for(let i = 0; i < 8; i++) px(5 + (i >> 1), -8 - i, 1, 1, '#8C5A2E'); px(9, -15, 1, 1, '#8C5A2E'); for(let i = 0; i < 9; i++) px(10, -14 + i, 1, 1, 'rgba(15,18,24,.45)'); px(10, -5, 1, 1, '#FF4F9A'); }
+      if((ex.pesca || ex.vara) && sentado){ for(let i = 0; i < 8; i++) px(5 + (i >> 1), -8 - i, 1, 1, '#8C5A2E'); px(9, -15, 1, 1, '#8C5A2E'); if(!ex.vara){ for(let i = 0; i < 9; i++) px(10, -14 + i, 1, 1, 'rgba(15,18,24,.45)'); px(10, -5, 1, 1, '#FF4F9A'); } }
     };
     const contraste = lum(R) > .55 ? INK : BR, acento = R === AMARELO ? ROSA : AMARELO;
     const hy = -23, o = { lado, costas, esp, hy, fase, sentado };
@@ -997,6 +1000,9 @@
     const me = C.st.me || {}, pub = me.visibilidade === 'publico';
     const m = { sid, av: V.eu ? V.eu.av : avLimpo(me.verso, me.id), mic: V.mic, x: V.eu ? Math.round(V.eu.x) : 0, y: V.eu ? Math.round(V.eu.y) : 0 };
     const pt = minhaPatente(); if(pt) m.pt = pt;
+    /* v3.75: de barco no Tibagi, e a maior piapara do dia (centésimos de kg) */
+    if(V.eu && V.eu.barco){ m.bc = 1; m.bl = V.eu.barco.lado < 0 ? -1 : 1; }
+    { const kg = piaparaHoje(); if(kg > 0){ m.pp = Math.round(kg * 100); m.pd = diaBR() % 1e5; } }
     /* no balcão de uma barraca: quem passa vê "trampando" (sem dizer qual barraca) */
     if(BC.aberto) m.tr = 1;
     if(V.jogo) m.jg = 1;
@@ -1137,6 +1143,8 @@
           qp: Number.isInteger(m.qp) && m.qp > 0 && m.qp <= 40 ? m.qp : 0, qd: Number.isInteger(m.qd) && m.qd >= 0 ? m.qd : -1,
           /* v3.53: o bicho da corrida de kart (0 a 5) e quando ele foi escolhido (desempata quem pegou primeiro) */
           kp: Number.isInteger(m.kp) && m.kp >= 0 && m.kp < 6 ? m.kp : null, kpt: Number.isInteger(m.kpt) && m.kpt >= 0 ? m.kpt : 0,
+          /* v3.75: de barco no Tibagi, o lado do barco e a maior piapara do dia (até 8 kg) */
+          barco: m.bc === 1, bl: m.bl === -1 ? -1 : 1, pp: Number.isInteger(m.pp) && m.pp > 0 && m.pp <= 800 ? m.pp : 0, pd: Number.isInteger(m.pd) && m.pd >= 0 ? m.pd : -1,
           disco: typeof m.disco === 'string' && /^[a-z0-9]{0,16}$/.test(m.disco) ? m.disco : '', discoT: Number.isFinite(m.discoT) && m.discoT > 0 && m.discoT < Date.now() + 6e5 ? m.discoT : 0 });
         if(r.naCasa && Number.isFinite(m.cx) && Number.isFinite(m.cz)){ if(r.hx == null){ r.hxv = m.cx; r.hzv = m.cz; r.hyv = Number.isFinite(m.cy) ? clamp(m.cy, 0, 8) : 0; } r.hx = clamp(m.cx, -1, 81); r.hz = clamp(m.cz, -1, 81); r.hy = Number.isFinite(m.cy) ? clamp(m.cy, 0, 8) : 0; r.hyaw = Number.isFinite(m.cd) ? m.cd : 0; }
         else if(!r.naCasa){ r.hx = r.hz = null; }
@@ -1152,7 +1160,7 @@
       ui();
     },
     /* passo a passo vem por broadcast (qualquer um manda): salto grande não vale, quem viaja se anuncia pela presença */
-    mv(d){ if(!d || d.sid === sid) return; const r = V.remotos.get(d.sid); if(!r || !coordOk(d.x, d.y)) return; if(Math.hypot(d.x - r.tx, d.y - r.ty) > 700) return; r.tx = d.x; r.ty = d.y; if(['baixo', 'cima', 'esq', 'dir'].includes(d.dir)) r.dir = d.dir; r.mov = !!d.mov; r.sit = !!d.sit; if(d.mic != null && !!d.mic !== r.mic){ r.mic = !!d.mic; ui(); } if(Number.isFinite(d.cx) && Number.isFinite(d.cz)){ if(r.hx == null){ r.hxv = d.cx; r.hzv = d.cz; r.hyv = Number.isFinite(d.cy) ? clamp(d.cy, 0, 8) : 0; } r.hx = clamp(d.cx, -1, 81); r.hz = clamp(d.cz, -1, 81); r.hy = Number.isFinite(d.cy) ? clamp(d.cy, 0, 8) : 0; r.hyaw = Number.isFinite(d.cd) ? d.cd : 0; r.hmov = d.cm === 1; r.hmt = Number.isInteger(d.mt) && d.mt >= 1 && d.mt <= 5 ? d.mt : 0; kartMv(r, d); } r.item = typeof d.it === 'string' && ITEM_MAO[d.it] ? d.it : null; r.pesca = d.pe === 1; r.visto = r.sinal = Date.now();
+    mv(d){ if(!d || d.sid === sid) return; const r = V.remotos.get(d.sid); if(!r || !coordOk(d.x, d.y)) return; if(Math.hypot(d.x - r.tx, d.y - r.ty) > 700) return; r.tx = d.x; r.ty = d.y; if(['baixo', 'cima', 'esq', 'dir'].includes(d.dir)) r.dir = d.dir; r.mov = !!d.mov; r.sit = !!d.sit; if(d.mic != null && !!d.mic !== r.mic){ r.mic = !!d.mic; ui(); } if(Number.isFinite(d.cx) && Number.isFinite(d.cz)){ if(r.hx == null){ r.hxv = d.cx; r.hzv = d.cz; r.hyv = Number.isFinite(d.cy) ? clamp(d.cy, 0, 8) : 0; } r.hx = clamp(d.cx, -1, 81); r.hz = clamp(d.cz, -1, 81); r.hy = Number.isFinite(d.cy) ? clamp(d.cy, 0, 8) : 0; r.hyaw = Number.isFinite(d.cd) ? d.cd : 0; r.hmov = d.cm === 1; r.hmt = Number.isInteger(d.mt) && d.mt >= 1 && d.mt <= 5 ? d.mt : 0; kartMv(r, d); } r.item = typeof d.it === 'string' && ITEM_MAO[d.it] ? d.it : null; r.pesca = d.pe === 1; r.barco = d.bc === 1; r.bl = d.bl === -1 ? -1 : 1; r.visto = r.sinal = Date.now();
       /* v3.40: o pulo (cada pulo novo tem um número) e o avião/paraquedas */
       if(Number.isInteger(d.pu)){ if(r.puN != null && d.pu !== r.puN) r.puT = performance.now(); r.puN = d.pu; }
       r.vo = d.vo === 1 || d.vo === 2 ? d.vo : 0; r.pq = d.pq === 1; },
@@ -1370,6 +1378,7 @@
     if(q){ m.cx = Math.round(q.x * 20) / 20; m.cz = Math.round(q.z * 20) / 20; m.cy = Math.round((q.y || 0) * 20) / 20; m.cd = Math.round(q.yaw * 100) / 100; m.cm = q.andando ? 1 : 0; if(q.mt) m.mt = q.mt; ['kp', 'kg', 'kl', 'kf'].forEach(k => { if(Number.isInteger(q[k])) m[k] = q[k]; }); }
     if(V.eu.item && V.eu.item.ate > Date.now()) m.it = V.eu.item.k;
     if(V.eu.pesca && V.eu.sit) m.pe = 1;
+    if(V.eu.barco){ m.bc = 1; m.bl = V.eu.barco.lado < 0 ? -1 : 1; if(V.rio && V.rio.fase && V.rio.fase !== 'salto') m.pe = 1; }
     if(V.eu.puN) m.pu = V.eu.puN;
     if(V.voo){ m.mov = true; if(V.voo.fase === 'para') m.pq = 1; else m.vo = V.voo.fase === 'cruzeiro' ? 1 : 2; }
     V.ultEnvio = t; V.rede.mv(m);
@@ -1447,7 +1456,8 @@
     const reservado = (c, r) => !!regEm(c, r) || centroEm(c, r) || (!!esp && r === 2 && (c === 6 || c === 7));
     const livresAte = n => { let q = 0; for(let r = 0; r < n; r++) for(let c = 0; c < COLS; c++) if(!reservado(c, r)) q++; return q; };
     let rows = 12; while(livresAte(rows) < resto.length + LIVRES) rows++;
-    const W = RUA + COLS * (LW + RUA), H = TOPO + rows * (LH + RUA) + 8;
+    /* v3.75: embaixo da última rua corre o Rio Tibagi, de ponta a ponta (a cidade cresce pra baixo e ele desce junto) */
+    const W = RUA + COLS * (LW + RUA), yRio = TOPO + rows * (LH + RUA), H = yRio + RIO_H;
     const grade = Array.from({ length: rows }, () => Array(COLS).fill(null));
     const K = { arv: [], bancos: [], zonas: [], sol: [], lugares: [], decor: [], quiosques: [], trucks: [], barracas: [], postes: [], torneio: null };
     const slots = []; for(let r = 0; r < rows; r++) for(let c = 0; c < COLS; c++) if(!reservado(c, r)) slots.push({ c, r });
@@ -1497,7 +1507,7 @@
     /* os lugares grandes */
     const regs = REGIOES.map(g => { const R = Object.assign(ret(g.c0, g.r0, g.c1, g.r1), g); for(let r = g.r0; r <= g.r1; r++) for(let c = g.c0; c <= g.c1; c++) grade[r][c] = { t: 'reg', R }; return R; });
     const RG = nm => regs.find(R => R.k === nm), sorte = rng(hash('londrina'));
-    const lago = montaLago(RG('lago'), K, sorte), zerao = montaZerao(RG('zerao'), K, sorte), bosque = montaBosque(RG('bosque'), K, sorte), glebaR = montaGleba(RG('gleba'), K, sorte), estadio = montaEstadio(RG('estadio'), K), feira = montaFeira(RG('feira'), K), aeroporto = montaAeroporto(RG('aeroporto'), K), acel = montaAcel(RG('acel'), K);
+    const lago = montaLago(RG('lago'), K, sorte), zerao = montaZerao(RG('zerao'), K, sorte), bosque = montaBosque(RG('bosque'), K, sorte), glebaR = montaGleba(RG('gleba'), K, sorte), estadio = montaEstadio(RG('estadio'), K), feira = montaFeira(RG('feira'), K), aeroporto = montaAeroporto(RG('aeroporto'), K), acel = montaAcel(RG('acel'), K), rio = montaRio(W, yRio, K);
     regs.forEach(R => K.zonas.push({ nome: R.nome, x: R.x - 10, y: R.y - 10, w: R.w + 20, h: R.h + 20 }));
     /* postes nas esquinas e na beira dos lugares grandes */
     for(let r = 0; r < rows; r++) for(let c = 0; c < COLS; c++){
@@ -1508,7 +1518,7 @@
     regs.forEach(R => { for(let x = R.x + 180; x < R.x + R.w - 80; x += 420) K.postes.push({ x, y: R.y - 5 }); });
     /* ruas onde passa carro: as que atravessam a cidade inteira */
     const ruasLivres = []; for(let s = 0; s <= rows; s++) if(!REGIOES.some(g => g.r0 <= s - 1 && g.r1 >= s)) ruasLivres.push(s);
-    return { W, H, rows, grade, casas, dois, vazios, enche, praca, centro, regs, lago, zerao, bosque, gleba: glebaR.torres, glebaR, estadio, feira, aeroporto, acel, ruasLivres,
+    return { W, H, rows, grade, casas, dois, vazios, enche, praca, centro, regs, lago, zerao, bosque, gleba: glebaR.torres, glebaR, estadio, feira, aeroporto, acel, rio, ruasLivres,
       arv: K.arv, bancos: K.bancos, zonas: K.zonas, sol: K.sol, lugares: K.lugares, torneio: K.torneio, decor: K.decor, quiosques: K.quiosques, trucks: K.trucks, barracas: K.barracas, postes: K.postes };
   }
 
@@ -1711,6 +1721,60 @@
     [term.x + 34, term.x + term.w - 34].forEach(x => K.bancos.push({ x, y: term.base + 30, lugar: 'Aeroporto' }));
     return { R, pista, term, torre, patio, vaga, biruta, porta: { x: term.x + term.w / 2, y: term.base + 8 } };
   }
+  /* ---------- v3.75 · o Rio Tibagi: atravessa a cidade inteira embaixo, de ponta a ponta ----------
+     A margem de cima é a da cidade: calçada, a trilha de terra, bancos de frente pra água, a prainha e os dois portos
+     (de onde sai o barquinho). A de baixo é a mata: só se chega de barco, e lá ninguém desce (capivara, garça e ipê).
+     A água é feita de colunas de 12 px, como o Igapó; pedra, píer e barco amarrado são o que o barquinho não atravessa.
+     Perto das pedras a água corre (a corredeira), e é ali que a piapara grande gosta de ficar. */
+  const RIO_H = 640;
+  function montaRio(W, y0, K){
+    const B = 12, n = Math.ceil(W / B), q = rng(hash('tibagi'));
+    const cyF = x => y0 + 300 + 34 * Math.sin(x / 620 + .8) + 16 * Math.sin(x / 230 + 2.1);
+    const hwF = x => 118 + 26 * Math.sin(x / 480 + 1.3) + 10 * Math.sin(x / 170);
+    const cols = []; for(let i = 0; i < n; i++){ const xm = i * B + B / 2, cy = cyF(xm), hw = hwF(xm); cols.push({ x: i * B, t: Math.round((cy - hw) / B) * B, b: Math.round((cy + hw) / B) * B }); }
+    const colEm = x => cols[clamp(Math.floor(x / B), 0, n - 1)];
+    const R = { y0, B, n, W, cols, colEm, cyF, hwF, piers: [], pedras: [], amarrados: [], prainha: null, barracao: null, mata: [], bichos: [] };
+    /* os dois portos: onde a margem é mais estreita perto do ponto escolhido (o píer fica curto e o barco, perto da rua) */
+    const porto = (f, nome, k) => {
+      let best = null; for(let x = W * f - 240; x <= W * f + 240; x += B){ const c = colEm(x); if(!best || c.t < best.t) best = { x: c.x + B / 2, t: c.t }; }
+      const xp = Math.round(best.x), t = best.t, p = { k, nome, x: xp - 20, y: t - 30, w: 40, h: 106, xp, t, ponta: { x: xp, y: t + 66 } };
+      R.piers.push(p);
+      /* dois barcos amarrados do lado esquerdo do píer (o direito fica livre pra quem sai remando) */
+      R.amarrados.push({ p, dy: 38, lado: 1, cor: k === 'porto' ? AMARELO : ROSA }, { p, dy: 82, lado: 1, cor: k === 'porto' ? AZUL : LARANJA });
+      K.zonas.push({ nome, x: xp - 170, y: y0 + 14, w: 340, h: t + 110 - y0 });
+      K.lugares.push({ nome, x: xp, y: t - 40 });
+      return p;
+    };
+    const P1 = porto(.37, 'Porto do Tibagi', 'porto'), P2 = porto(.79, 'Prainha do Tibagi', 'prainha');
+    /* o barracão do porto (barco, isca, colete), na margem, do lado esquerdo do píer */
+    R.barracao = { x: P1.xp - 142, base: P1.t - 22 }; K.sol.push({ x: R.barracao.x - 76, y: R.barracao.base - 26, w: 152, h: 26 });
+    K.decor.push({ tipo: 'placa', x: P1.xp + 150, y: P1.t - 20, txt: 'RIO TIBAGI', s: 2, fundo: PAPEL, h: 28 });
+    /* a prainha: areia em volta do segundo píer, guarda-sol e duas cadeiras de frente pro rio */
+    R.prainha = { x0: P2.xp - 300, x1: P2.xp + 210 };
+    [[-230, ROSA], [-130, AMARELO], [130, AZUL]].forEach(([dx, cor]) => { const x = P2.xp + dx, c = colEm(x); K.decor.push({ tipo: 'guardasol', x, y: c.t - 22, cor }); K.sol.push({ x: x - 3, y: c.t - 26, w: 6, h: 6 }); K.bancos.push({ x: x + 24, y: c.t - 14, lugar: 'Prainha do Tibagi' }); });
+    const perto = (x, m) => R.piers.some(p => Math.abs(x - p.xp) < m) || (x > R.prainha.x0 - 30 && x < R.prainha.x1 + 30) || Math.abs(x - R.barracao.x) < 80;
+    /* bancos de frente pra água ao longo da trilha, poste na calçada e ipê entre a calçada e a trilha */
+    for(let x = 150; x < W - 100; x += 380){ if(perto(x, 120)) continue; K.bancos.push({ x, y: colEm(x).t - 18, lugar: 'Rio Tibagi' }); }
+    for(let x = 90; x < W - 40; x += 330){ if(perto(x, 50)) continue; K.postes.push({ x, y: y0 + 12 }); }
+    for(let x = 60 + q() * 60; x < W - 40; x += 150 + q() * 120){ const c = colEm(x), y = y0 + 34 + q() * Math.max(0, c.t - y0 - 96); if(perto(x, 60) || c.t - y0 < 96) continue; K.arv.push({ x: Math.round(x), y: Math.round(y), cor: pega(IPES, q), g: q() < .25 }); }
+    /* as pedras no meio da água (longe dos portos), cada grupo com uma, duas ou três */
+    for(let x = 260 + q() * 200; x < W - 200; x += 420 + q() * 360){
+      if(perto(x, 260)) continue; const c = colEm(x), cy = (c.t + c.b) / 2, hw = (c.b - c.t) / 2, y = cy + (q() - .5) * hw;
+      const k = 1 + Math.floor(q() * 3); for(let i = 0; i < k; i++) R.pedras.push({ x: Math.round(x + (i ? (q() - .5) * 40 : 0)), y: Math.round(y + (i ? (q() - .5) * 26 : 0)), r: Math.round(9 + q() * (i ? 5 : 9)) });
+    }
+    /* a mata da outra margem: ipê, flamboyant e jacarandá em fileiras tortas (sem colisão: ninguém chega lá a pé) */
+    for(let fila = 0; fila < 4; fila++) for(let x = q() * 40; x < W; x += 44 + q() * 30){ const c = colEm(x), y = c.b + 34 + fila * 52 + q() * 26; if(y > y0 + RIO_H - 6) continue; K.arv.push({ x: Math.round(x), y: Math.round(y), cor: pega(IPES, q), g: q() < .45 ? (q() < .3 ? 2 : true) : false, mata: true }); }
+    /* capivaras na beira da mata, garças nas pedras e na beirada */
+    for(let x = 400 + q() * 300; x < W - 200; x += 900 + q() * 700){ const c = colEm(x); R.bichos.push({ tipo: 'capivara', x: Math.round(x), y: c.b + 12, n: 2 + Math.floor(q() * 3), sd: Math.floor(q() * 1e6) }); }
+    R.pedras.filter((p, i) => i % 3 === 0).forEach(p => R.bichos.push({ tipo: 'garca', x: p.x, y: p.y - p.r * .4, sd: Math.floor(q() * 1e6) }));
+    for(let x = 700 + q() * 400; x < W - 200; x += 1300 + q() * 600){ const c = colEm(x); R.bichos.push({ tipo: 'garca', x: Math.round(x), y: c.b + 6, sd: Math.floor(q() * 1e6) }); }
+    K.zonas.push({ nome: 'Rio Tibagi', x: 0, y: y0 + 14, w: W, h: RIO_H - 14 });
+    return R;
+  }
+  /* o barco (como o boneco) é desenhado em pontos da tela: no mundo, o tamanho dele muda com o zoom. Por isso a vaga do
+     amarrado e a do barco de quem sai remando são contadas na hora, encostadas no píer */
+  const amarradoXY = a => ({ x: a.p.x - 20 / V.k - 3, y: a.p.t + a.dy, lado: a.lado });
+  const naRio = (x, y) => { const r = V.cid && V.cid.rio; if(!r || y < r.y0 + 20) return false; if(y <= r.colEm(x).t + 6) return false; for(const p of r.piers) if(x > p.x + 4 && x < p.x + p.w - 4 && y > p.y && y < p.y + p.h) return false; return true; };
   const zonaDe = (x, y) => { const c = V.cid, z = c.zonas.find(z => x >= z.x && x <= z.x + z.w && y >= z.y && y <= z.y + z.h); if(z) return z.nome; return bairro(clamp(Math.floor((x - RUA / 2) / (LW + RUA)), 0, COLS - 1), clamp(Math.floor((y - TOPO + RUA / 2) / (LH + RUA)), 0, c.rows - 1)); };
   const naAgua = (x, y) => { const l = V.cid.lago; if(!l || x < l.x0 || x >= l.x1) return false; const c = l.cols[Math.floor((x - l.x0) / l.B)]; if(!c || y <= c.t + 6 || y >= c.b - 2) return false; for(const s of l.secos) if(x > s.x + 4 && x < s.x + s.w - 4 && y > s.y && y < s.y + s.h) return false; return true; };
 
@@ -1724,7 +1788,7 @@
     S.push({ x: ce.teatro.x + 30, y: ce.teatro.base - 34, w: 240, h: 34 }, { x: ce.concha.x + 40, y: ce.concha.base - 34, w: 220, h: 34 }, { x: ce.catedral.x + 50, y: ce.catedral.base - 40, w: 200, h: 40 }, { x: ce.museu.x + 20, y: ce.museu.base - 36, w: 260, h: 36 }, { x: ce.arte.x + 20, y: ce.arte.base - 30, w: 260, h: 30 });
     if(ce.aquario) S.push({ x: ce.aquario.x + 20, y: ce.aquario.base - 36, w: 260, h: 36 });
     ['delegacia', 'bombeiros', 'hospital'].forEach(k => { if(ce[k]) S.push({ x: ce[k].x + 20, y: ce[k].base - 36, w: 260, h: 36 }); });
-    c.arv.forEach(a => { if(!a.ilha) S.push({ x: a.x - 5, y: a.y - 6, w: 10, h: 8 }); });
+    c.arv.forEach(a => { if(!a.ilha && !a.mata) S.push({ x: a.x - 5, y: a.y - 6, w: 10, h: 8 }); });
     if(c.feira) c.feira.barracas.filter(paraMim).forEach(b => S.push({ x: b.x - 44, y: b.base - 22, w: 88, h: 22 }));
     return S.concat(c.sol);
   }
@@ -1745,6 +1809,8 @@
     if(c.torneio) P.push({ x: c.torneio.x, y: c.torneio.y, tipo: 'torneio' });
     /* v3.48: a porta do Sebo entra no Sebo (os caixotes de disco) */
     c.enche.forEach(f => { if(f.t === 'loja') f.lojas.forEach((l, i) => { if(l.nome === 'SEBO') P.push({ x: portaLoja(f, i), y: f.base + 8, tipo: 'sebo' }); else if(l.nome === 'ATELIE') P.push({ x: portaLoja(f, i), y: f.base + 8, tipo: 'atelie' }); }); });
+    /* v3.75: na ponta de cada píer do Tibagi, o barquinho */
+    if(c.rio) c.rio.piers.forEach(pr => P.push({ x: pr.ponta.x, y: pr.ponta.y, tipo: 'barco', k: pr.k, pier: pr }));
     /* o aquário: na porta, o jogo */
     if(c.centro.aquario) P.push({ x: c.centro.aquario.x + LW / 2, y: c.centro.aquario.base + 8, tipo: 'aquario', jogo: 'killer' });
     /* v3.40: o embarque do aeroporto */
@@ -1807,7 +1873,7 @@
     ctx.restore();
     ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.strokeStyle = INK; ctx.lineWidth = Math.max(u, .8); ctx.stroke();
   }
-  const bate = (x, y) => { if(x < 14 || y < TOPO - 70 || x > V.cid.W - 14 || y > V.cid.H - 14) return true; if(naAgua(x, y)) return true; for(const s of V.sol) if(x > s.x - 8 && x < s.x + s.w + 8 && y > s.y && y < s.y + s.h + 4) return true; return false; };
+  const bate = (x, y) => { if(x < 14 || y < TOPO - 70 || x > V.cid.W - 14 || y > V.cid.H - 14) return true; if(naAgua(x, y) || naRio(x, y)) return true; for(const s of V.sol) if(x > s.x - 8 && x < s.x + s.w + 8 && y > s.y && y < s.y + s.h + 4) return true; return false; };
   function mover(o, dx, dy){ if(!dx && !dy) return; if(!bate(o.x + dx, o.y)) o.x += dx; if(!bate(o.x, o.y + dy)) o.y += dy; }
 
   /* ---------- desenho do chão ---------- */
@@ -1847,7 +1913,7 @@
       ctx.fillStyle = pad(ctx, 'calcada'); ctx.fillRect(0, TOPO - RUA - 6, W, 10); }
     ctx.fillStyle = 'rgba(242,236,84,.85)'; const t = Math.max(3, 1.05 / V.k);
     for(let s = 0; s <= rows; s++){ const y = ruaY(s); if(y < vy - 10 || y > vy + vh + 10) continue; for(let x = Math.floor(Math.max(vx, 0) / 36) * 36; x < Math.min(vx + vw, W); x += 36) ctx.fillRect(x, y - t / 2, 18, t); }
-    for(let i = 0; i <= COLS; i++){ const x = ruaX(i); if(x < vx - 10 || x > vx + vw + 10) continue; for(let y = Math.floor(Math.max(vy, TOPO - RUA) / 36) * 36; y < Math.min(vy + vh, c.H); y += 36) ctx.fillRect(x - t / 2, y, t, 18); }
+    for(let i = 0; i <= COLS; i++){ const x = ruaX(i); if(x < vx - 10 || x > vx + vw + 10) continue; for(let y = Math.floor(Math.max(vy, TOPO - RUA) / 36) * 36; y < Math.min(vy + vh, c.rio ? c.rio.y0 - 18 : c.H); y += 36) ctx.fillRect(x - t / 2, y, t, 18); }
     const P = LW + RUA, Q = LH + RUA;
     const c0 = clamp(Math.floor((vx - RUA) / P), 0, COLS - 1), c1 = clamp(Math.floor((vx + vw) / P), 0, COLS - 1), r0 = clamp(Math.floor((vy - TOPO) / Q) - 1, 0, rows - 1), r1 = clamp(Math.floor((vy + vh - TOPO) / Q) + 1, 0, rows - 1);
     for(let r = r0; r <= r1; r++) for(let cc = c0; cc <= c1; cc++){
@@ -1857,6 +1923,7 @@
       chaoLote(ctx, g, o, vx, vy, vw, vh);
     }
     c.regs.forEach(R => { if(R.x - CALC > vx + vw || R.x + R.w + CALC < vx || R.y - CALC > vy + vh || R.y + R.h + CALC < vy) return; ctx.fillStyle = pad(ctx, 'calcada'); ctx.fillRect(R.x - CALC, R.y - CALC, R.w + CALC * 2, R.h + CALC * 2); CHAO[R.k](ctx, R, vx, vy, vw, vh); });
+    if(c.rio) chaoRio(ctx, vx, vy, vw, vh);
   }
   function chaoLote(ctx, g, o, vx, vy, vw, vh){
     const t = g ? g.t : '', R = { x: o.x, y: o.y, w: LW, h: LH }, cx = o.x + LW / 2, cy = o.y + LH / 2;
@@ -2013,6 +2080,127 @@
     const tn = V.cid.torneio;
     if(tn && tn.x > vx - 90 && tn.x < vx + vw + 90 && tn.y > vy - 90 && tn.y < vy + vh + 90){ ctx.fillStyle = '#5A3A22'; ctx.fillRect(tn.x + 30, tn.y - 26, 4, 30); pixPlaca(ctx, 'TORNEIO', tn.x + 32, tn.y - 30, { fundo: AMARELO, cor: INK, max: 10 }); }
   }
+  /* ---------- v3.75 · o desenho do Rio Tibagi ----------
+     O chão: a margem dourada com capim, a calçada no pé da última rua, a trilha de terra roxa que acompanha a água, a
+     prainha, o barranco, a água (mais funda no meio do canal) e o chão da mata do outro lado */
+  function chaoRio(ctx, vx, vy, vw, vh){
+    const r = V.cid.rio; if(!r || vy + vh < r.y0 || vy > r.y0 + RIO_H) return;
+    const B = r.B, x0 = Math.max(0, Math.floor((vx - B) / B) * B), x1 = Math.min(r.W, vx + vw + B), i0 = Math.floor(x0 / B), i1 = Math.min(r.n - 1, Math.ceil(x1 / B)), fim = r.y0 + RIO_H, pr = r.prainha;
+    const cada = f => { for(let i = i0; i <= i1; i++) f(r.cols[i]); };
+    ctx.fillStyle = pad(ctx, 'gramado'); ctx.fillRect(x0, r.y0, x1 - x0, RIO_H);
+    capim(ctx, { x: x0, y: r.y0 + 16, w: x1 - x0, h: RIO_H - 16 }, vx, vy, vw, vh);
+    ctx.fillStyle = pad(ctx, 'calcada'); ctx.fillRect(x0, r.y0, x1 - x0, 14); ctx.fillStyle = 'rgba(15,18,24,.22)'; ctx.fillRect(x0, r.y0 + 14, x1 - x0, 2);
+    ctx.fillStyle = pad(ctx, '#9C7E3E'); cada(c => ctx.fillRect(c.x, c.b, B, fim - c.b));
+    ctx.fillStyle = pad(ctx, 'terra'); cada(c => { if(!(pr && c.x > pr.x0 && c.x < pr.x1)) ctx.fillRect(c.x, c.t - 42, B, 26); });
+    if(pr){ ctx.fillStyle = pad(ctx, '#E8D29A'); cada(c => { if(c.x > pr.x0 && c.x < pr.x1) ctx.fillRect(c.x, c.t - 58, B, 60); }); }
+    ctx.fillStyle = pad(ctx, '#7E3F2A'); cada(c => { if(!(pr && c.x > pr.x0 && c.x < pr.x1)) ctx.fillRect(c.x, c.t - 10, B, 10); ctx.fillRect(c.x, c.b, B, 10); });
+    ctx.fillStyle = pad(ctx, 'agua'); cada(c => ctx.fillRect(c.x, c.t, B, c.b - c.t));
+    ctx.fillStyle = 'rgba(12,40,90,.2)'; cada(c => { const xm = c.x + B / 2, cy = r.cyF(xm), hw = r.hwF(xm) * .42; ctx.fillRect(c.x, Math.round((cy - hw) / 4) * 4, B, Math.round(hw * 2 / 4) * 4); });
+    ctx.fillStyle = 'rgba(15,40,80,.32)'; cada(c => ctx.fillRect(c.x, c.t, B, 8));
+    ctx.fillStyle = 'rgba(255,255,255,.12)'; cada(c => ctx.fillRect(c.x, c.b - 6, B, 6));
+    if(pr){ ctx.fillStyle = 'rgba(232,210,154,.4)'; cada(c => { if(c.x > pr.x0 && c.x < pr.x1) ctx.fillRect(c.x, c.t, B, 10); }); }
+  }
+  /* a correnteza (os tracinhos descem o rio, da esquerda pra direita), as pedras com a corredeira e o rastro dos barcos */
+  function aguaRio(ctx, t, vx, vy, vw, vh){
+    const r = V.cid.rio; if(!r || vy + vh < r.y0 + 60 || vy > r.y0 + RIO_H) return;
+    const u = 1 / V.k, q = rng(23), W = r.W;
+    ctx.fillStyle = 'rgba(255,255,255,.5)';
+    for(let i = 0; i < 560; i++){ const s = q(), v = 12 + q() * 24, yr = q(), ln = 2 + (i % 4), x = (s * W + t * v) % W; if(x < vx - 20 || x > vx + vw + 20) continue; const c = r.colEm(x), y = c.t + 10 + yr * Math.max(1, c.b - c.t - 18); if(Math.sin(t * 1.7 + i) > -.2) ctx.fillRect(sn(x), sn(y), u * ln, u); }
+    r.pedras.forEach(p => { if(p.x > vx - 70 && p.x < vx + vw + 70 && p.y > vy - 40 && p.y < vy + vh + 40) pedra(ctx, p, t); });
+    rastros(ctx);
+  }
+  function pedra(ctx, p, t){
+    const u = 1 / V.k;
+    /* rio abaixo, o rastro claro da água que passou pela pedra; rio acima, a espuma batendo */
+    for(let k = 1; k < 7; k++){ ctx.fillStyle = `rgba(255,255,255,${(.42 - k * .05).toFixed(2)})`; const dx = p.r + k * 8 + (t * 22) % 8; ctx.fillRect(sn(p.x + dx), sn(p.y - p.r * .3 + Math.sin(t * 3 + k) * 2), u * (4 + k), u); ctx.fillRect(sn(p.x + dx + 3), sn(p.y + p.r * .3 + Math.cos(t * 3 + k) * 2), u * (3 + k), u); }
+    ctx.fillStyle = PAPEL; for(let k = 0; k < 6; k++){ const a = Math.PI * (.6 + k * .16), w = Math.sin(t * 9 + k * 1.7) > 0 ? 2 : 1; ctx.fillRect(sn(p.x + Math.cos(a) * (p.r + 2)), sn(p.y + Math.sin(a) * (p.r * .6 + 1)), u * w, u * w); }
+    for(let dy = -Math.round(p.r * .7); dy < Math.round(p.r * .5); dy += 2){ const w = p.r * Math.sqrt(Math.max(0, 1 - (dy / p.r) * (dy / p.r))); ctx.fillStyle = dy < -p.r * .35 ? '#A3A8AF' : dy < p.r * .1 ? '#7A7E86' : '#565A62'; ctx.fillRect(sn(p.x - w), sn(p.y + dy), Math.max(u, sn(w * 2)), 2); }
+    ctx.fillStyle = 'rgba(255,255,255,.4)'; ctx.fillRect(sn(p.x - p.r * .9), sn(p.y + p.r * .5), sn(p.r * 1.8), u);
+  }
+  /* o rastro do barco: anéis que abrem e somem (cada barco solta um a cada 90 ms andando) */
+  function rastro(x, y){ const L = V.rastro || (V.rastro = []); L.push({ x, y, t: performance.now() }); if(L.length > 120) L.shift(); }
+  function rastros(ctx){
+    const L = V.rastro; if(!L || !L.length) return; const agora = performance.now(), lw = Math.max(1, 1.05 / V.k);
+    while(L.length && agora - L[0].t > 1600) L.shift();
+    ctx.lineWidth = lw; L.forEach(o => { const a = (agora - o.t) / 1600; ctx.strokeStyle = `rgba(255,255,255,${(.5 * (1 - a)).toFixed(2)})`; ctx.beginPath(); ctx.ellipse(o.x, o.y, 4 + a * 18, 1.5 + a * 6, 0, 0, Math.PI * 2); ctx.stroke(); });
+  }
+  /* os píeres de madeira (com as estacas) e os barcos amarrados do lado */
+  function sobreRio(ctx, vx, vy, vw, vh, t){
+    const r = V.cid.rio; if(!r) return;
+    r.piers.forEach(s => {
+      if(s.x > vx + vw + 80 || s.x + s.w < vx - 80 || s.y > vy + vh || s.y + s.h < vy - 40) return;
+      ctx.fillStyle = 'rgba(15,18,24,.3)'; ctx.fillRect(s.x + 4, s.y + 6, s.w, s.h);
+      ctx.fillStyle = pad(ctx, 'madeira'); ctx.fillRect(s.x, s.y, s.w, s.h);
+      ctx.fillStyle = '#5A3A22'; for(let y = s.y + 34; y < s.y + s.h; y += 36){ ctx.fillRect(s.x - 4, y, 4, 10); ctx.fillRect(s.x + s.w, y, 4, 10); }
+      ctx.fillStyle = '#3B2D22'; ctx.fillRect(s.x + s.w - 9, s.y + s.h - 12, 5, 5); ctx.fillRect(s.x + 4, s.y + s.h - 12, 5, 5);
+    });
+    r.amarrados.forEach(a0 => { const a = amarradoXY(a0); if(a.x < vx - 60 || a.x > vx + vw + 60 || a.y < vy - 40 || a.y > vy + vh + 40) return;
+      const [ix, iy] = ptBase(ctx, a.x, a.y), bob = Math.sin(t * 2 + a.x * .02) > .3 ? 1 : 0;
+      ctx.save(); naBase(ctx); const P = (x, y, w, h, c) => { ctx.fillStyle = c; ctx.fillRect(ix + (a.lado < 0 ? -(x + w) : x), iy + bob + y, w, h); };
+      casco(P, 'atras', a0.cor, t, false); casco(P, 'frente', a0.cor, t, false);
+      /* a corda até a estaca do píer */
+      ctx.fillStyle = '#C9B79C'; for(let k = 0; k < 6; k++) ctx.fillRect(ix + 18 + k * 2, iy + bob - 5 + (k > 2 ? 1 : 0), 2, 1);
+      ctx.restore(); });
+  }
+  /* o barquinho de alumínio com motor de rabeta (o barco de pesca do Tibagi), em pixel. "atras" é a sombra, o fundo e o
+     motor; "frente" é o costado, que esconde as pernas de quem tá sentado. P pinta já espelhado pro lado do barco */
+  function casco(P, parte, cor, t, mexe){
+    if(parte === 'atras'){
+      P(-19, 1, 40, 2, 'rgba(15,40,80,.35)');
+      P(-15, -7, 30, 3, '#4C545D'); P(-14, -7, 28, 1, '#5E6670'); P(-2, -7, 5, 1, '#B3793F');
+      /* o motor em cima da popa e a cana comprida (a rabeta) descendo até a água */
+      P(-21, -11, 5, 5, '#1B1D22'); P(-21, -12, 5, 1, AMARELO); P(-17, -10, 4, 1, '#2B2F38');
+      for(let i = 0; i < 6; i++) P(-21 - i, -6 + i, 1, 1, '#2B2F38');
+      if(mexe){ const f = Math.floor(t * 18) % 2; P(-29 - f, -1, 2, 1, PAPEL); P(-31 + f, 0, 2, 1, 'rgba(255,255,255,.8)'); P(-28, 1, 1, 1, PAPEL); }
+      return;
+    }
+    P(-16, -5, 33, 1, '#E6EAEE'); P(-16, -4, 33, 1, '#B8C0C8'); P(-15, -3, 32, 1, cor); P(-15, -2, 31, 1, '#9EA6AF'); P(-13, -1, 27, 1, '#7E8790');
+    P(17, -6, 2, 1, '#E6EAEE'); P(17, -5, 1, 2, '#B8C0C8');
+    for(let x = -12; x < 16; x += 6) P(x, -4, 1, 1, '#D7DDE2');
+    if(mexe){ const f = Math.floor(t * 14) % 2; P(18 + f, -1, 2, 1, PAPEL); P(16, 0, 3, 1, 'rgba(255,255,255,.7)'); }
+  }
+  /* o barracão do porto: tábua, telhado de zinco, a porta aberta, os remos encostados, a boia salva-vidas e a placa */
+  function barracao(ctx, b, t){
+    const w = 150, x = b.x - w / 2, y = b.base;
+    ctx.fillStyle = 'rgba(15,18,24,.25)'; ctx.fillRect(x - 6, y - 3, w + 14, 8);
+    bloco(ctx, x, y - 64, w, 64, 'madeira');
+    ctx.fillStyle = 'rgba(40,24,12,.3)'; for(let k = x + 12; k < x + w - 4; k += 12) ctx.fillRect(k, y - 62, 1.5, 60);
+    /* a porta aberta, com o escuro lá dentro e o remo e o puçá pendurados */
+    ctx.fillStyle = '#2B1E14'; ctx.fillRect(x + 58, y - 44, 36, 44); ctx.fillStyle = '#4A3424'; ctx.fillRect(x + 60, y - 42, 32, 5);
+    ctx.fillStyle = '#C9B79C'; ctx.fillRect(x + 66, y - 36, 2, 26); ctx.fillStyle = '#8C5A2E'; ctx.fillRect(x + 64, y - 12, 6, 8);
+    /* a janelinha da isca e a caixa de isopor na porta */
+    ctx.fillStyle = '#2A3442'; ctx.fillRect(x + 108, y - 46, 30, 18); ctx.fillStyle = '#8C5A2E'; ctx.fillRect(x + 106, y - 28, 34, 4);
+    bloco(ctx, x + 102, y - 16, 22, 14, '#EEEBE4'); ctx.fillStyle = AZUL; ctx.fillRect(x + 102, y - 16, 22, 3);
+    /* os remos encostados e a boia salva-vidas */
+    ctx.fillStyle = '#C9B79C'; ctx.fillRect(x + 10, y - 50, 3, 48); ctx.fillRect(x + 18, y - 54, 3, 52); ctx.fillStyle = '#8C5A2E'; ctx.fillRect(x + 8, y - 56, 7, 9); ctx.fillRect(x + 16, y - 60, 7, 9);
+    ctx.save(); ctx.translate(x + 40, y - 34); ctx.fillStyle = LARANJA; ctx.beginPath(); ctx.arc(0, 0, 9, 0, Math.PI * 2); ctx.arc(0, 0, 4.5, 0, Math.PI * 2, true); ctx.fill();
+    ctx.fillStyle = PAPEL; [0, 1, 2, 3].forEach(i => { const a = i * Math.PI / 2 + .4; ctx.fillRect(Math.cos(a) * 6.8 - 1.8, Math.sin(a) * 6.8 - 1.8, 3.6, 3.6); }); ctx.restore();
+    /* o telhado de zinco, a placa na frente dele e a da isca na janela */
+    bloco(ctx, x - 10, y - 84, w + 20, 20, 'zinco');
+    pixPlaca(ctx, 'PORTO DO TIBAGI', b.x, y - 74, { fundo: AMARELO, cor: INK });
+    pixPlaca(ctx, 'ISCA', x + 123, y - 52, { fundo: PAPEL, cor: INK });
+  }
+  /* os bichos do rio: capivara deitada na beira da mata (a família toda) e garça parada esperando peixe */
+  function bicho(ctx, b, t){
+    const [ix, iy] = ptBase(ctx, b.x, b.y), q = rng(b.sd);
+    ctx.save(); naBase(ctx); const R = (x, y, w, h, c) => { ctx.fillStyle = c; ctx.fillRect(ix + x, iy + y, w, h); };
+    if(b.tipo === 'capivara'){
+      for(let i = 0; i < b.n; i++){
+        const f = i >= 2, s = f ? .7 : 1, dx = Math.round((i - (b.n - 1) / 2) * 18 + (q() - .5) * 6), dy = Math.round((q() - .5) * 6), esq = q() < .5, w = Math.round(14 * s), h = Math.round(6 * s), mx = (x, ww) => esq ? dx - x - ww : dx + x;
+        const C2 = (x, y, ww, hh, c) => R(mx(x, ww), dy + y, ww, hh, c);
+        R(dx - w / 2 - 1, dy, w + 4, 2, 'rgba(15,18,24,.25)');
+        C2(-w / 2, -h, w, h, '#8C5A2E'); C2(-w / 2 + 1, -h, w - 2, 1, '#A06A38'); C2(-w / 2 + 2, -1, w - 4, 1, '#6E4426');
+        const hx = w / 2 - 1, cab = Math.round(6 * s), mexe = Math.sin(t * 1.3 + i * 2 + b.sd) > .93;
+        C2(hx, -h - 1, cab, Math.round(5 * s), '#7A4C27'); C2(hx + cab - 1, -h + 1, 2, 2, '#5A3A1E'); C2(hx + 1, -h - 2 - (mexe ? 1 : 0), 1, 1, '#6E4426'); C2(hx + cab - 3, -h, 1, 1, INK);
+      }
+    } else {
+      const pesca = Math.sin(t * .7 + b.sd) > .8, by = pesca ? 3 : 0;
+      R(-3, 0, 9, 1, 'rgba(255,255,255,.35)'); R(0, -6, 1, 6, '#1B1D22'); R(2, -6, 1, 6, '#1B1D22');
+      R(-2, -12, 7, 6, '#F4F3EF'); R(-2, -9, 4, 2, '#D9DCE1'); R(-3, -8, 2, 1, '#D9DCE1');
+      R(4, -16 + by, 1, 5 - by, '#F4F3EF'); R(3, -18 + by, 1, 3, '#F4F3EF'); R(3, -19 + by, 3, 2, '#F4F3EF'); R(6, -18 + by, 3, 1, AMARELO); R(4, -19 + by, 1, 1, INK);
+    }
+    ctx.restore();
+  }
   function arvore(ctx, a){
     const s = a.g === 2 ? 2 : a.g ? 1.3 : 1, f = 'folha' + a.cor;
     ctx.fillStyle = 'rgba(15,18,24,.25)'; ctx.fillRect(a.x - 18 * s, a.y - 3, 36 * s, 7);
@@ -2038,6 +2226,10 @@
       case 'balanco': { ctx.fillStyle = '#2B2F38'; ctx.fillRect(d.x - 22, d.y - 46, 3, 46); ctx.fillRect(d.x + 19, d.y - 46, 3, 46); ctx.fillRect(d.x - 22, d.y - 46, 44, 3); const sw = sn(Math.sin(t * 2.4) * 5); ctx.fillStyle = '#9AA0A8'; ctx.fillRect(d.x - 10 + sw, d.y - 43, u, 30); ctx.fillRect(d.x + 8 + sw, d.y - 43, u, 30); ctx.fillStyle = AZUL; ctx.fillRect(d.x - 12 + sw, d.y - 14, 24, 4); break; }
       case 'barra': { ctx.fillStyle = AMARELO; ctx.fillRect(d.x - 12, d.y - 30, 3, 30); ctx.fillRect(d.x + 9, d.y - 30, 3, 30); ctx.fillRect(d.x - 12, d.y - 30, 24, 3); ctx.fillStyle = 'rgba(15,18,24,.25)'; ctx.fillRect(d.x - 14, d.y - 1, 28, 3); break; }
       case 'ipe': arvore(ctx, { x: d.x, y: d.y, cor: ROSA, g: 2 }); break;
+      /* v3.75: o guarda-sol da prainha do Tibagi, de gomos (a cor e o branco) */
+      case 'guardasol': { ctx.fillStyle = 'rgba(15,18,24,.2)'; ctx.fillRect(d.x - 24, d.y - 3, 48, 6); ctx.fillStyle = '#EEEBE4'; ctx.fillRect(d.x - 1, d.y - 40, 3, 40);
+        [[-24, -44, 48, 4], [-19, -48, 38, 4], [-11, -51, 22, 3]].forEach(([x, y, w, h]) => { ctx.fillStyle = d.cor; ctx.fillRect(d.x + x, d.y + y, w, h); ctx.fillStyle = PAPEL; for(let k = x + 6; k < x + w - 4; k += 12) ctx.fillRect(d.x + k, d.y + y, 6, h); });
+        ctx.fillStyle = 'rgba(15,18,24,.25)'; ctx.fillRect(d.x - 24, d.y - 41, 48, 1); break; }
     }
   }
   /* carro passando nas ruas que cortam a cidade inteira (para quando tem gente na frente) */
@@ -3043,7 +3235,7 @@
     const { ctx } = V, z = V.z, k0 = V.k, fx = V.fx || 1, k = V.kr || k0, vw = V.cssW / z, vh = V.cssH / z, c = V.cid;
     const vx = V.cam.x - vw / 2, vy = V.cam.y - vh / 2, ox = -Math.round(vx * k0) * fx, oy = -Math.round(vy * k0) * fx;
     ctx.setTransform(k, 0, 0, k, ox, oy); ctx.imageSmoothingEnabled = false;
-    chao(ctx, vx, vy, vw, vh); aguaViva(ctx, t, vx, vy, vw, vh); sobreAgua(ctx, vx, vy, vw, vh);
+    chao(ctx, vx, vy, vw, vh); aguaViva(ctx, t, vx, vy, vw, vh); sobreAgua(ctx, vx, vy, vw, vh); aguaRio(ctx, t, vx, vy, vw, vh); sobreRio(ctx, vx, vy, vw, vh, t);
     const L = [];
     const vis = (x, y, m) => x > vx - m && x < vx + vw + m && y > vy - 40 && y < vy + vh + m * 1.6;
     const sprite = (chave, fazer, x, base) => L.push({ y: base, f: () => { let s = V.sprites.get(chave); if(!s){ s = fazer(); guardaSprite(chave, s); } ctx.drawImage(s.cv, x - s.M, base - s.base, s.cv.width / k, s.cv.height / k); } });
@@ -3077,6 +3269,9 @@
       ac.torres.forEach(o => { if(vis(o.x, o.base, 260)) sprite('acel:l', () => spriteTorreLuz(k), o.x - 22, o.base); });
     }
     c.decor.forEach(d => { if(vis(d.x, d.y, 180)) L.push({ y: d.y, f: () => decor(ctx, d, t) }); });
+    /* v3.75: o barracão do porto e os bichos do rio */
+    const rio = c.rio;
+    if(rio){ const b = rio.barracao; if(b && vis(b.x, b.base, 220)) L.push({ y: b.base, f: () => barracao(ctx, b, t) }); rio.bichos.forEach(o => { if(vis(o.x, o.y, 90)) L.push({ y: o.y, f: () => bicho(ctx, o, t) }); }); }
     c.postes.forEach(p => { if(vis(p.x, p.y, 70)) L.push({ y: p.y, f: () => poste(ctx, p) }); });
     V.carros.forEach(car => { if(vis(car.x, car.y, 90)) L.push({ y: car.y, f: () => carro(ctx, car) }); });
     c.bancos.forEach(b => { if(vis(b.x, b.y, 60)) L.push({ y: b.y - 1, f: () => banco(ctx, b) }); });
@@ -3089,6 +3284,7 @@
     if(V.eu) L.push({ y: V.eu.y + (V.eu.sit ? 1 : 0), f: () => boneco(ctx, V.eu, t, true) });
     desenhaTarefa(L, ctx, t, vis);
     L.sort((a, b) => a.y - b.y).forEach(o => o.f());
+    if(V.rio && V.rio.fase === 'salto') saltoPeixe(ctx, t);
     if(V.alvo){ ctx.strokeStyle = ROSA; ctx.lineWidth = Math.max(2, 1.05 / k0); ctx.beginPath(); ctx.ellipse(V.alvo.x, V.alvo.y, 10 + Math.sin(t * 6) * 2, 4, 0, 0, Math.PI * 2); ctx.stroke(); }
     if(V.porta && !(V.eu && V.eu.sit)){ const p = V.porta; ctx.save(); ctx.translate(p.x, p.y - (p.tipo === 'banco' ? 34 : 4) + Math.round(Math.sin(t * 4) * 2)); ctx.beginPath(); ctx.moveTo(-8, -12); ctx.lineTo(8, -12); ctx.lineTo(0, 0); ctx.closePath(); forma(ctx, AMARELO, 2); ctx.restore(); }
     desenhaVoos(ctx, t, gente);
@@ -3098,7 +3294,7 @@
   /* ---------- mapa: a cidade inteira numa tela, com viagem rápida ---------- */
   const lugares = () => (V.casa ? [{ nome: 'Tua casa', x: V.casa.x, y: V.casa.y }] : []).concat(V.cid.lugares);
   function pertoLivre(x, y){ for(let r = 0; r < 300; r += 14){ for(let a = 0; a < 16; a++){ const px = x + Math.cos(a / 8 * Math.PI) * r, py = y + Math.sin(a / 8 * Math.PI) * r; if(!bate(px, py)) return { x: px, y: py }; if(!r) break; } } return null; }
-  function teleporta(x, y){ if(!V.eu) return; V.alvo = null; V.eu.sit = false; V.eu.mov = false; V.eu.x = x; V.eu.y = y; V.cam.x = x; V.cam.y = y - 40; anunciar(); portaUI(); C.closeSheet(); }
+  function teleporta(x, y){ if(!V.eu) return; saiDoBarco(); V.alvo = null; V.eu.sit = false; V.eu.mov = false; V.eu.x = x; V.eu.y = y; V.cam.x = x; V.cam.y = y - 40; anunciar(); portaUI(); C.closeSheet(); }
   function desenhaMapa(cv, S){
     const c = V.cid, ctx = cv.getContext('2d'), oy = TOPO - RUA, X = x => Math.round(x / S), Y = y => Math.round((y - oy) / S), meu = C.st.me && C.st.me.id;
     ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = '#2B2F38'; ctx.fillRect(0, 0, cv.width, cv.height);
@@ -3115,12 +3311,15 @@
       ctx.strokeStyle = '#2B2F38'; ctx.lineWidth = 2; ctx.beginPath(); a.cerca.forEach((p, i) => (i ? ctx.lineTo(X(p.x), Y(p.y)) : ctx.moveTo(X(p.x), Y(p.y)))); ctx.stroke(); }
     if(c.aeroporto){ const p = c.aeroporto.pista; ctx.fillStyle = '#2B2F38'; ctx.fillRect(X(p.x), Y(p.y), Math.round(p.w / S), Math.max(2, Math.round(p.h / S))); }
     if(c.feira) c.feira.barracas.filter(paraMim).forEach(b => { ctx.fillStyle = INK; ctx.fillRect(X(b.x) - 3, Y(b.base) - 4, 7, 5); ctx.fillStyle = b.cor === INK ? AMARELO : b.cor; ctx.fillRect(X(b.x) - 2, Y(b.base) - 3, 5, 3); });
+    /* v3.75: o Rio Tibagi embaixo, de ponta a ponta, com os dois píeres */
+    const rio = c.rio; if(rio){ ctx.fillStyle = '#D9C27F'; ctx.fillRect(0, Y(rio.y0), cv.width, Math.ceil(RIO_H / S)); ctx.fillStyle = '#9C7E3E'; rio.cols.forEach(q => ctx.fillRect(X(q.x), Y(q.b), 1, Math.max(1, Math.round((rio.y0 + RIO_H - q.b) / S))));
+      ctx.fillStyle = '#2F7FC1'; rio.cols.forEach(q => ctx.fillRect(X(q.x), Y(q.t), 1, Math.max(1, Math.round((q.b - q.t) / S)))); ctx.fillStyle = '#8E5B33'; rio.piers.forEach(p => ctx.fillRect(X(p.xp) - 1, Y(p.y), 3, Math.max(2, Math.round(p.h / S)))); }
     const l = c.lago; ctx.fillStyle = '#C9D0D8'; l.bandas[0][1].forEach(q => ctx.fillRect(X(q.x), Y(q.t), 1, Math.max(1, Math.round((q.b - q.t) / S))));
     ctx.fillStyle = '#2F7FC1'; l.cols.forEach(q => ctx.fillRect(X(q.x), Y(q.t), 1, Math.max(1, Math.round((q.b - q.t) / S))));
     const z = c.zerao; ctx.strokeStyle = '#A4553A'; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(X(z.cx), Y(z.cy), z.rx / S - 1, z.ry / S - 1, 0, 0, Math.PI * 2); ctx.stroke();
     const e = c.estadio.campo; ctx.fillStyle = '#2E5BFF'; ctx.fillRect(X(e.x) - 4, Y(e.y) - 6, Math.round(e.w / S) + 8, Math.round(e.h / S) + 10); ctx.fillStyle = '#D9C27F'; ctx.fillRect(X(e.x), Y(e.y), Math.round(e.w / S), Math.round(e.h / S));
     ctx.fillStyle = '#7F8A96'; c.gleba.forEach(g => ctx.fillRect(X(g.x), Y(g.base - 40), Math.max(2, Math.round(g.w / S)), 3));
-    [['LAGO IGAPO', l.x + l.w / 2, l.y + l.h / 2], ['ZERAO', z.cx, z.cy], ['BOSQUE', c.bosque.cx, c.bosque.cy], ['CENTRO', c.praca.cx, c.praca.y + LH + 40], ['ESTADIO', c.estadio.campo.x + c.estadio.campo.w / 2, c.estadio.campo.y + c.estadio.campo.h / 2], ['GLEBA', c.glebaR.R.x + c.glebaR.R.w / 2, c.glebaR.R.y + LH / 2]].concat(c.feira ? [['FEIRA', c.feira.R.x + c.feira.R.w / 2, c.feira.R.y + c.feira.R.h + 30]] : []).concat(c.aeroporto ? [['AEROPORTO', c.aeroporto.R.x + c.aeroporto.R.w / 2, c.aeroporto.R.y + 120]] : []).concat(c.acel ? [['ACEL', c.acel.hp.x, c.acel.hp.y - 250]] : []).forEach(([t, x, y]) => pixPlaca(ctx, t, X(x), Y(y), { fundo: PAPEL }));
+    [['LAGO IGAPO', l.x + l.w / 2, l.y + l.h / 2], ['ZERAO', z.cx, z.cy], ['BOSQUE', c.bosque.cx, c.bosque.cy], ['CENTRO', c.praca.cx, c.praca.y + LH + 40], ['ESTADIO', c.estadio.campo.x + c.estadio.campo.w / 2, c.estadio.campo.y + c.estadio.campo.h / 2], ['GLEBA', c.glebaR.R.x + c.glebaR.R.w / 2, c.glebaR.R.y + LH / 2]].concat(c.feira ? [['FEIRA', c.feira.R.x + c.feira.R.w / 2, c.feira.R.y + c.feira.R.h + 30]] : []).concat(c.aeroporto ? [['AEROPORTO', c.aeroporto.R.x + c.aeroporto.R.w / 2, c.aeroporto.R.y + 120]] : []).concat(c.acel ? [['ACEL', c.acel.hp.x, c.acel.hp.y - 250]] : []).concat(rio ? [['RIO TIBAGI', c.W * .55, rio.cyF(c.W * .55)]] : []).forEach(([t, x, y]) => pixPlaca(ctx, t, X(x), Y(y), { fundo: PAPEL }));
     const mostra = quemAparece(); ctx.fillStyle = PAPEL; for(const r of V.remotos.values()) if(mostra.has(r.sid)) ctx.fillRect(X(r.x) - 1, Y(r.y) - 1, 3, 3);
     if(V.eu && Date.now() % 1000 < 650){ ctx.fillStyle = INK; ctx.fillRect(X(V.eu.x) - 3, Y(V.eu.y) - 3, 7, 7); ctx.fillStyle = ROSA; ctx.fillRect(X(V.eu.x) - 2, Y(V.eu.y) - 2, 5, 5); }
   }
@@ -3157,6 +3356,7 @@
     if(emVoo(o)) return;
     if(falando(o, eu)){ ctx.save(); naBase(ctx); ctx.fillStyle = ROSA; const w = 9 + (Math.sin(t * 14) > 0 ? 1 : 0); ctx.fillRect(ix - w, iy + 1, w * 2, 1); ctx.fillRect(ix - w, iy - 1, 1, 2); ctx.fillRect(ix + w - 1, iy - 1, 1, 2); ctx.restore(); }
     const item = o.item && (eu ? o.item.ate > Date.now() && o.item.k : o.item) || null;
+    if(o.barco){ barquinho(ctx, o, t, eu, item); return; }
     skin(ctx, o.av, ix, iy, o.sit ? 'baixo' : o.dir, o.mov && !o.sit ? o.passo : null, 1, o.sit ? 'sentado' : '', { item, pesca: !!(o.pesca && o.sit), vc: o.sit ? '' : veiculoDe(o), vcor: o.av && o.av.vcor, pulo: alturaPulo(o) * PULO_PX });
   }
   /* ---------- v3.40 · o pulo, o veículo de cada um ---------- */
@@ -3168,13 +3368,15 @@
   const veiculoInfo = o => { const k = veiculoDe(o); return k && C.veiculos ? C.veiculos.porK(k) : null; };
   const MIC_B = ['01110', '01110', '01110', '10001', '01110', '00100', '01110'];
   function nomeDe(ctx, o, eu, agora){
-    const vk = o.sit ? '' : veiculoDe(o), sobe = vk && C.veiculos ? C.veiculos.pose(vk, 'frente').sobe : 0;
-    const nm = eu ? 'voce' : o.eu ? 'voce · outro aparelho' : o.handle ? '@' + o.handle : (o.nome || 'visitante'), y = o.y - ((o.sit ? 28 : 31) + sobe + alturaPulo(o) * PULO_PX + (emParaquedas(o) ? 22 : 0)) / V.k - altVoo(o);
+    const vk = o.sit || o.barco ? '' : veiculoDe(o), sobe = vk && C.veiculos ? C.veiculos.pose(vk, 'frente').sobe : 0;
+    const nm = eu ? 'voce' : o.eu ? 'voce · outro aparelho' : o.handle ? '@' + o.handle : (o.nome || 'visitante'), y = o.y - ((o.sit || o.barco ? 28 : 31) + sobe + alturaPulo(o) * PULO_PX + (emParaquedas(o) ? 22 : 0)) / V.k - altVoo(o);
     let yb = y - 13 / V.k;
     if(!eu && o.tr){ pixPlaca(ctx, 'TRAMPANDO', o.x, yb, { fundo: AMARELO }); yb -= 13 / V.k; }
     else if(!eu && o.ec){ pixPlaca(ctx, 'EM CASA', o.x, yb, { fundo: LILAS }); yb -= 13 / V.k; }
     else if(!eu && o.jg){ pixPlaca(ctx, 'NO AQUARIO', o.x, yb, { fundo: '#38E1FF' }); yb -= 13 / V.k; }
     else if(!eu && o.pt > 0 && o.av && o.av.skin && !o.av.personagem && PATENTES[o.av.skin]){ pixPlaca(ctx, PATENTES[o.av.skin][o.pt].toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''), o.x, yb, { fundo: '#38E1FF' }); yb -= 13 / V.k; }
+    /* v3.75: no barco, a maior piapara do dia vai em cima do nome */
+    if(o.barco){ const kg = eu ? piaparaHoje() : o.pd === diaBR() % 1e5 ? o.pp / 100 : 0; if(kg > 0){ pixPlaca(ctx, 'PIAPARA ' + kgTxt(kg) + 'KG', o.x, yb, { fundo: '#9CC9F0' }); yb -= 13 / V.k; } }
     if(o.fala && o.fala.ate > (agora || Date.now())){ const b = pixPlaca(ctx, o.fala.t, o.x, yb, { fundo: PAPEL, max: 24 }); ctx.save(); naBase(ctx); ctx.fillStyle = INK; const tx = b.ix + Math.floor(b.w / 2); ctx.fillRect(tx - 1, b.iy + b.h, 3, 1); ctx.fillRect(tx, b.iy + b.h + 1, 1, 1); ctx.restore(); }
     const r = pixPlaca(ctx, nm, o.x, y, { fundo: eu ? AMARELO : o.eu ? '#FFF7A8' : PAPEL, max: o.eu ? 22 : 16 });
     /* v3.54: de patinete (o da JET), a marca vai do lado do nome */
@@ -3227,6 +3429,7 @@
     if(V.tarefa && V.tarefa.fase === 'jogando'){ kx = ky = 0; V.alvo = null; }
     const np = Math.max(1, Math.ceil(dtReal / .05 - 1e-9));
     if(V.voo) passoVoo(dtReal);
+    else if(e.barco) for(let i = 0; i < np; i++) andaBarco(e, kx, ky, dtReal / np, fator);
     else for(let i = 0; i < np; i++) andaEu(e, kx, ky, dtReal / np, fator);
     somDoPasso(e);
     for(const r of V.remotos.values()){
@@ -3235,25 +3438,33 @@
       if(d > 400){ r.x = r.tx; r.y = r.ty; } else if(d > .5){ const k = Math.min(1, dt * 10); r.x += ax * k; r.y += ay * k; }
       r.mov = d > 1.5 || r.mov && d > .5; if(r.mov){ r.passo += dt * 11; if(Math.abs(ax) > Math.abs(ay)) r.dir = ax < 0 ? 'esq' : 'dir'; else if(Math.abs(ay) > .5) r.dir = ay < 0 ? 'cima' : 'baixo'; }
       if(r.mic && V.peers.get(r.sid)){ const p = V.peers.get(r.sid); if(p.an) p.nivel = p.an(); }
+      /* v3.75: o barco dos outros também deixa rastro na água */
+      if(r.barco && r.mov && performance.now() - (r.raT || 0) > 110){ r.raT = performance.now(); rastro(r.x - (r.bl < 0 ? -1 : 1) * meioBarco(), r.y + 1); }
     }
-    bots(dt); carros(dt); bolas(dt); passoNpcs(dt); passoTarefa(dt); mjUI();
+    bots(dt); carros(dt); bolas(dt); passoNpcs(dt); passoTarefa(dt); mjUI(); rioPasso(dt); rioUI();
     if(V.tarefa && (!V.tarefaUiT || t - V.tarefaUiT > .25)){ V.tarefaUiT = t; tarefaUI(); }
     if(V.anEu) V.nivelEu = V.anEu();
     const z = V.z, cw = V.cssW, ch = V.cssH;
     /* no voo, a câmera acompanha o avião lá em cima (não a sombra no chão) */
     const altC = V.voo ? V.voo.alt * .85 : 0;
-    const tx = clamp(e.x, cw / 2 / z, Math.max(cw / 2 / z, V.cid.W - cw / 2 / z)), ty = clamp(e.y - 40 - altC, TOPO - RUA - 300 + ch / 2 / z, Math.max(TOPO, V.cid.H - ch / 2 / z));
+    /* v3.75: pescando, a câmera desce um tanto: o barco sobe na tela e o painel da pesca não tampa a boia (no celular,
+       onde o painel e o botão ficam no meio da tela, desce mais) */
+    const rioC = e.barco && V.rio && V.rio.fase ? ch / z * (V.pad ? .26 : .1) : 0;
+    const tx = clamp(e.x, cw / 2 / z, Math.max(cw / 2 / z, V.cid.W - cw / 2 / z)), ty = clamp(e.y - 40 - altC + rioC, TOPO - RUA - 300 + ch / 2 / z, Math.max(TOPO, V.cid.H - ch / 2 / z));
     const k = Math.min(1, dt * 6); V.cam.x += (tx - V.cam.x) * k; V.cam.y += (ty - V.cam.y) * k;
-    let melhor = null, md = PORTA_R; if(!V.voo) for(const p of V.portas){ const d = Math.hypot(p.x - e.x, p.y - e.y); if(d < md){ md = d; melhor = p; } }
-    if(V.portaT && !V.voo) melhor = V.portaT;
+    /* v3.75: no barco, a única porta é a do píer (pra descer), e de um pouco mais longe (o barco não encosta) */
+    let melhor = null, md = e.barco ? 100 : PORTA_R; if(!V.voo) for(const p of V.portas){ if(e.barco && (p.tipo !== 'barco' || !e.barco.livre)) continue; const d = Math.hypot(p.x - e.x, p.y - e.y); if(d < md){ md = d; melhor = p; } }
+    if(V.portaT && !V.voo && !e.barco) melhor = V.portaT;
     if(melhor !== V.porta){ V.porta = melhor; portaUI(); }
     const zn = zonaDe(e.x, e.y); if(zn !== V.zona){ V.zona = zn; const zb = C.$('cvr-zona'); if(zb){ zb.hidden = !zn; zb.innerHTML = zn ? `${ico('pin')} ${esc(zn)}` : ''; } }
     enviaPos(false);
   }
   /* ---------- v3.40 · os sons: o passo (cada chão o seu), o motor do veículo, o ambiente de cada lugar ---------- */
   function chaoDe(x, y){
-    const c = V.cid, l = c.lago;
+    const c = V.cid, l = c.lago, rio = c.rio;
     if(l) for(const s of l.secos) if(x > s.x && x < s.x + s.w && y > s.y && y < s.y + s.h) return 'madeira';
+    /* v3.75: na beira do Tibagi, o píer é madeira, a prainha é areia e a trilha é terra */
+    if(rio && y > rio.y0 + 14){ for(const p of rio.piers) if(x > p.x && x < p.x + p.w && y > p.y && y < p.y + p.h) return 'madeira'; if(rio.prainha && x > rio.prainha.x0 && x < rio.prainha.x1) return 'areia'; const t = rio.colEm(x).t; return y > t - 44 ? 'terra' : 'grama'; }
     for(const R of c.regs) if(x >= R.x && x <= R.x + R.w && y >= R.y && y <= R.y + R.h){
       if(R.k === 'bosque') return 'terra';
       if(R.k === 'zerao' || R.k === 'lago') return 'grama';
@@ -3268,6 +3479,7 @@
   }
   function somDoPasso(e){
     const S = C.versoSom; if(!S || !S.ativo()) return;
+    if(e.barco){ S.motor('rabeta', clamp(Math.hypot(e.barco.vx, e.barco.vy) / BARCO_MAX, 0, 1)); return; }
     const vi = veiculoInfo(e), andando = !!(e.mov && !e.sit && !V.voo);
     S.motor(vi && !V.voo && !e.sit ? vi.som : null, andando ? Math.min(1, ritmo(e) / 2.4 * (V.fatorAnda || 1) + .12) : 0);
     const n = Math.floor(e.passo / Math.PI);
@@ -3280,11 +3492,11 @@
     const c = V.cid, x = V.eu.x, y = V.eu.y, perto = (p, r) => p ? clamp(1 - Math.hypot(x - p.x, y - p.y) / r, 0, 1) : 0;
     const R = c.regs.find(R => x >= R.x - 80 && x <= R.x + R.w + 80 && y >= R.y - 80 && y <= R.y + R.h + 80);
     const g = c.grade[Math.floor((y - TOPO) / (LH + RUA))], f = g && g[Math.floor((x - RUA) / (LW + RUA))];
-    const verde = (R && /bosque|zerao|lago|acel/.test(R.k)) || !!(f && f.t === 'enche' && /pracinha|bosquinho/.test(f.f.t));
-    const lg = c.lago, agua = lg && x > lg.x - 60 && x < lg.x + lg.w + 60 && y > lg.y - 60 && y < lg.y + lg.h + 60 ? 1 : 0;
+    const verde = (R && /bosque|zerao|lago|acel/.test(R.k)) || !!(f && f.t === 'enche' && /pracinha|bosquinho/.test(f.f.t)) || (rio && y > rio.y0 - 20);
+    const lg = c.lago, rio = c.rio, beira = rio && y > rio.y0 - 60, agua = (lg && x > lg.x - 60 && x < lg.x + lg.w + 60 && y > lg.y - 60 && y < lg.y + lg.h + 60) || beira ? 1 : 0;
     const gente = Math.max(perto({ x: c.praca.cx, y: c.praca.cy }, 700), c.feira ? perto({ x: c.feira.R.x + c.feira.R.w / 2, y: c.feira.R.y + c.feira.R.h / 2 }, 600) : 0, perto(c.centro.concha ? { x: c.centro.concha.x + LW / 2, y: c.centro.concha.base + 60 } : null, 420) * .7);
-    const trafego = R ? ({ lago: .3, bosque: .4, zerao: .55, aeroporto: .45, acel: .5 }[R.k] || .7) : 1;
-    S.ambiente({ trafego, passaros: verde ? 1 : .2, gente, agua: agua * (R && R.k === 'lago' ? 1 : .5) });
+    const trafego = rio && y > rio.y0 + 60 ? .2 : R ? ({ lago: .3, bosque: .4, zerao: .55, aeroporto: .45, acel: .5 }[R.k] || .7) : 1;
+    S.ambiente({ trafego, passaros: verde ? 1 : .2, gente, agua: agua * ((R && R.k === 'lago') || (rio && y > rio.y0 + 60) ? 1 : .5) });
   }
   function laco(ts){
     if(!V.vivo) return;
@@ -3964,6 +4176,14 @@
   }
   function portaUI(){
     const b = C.$('cvr-porta'); if(!b) return;
+    b.classList.remove('rio-ja');
+    /* v3.75: no barco, o botão é da pesca (e de descer quando tá perto do píer) */
+    if(V.eu && V.eu.barco){
+      const f = V.rio && V.rio.fase, porto = !f && V.porta && V.porta.tipo === 'barco' && V.eu.barco.livre;
+      b.hidden = false; b.disabled = f === 'lanca' || f === 'salto';
+      b.innerHTML = porto ? `${ico('up')} Descer ${V.porta.k === 'prainha' ? 'na prainha' : 'no porto'}` : !f ? `${ico('peixe')} Jogar a linha` : f === 'lanca' ? `${ico('peixe')} Jogando…` : f === 'espera' ? `${ico('peixe')} Puxar` : f === 'fisgou' ? `${ico('raio')} Puxa!` : f === 'briga' ? `${ico('raio')} Segura: recolher` : `${ico('peixe')} Pegou!`;
+      b.classList.toggle('rio-ja', f === 'fisgou'); padRotulo(); return;
+    }
     if(V.eu && V.eu.sit){ b.hidden = false; b.innerHTML = `${ico('up')} Levantar`; return; }
     const p = V.porta; b.hidden = !p; if(!p) return;
     const meu = p.tipo === 'casa' && p.c.id === (C.st.me && C.st.me.id);
@@ -3973,7 +4193,7 @@
       if(j && T.fase === 'jogando'){ b.disabled = j.t === 'seq'; b.innerHTML = `${ico('raio')} ${esc(j.t === 'tempo' ? j.verbo : j.t === 'segura' ? 'Segura: ' + j.verbo.toLowerCase() : 'Usa as setas')}`; return; }
       b.innerHTML = `${ico('raio')} ${esc(p.et.acao)}${ag ? '…' : ''}`; b.disabled = !!ag; return; }
     b.disabled = false;
-    b.innerHTML = p.tipo === 'aeroporto' ? `${ico('aviao')} Voar (${C.correalTxt(precoVoo())})` : p.tipo === 'sebo' ? `${ico('musica')} Entrar no Sebo` : p.tipo === 'atelie' ? `${ico('star')} Ateliê: skins` : p.tipo === 'torneio' ? `${ico('peixe')} Torneio de Pesca` : p.tipo === 'beisebol' ? `${ico('raio')} Jogar beisebol na ACEL` : p.tipo === 'quadra' ? `${ico('raio')} ${p.k === 'quadra-futsal' ? 'Desafio de pênalti' : 'Desafio de arremesso'}` : p.tipo === 'publi' ? `${ico('ext')} ${esc((PUBLI[p.k] || {}).nome || '')}: baixar o app` : p.tipo === 'pista' ? `${ico('raio')} ${p.k === 'moto' ? 'Autódromo do Café' : 'Corrida de patinete'}` : p.tipo === 'civico' ? `${ico('raio')} ${esc(CIVICOS[p.k].entra)}` : p.tipo === 'barraca' ? (aberta(p.b) ? `${ico(p.b.ico)} ${esc(p.b.botao)}` : `${ico('eye')} Hórus desligado: ligar`) : p.tipo === 'comida' ? `${ico('banca')} ${esc(COMIDAS[p.k][0])}` : p.tipo === 'aquario' ? `${ico('play')} Jogar ${esc(JOGOS[p.jogo].titulo)}` : p.tipo === 'banco' ? (p.pesca ? `${ico('gente')} Pescar no ${p.b.lugar.startsWith('Deck') ? 'deck' : 'píer'}` : `${ico('gente')} Sentar ${p.b.degrau ? 'na Concha' : 'no banco'}`) : p.tipo === 'mural' ? `${ico('tacha')} Abrir o Mural` : p.tipo === 'banca' ? `${ico('banca')} Banca do dia` : p.tipo === 'lote' ? `${ico('plus')} Lote livre` : meu ? `${ico('home')} Tua casa` : `${ico('home')} Bater na porta de @${esc(p.c.handle)}`;
+    b.innerHTML = p.tipo === 'barco' ? `${ico('peixe')} Pegar um barquinho` : p.tipo === 'aeroporto' ? `${ico('aviao')} Voar (${C.correalTxt(precoVoo())})` : p.tipo === 'sebo' ? `${ico('musica')} Entrar no Sebo` : p.tipo === 'atelie' ? `${ico('star')} Ateliê: skins` : p.tipo === 'torneio' ? `${ico('peixe')} Torneio de Pesca` : p.tipo === 'beisebol' ? `${ico('raio')} Jogar beisebol na ACEL` : p.tipo === 'quadra' ? `${ico('raio')} ${p.k === 'quadra-futsal' ? 'Desafio de pênalti' : 'Desafio de arremesso'}` : p.tipo === 'publi' ? `${ico('ext')} ${esc((PUBLI[p.k] || {}).nome || '')}: baixar o app` : p.tipo === 'pista' ? `${ico('raio')} ${p.k === 'moto' ? 'Autódromo do Café' : 'Corrida de patinete'}` : p.tipo === 'civico' ? `${ico('raio')} ${esc(CIVICOS[p.k].entra)}` : p.tipo === 'barraca' ? (aberta(p.b) ? `${ico(p.b.ico)} ${esc(p.b.botao)}` : `${ico('eye')} Hórus desligado: ligar`) : p.tipo === 'comida' ? `${ico('banca')} ${esc(COMIDAS[p.k][0])}` : p.tipo === 'aquario' ? `${ico('play')} Jogar ${esc(JOGOS[p.jogo].titulo)}` : p.tipo === 'banco' ? (p.pesca ? `${ico('gente')} Pescar no ${p.b.lugar.startsWith('Deck') ? 'deck' : 'píer'}` : `${ico('gente')} Sentar ${p.b.degrau ? 'na Concha' : 'no banco'}`) : p.tipo === 'mural' ? `${ico('tacha')} Abrir o Mural` : p.tipo === 'banca' ? `${ico('banca')} Banca do dia` : p.tipo === 'lote' ? `${ico('plus')} Lote livre` : meu ? `${ico('home')} Tua casa` : `${ico('home')} Bater na porta de @${esc(p.c.handle)}`;
   }
   function tamanhoTela(){
     const st = C.$('cvr-stage'); if(!st || !V.cv) return;
@@ -4152,13 +4372,13 @@
       <div class="cvr-top"><span class="cvr-tt">${ico('verso')} Correverso</span><span class="cvr-on" id="cvr-on"></span><button type="button" class="cvr-live" id="cvr-live" data-act="cvr-gente" hidden></button><span class="cvr-zona" id="cvr-zona" hidden></span><button type="button" class="cvr-tarefa" id="cvr-tarefa" data-act="cvr-trampo" hidden></button><button type="button" class="cvr-correal" id="cvr-correal" data-act="carteira" title="Carteira de correal" aria-label="Carteira de correal">${ico('correal')}<b class="num" data-correal-saldo>${C.correal.saldo == null ? '…' : C.correalFmt(C.correal.saldo)}</b></button><button type="button" class="cvr-som" id="cvr-som" data-act="cvr-som" aria-pressed="false" hidden></button></div>
       <p class="cvr-hint" id="cvr-hint" hidden></p>
       <button type="button" class="cvr-mapinha" id="cvr-mapinha" data-act="cvr-mapa" title="Mapa" aria-label="Minimapa: onde você tá na cidade. Toca pra abrir o mapa grande e viajar"><canvas id="cvr-mapinha-cv" width="140" height="104" aria-hidden="true"></canvas></button>
-      <div class="cvr-mj" id="cvr-mj" hidden></div>
+      <div class="cvr-mj" id="cvr-mj" hidden></div><div class="cvr-mj cvr-rio" id="cvr-rio" hidden></div>
       <button type="button" class="cvr-porta" id="cvr-porta" data-act="cvr-porta" hidden></button>
       <div class="cvr-bar"><button type="button" class="cvr-b mic" id="cvr-mic" data-act="cvr-mic" aria-pressed="false"></button><button type="button" class="cvr-b" data-act="cvr-avatar" title="Avatar" aria-label="Avatar">${ico('eu')}<span>Avatar</span></button><button type="button" class="cvr-b" data-act="cvr-garagem" title="Garagem: como você anda pela cidade" aria-label="Garagem">${ico('carro')}<span>Garagem</span></button><button type="button" class="cvr-b" data-act="cvr-casa" title="Voltar pra casa" aria-label="Voltar pra casa">${ico('home')}<span>Pra casa</span></button><button type="button" class="cvr-b" data-act="cvr-mapa" title="Mapa" aria-label="Mapa">${ico('mapa')}<span>Mapa</span></button><button type="button" class="cvr-b" data-act="cvr-falar" title="Falar uma frase" aria-label="Falar uma frase" aria-expanded="false">${ico('chat')}<span>Falar</span></button><button type="button" class="cvr-b" data-act="cvr-gente" title="Quem tá na cidade" aria-label="Quem tá na cidade">${ico('gente')}<span>Gente</span></button><button type="button" class="cvr-b" data-act="cvr-trampo" title="Trampo: as tarefas do teu uniforme" aria-label="Trampo">${ico('raio')}<span>Trampo</span></button></div>
       <div class="cvr-falas" id="cvr-falas" hidden>${FALAS.map((f, i) => `<button type="button" data-act="cvr-fala" data-i="${i}">${esc(f)}</button>`).join('')}</div>`;
     V.cv = C.$('cvr-cv'); V.ctx = V.cv.getContext('2d');
     /* v3.58: o botão amarelo no minijogo responde no toque (não espera o clique) e segura enquanto o dedo tá nele */
-    { const bp = C.$('cvr-porta'); bp.addEventListener('pointerdown', () => { if(mjAperta()) V.mjIgn = Date.now(); }); ['pointerup', 'pointercancel', 'pointerleave'].forEach(ev => bp.addEventListener(ev, () => mjHold(false))); }
+    { const bp = C.$('cvr-porta'); bp.addEventListener('pointerdown', () => { if(mjAperta() || rioAperta()) V.mjIgn = Date.now(); }); ['pointerup', 'pointercancel', 'pointerleave'].forEach(ev => bp.addEventListener(ev, () => { mjHold(false); rioSolta(); })); }
     tamanhoTela();
     C.correalCarrega().then(() => correalUI(false)).catch(() => {});
     /* você sai pela porta da tua casa; se acabou de sair da cidade (Mural, Banca, casa de alguém...), volta pra onde tava */
@@ -4169,7 +4389,7 @@
     voltaGrava(null); V.saiPor = '';
     V.eu = { sid, x: ini.x, y: ini.y, dir: 'baixo', passo: 0, mov: false, av: avLimpo(me.verso, me.id) };
     V.cam.x = ini.x; V.cam.y = ini.y - 40; V.entrando = lv && !vt.porta ? 0 : .55; V.alvo = null; V.remotos = new Map(); V.peers = new Map(); V.espera = new Map(); V.mudos = new Set();
-    V.vivo = true; V.online = null; V.tarefa = null; V.portaT = null; V.festa = null; V.gols = 0;
+    V.vivo = true; V.online = null; V.tarefa = null; V.portaT = null; V.festa = null; V.gols = 0; V.rio = null; V.rastro = [];
     V.bots = [];
     if(C.DEMO){
       V.cid.casas.filter(c => c.p.ex || /^ex\d/.test(c.id)).slice(0, 3).forEach((c, i) => {
@@ -4190,7 +4410,7 @@
     V.tAnt = 0; V.fxT = performance.now() / 1000; V.fxMed = null; V.raf = requestAnimationFrame(laco);
     /* v3.40: o controle de videogame na tela (celular), a música e os sons da cidade */
     V.voo = null; V.passoN = 0;
-    if(C.pad && C.pad.toque()){ V.pad = C.pad.cria(st, { pula: () => { if(!mjAperta()) pula(); }, soltou: () => mjHold(false) }); st.classList.add('toque'); padRotulo(); }
+    if(C.pad && C.pad.toque()){ V.pad = C.pad.cria(st, { pula: () => { if(!mjAperta() && !rioAperta()) pula(); }, soltou: () => { mjHold(false); rioSolta(); } }); st.classList.add('toque'); padRotulo(); }
     if(C.versoSom) C.versoSom.entra(C.$('cvr-som'), () => ({ voz: [...V.peers.values()].some(p => p.estado === 'aovivo'), pausa: !!V.jogo, casa: !!(C.casa && C.casa.aberta()), balcao: !!BC.aberto }));
   }
   function aoSairDaRota(){ if(!/^#\/verso/.test(location.hash)) sair(); }
@@ -4240,6 +4460,8 @@
       }
       if(mj.t !== 'focos' && TECLAS.has(k)){ e.preventDefault(); V.teclas.clear(); return; }
     }
+    /* v3.75: no barco, espaço e Enter são da pesca (jogar, puxar, segurar na briga e soltar) */
+    if(V.eu && V.eu.barco && !mj && (k === ' ' || k === 'Enter')){ e.preventDefault(); if(e.type === 'keydown' && !e.repeat) rioAperta(); else if(e.type === 'keyup') rioSolta(); return; }
     if(TECLAS.has(k)){ e.preventDefault(); if(e.type === 'keydown') V.teclas.add(k); else V.teclas.delete(k); }
     /* v3.40: espaço pula (de moto e de carro, buzina); B buzina (ou toca a campainha da bike) */
     else if(k === ' '){ e.preventDefault(); if(e.type === 'keydown' && !e.repeat) pula(); }
@@ -4263,7 +4485,7 @@
     falaAuto(vi.buzina === 'bike' ? 8 : 7);
   }
   /* o botão da direita do controle: Pular, ou Buzinar de moto e de carro */
-  function padRotulo(){ if(!V.pad) return; const vi = veiculoInfo(V.eu); if(vi && vi.botao === 'buzina') V.pad.rotulo('buzina', 'Buzinar'); else V.pad.rotulo('up', 'Pular'); }
+  function padRotulo(){ if(!V.pad) return; if(V.eu && V.eu.barco){ const f = V.rio && V.rio.fase; V.pad.rotulo('peixe', !f ? 'Pescar' : f === 'espera' ? 'Puxar' : f === 'fisgou' ? 'Puxa!' : f === 'briga' ? 'Segura' : 'Pescar'); return; } const vi = veiculoInfo(V.eu); if(vi && vi.botao === 'buzina') V.pad.rotulo('buzina', 'Buzinar'); else V.pad.rotulo('up', 'Pular'); }
   /* trocou de veículo na garagem (ou pegou o skate em casa): o boneco troca na hora e todo mundo vê */
   function trocaVeiculo(){ const me = C.st.me; if(!V.eu || !me) return; V.eu.av = avLimpo(me.verso, me.id); padRotulo(); anunciar(); }
   /* a miniatura da garagem: o teu boneco no veículo, de lado */
@@ -4355,7 +4577,7 @@
     const a = V.cid.aeroporto, e = V.eu; if(!a || !e || V.voo) return;
     const alvo = pertoLivre(d.x, d.y) || { x: d.x, y: d.y };
     V.voo = { fase: 'embarca', t: 0, x: a.vaga.x, y: a.vaga.y, alt: 0, dir: 1, x0: a.vaga.x, y0: a.vaga.y, pistaY: a.pista.y + a.pista.h / 2 + 10, fim: a.pista.x + a.pista.w - 160, ate: { x: alvo.x, y: alvo.y, nome: d.nome } };
-    e.sit = false; e.pesca = null; e.item = null; V.alvo = null; V.porta = null; V.portaT = null; portaUI();
+    saiDoBarco(); e.sit = false; e.pesca = null; e.item = null; V.alvo = null; V.porta = null; V.portaT = null; portaUI();
     e.x = a.vaga.x; e.y = a.vaga.y; e.mov = true;
     if(V.pad) V.pad.solta();
     if(C.versoSom) C.versoSom.aviao('liga');
@@ -4414,8 +4636,254 @@
     }
     gente.forEach(r => { if(r.vo) desenhaAviao(ctx, r.x, r.y, r.vo === 1 ? VOO_ALT * .9 : 0, r.dir === 'esq' ? -1 : 1, t, true, r.vo !== 1); else if(r.pq) desenhaParaquedas(ctx, r, r.x, r.y, 70, t); });
   }
+  /* ---------- v3.75 · o barquinho e a pesca da piapara no Tibagi ----------
+     No píer de cada porto tem barco de alumínio com motor de rabeta: pegou, você tá na água e anda pelo rio inteiro (as
+     setas, o direcional ou um toque; o barco tem embalo e para devagar). Quem tá na cidade te vê no barco.
+     Parado, o botão amarelo joga a linha, e a pesca tem quatro tempos:
+       espera: a boia boia; às vezes ela só treme (a piapara belisca a isca). Puxou na beliscada, ela leva a isca.
+       fisgou: a boia afunda de vez, e você tem um segundo pra puxar.
+       briga: segurando o botão você recolhe a linha e a tensão sobe; de tempo em tempo a piapara corre, e aí tem que
+         soltar (segurando na corrida, a linha arrebenta). Solto demais, a linha afrouxa e ela cospe o anzol.
+       salto: pegou! Ela pula da água até a tua mão, com o peso.
+     Perto das pedras (a corredeira) a piapara vem maior e morde mais rápido. Lambari e bota velha também aparecem.
+     O recorde do dia fica no aparelho e vai na presença (quem passa vê "PIAPARA 2,40KG" em cima do teu barco).
+     Não vale correal. */
+  const BARCO_MAX = 165, BARCO_ACEL = 290, RIO_K = 'corre-tibagi';
+  const CORES_BARCO = [AMARELO, ROSA, AZUL, LARANJA, LILAS, '#E2412E'];
+  const diaBR = () => Math.floor((Date.now() - 3 * 3600e3) / 864e5);
+  const kgTxt = kg => (Math.round(kg * 100) / 100).toFixed(2).replace('.', ',');
+  const somRio = k => { if(C.versoSom && C.versoSom.rio) C.versoSom.rio(k); };
+  /* o barco (desenhado em pontos da tela, como o boneco) ocupa no mundo um tamanho que muda com o zoom */
+  const meioBarco = () => clamp(17 / V.k, 20, 48);
+  /* onde o barco (ou a boia) não entra: barranco, píer, pedra e barco amarrado */
+  function bateBarco(x, y, boia){
+    const r = V.cid && V.cid.rio; if(!r) return true;
+    const hl = boia ? 4 : meioBarco(), cima = boia ? 6 : 7 / V.k, baixo = boia ? 4 : 3 / V.k;
+    if(x - hl < 10 || x + hl > r.W - 10) return true;
+    for(const dx of boia ? [0] : [-hl, -hl / 2, 0, hl / 2, hl]){ const c = r.colEm(x + dx); if(y - cima < c.t + 4 || y + baixo > c.b - 3) return true; }
+    for(const p of r.piers) if(x + hl > p.x - 2 && x - hl < p.x + p.w + 2 && y - cima < p.y + p.h + 4 && y + baixo > p.y) return true;
+    for(const p of r.pedras){ const dx = (x - p.x) / (p.r + hl * .85), dy = (y - p.y) / (p.r * .7 + (boia ? 2 : 8)); if(dx * dx + dy * dy < 1) return true; }
+    if(!boia) for(const a0 of r.amarrados){ const a = amarradoXY(a0); if(Math.abs(x - a.x) < hl * 2 && Math.abs(y - a.y) < 11 / V.k) return true; }
+    return false;
+  }
+  /* a vaga de quem sai remando: do lado direito do píer (o esquerdo é dos amarrados) */
+  function vagaBarco(p){
+    const hl = meioBarco();
+    for(const y of [p.t + 62, p.t + 86, p.t + 40, p.t + 110]) for(const dx of [4, 30, 60]){ const x = p.x + p.w + hl + dx; if(!bateBarco(x, y)) return { x, y }; }
+    return null;
+  }
+  function embarca(p){
+    const e = V.eu; if(!e || e.barco || !p || V.voo) return;
+    const v = vagaBarco(p); if(!v){ C.toast('Os barcos tão todos na água agora. Tenta de novo daqui a pouco.', 2600); return; }
+    e.sit = false; e.pesca = null; V.alvo = null; V.portaT = null; V.rio = null;
+    e.x = v.x; e.y = v.y; e.mov = false; e.dir = 'baixo';
+    /* "livre": o "Descer no porto" só aparece depois que você saiu da vaga (senão ele é a primeira coisa que o botão diz) */
+    e.barco = { vx: 0, vy: 0, lado: 1, x0: v.x, y0: v.y, livre: false };
+    V.porta = null; if(C.versoSom) C.versoSom.porta();
+    portaUI(); rioUI(true); anunciar();
+    let ja = '1'; try{ ja = localStorage.getItem(RIO_K + '-dica'); if(!ja) localStorage.setItem(RIO_K + '-dica', '1'); }catch(err){}
+    C.toast(ja ? 'No barquinho. Bom rio!' : 'No barquinho! Anda com as setas (no celular, o direcional). Parado, o botão amarelo joga a linha. Perto das pedras a piapara é maior.', ja ? 1800 : 5600);
+  }
+  function desembarca(p){
+    const e = V.eu; if(!e || !e.barco || !p) return;
+    saiDoBarco(); e.x = p.ponta.x; e.y = p.ponta.y - 6; e.dir = 'cima'; e.mov = false;
+    if(C.versoSom) C.versoSom.porta();
+    portaUI(); anunciar(); C.toast('De volta pro píer.', 1600);
+  }
+  /* sai do barco sem cerimônia (o Mapa, o "Pra casa", sair da cidade): a linha vem junto */
+  function saiDoBarco(){ const e = V.eu; if(e) e.barco = null; V.rio = null; rioUI(); padRotulo(); }
+  /* o barco num passo: o empurrão vai pra direção apertada, a água segura (o embalo), e barranco/pedra/píer devolvem */
+  function andaBarco(e, kx, ky, dt, fator){
+    const b = e.barco, R = V.rio; let dx = kx, dy = ky;
+    if(dx || dy) V.alvo = null;
+    else if(V.alvo){ const ax = V.alvo.x - e.x, ay = V.alvo.y - e.y, d = Math.hypot(ax, ay); if(d < 10) V.alvo = null; else { dx = ax / d; dy = ay / d; } }
+    /* pescando, o barco fica parado: na briga nem mexe; esperando, andar recolhe a linha */
+    if(R && R.fase){ if(R.fase === 'espera' || R.fase === 'lanca'){ if(dx || dy) recolheRio('Recolheu a linha pra sair remando.'); } else { dx = dy = 0; V.alvo = null; } }
+    const n = Math.hypot(dx, dy), f = fator || 1;
+    if(n){ b.vx += dx / n * BARCO_ACEL * f * dt; b.vy += dy / n * BARCO_ACEL * .8 * f * dt; }
+    const at = Math.exp(-dt * (n ? .9 : 1.7)); b.vx *= at; b.vy *= at;
+    const sp = Math.hypot(b.vx, b.vy), max = BARCO_MAX * Math.max(.5, f); if(sp > max){ b.vx *= max / sp; b.vy *= max / sp; }
+    const ox = e.x, oy = e.y;
+    if(bateBarco(e.x + b.vx * dt, e.y)) b.vx *= -.25; else e.x += b.vx * dt;
+    if(bateBarco(e.x, e.y + b.vy * dt)) b.vy *= -.25; else e.y += b.vy * dt;
+    if(V.alvo && n && Math.hypot(e.x - ox, e.y - oy) < .05) V.alvo = null;
+    const v = Math.hypot(b.vx, b.vy); e.mov = v > 12;
+    if(Math.abs(b.vx) > 10) b.lado = b.vx < 0 ? -1 : 1;
+    e.dir = e.mov ? (b.lado < 0 ? 'esq' : 'dir') : 'baixo'; e.passo += dt * 6;
+    if(!b.livre && Math.hypot(e.x - b.x0, e.y - b.y0) > 70) b.livre = true;
+    if(e.mov && performance.now() - (V.rastroT || 0) > 90){ V.rastroT = performance.now(); rastro(e.x - b.lado * meioBarco(), e.y + 1); }
+  }
+  /* ---- a pesca ---- */
+  function rioRec(){ try{ const o = JSON.parse(localStorage.getItem(RIO_K) || 'null'); return o && typeof o === 'object' ? o : {}; }catch(e){ return {}; } }
+  function rioGuarda(kg){
+    const o = rioRec(), hoje = diaBR(); if(o.dia !== hoje){ o.dia = hoje; o.kg = 0; }
+    const dia = kg > (o.kg || 0), vida = kg > (o.max || 0); if(dia) o.kg = kg; if(vida) o.max = kg; o.n = (o.n || 0) + 1;
+    try{ localStorage.setItem(RIO_K, JSON.stringify(o)); }catch(e){}
+    return { dia, vida };
+  }
+  const piaparaHoje = () => { const o = rioRec(); return o.dia === diaBR() ? Number(o.kg) || 0 : 0; };
+  /* o que morde: quase sempre piapara (a maioria de meio a dois quilos, de vez em quando uma de quatro), às vezes
+     lambari e, de vez em nunca, uma bota. Na corredeira a piapara vem 25% maior */
+  function sorteiaPeixe(corre){
+    const r = Math.random();
+    if(r < .05) return { k: 'bota', kg: .9, forca: .16, d0: .5 };
+    if(r < .2){ const kg = .04 + Math.random() * .14; return { k: 'lambari', kg, forca: .2, d0: .35 }; }
+    let kg = .5 + Math.pow(Math.random(), 2.2) * 4.1; if(corre) kg = Math.min(5.4, kg * 1.25);
+    kg = Math.round(kg * 100) / 100; return { k: 'piapara', kg, forca: .35 + kg / 6, d0: Math.min(1.1, .7 + kg * .07) };
+  }
+  function lanca(){
+    const e = V.eu, b = e && e.barco; if(!b) return;
+    b.vx = b.vy = 0; e.mov = false; V.alvo = null; e.dir = 'baixo';
+    /* a boia cai na frente e pro lado da vara; se ali não é água boa, do outro lado, ou pra cima */
+    const k = V.k; let ponto = null;
+    for(const [dx, dy] of [[30, 18], [-30, 18], [34, -16], [-34, -16], [0, 26]]){ const x = e.x + (dx + (Math.random() - .5) * 6) / k, y = e.y + (dy + (Math.random() - .5) * 4) / k; if(!bateBarco(x, y, true)){ ponto = { x, y }; break; } }
+    if(!ponto){ C.toast('Aqui não dá pra jogar: chega mais pro meio do rio.', 2400); return; }
+    const corre = V.cid.rio.pedras.some(p => Math.hypot(p.x - ponto.x, p.y - ponto.y) < 120);
+    V.rio = { fase: 'lanca', t0: Date.now(), bx: ponto.x, by: ponto.y, corre };
+    somRio('lanca'); portaUI(); rioUI(true); enviaPos(true);
+  }
+  function recolheRio(msg){ V.rio = null; if(msg) C.toast(msg, 1600); portaUI(); rioUI(); enviaPos(true); }
+  function perdeRio(msg, som){ V.rio = null; somRio(som || 'erro'); C.toast(msg, 2800); portaUI(); rioUI(); enviaPos(true); }
+  function comecaBriga(){
+    const R = V.rio, e = V.eu, P = R.peixe, agora = Date.now();
+    Object.assign(R, { fase: 'briga', t0: agora, hold: true, ten: .4, d: P.d0, d0: P.d0, metros: 6 + P.kg * 3, corrida: false, prox: agora + 700 + Math.random() * 900, estoura: 0, frouxo: 0, fase2: Math.random() * 6, raio0: Math.max(24, Math.hypot(R.bx - e.x, R.by - e.y)) });
+    somRio('fisga'); portaUI(); rioUI(true);
+  }
+  function pegou(){
+    const R = V.rio, e = V.eu;
+    R.fase = 'salto'; R.t0 = Date.now(); R.salto = { x0: R.bx, y0: R.by, x1: e.x + 6 / V.k, y1: e.y - 14 / V.k };
+    somRio('tchibum'); portaUI(); rioUI(true);
+  }
+  function fimSalto(){
+    const R = V.rio, e = V.eu, P = R.peixe; V.rio = null;
+    e.item = { k: P.k, ate: Date.now() + 9000 };
+    if(P.k === 'piapara'){ const g = rioGuarda(P.kg); falaAuto(1); if(C.versoSom) C.versoSom.acerto(); C.toast(`Piapara de ${kgTxt(P.kg)} kg!${g.vida ? ' O teu recorde de todos os tempos.' : g.dia ? ' O teu recorde de hoje.' : ''}`, 4000); anunciar(); }
+    else if(P.k === 'lambari'){ falaAuto(1); C.toast(`Um lambari de ${Math.round(P.kg * 1000)} g. A piapara grande gosta da corredeira.`, 3200); }
+    else { falaAuto(3); C.toast('Uma bota velha. O rio agradece a faxina.', 2800); }
+    portaUI(); rioUI(); enviaPos(true);
+  }
+  /* o botão amarelo (ou o espaço, o Enter, o Pular do celular) no barco: o que ele faz depende da hora */
+  function rioAperta(){
+    const e = V.eu; if(!e || !e.barco || V.voo) return false;
+    const R = V.rio, f = R && R.fase, b = e.barco;
+    if(!f){ if(V.porta && V.porta.tipo === 'barco' && b.livre && Math.hypot(b.vx, b.vy) < 50){ desembarca(V.porta.pier); return true; } lanca(); return true; }
+    if(f === 'espera'){ if(R.beliscando) perdeRio('Cedo demais: era só a beliscada, e ela levou a isca.'); else recolheRio('Recolheu a linha.'); return true; }
+    if(f === 'fisgou'){ comecaBriga(); return true; }
+    if(f === 'briga'){ R.hold = true; return true; }
+    return true;
+  }
+  function rioSolta(){ const R = V.rio; if(R && R.fase === 'briga') R.hold = false; }
+  function rioPasso(dt){
+    const R = V.rio, e = V.eu; if(!R || !e || !e.barco) return; const agora = Date.now();
+    if(R.fase === 'lanca'){ if(agora - R.t0 > 650){ R.fase = 'espera'; R.t0 = agora; R.morde = agora + (R.corre ? 1800 : 2600) + Math.random() * (R.corre ? 3600 : 5600); R.bel = []; const nb = Math.floor(Math.random() * 3); for(let i = 0; i < nb; i++) R.bel.push(agora + 900 + Math.random() * Math.max(400, R.morde - agora - 1700)); somRio('plop'); portaUI(); rioUI(true); } return; }
+    if(R.fase === 'espera'){
+      const bel = R.bel.some(t0 => agora > t0 && agora < t0 + 420); if(bel && !R.beliscando) somRio('belisca'); R.beliscando = bel;
+      if(agora >= R.morde){ R.fase = 'fisgou'; R.t0 = agora; R.beliscando = false; R.peixe = sorteiaPeixe(R.corre); somRio('fisga'); try{ if(navigator.vibrate) navigator.vibrate(70); }catch(err){} portaUI(); rioUI(true); }
+      return;
+    }
+    if(R.fase === 'fisgou'){ if(agora - R.t0 > 1000) perdeRio('Demorou: ela levou a isca. Joga de novo.'); return; }
+    if(R.fase === 'salto'){ if(agora - R.t0 > 900) fimSalto(); return; }
+    if(R.fase !== 'briga') return;
+    const P = R.peixe;
+    /* de tempo em tempo ela corre (a piapara grande corre mais e mais forte) */
+    if(agora > R.prox){ R.corrida = !R.corrida; R.prox = agora + (R.corrida ? 450 + Math.random() * 900 * (.6 + P.forca) : 1200 + Math.random() * 2000); if(R.corrida && P.k === 'piapara') somRio('corre'); rioUI(true); }
+    const puxa = P.forca * (R.corrida ? .95 + Math.random() * .25 : .22), alvo = R.hold ? .3 + puxa * .62 : puxa * .42;
+    R.ten += (alvo - R.ten) * Math.min(1, dt * 3.2);
+    if(R.hold && R.ten < 1) R.d -= dt * (R.corrida ? .025 : .1) * (1.2 - Math.min(.6, P.forca * .4));
+    else if(!R.hold) R.d = Math.min(R.d0, R.d + dt * puxa * (R.corrida ? .08 : .02));
+    if(R.ten >= 1){ R.estoura += dt; if(R.estoura > .28){ perdeRio(P.k === 'piapara' ? 'Arrebentou a linha! Quando ela correr, solta o botão.' : 'Arrebentou a linha!', 'arrebenta'); return; } } else R.estoura = Math.max(0, R.estoura - dt);
+    if(R.ten < .1){ R.frouxo += dt; if(R.frouxo > 1.8){ perdeRio('A linha afrouxou demais e ela cuspiu o anzol. Segura quando ela acalmar.'); return; } } else R.frouxo = Math.max(0, R.frouxo - dt * 2);
+    /* o peixe nada de um lado pro outro na frente do barco, cada vez mais perto */
+    R.fase2 += dt * (R.corrida ? 2.6 : 1.1);
+    const ang = Math.PI / 2 + Math.sin(R.fase2) * 1.05, raio = (14 / V.k) + (R.d / R.d0) * Math.max(0, R.raio0 - 14 / V.k), nx = e.x + Math.cos(ang) * raio * 1.3, ny = e.y + 4 / V.k + Math.sin(ang) * raio * .55;
+    if(!bateBarco(nx, ny, true)){ R.bx = nx; R.by = ny; }
+    if(R.hold && agora - (R.clT || 0) > 85){ R.clT = agora; somRio('clique'); }
+    if(R.d <= 0) pegou();
+  }
+  /* o painel da pesca, em cima do botão amarelo (as mesmas peças do minijogo das tarefas) */
+  function rioUI(forca){
+    const el = C.$('cvr-rio'); if(!el) return;
+    const R = V.rio, f = R && R.fase, mostra = !!(f && f !== 'lanca' && V.eu && V.eu.barco);
+    if(!mostra){ if(!el.hidden){ el.hidden = true; el.dataset.k = ''; el.innerHTML = ''; } return; }
+    el.hidden = false;
+    const P = R.peixe, k = [f, R.corrida ? 1 : 0, P ? P.k : ''].join('|');
+    if(forca || el.dataset.k !== k){
+      el.dataset.k = k;
+      let titulo = '', chip = '', corpo = '', dica = '';
+      if(f === 'espera'){ titulo = 'Esperando a piapara'; chip = R.corre ? 'corredeira' : 'remanso'; dica = 'Quando a boia afundar de vez, puxa. Se ela só tremer, é beliscada: não puxa.' + (R.corre ? ' Perto da pedra a água corre: é onde a piapara grande fica.' : ''); }
+      else if(f === 'fisgou'){ titulo = 'Afundou! Puxa!'; chip = 'agora'; dica = 'Toca no botão amarelo (ou espaço) agora.'; }
+      else if(f === 'briga'){ titulo = P.k === 'piapara' ? (R.corrida ? 'Ela correu! Solta!' : 'Piapara na linha!') : P.k === 'lambari' ? 'Peixinho na linha' : 'Tá pesado e não briga…';
+        corpo = '<div class="mj-barra"><i class="mj-zona"></i><i class="mj-nivel"></i></div><div class="mj-prog"><i></i></div>';
+        dica = R.corrida && P.k === 'piapara' ? 'Segurando na corrida, a linha arrebenta. Solta e espera ela cansar.' : 'Segura o botão pra recolher, com a agulha na faixa rosa. Quando ela correr, solta.'; }
+      else { titulo = P && P.k === 'piapara' ? `Pegou! Piapara de ${kgTxt(P.kg)} kg` : P && P.k === 'lambari' ? 'Pegou um lambari' : 'Pegou… uma bota'; chip = ''; dica = ''; }
+      el.className = 'cvr-mj cvr-rio' + (f === 'briga' && R.corrida && P.k === 'piapara' ? ' corre' : '');
+      el.innerHTML = `<div class="mj-h"><b>${esc(titulo)}</b>${chip || f === 'briga' ? `<span class="rio-chip">${esc(chip)}</span>` : ''}</div>${corpo}${dica ? `<small>${esc(dica)}</small>` : ''}`;
+    }
+    if(f === 'briga'){
+      const n = el.querySelector('.mj-nivel'), p = el.querySelector('.mj-prog i'), ch = el.querySelector('.rio-chip');
+      if(n) n.style.left = (clamp(R.ten, 0, 1) * 100).toFixed(1) + '%'; if(p) p.style.width = clamp((1 - R.d / R.d0) * 100, 0, 100).toFixed(1) + '%'; if(ch) ch.textContent = Math.max(0, Math.round(R.d / R.d0 * R.metros)) + ' m';
+      el.classList.toggle('dentro', R.ten >= .25 && R.ten <= .8); el.classList.toggle('perigo', R.ten > .86);
+    }
+  }
+  /* o barco de alguém, com a pessoa sentada no meio; pescando, a vara, a linha e a boia */
+  function barquinho(ctx, o, t, eu, item){
+    const R = eu ? V.rio : null, [ix, iy0] = ptBase(ctx, o.x, o.y), lado = eu ? (o.barco.lado < 0 ? -1 : 1) : (o.bl < 0 ? -1 : 1), mexe = !!o.mov;
+    const iy = iy0 + (!mexe && Math.sin(t * 2.4 + o.x * .013) > .25 ? 1 : 0), pesca = eu ? !!(R && R.fase && R.fase !== 'salto') : !!o.pesca;
+    /* a boia: a minha, onde eu joguei (voando até lá no lance); a dos outros, num lugar de sempre na frente do barco */
+    let boia = null;
+    if(R && pesca){ const f = R.fase === 'lanca' ? Math.min(1, (Date.now() - R.t0) / 650) : 1, [bx, by] = ptBase(ctx, R.bx, R.by); boia = { x: Math.round(ix + (bx - ix) * f), y: Math.round(iy + (by - iy) * f - Math.sin(f * Math.PI) * (R.fase === 'lanca' ? 22 : 0)), f }; }
+    else if(pesca) boia = { x: ix + 30, y: iy + 18, f: 1 };
+    const cor = CORES_BARCO[hash(o.uid || o.sid || 'x') % CORES_BARCO.length], dir = mexe && !pesca ? (lado < 0 ? 'esq' : 'dir') : 'baixo';
+    const P = (x, y, w, h, c) => { ctx.fillStyle = c; ctx.fillRect(ix + (lado < 0 ? -(x + w) : x), iy + y, w, h); };
+    ctx.save(); naBase(ctx); casco(P, 'atras', cor, t, mexe); ctx.restore();
+    skin(ctx, o.av, ix - 2 * lado, iy - 1, dir, null, 1, 'sentado', { item, vara: pesca && dir === 'baixo', semSombra: true });
+    ctx.save(); naBase(ctx); casco(P, 'frente', cor, t, mexe); if(boia) linhaRio(ctx, ix - 2 * lado + 9, iy - 13, boia, R, t); ctx.restore();
+    if(eu && R && R.fase === 'fisgou') pixPlaca(ctx, '!', o.x + 16 / V.k, o.y - 34 / V.k, { fundo: AMARELO, cor: INK, s: 2 });
+  }
+  /* a linha da vara até a boia (em pontos da tela). Na briga ela fica esticada e a água ferve onde o peixe tá */
+  function linhaRio(ctx, tx, ty, b, R, t){
+    const fase = R ? R.fase : 'espera', sag = fase === 'briga' || fase === 'fisgou' ? 0 : fase === 'lanca' ? 2 : 5;
+    const n = Math.max(Math.abs(b.x - tx), Math.abs(b.y - ty), 1); ctx.fillStyle = 'rgba(15,18,24,.55)';
+    for(let k = 0; k <= n; k++){ const f = k / n; ctx.fillRect(Math.round(tx + (b.x - tx) * f), Math.round(ty + (b.y - ty) * f + Math.sin(f * Math.PI) * sag), 1, 1); }
+    if(fase === 'briga'){
+      for(let k = 0; k < 8; k++){ const a = t * 9 + k * 2.1, rr = 2 + (k % 3) * 2; ctx.fillStyle = k % 2 ? PAPEL : 'rgba(255,255,255,.6)'; ctx.fillRect(Math.round(b.x + Math.cos(a) * rr * 1.6), Math.round(b.y + Math.sin(a) * rr * .6), 1, 1); }
+      if(R.corrida && Math.sin(t * 7) > 0){ ctx.fillStyle = '#C9CED6'; ctx.fillRect(b.x - 3, b.y - 2, 7, 2); ctx.fillStyle = '#E8A04A'; ctx.fillRect(b.x, b.y - 3, 2, 1); }
+      return;
+    }
+    if(fase === 'fisgou'){ ctx.fillStyle = PAPEL; for(let k = 0; k < 8; k++){ const a = k / 8 * Math.PI * 2 + t * 3, rr = 3 + ((t * 12 + k) % 4); ctx.fillRect(Math.round(b.x + Math.cos(a) * rr * 1.4), Math.round(b.y - 1 + Math.sin(a) * rr * .5), 1, 1); } return; }
+    /* a boia: o palito, o rosa e o branco. Boiando, sobe e desce; na beliscada afunda um ponto e solta um anel */
+    const bel = !!(R && R.beliscando), dy = b.f < 1 ? 0 : bel ? 1 : (Math.sin(t * 3) > .6 ? 1 : 0);
+    if(b.f >= 1){ ctx.fillStyle = 'rgba(255,255,255,.45)'; const rr = bel ? 4 : 2 + ((t * 2) % 3); for(let k = 0; k < 10; k++){ const a = k / 10 * Math.PI * 2; ctx.fillRect(Math.round(b.x + Math.cos(a) * rr * 1.6), Math.round(b.y + 1 + Math.sin(a) * rr * .5), 1, 1); } }
+    ctx.fillStyle = INK; ctx.fillRect(b.x, b.y - 5 + dy, 1, 2); ctx.fillStyle = ROSA; ctx.fillRect(b.x - 1, b.y - 3 + dy, 3, 2); ctx.fillStyle = PAPEL; ctx.fillRect(b.x - 1, b.y - 1 + dy, 3, 1);
+  }
+  /* o peixe de lado, em pontos da tela, olhando pra esquerda (dir < 0 vira pra direita) */
+  function peixePx(ctx, x, y, k, dir){
+    const R = (dx, dy, w, h, c) => { ctx.fillStyle = c; ctx.fillRect(dir < 0 ? x - dx - w : x + dx, y + dy, w, h); };
+    if(k === 'bota'){ R(-2, -6, 4, 8, '#5A4634'); R(-2, 1, 8, 2, '#3B2D22'); R(-2, -6, 4, 1, '#8C7A66'); return; }
+    if(k === 'lambari'){ R(-4, -1, 7, 2, '#E6EAEE'); R(-3, 1, 6, 1, '#C9CED6'); R(3, -2, 2, 4, '#E2412E'); R(-3, -1, 1, 1, INK); return; }
+    /* a piapara: prateada, as três manchas pretas do lado, nadadeira amarelada e o rabo de forquilha */
+    R(-6, -3, 10, 1, '#C9CED6'); R(-7, -2, 12, 1, '#DDE2E8'); R(-8, -1, 14, 2, '#EEF1F4'); R(-7, 1, 12, 1, '#C9CED6'); R(-5, 2, 8, 1, '#B7BEC7');
+    R(-4, 0, 1, 1, '#1B1D22'); R(-1, 0, 1, 1, '#1B1D22'); R(2, 0, 1, 1, '#1B1D22');
+    R(-1, -4, 3, 1, '#E8A04A'); R(-2, 3, 2, 1, '#E8A04A'); R(6, -3, 1, 2, '#E8A04A'); R(7, -4, 1, 2, '#E8A04A'); R(6, 1, 1, 2, '#E8A04A'); R(7, 2, 1, 2, '#E8A04A'); R(6, -1, 1, 2, '#D9902F');
+    R(-7, -2, 1, 1, INK); R(-9, -1, 1, 1, '#9AA0A8');
+  }
+  /* pegou: o peixe pula da água em arco até a tua mão, com o tchibum de onde saiu e as gotas atrás */
+  function saltoPeixe(ctx, t){
+    const R = V.rio, s = R && R.salto; if(!s || !R.peixe) return;
+    const f = Math.min(1, (Date.now() - R.t0) / 900), pos = g => [s.x0 + (s.x1 - s.x0) * g, s.y0 + (s.y1 - s.y0) * g - Math.sin(g * Math.PI) * 46 / V.k];
+    const [ix, iy] = ptBase(ctx, ...pos(f)), [sx, sy] = ptBase(ctx, s.x0, s.y0), gotas = [1, 2, 3, 4].map(k => ptBase(ctx, ...pos(Math.max(0, f - k * .06))));
+    ctx.save(); naBase(ctx);
+    if(f < .55){ ctx.fillStyle = PAPEL; for(let k = 0; k < 9; k++){ const a = Math.PI * (1.05 + k / 8 * .9), rr = 3 + f * 18; ctx.fillRect(Math.round(sx + Math.cos(a) * rr), Math.round(sy + Math.sin(a) * rr * .8), 1, 2); } }
+    ctx.fillStyle = '#9CC9F0'; gotas.forEach(([gx, gy], k) => ctx.fillRect(gx + (k % 2 ? 2 : -2), gy + 2, 1, 1));
+    peixePx(ctx, ix, iy, R.peixe.k, s.x1 >= s.x0 ? -1 : 1);
+    ctx.restore();
+  }
   function abrePorta(){
     if(V.voo) return;
+    /* v3.75: o toque que o minijogo ou a pesca já usou (no pointerdown) não vale de novo no clique que vem depois (senão
+       quem desce do barco no píer já pegava outro barco no mesmo toque). No barco, o botão amarelo é da pesca */
+    if(V.mjIgn && Date.now() - V.mjIgn < 800){ V.mjIgn = 0; return; }
+    if(V.eu && V.eu.barco){ rioAperta(); return; }
     if(V.eu && V.eu.sit){ V.eu.sit = false; V.eu.pesca = null; portaUI(); enviaPos(true); return; }
     const p = V.porta; if(!p) return;
     if(p.tipo === 'aeroporto'){ aeroportoSheet(); return; }
@@ -4432,6 +4900,7 @@
     if(p.tipo === 'pista'){ if(C.casa && C.casa.LUGARES && C.casa.LUGARES[p.k]){ if(C.versoSom) C.versoSom.porta(); C.casa.abrir({ lugar: p.k }); } return; }
     if(p.tipo === 'torneio'){ if(C.casa && C.casa.LUGARES && C.casa.LUGARES.pesca){ if(C.versoSom) C.versoSom.porta(); C.casa.abrir({ lugar: 'pesca' }); } return; }
     if(p.tipo === 'atelie'){ if(C.versoSom) C.versoSom.porta(); lojaSheet(); return; }
+    if(p.tipo === 'barco'){ embarca(p.pier); return; }
     if(p.tipo === 'sebo'){ if(C.casa && C.casa.LUGARES && C.casa.LUGARES.sebo){ if(C.versoSom) C.versoSom.porta(); C.casa.abrir({ lugar: 'sebo' }); } return; }
     if(p.tipo === 'mural'){ abreBalcao(BC_MURAL); return; }
     if(p.tipo === 'banca'){ abreBalcao(BC_BANCA); return; }
@@ -4621,7 +5090,7 @@
     'cvr-lj-veste': async el => { el.disabled = true; try{ await vesteSkin(el.dataset.k); }catch(e){ C.toast(C.errMsg(e, 'Não deu pra vestir agora.')); } pintaLoja(); },
     'cvr-lj-tira': async el => { el.disabled = true; try{ await vesteSkin(''); }catch(e){ C.toast(C.errMsg(e, 'Não deu agora.')); } pintaLoja(); },
     /* v3.55: "Pra casa" levanta do banco e larga a vara (antes chegava sentado, pescando na porta) */
-    'cvr-casa': () => { if(!V.eu || !V.casa) return; V.alvo = null; V.eu.sit = false; V.eu.pesca = null; V.eu.x = V.casa.x; V.eu.y = V.casa.y; V.entrando = .55; anunciar(); portaUI(); },
+    'cvr-casa': () => { if(!V.eu || !V.casa) return; saiDoBarco(); V.alvo = null; V.eu.sit = false; V.eu.pesca = null; V.eu.x = V.casa.x; V.eu.y = V.casa.y; V.entrando = .55; anunciar(); portaUI(); },
     'cvr-gente': () => genteSheet(),
     'cvr-mapa': () => { if(V.cid) mapaSheet(); },
     'cvr-ir-lugar': el => { const l = lugares()[Number(el.dataset.i)]; if(!l) return; const p = pertoLivre(l.x, l.y); if(p) teleporta(p.x, p.y); },

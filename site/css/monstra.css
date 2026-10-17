@@ -3301,3 +3301,13 @@ html.embed .msg-pg{height:calc(100dvh - 40px)}
    estreita, os botões e a letra ficam um tico menores */
 @media (max-width:640px){ .sd-nav h2{min-width:0;overflow:hidden;text-overflow:ellipsis} }
 @media (max-width:360px){ .sd-nav{gap:6px} .sd-nav h2{font-size:17px} .sd-nav .rnd{width:34px;height:34px} }
+
+/* v3.75 · a pesca no Tibagi: o painel usa as peças do minijogo das tarefas; a faixa boa da tensão é fixa (de 25% a
+   80%), passou de 86% a barra avisa em vermelho claro, e na hora de puxar o botão amarelo pisca em rosa */
+.cvr-rio .mj-zona{left:25%;width:55%}
+.cvr-rio.perigo .mj-barra{background:#F7B3A8}
+.cvr-rio.corre .mj-h b{color:#C2261B}
+.cvr-rio .rio-chip{min-width:44px;text-align:center}
+.cvr-porta.rio-ja{animation:rio-ja .38s steps(2,jump-none) infinite alternate}
+@keyframes rio-ja{from{background:var(--yellow);color:var(--ink)}to{background:var(--pink);color:#fff}}
+@media (prefers-reduced-motion:reduce){ .cvr-porta.rio-ja{animation:none;background:var(--pink);color:#fff} }

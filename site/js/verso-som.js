@@ -10,7 +10,7 @@
      campainha, o avião e o paraquedas.
    O botão de som (no alto) troca entre "Música" (tudo), "Só sons" (sem a música) e "Mudo", e o aparelho lembra.
    C.versoSom = { entra(botao, estado), sai(), alterna(), modo(), tocando(), passo(), pulo(), cai(), buzina(),
-                  carroPassa(), motor(), ambiente(), aviao(), moeda(), porta(), amostra(seg), amostraFx() } */
+                  carroPassa(), motor(), ambiente(), aviao(), moeda(), porta(), rio(k), amostra(seg), amostraFx() } */
 (function(){
   'use strict';
   const C = window.Corre; if(!C) return;
@@ -353,6 +353,12 @@
       const trem = ac.createGain(), lfo = ac.createOscillator(), lg = ac.createGain(); trem.gain.value = .75; lfo.type = 'square'; lg.gain.value = .25; lfo.connect(lg); lg.connect(trem.gain);
       o1.connect(lp); o2.connect(g2); g2.connect(lp); lp.connect(trem); trem.connect(g);
       o1.start(); o2.start(); lfo.start(); m.nos.push(o1, o2, lfo); Object.assign(m, { o1, o2, lp, lfo });
+    }else if(tipo === 'rabeta'){
+      /* v3.75: o motor de rabeta do barquinho do Tibagi: dois tempos, agudo e picado (o "pé-de-pato" do rio) */
+      const o1 = ac.createOscillator(), o2 = ac.createOscillator(), bp = ac.createBiquadFilter(), trem = ac.createGain(), lfo = ac.createOscillator(), lg = ac.createGain();
+      o1.type = 'sawtooth'; o2.type = 'square'; o2.detune.value = 1200; bp.type = 'bandpass'; bp.Q.value = .9; trem.gain.value = .7; lfo.type = 'square'; lg.gain.value = .3;
+      lfo.connect(lg); lg.connect(trem.gain); o1.connect(bp); o2.connect(bp); bp.connect(trem); trem.connect(g);
+      o1.start(); o2.start(); lfo.start(); m.nos.push(o1, o2, lfo); Object.assign(m, { o1, o2, lp: bp, lfo });
     }else if(tipo === 'patinete'){
       const o = ac.createOscillator(), og = ac.createGain(); o.type = 'sine'; og.gain.value = .35; o.connect(og); og.connect(g);
       const s = ac.createBufferSource(), bp = ac.createBiquadFilter(); s.buffer = marrom; s.loop = true; bp.type = 'bandpass'; bp.frequency.value = 520; bp.Q.value = .8; s.connect(bp); bp.connect(g);
@@ -377,6 +383,7 @@
     else if(tipo === 'moto'){ alvo(m.o1.frequency, 52 + 92 * v); alvo(m.o2.frequency, 52 + 92 * v); alvo(m.lp.frequency, 600 + 1000 * v); alvo(m.lfo.frequency, 11 + 20 * v); alvo(m.g.gain, .028 + .04 * v); }
     else if(tipo === 'scooter'){ alvo(m.o1.frequency, 88 + 70 * v); alvo(m.o2.frequency, 88 + 70 * v); alvo(m.lp.frequency, 900 + 700 * v); alvo(m.lfo.frequency, 20 + 16 * v); alvo(m.g.gain, .022 + .03 * v); }
     else if(tipo === 'patinete'){ alvo(m.o1.frequency, 620 + 520 * v); alvo(m.g.gain, v > .05 ? .012 + .022 * v : .0001); }
+    else if(tipo === 'rabeta'){ alvo(m.o1.frequency, 92 + 70 * v); alvo(m.o2.frequency, 92 + 70 * v); alvo(m.lp.frequency, 700 + 900 * v); alvo(m.lfo.frequency, 26 + 18 * v); alvo(m.g.gain, v > .04 ? .014 + .03 * v : .0001); }
     else alvo(m.g.gain, v > .05 ? .02 + .045 * v : .0001);
   }
   /* o ambiente: trânsito ao fundo, gente falando, água do lago; passarinho e buzina de longe de vez em quando */
@@ -459,6 +466,21 @@
   /* v3.58 · o minijogo das tarefas: o plim curto do acerto e o tum do erro */
   function acerto(){ if(!fxOk()) return; const t = ac.currentTime + .005; brilho(t, midi('A5'), .1, .045, fx); }
   function erro(){ if(!fxOk()) return; const t = ac.currentTime + .005; tom(t, 190, 110, .16, .06, 'triangle'); estalo(t, 300, .8, .08, .05, 'lowpass'); }
+  /* v3.75 · os sons da pesca no Tibagi: o zunido da linha e o plop da boia, a beliscada, a fisgada, a catraca do
+     molinete, a piapara correndo, o tchibum de quando ela pula e a linha arrebentando */
+  function rio(k){
+    if(!fxOk()) return; const t = ac.currentTime + .005;
+    if(k === 'lanca'){ const s = ac.createBufferSource(), bp = ac.createBiquadFilter(), g = ac.createGain(); s.buffer = ruido; bp.type = 'bandpass'; bp.Q.value = 2; bp.frequency.setValueAtTime(500, t); bp.frequency.exponentialRampToValueAtTime(2600, t + .3);
+      g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(.05, t + .08); g.gain.exponentialRampToValueAtTime(.0001, t + .34); s.connect(bp); bp.connect(g); g.connect(fx); s.start(t); s.stop(t + .4); return; }
+    if(k === 'plop'){ tom(t, 520, 190, .1, .05); estalo(t, 700, .8, .08, .04, 'lowpass'); return; }
+    if(k === 'belisca'){ tom(t, 640, 330, .05, .025); return; }
+    if(k === 'fisga'){ estalo(t, 900, .5, .26, .1, 'lowpass'); tom(t, 170, 70, .2, .06); return; }
+    if(k === 'clique'){ estalo(t, 3800, 4, .014, .03); return; }
+    if(k === 'corre'){ for(let i = 0; i < 6; i++) estalo(t + i * .03, 3200, 3, .012, .03); return; }
+    if(k === 'tchibum'){ estalo(t, 1100, .4, .4, .13, 'lowpass'); tom(t, 210, 60, .3, .07); estalo(t + .12, 2200, .7, .25, .05); return; }
+    if(k === 'arrebenta'){ estalo(t, 2600, 6, .03, .12); tom(t, 900, 260, .12, .05, 'triangle'); return; }
+    erro();
+  }
   function porta(){ if(!fxOk()) return; const t = ac.currentTime + .01; estalo(t, 600, 1.8, .12, .07); tom(t, 160, 120, .12, .06, 'triangle'); estalo(t + .14, 520, 1.6, .1, .05); }
 
   /* ---------- liga, pausa, sai: quem manda é o modo e o estado da cidade ---------- */
@@ -588,7 +610,7 @@
     /* mais um botão de som (o da casa) */
     botao(b){ if(b && !botoes.includes(b)){ botoes.push(b); pinta(); } },
     sai, alterna, modo: () => modoAtual, tocando: () => musicaOn && modoAtual === 'tudo', ativo: () => ativo,
-    passo, pulo, cai, buzina, carroPassa, motor, ambiente, aviao, moeda, porta, taco, luva, taiko, acerto, erro,
+    passo, pulo, cai, buzina, carroPassa, motor, ambiente, aviao, moeda, porta, taco, luva, taiko, acerto, erro, rio,
     amostra, amostraFx, faixas: () => prontas().map(f => f.nome), faixa: () => prontas()[fi].nome
   };
 })();
