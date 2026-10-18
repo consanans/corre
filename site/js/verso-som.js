@@ -237,6 +237,12 @@
     if(tipo === 'contra') return contra(t, e[2], e[3], e[4]);
     if(tipo === 'ride' || tipo === 'chick') return prato(t, e[2], tipo === 'chick');
     if(tipo === 'violino' || tipo === 'cello') return corda(t, e[2], e[3], e[4], tipo === 'cello');
+    /* v3.79 · os da música da corrida */
+    if(tipo === 'sbaixo') return sbaixo(t, e[2], e[3], e[4]);
+    if(tipo === 'serra') return serra(t, e[2], e[3], e[4]);
+    if(tipo === 'arp') return arp(t, e[2], e[3], e[4]);
+    if(tipo === 'metal') return metal(t, e[2], e[3], e[4]);
+    if(tipo === 'crash') return crash(t, e[2]);
     if(tipo === 'lead') lead(t, e[2], e[3], e[4]);
     else if(tipo === 'pad') pad(t, e[2], e[3], e[4]);
     else if(tipo === 'baixo') baixo(t, e[2], e[3], e[4]);
@@ -497,13 +503,17 @@
   /* o que deve tocar agora (e em que volume) */
   function confere(){
     if(!ac || !ativo) return;
-    const s = st(), pausa = !!s.pausa, querMusica = modoAtual === 'tudo' && !pausa && !s.casa, querFx = modoAtual !== 'mudo' && !pausa;
-    const mv = querMusica ? (s.voz ? VOL * VOZ_BAIXA : s.balcao ? VOL * .5 : VOL) : 0;
-    nivela(musOut, mv, mv < musOut.gain.value ? .35 : 1.1);
+    /* v3.79: a corrida que parou de mandar notícia (o lugar fechou sem avisar) não deixa o motor nem a música ligados */
+    const ag = performance.now(); if(CR.n && ag - CR.ult > 800) paraCorrida(); if(CM.on && ag - (CR.visto || 0) > 3000){ CM.on = false; clearInterval(CM.timer); }
+    /* v3.79: correndo, a música é a da corrida (toca mesmo dentro do lugar 3D) e a da cidade fica quieta */
+    const s = st(), pausa = !!s.pausa, corr = CM.on, querMusica = modoAtual === 'tudo' && !pausa && (!s.casa || corr), querCidade = querMusica && !corr, querFx = modoAtual !== 'mudo' && !pausa;
+    const mv = querMusica ? (s.voz ? VOL * VOZ_BAIXA : s.balcao ? VOL * .5 : corr ? VOL * 1.15 : VOL) : 0;
+    nivela(musOut, mv, mv < musOut.gain.value ? .35 : corr ? .25 : 1.1);
     nivela(fx, querFx ? 1 : 0, .15);
     nivela(amb, querFx ? (s.casa ? .18 : s.balcao ? .35 : 1) : 0, .9);
-    if(querMusica && !musicaOn){ musicaOn = true; i = 0; t0 = ac.currentTime + .25; clearInterval(timer); timer = setInterval(tick, 150); tick(); }
-    else if(!querMusica && musicaOn){ musicaOn = false; clearInterval(timer); }
+    if(querCidade && !musicaOn){ musicaOn = true; i = 0; t0 = ac.currentTime + .25; clearInterval(timer); timer = setInterval(tick, 150); tick(); }
+    else if(!querCidade && musicaOn){ musicaOn = false; clearInterval(timer); }
+    if(!querFx) paraCorrida();
     /* v3.55: dentro de casa, de lugar 3D ou do balcão o motor da rua para (o passo da cidade não roda lá e ele ficava zumbindo) */
     if(!querFx || s.casa || s.balcao) paraMotor();
     if(!querFx) aviao('para');
@@ -528,7 +538,7 @@
   }
   function sai(){
     ativo = false; esperando = false; musicaOn = false; clearInterval(timer); clearInterval(vigia); clearTimeout(ambT);
-    paraMotor(); aviao('para');
+    paraMotor(); aviao('para'); CM.on = false; clearInterval(CM.timer); paraCorrida();
     if(ac){ nivela(musOut, 0, .3); nivela(fx, 0, .2); nivela(amb, 0, .4); }
     estado = null; botoes = [];
     setTimeout(() => { if(!ativo && ac && ac.state === 'running') ac.suspend().catch(() => {}); }, 1500);
@@ -536,7 +546,8 @@
   document.addEventListener('visibilitychange', () => {
     if(!ac || !ativo) return;
     if(document.hidden) ac.suspend().catch(() => {});
-    else ac.resume().then(() => { if(musicaOn){ t0 = Math.max(t0, ac.currentTime + .1 - (ev[i] ? ev[i][0] : 0)); tick(); } confere(); }).catch(() => {});
+    else ac.resume().then(() => { if(musicaOn){ t0 = Math.max(t0, ac.currentTime + .1 - (ev[i] ? ev[i][0] : 0)); tick(); }
+      if(CM.on){ const e = CM.m.ev[CM.i]; CM.t0 = Math.max(CM.t0, ac.currentTime + .1 - (e ? e[0] : 0)); tickCorrida(); } confere(); }).catch(() => {});
   });
 
   /* ---------- o botão (no alto da cidade e da casa) ---------- */
@@ -548,10 +559,11 @@
     botoes.forEach(el => {
       if(!AC){ el.hidden = true; return; }
       el.hidden = false;
-      const tocando = modoAtual === 'tudo' && musicaOn && ac && ac.state === 'running', r = ROT[modoAtual];
+      const tocando = modoAtual === 'tudo' && (musicaOn || CM.on) && ac && ac.state === 'running', r = ROT[modoAtual];
       el.classList.toggle('on', modoAtual !== 'mudo');
       el.setAttribute('aria-pressed', String(modoAtual !== 'mudo'));
-      el.title = tocando && faixas ? `Tocando: ${faixas[fi].nome}. ${r[1]}` : r[1]; el.setAttribute('aria-label', 'Som: ' + r[0]);
+      const nome = CM.on ? 'Pé na Tábua' : faixas ? faixas[fi].nome : '';
+      el.title = tocando && nome ? `Tocando: ${nome}. ${r[1]}` : r[1]; el.setAttribute('aria-label', 'Som: ' + r[0]);
       el.innerHTML = `<span class="cvr-eq" aria-hidden="true">${tocando ? '<i></i><i></i><i></i>' : ico(modoAtual === 'mudo' ? 'mudo' : 'som')}</span><span class="cvr-som-tx">${esperando && modoAtual !== 'mudo' ? 'Toca pra ouvir' : r[0]}</span>`;
     });
   }
@@ -561,6 +573,209 @@
     pinta(); C.toast(modoAtual === 'tudo' ? 'Música e sons da cidade.' : modoAtual === 'fx' ? 'Só os sons da cidade, sem música.' : 'Sem som.', 1800);
   }
   C.acts['cvr-som'] = () => alterna();
+
+  /* ---------- v3.79 · o som das corridas ----------
+     O Thales: "em todos os jogos de corrida eu quero barulhos, motor etc." e "uma musiquinha de adrenalina meio Top
+     Gear". As corridas (as quatro pistas de kart e o Autódromo, de moto e de carro) têm um canal próprio, porque o
+     motor da rua para dentro dos lugares 3D. Contínuo: o motor do teu veículo com marcha (cada marcha sobe o giro e cai
+     na troca; tirou o pé lá em cima, o escapamento estala), o pneu no asfalto, a terra e a grama fora da pista, a
+     costela tremendo, a água, o vento na velocidade, o chiado da derrapagem com o zunido do mini-turbo carregando, o
+     jato do turbo e o ronco do rival mais perto, do lado em que ele tá. De uma vez: a contagem do semáforo, a largada
+     (perfeita ou afogada), rampa e pouso, manobra, batida, cone, óleo, chiclete, rodada, a roleta do disco, café,
+     grave, buzina, ultrapassagem, volta, última volta e a chegada com torcida. E a música: "Pé na Tábua", composta
+     aqui (sintetizador, baixo galopando e bateria seca, no espírito dos jogos de corrida dos anos 90, sem copiar
+     nenhum), toca da contagem até a chegada; no "Só sons" fica só o barulho */
+  /* os instrumentos dela: o baixo de sintetizador (o filtro abre e fecha em cada nota), a guitarra de sintetizador (duas
+     serras desafinadas e um quadrado uma oitava abaixo), o arpejo de pulso, o naipe de metal e o prato de ataque */
+  function sbaixo(t, m, d, v){
+    const f = hz(m), o = ac.createOscillator(), s = ac.createOscillator(), g = ac.createGain(), gs = ac.createGain(), lp = ac.createBiquadFilter();
+    o.type = 'sawtooth'; o.frequency.value = f; s.type = 'square'; s.frequency.value = f / 2; gs.gain.value = .35;
+    lp.type = 'lowpass'; lp.Q.value = 4; lp.frequency.setValueAtTime(Math.min(3200, f * 14), t); lp.frequency.exponentialRampToValueAtTime(Math.max(180, f * 2.2), t + Math.min(.16, d));
+    g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(v, t + .006); g.gain.setTargetAtTime(v * .55, t + .03, .05); g.gain.setTargetAtTime(.0001, t + d, .03);
+    o.connect(lp); s.connect(gs); gs.connect(lp); lp.connect(g); g.connect(bus);
+    o.start(t); s.start(t); o.stop(t + d + .25); s.stop(t + d + .25);
+  }
+  function serra(t, m, d, v){
+    const f = hz(m), o1 = ac.createOscillator(), o2 = ac.createOscillator(), o3 = ac.createOscillator(), g3 = ac.createGain(), lp = ac.createBiquadFilter(), g = ac.createGain(), lfo = ac.createOscillator(), lg = ac.createGain();
+    o1.type = 'sawtooth'; o2.type = 'sawtooth'; o3.type = 'square'; o1.frequency.value = f; o2.frequency.value = f; o3.frequency.value = f / 2; o1.detune.value = -8; o2.detune.value = 8; g3.gain.value = .3;
+    lfo.frequency.value = 6; lg.gain.setValueAtTime(0, t); lg.gain.linearRampToValueAtTime(f * .008, t + Math.min(.3, d * .6)); lfo.connect(lg); lg.connect(o1.frequency); lg.connect(o2.frequency);
+    lp.type = 'lowpass'; lp.Q.value = 1.4; lp.frequency.setValueAtTime(Math.min(9000, f * 8), t); lp.frequency.exponentialRampToValueAtTime(Math.max(900, f * 3.2), t + .25);
+    env(g, t, .01, v, .14, .7, t + d);
+    o1.connect(lp); o2.connect(lp); o3.connect(g3); g3.connect(lp); lp.connect(g); g.connect(bus);
+    [o1, o2, o3, lfo].forEach(o => { o.start(t); o.stop(t + d + .5); });
+  }
+  function arp(t, m, d, v){
+    const o = ac.createOscillator(), g = ac.createGain(); o.setPeriodicWave(onda); o.frequency.value = hz(m);
+    g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(v, t + .004); g.gain.exponentialRampToValueAtTime(.0001, t + Math.max(.06, d));
+    o.connect(g); g.connect(bus); o.start(t); o.stop(t + d + .05);
+  }
+  function metal(t, ms, d, v){
+    ms.forEach(m => { const f = hz(m), o = ac.createOscillator(), o2 = ac.createOscillator(), lp = ac.createBiquadFilter(), g = ac.createGain();
+      o.type = 'sawtooth'; o2.type = 'sawtooth'; o.frequency.value = f; o2.frequency.value = f; o2.detune.value = 12;
+      lp.type = 'lowpass'; lp.frequency.setValueAtTime(400, t); lp.frequency.exponentialRampToValueAtTime(Math.min(7000, f * 7), t + .05); lp.frequency.exponentialRampToValueAtTime(Math.max(600, f * 2), t + d);
+      g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(v, t + .03); g.gain.setTargetAtTime(.0001, t + d, .06);
+      o.connect(lp); o2.connect(lp); lp.connect(g); g.connect(bus); o.start(t); o2.start(t); o.stop(t + d + .4); o2.stop(t + d + .4); });
+  }
+  function crash(t, v){
+    const s = ac.createBufferSource(), hp = ac.createBiquadFilter(), g = ac.createGain(); s.buffer = ruido; s.loop = true; hp.type = 'highpass'; hp.frequency.value = 3800;
+    g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(v, t + .004); g.gain.exponentialRampToValueAtTime(.0001, t + 1.3);
+    s.connect(hp); hp.connect(g); g.connect(bus); s.start(t, Math.random() * .5); s.stop(t + 1.35);
+  }
+  /* "Pé na Tábua" (do Corre): 152 por minuto, em mi menor. Dois compassos de entrada (o baixo no mi, o bumbo e a caixa
+     virando, terminando junto com o "vai"), a parte A (Em C D Bm, Em C D B) e a parte B, mais alta, com o metal (C D Em
+     Em, C D B B); depois A e B de novo, sem a entrada, até a corrida acabar. A melodia é nossa */
+  const MEL_A = ['E5:2 B4:1 E5:1 G5:2 F#5:1 E5:1', 'G5:2 E5:1 G5:1 C6:3 B5:1', 'A5:2 F#5:1 A5:1 D6:2 C6:1 A5:1', 'B5:3 A5:1 F#5:2 D5:2',
+    'E5:1 G5:1 B5:2 E6:2 D6:1 B5:1', 'C6:2 B5:1 G5:1 E5:2 G5:2', 'F#5:1 A5:1 D6:2 C6:1 A5:1 F#5:1 A5:1', 'B5:4 D#6:2 F#6:2'];
+  const MEL_B = ['E6:3 D6:1 C6:2 G5:2', 'F#6:3 E6:1 D6:2 A5:2', 'G6:2 F#6:1 E6:1 B5:2 E6:2', 'D6:1 E6:1 F#6:1 G6:1 F#6:2 E6:2',
+    'E6:2 G6:2 E6:1 C6:1 G5:2', 'F#6:2 A6:2 F#6:1 D6:1 A5:2', 'B5:1 D#6:1 F#6:1 B6:1 A6:2 F#6:2', 'D#6:2 F#6:2 B6:4'];
+  function peNaTabua(){
+    const Bt = 60 / 152, E = Bt / 2, BAR = 4 * Bt, ev = [];
+    const RZ = { Em: 'E2', C: 'C2', D: 'D2', Bm: 'B1', B: 'B1' }, AC = { Em: ['E4', 'G4', 'B4'], C: ['C4', 'E4', 'G4'], D: ['D4', 'F#4', 'A4'], Bm: ['B3', 'D4', 'F#4'], B: ['B3', 'D#4', 'F#4'] };
+    for(let b = 0; b < 2; b++){ const t = b * BAR;
+      for(let k = 0; k < 8; k++) ev.push([t + k * E, 'sbaixo', midi('E2') + (k % 2 ? 12 : 0), E * .85, .085 + b * .02], [t + k * E, 'chick', .018 + k * .002 + b * .01]);
+      [0, 2, 4, 6].forEach(k => ev.push([t + k * E, 'bumbo', .26]));
+      if(b === 1) [4, 5, 6, 7].forEach((k, j) => ev.push([t + k * E, 'caixa', .07 + j * .03]));
+    }
+    const parte = (b0, CH, MEL, forte) => CH.forEach((a, b) => {
+      const t = (b0 + b) * BAR, r = midi(RZ[a]), tons = AC[a].map(midi);
+      for(let k = 0; k < 8; k++) ev.push([t + k * E, 'sbaixo', r + (k % 2 ? 12 : 0), E * .88, k % 2 ? .085 : .115]);
+      [0, 3, 4].forEach(k => ev.push([t + k * E, 'bumbo', .3])); [2, 6].forEach(k => ev.push([t + k * E, 'caixa', forte ? .17 : .15]));
+      for(let k = 0; k < 8; k++) ev.push([t + k * E, 'chick', k % 2 ? .02 : .034]);
+      [0, 1, 2, 3, 2, 1, 0, 1].forEach((j, k) => ev.push([t + k * E, 'arp', j === 3 ? tons[0] + 12 : tons[j], E * .6, .022]));
+      let k = 0; MEL[b].split(' ').forEach(tk => { const [n, q] = tk.split(':'), d = Number(q); if(n !== '-') ev.push([t + k * E, 'serra', midi(n), d * E * .92, forte ? .07 : .062]); k += d; });
+      if(b === 0) ev.push([t, 'crash', .06]);
+      if(forte && b % 2 === 0) ev.push([t, 'metal', tons.map(m => m + 12), E * 1.5, .028]);
+    });
+    parte(2, ['Em', 'C', 'D', 'Bm', 'Em', 'C', 'D', 'B'], MEL_A, false); parte(10, ['C', 'D', 'Em', 'Em', 'C', 'D', 'B', 'B'], MEL_B, true);
+    return { ev: ordena(ev), inicio: 2 * BAR, volta: 18 * BAR, nome: 'Pé na Tábua' };
+  }
+  /* a música da corrida tem o próprio relógio (a da cidade fica quieta enquanto isso) e repete A e B até acabar */
+  const CM = { on: false, m: null, i: 0, t0: 0, timer: 0 };
+  function corridaMusica(on, emSeg){
+    if(!on){ if(CM.on){ CM.on = false; clearInterval(CM.timer); confere(); } return; }
+    if(CM.on) return true; if(!ac || !ativo) return false;
+    /* "emSeg": daqui a quanto a entrada começa (negativo: já devia ter começado, e ela entra no meio, no compasso certo) */
+    CM.m = CM.m || peNaTabua(); CM.on = true; CM.i = 0; CM.t0 = ac.currentTime + (emSeg == null ? .05 : Math.max(-CM.m.inicio, emSeg)); CR.visto = performance.now();
+    clearInterval(CM.timer); CM.timer = setInterval(tickCorrida, 150); confere(); tickCorrida();
+    return true;
+  }
+  function tickCorrida(){
+    if(!ac || !CM.on || ac.state !== 'running') return;
+    const M = CM.m, ate = ac.currentTime + .8;
+    for(let guarda = 0; guarda < 4000; guarda++){
+      if(CM.i >= M.ev.length){ CM.t0 += M.volta - M.inicio; CM.i = M.ev.findIndex(e => e[0] >= M.inicio); }
+      const e = M.ev[CM.i]; if(CM.t0 + e[0] >= ate) break;
+      if(CM.t0 + e[0] > ac.currentTime - .05 && modoAtual === 'tudo') try{ toca(e, CM.t0); }catch(x){}
+      CM.i++;
+    }
+  }
+  /* o motor de cada veículo: quantas marchas, o giro baixo e o alto (Hz) e o volume */
+  const VEIC_SOM = { patinete: { n: 1, f0: 150, f1: 760, g: .05 }, moto: { n: 6, f0: 60, f1: 200, g: .06 }, hatch: { n: 5, f0: 44, f1: 132, g: .065 }, suv: { n: 5, f0: 38, f1: 116, g: .07 }, picape: { n: 5, f0: 34, f1: 104, g: .075 } };
+  const CR = { n: null, marcha: 0, acAnt: 0, ult: 0, visto: 0, lado: 0, log: [] };
+  /* o motor e o chão juntos ficam no volume da música (medido: sem isso, o motor cobria ela) */
+  const MOTOR_VOL = .55;
+  /* cada som que tocou fica anotado (os testes leem; o aparelho não precisa) */
+  const anota = k => { CR.log.push(k); if(CR.log.length > 60) CR.log.shift(); };
+  function montaCorrida(veic){
+    const out = ac.createGain(); out.gain.value = .0001; out.connect(fx);
+    const K = VEIC_SOM[veic] || VEIC_SOM.patinete, n = { out, K, veic, nos: [] }, liga = x => { x.start(); n.nos.push(x); return x; };
+    const osc = tipo => { const o = ac.createOscillator(); o.type = tipo; return liga(o); }, filtro = (tipo, f, q) => { const x = ac.createBiquadFilter(); x.type = tipo; x.frequency.value = f; x.Q.value = q; return x; }, ganho = v => { const g = ac.createGain(); g.gain.value = v; return g; };
+    const laco2 = buf => { const s = ac.createBufferSource(); s.buffer = buf; s.loop = true; return liga(s); };
+    /* o motor: o patinete zune (seno e triângulo, mais o zumbido de serra de kart); moto e carro roncam (serra com o
+       quadrado embaixo, ou duas serras na moto) com o pulso dos cilindros */
+    const lp = filtro('lowpass', 900, 1.1), eg = ganho(.0001); lp.connect(eg); eg.connect(out); Object.assign(n, { lp, eg });
+    if(K.n === 1){ const o1 = osc('sine'), o2 = osc('triangle'), o3 = osc('sawtooth'), g2 = ganho(.35), g3 = ganho(.18), bp = filtro('bandpass', 600, 1.4); o1.connect(lp); o2.connect(g2); g2.connect(lp); o3.connect(bp); bp.connect(g3); g3.connect(lp); Object.assign(n, { o1, o2, o3, bp }); }
+    else { const o1 = osc('sawtooth'), o2 = osc(veic === 'moto' ? 'sawtooth' : 'square'), g2 = ganho(veic === 'moto' ? .5 : .45), trem = ganho(.7), lfo = osc('square'), lg = ganho(.3); o2.detune.value = veic === 'moto' ? 7 : 0;
+      lfo.connect(lg); lg.connect(trem.gain); o1.connect(trem); o2.connect(g2); g2.connect(trem); trem.connect(lp); Object.assign(n, { o1, o2, lfo }); }
+    /* o chão: o ruído marrom no filtro que muda (asfalto, terra, água) e o tremor da costela */
+    const rs = laco2(marrom), rf = filtro('bandpass', 400, .8), rg = ganho(.0001), rt = ganho(1), cl = osc('square'), clg = ganho(0); cl.frequency.value = 26;
+    cl.connect(clg); clg.connect(rt.gain); rs.connect(rf); rf.connect(rg); rg.connect(rt); rt.connect(out);
+    /* o vento, o chiado e o zunido da derrapagem, o jato do turbo */
+    const vs = laco2(ruido), vf = filtro('bandpass', 900, .5), vg = ganho(.0001); vs.connect(vf); vf.connect(vg); vg.connect(out);
+    const ds = laco2(ruido), df = filtro('bandpass', 2900, 7), dg = ganho(.0001); ds.connect(df); df.connect(dg); dg.connect(out);
+    const dz = osc('sawtooth'), dzf = filtro('bandpass', 1400, 2), dzg = ganho(.0001); dz.frequency.value = 200; dz.connect(dzf); dzf.connect(dzg); dzg.connect(out);
+    const ts = laco2(ruido), tf = filtro('bandpass', 1200, 1.6), tg = ganho(.0001); ts.connect(tf); tf.connect(tg); tg.connect(out);
+    /* o rival mais perto: o zunido do patinete dele, do lado em que ele tá */
+    const ro = osc('sawtooth'), rof = filtro('lowpass', 900, .7), rog = ganho(.0001), pan = ac.createStereoPanner ? ac.createStereoPanner() : null;
+    ro.connect(rof); rof.connect(rog); if(pan){ rog.connect(pan); pan.connect(out); } else rog.connect(out);
+    Object.assign(n, { rf, rg, clg, vf, vg, df, dg, dz, dzg, tf, tg, ro, rog, pan });
+    return n;
+  }
+  function paraCorrida(){ const n = CR.n; if(!n) return; CR.n = null; try{ const t = ac.currentTime; n.out.gain.cancelScheduledValues(t); n.out.gain.setTargetAtTime(.0001, t, .15); setTimeout(() => n.nos.forEach(x => { try{ x.stop(); }catch(e){} }), 900); }catch(e){} }
+  /* o estado da corrida vira o som: o giro pela marcha, o filtro e o volume pela carga (acelerando, solto, freando) */
+  function ajustaCorrida(n, o, t){
+    const K = n.K, alvo = (p, y, tc) => { p.cancelScheduledValues(t); p.setTargetAtTime(y, t, tc || .08); }, u = Math.max(0, o.u || 0), acel = o.ac || 0;
+    let rpm, m = 0;
+    if(K.n === 1) rpm = Math.min(1.25, .08 + u * .92);
+    else { const pos = Math.min(K.n - .001, Math.pow(Math.min(u, 1), .85) * K.n); m = Math.floor(pos); rpm = u > 1 ? Math.min(1.2, 1 + (u - 1) * .8) : .32 + .68 * (pos - m); }
+    const f = (K.f0 + (K.f1 - K.f0) * rpm) * (o.ar ? 1.12 : 1), carga = acel > 0 ? 1 : acel < 0 ? .25 : .45;
+    alvo(n.o1.frequency, f, .05);
+    if(K.n === 1){ alvo(n.o2.frequency, f * 1.5, .05); alvo(n.o3.frequency, f / 4, .05); alvo(n.bp.frequency, f * 1.2, .08); alvo(n.lp.frequency, 1800 + 2600 * rpm, .1); }
+    else { alvo(n.o2.frequency, n.veic === 'moto' ? f * 2 : f / 2, .05); alvo(n.lfo.frequency, f * (n.veic === 'moto' ? .5 : .25), .05); alvo(n.lp.frequency, 260 + (900 + 2200 * rpm) * carga, .08); }
+    alvo(n.eg.gain, K.g * (.45 + .55 * carga) * (u < .02 && acel <= 0 ? .55 : 1), .1);
+    const rd = Math.min(1, u);
+    if(o.agua){ alvo(n.rf.frequency, 2200, .1); alvo(n.rg.gain, .05 + .08 * rd, .1); }
+    else if(o.fora){ alvo(n.rf.frequency, 420 + 300 * rd, .1); alvo(n.rg.gain, rd > .03 ? .06 + .12 * rd : .0001, .1); }
+    else { alvo(n.rf.frequency, 300 + 700 * rd, .1); alvo(n.rg.gain, rd > .03 ? .012 + .04 * rd : .0001, .1); }
+    alvo(n.clg.gain, o.costela && rd > .1 ? .9 : 0, .03);
+    alvo(n.vg.gain, u > .35 ? .05 * Math.pow(Math.min(1.3, u), 2) : .0001, .2); alvo(n.vf.frequency, 700 + 900 * Math.min(1.4, u), .2);
+    const dr = o.drift; alvo(n.dg.gain, dr ? .045 : .0001, .05); alvo(n.df.frequency, 2600 + Math.random() * 500, .05);
+    alvo(n.dzg.gain, dr && dr.n ? .012 + .008 * dr.n : .0001, .06); alvo(n.dz.frequency, dr ? (dr.n === 2 ? 520 : dr.n === 1 ? 330 : 200) : 200, .2);
+    alvo(n.tg.gain, o.boost ? .05 : .0001, o.boost ? .05 : .25); alvo(n.tf.frequency, o.boost ? 2600 : 1200, .4);
+    const rv = o.riv; if(rv && rv.d < 14){ alvo(n.ro.frequency, 160 + 600 * Math.min(1.3, rv.u || 0), .1); alvo(n.rog.gain, .028 / (1 + rv.d * rv.d / 6), .1); if(n.pan) alvo(n.pan.pan, Math.max(-.9, Math.min(.9, rv.lado || 0)), .1); CR.lado = rv.lado || 0; } else alvo(n.rog.gain, .0001, .2);
+    return { m, rpm };
+  }
+  function corrida(o){
+    if(o) CR.visto = performance.now();
+    if(!ac) return;
+    if(!o || !fxOk()){ paraCorrida(); return; }
+    const agora = performance.now(); if(CR.n && agora - CR.ult < 45) return; CR.ult = agora;
+    if(!CR.n || CR.n.veic !== o.veic){ paraCorrida(); CR.n = montaCorrida(o.veic); CR.n.out.gain.setTargetAtTime(MOTOR_VOL, ac.currentTime, .15); CR.marcha = 0; CR.acAnt = 0; }
+    const { m, rpm } = ajustaCorrida(CR.n, o, ac.currentTime), acel = o.ac || 0;
+    /* troca de marcha (o tranco da embreagem) e o estalo do escapamento quando tira o pé com o giro alto */
+    if(CR.n.K.n > 1){ if(m > CR.marcha && (o.u || 0) > .1){ const t = ac.currentTime + .005; estalo(t, 900, 2, .05, .03); anota('marcha'); } CR.marcha = m;
+      if(CR.acAnt > 0 && acel <= 0 && rpm > .62){ const t = ac.currentTime + .03, q = 2 + Math.floor(Math.random() * 3); for(let k = 0; k < q; k++) estalo(t + k * sorte(.06, .16), sorte(160, 420), .9, .07, (CR.n.veic === 'moto' ? .09 : .07) * sorte(.6, 1), 'lowpass'); anota('escape'); } }
+    CR.acAnt = acel;
+  }
+  /* os golpes: chiado de pneu, o vento que passa, a torcida */
+  function whoosh(t, dur, v){ const s = ac.createBufferSource(), bp = ac.createBiquadFilter(), g = ac.createGain(); s.buffer = ruido; s.loop = true; bp.type = 'bandpass'; bp.Q.value = 1.2; bp.frequency.setValueAtTime(500, t); bp.frequency.exponentialRampToValueAtTime(3200, t + dur * .8); g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(v, t + dur * .3); g.gain.exponentialRampToValueAtTime(.0001, t + dur); s.connect(bp); bp.connect(g); g.connect(fx); s.start(t); s.stop(t + dur + .05); }
+  function chiado(t, dur, v){ const s = ac.createBufferSource(), bp = ac.createBiquadFilter(), g = ac.createGain(); s.buffer = ruido; s.loop = true; bp.type = 'bandpass'; bp.Q.value = 8; bp.frequency.setValueAtTime(3100, t); bp.frequency.linearRampToValueAtTime(2500, t + dur); g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(v, t + .03); g.gain.exponentialRampToValueAtTime(.0001, t + dur); s.connect(bp); bp.connect(g); g.connect(fx); s.start(t); s.stop(t + dur + .05); }
+  function torcida(t, dur){ const s = ac.createBufferSource(), bp = ac.createBiquadFilter(), g = ac.createGain(); s.buffer = ruido; s.loop = true; bp.type = 'bandpass'; bp.frequency.value = 950; bp.Q.value = .5; g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(.07, t + .4); g.gain.setTargetAtTime(.0001, t + dur * .6, dur * .25); s.connect(bp); bp.connect(g); g.connect(fx); s.start(t); s.stop(t + dur + .6);
+    for(let j = 0; j < 8; j++){ const ti = t + sorte(.1, dur * .7); tom(ti, sorte(900, 1400), sorte(1500, 2300), .16, .008); } }
+  function corridaFx(k, x){ if(!fxOk()) return; anota(k); somCorrida(k, x, ac.currentTime + .01); }
+  function somCorrida(k, x, t){
+    const nota = n => hz(midi(n));
+    switch(k){
+      case 'conta': tom(t, 523, 523, .2, .06, 'square'); tom(t, 1046, 1046, .12, .015); break;
+      case 'vai': tom(t, 1046, 1046, .55, .06, 'square'); tom(t, 1568, 1568, .4, .02); break;
+      case 'perfeita': tom(t, 1046, 1046, .55, .06, 'square'); ['C6', 'E6', 'G6', 'C7'].forEach((n, j) => brilho(t + .08 + j * .07, midi(n), .2, .05, fx)); whoosh(t, .5, .07); break;
+      case 'afogou': [0, .11, .24].forEach((dt, j) => estalo(t + dt, 200 - j * 40, .8, .09, .08, 'lowpass')); tom(t + .3, 90, 38, .5, .06, 'sawtooth'); break;
+      case 'turbo': whoosh(t, .6, .08); tom(t, 300, 950, .5, .03, 'sawtooth'); break;
+      case 'mini': estalo(t, 1200, 1.5, .05, .07); whoosh(t, .35 + (x || 1) * .1, .05 + (x || 1) * .015); break;
+      case 'pulo': whoosh(t, .45, .05); tom(t, 180, 420, .3, .02, 'sawtooth'); break;
+      case 'pouso': estalo(t, 360, .7, .14, .12, 'lowpass'); tom(t, 90, 46, .12, .1); tom(t + .04, 320, 230, .1, .015, 'triangle'); estalo(t + .02, 2600, 3, .08, .03); break;
+      case 'manobra': ['G5', 'B5', 'D6', 'G6'].forEach((n, j) => brilho(t + j * .06, midi(n), .18, .05, fx)); break;
+      case 'batida': tom(t, 95, 42, .25, .16); estalo(t, 280, .6, .22, .14, 'lowpass'); tom(t + .09, 170, 120, .1, .05, 'triangle'); tom(t + .2, 150, 110, .08, .03, 'triangle'); break;
+      case 'cone': estalo(t, 1500, 4, .06, .1); tom(t, 720, 480, .08, .04, 'triangle'); estalo(t + .14, 1300, 4, .05, .05); tom(t + .14, 640, 440, .07, .02, 'triangle'); break;
+      case 'oleo': chiado(t, 1, .06); tom(t, 900, 500, .9, .012); break;
+      case 'chiclete': tom(t, 320, 110, .25, .07, 'triangle'); estalo(t, 700, .7, .12, .07, 'lowpass'); tom(t + .18, 260, 520, .3, .03); break;
+      case 'solta': tom(t, 500, 260, .12, .04, 'triangle'); estalo(t, 900, .8, .06, .04, 'lowpass'); break;
+      case 'rodou': chiado(t, .9, .05); ['E6', 'C6', 'A5', 'F5'].forEach((n, j) => tom(t + j * .1, nota(n), nota(n) * .97, .09, .025, 'square')); break;
+      case 'disco': brilho(t, midi('C6'), .12, .05, fx); brilho(t + .06, midi('E6'), .2, .05, fx); for(let j = 0; j < 12; j++) estalo(t + .1 + j * (.04 + j * .01), 4200, 4, .02, .03); break;
+      case 'item': brilho(t, midi('G5'), .15, .06, fx); brilho(t + .09, midi('C6'), .3, .06, fx); break;
+      case 'cafe': whoosh(t, .35, .04); tom(t, 2400, 700, .3, .02, 'triangle'); whoosh(t + .2, .6, .08); tom(t + .2, 300, 950, .5, .03, 'sawtooth'); break;
+      case 'grave': tom(t, 70, 30, 1.2, .2); tom(t, 140, 60, .6, .06, 'square'); estalo(t, 120, .5, .5, .12, 'lowpass'); break;
+      case 'volta': brilho(t, midi('E6'), .2, .06, fx); brilho(t + .12, midi('A6'), .35, .06, fx); break;
+      case 'ultima': ['A5', 'C#6', 'E6', 'A6'].forEach((n, j) => tom(t + j * .09, nota(n), nota(n), j === 3 ? .5 : .1, .035, 'pulso')); break;
+      case 'chegada': { const p = x || 1, nt = p === 1 ? ['C5', 'E5', 'G5', 'C6', 'G5', 'C6'] : ['C5', 'E5', 'G5', 'C6'];
+        nt.forEach((n, j) => tom(t + j * .12, nota(n), nota(n), j === nt.length - 1 ? .9 : .12, .04, 'pulso'));
+        if(p === 1) ['C5', 'E5', 'G5'].forEach(n => tom(t + nt.length * .12, nota(n), nota(n), 1.2, .02, 'sawtooth'));
+        torcida(t, p <= 3 ? 2.6 : 1.6); break; }
+      case 'contramao': [0, .25].forEach(dt => tom(t + dt, 330, 330, .18, .05, 'square')); break;
+      case 'passou': whoosh(t, .3, .035); brilho(t + .05, midi('B5'), .1, .03, fx); break;
+      case 'buzina': [0, .27].forEach(dt => (x === 'moto' ? [523, 659] : [392, 494]).forEach(f => tom(t + dt, f, f, .2, .028, 'square'))); break;
+    }
+  }
 
   /* ---------- pros testes: toca num contexto off-line e devolve o pico e o volume médio ---------- */
   async function renderiza(seg, faz){
@@ -603,6 +818,33 @@
     for(const k of Object.keys(efeitos)) out[k] = await renderiza(k === 'ambiente' ? 2 : 1.6, efeitos[k]);
     return out;
   }
+  /* v3.79 · a música da corrida, os primeiros "seg" segundos (com "wav", o trecho pra ouvir fora do app) */
+  async function amostraCorrida(seg, comWav){
+    const M = peNaTabua(), r = await renderiza(seg, () => M.ev.filter(e => e[0] < seg).forEach(e => toca(e, 0)));
+    if(!r) return r;
+    const wav = comWav ? wavDe(r._buf) : ''; delete r._buf;
+    return Object.assign(r, { volta: +M.volta.toFixed(2), entrada: +M.inicio.toFixed(2), notas: M.ev.length, nome: M.nome }, wav ? { wav } : {});
+  }
+  /* o motor de um veículo acelerando do zero ao máximo e soltando (o giro sobe e cai em cada marcha), e cada golpe da corrida */
+  async function amostraMotor(veic, seg, comWav){
+    const S = seg || 7, r = await renderiza(S, () => {
+      const n = montaCorrida(veic); n.out.gain.value = MOTOR_VOL; let m0 = 0; const trocas = [];
+      for(let t = 0; t < S; t += .05){ const u = t < S * .75 ? Math.min(1, t / (S * .6)) : Math.max(0, 1 - (t - S * .75) * 1.2), o = { u, ac: t < S * .75 ? 1 : -1, drift: t > S * .45 && t < S * .6 ? { n: 1 } : null };
+        const { m } = ajustaCorrida(n, o, t); if(m > m0) trocas.push(+t.toFixed(2)); m0 = m; }
+      amostraMotor.trocas = trocas;
+    });
+    if(!r) return r;
+    const wav = comWav ? wavDe(r._buf) : ''; delete r._buf;
+    return Object.assign(r, { trocas: amostraMotor.trocas }, wav ? { wav } : {});
+  }
+  const GOLPES = ['conta', 'vai', 'perfeita', 'afogou', 'turbo', 'mini', 'pulo', 'pouso', 'manobra', 'batida', 'cone', 'oleo', 'chiclete', 'solta', 'rodou', 'disco', 'item', 'cafe', 'grave', 'volta', 'ultima', 'chegada', 'contramao', 'passou', 'buzina'];
+  async function amostraGolpes(){ const out = {}; for(const k of GOLPES) out[k] = await renderiza(k === 'chegada' ? 3.4 : 1.6, () => somCorrida(k, k === 'chegada' ? 1 : k === 'mini' ? 2 : undefined, .01)); Object.values(out).forEach(r => r && delete r._buf); return out; }
+  function wavDe(buf){
+    const d = buf.getChannelData(0), n2 = Math.floor(d.length / 2), dv = new DataView(new ArrayBuffer(44 + n2 * 2)), w = (o, t) => [...t].forEach((ch, k) => dv.setUint8(o + k, ch.charCodeAt(0)));
+    w(0, 'RIFF'); dv.setUint32(4, 36 + n2 * 2, true); w(8, 'WAVEfmt '); dv.setUint32(16, 16, true); dv.setUint16(20, 1, true); dv.setUint16(22, 1, true); dv.setUint32(24, 22050, true); dv.setUint32(28, 44100, true); dv.setUint16(32, 2, true); dv.setUint16(34, 16, true); w(36, 'data'); dv.setUint32(40, n2 * 2, true);
+    for(let k = 0; k < n2; k++){ const v = Math.max(-1, Math.min(1, (d[2 * k] + d[2 * k + 1]) / 2 * 3)); dv.setInt16(44 + k * 2, v * 32767, true); }
+    const u = new Uint8Array(dv.buffer); let bin = ''; for(let k = 0; k < u.length; k += 32768) bin += String.fromCharCode.apply(null, u.subarray(k, k + 32768)); return btoa(bin);
+  }
   /* versões sem a trava do "running" (o contexto off-line só roda no startRendering) */
   function buzinaCrua(t, tipo){ const notas = tipo === 'moto' ? [523, 659] : [392, 494], d = .2; notas.forEach(f => { const o = ac.createOscillator(), g = ac.createGain(); o.type = 'square'; o.frequency.value = f; g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(.03, t + .01); g.gain.exponentialRampToValueAtTime(.0001, t + d); o.connect(g); g.connect(fx); o.start(t); o.stop(t + d + .02); }); }
   function carroPassaCru(t, lado, p){ const s = ac.createBufferSource(), bp = ac.createBiquadFilter(), g = ac.createGain(); s.buffer = marrom; s.loop = true; bp.type = 'bandpass'; bp.frequency.setValueAtTime(320, t); bp.frequency.linearRampToValueAtTime(1150, t + .6); g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(.07 * p, t + .6); g.gain.exponentialRampToValueAtTime(.0001, t + 1.4); s.connect(bp); bp.connect(g); g.connect(fx); s.start(t); s.stop(t + 1.45); }
@@ -619,6 +861,8 @@
     botao(b){ if(b && !botoes.includes(b)){ botoes.push(b); pinta(); } },
     sai, alterna, modo: () => modoAtual, tocando: () => musicaOn && modoAtual === 'tudo', ativo: () => ativo,
     passo, pulo, cai, buzina, carroPassa, motor, ambiente, aviao, moeda, porta, taco, luva, taiko, acerto, erro, rio, papo, grind,
-    amostra, amostraFx, faixas: () => prontas().map(f => f.nome), faixa: () => prontas()[fi].nome
+    /* v3.79 · as corridas: corrida(estado) a cada quadro (null para), corridaFx(golpe) e a música */
+    corrida, corridaFx, corridaMusica, corridaLog: () => CR.log.slice(), corridaEstado: () => ({ musica: CM.on, motor: !!CR.n, veic: CR.n ? CR.n.veic : null, marcha: CR.marcha, lado: +CR.lado.toFixed(2) }),
+    amostra, amostraFx, amostraCorrida, amostraMotor, amostraGolpes, faixas: () => prontas().map(f => f.nome), faixa: () => prontas()[fi].nome
   };
 })();
