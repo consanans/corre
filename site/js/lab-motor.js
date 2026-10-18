@@ -557,7 +557,13 @@
     marrom: { vivo: ['Caramelo', 'Canela', 'Terra'], escuro: ['Café', 'Couro', 'Cacau'], claro: ['Areia', 'Biscoito'] },
     escuro: ['Asfalto', 'Carvão', 'Nanquim', 'Noite', 'Grafite'], claro: ['Papel', 'Creme', 'Algodão', 'Areia', 'Marfim', 'Leite'], cinza: ['Concreto', 'Cimento', 'Fumaça', 'Aço']
   };
+  /* v3.84 · as cores da direção criativa já vêm com nome (do mundo da marca: "Terra Roxa", "Cal de Muro"). Quem lê a
+     marca registra a paleta dela, e o nome escrito vale no lugar do automático em todo canto (bancada, brandbook, kit).
+     A cor mexida na bancada (outro hex) volta pro nome automático */
+  const NOMES_DIR = {};
+  M.registraPaleta = sp => { (sp && Array.isArray(sp.paleta) ? sp.paleta : []).forEach(c => { if(c && /^#[0-9a-f]{6}$/i.test(String(c.hex)) && String(c.nome || '').trim()) NOMES_DIR[String(sp.nome || '') + '|' + String(c.hex).toUpperCase()] = String(c.nome).trim().slice(0, 30); }); return sp; };
   M.nomeCor = (hex, seed) => {
+    const dir = NOMES_DIR[String(seed || '') + '|' + String(hex || '').toUpperCase()]; if(dir) return dir;
     const { l, c, h } = lch(hex), r = M.rng(M.hash(hex + (seed || '')));
     let fam, nome;
     if(c < 0.035){ fam = l > 0.86 ? 'claro' : l < 0.3 ? 'escuro' : 'cinza'; nome = { claro: l > 0.95 ? 'Branco' : 'Creme', escuro: 'Preto', cinza: 'Cinza' }[fam]; }
@@ -2531,6 +2537,95 @@
       campos: campos.map(c => c.k), logo, simbolo, tipo: { display: fonte, texto: M.parTexto(fonte) }, cores, textura: t.textura, aplic: t.aplic.slice(), seed, variante: vv
     };
   };
+  /* v3.84 · A DIREÇÃO CRIATIVA: o conceito que a IA decidiu (o território, a letra, o detalhe do logo e as 9 cores com
+     nome) vira uma amostra desenhada pelo motor, como as outras. O território aplicado dá a base (o arranjo, a caixa, o
+     espaço entre letras, a textura, as aplicações); por cima, o que a direção pediu. O que não cabe no desenho (gesto sem
+     as palavras que ele pede, o O que vira símbolo num nome sem O, cor verde que a pessoa não pediu, contraste que não
+     lê) fica com o que o território faria. d = a direção (ver a acao "direcao" da função imagem), r = as respostas.
+     Devolve { sp, aplicou }: aplicou diz o que entrou do jeito que a direção pediu (a letra, o símbolo, o gesto) */
+  const GESTO_PARAM = ['sep', 'fiosTexto', 'trocaPor', 'trocaEm', 'pende', 'destaque'];
+  const MOLDE_LINHA = ['sinal', 'editorial', 'noir', 'zine'];
+  M.daDirecao = (d, r, i) => {
+    d = d || {}; i = i || 0;
+    if(!r.rf && r.refs) r = Object.assign({}, r, { rf: M.lerRefs(r.refs) });
+    const nome = String(d.nome || r.nome || '').trim().slice(0, 40), rr = Object.assign({}, r, { nome });
+    const campos = M.sentido(nome, r.tagline, r.palavras, r.descr);
+    const k = T[d.territorio] ? d.territorio : (M.ranking(r.pers, r.nicho, campos)[0] || {}).k || 'classico', t = T[k];
+    const sp = M.aplicaTerritorio(k, rr, M.hash(nome + ':' + k + ':direcao:' + (d.ideia_central || '') + ':' + i), i, campos, 0);
+    const aplicou = { letra: false, simbolo: false, gesto: false };
+    /* a letra (a da pessoa manda: no rebranding ela pode ter pedido pra manter o estilo; marca bruta não leva letra fina) */
+    const fi = M.fonteInfo(d.letra);
+    if(d.letra && fi.id === d.letra && fi.d && (!r.letra || fi.e === r.letra) && !(bruta(r.pers) && ELEGANTE.has(fi.id))){ sp.tipo = { display: fi.id, texto: M.parTexto(fi.id) }; aplicou.letra = true; }
+    /* as cores: o papel de cada uma vira o lugar dela na marca; o que faltar ou não ler fica com a paleta do território */
+    const daPessoa = [r.manterCor && r.cor].concat((r.refs && r.refs.cores) || []).filter(x => /^#[0-9a-f]{6}$/i.test(String(x || ''))).map(x => M.lch(x));
+    const pal = (Array.isArray(d.cores) ? d.cores : []).filter(c => c && /^#[0-9a-f]{6}$/i.test(String(c.hex)) && String(c.nome || '').trim()).slice(0, 9).map(c => {
+      const o = { nome: String(c.nome).trim().slice(0, 30), hex: String(c.hex).toUpperCase(), papel: ['fundo', 'texto', 'voz', 'apoio', 'tempero', 'neutro'].includes(c.papel) ? c.papel : 'neutro', uso: Math.max(0, Math.min(100, Math.round(Number(c.uso) || 0))), historia: String(c.historia || '').trim().slice(0, 160) };
+      const x = M.lch(o.hex);
+      if(x.c >= 0.05 && !daPessoa.some(p => p.c > 0.03 && Math.min(Math.abs(p.h - x.h), 360 - Math.abs(p.h - x.h)) < 8)){
+        const h2 = M.semVerde(x.h, x.l);
+        /* verde que a pessoa não pediu: a cor desvia (e o nome e a história, que falavam dela, saem) */
+        if(h2 !== x.h){ o.hex = M.deLch(x.l, x.c, h2); o.nome = M.nomeCor(o.hex, nome); o.historia = ''; o.desviada = true; }
+      }
+      return o;
+    });
+    const um = p => pal.find(c => c.papel === p), varios = p => pal.filter(c => c.papel === p), c0 = sp.cores;
+    const cores = { p: (um('voz') || {}).hex || c0.p, s: (varios('apoio')[0] || varios('neutro')[0] || {}).hex || c0.s, a: (varios('tempero')[0] || varios('apoio')[1] || {}).hex || c0.a, ink: (um('texto') || {}).hex || c0.ink, paper: (um('fundo') || {}).hex || c0.paper };
+    if(r.manterCor && /^#[0-9a-f]{6}$/i.test(String(r.cor || ''))) cores.p = String(r.cor).toUpperCase();
+    if(M.contraste(cores.ink, cores.paper) < 4.5){ if(M.contraste(c0.ink, cores.paper) >= 4.5) cores.ink = c0.ink; else { cores.ink = c0.ink; cores.paper = c0.paper; } }
+    let fundo = d.principal === 'escuro' ? 'ink' : d.principal === 'cor' ? 'p' : 'paper';
+    if(fundo === 'paper' && M.contraste(cores.p, cores.paper) < 2){ if(M.contraste(cores.p, cores.ink) >= 3) fundo = 'ink'; else cores.p = c0.p; }
+    if(fundo === 'ink' && M.contraste(cores.p, cores.ink) < 2) fundo = 'paper';
+    if(fundo === 'p' && Math.max(M.contraste(cores.ink, cores.p), M.contraste(cores.paper, cores.p)) < 4.5) fundo = 'paper';
+    sp.cores = Object.assign({}, cores, { fundo, esquema: 'direcao', receita: '' });
+    /* a paleta inteira fica guardada (o brandbook mostra as 9, com nome, papel, uso e história); a cor que não entrou
+       (trocada por contraste) sai da lista, e a que o território deu entra com o nome dele */
+    const usadas = new Set(Object.values(cores));
+    const paleta = pal.filter(c => usadas.has(c.hex) || !['fundo', 'texto', 'voz'].includes(c.papel));
+    [['p', 'voz'], ['paper', 'fundo'], ['ink', 'texto']].forEach(([q, papel]) => { if(!paleta.some(c => c.hex === cores[q])) paleta.unshift({ nome: M.nomeCor(cores[q], nome), hex: cores[q], papel, uso: 0, historia: '' }); });
+    sp.paleta = paleta.slice(0, 9);
+    if(d.modo_claro || d.modo_escuro) sp.modos = { claro: String(d.modo_claro || '').slice(0, 20), escuro: String(d.modo_escuro || '').slice(0, 20) };
+    /* o símbolo, na forma que a direção pediu */
+    const pt = M.partes(nome), fonte = sp.tipo.display, ideia = M.IDEIAS[d.ideia] ? d.ideia : '', seedS = (sp.simbolo && sp.simbolo.seed) || (sp.seed % 100000);
+    const corte = r.nicho === 'beleza' || /\b(corte|navalha|barb|cabel|tesoura|luta|jiu|muay|boxe|karate|judo)/.test(semAcI([nome, r.descr, pt.descritor].join(' ')));
+    const veloz = r.nicho === 'auto' || campos.some(x => x.k === 'veloz');
+    const cabe = (g, extra) => M.cabeGesto(g, pt, nome, sp.tipo.display, Object.assign({ caixa: t.caixa, cores: sp.cores, arranjo: sp.logo.arranjo, track: t.track, pers: r.pers, veloz, corte }, extra || {}));
+    const limpaGesto = () => GESTO_PARAM.forEach(q => { delete sp.logo[q]; });
+    let forma = d.forma;
+    const redonda = ideia && (M.IDEIAS[ideia].redonda || M.IDEIAS[ideia].noO);
+    if(forma === 'troca' && !(redonda && cabe('troca'))) forma = ideia ? 'lado' : 'so_nome';
+    if(['lado', 'emblema', 'selo'].includes(forma) && !ideia) forma = '';
+    const molde = (t.simbs || []).find(x => x.tipo === 'ideia') || {};
+    if(forma === 'so_nome'){ sp.simbolo = { tipo: 'nenhum', seed: seedS }; sp.logo.arranjo = 'wordmark'; aplicou.simbolo = true; }
+    else if(forma === 'lado'){ sp.simbolo = { tipo: 'ideia', ideia, seed: seedS, estilo: molde.estilo || (MOLDE_LINHA.includes(k) && fonte !== 'inter-black' ? 'linha' : undefined) }; if(!['horizontal', 'vertical'].includes(sp.logo.arranjo)) sp.logo.arranjo = 'horizontal'; aplicou.simbolo = true; }
+    else if(forma === 'emblema'){ const me = (t.simbs || []).find(x => x.tipo === 'emblema') || {}; sp.simbolo = { tipo: 'emblema', ideia, seed: seedS, forma: me.formas ? me.formas[0] : 'escudo', detalhe: me.detalhe, estilo: me.estilo }; if(!['horizontal', 'vertical'].includes(sp.logo.arranjo)) sp.logo.arranjo = 'vertical'; aplicou.simbolo = true; }
+    else if(forma === 'selo'){ sp.simbolo = { tipo: 'ideia', ideia, seed: seedS }; sp.logo.arranjo = 'selo'; if(sp.logo.selo === undefined) sp.logo.selo = ''; aplicou.simbolo = true; }
+    else if(forma === 'troca'){
+      /* o O da primeira palavra do próprio que tem O de verdade (fora do "ão") vira o símbolo */
+      const w = pt.palavras.find(x => x.i0 >= pt.pi0 && x.i1 <= pt.pi1 && x.c !== 'liga' && [...x.w].some((ch, j, a) => /[oO0]/.test(ch) && !(j && /[ãõÃÕ]/.test(a[j - 1]))));
+      sp.simbolo = { tipo: 'ideia', ideia, de: 'nome', seed: seedS, estilo: MOLDE_LINHA.includes(k) ? 'linha' : undefined };
+      limpaGesto(); Object.assign(sp.logo, { gesto: 'troca', trocaPor: 'ideia', trocaEm: w ? w.i0 : pt.pi0, arranjo: 'wordmark' });
+      aplicou.simbolo = aplicou.gesto = true;
+    }
+    /* o gesto do letreiro (com símbolo do lado, o enfeite do nome sai: um gesto por marca) */
+    if(forma !== 'troca'){
+      const enfeite = ['sublinha', 'colchetes', 'ponto', 'destaque', 'bolha', 'corte'];
+      let g = typeof d.gesto === 'string' && Object.prototype.hasOwnProperty.call(M.GESTOS, d.gesto) && !['troca', 'pendente', 'encosta'].includes(d.gesto) ? d.gesto : null;
+      if(g && sp.simbolo.tipo !== 'nenhum' && enfeite.includes(g)) g = null;
+      if(g === ''){ if(sp.logo.gesto !== 'pendente'){ limpaGesto(); sp.logo.gesto = ''; } aplicou.gesto = true; }
+      else if(g){
+        const ent = (t.gestos || []).find(x => x[0] === g) || Object.values(T).map(x => (x.gestos || []).find(y => y[0] === g)).find(Boolean) || [g];
+        if(cabe(g, { arranjo: sp.logo.arranjo, sep: (ent[1] || {}).sep })){ limpaGesto(); sp.logo.gesto = g; Object.assign(sp.logo, ent[1] || {}); aplicou.gesto = true; }
+      }
+      /* o O que virava símbolo (do território) só fica se o símbolo ainda é o mesmo */
+      if(sp.logo.gesto === 'troca' && !(sp.simbolo.tipo === 'ideia' && redonda)){ limpaGesto(); sp.logo.gesto = ''; }
+      if(sp.simbolo.tipo !== 'nenhum' && enfeite.includes(sp.logo.gesto)){ limpaGesto(); sp.logo.gesto = ''; }
+      if(sp.logo.gesto === 'pendente' && !(sp.simbolo.tipo === 'ideia' && ['prumo', 'coador', 'agulha'].includes(sp.simbolo.ideia))){ limpaGesto(); sp.logo.gesto = ''; }
+    }
+    if(sp.logo.arranjo === 'placa' && [...nome].length > 18) sp.logo.arranjo = 'horizontal';
+    sp.amostra = i + 1;
+    M.registraPaleta(sp);
+    return { sp, aplicou };
+  };
   /* v3.40 · a assinatura de uma amostra: o que faz duas parecerem a mesma (território, letra, cores, gesto, símbolo, arranjo) */
   /* v3.43: só o que se DESENHA (letra, caixa, gesto, símbolo e o molde do arranjo). Com a cor, o fundo e o território na
      conta, a mesma letra com o mesmo símbolo voltava no "Mais 6 caminhos" como se fosse nova, só trocando a bolinha de
@@ -2951,7 +3046,9 @@
   M.ESTRATEGIAS = {
     descritivo: { n: 'Descritivo', d: 'diz o que é na primeira leitura' }, evocativo: { n: 'Evocativo', d: 'não descreve: cria um clima' },
     inventado: { n: 'Inventado', d: 'uma palavra nova, só tua' }, origem: { n: 'De origem', d: 'puxa o lugar pro nome' }, giria: { n: 'Gíria', d: 'fala a língua da rua' },
-    composto: { n: 'Composto', d: 'duas ideias numa palavra só' }, metafora: { n: 'Metáfora', d: 'uma imagem que conta a história' }, proprio: { n: 'Teu', d: 'veio de você' }
+    composto: { n: 'Composto', d: 'duas ideias numa palavra só' }, metafora: { n: 'Metáfora', d: 'uma imagem que conta a história' }, proprio: { n: 'Teu', d: 'veio de você' },
+    /* v3.84: o nome que a direção criativa achou junto com o conceito */
+    direcao: { n: 'Direção criativa', d: 'o nome nasceu junto com o conceito' }
   };
   const semAc = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '');
   const cap = s => s ? s[0].toLocaleUpperCase('pt-BR') + s.slice(1) : s;

@@ -231,6 +231,9 @@
     ps.forEach(p => { if(out.length && !VOG.test(p)) out[out.length - 1] += p; else out.push(p); }); return out.join('·'); }).join(' ');
   L.silabas = silabas;
   const PAPEL = { p: 'Cor da marca', s: 'Apoio', a: 'Acento', ink: 'Tinta', paper: 'Papel' };
+  /* v3.84: o papel de cada uma das 9 cores da direção criativa e o tipo de cada jeito de vender */
+  const PAPEL_P = { fundo: 'Fundo', texto: 'Texto', voz: 'A cor da marca', apoio: 'Apoio', tempero: 'Tempero', neutro: 'Neutro' };
+  const TIPO_N = { ticket: 'Ticket médio', recorrencia: 'Recorrência', retencao: 'Volta', clube: 'Clube', conversao: 'Primeira compra' };
   const codigos = hex => { const rgb = M.rgb255(hex), cm = M.cmyk(hex), l = M.lch(hex); return { hex, rgb: rgb.join(' '), cmyk: cm.join(' '), oklch: `${Math.round(l.l * 100)}% ${(Math.round(l.c * 1000) / 1000).toString().replace('.', ',')} ${Math.round(l.h)}°` }; };
   L.codigos = codigos;
   /* os usos proibidos: o logo estragado de seis jeitos */
@@ -311,7 +314,14 @@
     /* v3.41: as personas (o cliente ideal e a marca como gente) vêm logo depois do conceito: a estratégia antes do desenho */
     const P = H.personas(m), li = l => (l || []).map(x => `<li>${esc(x)}</li>`).join('');
     /* a buyer persona (Pra quem) só o dono vê: é estratégia, não vitrine. Quem abre o link vê a brand persona */
-    const secs = [['conceito', 'Conceito']].concat(temNaming ? [['naming', 'Naming']] : []).concat(dono ? [['publico', 'Pra quem']] : []).concat([['persona', 'Se a marca fosse gente'], ['logo', 'Logo'], ['construcao', 'Construção'], ['tipografia', 'Tipografia'], ['cores', 'Cores'], ['elementos', 'Elementos'], ['som', 'Som e movimento'], ['voz', 'Voz'], ['pratica', 'Na prática'], ['aplicacoes', 'Aplicações'], ['arquivos', 'Arquivos']]);
+    /* v3.84 · a marca que nasceu da direção criativa traz a máquina dela: a direção escolhida (as camadas do nome, a
+       ideia, a pergunta, a assinatura, o inimigo, a interação) e a plataforma que a IA escreveu depois (propósito,
+       posicionamento, pilares, manifesto em estrofes, voz, nomes de produto, o jeito de vender, os fatos) */
+    const MQ = (m.voz && m.voz.maquina && typeof m.voz.maquina === 'object') ? m.voz.maquina : null, DR = (MQ && MQ.direcao) || {}, PL = (MQ && MQ.plataforma) || {};
+    const lst = v => Array.isArray(v) ? v : [], SN = PL.sistema_nomes || {};
+    const temNome = lst(DR.camadas).length > 0, temPlat = !!(PL.posicionamento || DR.inimigo), temRep = lst(PL.fatos).length > 0, temProd = lst(SN.exemplos).length > 0 || lst(PL.negocio).length > 0;
+    const IT = DR.interacao || {}, temAbre = !!(MQ && L.INT[IT.tipo]);
+    const secs = (temAbre ? [['abertura', 'A abertura']] : []).concat([['conceito', 'Conceito']]).concat(temNome ? [['nome', 'O nome']] : temNaming ? [['naming', 'Naming']] : []).concat(temPlat ? [['plataforma', 'Plataforma']] : []).concat(temRep ? [['repertorio', 'Repertório']] : []).concat(dono ? [['publico', 'Pra quem']] : []).concat([['persona', 'Se a marca fosse gente'], ['logo', 'Logo'], ['construcao', 'Construção'], ['tipografia', 'Tipografia'], ['cores', 'Cores'], ['elementos', 'Elementos'], ['som', 'Som e movimento'], ['voz', 'Voz']]).concat(temProd ? [['produtos', 'Produtos e negócio']] : []).concat([['pratica', 'Na prática'], ['aplicacoes', 'Aplicações'], ['arquivos', 'Arquivos']]);
     const SOM = C.houziSom, mus = k.musica, PO = C.houziPost, cons = L.construcao(k), link = !H.ehLocal(m) && m.publica ? H.linkLivro(m) : '';
     const corNota = M.contraste(c.p, c.ink) >= 2 ? c.p : M.contraste(c.a, c.ink) >= 2 ? c.a : c.paper;
     const ROT_COR = { paper: 'Papel', p: 'Marca', s: 'Apoio', a: 'Acento', ink: 'Tinta' };
@@ -336,13 +346,37 @@
       </section>
       <nav class="bb-indice" aria-label="Neste brandbook">${secs.map(([id, n], i) => `<button type="button" data-act="bb-ir" data-k="${id}"><span>${String(i + 1).padStart(2, '0')}</span>${esc(n)}</button>`).join('')}</nav>
 
+      ${temAbre ? `<section class="bb-sec bb-escuro bb-abre" id="bb-abertura">${cab('abertura', 'A abertura', L.INT[IT.tipo].n + (DR.metafora ? ' · ' + DR.metafora : ''))}
+        <div class="bb-int" id="bb-int" data-tipo="${esc(IT.tipo)}"><canvas aria-label="${esc('A abertura da marca: ' + (IT.como || L.INT[IT.tipo].d))}"></canvas></div>
+        <div class="bb-int-ctl"><button type="button" class="stz-btn pri" data-act="bb-int-resolve">${esc(IT.nome || L.INT[IT.tipo].b)}</button><button type="button" class="stz-btn" data-act="bb-int-denovo">De novo</button></div>
+        <p class="bb-nota">${esc(IT.como || L.INT[IT.tipo].d)}</p></section>` : ''}
       <section class="bb-sec bb-escuro" id="bb-conceito">${cab('conceito', 'Conceito', t.n + ' · ' + t.frase)}
         <blockquote class="bb-quote">${esc(voz.conceito || '')}</blockquote>
-        <div class="bb-txt bb-manifesto">${pars([voz.manifesto])}</div>
+        ${DR.assinatura ? `<p class="bb-assina" style="font-family:var(--bb-fd)">${esc(DR.assinatura)}</p>` : ''}
+        ${DR.pergunta ? `<p class="bb-pergunta"><span class="bb-k">A pergunta que decide tudo</span>${esc(DR.pergunta)}</p>` : ''}
+        ${lst(PL.manifesto_estrofes).length ? `<div class="bb-estrofes">${PL.manifesto_estrofes.map(x => `<p>${esc(x)}</p>`).join('')}</div>` : `<div class="bb-txt bb-manifesto">${pars([voz.manifesto])}</div>`}
         <div class="bb-2"><div class="bb-pers">${M.EIXOS.map((e, i) => `<div class="bb-eixo"><span>${esc(e[0])}</span><i><b style="left:${Math.round(pers[i] * 100)}%"></b></i><span>${esc(e[1])}</span></div>`).join('')}</div>
         <div class="bb-arq"><span class="bb-k">Arquétipo</span><b>${esc(ar.n)}</b><p>${esc(ar.d)}</p></div></div>
       </section>
-      ${temNaming ? `<section class="bb-sec" id="bb-naming">${cab('naming', 'Naming', (M.ESTRATEGIAS[m.naming.estrategia] || {}).n || '')}
+      ${temNome ? `<section class="bb-sec" id="bb-nome">${cab('nome', 'O nome', DR.metafora ? 'A metáfora · ' + DR.metafora : '')}
+        <div class="bb-nome" style="font-family:var(--bb-fd)">${esc(m.nome)}</div>
+        ${DR.anatomia ? `<p class="bb-anatomia">${esc(DR.anatomia)}</p>` : ''}
+        <p class="bb-k">As camadas: toca em cada uma</p>
+        <div class="bb-camadas" role="group" aria-label="As camadas do nome">${DR.camadas.map((x, i) => `<button type="button" class="bb-camada" data-act="bb-camada" data-i="${i}" aria-pressed="${!i}">${esc(x.sentido)}</button>`).join('')}</div>
+        <p class="bb-camada-tx" id="bb-camada-tx" aria-live="polite">${esc(DR.camadas[0].explica || '')}</p>
+        <div class="bb-anat"><span>${esc(silabas(m.nome))}</span><span>@${esc(hd)}</span><span>${esc(hd)}.com.br</span></div>
+        ${tx.naming && tx.naming.length && String(tx.naming.join('')).trim() ? `<div class="bb-txt">${pars(tx.naming)}</div>` : ''}</section>` : ''}
+      ${temPlat ? `<section class="bb-sec bb-escuro" id="bb-plataforma">${cab('plataforma', 'Plataforma', PL.essencia ? 'Essência · ' + PL.essencia : '')}
+        ${DR.ideia_central ? `<blockquote class="bb-quote">${esc(DR.ideia_central)}</blockquote>` : ''}
+        ${PL.proposito || PL.posicionamento ? `<div class="bb-2"><div><p class="bb-k">Propósito</p><div class="bb-txt bb-colado">${pars([PL.proposito])}</div></div><div><p class="bb-k">Posicionamento</p><div class="bb-txt bb-colado">${pars([PL.posicionamento])}</div></div></div>` : ''}
+        ${lst(PL.pilares).length ? `<p class="bb-k">Os pilares</p><ol class="bb-pilares">${PL.pilares.map(x => `<li><b>${esc(x.nome)}</b><span>${esc(x.regra)}</span></li>`).join('')}</ol>` : ''}
+        ${DR.inimigo ? `<div class="bb-inimigo"><div><span class="bb-k">O inimigo</span><p>${esc(DR.inimigo)}</p></div><i aria-hidden="true">×</i><div><span class="bb-k">O que a marca põe no lugar</span><p>${esc(PL.no_lugar || '')}</p></div></div>` : ''}
+        <div class="bb-arq"><span class="bb-k">Arquétipo</span><b>${esc(DR.arquetipo || ar.n)}</b><p>${esc(PL.tensao || ar.d)}</p></div>
+        ${MQ.estado !== 'ok' && dono ? `<p class="bb-nota">A plataforma ainda não foi escrita inteira. Abre a bancada pra terminar.</p>` : ''}</section>` : ''}
+      ${temRep ? `<section class="bb-sec" id="bb-repertorio">${cab('repertorio', 'Repertório', 'O que sustenta a marca')}
+        <ul class="bb-fatos">${PL.fatos.map(x => `<li>${esc(x.fato)}${x.certeza === 'mais_contada' ? '<small>a história mais contada</small>' : ''}</li>`).join('')}</ul>
+        <p class="bb-nota">O que vem marcado como "a história mais contada" é o que se conta por aí: confere antes de usar em campanha.</p></section>` : ''}
+      ${temNaming && !temNome ? `<section class="bb-sec" id="bb-naming">${cab('naming', 'Naming', (M.ESTRATEGIAS[m.naming.estrategia] || {}).n || '')}
         <div class="bb-nome" style="font-family:var(--bb-fd)">${esc(m.naming.nome)}</div>
         <div class="bb-anat"><span>${esc(silabas(m.naming.nome))}</span><span>@${esc(hd)}</span><span>${esc(hd)}.com.br</span></div>
         <div class="bb-txt">${pars(tx.naming)}</div></section>` : ''}
@@ -391,13 +425,15 @@
 
       <section class="bb-sec" id="bb-cores">${cab('cores', 'Cores', sp.cores.receita ? 'Paleta ' + sp.cores.receita : '')}
         <div class="bb-cores">${['p', 's', 'a', 'ink', 'paper'].map(kk => { const cc = codigos(c[kk]); return `<div class="bb-cor" style="background:${esc(c[kk])};color:${esc(M.texto_em(c[kk], '#111111', '#FFFFFF'))}"><span class="bb-k">${esc(PAPEL[kk])}</span><b>${esc(M.nomeCor(c[kk], sp.nome))}</b><dl><dt>HEX</dt><dd>${esc(cc.hex)}</dd><dt>RGB</dt><dd>${esc(cc.rgb)}</dd><dt>CMYK</dt><dd>${esc(cc.cmyk)}</dd><dt>OKLCH</dt><dd>${esc(cc.oklch)}</dd></dl></div>`; }).join('')}</div>
-        <div class="bb-prop" aria-label="A proporção das cores"><i style="flex:60;background:${esc(c.paper)}"></i><i style="flex:25;background:${esc(c.p)}"></i><i style="flex:10;background:${esc(c.s)}"></i><i style="flex:5;background:${esc(c.a)}"></i></div>
+        ${lst(sp.paleta).some(x => x.uso) ? `<div class="bb-prop" aria-label="A proporção das cores">${sp.paleta.filter(x => /^#[0-9a-f]{6}$/i.test(String(x.hex))).map(x => `<i style="flex:${Math.max(1, Number(x.uso) || 1)};background:${esc(x.hex)}" title="${esc(x.nome)} · ${Number(x.uso) || 0}%"></i>`).join('')}</div>` : `<div class="bb-prop" aria-label="A proporção das cores"><i style="flex:60;background:${esc(c.paper)}"></i><i style="flex:25;background:${esc(c.p)}"></i><i style="flex:10;background:${esc(c.s)}"></i><i style="flex:5;background:${esc(c.a)}"></i></div>`}
         <div class="bb-txt">${pars(tx.cores)}</div>
         <h3 class="bb-h3">Combinações</h3>
         <p class="bb-nota">Cada cor de texto (nas colunas) em cima de cada cor de fundo (nas linhas), com a nota de leitura: AAA e AA seguram texto corrido; AA título, só letra grande; o resto é enfeite.</p>
         <div class="bb-comb" role="table" aria-label="Combinações de cor"><span class="bb-comb-k top"></span>${['paper', 'p', 's', 'a', 'ink'].map(kk => `<span class="bb-comb-k top">${esc(ROT_COR[kk])}</span>`).join('')}
           ${L.combinacoes(c).map((linha, i) => `<span class="bb-comb-k">${esc(ROT_COR[['paper', 'p', 's', 'a', 'ink'][i]])}</span>${linha.map(x => { if(!x) return '<span class="bb-comb-c vazio"></span>'; const nt = L.nota(x.r); return `<span class="bb-comb-c${x.r < 3 ? ' nao' : ''}" style="background:${esc(c[x.fundo])};color:${esc(c[x.tinta])}" title="${esc(ROT_COR[x.tinta])} em ${esc(ROT_COR[x.fundo])}"><b>Aa</b><small>${String(Math.round(x.r * 10) / 10).replace('.', ',')}:1 · ${esc(nt[0])} ${esc(nt[1])}</small></span>`; }).join('')}`).join('')}
         </div>
+        ${lst(sp.paleta).length ? `<h3 class="bb-h3">A paleta inteira</h3><div class="bb-pal9">${sp.paleta.filter(x => /^#[0-9a-f]{6}$/i.test(String(x.hex))).map(x => `<div class="bb-pal9-c"><i style="background:${esc(x.hex)}"></i><div><b>${esc(x.nome)}</b><small>${esc(PAPEL_P[x.papel] || '')}${x.uso ? ' · ' + Number(x.uso) + '%' : ''} · ${esc(String(x.hex).toUpperCase())}</small>${x.historia ? `<p>${esc(x.historia)}</p>` : ''}</div></div>`).join('')}</div>
+          ${sp.modos && (sp.modos.claro || sp.modos.escuro) ? `<p class="bb-nota">Os dois modos da marca: <b>${esc(sp.modos.claro || 'claro')}</b>, no fundo claro, e <b>${esc(sp.modos.escuro || 'escuro')}</b>, no fundo escuro.</p>` : ''}` : ''}
       </section>
 
       <section class="bb-sec bb-escuro" id="bb-elementos">${cab('elementos', 'Elementos', (M.TEXTURAS || {})[sp.textura] ? 'Textura: ' + M.TEXTURAS[sp.textura] : '')}
@@ -424,7 +460,15 @@
           <div><p class="bb-k">A marca não é</p><ul class="bb-lista nao">${(voz.nao_e || []).map(x => `<li>${esc(x)}</li>`).join('')}</ul><p class="bb-k">Nunca fala assim</p><ul class="bb-lista nao">${(voz.nao_fala || []).map(x => `<li>“${esc(x)}”</li>`).join('')}</ul></div></div>
         <p class="bb-k">Frases</p><ul class="bb-frases" style="font-family:var(--bb-fd)">${(voz.taglines || []).map(x => `<li>${esc(x)}</li>`).join('')}</ul>
         <div class="bb-2"><div class="bb-bio"><p class="bb-k">Bio do Instagram</p><p>${esc(voz.bio || '')}</p></div><div class="bb-wa"><p class="bb-k">Boas-vindas do WhatsApp</p><p class="bb-balao">${esc(voz.wa || '')}</p></div></div>
+        ${lst(PL.principios).length ? `<p class="bb-k">Princípios</p><ol class="bb-pilares bb-princ">${PL.principios.map(x => `<li><span>${esc(x)}</span></li>`).join('')}</ol>` : ''}
+        ${lst(PL.usa).length || lst(PL.evita).length ? `<div class="bb-2"><div><p class="bb-k">Palavras da marca</p><p class="bb-pal">${lst(PL.usa).map(x => `<span>${esc(x)}</span>`).join('')}</p></div><div><p class="bb-k">Palavras que ela não usa</p><p class="bb-pal nao">${lst(PL.evita).map(x => `<span>${esc(x)}</span>`).join('')}</p></div></div>` : ''}
+        ${lst(PL.exemplos).length ? `<p class="bb-k">Todo mundo fala assim · ${esc(m.nome)} fala assim</p><div class="bb-gxm">${PL.exemplos.map(x => `<div><p class="g">${esc(x.generico)}</p><p class="m">${esc(x.marca)}</p></div>`).join('')}</div>` : ''}
+        <div class="bb-detector"><label><span class="bb-k">Detector de clichê</span><textarea id="bb-det" rows="3" maxlength="1200" placeholder="Cola aqui uma legenda, um texto do site, um anúncio…"></textarea></label><div class="bb-det-r" id="bb-det-r" aria-live="polite"><p class="bb-nota">Cola um texto: o detector marca o clichê de marketing${lst(PL.evita).length ? ' e as palavras que essa marca não usa' : ''}, e sugere o jeito dela.</p></div></div>
       </section>
+      ${temProd ? `<section class="bb-sec" id="bb-produtos">${cab('produtos', 'Produtos e negócio')}
+        ${SN.regra || lst(SN.exemplos).length ? `<p class="bb-k">Como os produtos se chamam</p>${SN.regra ? `<div class="bb-txt bb-colado">${pars([SN.regra])}</div>` : ''}<div class="bb-prods">${lst(SN.exemplos).map(x => `<div class="bb-prod"><b style="font-family:var(--bb-fd)">${esc(x.nome)}</b><span>${esc(x.o_que)}</span></div>`).join('')}</div>` : ''}
+        ${lst(PL.negocio).length ? `<p class="bb-k">O jeito de vender</p><div class="bb-negocio">${PL.negocio.map(x => `<div><span class="bb-k">${esc(TIPO_N[x.tipo] || '')}</span><b>${esc(x.nome)}</b><p>${esc(x.como)}</p></div>`).join('')}</div>` : ''}
+        <p class="bb-nota">Nome e preço de produto aqui são ideia pra começar: confere com o que o negócio vende de verdade antes de pôr na rua.</p></section>` : ''}
 
       ${PO ? `<section class="bb-sec" id="bb-pratica">${cab('pratica', 'Na prática', 'O brandbook que faz post')}
         <div class="bb-pg"><div class="bb-pg-ctrl">
@@ -470,7 +514,189 @@
     /* o filme da capa (sem som; com som no botão). Quem pediu menos movimento vê o logo parado */
     if(!matchMedia('(prefers-reduced-motion: reduce)').matches) requestAnimationFrame(() => L.filmeCapa(false));
     L.posterQ();
+    /* v3.84: as estrofes do manifesto acendem com a rolagem; o detector de clichê; a abertura */
+    L.depois(app, { MQ, DR, PL, IT, temAbre });
   };
+  /* ---------- v3.84 · A ABERTURA: a interação-assinatura que É o conceito (o §5 do prompt-motor do Thales) ----------
+     Quatro jeitos, a direção criativa escolhe um: o pó que forma o nome, o estêncil que o spray pinta, a vela que acha o
+     nome no escuro e os blocos que caem e montam. O logo (vetor) vira imagem num canvas fora da tela e a interação usa
+     os pixels dele (a cor de cada ponto é a do logo). Mouse e dedo (o dedo arrastando de pé continua rolando a página:
+     touch-action pan-y), nasce bonita parada (serve de print), tem piloto automático, pausa fora da tela e para de
+     desenhar quando assenta. Quem pediu menos movimento vê o logo pronto. */
+  L.INT = {
+    po: { n: 'Pó', b: 'Assentar', d: 'Passa o dedo (ou o mouse) e o pó voa; ele volta e forma o nome.' },
+    estencil: { n: 'Estêncil', b: 'Pintar tudo', d: 'Passa o dedo (ou o mouse) pra pintar: o spray só pega onde o molde deixa.' },
+    vela: { n: 'Vela', b: 'Acender', d: 'A página tá no escuro: a luz segue o dedo (ou o mouse) e acha o nome.' },
+    blocos: { n: 'Blocos', b: 'Montar', d: 'As peças caem e se encaixam. Toca nelas pra desmontar: elas voltam pro lugar.' }
+  };
+  let INT = null;
+  const imgDoSvg = svg => new Promise((ok, falha) => { const im = new Image(); im.onload = () => ok(im); im.onerror = () => falha(new Error('svg')); im.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg); });
+  const rgbDe = hex => M.rgb255(hex).join(',');
+  L.intEstado = () => INT ? INT.estado() : null;
+  L.abreInt = async (k, it) => {
+    if(INT) INT.para();
+    const box = C.$('bb-int'); if(!box || !k) return;
+    const cv = box.querySelector('canvas'), g = cv.getContext('2d'), tipo = it.tipo, menos = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const vs = M.versoes(k.c), v = tipo === 'blocos' ? vs.cor : vs.negativo, fundo = v.fundo, fundoRgb = rgbDe(fundo);
+    box.style.background = fundo;
+    const S = { vivo: true, visivel: false, raf: 0, ponto: null, ult: 0, quieto: false, comecou: false, t: 0, n: 0 };
+    let W = 0, H = 0, dpr = 1, logo = null, md = null, lb = null, P = null;
+    const em = (x, y) => { x |= 0; y |= 0; return x >= 0 && y >= 0 && x < W && y < H && md[(y * W + x) * 4 + 3] > 120; };
+    const corEm = (x, y) => { const i = (((y | 0) * W) + (x | 0)) * 4; return `rgb(${md[i]},${md[i + 1]},${md[i + 2]})`; };
+    const monta = async () => {
+      const r = box.getBoundingClientRect(); dpr = Math.min(2, window.devicePixelRatio || 1);
+      W = Math.max(2, Math.round(r.width * dpr)); H = Math.max(2, Math.round(r.height * dpr)); cv.width = W; cv.height = H;
+      const lg = k.logo, vb = lg.vb, e = Math.min(W * 0.74 / vb.w, H * 0.5 / vb.h), lw = Math.max(1, Math.round(vb.w * e)), lh = Math.max(1, Math.round(vb.h * e));
+      const im = await imgDoSvg(M.logoSvg(lg, v, { margem: 0, w: lw, h: lh }));
+      logo = document.createElement('canvas'); logo.width = W; logo.height = H;
+      const lc = logo.getContext('2d'), x0 = Math.round((W - lw) / 2), y0 = Math.round((H - lh) / 2);
+      lc.drawImage(im, x0, y0, lw, lh); md = lc.getImageData(0, 0, W, H).data; lb = { x: x0, y: y0, w: lw, h: lh };
+    };
+    /* ---- os quatro jeitos: cada um tem o estado de partida (o print), o começo (o piloto), o passo, o desenho, resolver e de novo ---- */
+    const J = {
+      po: {
+        cria(){ const passo = Math.max(2, Math.round(Math.sqrt(lb.w * lb.h / 6500))), grupos = {}; let n = 0;
+          for(let y = lb.y; y < lb.y + lb.h; y += passo) for(let x = lb.x; x < lb.x + lb.w; x += passo){ if(!em(x, y)) continue; const c = corEm(x, y); (grupos[c] = grupos[c] || []).push({ tx: x, ty: y, x, y, vx: 0, vy: 0 }); n++; }
+          P = { passo, grupos: Object.entries(grupos), n, forte: false }; },
+        comeca(){ /* uma rajada atravessa o nome e o pó volta sozinho */ P.grupos.forEach(([, l]) => l.forEach(q => { const a = Math.random() * Math.PI * 2, f = (6 + Math.random() * 18) * dpr; q.vx = Math.cos(a) * f + 10 * dpr; q.vy = Math.sin(a) * f; })); },
+        passo(){ const k2 = P.forte ? 0.2 : 0.035, at = P.forte ? 0.62 : 0.88, R = 74 * dpr; let mov = 0;
+          P.grupos.forEach(([, l]) => l.forEach(q => { q.vx += (q.tx - q.x) * k2; q.vy += (q.ty - q.y) * k2;
+            if(S.ponto){ const dx = q.x - S.ponto.x, dy = q.y - S.ponto.y, d2 = dx * dx + dy * dy; if(d2 < R * R){ const d = Math.sqrt(d2) || 1, f = (1 - d / R) * 7 * dpr; q.vx += dx / d * f + (Math.random() - .5) * dpr; q.vy += dy / d * f + (Math.random() - .5) * dpr; } }
+            q.vx *= at; q.vy *= at; q.x += q.vx; q.y += q.vy; mov += Math.abs(q.vx) + Math.abs(q.vy) + Math.abs(q.tx - q.x) * .02 + Math.abs(q.ty - q.y) * .02; }));
+          if(mov / Math.max(1, P.n) < 0.03 && !S.ponto){ P.grupos.forEach(([, l]) => l.forEach(q => { q.x = q.tx; q.y = q.ty; q.vx = q.vy = 0; })); P.forte = false; return true; } return false; },
+        desenha(){ g.fillStyle = fundo; g.fillRect(0, 0, W, H); const sz = P.passo * 0.92; P.grupos.forEach(([c, l]) => { g.fillStyle = c; l.forEach(q => g.fillRect(q.x, q.y, sz, sz)); }); },
+        resolve(){ P.forte = true; },
+        denovo(){ P.forte = false; P.grupos.forEach(([, l]) => l.forEach(q => { q.x = Math.random() * W; q.y = Math.random() * H; q.vx = q.vy = 0; })); },
+        pronto(){ return P.grupos.every(([, l]) => l.every(q => q.x === q.tx && q.y === q.ty)); }
+      },
+      estencil: {
+        cria(){ const cel = Math.max(4, Math.round(6 * dpr)), cs = Math.ceil(W / cel), ls = Math.ceil(H / cel), dentro = new Uint8Array(cs * ls), feito = new Uint8Array(cs * ls); let total = 0;
+          for(let j = 0; j < ls; j++) for(let i = 0; i < cs; i++) if(em(i * cel + cel / 2, j * cel + cel / 2)){ dentro[j * cs + i] = 1; total++; }
+          const m2 = Math.round(Math.min(lb.w, lb.h) * 0.14);
+          P = { cel, cs, dentro, feito, total, pintou: 0, cartao: { x: lb.x - m2, y: lb.y - m2, w: lb.w + 2 * m2, h: lb.h + 2 * m2 }, bico: null, rapido: false, pingos: [], hits: new Uint16Array(cs * ls) };
+          this.base(); },
+        base(){ /* o print: o cartão do molde com o nome recortado, quase sem tinta */
+          const c2 = P.cartao, rr = Math.min(14 * dpr, c2.h * .1); g.fillStyle = fundo; g.fillRect(0, 0, W, H);
+          g.fillStyle = `rgba(${rgbDe(k.c.paper)},0.07)`; g.beginPath(); if(g.roundRect) g.roundRect(c2.x, c2.y, c2.w, c2.h, rr); else g.rect(c2.x, c2.y, c2.w, c2.h); g.fill();
+          g.globalAlpha = 0.13; g.drawImage(logo, 0, 0); g.globalAlpha = 1; },
+        comeca(){ P.bico = { x: P.cartao.x, y: lb.y + lb.h * 0.12, dir: 1, linha: 0 }; },
+        jato(x, y, n){ const R = 22 * dpr, c2 = P.cartao;
+          for(let q = 0; q < n; q++){ const a = Math.random() * Math.PI * 2, r = Math.abs((Math.random() + Math.random() + Math.random()) / 3 - .5) * 2 * R, px = x + Math.cos(a) * r, py = y + Math.sin(a) * r;
+            if(em(px, py)){ g.fillStyle = corEm(px, py); const s = (0.8 + Math.random() * 1.6) * dpr; g.fillRect(px - s / 2, py - s / 2, s, s);
+              const ci = ((py / P.cel) | 0) * P.cs + ((px / P.cel) | 0); if(P.dentro[ci] && !P.feito[ci]){ P.feito[ci] = 1; P.pintou++; }
+              if(P.dentro[ci] && ++P.hits[ci] === 22 && Math.random() < 0.18) P.pingos.push({ x: px, y: py, c: corEm(px, py), resta: (6 + Math.random() * 20) * dpr }); }
+            else if(px > c2.x && px < c2.x + c2.w && py > c2.y && py < c2.y + c2.h && Math.random() < 0.3){ g.fillStyle = `rgba(${rgbDe(k.c.paper)},0.16)`; g.fillRect(px, py, dpr, dpr); } } },
+        passo(){
+          if(S.ponto) this.jato(S.ponto.x, S.ponto.y, 150);
+          else if(P.bico){ const b = P.bico, vel = (P.rapido ? 0.07 : 0.022) * P.cartao.w; for(let s = 0; s < (P.rapido ? 4 : 1); s++){ this.jato(b.x, b.y, P.rapido ? 160 : 120); b.x += b.dir * vel / (P.rapido ? 4 : 1); }
+            if(b.x > P.cartao.x + P.cartao.w || b.x < P.cartao.x){ b.dir *= -1; b.linha++; b.y += Math.max(10 * dpr, lb.h * (P.rapido ? .16 : .11)); if(b.y > lb.y + lb.h * 1.05) b.y = lb.y + lb.h * 0.06; } }
+          /* o escorrido: o pingo desce enquanto tá dentro do molde */
+          P.pingos = P.pingos.filter(p => { if(p.resta <= 0 || !em(p.x, p.y + dpr)) return false; g.fillStyle = p.c; g.fillRect(p.x - .6 * dpr, p.y, 1.3 * dpr, 1.6 * dpr); p.y += 1.2 * dpr; p.resta -= 1.2 * dpr; return true; });
+          if(P.pintou >= P.total * 0.985 && !S.ponto){ this.acaba(); return true; } return false; },
+        acaba(){ g.drawImage(logo, 0, 0); P.pintou = P.total; P.bico = null; P.pingos = []; },
+        desenha(){}, resolve(){ P.rapido = true; if(!P.bico) this.comeca(); }, denovo(){ P.feito.fill(0); P.hits.fill(0); P.pintou = 0; P.rapido = false; P.pingos = []; this.base(); this.comeca(); },
+        pronto(){ return P.pintou >= P.total; }
+      },
+      vela: {
+        cria(){ P = { esc: document.createElement('canvas'), luz: { x: W / 2, y: H / 2 }, r: Math.max(80 * dpr, lb.h * 0.75), alvo: null, acesa: false, tp: 0 }; P.esc.width = W; P.esc.height = H; },
+        comeca(){ P.tp = 0; },
+        passo(){ P.tp += 1 / 60;
+          const a = P.tp * 0.55, auto = { x: lb.x + lb.w * (0.5 + 0.48 * Math.sin(a * 1.3)), y: lb.y + lb.h * (0.5 + 0.7 * Math.sin(a * 2.1 + 1)) };
+          const alvo = S.ponto || (P.tp > 11 ? { x: W / 2, y: H / 2 } : auto); P.luz.x += (alvo.x - P.luz.x) * 0.12; P.luz.y += (alvo.y - P.luz.y) * 0.12;
+          const rAlvo = P.acesa ? Math.hypot(W, H) : P.tp > 11 && !S.ponto ? Math.max(lb.w, lb.h) * 0.8 : Math.max(80 * dpr, lb.h * 0.75);
+          P.r += (rAlvo - P.r) * (P.acesa ? 0.06 : 0.08);
+          return !S.ponto && ((P.acesa && P.r > Math.hypot(W, H) * 0.97) || (P.tp > 13 && Math.abs(P.r - rAlvo) < 2)); },
+        desenha(){
+          g.fillStyle = fundo; g.fillRect(0, 0, W, H); g.drawImage(logo, 0, 0);
+          const e = P.esc.getContext('2d'), r = P.r * (P.acesa ? 1 : 1 + Math.sin(P.tp * 13) * 0.035 + Math.sin(P.tp * 5.3) * 0.025);
+          e.globalCompositeOperation = 'source-over'; e.clearRect(0, 0, W, H); e.fillStyle = `rgba(${fundoRgb},0.96)`; e.fillRect(0, 0, W, H);
+          e.globalCompositeOperation = 'destination-out'; const gr = e.createRadialGradient(P.luz.x, P.luz.y, 0, P.luz.x, P.luz.y, Math.max(1, r)); gr.addColorStop(0, 'rgba(0,0,0,1)'); gr.addColorStop(0.55, 'rgba(0,0,0,.85)'); gr.addColorStop(1, 'rgba(0,0,0,0)'); e.fillStyle = gr; e.fillRect(0, 0, W, H);
+          g.drawImage(P.esc, 0, 0);
+          /* o calor da chama: um halo âmbar por cima, somando luz */
+          g.globalCompositeOperation = 'lighter'; const h = g.createRadialGradient(P.luz.x, P.luz.y, 0, P.luz.x, P.luz.y, Math.max(1, r * 0.7)); h.addColorStop(0, 'rgba(255,170,70,.16)'); h.addColorStop(1, 'rgba(255,170,70,0)'); g.fillStyle = h; g.fillRect(0, 0, W, H); g.globalCompositeOperation = 'source-over'; },
+        resolve(){ P.acesa = true; }, denovo(){ P.acesa = false; P.tp = 0; P.r = Math.max(80 * dpr, lb.h * 0.75); },
+        pronto(){ return P.acesa || P.tp > 11; },
+        base(){ g.fillStyle = fundo; g.fillRect(0, 0, W, H); g.globalAlpha = 0.07; g.drawImage(logo, 0, 0); g.globalAlpha = 1; }
+      },
+      blocos: {
+        cria(){ const cols = Math.max(8, Math.min(34, Math.round(lb.w / (22 * dpr)))), tw = lb.w / cols, rows = Math.max(2, Math.round(lb.h / tw)), th = lb.h / rows, ps = [];
+          for(let j = 0; j < rows; j++) for(let i = 0; i < cols; i++){ const sx = lb.x + i * tw, sy = lb.y + j * th; let tem = false; for(let a = 0; a < 4 && !tem; a++) for(let b2 = 0; b2 < 4 && !tem; b2++) tem = em(sx + (a + .5) * tw / 4, sy + (b2 + .5) * th / 4); if(tem) ps.push({ sx, sy, x: sx, y: sy, vx: 0, vy: 0, rot: 0, vr: 0, ok: true, i, j }); }
+          P = { ps, tw, th, rows, rapido: false }; },
+        comeca(){ P.ps.forEach(q => { q.y = q.sy - H * (0.6 + Math.random() * 0.5) - (P.rows - q.j) * P.th * 1.4; q.x = q.sx + (Math.random() - .5) * P.tw * 3; q.vy = 0; q.vx = 0; q.rot = (Math.random() - .5) * 1.2; q.vr = 0; q.ok = false; }); },
+        passo(){ const gr = 0.55 * dpr, R = 80 * dpr; let todos = true;
+          P.ps.forEach(q => {
+            if(S.ponto && S.toque){ const dx = q.x + P.tw / 2 - S.ponto.x, dy = q.y + P.th / 2 - S.ponto.y; if(dx * dx + dy * dy < R * R){ q.vy = -(7 + Math.random() * 9) * dpr; q.vx = (Math.random() - .5) * 12 * dpr; q.vr = (Math.random() - .5) * .3; q.ok = false; } }
+            if(q.ok) return; todos = false;
+            if(P.rapido){ q.x += (q.sx - q.x) * .35; q.y += (q.sy - q.y) * .35; q.rot *= .6; if(Math.abs(q.sx - q.x) + Math.abs(q.sy - q.y) < .6){ q.x = q.sx; q.y = q.sy; q.rot = 0; q.ok = true; } return; }
+            q.vy += gr; q.vx += (q.sx - q.x) * 0.06; q.vx *= 0.82; q.x += q.vx; q.y += q.vy; q.rot += q.vr; q.vr *= .95; q.rot *= .93;
+            if(q.y >= q.sy && q.vy > 0){ q.y = q.sy; q.vy = -q.vy * 0.32; if(Math.abs(q.vy) < 1.3 * dpr && Math.abs(q.sx - q.x) < 1.5 * dpr){ q.vy = 0; q.y = q.sy; q.x = q.sx; q.rot = 0; q.ok = true; } } });
+          S.toque = false;
+          if(todos && P.ps.every(q => q.ok)){ P.rapido = false; return true; } return false; },
+        desenha(){ g.fillStyle = fundo; g.fillRect(0, 0, W, H); const gap = Math.max(.5, .7 * dpr);
+          P.ps.forEach(q => { g.save(); g.translate(q.x + P.tw / 2, q.y + P.th / 2); if(q.rot) g.rotate(q.rot); g.drawImage(logo, q.sx + gap, q.sy + gap, P.tw - 2 * gap, P.th - 2 * gap, -P.tw / 2 + gap, -P.th / 2 + gap, P.tw - 2 * gap, P.th - 2 * gap); g.restore(); }); },
+        resolve(){ P.rapido = true; P.ps.forEach(q => { q.ok = q.ok && q.x === q.sx && q.y === q.sy; }); }, denovo(){ P.rapido = false; this.comeca(); },
+        pronto(){ return P.ps.every(q => q.ok); }
+      }
+    };
+    const j = J[tipo]; if(!j) return;
+    const final = () => { if(tipo === 'estencil'){ j.base(); j.acaba(); } else if(tipo === 'vela'){ g.fillStyle = fundo; g.fillRect(0, 0, W, H); g.drawImage(logo, 0, 0); } else j.desenha(); };
+    const roda = () => {
+      if(S.raf || !S.vivo || !S.visivel || menos) return;
+      const f = () => { S.raf = 0; if(!cv.isConnected){ para(); return; }
+        if(S.ponto && performance.now() - S.ult > 140 && !S.preso) S.ponto = null;
+        const parou = j.passo(); j.desenha(); S.n++;
+        S.quieto = parou && !S.ponto; if(!S.quieto) S.raf = requestAnimationFrame(f); };
+      S.raf = requestAnimationFrame(f);
+    };
+    const pos = e => { const r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) * dpr, y: (e.clientY - r.top) * dpr }; };
+    const mexe = e => { if(menos) return; S.ponto = pos(e); S.ult = performance.now(); S.quieto = false; roda(); };
+    cv.style.touchAction = 'pan-y';
+    cv.addEventListener('pointermove', mexe);
+    cv.addEventListener('pointerdown', e => { S.preso = e.pointerType !== 'mouse'; S.toque = true; mexe(e); });
+    ['pointerup', 'pointercancel', 'pointerleave'].forEach(n => cv.addEventListener(n, () => { S.preso = false; S.ponto = null; }));
+    const io = 'IntersectionObserver' in window ? new IntersectionObserver(l => { S.visivel = !!(l[0] && l[0].isIntersecting); if(S.visivel){ if(!S.comecou && !menos){ S.comecou = true; j.comeca(); } roda(); } else if(S.raf){ cancelAnimationFrame(S.raf); S.raf = 0; } }, { threshold: 0.3 }) : null;
+    let rT = 0;
+    const ro = 'ResizeObserver' in window ? new ResizeObserver(() => { clearTimeout(rT); rT = setTimeout(async () => { const w0 = W; const r = box.getBoundingClientRect(); if(Math.abs(Math.round(r.width * dpr) - w0) < 2) return; await monta(); j.cria(); final(); S.quieto = true; }, 220); }) : null;
+    function para(){ S.vivo = false; if(S.raf) cancelAnimationFrame(S.raf); S.raf = 0; if(io) io.disconnect(); if(ro) ro.disconnect(); }
+    try{ await monta(); }catch(e){ return; }
+    if(!cv.isConnected) return;
+    j.cria();
+    /* o print: o estado de partida bonito (o pó e os blocos já formados, o molde com o nome em sombra, a vela no escuro) */
+    if(menos) final(); else if(j.base && tipo !== 'estencil') j.base(); else j.desenha();
+    INT = { para, tipo,
+      resolve(){ if(menos){ final(); return; } j.resolve(); S.quieto = false; S.visivel = true; roda(); },
+      denovo(){ if(menos){ final(); return; } j.denovo(); S.comecou = true; S.quieto = false; S.visivel = true; roda(); },
+      estado: () => ({ tipo, pronto: j.pronto(), quieto: S.quieto, rodando: !!S.raf, quadros: S.n, comecou: S.comecou, w: W, h: H, pecas: tipo === 'po' ? P.n : tipo === 'blocos' ? P.ps.length : tipo === 'estencil' ? P.total : 1, cobre: tipo === 'estencil' ? P.pintou / Math.max(1, P.total) : null })
+    };
+    if(io) io.observe(box); else { S.visivel = true; S.comecou = true; j.comeca(); roda(); }
+    if(ro) ro.observe(box);
+  };
+  /* depois de desenhar o brandbook: as estrofes acendem com a rolagem, o detector de clichê e a abertura */
+  const CLICHE_GERAL = ['experiência única', 'experiência incrível', 'premium', 'exclusivo', 'exclusiva', 'transforme', 'transformar vidas', 'eleve', 'descubra', 'perfeito', 'perfeita', 'impecável', 'segredo', 'milagre', 'inovador', 'inovadora', 'soluções', 'qualidade e excelência', 'excelência', 'o melhor', 'a melhor', 'incrível', 'sensacional', 'imperdível', 'de outro nível', 'nunca visto', 'top de linha', 'diferenciado', 'diferenciada'];
+  const baixaSem = s => String(s || '').split('').map(ch => ch.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().slice(0, 1) || ch).join('');
+  L.detecta = (txt, PL) => {
+    const box = C.$('bb-det-r'); if(!box) return;
+    const T = String(txt || ''), base = baixaSem(T), evita = (PL && Array.isArray(PL.evita) ? PL.evita : []);
+    if(!T.trim()){ box.innerHTML = `<p class="bb-nota">Cola um texto: o detector marca o clichê de marketing${evita.length ? ' e as palavras que essa marca não usa' : ''}, e sugere o jeito dela.</p>`; return; }
+    const lista = [...new Set(CLICHE_GERAL.concat(evita).map(w => String(w).trim()).filter(w => w.length >= 3))], achados = [];
+    lista.forEach(w => { const re = new RegExp('(^|[^a-z0-9])(' + baixaSem(w).replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')(?=$|[^a-z0-9])', 'g'); let x; while((x = re.exec(base))){ const i0 = x.index + x[1].length; achados.push([i0, i0 + x[2].length, w]); re.lastIndex = i0 + 1; } });
+    achados.sort((a, b) => a[0] - b[0] || b[1] - a[1]); const sem = []; achados.forEach(a => { if(!sem.length || a[0] >= sem[sem.length - 1][1]) sem.push(a); });
+    let html = '', p = 0; sem.forEach(([a, b]) => { html += esc(T.slice(p, a)) + '<mark>' + esc(T.slice(a, b)) + '</mark>'; p = b; }); html += esc(T.slice(p));
+    const usa = PL && Array.isArray(PL.usa) ? PL.usa : [], quais = [...new Set(sem.map(x => x[2]))];
+    box.innerHTML = `<p class="bb-det-t">${html}</p>` + (sem.length ? `<p class="bb-nota"><b>${sem.length} ${sem.length > 1 ? 'clichês' : 'clichê'}:</b> ${esc(quais.join(', '))}. ${usa.length ? `Troca por algo que é da marca: ${esc(usa.slice(0, 6).join(', '))}.` : 'Troca por uma coisa concreta: o que é, de onde vem, pra quem.'}</p>` : '<p class="bb-nota"><b>Limpo.</b> Nenhum clichê achado.</p>');
+  };
+  L.depois = (app, x) => {
+    const es = app.querySelectorAll('.bb-estrofes p');
+    if(es.length){ if(matchMedia('(prefers-reduced-motion: reduce)').matches || !('IntersectionObserver' in window)) es.forEach(p => p.classList.add('on')); else { const io = new IntersectionObserver(l => l.forEach(e => { if(e.isIntersecting){ e.target.classList.add('on'); io.unobserve(e.target); } }), { threshold: 0.6 }); es.forEach(p => io.observe(p)); } }
+    const det = C.$('bb-det'); if(det){ let t = 0; det.addEventListener('input', () => { clearTimeout(t); t = setTimeout(() => L.detecta(det.value, x.PL), 160); }); }
+    if(x.temAbre) L.abreInt(L.k, x.IT); else if(INT){ INT.para(); INT = null; }
+  };
+  Object.assign(C.acts, {
+    'bb-int-resolve': () => { if(INT) INT.resolve(); },
+    'bb-int-denovo': () => { if(INT) INT.denovo(); },
+    'bb-camada': el => { const mq = L.atual && L.atual.voz && L.atual.voz.maquina, cs = (mq && mq.direcao && mq.direcao.camadas) || [], x = cs[Number(el.dataset.i)]; if(!x) return; el.parentElement.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b === el))); const t = C.$('bb-camada-tx'); if(t) t.textContent = x.explica || ''; }
+  });
+
   /* ---------- v3.39 · o filme da capa, o som, o vídeo, o gerador de post e o modo apresentação ---------- */
   let capaCtl = null, filmeQ = null;
   L.filmeCapa = comSom => {
@@ -582,7 +808,8 @@
       (sp.pers || []).forEach((v, i) => { const y = 520 + i * 52, e = M.EIXOS[i]; els.push(tx(ui, e[0].toUpperCase(), 840, y, 9, cor, { track: 0.16 }), tx(ui, e[1].toUpperCase(), 1130 - M.largura(ui, e[1].toUpperCase(), { tam: 9, track: 0.16 }), y, 9, cor, { track: 0.16 }), { d: F.ret(840, y + 14, 290, 2, 0), f: cor, op: 0.35 }, { d: F.elipse(840 + 290 * v, y + 15, 7), f: c.a }); });
       els.push(...rodape(cor, n)); pgs.push(pagina(els, f2)); }
     /* 3. naming */
-    if(m.naming && m.naming.nome){ const cor = c.ink, els = rot('0' + (++n), 'Naming', cor), nm = m.naming.nome, tam = encaixaTam(fs.display, nm, 1060, 190);
+    const MQ = (m.voz && m.voz.maquina) || null, DR = (MQ && MQ.direcao) || {}, PL = (MQ && MQ.plataforma) || {}, camadas = Array.isArray(DR.camadas) ? DR.camadas.filter(x => x && x.sentido) : [];
+    if(m.naming && m.naming.nome && !camadas.length){ const cor = c.ink, els = rot('0' + (++n), 'Naming', cor), nm = m.naming.nome, tam = encaixaTam(fs.display, nm, 1060, 190);
       els.push(tx(fs.display, nm, 70, 160 + tam, tam, c.p));
       els.push(tx(ui, (L.silabas(nm) + '   ·   @' + M.handleDe(nm) + '   ·   ' + ((M.ESTRATEGIAS[m.naming.estrategia] || {}).n || '')).toUpperCase(), 70, 220 + tam, 12, cor, { track: 0.2 }));
       els.push(...pars(fs.texto, tx2.naming, 70, 300 + tam, 14, 960, cor).els);
@@ -610,6 +837,18 @@
       let y = 232; if(g.frase){ const tf = encaixaPar(fs.display, g.frase, 520, 28, 4); const p = par(fs.display, g.frase, 70, y, tf, 520, cor, { max: 4, entre: tf * 1.43 }); els.push(p.el); y += p.h + 34; }
       if(g.retrato){ const p = par(fs.texto, g.retrato, 70, y, 14, 520, cor, { max: 8 }); els.push(p.el); }
       let yd = bloco(els, 'Como age', g.jeito, 640, 170, 490, cor); yd = bloco(els, 'Do que gosta', g.gosta, 640, yd, 490, cor, { max: 2 }); bloco(els, 'Com ' + (P.buyer.nome || 'o cliente'), [g.com_o_cliente], 640, yd, 490, cor, { max: 3 });
+      els.push(...rodape(cor, n)); pgs.push(pagina(els, c.ink)); }
+    /* v3.84 · a máquina da direção criativa: o nome com as camadas e a plataforma */
+    if(camadas.length){ const cor = c.ink, els = rot(String(++n).padStart(2, '0'), 'O nome', cor), tam = encaixaTam(fs.display, m.nome, 1060, 150);
+      els.push(tx(fs.display, m.nome, 70, 160 + tam, tam, M.contraste(c.p, c.paper) >= 3 ? c.p : cor));
+      let y = 214 + tam; if(DR.anatomia){ const p = par(fs.texto, DR.anatomia, 70, y, 14, 1060, cor, { max: 2 }); els.push(p.el); y += p.h + 36; }
+      camadas.slice(0, 4).forEach((x, i) => { const X = 70 + (i % 2) * 540, Y = y + Math.floor(i / 2) * 118; if(Y + 40 > teto) return; els.push(tx(fs.display, String(x.sentido), X, Y + 24, 22, cor)); if(x.explica) els.push(par(fs.texto, String(x.explica), X, Y + 52, 12.5, 480, cor, { max: 3 }).el); });
+      els.push(...rodape(cor, n)); pgs.push(pagina(els, c.paper)); }
+    if(PL.posicionamento || DR.inimigo){ const cor = c.paper, els = rot(String(++n).padStart(2, '0'), 'Plataforma', cor);
+      let y = 170; if(DR.ideia_central){ const tf = encaixaPar(fs.display, DR.ideia_central, 520, 26, 4); const p = par(fs.display, DR.ideia_central, 70, y, tf, 520, cor, { max: 4, entre: tf * 1.43 }); els.push(p.el); y += p.h + 30; }
+      y = bloco(els, 'Posicionamento', [PL.posicionamento], 70, y, 520, cor, { max: 5 }); bloco(els, 'Propósito', [PL.proposito], 70, y, 520, cor, { max: 3 });
+      let yd = bloco(els, 'Os pilares', (PL.pilares || []).map(x => x.nome + ': ' + x.regra), 640, 170, 490, cor, { max: 2 });
+      yd = bloco(els, 'O inimigo', [DR.inimigo], 640, yd, 490, cor, { max: 2 }); yd = bloco(els, 'O que a marca põe no lugar', [PL.no_lugar], 640, yd, 490, cor, { max: 2 }); bloco(els, 'Arquétipo · ' + (DR.arquetipo || ''), [PL.tensao], 640, yd, 490, cor, { max: 3 });
       els.push(...rodape(cor, n)); pgs.push(pagina(els, c.ink)); }
     /* 4. logo */
     { const cor = corSobre(vPri.fundo), els = rot(String(++n).padStart(2, '0'), 'Logo', cor);
@@ -770,6 +1009,18 @@
         ...l('O que procura', b.quer), ...l('O que incomoda hoje', b.dores), ...l('Onde encontra a marca', b.onde), 'O que faz escolher e voltar', '  ' + (b.decide || ''), '',
         `SE A MARCA FOSSE GENTE: A BRAND PERSONA (${g.arquetipo || ''})`, g.retrato || '', g.frase ? `"${g.frase}"` : '', '',
         ...l('Como age', g.jeito), ...l('Do que gosta', g.gosta), 'Com o cliente', '  ' + (g.com_o_cliente || ''), ''].join('\n')); }
+    /* v3.84: a máquina da marca que a direção criativa escreveu, em texto */
+    { const MQ = (m.voz && m.voz.maquina) || null, DR = (MQ && MQ.direcao) || {}, PL = (MQ && MQ.plataforma) || {}, SN = PL.sistema_nomes || {}, l = (t, x) => (x || []).length ? [t, ...(x || []).map(s => '  - ' + s), ''] : [], it = DR.interacao || {};
+      if(MQ) add('textos/plataforma.txt', [`${m.nome} · a máquina da marca (direção criativa)`, '='.repeat(40), '', 'O NOME', DR.anatomia || '', ...(DR.camadas || []).map(x => `  - ${x.sentido}: ${x.explica || ''}`), '',
+        'A IDEIA CENTRAL', DR.ideia_central || '', DR.pergunta ? 'A pergunta que decide tudo: ' + DR.pergunta : '', '', 'A ASSINATURA', DR.assinatura || '', '', 'A METÁFORA', DR.metafora || '', '',
+        'O INIMIGO', DR.inimigo || '', 'O QUE A MARCA PÕE NO LUGAR', PL.no_lugar || '', '', 'PROPÓSITO', PL.proposito || '', '', 'ESSÊNCIA', PL.essencia || '', '', 'POSICIONAMENTO', PL.posicionamento || '', '',
+        ...l('PILARES', (PL.pilares || []).map(x => x.nome + ': ' + x.regra)), 'ARQUÉTIPO', `${DR.arquetipo || ''}. ${PL.tensao || ''}`.trim(), '',
+        ...l('MANIFESTO', PL.manifesto_estrofes), ...l('PRINCÍPIOS DE VOZ', PL.principios), ...l('PALAVRAS DA MARCA', PL.usa), ...l('PALAVRAS QUE ELA NÃO USA', PL.evita),
+        ...l('TODO MUNDO FALA ASSIM -> A MARCA FALA ASSIM', (PL.exemplos || []).map(x => `${x.generico} -> ${x.marca}`)),
+        'COMO OS PRODUTOS SE CHAMAM', SN.regra || '', ...(SN.exemplos || []).map(x => `  - ${x.nome}: ${x.o_que}`), '', ...l('O JEITO DE VENDER', (PL.negocio || []).map(x => `${x.nome}: ${x.como}`)),
+        ...l('REPERTÓRIO', (PL.fatos || []).map(x => x.fato + (x.certeza === 'mais_contada' ? ' (a história mais contada: confere antes de usar)' : ''))),
+        ...l('A PALETA', ((m.spec || {}).paleta || []).map(x => `${x.nome} ${x.hex} (${x.papel}${x.uso ? ', ' + x.uso + '%' : ''})${x.historia ? ': ' + x.historia : ''}`)),
+        'A ABERTURA DO BRANDBOOK', `${it.nome || ''}${it.como ? ': ' + it.como : ''}`, ''].join('\n')); }
     add('brandbook.pdf', await L.pdfBlob(m));
     add('LEIA-ME.txt', [`${m.nome} · kit da marca`, '='.repeat(40), '', 'Feito no Studio Houzi (Corre).', '',
       'logo/svg   os logos em vetor (pra site e pra quem for editar). principal = a assinatura principal; simbolo = só o símbolo; nome = só o nome.',

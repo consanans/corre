@@ -1522,6 +1522,8 @@
       /* v3.60: a função "pagamento" de mentira: as mesmas regras e respostas, sem Asaas e sem cobrar. Assinou fora do
          teste grátis, já conta como pago (pra dar pra ver o plano funcionando) */
       async fn(name, b){
+        /* v3.84: a direção criativa do Studio Houzi tem demonstração (de mentira, feita pelo próprio motor) */
+        if(name === 'imagem' && b && (b.acao === 'direcao' || b.acao === 'maquina') && C.houzi && C.houzi.demoIA) return C.houzi.demoIA(b);
         if(name !== 'pagamento') throw { code: 'nofn' };
         const d = read(), u = uidOf(d), B = b || {}, prod = String(B.produto || '');
         if(!u) throw { code: 'login', status: 401 };

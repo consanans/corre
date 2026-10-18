@@ -18,11 +18,16 @@
 //   HORUS_LIMITE_PRO      opcional, mensagens/leituras do Hórus por dia no Pro (padrão 300)
 //   MARCA_LIMITE_GRATIS   opcional, textos e nomes do Studio Houzi por dia no grátis (padrão 12)
 //   MARCA_LIMITE_PRO      opcional, textos e nomes do Studio Houzi por dia no Pro (padrão 80)
+//   DIRECAO_MODELO        opcional (padrão gpt-5): a chamada criativa da direção do Studio Houzi (as 6 direções juntas)
+//   DIRECAO_ESFORCO       opcional: minimal | low | medium | high (padrão low; medium pensa mais e demora mais)
+//   MAQUINA_MODELO        opcional (padrão o LEGENDA_MODELO): os 6 cartões e a máquina da marca escolhida
+//   MAQUINA_ESFORCO       opcional (padrão low)
 // Hórus (acao: "abordagem" ou "resposta"): escreve a mensagem de WhatsApp sob medida pra empresa
 // Hórus 4 (acao: "montar"): monta o radar inteiro (nichos, filtros do mapa, faro e mensagens) a partir de uma frase
 // e lê a resposta do cliente (o que ele quis dizer, a etapa, quando retomar e a réplica pronta).
 // Studio Houzi (acao: "marca"): escreve os textos da marca e do brandbook, e (v3.41) a buyer persona e a brand persona;
-// (acao: "nomes"): sugere nomes com o porquê.
+// (acao: "nomes"): sugere nomes com o porquê. (acao: "direcao", v3.84): a direção criativa, 6 conceitos de marca inteiros
+// com o refresh que continua a conversa; (acao: "maquina"): a direção escolhida vira a plataforma, a voz e o brandbook.
 // Studio (acao: "pauta", v3.38): a pauta do mês inteiro de uma vez (tema, título da arte e cena), conta como uma legenda.
 // Correal (v3.38): acabou o grátis do dia, o pedido com "correal: true" gasta a moeda do Correverso (desde a v3.43 com
 // centavos; na v3.45 imagem 0,10, legenda e pauta 0,02, Hórus 0,02, Studio Houzi 0,03; os preços ficam no banco). acao "cotas":
@@ -106,9 +111,11 @@ function inicioDoDia() {
 }
 
 // texto: tenta o modelo configurado; se a conta não foi verificada, refaz no modelo reserva
-async function chat(payload: any, KEY: string) {
+/* (v3.84: ms = o tempo máximo de cada tentativa; a direção criativa não pode passar do limite da função) */
+async function chat(payload: any, KEY: string, ms?: number) {
   const call = (p: any) => fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST', headers: { Authorization: `Bearer ${KEY}`, 'Content-Type': 'application/json' }, body: JSON.stringify(p),
+    ...(ms ? { signal: AbortSignal.timeout(ms) } : {}),
   });
   let resp = await call(payload);
   let out: any = await resp.json().catch(() => null);
@@ -418,6 +425,10 @@ const MARCA_LIMITE: Record<string, number> = {
   gratis: Math.max(0, Number(env('MARCA_LIMITE_GRATIS', '12')) || 0),
   pro: Math.max(0, Number(env('MARCA_LIMITE_PRO', '80')) || 0),
 };
+/* v3.84: as regras das personas valem pra acao "marca" e pra máquina da direção criativa */
+const PERSONAS_SIS = `- buyer_persona: o cliente ideal da marca, uma pessoa INVENTADA que resume quem compra. É retrato pra guiar a comunicação: não é cliente real, nem depoimento, nem pesquisa. nome: um apelido curto e neutro (até 20 caracteres), nunca nome com sobrenome. perfil (até 240): faixa de idade (sempre faixa), a rotina e onde o dia dessa pessoa cruza com o negócio, na cidade do contexto. quer e dores: 3 frases cada (até 80): o que procura e o que incomoda hoje, concreto, do ramo. onde: 3 lugares ou momentos em que encontra a marca (até 60): Instagram, WhatsApp ou a vida real (rua, bairro, indicação, evento). decide (até 160): o que faz escolher a marca e voltar. frase (até 100): uma frase que essa pessoa diria, em primeira pessoa, coloquial.
+- brand_persona: a marca como se fosse gente, no arquétipo e na personalidade que vieram (não troque o arquétipo) e coerente com e/nao_e. Não dê nome próprio: o nome dela é o da marca. retrato (até 240): começa com "Se <nome da marca> fosse gente," e diz quem seria, a idade que aparenta, como se veste, que tipo de som escuta (gênero, nunca artista), onde anda. jeito: 3 frases (até 90) de como age. gosta: 3 coisas que curte (até 60), do mundo do território. com_o_cliente (até 160): como trata o cliente, sem o apelido nem detalhe da buyer_persona (a brand persona é pública; a buyer, só do dono). frase (até 100): uma frase da marca em primeira pessoa, no jeito do território.
+- Nas duas personas: gênero neutro (sem adjetivo que marque gênero); nada de nome de pessoa real, celebridade, artista, influenciador, personagem, time, marca, app ou rede social fora Instagram e WhatsApp; nada de número inventado (renda, porcentagem, quantos clientes), dado sensível (religião, política, saúde, orientação) ou estereótipo; nada de emoji.`;
 const MARCA_SIS = `Você é redator(a) sênior de branding do Studio Houzi, um estúdio brasileiro que faz marca com conceito. Escreve em português do Brasil, com personalidade, frase curta e concreta.
 Proibido: clichê de marketing ("inovador", "soluções", "experiência única", "qualidade e excelência", "transformar vidas"), frase motivacional pronta, exagero, emoji, e inventar fato que não está no contexto (prêmio, número, ano, endereço, cliente, depoimento).
 Você recebe as escolhas de uma marca: o nome, o negócio, a cidade, o território criativo, a ideia do logo, o símbolo, a letra, a paleta (com o nome de cada cor), a textura, onde a marca vive e, se teve, o naming. Devolva só o JSON pedido:
@@ -430,9 +441,7 @@ Você recebe as escolhas de uma marca: o nome, o negócio, a cidade, o territór
 - wa: a mensagem de boas-vindas do WhatsApp, até 200 caracteres.
 - Se vierem referências (o clima, o que a marca não pode parecer, o que inspira), use o clima no tom do texto e fuja do que a pessoa não quer; nunca cite nem imite marca que apareça nas referências.
 - textos: o texto do brandbook, que explica o conceito de cada parte em 2 parágrafos curtos (até 520 caracteres por parte): naming (só se o contexto tiver naming; senão string vazia), logo, tipografia, cores, elementos, aplicacoes. Ligue cada escolha ao negócio e ao território e use os nomes das cores e da letra exatamente como vieram.
-- buyer_persona: o cliente ideal da marca, uma pessoa INVENTADA que resume quem compra. É retrato pra guiar a comunicação: não é cliente real, nem depoimento, nem pesquisa. nome: um apelido curto e neutro (até 20 caracteres), nunca nome com sobrenome. perfil (até 240): faixa de idade (sempre faixa), a rotina e onde o dia dessa pessoa cruza com o negócio, na cidade do contexto. quer e dores: 3 frases cada (até 80): o que procura e o que incomoda hoje, concreto, do ramo. onde: 3 lugares ou momentos em que encontra a marca (até 60): Instagram, WhatsApp ou a vida real (rua, bairro, indicação, evento). decide (até 160): o que faz escolher a marca e voltar. frase (até 100): uma frase que essa pessoa diria, em primeira pessoa, coloquial.
-- brand_persona: a marca como se fosse gente, no arquétipo e na personalidade que vieram (não troque o arquétipo) e coerente com e/nao_e. Não dê nome próprio: o nome dela é o da marca. retrato (até 240): começa com "Se <nome da marca> fosse gente," e diz quem seria, a idade que aparenta, como se veste, que tipo de som escuta (gênero, nunca artista), onde anda. jeito: 3 frases (até 90) de como age. gosta: 3 coisas que curte (até 60), do mundo do território. com_o_cliente (até 160): como trata o cliente, sem o apelido nem detalhe da buyer_persona (a brand persona é pública; a buyer, só do dono). frase (até 100): uma frase da marca em primeira pessoa, no jeito do território.
-- Nas duas personas: gênero neutro (sem adjetivo que marque gênero); nada de nome de pessoa real, celebridade, artista, influenciador, personagem, time, marca, app ou rede social fora Instagram e WhatsApp; nada de número inventado (renda, porcentagem, quantos clientes), dado sensível (religião, política, saúde, orientação) ou estereótipo; nada de emoji.`;
+${PERSONAS_SIS}`;
 const MARCA_SCHEMA = {
   type: 'object', additionalProperties: false,
   required: ['conceito', 'manifesto', 'taglines', 'e', 'nao_e', 'fala', 'nao_fala', 'bio', 'wa', 'textos', 'buyer_persona', 'brand_persona'],
@@ -516,6 +525,243 @@ async function houzi(sb: any, user: any, body: any, KEY: string, X: Extra) {
   });
 }
 
+// ---------- v3.84 · A DIREÇÃO CRIATIVA do Studio Houzi: o prompt-motor do Thales (docs/prompt-motor-branding.md) ----------
+// acao "direcao": 6 conceitos de marca inteiros pro cliente escolher. Em duas etapas, como o "modo pipeline" do prompt:
+//   1) uma chamada criativa (DIRECAO_MODELO) vê o negócio, o histórico das rodadas e o que o cliente achou de cada
+//      conceito, e decide as 6 direções juntas (nome, metáfora, ideia central, território, letra, o detalhe do logo, a
+//      interação e a família de cor): é ali que mora a segunda e a terceira camada, e é ali que as 6 saem diferentes;
+//   2) seis chamadas em paralelo (MAQUINA_MODELO) desenvolvem cada uma pro cartão: as camadas do nome, a assinatura, o
+//      inimigo, o arquétipo, as 9 cores com nome e história, os modos e o botão da interação.
+//   O refresh ("Mais 6") manda o histórico (o que já saiu, com o gostei e o "não é isso") e o pedido do cliente: a rodada
+//   seguinte continua a conversa, não recomeça do zero e não repete.
+// acao "maquina": a direção escolhida vira a marca inteira (plataforma, manifesto, voz, nomes de produto, negócio, os
+//   textos do brandbook e as personas). Cada pedido conta uma vez no uso do Studio Houzi (tipo "marca").
+// O catálogo (territórios, letras, ideias de símbolo, gestos, interações) vem do site, que é quem desenha: a IA escolhe
+// dentro dele e o motor do Studio desenha o logo em vetor no aparelho. Nada de detalhe que o motor não sabe desenhar.
+const DIR_MODELO = env('DIRECAO_MODELO', 'gpt-5');
+const DIR_ESFORCO = ['minimal', 'low', 'medium', 'high'].includes(env('DIRECAO_ESFORCO')) ? env('DIRECAO_ESFORCO') : 'low';
+const MAQ_MODELO = env('MAQUINA_MODELO', LEG_MODELO);
+const MAQ_ESFORCO = ['minimal', 'low', 'medium', 'high'].includes(env('MAQUINA_ESFORCO')) ? env('MAQUINA_ESFORCO') : 'low';
+const ehRaciocinio = (m: string) => /^(gpt-5|o\d)/.test(m);
+/* a chamada com o modelo da direção; se a conta não tem esse modelo, refaz no de sempre (LEGENDA_MODELO) */
+async function chatDirecao(payload: any, KEY: string, ms: number, esforco: string) {
+  const prepara = (p: any) => { const q = { ...p }; if (ehRaciocinio(q.model)) { q.reasoning_effort = esforco; delete q.temperature; } else { delete q.reasoning_effort; q.temperature = 0.9; } return q; };
+  let r = await chat(prepara(payload), KEY, ms);
+  const msg = String(r.out?.error?.message || '');
+  if (!r.resp.ok && [400, 403, 404].includes(r.resp.status) && /model|does not exist|not have access/i.test(msg) && payload.model !== LEG_MODELO) {
+    console.warn('[direcao] sem o modelo', payload.model, '→', LEG_MODELO, msg.slice(0, 120));
+    r = await chat(prepara({ ...payload, model: LEG_MODELO }), KEY, ms);
+  }
+  return r;
+}
+const K_RE = /^[a-z0-9-]{1,24}$/;
+/* o catálogo do motor (só chaves curtas e nomes curtos: vira o enum do JSON que a IA devolve) */
+function catalogoDe(c: any) {
+  const l = (v: unknown, n: number) => { const ja = new Set<string>(); return (Array.isArray(v) ? v : []).filter((x: any) => x && K_RE.test(String(x.k || '')) && !ja.has(x.k) && ja.add(x.k)).slice(0, n).map((x: any) => ({ k: String(x.k), n: txt(x.n, 60), d: txt(x.d, 140) })); };
+  const o = { territorios: l(c?.territorios, 16), letras: l(c?.letras, 24), ideias: l(c?.ideias, 90), gestos: l(c?.gestos, 30), interacoes: l(c?.interacoes, 8) };
+  return o.territorios.length && o.letras.length && o.gestos.length && o.interacoes.length ? o : null;
+}
+const hexOk = (v: unknown) => /^#[0-9a-f]{6}$/i.test(String(v || '')) ? String(v).toUpperCase() : '';
+const hexes = (v: unknown) => (Array.isArray(v) ? v : []).map(hexOk).filter(Boolean).slice(0, 6);
+function briefDe(c: any) {
+  const r = c?.refs || {};
+  return {
+    negocio: txt(c?.negocio, 80), o_que_vende: txt(c?.descr, 200), cidade: txt(c?.cidade, 60), desde: txt(c?.desde, 10),
+    nome: txt(c?.nome, 40), frase_atual: txt(c?.tagline, 80), modo: c?.modo === 'rebranding' ? 'rebranding' : 'branding',
+    personalidade: txt(c?.pers, 220), palavras: txt(c?.palavras, 160), letra_preferida: txt(c?.letra, 40), cor_que_fica: hexOk(c?.cor),
+    referencias: { clima: txt(r.clima, 160), nao_pode_parecer: txt(r.nao, 160), inspira: txt(r.marcas, 200), cores_que_ama: hexes(r.cores), cores_que_nao_quer: hexes(r.naoCores), peso_da_letra: txt(r.peso, 20), onde_aparece: lista(r.onde, 5, 20), imagens: lista(r.imgs, 6, 80) },
+  };
+}
+const FORMAS_D = ['lado', 'troca', 'emblema', 'selo', 'so_nome'];
+const PAPEIS = ['fundo', 'texto', 'voz', 'apoio', 'tempero', 'neutro'];
+const DIRECAO_SIS = `Você é diretor(a) criativo(a) sênior do Studio Houzi, um estúdio brasileiro de marca com conceito, dentro do Corre. Você cria 6 DIREÇÕES de marca pro mesmo negócio, pro cliente escolher uma. Português do Brasil, natural e falado, sem tradução literal de inglês.
+A régua:
+- Não entregue a primeira ideia óbvia. A primeira camada é o que todo mundo faria; a segunda é cultural ou histórica; a terceira é a ligação inesperada que faz alguém dizer "caramba". Cada direção mora na segunda ou na terceira.
+- Uma ideia central manda em tudo: nome, logo, cor, interação e voz são a mesma ideia vista de ângulos diferentes.
+- Uma metáfora física dominante por direção (luz e sombra, pó e terra, blocos e encaixe, estêncil e carimbo, fio e costura...), que vira desenho, textura, movimento e vocabulário.
+- As 6 são diferentes de verdade entre si: metáfora, ideia central, território, letra e detalhe do logo diferentes. Nada de 6 variações da mesma ideia.
+- Criatividade com consequência de negócio: a direção vende o que o negócio vende, pra quem compra dele.
+- Honestidade: nada de fato que você não pode garantir; nada de dizer que um nome ou domínio está livre.
+O nome:
+- Se o negócio já tem nome (campo nome do negócio), as 6 usam esse nome exatamente como veio; a direção é o que esse nome pode carregar.
+- Se o nome veio vazio, cada direção traz um nome seu, em direções diferentes: prefira palavras do vernáculo local (gíria, objeto do cotidiano, expressão regional) com uma virada de sentido; grafia inventada ou composta é bem-vinda, sem K/Y gratuito; de 2 a 3 sílabas é ótimo, até 22 letras; rima e aliteração ajudam; teste em voz alta. Fuja de armadilha: gíria ofensiva ou de droga, palavrão em outra língua, marca famosa homônima, conotação racial ou religiosa.
+O desenho (o motor do Studio desenha o logo em vetor; você escolhe dentro do catálogo que veio):
+- territorio: o território visual (veja a frase de cada um) que é a cara da direção.
+- letra: a letra do logo, do catálogo, coerente com o território e com a metáfora.
+- ideia é o símbolo (do catálogo de ideias; '' quando a direção é só tipográfica) e gesto é o que acontece no letreiro (do catálogo de gestos; '' pra nenhum). forma: lado (o símbolo do lado do nome), troca (o O do nome vira a ideia: só se o nome tem a letra O e a ideia é redonda), emblema (a ideia gravada num escudo), selo (o nome em volta do símbolo), so_nome (sem símbolo: o detalhe é só o gesto).
+- Um detalhe por marca, o que carrega o conceito e funciona pequeno. Sem enfeite.
+- interacao: a interação de abertura do brandbook que É o conceito (veja o catálogo de interações).
+- cor_dominante: a família da cor da marca com nome do mundo dela (ex.: "terra roxa", "azul de piscina de clube"). Nada de verde (matiz entre o amarelo-limão e o ciano), a não ser que o cliente tenha pedido verde (cor_que_fica ou cores_que_ama). As 6 com famílias de cor diferentes, e respeitando as cores que o cliente não quer.
+A continuidade (o refresh):
+- historico traz o que o cliente já viu, com a rodada e a reação dele (gostou, nao, ou vazio). Nunca repita nome, metáfora ou ideia central do histórico, nem a mesma dupla território e letra.
+- O que ele gostou: leve o DNA (o que funcionou ali) pra pelo menos duas das 6 novas, indo mais fundo, em outra camada; não é copiar.
+- O que ele marcou como nao: abandone aquele caminho.
+- pedido é o que o cliente quer de diferente agora: ele manda.
+- seguir: quando vem, as 6 são desdobramentos dessa direção (mesma família de ideia, ângulos diferentes: outra metáfora física, outro território, outra camada do nome; sem nome dado, nomes novos da mesma família).
+Devolva só o JSON pedido, com exatamente 6 direções. Em cada uma: nome (até 22 letras), metafora (até 40 caracteres), ideia_central (uma frase, até 120: o que a marca é, no jeito dela), pergunta (o critério de toda decisão em forma de pergunta curta, até 60; ex.: "isso tem chão?"), territorio, letra, gesto, ideia, forma, interacao, cor_dominante (até 40) e diferente (até 120: o que essa tem que as outras 5 não têm).
+Referência é clima, não modelo: nunca cite nem imite marca que apareça nas referências.`;
+const CARTAO_SIS = `Você é diretor(a) criativo(a) sênior do Studio Houzi. Recebe o negócio e UMA direção de marca já decidida (nome, metáfora, ideia central, território, letra, o detalhe do logo, a interação e a família de cor). Desenvolva essa direção sem trocar nada do que veio. Português do Brasil, natural, frase curta.
+Devolva só o JSON pedido:
+- camadas: de 2 a 4 sentidos que convivem no nome (palavra comum, gíria, história, trocadilho), cada um com sentido (até 30) e explica (até 110). O nível esperado: "SOUBRA" = SOU + SOMBRA + OBRA + SOBRA; "PÓ VERMELHO" = pó de café + poeira da terra roxa + "ao pó voltarás" + uma vogal de distância de "pé-vermelho". Só sentido que o nome carrega de verdade: se carrega pouco, diga menos.
+- anatomia: a conta do nome numa linha (até 140), no jeito dos exemplos.
+- assinatura: a linha-assinatura com ritmo de verso, que funcione falada (até 70). Ex.: "Sou sombra. Sou obra. Sou de sobra." / "Do pó vermelho viemos."
+- inimigo: o comportamento ou padrão da categoria contra o qual a marca existe (até 90). Ex.: "a cara de filtro", "o café sem endereço".
+- arquetipo: o arquétipo com tensão (até 60). Ex.: "Criador com sangue de Fora-da-lei", "Pioneiro hospitaleiro".
+- letra_porque: por que essa letra, ligada ao conceito (até 140), com referência histórica só quando for verdade.
+- logo_detalhe: o detalhe do logo como ele aparece no desenho (até 120), fiel ao que veio (gesto, ideia, forma). logo_porque: por que esse detalhe carrega o conceito (até 140).
+- cores: 9 cores, cada uma com nome que vem do mundo da marca (pigmento, solo, objeto, momento; até 24), hex (#RRGGBB), papel (fundo: 1; texto: 1; voz, a cor da marca: 1; apoio: 2 ou 3; tempero: 1 ou 2; neutro: o resto), uso (a porcentagem de uso, inteiros que somam 100; tempero até 3) e historia (até 120, duas linhas).
+  A cor voz é da família cor_dominante. Nada de #000000 nem #FFFFFF: o preto e o branco da marca. Texto sobre fundo com contraste de 4,5:1 ou mais; voz sobre fundo com 3:1 ou mais. Nada de verde (matiz entre o amarelo-limão e o ciano), a não ser que o cliente tenha pedido verde; nada das cores que o cliente não quer.
+- modo_claro e modo_escuro: os nomes dos dois modos, do conceito (até 16 cada; ex.: Cru e Torrado, Brincar e Ninar). principal: claro (fundo claro), escuro (fundo escuro) ou cor (fundo na cor da marca), o que o conceito pede.
+- interacao_nome: o texto do botão que resolve a interação (até 22; ex.: "Achar a luz", "Assentar", "Montar"). interacao_como: o que a pessoa faz e o que acontece (até 160).
+Proibido: clichê de marketing ("experiência única", "premium", "exclusivo", "transforme", "eleve", "descubra", "perfeito", "impecável", "segredo", "milagre"), emoji, exclamação em série e fato inventado. Nunca cite nem imite marca que apareça nas referências.`;
+const MAQUINA_SIS = `Você é diretor(a) criativo(a) e redator(a) sênior do Studio Houzi. O cliente escolheu uma direção de marca, que veio inteira (nome, camadas, ideia central, assinatura, inimigo, metáfora, arquétipo, território, letra, logo, cores com nome e a interação). Monte a máquina da marca a partir dela, sem trocar o que veio. Português do Brasil, falado, frase curta, sem gerúndio de telemarketing. Afirme, não prometa. Nomeie as coisas. Traduza o jargão. Humor seco e inteligente quando couber, nunca meme de agência.
+Devolva só o JSON pedido:
+- proposito (até 160), essencia (até 60: duas ou três palavras) e posicionamento (até 260, na fórmula "Para [quem], [marca] é [o quê] que [diferença], porque [prova]"; a prova é o que o negócio tem de verdade, sem número inventado).
+- pilares: 4, cada um com nome (até 24) e regra (até 120): uma regra prática, não um adjetivo.
+- no_lugar: o que a marca põe no lugar do inimigo (até 120). tensao: o arquétipo com tensão, explicado (até 160).
+- fatos: de 0 a 6 fatos culturais, históricos, geográficos ou técnicos ligados ao segmento ou à cidade, que sustentam a marca (até 200 cada). Só o que você conhece bem: na dúvida, certeza é mais_contada e o texto começa com "A história mais contada é"; na dúvida maior, deixe de fora. Nunca invente número, data ou nome.
+- sistema_nomes: regra (até 140), como os produtos se chamam, saindo do conceito (nomes de pigmentos, marcos da cidade, peças de um brinquedo...), e de 4 a 6 exemplos com nome (até 26) e o_que (até 80), pros produtos ou serviços que o negócio vende.
+- negocio: de 3 a 4 mecanismos, cada um com tipo (ticket: monte o seu kit ou paleta; recorrencia: refil ou assinatura; retencao: devolução com crédito ou troca; clube; conversao: a primeira compra), nome (até 30, no vocabulário da marca) e como (até 160). Preço só se o cliente deu.
+- manifesto_estrofes: 6 estrofes curtas (até 140 cada), no ritmo da assinatura. manifesto: as 6 juntas num parágrafo (até 700). conceito: uma frase (até 160).
+- principios: 3 princípios de voz (até 100). usa: de 6 a 10 palavras ou expressões que a marca usa (até 24). evita: de 6 a 10 que ela não usa (até 24), com os clichês do segmento. exemplos: 3 pares, cada um com generico (até 120, como todo mundo fala) e marca (até 120, como ela fala).
+- taglines: 5 frases curtas (até 48), diferentes entre si; a primeira é a assinatura que veio.
+- e, nao_e: 3 adjetivos cada. fala, nao_fala: 3 frases de exemplo cada. bio: bio de Instagram (até 150). wa: boas-vindas do WhatsApp (até 200).
+- textos: o texto do brandbook que explica cada parte em 2 parágrafos curtos (até 520 por parte): naming (as camadas do nome; string vazia se o nome não carrega nada), logo, tipografia, cores, elementos, aplicacoes. Ligue cada escolha à ideia central e use os nomes das cores e da letra exatamente como vieram.
+${PERSONAS_SIS}
+Proibido: "experiência única", "premium", "exclusivo", "transforme", "eleve", "descubra", "perfeito", "impecável", "segredo", "milagre", "inovador", "soluções", "qualidade e excelência", frase motivacional pronta, emoji, exclamação em série e fato inventado (prêmio, número, ano, endereço, cliente, depoimento). Nunca cite nem imite marca que apareça nas referências.`;
+const S = { type: 'string' }, SL = { type: 'array', items: S };
+const obj = (props: Record<string, unknown>) => ({ type: 'object', additionalProperties: false, required: Object.keys(props), properties: props });
+const enumDe = (l: string[]) => ({ type: 'string', enum: [...new Set(l)] });
+const SEMENTES_SCHEMA = (cat: any) => obj({ direcoes: { type: 'array', items: obj({
+  nome: S, metafora: S, ideia_central: S, pergunta: S, territorio: enumDe(cat.territorios.map((x: any) => x.k)), letra: enumDe(cat.letras.map((x: any) => x.k)),
+  gesto: enumDe([''].concat(cat.gestos.map((x: any) => x.k))), ideia: enumDe([''].concat(cat.ideias.map((x: any) => x.k))), forma: enumDe(FORMAS_D),
+  interacao: enumDe(cat.interacoes.map((x: any) => x.k)), cor_dominante: S, diferente: S }) } });
+const CARTAO_SCHEMA = obj({
+  camadas: { type: 'array', items: obj({ sentido: S, explica: S }) }, anatomia: S, assinatura: S, inimigo: S, arquetipo: S, letra_porque: S, logo_detalhe: S, logo_porque: S,
+  cores: { type: 'array', items: obj({ nome: S, hex: S, papel: enumDe(PAPEIS), uso: { type: 'integer' }, historia: S }) },
+  modo_claro: S, modo_escuro: S, principal: enumDe(['claro', 'escuro', 'cor']), interacao_nome: S, interacao_como: S });
+const MAQUINA_SCHEMA = obj({
+  proposito: S, essencia: S, posicionamento: S, pilares: { type: 'array', items: obj({ nome: S, regra: S }) }, no_lugar: S, tensao: S,
+  fatos: { type: 'array', items: obj({ fato: S, certeza: enumDe(['certo', 'mais_contada']) }) },
+  sistema_nomes: obj({ regra: S, exemplos: { type: 'array', items: obj({ nome: S, o_que: S }) } }),
+  negocio: { type: 'array', items: obj({ tipo: enumDe(['ticket', 'recorrencia', 'retencao', 'clube', 'conversao']), nome: S, como: S }) },
+  manifesto_estrofes: SL, manifesto: S, conceito: S, principios: SL, usa: SL, evita: SL, exemplos: { type: 'array', items: obj({ generico: S, marca: S }) },
+  taglines: SL, e: SL, nao_e: SL, fala: SL, nao_fala: SL, bio: S, wa: S,
+  textos: (MARCA_SCHEMA as any).properties.textos, buyer_persona: (MARCA_SCHEMA as any).properties.buyer_persona, brand_persona: (MARCA_SCHEMA as any).properties.brand_persona });
+/* o que volta da IA passa de novo pelo catálogo e pelos tamanhos (a reserva sem esquema estrito pode escorregar) */
+const umDe = (v: unknown, l: string[], d = '') => l.includes(String(v)) ? String(v) : d;
+function sementeLimpa(d: any, cat: any, nome: string) {
+  const ks = (k: string) => cat[k].map((x: any) => x.k);
+  return {
+    nome: nome || txt(d?.nome, 26), metafora: txt(d?.metafora, 50), ideia_central: txt(d?.ideia_central, 160), pergunta: txt(d?.pergunta, 80),
+    territorio: umDe(d?.territorio, ks('territorios'), cat.territorios[0].k), letra: umDe(d?.letra, ks('letras'), cat.letras[0].k),
+    gesto: umDe(d?.gesto, ks('gestos')), ideia: umDe(d?.ideia, ks('ideias')), forma: umDe(d?.forma, FORMAS_D, 'lado'), interacao: umDe(d?.interacao, ks('interacoes'), cat.interacoes[0].k),
+    cor_dominante: txt(d?.cor_dominante, 50), diferente: txt(d?.diferente, 160),
+  };
+}
+function cartaoLimpo(r: any) {
+  if (!r) return null;
+  const cores = (Array.isArray(r.cores) ? r.cores : []).map((c: any) => ({ nome: txt(c?.nome, 30), hex: hexOk(c?.hex), papel: umDe(c?.papel, PAPEIS, 'neutro'), uso: Math.max(0, Math.min(100, Math.round(Number(c?.uso) || 0))), historia: txt(c?.historia, 160) })).filter((c: any) => c.hex && c.nome).slice(0, 9);
+  return {
+    camadas: (Array.isArray(r.camadas) ? r.camadas : []).map((c: any) => ({ sentido: txt(c?.sentido, 40), explica: txt(c?.explica, 140) })).filter((c: any) => c.sentido).slice(0, 4),
+    anatomia: txt(r.anatomia, 180), assinatura: txt(r.assinatura, 90), inimigo: txt(r.inimigo, 120), arquetipo: txt(r.arquetipo, 80), letra_porque: txt(r.letra_porque, 180),
+    logo_detalhe: txt(r.logo_detalhe, 160), logo_porque: txt(r.logo_porque, 180), cores, modo_claro: txt(r.modo_claro, 20), modo_escuro: txt(r.modo_escuro, 20),
+    principal: umDe(r.principal, ['claro', 'escuro', 'cor'], 'claro'), interacao_nome: txt(r.interacao_nome, 28), interacao_como: txt(r.interacao_como, 200),
+  };
+}
+const respostaJSON = (out: any) => { try { return JSON.parse(out?.choices?.[0]?.message?.content || ''); } catch (_) { return null; } };
+/* a vaga do dia (e o correal, se acabou o grátis): igual à acao "marca" */
+async function vagaHouzi(sb: any, user: any, body: any, X: Extra) {
+  const { data: perfil } = await sb.from('corre_perfis').select('plano').eq('id', user.id).maybeSingle();
+  if (!perfil) return { r: json({ erro: 'login' }, 401) };
+  const lim = MARCA_LIMITE[perfil.plano] ?? MARCA_LIMITE.gratis;
+  const { count } = await sb.from('corre_geracoes').select('id', { count: 'exact', head: true }).eq('dono', user.id).eq('tipo', 'marca').gte('created_at', inicioDoDia());
+  const v = await vaga(sb, 'marca', lim, count ?? 0, body, X);
+  return v ? { r: v } : { lim, count: count ?? 0 };
+}
+const erroDaIA = (resp: Response, out: any, onde: string) => { const msg = out?.error?.message || `HTTP ${resp.status}`; console.error(onde + ':', resp.status, msg); return json({ erro: resp.status === 401 ? 'sem_chave' : 'provedor', detalhe: msg }, resp.status === 401 ? 503 : 502); };
+async function direcao(sb: any, user: any, body: any, KEY: string, X: Extra) {
+  const c = body?.ctx || {}, cat = catalogoDe(body?.catalogo);
+  if (!cat) return json({ erro: 'catalogo' }, 400);
+  const brief = briefDe(c);
+  if (!brief.negocio) return json({ erro: 'prompt' }, 400);
+  const rodada = Math.max(0, Math.min(99, Math.round(Number(c.rodada) || 0)));
+  const historico = (Array.isArray(c.historico) ? c.historico : []).slice(-36).map((x: any) => ({
+    rodada: Math.max(0, Math.min(99, Math.round(Number(x?.rodada) || 0))), nome: txt(x?.nome, 30), ideia_central: txt(x?.ideia, 140), metafora: txt(x?.metafora, 50),
+    territorio: txt(x?.territorio, 24), letra: txt(x?.letra, 24), reacao: x?.reacao === 'gostou' || x?.reacao === 'nao' ? x.reacao : '' })).filter((x: any) => x.nome || x.ideia_central);
+  const s = c.seguir && typeof c.seguir === 'object' ? { nome: txt(c.seguir.nome, 30), ideia_central: txt(c.seguir.ideia, 160), metafora: txt(c.seguir.metafora, 50), territorio: txt(c.seguir.territorio, 24), assinatura: txt(c.seguir.assinatura, 90), camadas: lista(c.seguir.camadas, 4, 60) } : null;
+  const pedido = txt(c.pedido, 280);
+  const vg = await vagaHouzi(sb, user, body, X); if (vg.r) return vg.r;
+  // 1) as 6 direções, juntas
+  const p1 = {
+    model: DIR_MODELO,
+    messages: [{ role: 'system', content: DIRECAO_SIS }, { role: 'user', content: 'O pedido:\n' + JSON.stringify({ negocio: brief, rodada, historico, seguir: s, pedido, catalogo: cat }, null, 1) }],
+    response_format: { type: 'json_schema', json_schema: { name: 'direcoes', strict: true, schema: SEMENTES_SCHEMA(cat) } },
+    max_completion_tokens: 16000,
+  };
+  let r1: any;
+  try { r1 = await chatDirecao(p1, KEY, 85000, DIR_ESFORCO); } catch (e) { return json({ erro: (e as any)?.name === 'TimeoutError' ? 'demora' : 'provedor', detalhe: String(e) }, 504); }
+  if (!r1.resp.ok) return erroDaIA(r1.resp, r1.out, 'direcao');
+  const j1 = respostaJSON(r1.out);
+  const ds = (Array.isArray(j1?.direcoes) ? j1.direcoes : []).slice(0, 6).map((d: any) => sementeLimpa(d, cat, brief.nome)).filter((d: any) => d.nome && d.ideia_central);
+  if (!ds.length) return json({ erro: 'provedor', detalhe: 'resposta vazia' }, 502);
+  // 2) cada direção ganha o cartão (em paralelo; a que falhar volta só com a semente, e o site completa com o motor)
+  const nomeDe = (l: any[], k: string) => (l.find((x: any) => x.k === k) || {}).n || k;
+  const cartao = async (d: any) => {
+    const p2 = {
+      model: MAQ_MODELO,
+      messages: [{ role: 'system', content: CARTAO_SIS }, { role: 'user', content: 'O negócio e a direção:\n' + JSON.stringify({ negocio: brief, direcao: { ...d, territorio: nomeDe(cat.territorios, d.territorio), letra: nomeDe(cat.letras, d.letra), gesto: d.gesto ? nomeDe(cat.gestos, d.gesto) : 'nenhum', ideia: d.ideia ? nomeDe(cat.ideias, d.ideia) : 'nenhuma', interacao: nomeDe(cat.interacoes, d.interacao) } }, null, 1) }],
+      response_format: { type: 'json_schema', json_schema: { name: 'cartao', strict: true, schema: CARTAO_SCHEMA } },
+      max_completion_tokens: 9000,
+    };
+    try { const r = await chatDirecao(p2, KEY, 40000, MAQ_ESFORCO); return r.resp.ok ? cartaoLimpo(respostaJSON(r.out)) : (console.error('direcao cartao:', r.resp.status, r.out?.error?.message || ''), null); }
+    catch (e) { console.error('direcao cartao:', String(e)); return null; }
+  };
+  const cartoes = await Promise.all(ds.map(cartao));
+  await sb.from('corre_geracoes').insert({ tipo: 'marca', prompt: ('direcao · ' + (brief.nome || brief.negocio) + ' · ' + rodada).slice(0, 200) });
+  return json({ direcoes: ds.map((d: any, i: number) => ({ ...d, ...(cartoes[i] || {}), completa: !!cartoes[i] })), rodada, restam: Math.max(0, vg.lim - vg.count - 1) });
+}
+async function maquina(sb: any, user: any, body: any, KEY: string, X: Extra) {
+  const c = body?.ctx || {}, d = c.direcao || {}, brief = briefDe(c);
+  const dir = {
+    nome: txt(d.nome, 30), camadas: (Array.isArray(d.camadas) ? d.camadas : []).slice(0, 4).map((x: any) => ({ sentido: txt(x?.sentido, 40), explica: txt(x?.explica, 140) })), anatomia: txt(d.anatomia, 180),
+    ideia_central: txt(d.ideia_central, 160), pergunta: txt(d.pergunta, 80), assinatura: txt(d.assinatura, 90), inimigo: txt(d.inimigo, 120), metafora: txt(d.metafora, 50), arquetipo: txt(d.arquetipo, 80),
+    territorio: txt(d.territorio, 60), letra: txt(d.letra, 60), logo: txt(d.logo_detalhe, 160), interacao: txt(d.interacao_como, 200),
+    cores: (Array.isArray(d.cores) ? d.cores : []).slice(0, 9).map((x: any) => ({ nome: txt(x?.nome, 30), hex: hexOk(x?.hex), papel: umDe(x?.papel, PAPEIS, 'neutro') })).filter((x: any) => x.hex),
+  };
+  if (!dir.nome || !dir.ideia_central || !brief.negocio) return json({ erro: 'prompt' }, 400);
+  const vg = await vagaHouzi(sb, user, body, X); if (vg.r) return vg.r;
+  const p = {
+    model: MAQ_MODELO,
+    messages: [{ role: 'system', content: MAQUINA_SIS }, { role: 'user', content: 'O negócio e a direção escolhida:\n' + JSON.stringify({ negocio: brief, direcao: dir }, null, 1) }],
+    response_format: { type: 'json_schema', json_schema: { name: 'maquina', strict: true, schema: MAQUINA_SCHEMA } },
+    max_completion_tokens: 16000,
+  };
+  let r: any;
+  try { r = await chatDirecao(p, KEY, 120000, MAQ_ESFORCO); } catch (e) { return json({ erro: (e as any)?.name === 'TimeoutError' ? 'demora' : 'provedor', detalhe: String(e) }, 504); }
+  if (!r.resp.ok) return erroDaIA(r.resp, r.out, 'maquina');
+  const m = respostaJSON(r.out);
+  if (!m || !m.conceito || !m.posicionamento) return json({ erro: 'provedor', detalhe: 'resposta vazia' }, 502);
+  await sb.from('corre_geracoes').insert({ tipo: 'marca', prompt: ('maquina · ' + dir.nome).slice(0, 200) });
+  const t = m.textos || {}, bp = m.buyer_persona || {}, gp = m.brand_persona || {}, sn = m.sistema_nomes || {};
+  return json({
+    proposito: txt(m.proposito, 200), essencia: txt(m.essencia, 80), posicionamento: txt(m.posicionamento, 320),
+    pilares: (Array.isArray(m.pilares) ? m.pilares : []).slice(0, 4).map((x: any) => ({ nome: txt(x?.nome, 30), regra: txt(x?.regra, 160) })).filter((x: any) => x.nome),
+    no_lugar: txt(m.no_lugar, 160), tensao: txt(m.tensao, 200),
+    fatos: (Array.isArray(m.fatos) ? m.fatos : []).slice(0, 6).map((x: any) => ({ fato: txt(x?.fato, 240), certeza: x?.certeza === 'certo' ? 'certo' : 'mais_contada' })).filter((x: any) => x.fato),
+    sistema_nomes: { regra: txt(sn.regra, 180), exemplos: (Array.isArray(sn.exemplos) ? sn.exemplos : []).slice(0, 6).map((x: any) => ({ nome: txt(x?.nome, 30), o_que: txt(x?.o_que, 100) })).filter((x: any) => x.nome) },
+    negocio: (Array.isArray(m.negocio) ? m.negocio : []).slice(0, 4).map((x: any) => ({ tipo: umDe(x?.tipo, ['ticket', 'recorrencia', 'retencao', 'clube', 'conversao'], 'ticket'), nome: txt(x?.nome, 36), como: txt(x?.como, 200) })).filter((x: any) => x.nome),
+    manifesto_estrofes: lista(m.manifesto_estrofes, 6, 180), manifesto: txt(m.manifesto, 800), conceito: txt(m.conceito, 200),
+    principios: lista(m.principios, 4, 120), usa: lista(m.usa, 10, 30), evita: lista(m.evita, 10, 30),
+    exemplos: (Array.isArray(m.exemplos) ? m.exemplos : []).slice(0, 3).map((x: any) => ({ generico: txt(x?.generico, 160), marca: txt(x?.marca, 160) })).filter((x: any) => x.generico && x.marca),
+    taglines: lista(m.taglines, 6, 60), e: lista(m.e, 4, 30), nao_e: lista(m.nao_e, 4, 30), fala: lista(m.fala, 4, 120), nao_fala: lista(m.nao_fala, 4, 120), bio: txt(m.bio, 160), wa: txt(m.wa, 240),
+    textos: Object.fromEntries(['naming', 'logo', 'tipografia', 'cores', 'elementos', 'aplicacoes'].map((k) => [k, txt(t[k], 700)])),
+    buyer_persona: { nome: txt(bp.nome, 30), perfil: txt(bp.perfil, 320), quer: lista(bp.quer, 4, 110), dores: lista(bp.dores, 4, 110), onde: lista(bp.onde, 4, 80), decide: txt(bp.decide, 210), frase: txt(bp.frase, 130) },
+    brand_persona: { retrato: txt(gp.retrato, 320), jeito: lista(gp.jeito, 4, 120), gosta: lista(gp.gosta, 4, 80), com_o_cliente: txt(gp.com_o_cliente, 210), frase: txt(gp.frase, 130) },
+    restam: Math.max(0, vg.lim - vg.count - 1),
+  });
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   if (req.method !== 'POST') return json({ erro: 'metodo' }, 405);
@@ -546,7 +792,7 @@ Deno.serve(async (req) => {
   const acao = String(body?.acao || '');
   /* v3.60 · Hórus e Studio Houzi são planos: o primeiro uso começa os 30 dias de graça; depois, só assinado.
      Se o banco ainda não tem o delta v3.60 (a função não existe), segue como antes. */
-  const produto = ['abordagem', 'resposta', 'montar'].includes(acao) ? 'horus' : acao === 'marca' || acao === 'nomes' ? 'houzi' : '';
+  const produto = ['abordagem', 'resposta', 'montar'].includes(acao) ? 'horus' : ['marca', 'nomes', 'direcao', 'maquina'].includes(acao) ? 'houzi' : '';
   if (produto) {
     const { data: ac, error: eAc } = await sb.rpc('corre_teste_comeca', { p_produto: produto });
     if (!eAc && ac && ac.acesso && ac.acesso[produto] === false) return json({ erro: produto + '_assinatura' }, 402);
@@ -556,6 +802,8 @@ Deno.serve(async (req) => {
     : acao === 'abordagem' || acao === 'resposta' ? await horus(sb, user, body, KEY, X)
     : acao === 'montar' ? await montar(sb, user, body, KEY, X)
     : acao === 'marca' || acao === 'nomes' ? await houzi(sb, user, body, KEY, X)
+    : acao === 'direcao' ? await direcao(sb, user, body, KEY, X)
+    : acao === 'maquina' ? await maquina(sb, user, body, KEY, X)
     : await imagem(sb, user, body, KEY, X, SB_URL);
   return await fecha(r, X, admin, user.id);
 });
