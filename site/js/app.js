@@ -545,6 +545,7 @@
   const LUGARES_V = [
     ['Tua casa', 'home', 'Decorar e receber gente', 'casa decorar moveis toca discos lar'],
     ['Feira do Corre', 'toldo', 'As barracas das ferramentas', 'feira barracas barraca'],
+    ['Calçadão', 'gente', 'Em 3D: o Relojão, os bancos e muita gente', 'calcadao 3d relojao ouro verde catedral banco pombo centro pedra portuguesa'],
     ['Autódromo do Café', 'carro', 'Corrida de moto e de carro', 'corrida moto carro pista autodromo largada'],
     ['Pista do Zerão', 'carro', 'Kart com os bichos, 4 pistas', 'kart patinete corrida bichos jet'],
     ['Zerão', 'verso', 'Quadras com desafio: futsal e basquete', 'quadra quadras futsal basquete desafio bola'],

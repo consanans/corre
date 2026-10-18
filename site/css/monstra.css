@@ -3317,3 +3317,11 @@ html.embed .msg-pg{height:calc(100dvh - 40px)}
 .cvr-sk .mj-h{margin-bottom:2px}
 .cvr-sk small{margin-top:2px}
 .cvr-sk.caiu .mj-h b{color:#C2261B}
+
+/* v3.77 · o Calçadão em 3D: o balão de fala da gente do lugar (texto normal, quebra linha, o rabinho embaixo);
+   o que é pra você é amarelo, o grito de ambulante é rosa */
+.cs-tag.fala,.cs-tag.fala.perto{text-transform:none;letter-spacing:0;font-family:var(--font-body);font-weight:600;font-size:12.5px;line-height:1.28;white-space:normal;width:max-content;max-width:196px;padding:6px 10px;border-radius:12px;background:#fff;color:var(--ink);opacity:.96;margin-top:-10px;cursor:pointer}
+.cs-tag.fala::after{content:'';position:absolute;left:50%;bottom:-9px;margin-left:-7px;border:7px solid transparent;border-top-color:var(--ink);border-bottom:0}
+.cs-tag.fala.voce,.cs-tag.fala.voce.perto{background:var(--yellow)}
+.cs-tag.fala.grito,.cs-tag.fala.grito.perto{background:var(--pink);color:#fff}
+@media (max-width:600px){.cs-tag.fala,.cs-tag.fala.perto{font-size:11.5px;max-width:160px;padding:5px 8px}}

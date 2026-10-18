@@ -67,7 +67,8 @@
         case 'zinco': f = 1 + n * .06; if(yy % 3 === 0) f = 1.22; else if(yy % 3 === 2) f = .76; break;
         case 'terra': f = 1 + n * .2; if(r() < .05) f *= .75; break;
         case 'agua': f = 1 + n * .07; if((yy * 3 + (xx >> 2)) % 7 === 0) f = 1.16; break;
-        case 'mosaico': { const onda = Math.floor((xx + Math.round(3 * Math.sin(yy / 2.6))) / 4) % 2 === 0; const i0 = (yy * 16 + xx) * 4, [tr, tg, tb] = rgbDe(TEXB.terra), q = 1 + n * .08; d[i0] = clamp((onda ? tr : R) * q, 0, 255); d[i0 + 1] = clamp((onda ? tg : G) * q, 0, 255); d[i0 + 2] = clamp((onda ? tb : B) * q, 0, 255); d[i0 + 3] = 255; continue; }
+        /* v3.77: a pedra portuguesa do Calçadão é preta e branca (a vermelha era chute; a pesquisa do 3D achou o original) */
+        case 'mosaico': { const onda = Math.floor((xx + Math.round(3 * Math.sin(yy / 2.6))) / 4) % 2 === 0; const i0 = (yy * 16 + xx) * 4, [tr, tg, tb] = rgbDe('#2A2B31'), q = 1 + n * .08; d[i0] = clamp((onda ? tr : R) * q, 0, 255); d[i0 + 1] = clamp((onda ? tg : G) * q, 0, 255); d[i0 + 2] = clamp((onda ? tb : B) * q, 0, 255); d[i0 + 3] = 255; continue; }
         default: f = 1 + n * .1; if(xx % 8 === 7 || yy % 8 === 7) f *= .87;
       }
       const i = (yy * 16 + xx) * 4; d[i] = clamp(R * f, 0, 255); d[i + 1] = clamp(G * f, 0, 255); d[i + 2] = clamp(B * f, 0, 255); d[i + 3] = 255;
@@ -1007,7 +1008,7 @@
     if(BC.aberto) m.tr = 1;
     if(V.jogo) m.jg = 1;
     /* dentro de uma casa: quem passa vê "em casa"; quem tá na mesma casa te vê lá dentro (e a voz fica entre vocês) */
-    if(C.casa && C.casa.aberta()){ m.ec = 1; m.casa = C.casa.sala(); const pq = C.casa.placar ? C.casa.placar() : null; if(pq && pq.c > 0){ m.pk = pq.c; m.pr = pq.r; } const cr = C.casa.corrida ? C.casa.corrida() : null; if(cr && cr.tc > 0){ m.tc = cr.tc; m.td = cr.td; if(cr.tv) m.tv = cr.tv; } const qd = C.casa.quadra ? C.casa.quadra() : null; if(qd && qd.qp > 0){ m.qp = qd.qp; m.qd = qd.qd; } const km = C.casa.kartMeta ? C.casa.kartMeta() : null; if(km){ m.kp = km.kp; m.kpt = km.kpt; } const q = C.casa.pos(); if(q){ m.cx = Math.round(q.x * 10) / 10; m.cz = Math.round(q.z * 10) / 10; m.cy = Math.round((q.y || 0) * 10) / 10; m.cd = Math.round(q.yaw * 100) / 100; }
+    if(C.casa && C.casa.aberta()){ m.ec = 1; m.casa = C.casa.sala(); const pq = C.casa.placar ? C.casa.placar() : null; if(pq && pq.c > 0){ m.pk = pq.c; m.pr = pq.r; } const cr = C.casa.corrida ? C.casa.corrida() : null; if(cr && cr.tc > 0){ m.tc = cr.tc; m.td = cr.td; if(cr.tv) m.tv = cr.tv; } const qd = C.casa.quadra ? C.casa.quadra() : null; if(qd && qd.qp > 0){ m.qp = qd.qp; m.qd = qd.qd; } const km = C.casa.kartMeta ? C.casa.kartMeta() : null; if(km){ m.kp = km.kp; m.kpt = km.kpt; } const q = C.casa.pos(); if(q){ m.cx = Math.round(q.x * 10) / 10; m.cz = Math.round(q.z * 10) / 10; m.cy = Math.round((q.y || 0) * 10) / 10; m.cd = Math.round(q.yaw * 100) / 100; if(q.sit) m.cs = 1; }
       const dsc = C.casa.disco && C.casa.disco(); if(dsc && dsc.t){ m.disco = dsc.k || ''; m.discoT = dsc.t; } }
     /* no ar, o teu nome e o teu @ não viajam na presença (qualquer um escreveria qualquer coisa ali): vêm do servidor */
     return C.LIVE ? m : Object.assign(m, { uid: me.id || '', handle: pub ? me.handle : '', nome: pub ? String(me.nome || '').slice(0, 40) : 'perfil mocado' });
@@ -1146,7 +1147,7 @@
           /* v3.75: de barco no Tibagi, o lado do barco e a maior piapara do dia (até 8 kg) */
           barco: m.bc === 1, bl: m.bl === -1 ? -1 : 1, pp: Number.isInteger(m.pp) && m.pp > 0 && m.pp <= 800 ? m.pp : 0, pd: Number.isInteger(m.pd) && m.pd >= 0 ? m.pd : -1,
           disco: typeof m.disco === 'string' && /^[a-z0-9]{0,16}$/.test(m.disco) ? m.disco : '', discoT: Number.isFinite(m.discoT) && m.discoT > 0 && m.discoT < Date.now() + 6e5 ? m.discoT : 0 });
-        if(r.naCasa && Number.isFinite(m.cx) && Number.isFinite(m.cz)){ if(r.hx == null){ r.hxv = m.cx; r.hzv = m.cz; r.hyv = Number.isFinite(m.cy) ? clamp(m.cy, 0, 8) : 0; } r.hx = clamp(m.cx, -1, 81); r.hz = clamp(m.cz, -1, 81); r.hy = Number.isFinite(m.cy) ? clamp(m.cy, 0, 8) : 0; r.hyaw = Number.isFinite(m.cd) ? m.cd : 0; }
+        if(r.naCasa && Number.isFinite(m.cx) && Number.isFinite(m.cz)){ if(r.hx == null){ r.hxv = m.cx; r.hzv = m.cz; r.hyv = Number.isFinite(m.cy) ? clamp(m.cy, 0, 8) : 0; } r.hx = clamp(m.cx, -1, 81); r.hz = clamp(m.cz, -1, 81); r.hy = Number.isFinite(m.cy) ? clamp(m.cy, 0, 8) : 0; r.hyaw = Number.isFinite(m.cd) ? m.cd : 0; r.hsit = m.cs === 1; }
         else if(!r.naCasa){ r.hx = r.hz = null; }
         confereAv(r);
         /* posição da presença só vale quando muda (a pessoa se anunciou de novo: chegou, viajou pelo Mapa, foi pra casa) */
@@ -1160,7 +1161,7 @@
       ui();
     },
     /* passo a passo vem por broadcast (qualquer um manda): salto grande não vale, quem viaja se anuncia pela presença */
-    mv(d){ if(!d || d.sid === sid) return; const r = V.remotos.get(d.sid); if(!r || !coordOk(d.x, d.y)) return; if(Math.hypot(d.x - r.tx, d.y - r.ty) > 700) return; r.tx = d.x; r.ty = d.y; if(['baixo', 'cima', 'esq', 'dir'].includes(d.dir)) r.dir = d.dir; r.mov = !!d.mov; r.sit = !!d.sit; if(d.mic != null && !!d.mic !== r.mic){ r.mic = !!d.mic; ui(); } if(Number.isFinite(d.cx) && Number.isFinite(d.cz)){ if(r.hx == null){ r.hxv = d.cx; r.hzv = d.cz; r.hyv = Number.isFinite(d.cy) ? clamp(d.cy, 0, 8) : 0; } r.hx = clamp(d.cx, -1, 81); r.hz = clamp(d.cz, -1, 81); r.hy = Number.isFinite(d.cy) ? clamp(d.cy, 0, 8) : 0; r.hyaw = Number.isFinite(d.cd) ? d.cd : 0; r.hmov = d.cm === 1; r.hmt = Number.isInteger(d.mt) && d.mt >= 1 && d.mt <= 5 ? d.mt : 0; kartMv(r, d); } r.item = typeof d.it === 'string' && ITEM_MAO[d.it] ? d.it : null; r.pesca = d.pe === 1; r.barco = d.bc === 1; r.bl = d.bl === -1 ? -1 : 1; r.visto = r.sinal = Date.now();
+    mv(d){ if(!d || d.sid === sid) return; const r = V.remotos.get(d.sid); if(!r || !coordOk(d.x, d.y)) return; if(Math.hypot(d.x - r.tx, d.y - r.ty) > 700) return; r.tx = d.x; r.ty = d.y; if(['baixo', 'cima', 'esq', 'dir'].includes(d.dir)) r.dir = d.dir; r.mov = !!d.mov; r.sit = !!d.sit; if(d.mic != null && !!d.mic !== r.mic){ r.mic = !!d.mic; ui(); } if(Number.isFinite(d.cx) && Number.isFinite(d.cz)){ if(r.hx == null){ r.hxv = d.cx; r.hzv = d.cz; r.hyv = Number.isFinite(d.cy) ? clamp(d.cy, 0, 8) : 0; } r.hx = clamp(d.cx, -1, 81); r.hz = clamp(d.cz, -1, 81); r.hy = Number.isFinite(d.cy) ? clamp(d.cy, 0, 8) : 0; r.hyaw = Number.isFinite(d.cd) ? d.cd : 0; r.hmov = d.cm === 1; r.hsit = d.cs === 1; r.hmt = Number.isInteger(d.mt) && d.mt >= 1 && d.mt <= 5 ? d.mt : 0; kartMv(r, d); } r.item = typeof d.it === 'string' && ITEM_MAO[d.it] ? d.it : null; r.pesca = d.pe === 1; r.barco = d.bc === 1; r.bl = d.bl === -1 ? -1 : 1; r.visto = r.sinal = Date.now();
       /* v3.40: o pulo (cada pulo novo tem um número) e o avião/paraquedas */
       if(Number.isInteger(d.pu)){ if(r.puN != null && d.pu !== r.puN) r.puT = performance.now(); r.puN = d.pu; }
       r.vo = d.vo === 1 || d.vo === 2 ? d.vo : 0; r.pq = d.pq === 1; },
@@ -1377,7 +1378,7 @@
     const q = C.casa && C.casa.aberta() ? C.casa.pos() : null, mov = q ? q.andando : V.eu.mov || !!V.voo;
     if(!forca && t - V.ultEnvio < (mov ? 100 : 2000)) return;
     const m = { sid, x: Math.round(V.eu.x), y: Math.round(V.eu.y), dir: V.eu.dir, mov: V.eu.mov, mic: V.mic, sit: !!V.eu.sit };
-    if(q){ m.cx = Math.round(q.x * 20) / 20; m.cz = Math.round(q.z * 20) / 20; m.cy = Math.round((q.y || 0) * 20) / 20; m.cd = Math.round(q.yaw * 100) / 100; m.cm = q.andando ? 1 : 0; if(q.mt) m.mt = q.mt; ['kp', 'kg', 'kl', 'kf'].forEach(k => { if(Number.isInteger(q[k])) m[k] = q[k]; }); }
+    if(q){ m.cx = Math.round(q.x * 20) / 20; m.cz = Math.round(q.z * 20) / 20; m.cy = Math.round((q.y || 0) * 20) / 20; m.cd = Math.round(q.yaw * 100) / 100; m.cm = q.andando ? 1 : 0; if(q.mt) m.mt = q.mt; if(q.sit) m.cs = 1; ['kp', 'kg', 'kl', 'kf'].forEach(k => { if(Number.isInteger(q[k])) m[k] = q[k]; }); }
     if(V.eu.item && V.eu.item.ate > Date.now()) m.it = V.eu.item.k;
     if(V.eu.pesca && V.eu.sit) m.pe = 1;
     if(V.eu.barco){ m.bc = 1; m.bl = V.eu.barco.lado < 0 ? -1 : 1; if(V.rio && V.rio.fase && V.rio.fase !== 'salto') m.pe = 1; }
@@ -1824,6 +1825,8 @@
     if(c.torneio) P.push({ x: c.torneio.x, y: c.torneio.y, tipo: 'torneio' });
     /* v3.48: a porta do Sebo entra no Sebo (os caixotes de disco) */
     c.enche.forEach(f => { if(f.t === 'loja') f.lojas.forEach((l, i) => { if(l.nome === 'SEBO') P.push({ x: portaLoja(f, i), y: f.base + 8, tipo: 'sebo' }); else if(l.nome === 'ATELIE') P.push({ x: portaLoja(f, i), y: f.base + 8, tipo: 'atelie' }); }); });
+    /* v3.77: no meio do Calçadão, a entrada do Calçadão em 3D */
+    if(c.centro.praca) P.push({ x: c.centro.praca.x + LW / 2, y: c.centro.praca.y + LH / 2 + 46, tipo: 'calcadao' });
     /* v3.75: na ponta de cada píer do Tibagi, o barquinho */
     if(c.rio) c.rio.piers.forEach(pr => P.push({ x: pr.ponta.x, y: pr.ponta.y, tipo: 'barco', k: pr.k, pier: pr }));
     /* o aquário: na porta, o jogo */
@@ -4502,7 +4505,7 @@
       if(j && T.fase === 'jogando'){ b.disabled = j.t === 'seq'; b.innerHTML = `${ico('raio')} ${esc(j.t === 'tempo' ? j.verbo : j.t === 'segura' ? 'Segura: ' + j.verbo.toLowerCase() : 'Usa as setas')}`; return; }
       b.innerHTML = `${ico('raio')} ${esc(p.et.acao)}${ag ? '…' : ''}`; b.disabled = !!ag; return; }
     b.disabled = false;
-    b.innerHTML = p.tipo === 'morador' ? `${ico('chat')} Trocar ideia com ${esc(p.m.nome)}` : p.tipo === 'barco' ? `${ico('peixe')} Pegar um barquinho` : p.tipo === 'aeroporto' ? `${ico('aviao')} Voar (${C.correalTxt(precoVoo())})` : p.tipo === 'sebo' ? `${ico('musica')} Entrar no Sebo` : p.tipo === 'atelie' ? `${ico('star')} Ateliê: skins` : p.tipo === 'torneio' ? `${ico('peixe')} Torneio de Pesca` : p.tipo === 'beisebol' ? `${ico('raio')} Jogar beisebol na ACEL` : p.tipo === 'quadra' ? `${ico('raio')} ${p.k === 'quadra-futsal' ? 'Desafio de pênalti' : 'Desafio de arremesso'}` : p.tipo === 'publi' ? `${ico('ext')} ${esc((PUBLI[p.k] || {}).nome || '')}: baixar o app` : p.tipo === 'pista' ? `${ico('raio')} ${p.k === 'moto' ? 'Autódromo do Café' : 'Corrida de patinete'}` : p.tipo === 'civico' ? `${ico('raio')} ${esc(CIVICOS[p.k].entra)}` : p.tipo === 'barraca' ? (aberta(p.b) ? `${ico(p.b.ico)} ${esc(p.b.botao)}` : `${ico('eye')} Hórus desligado: ligar`) : p.tipo === 'comida' ? `${ico('banca')} ${esc(COMIDAS[p.k][0])}` : p.tipo === 'aquario' ? `${ico('play')} Jogar ${esc(JOGOS[p.jogo].titulo)}` : p.tipo === 'banco' ? (p.pesca ? `${ico('gente')} Pescar no ${p.b.lugar.startsWith('Deck') ? 'deck' : 'píer'}` : `${ico('gente')} Sentar ${p.b.degrau ? 'na Concha' : 'no banco'}`) : p.tipo === 'mural' ? `${ico('tacha')} Abrir o Mural` : p.tipo === 'banca' ? `${ico('banca')} Banca do dia` : p.tipo === 'lote' ? `${ico('plus')} Lote livre` : meu ? `${ico('home')} Tua casa` : `${ico('home')} Bater na porta de @${esc(p.c.handle)}`;
+    b.innerHTML = p.tipo === 'morador' ? `${ico('chat')} Trocar ideia com ${esc(p.m.nome)}` : p.tipo === 'barco' ? `${ico('peixe')} Pegar um barquinho` : p.tipo === 'aeroporto' ? `${ico('aviao')} Voar (${C.correalTxt(precoVoo())})` : p.tipo === 'sebo' ? `${ico('musica')} Entrar no Sebo` : p.tipo === 'calcadao' ? `${ico('gente')} Entrar no Calçadão 3D` : p.tipo === 'atelie' ? `${ico('star')} Ateliê: skins` : p.tipo === 'torneio' ? `${ico('peixe')} Torneio de Pesca` : p.tipo === 'beisebol' ? `${ico('raio')} Jogar beisebol na ACEL` : p.tipo === 'quadra' ? `${ico('raio')} ${p.k === 'quadra-futsal' ? 'Desafio de pênalti' : 'Desafio de arremesso'}` : p.tipo === 'publi' ? `${ico('ext')} ${esc((PUBLI[p.k] || {}).nome || '')}: baixar o app` : p.tipo === 'pista' ? `${ico('raio')} ${p.k === 'moto' ? 'Autódromo do Café' : 'Corrida de patinete'}` : p.tipo === 'civico' ? `${ico('raio')} ${esc(CIVICOS[p.k].entra)}` : p.tipo === 'barraca' ? (aberta(p.b) ? `${ico(p.b.ico)} ${esc(p.b.botao)}` : `${ico('eye')} Hórus desligado: ligar`) : p.tipo === 'comida' ? `${ico('banca')} ${esc(COMIDAS[p.k][0])}` : p.tipo === 'aquario' ? `${ico('play')} Jogar ${esc(JOGOS[p.jogo].titulo)}` : p.tipo === 'banco' ? (p.pesca ? `${ico('gente')} Pescar no ${p.b.lugar.startsWith('Deck') ? 'deck' : 'píer'}` : `${ico('gente')} Sentar ${p.b.degrau ? 'na Concha' : 'no banco'}`) : p.tipo === 'mural' ? `${ico('tacha')} Abrir o Mural` : p.tipo === 'banca' ? `${ico('banca')} Banca do dia` : p.tipo === 'lote' ? `${ico('plus')} Lote livre` : meu ? `${ico('home')} Tua casa` : `${ico('home')} Bater na porta de @${esc(p.c.handle)}`;
   }
   function tamanhoTela(){
     const st = C.$('cvr-stage'); if(!st || !V.cv) return;
@@ -5216,6 +5219,7 @@
     if(p.tipo === 'barco'){ embarca(p.pier); return; }
     if(p.tipo === 'morador'){ trocaIdeia(p.m); return; }
     if(p.tipo === 'sebo'){ if(C.casa && C.casa.LUGARES && C.casa.LUGARES.sebo){ if(C.versoSom) C.versoSom.porta(); C.casa.abrir({ lugar: 'sebo' }); } return; }
+    if(p.tipo === 'calcadao'){ if(C.casa && C.casa.LUGARES && C.casa.LUGARES.calcadao){ if(C.versoSom) C.versoSom.porta(); C.casa.abrir({ lugar: 'calcadao' }); } return; }
     if(p.tipo === 'mural'){ abreBalcao(BC_MURAL); return; }
     if(p.tipo === 'banca'){ abreBalcao(BC_BANCA); return; }
     if(p.tipo === 'banco'){ const b = p.b; V.alvo = null; V.eu.x = b.x; V.eu.y = b.y + (b.degrau ? 0 : 2); V.eu.sit = true; V.eu.mov = false; V.eu.dir = 'baixo'; V.eu.pesca = p.pesca ? { ate: Date.now() + 3500 + Math.random() * 3500 } : null; portaUI(); enviaPos(true); if(p.pesca) C.toast('Jogou a linha. Espera que uma hora fisga.', 2800); return; }
