@@ -1305,7 +1305,7 @@
     /* os que vendem e os que chamam a atenção: cada um com o seu grito */
     const GRITA = (nome, x, z, yaw, av, falas, extra) => K.gente.push(Object.assign({ nome, papel: 'grita', x, z, yaw, av, falas, voz: 200 }, extra || {}));
     GRITA('Seu Ditão', 24.45, 21.6, -Math.PI / 2, Object.assign(vo(4, 'raspado', 4, 'camiseta', 6, 0), { skin: 'chef' }), ['Olha a pipoca! Doce e salgada, saindo quentinha!', 'Pipoca de dois reais com gosto de infância!', 'Pombo não paga, mas você paga, hein!'], { voz: 150 });
-    GRITA('Dona Socorro', 11.3, 30.9, Math.PI / 2, vo(3, 'coque', 1, 'camiseta', 1, 1, { topo: 'bandana' }), ['Olha o milho cozido na manteiga!', 'Pamonha e curau, feitos hoje cedo!', 'É milho do Paraná, piá!'], { voz: 300 });
+    GRITA('Dona Socorro', 11.3, 30.9, Math.PI / 2, vo(3, 'coque', 1, 'camiseta', 1, 1, { topo: 'bandana' }), ['Olha o milho cozido na manteiga!', 'Pamonha e curau, feitos hoje cedo!', 'É milho do Paraná, minha gente!'], { voz: 300 });
     GRITA('Zé da Melancia', 28, 12.6, -Math.PI / 2, vo(4, 'curto', 0, 'regata', 3, 2, { topo: 'bone' }), ['Melancia geladinha! A fatia vem com sorriso.', 'Abacaxi doce igual conversa de vó!', 'Morango vermelhinho, olha que beleza!'], { voz: 170 });
     GRITA('Robson do Microfone', 9.7, 5.4, Math.PI / 2, vo(3, 'raspado', 0, 'jaqueta', 0, 0, { oculos: 'escuro', corrente: 'ouro' }), ['Atenção, Londrina! Hoje é tudo pela metade do dobro!', 'Entra, entra! Olhar não paga e provar é de graça!', 'Promoção relâmpago! Mais rápida que o Pé-Vermelho no Autódromo!', 'Alô, moça do vestido bonito! Tem um igualzinho aqui dentro, só que mais barato!'], { mao: 'mic', voz: 180 });
     GRITA('Irmão Ivo', 30.2, 15.5, -Math.PI / 2, vo(2, 'curto', 4, 'camiseta', 6, 0), ['Paz pra quem passa e pra quem fica no banco!', 'Bom dia, irmão! Que o teu corre seja abençoado!', 'Desacelera, meu povo. A pressa nunca chegou primeiro em lugar nenhum.'], { mao: 'mic', y: .32, voz: 160 });
@@ -1361,7 +1361,7 @@
       ['Viu o Relojão? Já é quase hora do almoço.', 'Pra mim é sempre quase hora do almoço.']
     ]
   };
-  const FALA_VOCE = ['Senta aí, piá. O banco é público e a conversa também.', 'Tu é daqui? Tem cara de quem anda de skate no Zerão.', 'Olha pra cima: o Relojão do Edifício América marca a hora certinha.',
+  const FALA_VOCE = ['Senta aí, chega mais. O banco é público e a conversa também.', 'Tu é daqui? Tem cara de quem anda de skate no Zerão.', 'Olha pra cima: o Relojão do Edifício América marca a hora certinha.',
     'Num dia de semana passa umas trinta mil pessoas por aqui. Hoje parece que vieram todas.', 'Domingo isso aqui fica quieto. Hoje não: hoje é dia de corre.', 'Na primavera as cigarras cantam tão alto que a gente conversa por mímica.',
     'Esse chão de pedrinha é do desenho original. Pisa com respeito.', 'Um conselho: nunca discuta com pombo. Ele não tem nada a perder.', 'Já foi na Feira do Corre? É logo ali, na cidade.', 'Fica mais um pouco. A conversa tá boa e o banco tá na sombra.'];
   const FALA_PASSA = ['Licença, licença!', 'Tô atrasado pro banco!', 'Mãe, já tô chegando!', 'Cadê o meu ônibus?', 'Opa, foi mal!', 'E aí!', 'Vai chover, hein?', 'Bora, bora!'];
