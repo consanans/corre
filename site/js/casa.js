@@ -1711,20 +1711,22 @@
       { x: 26.4, z: 6, y: 3.4, bl: [B(.2, 0, .2, .4, .06, .4, KB.noz), B(.36, .06, .36, .08, .7, .08, KB.noz), esferaB(.05, .7, .05, .7, '#3C6FD6'), Object.assign(B(.02, 1.03, .38, .76, .04, .04, KB.ouro), { roll: .4 })] }
     ]
   };
-  /* ---------- v3.81 · o templo do @consanans: Egito, Rosacruz e Maçonaria ----------
+  /* ---------- v3.81 · o templo do @consanans: Egito e Rosacruz ----------
      O Thales: "faça o interior da minha casa tipo como você fez para o @jeydiaz, mas com tema de egito/rosacruz/
-     maçonaria". No lugar do loft, 30 x 24 com pé-direito de 7 m. Embaixo: o templo (a loja), com o pavimento de mosaico
-     preto e branco de borda dentada, a passadeira, as colunas B e J de bronze com as romãs e os globos, as colunas de
-     papiro, os bancos azuis do Norte e do Sul, o altar dos juramentos com o livro aberto, o esquadro e o compasso e as
-     três luzes, o Oriente nos degraus (o trono debaixo do dossel vermelho, a mesa com o malhete, as esfinges e os
-     braseiros), e em cima dele o delta com o olho, o sol e a lua; na parede, o mural do Egito (a abóbada estrelada, a
-     procissão de deuses e gente, os hieróglifos e o friso de lótus) e, na parede da biblioteca, a rosa-cruz e o sol
-     alado. Ao lado, a biblioteca hermética (o sarcófago, a esfera armilar, a bancada de alquimia, a gata de Bastet) e a
-     câmara de reflexão (a caveira, a ampulheta, o pão, o sal e o enxofre, e o V.I.T.R.I.O.L. na parede). Embaixo do
-     mezanino, o quarto do faraó (a cama de pés de leão com o dossel, o Anúbis deitado no baú, os hieróglifos), o
-     estúdio (a mesa de DJ toca os discos, o ankh de neon) e o closet (o armário do olho de Hórus troca a skin). No
-     mezanino, o gabinete com as ferramentas, o papiro da pesagem do coração, o painel da loja, a pirâmide e o ankh.
-     Tudo desenho nosso. Nada de verde (Osíris vai de preto, a cor da terra fértil) */
+     maçonaria". No lugar do loft, 30 x 24 com pé-direito de 7 m. v3.82 (o Thales: "a sala do VITRIOL você tira e faz a
+     sala do Umbral" e "deixa mais rosacruz do que maçom o templo de baixo"): saíram o pavimento de xadrez, as colunas B
+     e J, o altar dos juramentos com as três luzes, o dossel, o malhete, o delta, o sol e a lua e o painel da loja.
+     Embaixo, agora, o templo no jeito da AMORC (a foto que ele mandou, a mesma do Hórus): piso de terracota, o tablado
+     de dentes de serra preto e branco, a passadeira vermelha da porta ao Oriente, o cordão vermelho com os postes de
+     lótus, a Shekinah no meio (o altar triangular com as três velas, a ponta pro Oriente), as colunas de papiro, os
+     bancos dourados, o Oriente nos degraus (a cadeira de ouro, o púlpito com a rosa-cruz no pano e os castiçais), as
+     esfinges e os braseiros; em cima do Oriente, a rosa-cruz grande e o sol alado; na parede, o mural do Egito e, na da
+     biblioteca, outra rosa-cruz e outro sol alado. Ao lado, a biblioteca hermética (o sarcófago, a esfera armilar, a
+     bancada de alquimia, a gata de Bastet) e a sala do Umbral (a passagem entre o lado de fora e o templo: penumbra, o
+     véu na porta, os guardiões de Anúbis, a vela, a bacia d'água e o UMBRAL pintado na parede). Embaixo do mezanino, o
+     quarto do faraó, o estúdio (a mesa de DJ toca os discos) e o closet (o armário do olho de Hórus troca a skin). No
+     mezanino, o gabinete com as ferramentas, o papiro da pesagem do coração, o painel da rosa-cruz, a pirâmide e o
+     ankh. Tudo desenho nosso. Nada de verde (Osíris vai de preto, a cor da terra fértil) */
   const KT = { bronze: '#A8732E', bronzeE: '#7A5220', bronzeC: '#C99A55', pedra: '#D9C08A', pedraE: '#B89A62', lapis: '#22408E', ouro: '#D9A93A', ouroC: '#F2D27A', mad: '#4A2E1E', madC: '#6E4A32', azul: '#2A4FA8', escuro: '#1E1F24', papiro: '#E8D9B0' };
   /* ---- as pinturas ---- */
   const estrela5 = (g, x, y, r, c) => { g.beginPath(); for(let i = 0; i < 10; i++){ const a = -Math.PI / 2 + i * Math.PI / 5, rr = i % 2 ? r * .42 : r; g.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr); } g.closePath(); g.fillStyle = c; g.fill(); };
@@ -1823,47 +1825,35 @@
     ['sol', 'ankh', 'escaravelho'].forEach((k, i) => hiero(g, k, cx0 + cw * .5 - h * .11, h * .16 + i * h * .23, h * .22, [SOL, PRETO, AZUL_EG][i]));
   }
   /* a câmara de reflexão: o V.I.T.R.I.O.L., o galo, a ampulheta e a frase */
-  function vitriol(g, w, h){
-    g.fillStyle = '#141418'; g.fillRect(0, 0, w, h); g.strokeStyle = '#8E7A4A'; g.lineWidth = 3; g.strokeRect(6, 6, w - 12, h - 12);
-    g.fillStyle = '#EDE6D6'; g.textAlign = 'center'; g.textBaseline = 'middle';
-    let t = Math.round(h * .22); g.font = `700 ${t}px Georgia, serif`; while(t > 8 && g.measureText('V.I.T.R.I.O.L.').width > w * .86){ t--; g.font = `700 ${t}px Georgia, serif`; }
-    g.fillText('V.I.T.R.I.O.L.', w / 2, h * .24);
-    g.font = `italic ${Math.round(h * .07)}px Georgia, serif`; g.fillStyle = '#B8AE98';
-    g.fillText('Visita interiora terrae,', w / 2, h * .44); g.fillText('rectificando, invenies occultum lapidem', w / 2, h * .53);
-    /* o galo: corpo, rabo, crista vermelha */
-    const gx = w * .22, gy = h * .78; g.fillStyle = '#EDE6D6';
-    g.beginPath(); g.ellipse(gx, gy, h * .1, h * .07, 0, 0, Math.PI * 2); g.fill(); g.beginPath(); g.arc(gx + h * .09, gy - h * .09, h * .045, 0, Math.PI * 2); g.fill();
-    g.beginPath(); g.moveTo(gx - h * .08, gy - h * .02); g.quadraticCurveTo(gx - h * .2, gy - h * .2, gx - h * .14, gy + h * .02); g.fill();
-    g.fillStyle = SOL; g.fillRect(gx + h * .07, gy - h * .16, h * .05, h * .04); g.fillStyle = OURO; g.beginPath(); g.moveTo(gx + h * .13, gy - h * .1); g.lineTo(gx + h * .18, gy - h * .085); g.lineTo(gx + h * .13, gy - h * .07); g.fill();
-    g.strokeStyle = '#EDE6D6'; g.lineWidth = 2; g.beginPath(); g.moveTo(gx - h * .02, gy + h * .06); g.lineTo(gx - h * .03, gy + h * .14); g.moveTo(gx + h * .03, gy + h * .06); g.lineTo(gx + h * .04, gy + h * .14); g.stroke();
-    /* a ampulheta */
-    const ax = w * .78, ay = h * .78, aw = h * .1, ah = h * .14; g.fillStyle = '#8E7A4A'; g.fillRect(ax - aw, ay - ah - 3, aw * 2, 3); g.fillRect(ax - aw, ay + ah, aw * 2, 3);
-    g.fillStyle = '#EDE6D6'; g.beginPath(); g.moveTo(ax - aw * .8, ay - ah); g.lineTo(ax + aw * .8, ay - ah); g.lineTo(ax, ay); g.lineTo(ax + aw * .8, ay + ah); g.lineTo(ax - aw * .8, ay + ah); g.lineTo(ax, ay); g.closePath(); g.fill();
-    g.fillStyle = '#C9A24E'; g.beginPath(); g.moveTo(ax - aw * .45, ay + ah); g.lineTo(ax + aw * .45, ay + ah); g.lineTo(ax, ay + ah * .4); g.closePath(); g.fill();
+  /* v3.82 · o quadro da sala do Umbral (no lugar do V.I.T.R.I.O.L., do mesmo jeito): UMBRAL em ouro, a frase, a porta
+     com a luz do outro lado (o véu puxado de lado) e a vela */
+  function umbral(g, w, h){
+    const fundo = g.createLinearGradient(0, 0, 0, h); fundo.addColorStop(0, '#120F22'); fundo.addColorStop(1, '#241C3E'); g.fillStyle = fundo; g.fillRect(0, 0, w, h);
+    g.strokeStyle = '#C9A24E'; g.lineWidth = 3; g.strokeRect(6, 6, w - 12, h - 12);
+    g.fillStyle = '#E8C66A'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    let t = Math.round(h * .26); g.font = `700 ${t}px Georgia, serif`; while(t > 8 && g.measureText('U M B R A L').width > w * .8){ t--; g.font = `700 ${t}px Georgia, serif`; }
+    g.fillText('U M B R A L', w / 2, h * .25);
+    g.font = `italic ${Math.round(h * .075)}px Georgia, serif`; g.fillStyle = '#B8AED0'; g.fillText('Da sombra pra luz: atravesse em silêncio', w / 2, h * .47);
+    const px = w * .2, py = h * .6, pw = h * .2, ph = h * .3;
+    const luz = g.createRadialGradient(px, py + ph * .5, 2, px, py + ph * .5, ph * .8); luz.addColorStop(0, '#FFF4C8'); luz.addColorStop(1, '#C9A24E'); g.fillStyle = luz; g.fillRect(px - pw / 2, py, pw, ph);
+    g.fillStyle = '#5A2A6E'; g.beginPath(); g.moveTo(px - pw / 2, py); g.lineTo(px + pw * .1, py); g.quadraticCurveTo(px - pw * .1, py + ph * .5, px - pw / 2 + 2, py + ph); g.lineTo(px - pw / 2, py + ph); g.closePath(); g.fill();
+    g.fillStyle = '#8E7A4A'; g.fillRect(px - pw / 2 - 5, py - 6, pw + 10, 6); g.fillRect(px - pw / 2 - 5, py, 5, ph); g.fillRect(px + pw / 2, py, 5, ph);
+    const vx = w * .8, vy = h * .9; g.fillStyle = '#EDE6D6'; g.fillRect(vx - h * .03, vy - h * .2, h * .06, h * .2); g.fillStyle = '#8E7A4A'; g.fillRect(vx - h * .07, vy, h * .14, h * .03);
+    const ch = g.createRadialGradient(vx, vy - h * .25, 1, vx, vy - h * .25, h * .12); ch.addColorStop(0, 'rgba(255,230,150,.95)'); ch.addColorStop(1, 'rgba(255,200,90,0)'); g.fillStyle = ch; g.beginPath(); g.arc(vx, vy - h * .25, h * .12, 0, Math.PI * 2); g.fill();
+    g.fillStyle = '#FFE08A'; g.beginPath(); g.ellipse(vx, vy - h * .25, h * .02, h * .045, 0, 0, Math.PI * 2); g.fill();
   }
-  /* o painel da loja (o mapa do aprendiz): o céu com o sol, a lua e a estrela flamejante, as três colunas, a escada
-     que sobe do altar até a estrela, o pavimento e a borda dentada */
-  function painelLoja(g, w, h){
-    const ceu = g.createLinearGradient(0, 0, 0, h * .7); ceu.addColorStop(0, '#0E1636'); ceu.addColorStop(1, '#22408E'); g.fillStyle = ceu; g.fillRect(0, 0, w, h);
-    for(let i = 0; i < 26; i++){ const x = ((i * 97) % 100) / 100 * w, y = ((i * 53) % 60) / 100 * h * .9; g.fillStyle = '#FFF6D8'; g.fillRect(x, y, 2, 2); }
-    g.beginPath(); g.arc(w * .1, h * .16, h * .09, 0, Math.PI * 2); g.fillStyle = '#F2C230'; g.fill();
-    g.beginPath(); g.arc(w * .9, h * .16, h * .08, 0, Math.PI * 2); g.fillStyle = '#E9ECF2'; g.fill(); g.beginPath(); g.arc(w * .915, h * .145, h * .07, 0, Math.PI * 2); g.fillStyle = '#16204A'; g.fill();
-    estrela5(g, w * .5, h * .13, h * .1, '#F2C230'); g.fillStyle = SOL; g.font = `700 ${Math.round(h * .07)}px Georgia, serif`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('G', w * .5, h * .135);
-    /* o chão: o pavimento em xadrez com a borda dentada */
-    const py = h * .78, q = h * .055; g.fillStyle = PAPEL; g.fillRect(0, py, w, h - py);
-    for(let r = 0; r < 4; r++) for(let i = 0; i < w / q; i++) if((i + r) % 2){ g.fillStyle = PRETO; g.fillRect(i * q, py + r * q, q, q); }
-    /* a escada de Jacó, do altar à estrela */
-    g.strokeStyle = '#C9A24E'; g.lineWidth = 2; g.beginPath(); g.moveTo(w * .47, py - h * .08); g.lineTo(w * .485, h * .25); g.moveTo(w * .53, py - h * .08); g.lineTo(w * .515, h * .25); g.stroke();
-    for(let y = h * .3; y < py - h * .1; y += h * .06){ const f = (y - h * .25) / (py - h * .33), dx = w * (.015 + .015 * f); g.beginPath(); g.moveTo(w * .5 - dx, y); g.lineTo(w * .5 + dx, y); g.stroke(); }
-    /* o altar com o livro, o esquadro e o compasso */
-    g.fillStyle = '#4A2E1E'; g.fillRect(w * .45, py - h * .1, w * .1, h * .1); g.fillStyle = PAPEL; g.fillRect(w * .455, py - h * .13, w * .09, h * .035);
-    g.strokeStyle = '#F2C230'; g.lineWidth = 2; g.beginPath(); g.moveTo(w * .5, py - h * .17); g.lineTo(w * .475, py - h * .1); g.moveTo(w * .5, py - h * .17); g.lineTo(w * .525, py - h * .1); g.stroke();
-    /* as três colunas: a dórica, a jônica e a coríntia */
-    [[.2, 'd'], [.33, 'j'], [.72, 'c']].forEach(([fx, t]) => { const cx = w * fx, cw = w * .04, top = h * .38;
-      g.fillStyle = '#EEE8DA'; g.fillRect(cx - cw / 2, top, cw, py - top); g.fillStyle = 'rgba(15,18,24,.18)'; for(let k = 1; k < 4; k++) g.fillRect(cx - cw / 2 + k * cw / 4, top, 1, py - top);
-      g.fillStyle = '#EEE8DA'; g.fillRect(cx - cw * .75, top - h * .04, cw * 1.5, h * .04); g.fillRect(cx - cw * .7, py - h * .03, cw * 1.4, h * .03);
-      if(t === 'j'){ g.fillStyle = '#C9A24E'; g.beginPath(); g.arc(cx - cw * .75, top - h * .02, h * .02, 0, Math.PI * 2); g.arc(cx + cw * .75, top - h * .02, h * .02, 0, Math.PI * 2); g.fill(); }
-      if(t === 'c'){ g.fillStyle = '#C9A24E'; for(let k = -1; k <= 1; k++){ g.beginPath(); g.ellipse(cx + k * cw * .4, top - h * .06, cw * .2, h * .04, 0, 0, Math.PI * 2); g.fill(); } } });
+  /* v3.82 · o painel do gabinete (era o painel da loja, maçom): no azul da noite, o triângulo de ouro com a ponta pra
+     baixo, a cruz com a rosa no meio e o sol alado em cima */
+  function painelRosa(g, w, h){
+    const ceu = g.createLinearGradient(0, 0, 0, h); ceu.addColorStop(0, '#0E1636'); ceu.addColorStop(1, '#22408E'); g.fillStyle = ceu; g.fillRect(0, 0, w, h);
+    for(let i = 0; i < 26; i++){ const x = ((i * 97) % 100) / 100 * w, y = ((i * 53) % 100) / 100 * h; g.fillStyle = '#FFF6D8'; g.fillRect(x, y, 2, 2); }
+    const cx = w / 2, cy = h * .58, r = h * .36, ry = cy - r * .2 + h * .03;
+    g.strokeStyle = '#F2C230'; g.lineWidth = 4; g.beginPath(); g.moveTo(cx - r * 1.1, cy - r * .62); g.lineTo(cx + r * 1.1, cy - r * .62); g.lineTo(cx, cy + r * .95); g.closePath(); g.stroke();
+    g.fillStyle = '#F2C230'; g.fillRect(cx - h * .03, cy - r * .55, h * .06, r * 1.2); g.fillRect(cx - r * .45, cy - r * .2, r * .9, h * .06);
+    for(let i = 0; i < 7; i++){ const a = i / 7 * Math.PI * 2; g.fillStyle = SOL; g.beginPath(); g.arc(cx + Math.cos(a) * h * .045, ry + Math.sin(a) * h * .045, h * .04, 0, Math.PI * 2); g.fill(); }
+    g.fillStyle = '#7A0F1E'; g.beginPath(); g.arc(cx, ry, h * .03, 0, Math.PI * 2); g.fill();
+    const sy = h * .12; g.fillStyle = SOL; g.beginPath(); g.arc(cx, sy, h * .05, 0, Math.PI * 2); g.fill();
+    [['#F2C230', 0, .34], [AZUL_EG, .03, .28], ['#F2C230', .06, .22]].forEach(([c, dy, L]) => { g.fillStyle = c; g.fillRect(cx - h * .06 - w * L, sy - h * .02 + dy * h, w * L, h * .025); g.fillRect(cx + h * .06, sy - h * .02 + dy * h, w * L, h * .025); });
   }
   /* o papiro da pesagem do coração: o morto levado por Anúbis, a balança (o coração contra a pena), Toth anotando e
      Osíris no trono. Em cima, a fileira de hieróglifos entre as linhas */
@@ -1886,12 +1876,6 @@
   /* ---- as peças em 3D ---- */
   /* a coluna de papiro do Hórus, esticada pros 7 m do templo */
   const papiroAlto = s => colunaEg().map(b => Object.assign({}, b, { y: b.y * s, h: b.h * s }));
-  /* B e J: as colunas de bronze da entrada, as romãs em volta do capitel e o globo em cima (a terra numa, o céu na outra) */
-  const colunaBJ = ceu => [B(-.05, 0, -.05, 1, .3, 1, PRETO), B(.05, .3, .05, .8, .12, .8, KT.bronzeE),
-    B(.2, .42, .2, .5, 3.5, .5, KT.bronze), Object.assign(B(.2, .42, .2, .5, 3.5, .5, KT.bronze), { yaw: Math.PI / 4 }),
-    B(.12, 3.92, .12, .66, .1, .66, KT.bronzeE), B(.08, 4.02, .08, .74, .42, .74, KT.bronzeC),
-    ...[[.06, .06], [.66, .06], [.06, .66], [.66, .66], [.36, .02], [.36, .7], [.02, .36], [.7, .36]].map(([x, z]) => esferaB(x - .04, 4.16, z - .04, .16, SOL)),
-    B(.14, 4.44, .14, .62, .08, .62, KT.bronzeE), esferaB(.06, 4.52, .06, .78, ceu ? FRISO : '#3C6FD6')];
   /* a esfinge deitada, olhando pra frente (+z) */
   const esfinge = () => { const P = KT.pedra, E = KT.pedraE; return [B(0, 0, 0, 1, .3, 2.3, E), B(.1, .3, .2, .8, .55, 1.5, P), B(.12, .3, 1.6, .26, .22, .7, P), B(.62, .3, 1.6, .26, .22, .7, P),
     B(.22, .65, 1.4, .56, .5, .5, P), B(.18, 1.08, 1.45, .64, .62, .32, KT.lapis), ...[1.14, 1.32, 1.5].map(y => B(.17, y, 1.47, .66, .06, .3, KT.ouro)),
@@ -1900,22 +1884,33 @@
   const obelisco = () => [B(0, 0, 0, .8, .3, .8, PRETO), B(.1, .3, .1, .6, 1.4, .6, KT.pedra), B(.13, 1.7, .13, .54, 1.3, .54, KT.pedra), B(.16, 3, .16, .48, .9, .48, KT.pedra),
     B(.2, 3.9, .2, .4, .18, .4, KT.ouro), B(.26, 4.08, .26, .28, .14, .28, KT.ouro), B(.32, 4.22, .32, .16, .12, .16, KT.ouroC),
     ...[.55, .95, 1.35].map((y, i) => B(.36, y, .09, .08, .2, .02, i % 2 ? KT.lapis : PRETO)), ...[.55, .95, 1.35].map((y, i) => B(.09, y, .36, .02, .2, .08, i % 2 ? PRETO : KT.lapis))];
-  /* os três lumes em volta do altar (castiçal alto com a vela acesa) */
-  const lume = () => [B(-.16, 0, -.16, .32, .08, .32, OURO), B(-.04, .08, -.04, .08, 1.25, .08, OURO), B(-.12, 1.33, -.12, .24, .06, .24, OURO), B(-.06, 1.39, -.06, .12, .32, .12, LINHO), luzB(B(-.035, 1.71, -.035, .07, .1, .07, AMARELO)), luzB(B(-.015, 1.81, -.015, .03, .06, .03, LARANJA))];
   const braseiro = () => [B(0, 0, 0, .1, 1, .1, KT.bronzeE), B(.5, 0, 0, .1, 1, .1, KT.bronzeE), B(.25, 0, .45, .1, 1, .1, KT.bronzeE), B(-.05, 1, -.05, .7, .22, .65, KT.bronze), luzB(B(.1, 1.2, .08, .4, .25, .4, LARANJA)), luzB(B(.2, 1.42, .18, .2, .25, .2, '#FFE45E'))];
-  /* banco azul da loja, com o encosto do lado da parede (x0 = encosto à esquerda) */
-  const bancoLoja = (L, encEsq) => [B(0, 0, 0, .7, .42, L, KT.mad), B(0, .42, 0, .7, .08, L, KT.azul), B(encEsq ? 0 : .56, .42, 0, .14, .78, L, KT.mad), B(encEsq ? 0 : .56, 1.2, 0, .14, .05, L, OURO)];
-  /* o delta luminoso: o triângulo de ouro, o olho no meio e os raios em volta (de frente pro templo, +z) */
-  function delta(cx, cy, z){
-    const L = 1.7, hT = L * Math.sqrt(3) / 2, yb = cy - hT / 3, out = [];
-    const lado = (mx, my, ang) => Object.assign(B(mx - L / 2, my - .035, z, L, .07, .05, OURO), { roll: ang });
-    out.push(lado(cx, yb, 0), lado(cx - L / 4, yb + hT / 2, Math.PI / 3), lado(cx + L / 4, yb + hT / 2, -Math.PI / 3));
-    for(let i = 0; i < 16; i++){ const a = i / 16 * Math.PI * 2, r = hT * .66; out.push(Object.assign(B(cx + r, cy - .02, z - .02, i % 2 ? .4 : .65, .04, .03, KT.ouroC), { roll: a, piv: [cx, cy, z] })); }
-    out.push(B(cx - .22, cy - .09, z + .04, .44, .18, .02, PAPEL), B(cx - .07, cy - .07, z + .06, .14, .14, .02, PRETO), B(cx - .02, cy - .02, z + .08, .04, .04, .01, PAPEL));
+  /* banco do templo, com o encosto do lado da parede (x0 = encosto à esquerda). v3.82: dourado, como os do Hórus (eram azuis, de loja) */
+  const bancoLoja = (L, encEsq) => [B(0, 0, 0, .7, .42, L, BANCO_P), B(0, .42, 0, .7, .08, L, BANCO), B(encEsq ? 0 : .56, .42, 0, .14, .78, L, BANCO2), B(encEsq ? 0 : .56, 1.2, 0, .14, .05, L, BANCO_P)];
+  /* v3.82 · a rosa-cruz e o sol alado de frente pro templo (+z), em cima do Oriente */
+  const rosaCruzZ = (cx, cy, z) => [B(cx - .14, cy - 1.25, z, .28, 2.4, .06, OURO), B(cx - 1, cy - .14, z, 2, .28, .06, OURO), ...[[cx, cy + 1.15], [cx, cy - 1.25], [cx - 1, cy], [cx + 1, cy]].map(([x, y]) => esferaB(x - .1, y - .1, z, .2, KT.ouroC)),
+    esferaB(cx - .25, cy - .25, z + .02, .5, SOL), ...Array.from({ length: 7 }, (_, i) => { const a = i / 7 * Math.PI * 2; return esferaB(cx + Math.cos(a) * .28 - .1, cy + Math.sin(a) * .28 - .1, z + .12, .2, VINHO); }), esferaB(cx - .07, cy - .07, z + .32, .14, '#7A0F1E')];
+  const solAladoZ = (cx, cy, z) => [esferaB(cx - .25, cy - .25, z, .5, SOL), ...[[.3, 1.9, OURO], [.15, 1.6, KT.lapis], [0, 1.3, OURO], [-.14, 1, SOL]].flatMap(([dy, L, c]) => [B(cx - .25 - L, cy + dy - .06, z, L, .13, .05, c), B(cx + .25, cy + dy - .06, z, L, .13, .05, c)]),
+    B(cx - .32, cy - .38, z + .02, .1, .14, .06, OURO), B(cx + .22, cy - .38, z + .02, .1, .14, .06, OURO)];
+  /* a Shekinah: o altar triangular do meio do templo, a ponta pro Oriente (-z), uma vela acesa em cada canto */
+  function shekinah(){
+    const out = [], T = [[0, -.72], [-.82, .5], [.82, .5]];
+    T.forEach(([x, z]) => out.push(B(x - .06, 0, z - .06, .12, .8, .12, OURO)));
+    for(let i = 0; i < 6; i++){ const z = -.72 + i * 1.22 / 6, w = 1.64 * (i + .5) / 6; out.push(B(-w / 2, .8, z, w, .07, 1.22 / 6, MARMORE)); }
+    out.push(traco(T[0][0], T[0][1], T[1][0], T[1][1], .87, OURO), traco(T[0][0], T[0][1], T[2][0], T[2][1], .87, OURO), traco(T[1][0], T[1][1], T[2][0], T[2][1], .87, OURO));
+    T.forEach(([x, z]) => { const cx = x * .78, cz = z * .78 + (z < 0 ? .04 : -.06); out.push(B(cx - .07, .87, cz - .07, .14, .04, .14, OURO), B(cx - .04, .91, cz - .04, .08, .3, .08, LINHO), luzB(B(cx - .025, 1.21, cz - .025, .05, .08, .05, AMARELO)), luzB(B(cx - .012, 1.29, cz - .012, .024, .05, .024, LARANJA))); });
     return out;
   }
-  /* a lua crescente de prata, pontinho por pontinho */
-  const lua = (cx, cy, z) => Array.from({ length: 11 }, (_, i) => { const a = Math.PI * (.35 + i * .13), r = .42, g = 1 - Math.abs(i - 5) / 6; return B(cx + Math.cos(a) * r - .06, cy + Math.sin(a) * r - .06, z, .12 + .1 * g, .12 + .1 * g, .05, '#D8DCE4'); });
+  /* o castiçal alto (de pé em y: no Oriente, em cima do último degrau) */
+  const candelabro = y => [B(-.12, y, -.12, .24, .06, .24, OURO), B(-.03, y + .06, -.03, .06, 1.1, .06, OURO), B(-.1, y + 1.16, -.1, .2, .05, .2, OURO), B(-.05, y + 1.21, -.05, .1, .3, .1, LINHO), luzB(B(-.03, y + 1.51, -.03, .06, .1, .06, AMARELO))];
+  /* o guardião do Umbral: o chacal de Anúbis sentado no pedestal, olhando pra porta (-z) */
+  const guardiao = () => { const N = '#141418'; return [B(0, 0, 0, .6, .7, .7, PRETO), B(-.02, .7, -.02, .64, .04, .74, OURO), B(.12, .74, .18, .36, .55, .42, N), B(.14, .74, .02, .1, .45, .14, N), B(.36, .74, .02, .1, .45, .14, N),
+    B(.17, 1.25, .1, .26, .3, .3, N), B(.18, 1.5, .02, .24, .2, .3, N), B(.24, 1.52, -.12, .12, .1, .16, N), B(.18, 1.7, .14, .07, .22, .07, N), B(.35, 1.7, .14, .07, .22, .07, N),
+    B(.16, 1.32, .08, .28, .06, .02, OURO), B(.21, 1.6, .01, .05, .03, .01, OURO), B(.34, 1.6, .01, .05, .03, .01, OURO)]; };
+  /* a bacia d'água da purificação, no pé de mármore */
+  const bacia = () => [B(.1, 0, .1, .4, .7, .4, MARMORE), B(0, .7, 0, .6, .1, .6, MARMORE), B(.05, .8, .05, .5, .06, .5, MARMORE), B(.08, .84, .08, .44, .02, .44, '#3C6FD6')];
+  /* o véu da porta do Umbral (roxo, preso de lado com a faixa de ouro), encostado na parede de z */
+  const veu = L => [B(0, 0, 0, L, 3, .06, '#3A1F5C'), ...Array.from({ length: Math.max(1, Math.round(L / .14)) }, (_, i) => B(i * .14, 0, .06, .05, 3, .02, '#2A1446')), B(0, 1.2, -.02, L, .08, .1, OURO)];
   /* a rosa-cruz e o sol alado: na parede da biblioteca, de frente pro templo (-x) */
   const rosaCruz = (x, cy, cz) => [B(x, cy - 1.25, cz - .14, .06, 2.4, .28, OURO), B(x, cy - .14, cz - 1, .06, .28, 2, OURO), ...[[cy + 1.15, cz], [cy - 1.25, cz], [cy, cz - 1], [cy, cz + 1]].map(([y, z]) => esferaB(x - .1, y - .1, z - .1, .2, KT.ouroC)),
     esferaB(x - .3, cy - .25, cz - .25, .5, SOL), ...Array.from({ length: 7 }, (_, i) => { const a = i / 7 * Math.PI * 2; return esferaB(x - .2, cy + Math.sin(a) * .28 - .1, cz + Math.cos(a) * .28 - .1, .2, VINHO); }), esferaB(x - .38, cy - .07, cz - .07, .14, '#7A0F1E')];
@@ -1950,8 +1945,8 @@
   const PLANTA_TEMPLO = {
     k: 'templo', W: 30, D: 24, ALT: 7,
     comodos: [
-      { k: 'templo', nome: 'O templo', x0: 0, z0: 8, x1: 22, z1: 24, piso: '#2A2B31', linha: 'rgba(255,255,255,.05)' },
-      { k: 'camara', nome: 'Câmara de reflexão', x0: 22, z0: 19, x1: 27, z1: 24, piso: '#1E1F24', linha: 'rgba(255,255,255,.04)' },
+      { k: 'templo', nome: 'O templo', x0: 0, z0: 8, x1: 22, z1: 24, piso: TERRA, linha: 'rgba(25,8,3,.32)' },
+      { k: 'umbral', nome: 'Sala do Umbral', x0: 22, z0: 19, x1: 27, z1: 24, piso: '#16141F', linha: 'rgba(200,180,255,.05)' },
       { k: 'biblioteca', nome: 'Biblioteca hermética', x0: 22, z0: 8, x1: 30, z1: 24, piso: '#5A3A28', linha: 'rgba(30,15,5,.22)' },
       { k: 'quarto', nome: 'Quarto do faraó', x0: 0, z0: 0, x1: 9, z1: 8, piso: '#C9A86A', linha: 'rgba(60,30,10,.16)' },
       { k: 'estudio', nome: 'Estúdio', x0: 9, z0: 0, x1: 19, z1: 8, piso: '#2B2F38', linha: 'rgba(255,255,255,.07)' },
@@ -1966,44 +1961,40 @@
       { a: [0, 8], b: [30, 8], portas: [[1.4, 2.6], [17.6, 18.8], [24.2, 25.4]], alt: 3.4, cor: CREME2 },
       { a: [9, 0], b: [9, 8], alt: 3.4, cor: CREME2 }, { a: [19, 0], b: [19, 8], alt: 3.4, cor: CREME2 },
       { a: [22, 8], b: [22, 24], portas: [[6, 7.4]], alt: 3.4, cor: CREME2 },
-      { a: [22, 19], b: [27, 19], portas: [[3.4, 4.6]], alt: 3.2, cor: '#2A2B31' }, { a: [27, 19], b: [27, 24], alt: 3.2, cor: '#2A2B31' }
+      { a: [22, 19], b: [27, 19], portas: [[3.4, 4.6]], alt: 3.2, cor: '#1C1A2A' }, { a: [27, 19], b: [27, 24], alt: 3.2, cor: '#1C1A2A' }
     ],
     entrada: { x: 11, z: 24 }, tapete: { x: 10.3, z: 22.8, w: 1.4, d: 1 },
     mezanino: { x0: 0, z0: 0, x1: 30, z1: 8, y: 3.4, grade: [[0, 8, 28.4, 8]] },
     escada: { x0: 28.4, z0: 8, x1: 30, z1: 18, topo: 3.4 },
     estacoes: { studio: { x: 9.5, z: .4, y: 3.4 }, feed: { x: 3, z: .15, y: 3.4 }, ia: { x: 6, z: .5, y: 3.4 }, horus: { x: .15, z: 1, y: 3.4 }, mural: { x: .15, z: 4, y: 3.4 }, marcas: { x: 29.4, z: 1, y: 3.4 }, grana: { x: 29.2, z: 4.6, y: 3.4 }, vendas: { x: 16.8, z: 5.4, y: 3.4 }, nicho: { x: 1, z: 6.2, y: 3.4 }, estilo: { x: 3.4, z: 6.4, y: 3.4 }, manual: { x: 12.5, z: 1.6, y: 3.4 }, banca: { x: 14.6, z: .4, y: 3.4 }, rolo: { x: 19.2, z: .9, y: 3.4 }, agente: { x: 21.6, z: 1.3, y: 3.4 } },
     padrao: [],
-    /* o pavimento de mosaico com a borda dentada, e a passadeira da porta até ele */
-    chao: (() => { const out = [ret(5.3, 11.9, 16.7, 20.1, PRETO), ret(5.42, 12.02, 16.58, 19.98, MARMORE), ...serra(5.42, 12.02, 16.58, 19.98, .4), ret(6, 12.6, 16, 19.4, '#F2EFE6')];
-      for(let i = 0; i < 10; i++) for(let j = 0; j < 7; j++) if((i + j) % 2) out.push(ret(6 + i, 12.6 + j, 7 + i, 13.6 + j, PRETO));
-      out.push(ret(10.3, 20.1, 11.7, 23.7, VINHO), ret(10.3, 20.1, 10.38, 23.7, OURO), ret(11.62, 20.1, 11.7, 23.7, OURO));
-      return out; })(),
+    /* v3.82: o tablado de dentes de serra (o da AMORC, o mesmo do Hórus) e a passadeira vermelha da porta até o Oriente */
+    chao: [ret(5.3, 11.9, 16.7, 20.1, PRETO), ret(5.42, 12.02, 16.58, 19.98, MARMORE), ...serra(5.42, 12.02, 16.58, 19.98, .42), ret(5.95, 12.55, 16.05, 19.45, '#1E1F25'),
+      ret(10.45, 11.7, 11.55, 23.7, VINHO), ret(10.45, 11.7, 10.53, 23.7, OURO), ret(11.47, 11.7, 11.55, 23.7, OURO)],
     imgs: [
       { P4: faceP4('x', .17, 8.6, 23.4, 1.25, 6.65, 1), n: [1, 0, 0], img: () => calcImg('temploMural', 1184, 432, muralEgito), cor: CREME },
       { P4: faceP4('z', .17, 1, 8, 1.35, 3.15, 1), n: [0, 0, 1], img: () => calcImg('temploHiero', 560, 144, hieroglifos), cor: CREME },
-      { P4: faceP4('z', 23.83, 22.4, 26.6, 1, 2.9, -1), n: [0, 0, -1], img: () => calcImg('temploVitriol', 336, 152, vitriol), cor: '#141418' },
+      { P4: faceP4('z', 23.83, 22.4, 26.6, 1.3, 3.05, -1), n: [0, 0, -1], img: () => calcImg('temploUmbral', 336, 140, umbral), cor: '#120F22' },
       { P4: faceP4('z', .17, 8.6, 17.4, 4.75, 6.65, 1), n: [0, 0, 1], img: () => calcImg('temploPapiro', 704, 152, livroMortos), cor: KT.papiro },
-      { P4: faceP4('z', .17, 23.8, 28.8, 4.6, 6.6, 1), n: [0, 0, 1], img: () => calcImg('temploPainel', 500, 200, painelLoja), cor: '#22408E' }
+      { P4: faceP4('z', .17, 23.8, 28.8, 4.6, 6.6, 1), n: [0, 0, 1], img: () => calcImg('temploRosa', 500, 200, painelRosa), cor: '#22408E' }
     ],
     decor: [
       /* ---- o templo ---- */
-      /* o Oriente: três degraus de mármore, o tapete azul, o trono de ouro com o dossel vermelho e a mesa do malhete */
+      /* o Oriente: três degraus de mármore, o tapete azul, a cadeira de ouro, o púlpito com o pano da rosa-cruz e os castiçais */
       { x: 5, z: 8.3, bl: [B(0, 0, 0, 12, .18, 3.4, MARMORE), B(1, .18, 0, 10, .18, 2.6, MARMORE), B(2, .36, 0, 8, .18, 1.8, MARMORE), B(2.1, .54, .05, 7.8, .005, 1.7, KT.lapis), B(0, .18, 3.38, 12, .005, .02, OURO), B(1, .36, 2.58, 10, .005, .02, OURO)] },
-      { x: 9.2, z: 8.3, bl: [B(0, .54, 0, 3.6, 2.5, .06, VINHO), B(-.2, 3, 0, 4, .3, 1.3, VINHO), B(-.2, 2.95, 1.26, 4, .06, .05, OURO), B(-.2, 3.3, 0, 4, .05, 1.3, OURO), ...[.4, 1.2, 2.4, 3.2].map(x => B(x, .54, .06, .04, 2.5, .01, '#6E1220'))] },
       { x: 10.3, z: 8.45, bl: [B(0, .54, 0, 1.4, .5, .9, KT.ouro), B(.1, 1.04, .1, 1.2, .1, .7, KT.lapis), B(0, .54, 0, 1.4, 2.1, .14, KT.ouro), B(.15, .94, .14, 1.1, 1.5, .02, KT.lapis), B(-.05, 1.04, 0, .16, .35, .9, KT.ouro), B(1.29, 1.04, 0, .16, .35, .9, KT.ouro), B(.5, 2.24, .14, .4, .3, .02, KT.ouroC), esferaB(-.06, 2.64, -.06, .2, KT.ouroC), esferaB(1.26, 2.64, -.06, .2, KT.ouroC)] },
-      { x: 10.1, z: 9.45, bl: [B(0, .54, 0, 1.8, .82, .55, KT.mad), B(-.05, 1.36, -.05, 1.9, .06, .65, OURO), B(.3, 1.42, .2, .35, .08, .1, KT.mad), B(.44, 1.42, .3, .07, .04, .25, KT.madC), B(1.4, 1.42, .2, .1, .3, .1, LINHO), luzB(B(1.42, 1.72, .22, .06, .08, .06, AMARELO))] },
-      /* em cima do Oriente: o delta com o olho, o sol e a lua */
-      { x: 0, z: 0, bl: [...delta(11, 5.3, 8.35), esferaB(5.2, 4.6, 8.15, .9, '#F2C230'), ...Array.from({ length: 12 }, (_, i) => Object.assign(B(5.65 + .6, 5.05 - .02, 8.55, .35, .04, .03, '#F2D27A'), { roll: i / 12 * Math.PI * 2, piv: [5.65, 5.05, 8.55] })), ...lua(16.6, 5.05, 8.4)] },
+      { x: 10.6, z: 9.55, bl: [B(0, .54, 0, .8, 1, .5, MARMORE), B(-.05, 1.54, -.05, .9, .07, .6, OURO), B(.15, .79, .5, .5, .6, .02, VINHO), B(.37, .9, .52, .06, .4, .01, OURO), B(.25, 1.04, .52, .3, .06, .01, OURO), B(.365, 1.03, .53, .07, .08, .01, ROSA)] },
+      { x: 7.7, z: 9.4, bl: candelabro(.54) }, { x: 14.3, z: 9.4, bl: candelabro(.54) },
+      /* em cima do Oriente: a rosa-cruz grande e o sol alado */
+      { x: 0, z: 0, bl: [...rosaCruzZ(11, 5, 8.38), ...solAladoZ(11, 6.45, 8.38)] },
       /* as esfinges dos lados do Oriente e os braseiros */
       { x: 3, z: 8.6, bl: esfinge() }, { x: 19.6, z: 8.6, bl: esfinge() },
       { x: 4.2, z: 11, bl: braseiro() }, { x: 17.3, z: 11, bl: braseiro() },
-      /* o altar dos juramentos: o livro aberto, o compasso e o esquadro; e as três luzes em volta */
-      { x: 10.55, z: 15.55, bl: [B(0, 0, 0, .9, .9, .9, KT.mad), B(-.05, .9, -.05, 1, .06, 1, OURO), B(.1, .1, .9, .7, .7, .01, KT.madC), B(.3, .3, .91, .3, .3, .01, OURO),
-        Object.assign(B(.12, .96, .2, .33, .04, .5, PAPEL), { roll: .14 }), Object.assign(B(.45, .96, .2, .33, .04, .5, PAPEL), { roll: -.14 }),
-        traco(.45, .25, .3, .66, 1.035, OURO), traco(.45, .25, .6, .66, 1.035, OURO), traco(.3, .34, .45, .7, 1.04, KT.ouroC), traco(.6, .34, .45, .7, 1.04, KT.ouroC)] },
-      { x: 11, z: 14.6, bl: lume() }, { x: 9.65, z: 16.9, bl: lume() }, { x: 12.35, z: 16.9, bl: lume() },
-      /* as colunas B e J na entrada (a terra e o céu) */
-      { x: 7.6, z: 20.6, bl: colunaBJ(false) }, { x: 13.6, z: 20.6, bl: colunaBJ(true) },
+      /* a Shekinah no meio do tablado; os postes de lótus nos cantos e o cordão vermelho em volta (aberto pra passadeira, na frente e no fundo) */
+      { x: 11, z: 16, bl: shekinah() },
+      { x: 0, z: 0, bl: [...poste(5.3, 11.9), ...poste(16.7, 11.9), ...poste(5.3, 20.1), ...poste(16.7, 20.1),
+        ...[[7.2, 11.9], [9.1, 11.9], [10.2, 11.9], [11.8, 11.9], [12.9, 11.9], [14.8, 11.9], [7.2, 20.1], [9.1, 20.1], [10.2, 20.1], [11.8, 20.1], [12.9, 20.1], [14.8, 20.1], [5.3, 13.95], [5.3, 16], [5.3, 18.05], [16.7, 13.95], [16.7, 16], [16.7, 18.05]].flatMap(([x, z]) => pino(x, z)),
+        cordaX(5.3, 10.2, 11.9), cordaX(11.8, 16.7, 11.9), cordaX(5.3, 10.2, 20.1), cordaX(11.8, 16.7, 20.1), cordaZ(11.9, 20.1, 5.3), cordaZ(11.9, 20.1, 16.7)] },
       /* as colunas de papiro e os bancos do Norte e do Sul */
       ...[12.6, 16.2, 19.8].flatMap(z => [{ x: 3.3, z, bl: papiroAlto(1.45) }, { x: 17.9, z, bl: papiroAlto(1.45) }]),
       { x: 1, z: 11.6, bl: bancoLoja(3.8, true) }, { x: 1, z: 16.4, bl: bancoLoja(4.2, true) },
@@ -2021,12 +2012,16 @@
       { x: 26.3, z: 13.4, bl: [B(.15, 0, .15, .4, .06, .4, KT.mad), B(.3, .06, .3, .1, 1, .1, KT.mad), Object.assign(B(0, 1.06, .1, .7, .06, .5, KT.madC), { pitch: -.3 }), Object.assign(B(.05, 1.12, .12, .6, .06, .44, LINHO), { pitch: -.3 })] },
       { x: 27.6, z: 22.9, bl: bastet() },
       { x: 23.2, z: 12.9, piso: true, bl: [B(0, 0, 0, 4, .02, 2.6, '#7A1C22'), B(.2, .02, .2, 3.6, .004, 2.2, '#8E2A2E')] },
-      /* ---- a câmara de reflexão: escura, a mesa com a caveira, a ampulheta, a vela, o pão, o sal e o enxofre ---- */
-      { x: 23, z: 22.7, bl: [B(0, .75, 0, 1.9, .06, .85, '#2A1A10'), ...[[.08, .08], [1.72, .08], [.08, .67], [1.72, .67]].map(([x, z]) => B(x, 0, z, .1, .75, .1, '#2A1A10')),
-        esferaB(.35, .81, .22, .32, '#EDE6D6'), B(.4, .79, .2, .22, .1, .14, '#EDE6D6'), B(.4, .96, .21, .08, .07, .01, PRETO), B(.56, .96, .21, .08, .07, .01, PRETO), B(.48, .88, .2, .06, .06, .01, PRETO),
-        B(.95, .81, .3, .26, .03, .2, '#8E7A4A'), B(.95, 1.2, .3, .26, .03, .2, '#8E7A4A'), B(1, .84, .33, .16, .16, .14, '#E8F2FF'), B(1.03, 1.0, .36, .1, .2, .08, '#E8F2FF'), B(1.02, .84, .34, .12, .06, .12, '#C9A24E'),
-        B(1.4, .81, .5, .1, .28, .1, LINHO), luzB(B(1.42, 1.09, .52, .06, .09, .06, AMARELO)), B(1.35, .81, .15, .32, .1, .16, '#C89B5A'), B(1.65, .81, .5, .16, .05, .16, '#F2F0EA'), B(1.65, .81, .25, .16, .05, .16, '#E8C547')] },
-      { x: 23.7, z: 21.7, bl: [B(0, 0, 0, .1, .45, .1, '#2A1A10'), B(.4, 0, 0, .1, .45, .1, '#2A1A10'), B(0, 0, .4, .1, .45, .1, '#2A1A10'), B(.4, 0, .4, .1, .45, .1, '#2A1A10'), B(-.02, .45, -.02, .54, .06, .54, '#3A2418')] },
+      /* ---- v3.82 · a sala do Umbral: o véu dos lados da porta, a bacia d'água, a vela no meio, os dois guardiões de Anúbis
+         olhando pra porta e o banco de meditação embaixo do quadro ---- */
+      { x: 24.55, z: 19.17, bl: veu(.8) }, { x: 26.63, z: 19.17, bl: veu(.32) },
+      { x: 22.35, z: 19.5, bl: bacia() },
+      { x: 23, z: 21.9, bl: candelabro(0) },
+      /* o púlpito de pedra com o pergaminho: o enigma do Umbral (v3.82) */
+      { x: 24.2, z: 21.1, acao: 'enigma', bl: [B(.15, 0, .1, .5, .9, .4, MARMORE), Object.assign(B(0, .9, 0, .8, .06, .6, '#2A1A10'), { pitch: -.25 }), Object.assign(B(.08, .96, .06, .64, .02, .48, KT.papiro), { pitch: -.25 }), B(.32, .99, .22, .16, .02, .08, OURO)] },
+      { x: 22.3, z: 22.95, bl: guardiao() }, { x: 26.15, z: 22.95, bl: guardiao() },
+      { x: 23.15, z: 23.2, bl: [B(0, 0, 0, 2.8, .42, .5, '#2A1A10'), B(-.02, .42, -.02, 2.84, .06, .54, '#3A1F5C'), B(.1, .48, .1, 2.6, .01, .02, OURO)] },
+      { x: 23.2, z: 20.3, piso: true, bl: [B(0, 0, 0, 3, .02, 2.4, '#2A1446'), B(.2, .02, .2, 2.6, .004, 2, '#3A1F5C'), B(1.2, .025, .7, .6, .004, 1, OURO)] },
       /* ---- o quarto do faraó ---- */
       { x: 2.6, z: .45, bl: camaEg() }, { x: 2.6, z: .45, bl: dossel() },
       { x: 1.5, z: .4, bl: [B(0, 0, 0, .8, .55, .55, KT.mad), B(-.02, .55, -.02, .84, .04, .59, OURO), luzB(B(.25, .59, .13, .3, .42, .3, '#FFE9C4'))] },
@@ -2971,7 +2966,7 @@
   }
   /* v3.81: o armário (trocar de skin) é como o skate: só na tua casa */
   const acaoPraMim = a => a.a === 'senta' ? !!(a.e && !(S.eu && S.eu.sit) && assentoLivre(a.e)) : (a.a !== 'skate' && a.a !== 'roupa') || S.meu;
-  const rotuloAcao = a => a.a === 'senta' ? (a.e && a.e.nome) || 'Sentar' : a.a === 'relojao' ? 'A hora no Relojão' : a.a === 'desafio' ? `${(quadraAqui() || {}).nome || 'Desafio'} (${TENT})` : a.a === 'largada' ? (comBicho() ? 'Escolher bicho e largar' : autodromo() ? 'Moto ou carro: largar' : `Largar (${VOLTAS} voltas)`) : a.a === 'pesca' ? 'Pescar aqui' : a.a === 'skate' ? (C.st.me && C.st.me.verso && C.st.me.verso.skate ? 'Largar o skate' : 'Pegar o skate') : a.a === 'jogo' ? 'Jogar Killer Ocean' : a.a === 'roupa' ? 'Trocar de skin' : (S.discoAtual ? '♪ ' + (C.beats ? C.beats.nome(S.discoAtual) : 'tocando') : '♪ Discos');
+  const rotuloAcao = a => a.a === 'senta' ? (a.e && a.e.nome) || 'Sentar' : a.a === 'relojao' ? 'A hora no Relojão' : a.a === 'desafio' ? `${(quadraAqui() || {}).nome || 'Desafio'} (${TENT})` : a.a === 'largada' ? (comBicho() ? 'Escolher bicho e largar' : autodromo() ? 'Moto ou carro: largar' : `Largar (${VOLTAS} voltas)`) : a.a === 'pesca' ? 'Pescar aqui' : a.a === 'skate' ? (C.st.me && C.st.me.verso && C.st.me.verso.skate ? 'Largar o skate' : 'Pegar o skate') : a.a === 'jogo' ? 'Jogar Killer Ocean' : a.a === 'roupa' ? 'Trocar de skin' : a.a === 'enigma' ? 'O enigma do Umbral' : (S.discoAtual ? '♪ ' + (C.beats ? C.beats.nome(S.discoAtual) : 'tocando') : '♪ Discos');
   /* vai até a frente e faz */
   function vaiNaAcao(a){
     if(!S.eu || !a || !acaoPraMim(a)) return;
@@ -2987,6 +2982,7 @@
     /* v3.81: parou na frente do armário da tua casa: troca de skin (abre o avatar, com as do Ateliê); salvou, o boneco
        daqui troca na hora */
     if(a.a === 'roupa'){ if(S.meu && C.verso && C.verso.avatar) C.verso.avatar('armario'); return; }
+    if(a.a === 'enigma'){ enigmaSheet(); return; }
     if(a.a === 'senta'){ senta(a.e); return; }
     if(a.a === 'relojao'){ const [h, m] = horaBR(); C.toast(`O Relojão do Edifício América marca ${h}:${String(m).padStart(2, '0')}. Lá em cima, olhando de longe (arrasta pra cima), dá pra ver.`, 4200); return; }
     if(a.a === 'pesca'){ comecaPesca(a.e && a.e.spot); return; }
@@ -3012,6 +3008,88 @@
       <p class="note">Beats da casa, feitos na hora. Quem tá aqui dentro ouve junto.${S.meu ? ' Mais discos no Sebo da cidade: escolhe lá e eles aparecem aqui.' : ''}</p>
       <div class="cs-disco-l">${lista.map(d => `<button type="button" class="cs-disco${atual === d.k ? ' on' : ''}" data-act="cs-disco" data-k="${d.k}"><i style="--c:${d.cor}"></i><b>${esc(d.nome)}</b><small>${d.bpm} bpm${atual === d.k ? ' · tocando' : ''}</small></button>`).join('')}</div>
       ${atual ? `<div class="acts"><button type="button" class="btn" data-act="cs-disco-para">${ico('x')} Tirar o disco</button></div>` : ''}</div>`);
+  }
+  /* ---------- v3.82 · o enigma do Umbral ----------
+     O Thales: "na sala do Umbral coloca um enigma pra ser resolvido (nível fácil, quase médio); se a pessoa acerta, a
+     tela fica azul uns 2 segundos e aí entra uma animação como se tivesse tendo uma experiência alucinógena". Quatro
+     enigmas, um por vez (nunca o mesmo duas vezes seguidas); errou duas, vem a dica. Acertou: o azul e a travessia,
+     por cima de tudo; um toque ou o Esc encerra. Sem flash: as cores andam devagar (nada pisca) e, com "reduzir
+     movimento" no aparelho, fica só o azul e o brilho parado. As cores da travessia não chegam no verde, nem misturadas */
+  const ENIGMAS = [
+    { p: 'Quanto mais eu cresço, menos você enxerga. O que eu sou?', r: ['escuridão', 'escuro', 'trevas', 'breu', 'sombra', 'noite'], dica: 'Do lado de cá do Umbral, é o que mais tem.' },
+    { p: 'Tenho cidades, mas nenhuma casa; rios, mas nenhuma água; florestas, mas nenhuma árvore. O que eu sou?', r: ['mapa'], dica: 'O Correverso inteiro cabe em mim, num botão da cidade.' },
+    { p: 'Falo sem boca e escuto sem ouvido. Não tenho corpo, mas o vento e a montanha me dão vida. O que eu sou?', r: ['eco'], dica: 'Grita perto do Salto Beija-Flor e espera a resposta.' },
+    { p: 'De manhã anda com quatro pés, ao meio-dia com dois e à tarde com três. Quem é?', r: ['homem', 'ser humano', 'humano', 'pessoa', 'gente', 'humanidade'], dica: 'É o enigma da esfinge. A tarde é a velhice, e o terceiro pé é a bengala.' }
+  ];
+  const nrmE = t => ' ' + String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z ]/g, ' ').split(/\s+/).filter(w => w && !['o', 'a', 'os', 'as', 'um', 'uma', 'e', 'eh', 'sou', 'voce', 'ele', 'ela', 'isso', 'ta'].includes(w)).map(w => w.length > 3 ? w.replace(/s$/, '') : w).join(' ') + ' ';
+  function enigmaSheet(){
+    if(!S.aberta) return;
+    let i; do{ i = Math.floor(Math.random() * ENIGMAS.length); } while(ENIGMAS.length > 1 && i === S.enigmaUlt);
+    S.enigmaUlt = i; S.enigma = { i, erros: 0 };
+    C.sheet(`<form class="form cs-enigma" id="cs-enigma" autocomplete="off"><div class="sheet-head"><h2>${ico('eye')} O enigma do Umbral</h2><button type="button" class="cbtn plain" data-close aria-label="Fechar">${ico('x')}</button></div>
+      <p class="cs-enigma-p">${esc(ENIGMAS[i].p)}</p>
+      <div class="fld"><label for="cs-enigma-r">Tua resposta</label><input class="inp" id="cs-enigma-r" maxlength="40" autocapitalize="off" spellcheck="false" required></div>
+      <p class="note" id="cs-enigma-msg" aria-live="polite">Acertou, atravessa.</p>
+      <div class="acts"><button type="submit" class="btn primary">Responder</button><button type="button" class="btn" data-act="cs-enigma-outro">Outro enigma</button></div></form>`);
+    const f = C.$('cs-enigma'), inp = C.$('cs-enigma-r'); if(!f || !inp) return;
+    setTimeout(() => { try{ inp.focus(); }catch(e){} }, 60);
+    f.addEventListener('submit', ev => { ev.preventDefault(); respondeEnigma(inp.value); });
+  }
+  function respondeEnigma(txt){
+    const st = S.enigma, r = nrmE(txt); if(!st || !r.trim()) return;
+    const E = ENIGMAS[st.i];
+    if(E.r.some(x => r.includes(nrmE(x)))){ S.enigma = null; C.closeSheet(); travessia(); return; }
+    st.erros++; const msg = C.$('cs-enigma-msg'), inp = C.$('cs-enigma-r');
+    if(msg) msg.textContent = st.erros >= 2 ? `Ainda não. Dica: ${E.dica}` : 'Ainda não. Pensa de novo.';
+    if(inp){ inp.value = ''; inp.focus(); }
+  }
+  /* a travessia: 2 s de azul e depois a viagem (o túnel de anéis saindo do meio, o caleidoscópio de 12 pétalas que gira e
+     respira e o olho que abre no centro), uns 9 s, e some devagar. Cores: rosa, magenta, violeta, índigo, azul, laranja e
+     vermelho (nenhuma mistura delas dá verde) */
+  const PSI = ['#FF2D8E', '#B04DFF', '#5B3BFF', '#1E6BFF', '#FF8A3D', '#E2412E', '#FF5CC8', '#7A2BFF'];
+  const psi = k => PSI[((Math.floor(k) % PSI.length) + PSI.length) % PSI.length];
+  function travessia(){
+    const velho = document.getElementById('cs-transe'); if(velho) velho.remove();
+    const el = document.createElement('div'); el.id = 'cs-transe'; el.className = 'cs-transe'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'A travessia do Umbral. Toca pra sair.');
+    el.innerHTML = '<canvas></canvas>'; document.body.appendChild(el);
+    const cv = el.querySelector('canvas'), g = cv.getContext('2d'), calmo = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+    const AZUL = 2000, VIAGEM = calmo ? 2600 : 9500, t0 = performance.now(); let fim = false, raf = 0;
+    const tam = () => { const d = Math.min(2, window.devicePixelRatio || 1); cv.width = Math.round(innerWidth * d); cv.height = Math.round(innerHeight * d); }; tam();
+    const tecla = e => { if(e.key === 'Escape'){ e.preventDefault(); e.stopPropagation(); acaba(); } };
+    const acaba = () => { if(fim) return; fim = true; el.classList.add('sai'); removeEventListener('keydown', tecla, true); removeEventListener('resize', tam); setTimeout(() => { cancelAnimationFrame(raf); el.remove(); }, 650); };
+    addEventListener('keydown', tecla, true); addEventListener('resize', tam);
+    el.addEventListener('pointerdown', () => { if(performance.now() - t0 > 500) acaba(); });
+    if(C.versoSom && C.versoSom.transe) C.versoSom.transe(calmo);
+    const passo = agora => {
+      if(!el.isConnected) return; const t = agora - t0, W = cv.width, H = cv.height;
+      if(t < AZUL){ g.globalAlpha = 1; g.fillStyle = '#1E4BFF'; g.fillRect(0, 0, W, H); }
+      else if(t < AZUL + VIAGEM){ viagem(g, W, H, (t - AZUL) / 1000, (t - AZUL) / VIAGEM, calmo); if(t - AZUL < 700){ g.globalAlpha = 1 - (t - AZUL) / 700; g.fillStyle = '#1E4BFF'; g.fillRect(0, 0, W, H); g.globalAlpha = 1; } }
+      else { acaba(); }
+      raf = requestAnimationFrame(passo);
+    };
+    raf = requestAnimationFrame(passo);
+    S.travessia = { el, t0 };
+  }
+  function viagem(g, W, H, s, f, calmo){
+    const cx = W / 2, cy = H / 2, R = Math.hypot(W, H) / 2, m = Math.min(W, H);
+    const fundo = g.createRadialGradient(cx, cy, 0, cx, cy, R); fundo.addColorStop(0, '#1E4BFF'); fundo.addColorStop(1, '#1A0B3D'); g.globalAlpha = 1; g.fillStyle = fundo; g.fillRect(0, 0, W, H);
+    if(!calmo){
+      /* o túnel: anéis saindo do meio, cada um de uma cor */
+      for(let i = 0; i < 14; i++){ const u = (s * .3 + i / 14) % 1, r = u * u * R * 1.2; g.beginPath(); g.arc(cx, cy, r, 0, Math.PI * 2); g.lineWidth = Math.max(2, r * .12); g.strokeStyle = psi(i + Math.floor(s * .3)); g.globalAlpha = .5 * (1 - u * .6); g.stroke(); }
+      /* o caleidoscópio: três voltas de 12 pétalas, girando pra lados opostos e respirando */
+      const resp = 1 + .18 * Math.sin(s * 1.3); g.save(); g.translate(cx, cy);
+      for(let k = 0; k < 3; k++){ const raio = m * (.15 + k * .1) * resp, giro = s * .35 * (k % 2 ? -1 : 1) + k * .2;
+        for(let i = 0; i < 12; i++){ g.save(); g.rotate(i / 12 * Math.PI * 2 + giro); g.beginPath(); g.ellipse(raio, 0, raio * .55, raio * .16, Math.sin(s * .9 + k) * .6, 0, Math.PI * 2); g.fillStyle = psi(i + k * 3 + s * .5); g.globalAlpha = .3; g.fill(); g.restore(); } }
+      g.restore();
+    }
+    /* o olho no meio, que abre devagar (a pupila acompanha o tempo) */
+    const ab = Math.min(1, s / 2.4), ew = m * .16, eh = m * .07 * ab;
+    g.globalAlpha = .92; g.beginPath(); g.moveTo(cx - ew, cy); g.quadraticCurveTo(cx, cy - eh * 2, cx + ew, cy); g.quadraticCurveTo(cx, cy + eh * 2, cx - ew, cy); g.fillStyle = '#FFF6E8'; g.fill();
+    if(ab > .2){ const px = cx + Math.sin(s * .7) * ew * .15, ir = g.createRadialGradient(px, cy, 0, px, cy, eh * 1.1); ir.addColorStop(0, '#15161A'); ir.addColorStop(.35, '#15161A'); ir.addColorStop(.4, '#FF2D8E'); ir.addColorStop(1, '#5B3BFF');
+      g.save(); g.beginPath(); g.moveTo(cx - ew, cy); g.quadraticCurveTo(cx, cy - eh * 2, cx + ew, cy); g.quadraticCurveTo(cx, cy + eh * 2, cx - ew, cy); g.clip(); g.fillStyle = ir; g.beginPath(); g.arc(px, cy, eh * 1.05, 0, Math.PI * 2); g.fill(); g.restore(); }
+    g.globalAlpha = 1; g.lineWidth = Math.max(2, m * .006); g.strokeStyle = '#F2C230'; g.beginPath(); g.moveTo(cx - ew, cy); g.quadraticCurveTo(cx, cy - eh * 2, cx + ew, cy); g.quadraticCurveTo(cx, cy + eh * 2, cx - ew, cy); g.stroke();
+    /* no fim, a frase */
+    if(f > .62){ g.globalAlpha = Math.min(1, (f - .62) / .16); g.fillStyle = '#FFF6D8'; g.font = `700 ${Math.round(m * .055)}px Georgia, serif`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('Você atravessou o Umbral.', cx, cy + m * .3); g.globalAlpha = 1; }
   }
   /* ---------- v3.51 · o desafio da quadra ----------
      10 tentativas. A régua (no placar de cima) vai e volta sozinha; o botão grande chuta ou arremessa na hora. No
@@ -4388,7 +4466,7 @@
     if(S.modo === 'andar' && !S.alvo && !pertoDe()){ const L = corredoresVivo(); if(L.length){ const txt = S.segue != null ? `Seguindo: ${L[Math.min(L.length - 1, S.segue)].nome}` : 'Assistir a corrida'; S.perto = null; if(b.dataset.txt !== txt){ b.dataset.txt = txt; b.hidden = false; b.innerHTML = `${ico('eye')}<span>${txt}</span>`; } return; } else S.segue = null; }
     const p = S.modo === 'andar' && !S.alvo ? pertoDe() : null; S.perto = p;
     const txt = p ? p.nome : '';
-    if(b.dataset.txt !== txt){ b.dataset.txt = txt; b.hidden = !p; if(p) b.innerHTML = `${ico(p.t === 'saida' ? 'prev' : p.t === 'escada' ? 'up' : p.t === 'npc' ? 'chat' : p.t === 'est' ? 'raio' : p.a && p.a.a === 'discos' ? 'musica' : p.a && p.a.a === 'jogo' ? 'play' : p.a && p.a.a === 'pesca' ? 'peixe' : p.a && p.a.a === 'roupa' ? 'troca' : p.a && (p.a.a === 'largada' || p.a.a === 'desafio') ? 'raio' : 'eu')}<span>${esc(p.nome)}</span>`; }
+    if(b.dataset.txt !== txt){ b.dataset.txt = txt; b.hidden = !p; if(p) b.innerHTML = `${ico(p.t === 'saida' ? 'prev' : p.t === 'escada' ? 'up' : p.t === 'npc' ? 'chat' : p.t === 'est' ? 'raio' : p.a && p.a.a === 'discos' ? 'musica' : p.a && p.a.a === 'jogo' ? 'play' : p.a && p.a.a === 'pesca' ? 'peixe' : p.a && p.a.a === 'roupa' ? 'troca' : p.a && p.a.a === 'enigma' ? 'eye' : p.a && (p.a.a === 'largada' || p.a.a === 'desafio') ? 'raio' : 'eu')}<span>${esc(p.nome)}</span>`; }
   }
   function acaoPerto(){
     if(S.desafio){ dispara(); return; }
@@ -4863,6 +4941,7 @@
 
   Object.assign(C.acts, {
     'cs-sair': () => fechar(),
+    'cs-enigma-outro': () => enigmaSheet(),
     'cs-porta': () => acaoPerto(),
     'cs-ia-quero': async el => { el.disabled = true; try{ const f = Object.assign({}, (C.st.me && C.st.me.ferramentas) || {}, { ia: 'lista' }); await C.saveMe({ ferramentas: f }); C.toast('Tá na lista do Computador IA. A gente te chama.', 3600); iaSheet(); }catch(e){ el.disabled = false; C.toast(C.errMsg(e)); } },
     'cs-mic': () => { if(C.acts['cvr-mic']) C.acts['cvr-mic'](); },

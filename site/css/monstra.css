@@ -3325,3 +3325,12 @@ html.embed .msg-pg{height:calc(100dvh - 40px)}
 .cs-tag.fala.voce,.cs-tag.fala.voce.perto{background:var(--yellow)}
 .cs-tag.fala.grito,.cs-tag.fala.grito.perto{background:var(--pink);color:#fff}
 @media (max-width:600px){.cs-tag.fala,.cs-tag.fala.perto{font-size:11.5px;max-width:160px;padding:5px 8px}}
+
+/* v3.82 · o botão de sair do jogo (Aquário e Jaula dos Macacos) herdava o texto claro da barra e sumia no fundo branco */
+.cvr-jogo-x{background:#F4F1EA;color:var(--ink)}
+.cs-enigma-p{font-family:Georgia,"Times New Roman",serif;font-style:italic;font-size:19px;line-height:1.35;margin:2px 0 14px}
+/* v3.82 · a travessia do Umbral: por cima de tudo, a tela inteira (o canvas desenha o azul e a viagem); um toque sai */
+.cs-transe{position:fixed;inset:0;z-index:99999;background:#1E4BFF;cursor:pointer;animation:cs-transe-in .3s ease-out both}
+.cs-transe canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.cs-transe.sai{transition:opacity .6s ease;opacity:0}
+@keyframes cs-transe-in{from{opacity:0}to{opacity:1}}

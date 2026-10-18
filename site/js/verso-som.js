@@ -10,7 +10,7 @@
      campainha, o avião e o paraquedas.
    O botão de som (no alto) troca entre "Música" (tudo), "Só sons" (sem a música) e "Mudo", e o aparelho lembra.
    C.versoSom = { entra(botao, estado), sai(), alterna(), modo(), tocando(), passo(), pulo(), cai(), buzina(),
-                  carroPassa(), motor(), ambiente(), aviao(), moeda(), porta(), rio(k), papo(n, voz), grind(), amostra(seg), amostraFx() } */
+                  carroPassa(), motor(), ambiente(), aviao(), moeda(), porta(), rio(k), papo(n, voz), grind(), macaco(), transe(calmo), amostra(seg), amostraFx() } */
 (function(){
   'use strict';
   const C = window.Corre; if(!C) return;
@@ -493,6 +493,19 @@
     if(!fxOk()) return; const t0 = ac.currentTime + .01, k = Math.min(9, 3 + Math.floor((n || 20) / 10)), base = voz || sorte(160, 320);
     for(let i = 0; i < k; i++) tom(t0 + i * .08, base * sorte(.85, 1.4), base * sorte(.8, 1.2), .055, .016, 'square');
   }
+  /* v3.82 · o macaco-prego do Arthur Thomas: dois ou três assobios curtos que sobem (eles se chamam assim no galho) */
+  function macaco(){
+    if(!fxOk()) return; const t0 = ac.currentTime + .01, n = 2 + Math.floor(sorte(0, 2));
+    for(let i = 0; i < n; i++){ const f = sorte(1500, 2100); tom(t0 + i * .11, f, f * sorte(1.25, 1.5), .07, .012, 'sine'); }
+  }
+  /* v3.82 · a travessia do Umbral: o sino grave e um acorde que respira (lá menor com sétima, depois um tom acima), em
+     senos que entram devagar. Com "reduzir movimento", só o sino */
+  function transe(calmo){
+    if(!fxOk()) return; const t0 = ac.currentTime + .02;
+    [110, 220, 330].forEach((f, i) => tom(t0, f, f * .99, 3.2 - i * .6, .05 / (i + 1), 'sine'));
+    if(calmo) return;
+    [220, 261.6, 329.6, 392].forEach((f, i) => { for(let k = 0; k < 3; k++){ const fk = f * (k === 1 ? 1.122 : 1); tom(t0 + 2 + k * 3 + i * .15, fk, fk * 1.003, 3.4 + i * .2, .012, i % 2 ? 'triangle' : 'sine', null, .9); } });
+  }
   /* v3.76 · o grind no corrimão: o ferro raspando (um chiado agudo curtinho, chamado várias vezes enquanto desliza) */
   function grind(){ if(!fxOk()) return; const t = ac.currentTime + .005; estalo(t, 5200, 2.4, .07, .028); tom(t, 1900, 1650, .06, .006, 'sawtooth'); }
   function porta(){ if(!fxOk()) return; const t = ac.currentTime + .01; estalo(t, 600, 1.8, .12, .07); tom(t, 160, 120, .12, .06, 'triangle'); estalo(t + .14, 520, 1.6, .1, .05); }
@@ -860,7 +873,7 @@
     /* mais um botão de som (o da casa) */
     botao(b){ if(b && !botoes.includes(b)){ botoes.push(b); pinta(); } },
     sai, alterna, modo: () => modoAtual, tocando: () => musicaOn && modoAtual === 'tudo', ativo: () => ativo,
-    passo, pulo, cai, buzina, carroPassa, motor, ambiente, aviao, moeda, porta, taco, luva, taiko, acerto, erro, rio, papo, grind,
+    passo, pulo, cai, buzina, carroPassa, motor, ambiente, aviao, moeda, porta, taco, luva, taiko, acerto, erro, rio, papo, grind, macaco, transe,
     /* v3.79 · as corridas: corrida(estado) a cada quadro (null para), corridaFx(golpe) e a música */
     corrida, corridaFx, corridaMusica, corridaLog: () => CR.log.slice(), corridaEstado: () => ({ musica: CM.on, motor: !!CR.n, veic: CR.n ? CR.n.veic : null, marcha: CR.marcha, lado: +CR.lado.toFixed(2) }),
     amostra, amostraFx, amostraCorrida, amostraMotor, amostraGolpes, faixas: () => prontas().map(f => f.nome), faixa: () => prontas()[fi].nome

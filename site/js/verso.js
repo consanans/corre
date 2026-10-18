@@ -1402,18 +1402,24 @@
   const CENTRO = { teatro: [4, 3], concha: [5, 3], praca: [6, 3], catedral: [7, 3], museu: [8, 3], arte: [9, 3], aquario: [0, 8], delegacia: [4, 2], bombeiros: [5, 2], hospital: [8, 2] };
   const NOME_C = { teatro: 'Teatro Ouro Verde', concha: 'Concha Acústica', praca: 'Calçadão', catedral: 'Catedral', museu: 'Museu Histórico', arte: 'Museu de Arte', aquario: 'Aquário do Igapó', delegacia: 'Delegacia', bombeiros: 'Corpo de Bombeiros', hospital: 'Hospital do Corre' };
   /* o jogo do aquário: o Killer Ocean (feito pelo Lorenzo), servido daqui mesmo (site/jogos/) */
-  const JOGOS = { killer: { id: 'killer', titulo: 'Killer Ocean', sub: 'por Lorenzo Malassise', src: 'jogos/killer-ocean.html' } };
+  /* v3.82: o Elo Perdido (o jogo que o Thales mandou) roda na Jaula dos Macacos do Parque Arthur Thomas; onde, sair e carrega
+     dizem de onde é a moldura (sem eles, é a do Aquário) */
+  const JOGOS = { killer: { id: 'killer', titulo: 'Killer Ocean', sub: 'por Lorenzo Malassise', src: 'jogos/killer-ocean.html' },
+    elo: { id: 'elo', titulo: 'Elo Perdido', sub: 'simulador de primata quase humano', src: 'jogos/elo-perdido.html', onde: 'Jaula dos Macacos', sair: 'Sair da jaula', carrega: 'Abrindo o portão…' } };
   const REGIOES = [
     { k: 'bosque', nome: 'Bosque dos Ipês', c0: 1, r0: 3, c1: 3, r1: 5 },
     { k: 'zerao', nome: 'Zerão', c0: 11, r0: 4, c1: 12, r1: 6 },
-    { k: 'lago', nome: 'Lago Igapó', c0: 1, r0: 7, c1: 11, r1: 9 },
+    /* v3.82: o lago perdeu a última coluna pro Parque Arthur Thomas (o Ribeirão Cambé vem de lá) */
+    { k: 'lago', nome: 'Lago Igapó', c0: 1, r0: 7, c1: 10, r1: 9 },
     { k: 'gleba', nome: 'Gleba Palhano', c0: 3, r0: 10, c1: 8, r1: 10 },
     { k: 'estadio', nome: 'Estádio do Café', c0: 10, r0: 10, c1: 11, r1: 11 },
     { k: 'feira', nome: 'Feira do Corre', c0: 6, r0: 4, c1: 7, r1: 4 },
     /* v3.40: o aeroporto, no canto mais longe do Centro (só tira lote de quem tá na ponta da cidade) */
     { k: 'aeroporto', nome: 'Aeroporto de Londrina', c0: 0, r0: 10, c1: 2, r1: 11 },
     /* v3.57: a ACEL e o campo de beisebol, no canto de cima à direita (lote de casa só chega lá depois da 44ª pessoa) */
-    { k: 'acel', nome: 'ACEL', c0: 11, r0: 0, c1: 12, r1: 1 }
+    { k: 'acel', nome: 'ACEL', c0: 11, r0: 0, c1: 12, r1: 1 },
+    /* v3.82: o Parque Arthur Thomas, na ponta do Igapó (o ribeirão desce de lá pro lago) */
+    { k: 'arthur', nome: 'Parque Arthur Thomas', c0: 11, r0: 7, c1: 12, r1: 9 }
   ];
   /* ---------- a Feira do Corre: o menu inteiro em barracas, logo abaixo do Calçadão ----------
      Duas fileiras, uma barraca pra cada ferramenta. Chegou perto e tocou: a ferramenta abre num balcão por cima da
@@ -1512,7 +1518,7 @@
     /* os lugares grandes */
     const regs = REGIOES.map(g => { const R = Object.assign(ret(g.c0, g.r0, g.c1, g.r1), g); for(let r = g.r0; r <= g.r1; r++) for(let c = g.c0; c <= g.c1; c++) grade[r][c] = { t: 'reg', R }; return R; });
     const RG = nm => regs.find(R => R.k === nm), sorte = rng(hash('londrina'));
-    const lago = montaLago(RG('lago'), K, sorte), zerao = montaZerao(RG('zerao'), K, sorte), bosque = montaBosque(RG('bosque'), K, sorte), glebaR = montaGleba(RG('gleba'), K, sorte), estadio = montaEstadio(RG('estadio'), K), feira = montaFeira(RG('feira'), K), aeroporto = montaAeroporto(RG('aeroporto'), K), acel = montaAcel(RG('acel'), K), rio = montaRio(W, yRio, K);
+    const lago = montaLago(RG('lago'), K, sorte), zerao = montaZerao(RG('zerao'), K, sorte), bosque = montaBosque(RG('bosque'), K, sorte), glebaR = montaGleba(RG('gleba'), K, sorte), estadio = montaEstadio(RG('estadio'), K), feira = montaFeira(RG('feira'), K), aeroporto = montaAeroporto(RG('aeroporto'), K), acel = montaAcel(RG('acel'), K), arthur = montaArthur(RG('arthur'), K), rio = montaRio(W, yRio, K);
     regs.forEach(R => K.zonas.push({ nome: R.nome, x: R.x - 10, y: R.y - 10, w: R.w + 20, h: R.h + 20 }));
     /* postes nas esquinas e na beira dos lugares grandes */
     for(let r = 0; r < rows; r++) for(let c = 0; c < COLS; c++){
@@ -1523,7 +1529,7 @@
     regs.forEach(R => { for(let x = R.x + 180; x < R.x + R.w - 80; x += 420) K.postes.push({ x, y: R.y - 5 }); });
     /* ruas onde passa carro: as que atravessam a cidade inteira */
     const ruasLivres = []; for(let s = 0; s <= rows; s++) if(!REGIOES.some(g => g.r0 <= s - 1 && g.r1 >= s)) ruasLivres.push(s);
-    return { W, H, rows, grade, casas, dois, vazios, enche, praca, centro, regs, lago, zerao, bosque, gleba: glebaR.torres, glebaR, estadio, feira, aeroporto, acel, rio, ruasLivres,
+    return { W, H, rows, grade, casas, dois, vazios, enche, praca, centro, regs, lago, zerao, bosque, gleba: glebaR.torres, glebaR, estadio, feira, aeroporto, acel, arthur, rio, ruasLivres,
       arv: K.arv, bancos: K.bancos, zonas: K.zonas, sol: K.sol, lugares: K.lugares, torneio: K.torneio, decor: K.decor, quiosques: K.quiosques, trucks: K.trucks, barracas: K.barracas, postes: K.postes };
   }
 
@@ -1727,6 +1733,134 @@
     K.lugares.push({ nome: 'ACEL · Beisebol', x: hp.x, y: hp.y + 104 });
     return { R, hp, raio, bases, monte, runs, cerca, arq, banco, sede, placar, portal, torres, porta: { x: hp.x, y: R.y + R.h - 4 }, casa: { x: hp.x - 22, y: hp.y + 14 } };
   }
+  /* ---------- v3.82 · o Parque Arthur Thomas (o Thales: "faça o parque Arthur Thomas porque lá tem macaco") ----------
+     A mata do Ribeirão Cambé, do lado do Igapó (é o mesmo ribeirão que, mais pra baixo, vira o lago). Tudo do guia
+     "Descobrindo o Parque" da Prefeitura (2026): criado em 1975 numa doação da Companhia de Terras Norte do Paraná,
+     aberto pra visita em 1987, 85 hectares de Mata Atlântica a 6 km do Centro. Na entrada, o busto do Arthur Thomas, o
+     CEA (o Centro de Educação Ambiental, de 2004), o Jardim dos Sentidos e o Jardim Água e Mel (três colmeias de abelha
+     sem ferrão); a Trilha do Tatu com o mirante, o Espaço Ipê-Amarelo na beira do lago assoreado (as ilhinhas), o
+     Córrego Piza, a Trilha da Capivara, a Ponte da Barragem, a Usina Cambé (1939, a primeira de Londrina) e o Salto
+     Beija-Flor (uns 20 metros, no basalto). Os macacos-prego e os quatis andam soltos. A Jaula dos Macacos é cenário:
+     os macacos daqui são livres, quem entra nela é você, pra jogar o Elo Perdido.
+     Tudo em coordenadas do parque (0 a 696, 0 a 1002), somadas ao canto do quarteirão. */
+  function montaArthur(R, K){
+    if(!R) return null;
+    const q = rng(hash('arthur')), X = x => R.x + x, Y = y => R.y + y, pt = (x, y) => ({ x: X(x), y: Y(y) });
+    const P = { R, trilhas: [], riachos: [], secos: [], galhos: [], bichos: [], sol: [] };
+    /* o lago: colunas de 12 px, como o Igapó; a ponta da esquerda, estreita, é a da barragem */
+    const B = 12, x0 = X(216), x1 = X(600), n = Math.round((x1 - x0) / B);
+    const cyF = x => Y(690) + 22 * Math.sin((x - R.x) / 80), hwF = x => Math.max(20, (95 + 18 * Math.sin((x - R.x) / 60 + 1)) * Math.min(1, Math.sqrt(Math.max(0, Math.min(x - x0, x1 - x)) / 90)));
+    const cols = []; for(let i = 0; i < n; i++){ const xm = x0 + i * B + B / 2, cy = cyF(xm), hw = hwF(xm); cols.push({ x: x0 + i * B, t: Math.round((cy - hw) / B) * B, b: Math.round((cy + hw) / B) * B }); }
+    P.lago = { x0, x1, B, cols };
+    /* as ilhinhas do assoreamento (terra e lixo que a chuva traz) */
+    P.ilhas = [{ x: X(330), y: Y(694), r: 22 }, { x: X(468), y: Y(708), r: 15 }, { x: X(540), y: Y(676), r: 10 }];
+    /* o Ribeirão Cambé sai da barragem pelo vertedouro, desce até o Salto e vai embora pro lado do Igapó; o Córrego
+       Piza chega no lago pela direita */
+    P.riachos = [
+      { w: 18, pts: [pt(198, 692), pt(182, 700), pt(176, 744), pt(180, 800), pt(186, 846)] },
+      { w: 22, pts: [pt(186, 920), pt(150, 936), pt(90, 952), pt(0, 962)] },
+      { w: 12, pts: [pt(696, 640), pt(662, 652), pt(632, 668), pt(600, 690)] }
+    ];
+    P.salto = { x: X(186), y0: Y(846), y1: Y(902), x0: X(128), x1: X(236) };
+    P.poco = { x: X(186), y: Y(916), rx: 38, ry: 15 };
+    /* o que é seco por cima da água: a barragem (a ponte) e os dois pontilhões */
+    P.barragem = { x: X(198), y: Y(632), w: 20, h: 118 };
+    P.secos.push(P.barragem, { x: X(162), y: Y(784), w: 36, h: 24, ponte: true }, { x: X(620), y: Y(648), w: 32, h: 36, ponte: true });
+    /* as trilhas de terra roxa */
+    const T = (w, nome, ...ps) => P.trilhas.push({ w, nome, pts: ps.map(([x, y]) => pt(x, y)) });
+    T(34, '', [348, 0], [348, 160]);
+    T(30, 'Trilha do Tatu', [300, 146], [210, 215], [140, 300], [118, 380], [128, 470], [170, 548], [200, 598], [207, 634]);
+    T(28, '', [404, 146], [452, 214], [470, 280], [520, 334]);
+    T(30, 'Trilha da Capivara', [556, 330], [608, 420], [632, 520], [636, 600], [636, 700], [612, 776], [480, 818], [330, 816], [240, 794], [208, 750]);
+    T(26, '', [348, 158], [352, 262], [336, 420], [404, 500], [500, 524]);
+    T(24, '', [208, 750], [232, 800], [258, 850], [268, 880]);
+    T(22, '', [232, 800], [150, 798], [104, 850]);
+    /* a praça da entrada, a clareira da jaula e a do Espaço Ipê-Amarelo */
+    P.praca = { x: X(150), y: Y(0), w: 396, h: 156 };
+    P.clareiras = [{ x: X(540), y: Y(300), rx: 92, ry: 62 }, { x: X(520), y: Y(520), rx: 64, ry: 34 }];
+    P.jardim = [{ x: X(30), y: Y(46), w: 46, h: 30 }, { x: X(86), y: Y(46), w: 46, h: 30 }, { x: X(30), y: Y(90), w: 102, h: 30 }];
+    /* as construções (o ponto é o meio da base) e a colisão de cada uma */
+    P.portal = { x: X(348), base: Y(44) };
+    P.busto = { x: X(242), base: Y(122) };
+    P.cea = { x: X(494), base: Y(132), w: 168 };
+    P.colmeias = [{ x: X(616), base: Y(112) }, { x: X(642), base: Y(124) }, { x: X(668), base: Y(112) }];
+    P.mirante = { x: X(66), base: Y(398) };
+    P.gazebo = { x: X(520), base: Y(522) };
+    P.usina = { x: X(84), base: Y(832), w: 116 };
+    P.jaula = { x: X(540), base: Y(298), w: 120 };
+    P.deck = { x: X(238), y: Y(876), w: 62, h: 30 };
+    P.sol.push({ x: P.portal.x - 52, y: P.portal.base - 6, w: 10, h: 6 }, { x: P.portal.x + 42, y: P.portal.base - 6, w: 10, h: 6 },
+      { x: P.busto.x - 13, y: P.busto.base - 10, w: 26, h: 10 }, { x: P.cea.x - P.cea.w / 2, y: P.cea.base - 30, w: P.cea.w, h: 30 },
+      ...P.colmeias.map(c => ({ x: c.x - 7, y: c.base - 5, w: 14, h: 5 })), { x: P.mirante.x - 22, y: P.mirante.base - 22, w: 44, h: 22 },
+      { x: P.gazebo.x - 30, y: P.gazebo.base - 6, w: 6, h: 6 }, { x: P.gazebo.x + 24, y: P.gazebo.base - 6, w: 6, h: 6 },
+      { x: P.usina.x - P.usina.w / 2, y: P.usina.base - 34, w: P.usina.w, h: 34 }, { x: P.jaula.x - P.jaula.w / 2, y: P.jaula.base - 34, w: P.jaula.w, h: 34 },
+      { x: P.salto.x0, y: P.salto.y0, w: P.deck.x - P.salto.x0, h: P.salto.y1 - P.salto.y0 });
+    K.sol.push(...P.sol);
+    /* as placas: as de ler (a porta "Ler") e as de nome */
+    P.placas = [
+      { x: P.busto.x + 22, y: P.busto.base + 10, titulo: 'Arthur Thomas', txt: 'Arthur Hugh Miller Thomas, escocês de Edimburgo (1889), fundou a Companhia de Terras Norte do Paraná, a que abriu Londrina. O parque nasceu em 1975, numa doação de terra da companhia, e abriu pra visita em 1987.' },
+      { x: P.colmeias[1].x, y: P.colmeias[1].base + 16, titulo: 'Jardim Água e Mel', txt: 'Três colmeias de abelha sem ferrão: jataí, mirim e mandaçaia. Abelha nativa poliniza a mata e não pica.' },
+      { x: P.mirante.x + 34, y: P.mirante.base + 8, titulo: 'Mirante', txt: 'Lá de cima é mata até onde a vista alcança: 85 hectares de Mata Atlântica a 6 km do Centro, um dos últimos pedaços dela no Paraná.' },
+      { x: P.gazebo.x - 46, y: P.gazebo.base + 18, titulo: 'O lago', txt: 'As ilhinhas do lago são assoreamento: terra e lixo que a chuva traz pros córregos. Mata na beira do rio (a mata ciliar) é o que segura isso.' },
+      { x: P.usina.x + 20, y: P.usina.base + 18, titulo: 'Usina Cambé', txt: 'A primeira usina hidrelétrica de Londrina, inaugurada em 8 de fevereiro de 1939. Aproveitava a queda de 50 metros do Ribeirão Cambé e parou 28 anos depois.' },
+      { x: P.deck.x + P.deck.w / 2, y: P.deck.y + P.deck.h + 10, titulo: 'Salto Beija-Flor', txt: 'Uns 20 metros de queda no basalto, a rocha do derramamento vulcânico que, desmanchando, vira a terra roxa. Os buracos redondos na pedra são as panelas, que a água cavou.' }
+    ];
+    K.decor.push({ tipo: 'placa', x: X(196), y: Y(626), txt: 'PONTE DA BARRAGEM', fundo: PAPEL, h: 22 }, { tipo: 'placa', x: X(168), y: Y(262), txt: 'TRILHA DO TATU', fundo: PAPEL, h: 24 },
+      { tipo: 'placa', x: X(622), y: Y(474), txt: 'TRILHA DA CAPIVARA', fundo: PAPEL, h: 24 }, { tipo: 'placa', x: X(448), y: Y(400), txt: 'NAO DE COMIDA AOS BICHOS', fundo: AMARELO, h: 24 },
+      { tipo: 'placa', x: X(286), y: Y(866), txt: 'SALTO BEIJA-FLOR', fundo: PAPEL, h: 22 }, { tipo: 'placa', x: X(84), y: Y(36), txt: 'JARDIM DOS SENTIDOS', fundo: PAPEL, h: 20 });
+    /* bancos: na praça, no Espaço Ipê-Amarelo e no mirante da cachoeira */
+    [[X(196), Y(64), 'Parque Arthur Thomas'], [X(500), Y(70), 'Parque Arthur Thomas'], [X(488), Y(548), 'Parque Arthur Thomas'], [X(556), Y(548), 'Parque Arthur Thomas'], [X(270), Y(900), 'Salto Beija-Flor']].forEach(([x, y, lugar]) => K.bancos.push({ x, y, lugar }));
+    /* a mata: ipê, flamboyant e jacarandá bem juntos (só o tronco bate), fora da trilha, da água e das construções */
+    const dSeg = (x, y, a, b) => { const dx = b.x - a.x, dy = b.y - a.y, L = dx * dx + dy * dy || 1, u = clamp(((x - a.x) * dx + (y - a.y) * dy) / L, 0, 1); return Math.hypot(x - a.x - dx * u, y - a.y - dy * u); };
+    const longe = (x, y) => {
+      if(x < R.x + 10 || x > R.x + R.w - 10 || y < R.y + 26 || y > R.y + R.h - 6) return false;
+      if(x > P.praca.x - 16 && x < P.praca.x + P.praca.w + 16 && y < P.praca.y + P.praca.h + 22) return false;
+      if(x < X(150) && y < Y(150)) return false;
+      if(x > X(590) && y < Y(150)) return false;
+      for(const t of P.trilhas) for(let i = 1; i < t.pts.length; i++) if(dSeg(x, y, t.pts[i - 1], t.pts[i]) < t.w / 2 + 16) return false;
+      for(const r of P.riachos) for(let i = 1; i < r.pts.length; i++) if(dSeg(x, y, r.pts[i - 1], r.pts[i]) < r.w / 2 + 22) return false;
+      if(x > x0 - 30 && x < x1 + 30){ const c = cols[clamp(Math.floor((x - x0) / B), 0, n - 1)]; if(y > c.t - 30 && y < c.b + 26) return false; }
+      for(const c of P.clareiras) if(((x - c.x) / (c.rx + 18)) ** 2 + ((y - c.y) / (c.ry + 26)) ** 2 < 1) return false;
+      if(y > P.salto.y0 - 30 && y < P.poco.y + 40 && x > P.salto.x0 - 10 && x < P.deck.x + P.deck.w + 20) return false;
+      /* na frente das construções (que é pra onde a câmera olha) a mata abre: nada de árvore até 120 px abaixo da base */
+      for(const s of P.sol) if(x > s.x - 34 && x < s.x + s.w + 34 && y > s.y - 4 && y < s.y + s.h + 120) return false;
+      if(x > P.salto.x0 - 30 && x < P.deck.x + P.deck.w + 30 && y > P.salto.y0 - 30) return false;
+      for(const s of P.secos) if(x > s.x - 20 && x < s.x + s.w + 20 && y > s.y - 10 && y < s.y + s.h + 30) return false;
+      for(const p of P.placas) if(Math.abs(x - p.x) < 24 && y > p.y - 10 && y < p.y + 30) return false;
+      return !K.bancos.some(b => Math.abs(b.x - x) < 30 && Math.abs(b.y - y) < 26);
+    };
+    const minhas = [];
+    for(let y = R.y + 40; y < R.y + R.h; y += 38) for(let x = R.x + 16 + (Math.round(y / 38) % 2) * 20; x < R.x + R.w - 8; x += 40){
+      const jx = Math.round(x + (q() - .5) * 22), jy = Math.round(y + (q() - .5) * 18); if(!longe(jx, jy) || q() < .12) continue;
+      const g = q() < .3 ? (q() < .25 ? 2 : true) : false, perto = P.sol.some(s => jx > s.x - 70 && jx < s.x + s.w + 70 && jy > s.y && jy < s.y + s.h + 240);
+      const a = { x: jx, y: jy, cor: pega(IPES, q), g: perto ? false : g, parque: true }; K.arv.push(a); minhas.push(a);
+    }
+    /* os galhos dos macacos: as copas perto da jaula e da Trilha da Capivara, e o teto da jaula (eles sentam em cima dela) */
+    const capivara = P.trilhas.find(t => t.nome === 'Trilha da Capivara');
+    minhas.forEach(a => { const s = a.g === 2 ? 2 : a.g ? 1.3 : 1, perto = Math.hypot(a.x - P.jaula.x, a.y - P.jaula.base) < 240 || capivara.pts.some((p, i) => i && dSeg(a.x, a.y, capivara.pts[i - 1], p) < 80);
+      if(perto) P.galhos.push({ x: a.x + Math.round((q() - .5) * 16 * s), y: a.y - Math.round(64 * s), base: a.y + .5 }); });
+    [-34, 30].forEach(dx => P.galhos.push({ x: P.jaula.x + dx, y: P.jaula.base - 64, base: P.jaula.base + .5, jaula: true }));
+    P.galhos.forEach(g => { g.viz = P.galhos.filter(o => o !== g && Math.hypot(o.x - g.x, o.y - g.y) < 150).map(o => P.galhos.indexOf(o)); });
+    /* onde eles descem pra fuçar: pontos da trilha perto dos galhos */
+    P.chao = []; capivara.pts.concat(P.trilhas[2].pts).forEach((p, i, L) => { if(i && L[i - 1]) for(let u = 0; u < 1; u += .34){ const x = L[i - 1].x + (p.x - L[i - 1].x) * u, y = L[i - 1].y + (p.y - L[i - 1].y) * u; if(P.galhos.some(g => Math.hypot(g.x - x, g.base - y) < 120)) P.chao.push({ x: Math.round(x), y: Math.round(y) }); } });
+    /* os bichos parados: capivara na beira do lago (a família toda), garça na ilha e no poço do Salto */
+    [[X(300), Y(782), 3], [X(436), Y(786), 2]].forEach(([x, y, k]) => P.bichos.push({ tipo: 'capivara', x, y, n: k, sd: Math.floor(q() * 1e6) }));
+    P.bichos.push({ tipo: 'garca', x: P.ilhas[0].x + 4, y: P.ilhas[0].y + 4, sd: Math.floor(q() * 1e6) }, { tipo: 'garca', x: P.poco.x + 30, y: P.poco.y + 12, sd: Math.floor(q() * 1e6) });
+    /* o caminho dos quatis (o bando anda na Trilha do Tatu, vai e volta) */
+    P.quatiRota = P.trilhas[1].pts;
+    P.dSeg = dSeg;
+    K.zonas.push({ nome: 'Salto Beija-Flor', x: X(110), y: Y(836), w: 210, h: 120 }, { nome: 'Jaula dos Macacos', x: P.jaula.x - 100, y: P.jaula.base - 90, w: 200, h: 160 }, { nome: 'Usina Cambé', x: P.usina.x - 70, y: P.usina.base - 70, w: 140, h: 100 });
+    K.lugares.push({ nome: 'Parque Arthur Thomas', x: X(348), y: Y(176) }, { nome: 'Jaula dos Macacos', x: P.jaula.x, y: P.jaula.base + 36 }, { nome: 'Salto Beija-Flor', x: P.deck.x + P.deck.w / 2, y: P.deck.y + 12 });
+    return P;
+  }
+  /* a água do parque: o lago, o ribeirão, o Córrego Piza e o poço do Salto (a barragem e os pontilhões são secos) */
+  const naParque = (x, y) => {
+    const p = V.cid && V.cid.arthur; if(!p || x < p.R.x - 8 || x > p.R.x + p.R.w + 8 || y < p.R.y || y > p.R.y + p.R.h) return false;
+    for(const s of p.secos) if(x > s.x && x < s.x + s.w && y > s.y && y < s.y + s.h) return false;
+    const l = p.lago; if(x >= l.x0 && x < l.x1){ const c = l.cols[Math.floor((x - l.x0) / l.B)]; if(c && y > c.t + 4 && y < c.b - 2) return true; }
+    for(const r of p.riachos) for(let i = 1; i < r.pts.length; i++) if(p.dSeg(x, y, r.pts[i - 1], r.pts[i]) < r.w / 2 + 2) return true;
+    const po = p.poco; return ((x - po.x) / po.rx) ** 2 + ((y - po.y) / po.ry) ** 2 < 1;
+  };
   /* v3.40 · o Aeroporto de Londrina: a pista embaixo, o terminal e a torre em cima, o pátio com o teco-teco do Corre */
   function montaAeroporto(R, K){
     if(!R) return null;
@@ -1837,6 +1971,8 @@
     if(c.aeroporto) P.push({ x: c.aeroporto.porta.x, y: c.aeroporto.porta.y, tipo: 'aeroporto' });
     /* v3.57: a ACEL tem duas entradas pro campo 3D: o portal e a casa (onde se rebate) */
     if(c.acel) P.push({ x: c.acel.porta.x, y: c.acel.porta.y, tipo: 'beisebol' }, { x: c.acel.casa.x, y: c.acel.casa.y, tipo: 'beisebol' });
+    /* v3.82: no Parque Arthur Thomas, a Jaula dos Macacos (o Elo Perdido) e as placas de ler */
+    if(c.arthur){ const a = c.arthur; P.push({ x: a.jaula.x, y: a.jaula.base + 14, tipo: 'jogo', jogo: 'elo' }); a.placas.forEach(o => P.push({ x: o.x, y: o.y + 6, tipo: 'placa', titulo: o.titulo, txt: o.txt })); }
     /* a Delegacia, o quartel e o Hospital: na porta, o trampo de cada uniforme */
     ['delegacia', 'bombeiros', 'hospital'].forEach(k => { if(c.centro[k]) P.push({ x: c.centro[k].x + LW / 2, y: c.centro[k].base + 8, tipo: 'civico', k }); });
     /* comida: trucks do Zerão e quiosques do lago */
@@ -1893,7 +2029,7 @@
     ctx.restore();
     ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.strokeStyle = INK; ctx.lineWidth = Math.max(u, .8); ctx.stroke();
   }
-  const bate = (x, y) => { if(x < 14 || y < TOPO - 70 || x > V.cid.W - 14 || y > V.cid.H - 14) return true; if(naAgua(x, y) || naRio(x, y)) return true; for(const s of V.sol) if(x > s.x - 8 && x < s.x + s.w + 8 && y > s.y && y < s.y + s.h + 4) return true; return false; };
+  const bate = (x, y) => { if(x < 14 || y < TOPO - 70 || x > V.cid.W - 14 || y > V.cid.H - 14) return true; if(naAgua(x, y) || naRio(x, y) || naParque(x, y)) return true; for(const s of V.sol) if(x > s.x - 8 && x < s.x + s.w + 8 && y > s.y && y < s.y + s.h + 4) return true; return false; };
   function mover(o, dx, dy){ if(!dx && !dy) return; if(!bate(o.x + dx, o.y)) o.x += dx; if(!bate(o.x, o.y + dy)) o.y += dy; }
 
   /* ---------- desenho do chão ---------- */
@@ -2065,7 +2201,35 @@
         for(let i = 0; i < 4; i++){ ctx.fillStyle = i % 2 ? '#EEEBE4' : '#D9452B'; ctx.fillRect(q.x + 2, q.y + 2 + i * 10, q.w - 4, 8); }
         for(let i = 0; i < 4; i++) for(let x = q.x + 6; x < q.x + q.w - 6; x += 7){ const r = tor(); if(r < .45) continue; ctx.fillStyle = [INK, '#5E3A26', '#8D5A3B', AMARELO, ROSA, PAPEL, AZUL][Math.floor(tor() * 7)]; ctx.fillRect(x, q.y + 3 + i * 10, 4, 4); } });
       a.banco.forEach(q => { ctx.fillStyle = '#2B2F38'; ctx.fillRect(q.x, q.y, q.w, q.h); ctx.fillStyle = '#D9452B'; ctx.fillRect(q.x - 2, q.y - 3, q.w + 4, 5); ctx.fillStyle = '#8E5B33'; ctx.fillRect(q.x + 4, q.y + 8, q.w - 8, 5); });
-    }
+    },
+    /* v3.82 · o Parque Arthur Thomas: chão de mata (folha seca), a praça da entrada, os canteiros do Jardim dos
+       Sentidos, as clareiras, as trilhas de terra roxa, a margem e a água (o lago com as ilhinhas, o ribeirão, o
+       córrego e o poço) e o paredão de basalto do Salto, com as panelas que a água cavou */
+    arthur(ctx, R, vx, vy, vw, vh){
+      const p = V.cid.arthur; if(!p) return;
+      ctx.fillStyle = pad(ctx, '#8E7236'); ctx.fillRect(R.x, R.y, R.w, R.h);
+      const fq = rng(82); for(let i = 0; i < 900; i++){ const x = R.x + fq() * R.w, y = R.y + fq() * R.h, c = fq(); if(x < vx - 10 || x > vx + vw + 10 || y < vy - 10 || y > vy + vh + 10) continue; ctx.fillStyle = c < .4 ? '#A8873F' : c < .75 ? '#6F5428' : '#B3793F'; ctx.fillRect(x, y, 3, 2); }
+      const pr = p.praca; ctx.fillStyle = pad(ctx, 'praca'); ctx.fillRect(pr.x, pr.y, pr.w, pr.h);
+      p.jardim.forEach(j => { ctx.fillStyle = pad(ctx, 'terra'); ctx.fillRect(j.x, j.y, j.w, j.h); const jq = rng(j.x + j.y); for(let k = 0; k < j.w * j.h / 40; k++){ ctx.fillStyle = [ROSA, AMARELO, LILAS, PAPEL, LARANJA][Math.floor(jq() * 5)]; ctx.fillRect(j.x + 3 + jq() * (j.w - 6), j.y + 3 + jq() * (j.h - 6), 3, 3); } });
+      p.clareiras.forEach(c => oval(ctx, c.x, c.y, c.rx, c.ry, 'terra'));
+      const linha = (pts, w, estilo) => { ctx.beginPath(); pts.forEach((q, i) => i ? ctx.lineTo(q.x, q.y) : ctx.moveTo(q.x, q.y)); ctx.lineWidth = w; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.strokeStyle = estilo; ctx.stroke(); };
+      p.trilhas.forEach(t => linha(t.pts, t.w + 6, 'rgba(60,30,10,.22)')); p.trilhas.forEach(t => linha(t.pts, t.w, pad(ctx, 'terra')));
+      /* a margem barrenta, depois a água */
+      const l = p.lago, po = p.poco, B = l.B, margem = pad(ctx, '#7E3F2A'), agua = pad(ctx, 'agua');
+      ctx.fillStyle = margem; l.cols.forEach(c => ctx.fillRect(c.x - 4, c.t - 10, B + 8, c.b - c.t + 20));
+      p.riachos.forEach(r => linha(r.pts, r.w + 10, margem));
+      ctx.beginPath(); ctx.ellipse(po.x, po.y, po.rx + 6, po.ry + 5, 0, 0, Math.PI * 2); ctx.fillStyle = margem; ctx.fill();
+      ctx.fillStyle = agua; l.cols.forEach(c => ctx.fillRect(c.x, c.t, B, c.b - c.t));
+      p.riachos.forEach(r => linha(r.pts, r.w, agua));
+      ctx.beginPath(); ctx.ellipse(po.x, po.y, po.rx, po.ry, 0, 0, Math.PI * 2); ctx.fillStyle = agua; ctx.fill();
+      ctx.fillStyle = 'rgba(15,40,80,.32)'; l.cols.forEach(c => ctx.fillRect(c.x, c.t, B, 8));
+      p.ilhas.forEach(i => { ctx.fillStyle = 'rgba(164,85,58,.38)'; ctx.beginPath(); ctx.ellipse(i.x, i.y, i.r * 1.9, i.r * 1.1, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = pad(ctx, '#C9A95E'); ctx.beginPath(); ctx.ellipse(i.x, i.y, i.r, i.r * .62, 0, 0, Math.PI * 2); ctx.fill(); });
+      /* o paredão de basalto (as colunas da rocha) e as panelas */
+      const s = p.salto; ctx.fillStyle = '#3B3640'; ctx.fillRect(s.x0, s.y0, s.x1 - s.x0, s.y1 - s.y0);
+      ctx.fillStyle = '#4E4856'; for(let y = s.y0 + 4, k = 0; y < s.y1 - 4; y += 9, k++) for(let x = s.x0 + (k % 2) * 6; x < s.x1 - 6; x += 14) ctx.fillRect(x, y, 10, 4);
+      ctx.fillStyle = '#26222A'; ctx.fillRect(s.x0, s.y1 - 4, s.x1 - s.x0, 4); [[-30, 16], [26, 30], [-14, 40]].forEach(([dx, dy]) => { ctx.beginPath(); ctx.ellipse(s.x + dx, s.y0 + dy, 5, 3, 0, 0, Math.PI * 2); ctx.fill(); });
+    },
   };
   /* a água mexendo, o chafariz e os pedalinhos */
   function aguaViva(ctx, t, vx, vy, vw, vh){
@@ -2236,6 +2400,227 @@
       R(4, -16 + by, 1, 5 - by, '#F4F3EF'); R(3, -18 + by, 1, 3, '#F4F3EF'); R(3, -19 + by, 3, 2, '#F4F3EF'); R(6, -18 + by, 3, 1, AMARELO); R(4, -19 + by, 1, 1, INK);
     }
     ctx.restore();
+  }
+  /* ---------- v3.82 · o desenho do Parque Arthur Thomas ----------
+     A água mexendo (o lago, o ribeirão e o córrego correndo pro lado certo, o Salto caindo no basalto), o que fica por
+     cima da água (a barragem, os pontilhões, o deck do mirante da cachoeira, a tubulação da usina e a boca da galeria) e
+     o que entra na fila por altura (as construções, as placas e os bichos) */
+  function aguaParque(ctx, t, vx, vy, vw, vh){
+    const p = V.cid.arthur; if(!p || p.R.x > vx + vw || p.R.x + p.R.w < vx || p.R.y > vy + vh || p.R.y + p.R.h < vy) return;
+    const u = 1 / V.k, l = p.lago, r = rng(31), span = l.x1 - l.x0;
+    ctx.fillStyle = 'rgba(255,255,255,.5)';
+    for(let i = 0; i < 70; i++){ const x = l.x0 + ((r() * span + t * (5 + r() * 6)) % span), yr = r(), c = l.cols[Math.floor((x - l.x0) / l.B)]; if(!c) continue; const y = c.t + 10 + yr * Math.max(1, c.b - c.t - 20); if(Math.sin(t * 2 + i) > .3) ctx.fillRect(sn(x), sn(y), u * 3, u); }
+    p.riachos.forEach((rc, k) => { for(let i = 1; i < rc.pts.length; i++){ const a = rc.pts[i - 1], b = rc.pts[i], L = Math.hypot(b.x - a.x, b.y - a.y) || 1;
+      for(let d = (t * 30 + k * 7) % 14; d < L; d += 14){ const f = d / L, off = Math.sin(d * .7 + k + i) * rc.w * .25; ctx.fillRect(sn(a.x + (b.x - a.x) * f + off * (b.y - a.y) / L), sn(a.y + (b.y - a.y) * f - off * (b.x - a.x) / L), u * 2, u); } } });
+    /* o Salto: a água caindo (tracinhos que descem) e a espuma no poço */
+    const s = p.salto, w = 18;
+    ctx.fillStyle = 'rgba(200,230,255,.85)'; ctx.fillRect(s.x - w / 2, s.y0 - 2, w, s.y1 - s.y0 + 6);
+    ctx.fillStyle = PAPEL; for(let i = 0; i < 16; i++){ const x = s.x - w / 2 + 1 + (i * 5.3) % (w - 3), y = s.y0 + ((t * 90 + i * 37) % (s.y1 - s.y0)); ctx.fillRect(sn(x), sn(y), u * 2, u * 6); }
+    for(let i = 0; i < 14; i++){ const a = i / 14 * Math.PI * 2 + t, rr = 6 + (t * 14 + i * 5) % 14; ctx.fillStyle = `rgba(255,255,255,${(.7 - rr / 28).toFixed(2)})`; ctx.fillRect(sn(s.x + Math.cos(a) * rr * 1.6), sn(p.poco.y - 6 + Math.sin(a) * rr * .5), u * 2, u * 2); }
+  }
+  function sobreParque(ctx, vx, vy, vw, vh){
+    const p = V.cid.arthur; if(!p || p.R.x > vx + vw + 40 || p.R.x + p.R.w < vx - 40 || p.R.y > vy + vh + 40 || p.R.y + p.R.h < vy - 40) return;
+    const b = p.barragem;
+    /* a tubulação, da barragem até a usina (a água descia 50 metros por ela) */
+    ctx.lineCap = 'round'; ctx.strokeStyle = '#4A4E56'; ctx.lineWidth = 7; ctx.beginPath(); ctx.moveTo(b.x - 2, b.y + 92); ctx.lineTo(p.usina.x + 34, p.usina.base - 58); ctx.stroke();
+    ctx.strokeStyle = 'rgba(255,255,255,.22)'; ctx.lineWidth = 2; ctx.stroke(); ctx.lineCap = 'butt';
+    /* a barragem: concreto com guarda-corpo dos dois lados e a água escorrendo pelo vertedouro */
+    ctx.fillStyle = 'rgba(15,18,24,.3)'; ctx.fillRect(b.x + 4, b.y + 6, b.w, b.h);
+    ctx.fillStyle = pad(ctx, 'concreto'); ctx.fillRect(b.x, b.y, b.w, b.h);
+    ctx.fillStyle = '#2B2F38'; ctx.fillRect(b.x - 2, b.y, 2, b.h); ctx.fillRect(b.x + b.w, b.y, 2, b.h);
+    for(let y = b.y + 4; y < b.y + b.h - 4; y += 12){ ctx.fillRect(b.x - 3, y, 3, 5); ctx.fillRect(b.x + b.w, y, 3, 5); }
+    ctx.fillStyle = 'rgba(200,230,255,.85)'; ctx.fillRect(b.x - 8, b.y + 54, 7, 16);
+    /* os pontilhões de madeira (a tábua atravessada ao caminho e o corrimão dos lados) */
+    p.secos.forEach(s => { if(!s.ponte) return; const hor = s.w > s.h;
+      ctx.fillStyle = 'rgba(15,18,24,.3)'; ctx.fillRect(s.x + 3, s.y + 5, s.w, s.h); ctx.fillStyle = pad(ctx, 'madeira'); ctx.fillRect(s.x, s.y, s.w, s.h);
+      ctx.fillStyle = 'rgba(40,24,12,.35)'; for(let k = 4; k < (hor ? s.w : s.h); k += 6){ if(hor) ctx.fillRect(s.x + k, s.y, 1.5, s.h); else ctx.fillRect(s.x, s.y + k, s.w, 1.5); }
+      ctx.fillStyle = '#5A3A22'; if(hor){ ctx.fillRect(s.x, s.y - 2, s.w, 3); ctx.fillRect(s.x, s.y + s.h - 1, s.w, 3); } else { ctx.fillRect(s.x - 2, s.y, 3, s.h); ctx.fillRect(s.x + s.w - 1, s.y, 3, s.h); } });
+    /* o deck do mirante da cachoeira, com o guarda-corpo do lado do Salto */
+    const d = p.deck; ctx.fillStyle = 'rgba(15,18,24,.3)'; ctx.fillRect(d.x + 3, d.y + 5, d.w, d.h); ctx.fillStyle = pad(ctx, 'madeira'); ctx.fillRect(d.x, d.y, d.w, d.h);
+    ctx.fillStyle = '#5A3A22'; ctx.fillRect(d.x - 2, d.y - 2, 3, d.h + 2); ctx.fillRect(d.x, d.y - 2, d.w, 3);
+    /* a boca da galeria, onde o ribeirão sai do parque */
+    const L = p.riachos[1].pts, fim = L[L.length - 1]; bloco(ctx, fim.x - 4, fim.y - 16, 12, 30, 'concreto');
+  }
+  /* o que entra na fila por altura (a base decide quem fica na frente) */
+  function parqueNaFila(L, ctx, t, vis){
+    const p = V.cid.arthur; if(!p) return;
+    const poe = (o, base, m, f) => { if(vis(o.x, base, m)) L.push({ y: base, f }); };
+    poe(p.portal, p.portal.base, 160, () => portalParque(ctx, p.portal));
+    poe(p.busto, p.busto.base, 80, () => bustoParque(ctx, p.busto));
+    poe(p.cea, p.cea.base, 220, () => ceaParque(ctx, p.cea));
+    p.colmeias.forEach(c => poe(c, c.base, 60, () => colmeia(ctx, c, t)));
+    poe(p.mirante, p.mirante.base, 140, () => mirante(ctx, p.mirante));
+    poe(p.gazebo, p.gazebo.base, 120, () => gazebo(ctx, p.gazebo));
+    poe(p.usina, p.usina.base, 180, () => usinaParque(ctx, p.usina));
+    poe(p.jaula, p.jaula.base, 180, () => jaulaParque(ctx, p.jaula));
+    p.placas.forEach(o => poe(o, o.y, 50, () => placaLer(ctx, o)));
+    p.bichos.forEach(o => poe(o, o.y, 90, () => bicho(ctx, o, t)));
+    const Q = V.pq; if(!Q) return;
+    Q.mac.forEach(m => poe(m, m.base, 80, () => macaco(ctx, m, t)));
+    Q.quatis.forEach(o => { if(o.x != null) poe(o, o.y, 60, () => quati(ctx, o, t)); });
+    poe(p.salto, p.poco.y + 20, 140, () => beijaFlores(ctx, p, t));
+  }
+  /* o portal da entrada: dois troncos, a viga e a placa de madeira escura */
+  function portalParque(ctx, o){
+    const x = o.x, y = o.base;
+    ctx.fillStyle = 'rgba(15,18,24,.25)'; ctx.fillRect(x - 58, y - 3, 116, 7);
+    bloco(ctx, x - 52, y - 72, 10, 72, 'tronco'); bloco(ctx, x + 42, y - 72, 10, 72, 'tronco');
+    bloco(ctx, x - 64, y - 84, 128, 12, 'madeira');
+    bloco(ctx, x - 60, y - 104, 120, 20, '#5A3A22');
+    pixPlaca(ctx, 'PARQUE ARTHUR THOMAS', x, y - 94, { fundo: '#5A3A22', cor: '#F2D8A7', borda: false });
+  }
+  /* o busto de bronze do Arthur Thomas no pedestal */
+  function bustoParque(ctx, o){
+    const x = o.x, y = o.base;
+    ctx.fillStyle = 'rgba(15,18,24,.25)'; ctx.fillRect(x - 15, y - 3, 30, 6);
+    bloco(ctx, x - 12, y - 30, 24, 30, 'concreto'); ctx.fillStyle = '#B8964C'; ctx.fillRect(x - 7, y - 20, 14, 7);
+    ctx.fillStyle = '#6E5B3E'; ctx.fillRect(x - 10, y - 40, 20, 10); ctx.fillRect(x - 5, y - 54, 10, 14); ctx.fillRect(x - 3, y - 42, 6, 3);
+    ctx.fillStyle = 'rgba(255,255,255,.18)'; ctx.fillRect(x - 5, y - 54, 3, 14); ctx.fillRect(x - 10, y - 40, 4, 10);
+  }
+  /* o CEA: o Centro de Educação Ambiental, de telhado de barro */
+  function ceaParque(ctx, o){
+    const w = o.w, x = o.x - w / 2, y = o.base;
+    ctx.fillStyle = 'rgba(15,18,24,.25)'; ctx.fillRect(x - 4, y - 3, w + 12, 7);
+    bloco(ctx, x, y - 46, w, 46, '#E8D7C3');
+    vidro(ctx, x + 12, y - 36, 42, 22, false, 14); vidro(ctx, x + w - 54, y - 36, 42, 22, false, 14);
+    porta(ctx, o.x, y, 24, 32, '#5A3A22');
+    bloco(ctx, x - 10, y - 64, w + 20, 18, 'tijolo');
+    pixPlaca(ctx, 'CEA', o.x, y - 55, { fundo: PAPEL, cor: INK });
+  }
+  /* a colmeia de abelha sem ferrão (caixinha de madeira no cavalete) e as abelhas rodando */
+  function colmeia(ctx, o, t){
+    const x = o.x, y = o.base, u = 1 / V.k;
+    ctx.fillStyle = '#5A3A22'; ctx.fillRect(x - 6, y - 12, 2, 12); ctx.fillRect(x + 4, y - 12, 2, 12);
+    bloco(ctx, x - 8, y - 24, 16, 12, 'madeira'); ctx.fillStyle = '#5A3A22'; ctx.fillRect(x - 9, y - 26, 18, 3); ctx.fillStyle = INK; ctx.fillRect(x - 1, y - 16, 3, 2);
+    ctx.fillStyle = '#F2C230'; for(let i = 0; i < 4; i++){ const a = t * (2 + i * .4) + i * 1.7 + o.x; ctx.fillRect(sn(x + Math.cos(a) * (10 + i * 3)), sn(y - 22 + Math.sin(a * 1.3) * 7), u * 2, u * 2); }
+  }
+  /* o mirante: torre de madeira com escada, plataforma e telhadinho */
+  function mirante(ctx, o){
+    const x = o.x, y = o.base;
+    ctx.fillStyle = 'rgba(15,18,24,.25)'; ctx.fillRect(x - 26, y - 3, 52, 7);
+    ctx.fillStyle = '#6B4A32'; [-20, 16].forEach(dx => ctx.fillRect(x + dx, y - 74, 5, 74));
+    ctx.strokeStyle = '#6B4A32'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x - 18, y - 4); ctx.lineTo(x + 18, y - 36); ctx.moveTo(x + 18, y - 4); ctx.lineTo(x - 18, y - 36); ctx.moveTo(x - 18, y - 40); ctx.lineTo(x + 18, y - 70); ctx.moveTo(x + 18, y - 40); ctx.lineTo(x - 18, y - 70); ctx.stroke();
+    /* a escada subindo pela direita */
+    ctx.fillStyle = '#B3793F'; for(let i = 0; i < 9; i++) ctx.fillRect(x + 22 + i * 1.5, y - 8 - i * 7, 10, 2);
+    bloco(ctx, x - 26, y - 82, 52, 8, 'madeira');
+    ctx.fillStyle = '#5A3A22'; ctx.fillRect(x - 26, y - 96, 2, 14); ctx.fillRect(x + 24, y - 96, 2, 14); ctx.fillRect(x - 26, y - 96, 52, 2);
+    ctx.fillRect(x - 24, y - 112, 3, 16); ctx.fillRect(x + 21, y - 112, 3, 16);
+    bloco(ctx, x - 32, y - 118, 64, 8, 'tijolo');
+  }
+  /* o Espaço Ipê-Amarelo: o quiosque de telhado amarelo com as mesas embaixo */
+  function gazebo(ctx, o){
+    const x = o.x, y = o.base;
+    ctx.fillStyle = 'rgba(15,18,24,.25)'; ctx.fillRect(x - 40, y - 3, 80, 7);
+    ctx.fillStyle = '#5A3A22'; ctx.fillRect(x - 30, y - 44, 5, 44); ctx.fillRect(x + 25, y - 44, 5, 44);
+    bloco(ctx, x - 18, y - 16, 36, 4, 'madeira'); ctx.fillStyle = '#5A3A22'; ctx.fillRect(x - 15, y - 12, 2, 12); ctx.fillRect(x + 13, y - 12, 2, 12);
+    [[-42, 84, 8], [-32, 64, 7], [-18, 36, 6]].forEach(([dx, w, h], i) => { ctx.fillStyle = i ? AMARELO : '#E0A92A'; ctx.fillRect(x + dx, y - 50 - i * 7, w, h); ctx.fillStyle = 'rgba(15,18,24,.18)'; ctx.fillRect(x + dx, y - 50 - i * 7 + h - 2, w, 2); });
+    pixPlaca(ctx, 'IPE-AMARELO', x, y - 40, { fundo: PAPEL, cor: INK });
+  }
+  /* a Usina Cambé: tijolo, as janelas altas, o telhado de zinco e a placa de 1939 */
+  function usinaParque(ctx, o){
+    const w = o.w, x = o.x - w / 2, y = o.base;
+    ctx.fillStyle = 'rgba(15,18,24,.25)'; ctx.fillRect(x - 4, y - 3, w + 12, 7);
+    bloco(ctx, x, y - 58, w, 58, 'tijolo');
+    for(let i = 0; i < 4; i++) if(i !== 3) vidro(ctx, x + 8 + i * 26, y - 48, 14, 32, false, 14);
+    porta(ctx, o.x + 34, y, 18, 30, '#3B2D22');
+    ctx.fillStyle = 'rgba(15,18,24,.18)'; ctx.fillRect(x + 6, y - 58, 10, 18); ctx.fillRect(x + w - 30, y - 22, 16, 22);
+    bloco(ctx, x - 6, y - 74, w + 12, 16, 'zinco');
+    pixPlaca(ctx, 'USINA CAMBE 1939', o.x, y - 66, { fundo: PAPEL, cor: INK });
+  }
+  /* a Jaula 01 do Elo Perdido: parede de bloco pichada, a palha, o pneu pendurado e a grade na frente. Vazia: os
+     macacos daqui são livres (e às vezes sentam em cima dela) */
+  function jaulaParque(ctx, o){
+    const w = o.w, x = o.x - w / 2, y = o.base, h = 60;
+    ctx.fillStyle = 'rgba(15,18,24,.28)'; ctx.fillRect(x - 4, y - 3, w + 12, 8);
+    bloco(ctx, x, y - h, w, h, '#66676B');
+    ctx.fillStyle = 'rgba(15,18,24,.16)'; for(let yy = y - h + 8; yy < y; yy += 8){ ctx.fillRect(x, yy, w, 1); for(let xx = x + ((yy / 8) % 2 ? 8 : 0); xx < x + w; xx += 16) ctx.fillRect(xx, yy - 8, 1, 8); }
+    pixTxt(ctx, 'JAULA 01', x + 32, y - h + 12, 2, '#E8C547', 'c'); pixTxt(ctx, 'UH UH', x + w - 26, y - 30, 1, ROSA, 'c');
+    ctx.fillStyle = '#B9A45A'; ctx.fillRect(x + 3, y - 9, w - 6, 7);
+    ctx.fillStyle = '#9A8A64'; ctx.fillRect(o.x + 22, y - h, 1.5, 26); ctx.strokeStyle = '#161616'; ctx.lineWidth = 4; ctx.beginPath(); ctx.ellipse(o.x + 23, y - h + 30, 7, 6, 0, 0, Math.PI * 2); ctx.stroke();
+    ctx.fillStyle = '#23272A'; for(let xx = x + 3; xx < x + w; xx += 7) ctx.fillRect(xx, y - h - 4, 2.5, h + 4); ctx.fillRect(x - 2, y - h - 7, w + 4, 4); ctx.fillRect(x - 2, y - 3, w + 4, 3);
+    /* o portão aberto e a placa do jogo */
+    ctx.fillStyle = 'rgba(15,18,24,.55)'; ctx.fillRect(o.x - 10, y - 44, 20, 41);
+    pixPlaca(ctx, 'ELO PERDIDO', o.x, y - h - 16, { fundo: AMARELO, cor: INK });
+  }
+  /* a placa de ler: tábua em dois pés, com o "i" */
+  function placaLer(ctx, o){
+    const x = o.x, y = o.y;
+    ctx.fillStyle = 'rgba(15,18,24,.2)'; ctx.fillRect(x - 12, y - 2, 24, 4);
+    ctx.fillStyle = '#5A3A22'; ctx.fillRect(x - 9, y - 18, 2, 18); ctx.fillRect(x + 7, y - 18, 2, 18);
+    bloco(ctx, x - 12, y - 28, 24, 14, 'madeira'); pixTxt(ctx, 'I', x, y - 21, 1, PAPEL, 'c');
+  }
+  /* o macaco-prego (Sapajus nigritus): o topete preto, a cara clara, o rabo enrolando. No ar, braços pra cima */
+  function macaco(ctx, m, t){
+    const [ix, iy] = ptBase(ctx, m.x, m.y), d = m.dir || 1;
+    ctx.save(); naBase(ctx); const R = (x, y, w, h, c) => { ctx.fillStyle = c; ctx.fillRect(ix + (d < 0 ? -(x + w) : x), iy + y, w, h); };
+    const ar = !!m.hop, rabo = Math.sin(t * 3 + m.sd) > 0 ? 0 : 1, E = '#4A3424';
+    if(m.chao && !ar) R(-4, 0, 9, 1, 'rgba(15,18,24,.25)');
+    R(-5, -3, 1, 1, E); R(-6, -6 + rabo, 1, 4, E); R(-5, -8 + rabo, 2, 1, E);
+    R(-3, -6, 6, 5, '#6B4A32'); R(-2, -5, 4, 3, '#8C6A48');
+    if(ar){ R(-4, -10, 1, 5, E); R(3, -10, 1, 5, E); R(-3, -1, 2, 2, E); R(1, -1, 2, 2, E); }
+    else { R(-4, -5, 1, 4, E); R(3, -5, 1, 4, E); R(-3, -1, 2, 1, E); R(1, -1, 2, 1, E); }
+    R(-3, -11, 6, 5, '#5A3A22'); R(-2, -12, 4, 2, '#1B1D22'); R(-2, -10, 4, 3, '#E8CFA8'); R(-1, -9, 1, 1, INK); R(1, -9, 1, 1, INK);
+    if(m.come > 0) R(3, -8, 3, 3, AMARELO);
+    ctx.restore();
+  }
+  /* o quati: focinho comprido, a máscara, o rabo listrado pra cima */
+  function quati(ctx, o, t){
+    const [ix, iy] = ptBase(ctx, o.x, o.y), d = o.dir || 1, pe = o.anda && Math.sin(t * 14 + o.sd) > 0 ? 1 : 0;
+    ctx.save(); naBase(ctx); const R = (x, y, w, h, c) => { ctx.fillStyle = c; ctx.fillRect(ix + (d < 0 ? -(x + w) : x), iy + y, w, h); };
+    R(-6, 0, 13, 1, 'rgba(15,18,24,.25)');
+    for(let i = 0; i < 4; i++) R(-7, -5 - i * 2, 2, 2, i % 2 ? '#C9A06A' : '#3B2414'); R(-6, -12, 1, 2, '#3B2414');
+    R(-5, -5, 10, 4, '#8E5A2E'); R(-4, -2, 8, 1, '#C9A06A');
+    R(-4 + pe, -1, 1, 1, '#3B2414'); R(3 - pe, -1, 1, 1, '#3B2414');
+    R(4, -6, 3, 3, '#6E4426'); R(7, -5, 3, 2, '#C9A06A'); R(10, -5, 1, 1, INK); R(5, -6, 1, 1, INK); R(4, -7, 1, 1, '#3B2414');
+    ctx.restore();
+  }
+  /* os beija-flores do Salto (é deles o nome): três paradinhos no ar, mudando de lugar */
+  function beijaFlores(ctx, p, t){
+    const s = p.salto;
+    [0, 1, 2].forEach(i => { const x = s.x + 40 + Math.sin(t * .7 + i * 2.1) * 40 + Math.sin(t * 9 + i) * 1.5, y = s.y0 + 6 + i * 14 + Math.cos(t * 1.1 + i) * 8, [ix, iy] = ptBase(ctx, x, y), asa = Math.sin(t * 60 + i) > 0;
+      ctx.save(); naBase(ctx); ctx.fillStyle = '#8F86E8'; ctx.fillRect(ix - 2, iy, 4, 2); ctx.fillStyle = '#5E3A9E'; ctx.fillRect(ix + 2, iy, 2, 1); ctx.fillStyle = 'rgba(244,241,234,.7)'; ctx.fillRect(ix - 1, iy - (asa ? 2 : 1), 2, asa ? 2 : 1); ctx.restore(); });
+  }
+  /* os bichos que andam: os macacos pulam de copa em copa (e no teto da jaula), descem pra fuçar a trilha e sobem
+     quando você chega perto; quem passa com comida na mão perde a comida (o guia pede: não alimente os animais). O
+     bando de quatis vai e volta na Trilha do Tatu. Tudo do aparelho de cada um, como o trânsito */
+  const NA_MAO = { smash: 'o teu smash', pastel: 'o teu pastel', churros: 'os teus churros', coco: 'a tua água de coco', sorvete: 'o teu sorvete', pipoca: 'a tua pipoca', acai: 'o teu açaí', caldo: 'o teu caldo de cana' };
+  function criaBichosParque(p){
+    const q = rng(hash('macacos')), G = p.galhos, mac = [], livres = G.map((g, i) => i);
+    for(let i = 0; i < Math.min(9, G.length); i++){ const k = livres.splice(Math.floor(q() * livres.length), 1)[0], g = G[k]; mac.push({ g: k, x: g.x, y: g.y, base: g.base, hop: null, esp: 1 + q() * 6, dir: q() < .5 ? -1 : 1, sd: Math.floor(q() * 1e6), come: 0, chao: false }); }
+    const rota = p.quatiRota; let total = 0; for(let i = 1; i < rota.length; i++) total += Math.hypot(rota[i].x - rota[i - 1].x, rota[i].y - rota[i - 1].y);
+    return { p, mac, quatis: [0, 1, 2, 3, 4].map(i => ({ i, sd: i * 97, x: null, y: null, dir: 1, anda: true })), lider: { s: total * .3, dir: 1, para: 0 }, total, roubaT: 0, pioT: 0 };
+  }
+  function noCaminho(L, s){ for(let i = 1; i < L.length; i++){ const a = L[i - 1], b = L[i], d = Math.hypot(b.x - a.x, b.y - a.y); if(s <= d || i === L.length - 1){ const f = clamp(s / (d || 1), 0, 1); return { x: a.x + (b.x - a.x) * f, y: a.y + (b.y - a.y) * f, dx: b.x - a.x }; } s -= d; } return { x: L[0].x, y: L[0].y, dx: 1 }; }
+  function passoArthur(dt){
+    const p = V.cid && V.cid.arthur, e = V.eu; if(!p || !e) return;
+    const R = p.R; if(e.x < R.x - 900 || e.x > R.x + R.w + 900 || e.y < R.y - 900 || e.y > R.y + R.h + 900) return;
+    if(!V.pq || V.pq.p !== p) V.pq = criaBichosParque(p);
+    const Q = V.pq, G = p.galhos, agora = Date.now(), dentro = e.x > R.x && e.x < R.x + R.w && e.y > R.y && e.y < R.y + R.h;
+    const pula = (m, x1, y1, b1, g, rouba) => { const dd = Math.hypot(x1 - m.x, y1 - m.y); m.hop = { x0: m.x, y0: m.y, b0: m.base, x1, y1, b1, g, t: 0, d: .4 + dd / 380, h: 14 + dd * .14, rouba: !!rouba }; m.chao = false;
+      if(Math.hypot(e.x - m.x, e.y - m.y) < 320 && agora > Q.pioT && C.versoSom){ Q.pioT = agora + 1800 + Math.random() * 2500; C.versoSom.macaco(); } };
+    const sobe = m => { let best = -1, bd = 1e9; G.forEach((g, i) => { if(Q.mac.some(o => o !== m && (o.g === i || (o.hop && o.hop.g === i)))) return; const d = Math.hypot(g.x - m.x, g.base - m.y); if(d < bd){ bd = d; best = i; } }); if(best >= 0) pula(m, G[best].x, G[best].y, G[best].base, best); };
+    /* comida na mão dentro do parque: o macaco mais perto desce e pega */
+    const comida = e.item && NA_MAO[e.item.k] && e.item.ate > agora && !e.barco && dentro;
+    if(comida && agora > Q.roubaT && !Q.mac.some(m => m.vaiRoubar)){ let alvo = null, dm = 240; for(const m of Q.mac){ if(m.hop) continue; const d = Math.hypot(e.x - m.x, e.y - m.y); if(d < dm){ dm = d; alvo = m; } } if(alvo){ alvo.vaiRoubar = true; pula(alvo, e.x + 10, e.y - 1, e.y + .5, -1, true); Q.roubaT = agora + 6000; } }
+    for(const m of Q.mac){
+      if(m.come > 0) m.come -= dt;
+      if(m.hop){ const h = m.hop; h.t += dt / h.d; const u = Math.min(1, h.t); m.x = h.x0 + (h.x1 - h.x0) * u; m.y = h.y0 + (h.y1 - h.y0) * u - Math.sin(Math.PI * u) * h.h; m.base = h.b0 + (h.b1 - h.b0) * u; if(Math.abs(h.x1 - h.x0) > 2) m.dir = h.x1 > h.x0 ? 1 : -1;
+        if(u >= 1){ m.hop = null; m.g = h.g; m.chao = h.g < 0; m.esp = m.chao ? 2.5 + Math.random() * 3 : 2 + Math.random() * 7;
+          if(h.rouba){ m.vaiRoubar = false; m.esp = .7;
+            if(e.item && NA_MAO[e.item.k] && Math.hypot(e.x - m.x, e.y - m.y) < 44){ const o = NA_MAO[e.item.k]; e.item = null; enviaPos(true); m.come = 9; C.toast(`Um macaco-prego levou ${o}. No Arthur Thomas não se dá comida pros bichos: eles aprendem a pegar.`, 4800); if(C.versoSom) C.versoSom.macaco(); } } }
+        continue; }
+      if(m.chao && Math.hypot(e.x - m.x, e.y - m.y) < 46){ sobe(m); continue; }
+      m.esp -= dt; if(m.esp > 0) continue;
+      if(m.chao){ sobe(m); continue; }
+      const g = G[m.g]; if(!g){ sobe(m); continue; }
+      if(Math.random() < .2 && p.chao.length){ const c = p.chao.filter(o => Math.hypot(o.x - g.x, o.y - g.base) < 130); if(c.length){ const o = c[Math.floor(Math.random() * c.length)], x = o.x + (Math.random() - .5) * 18; pula(m, x, o.y, o.y, -1); continue; } }
+      const v = g.viz.filter(i => !Q.mac.some(o => o !== m && (o.g === i || (o.hop && o.hop.g === i))));
+      if(v.length){ const i = v[Math.floor(Math.random() * v.length)]; pula(m, G[i].x, G[i].y, G[i].base, i); } else m.esp = 2;
+    }
+    /* o bando de quatis: o primeiro anda e às vezes para pra fuçar, os outros vão atrás na mesma trilha */
+    const Ld = Q.lider, rota = p.quatiRota;
+    if(Ld.para > 0) Ld.para -= dt; else { Ld.s += Ld.dir * 34 * dt; if(Ld.s > Q.total - 4 || Ld.s < 70){ Ld.dir *= -1; Ld.s = clamp(Ld.s, 70, Q.total - 4); } if(Math.random() < dt * .09) Ld.para = 2 + Math.random() * 3; }
+    Q.quatis.forEach(o => { const s = clamp(Ld.s - Ld.dir * o.i * 15, 0, Q.total), c = noCaminho(rota, s); o.x = c.x + Math.sin(o.sd) * 5; o.y = c.y + Math.cos(o.sd) * 4; o.dir = (c.dx >= 0 ? 1 : -1) * Ld.dir; o.anda = Ld.para <= 0; });
   }
   function arvore(ctx, a){
     const s = a.g === 2 ? 2 : a.g ? 1.3 : 1, f = 'folha' + a.cor;
@@ -3366,7 +3751,7 @@
     const { ctx } = V, z = V.z, k0 = V.k, fx = V.fx || 1, k = V.kr || k0, vw = V.cssW / z, vh = V.cssH / z, c = V.cid;
     const vx = V.cam.x - vw / 2, vy = V.cam.y - vh / 2, ox = -Math.round(vx * k0) * fx, oy = -Math.round(vy * k0) * fx;
     ctx.setTransform(k, 0, 0, k, ox, oy); ctx.imageSmoothingEnabled = false;
-    chao(ctx, vx, vy, vw, vh); aguaViva(ctx, t, vx, vy, vw, vh); sobreAgua(ctx, vx, vy, vw, vh); aguaRio(ctx, t, vx, vy, vw, vh); sobreRio(ctx, vx, vy, vw, vh, t);
+    chao(ctx, vx, vy, vw, vh); aguaViva(ctx, t, vx, vy, vw, vh); sobreAgua(ctx, vx, vy, vw, vh); aguaRio(ctx, t, vx, vy, vw, vh); sobreRio(ctx, vx, vy, vw, vh, t); aguaParque(ctx, t, vx, vy, vw, vh); sobreParque(ctx, vx, vy, vw, vh);
     const L = [];
     const vis = (x, y, m) => x > vx - m && x < vx + vw + m && y > vy - 40 && y < vy + vh + m * 1.6;
     const sprite = (chave, fazer, x, base) => L.push({ y: base, f: () => { let s = V.sprites.get(chave); if(!s){ s = fazer(); guardaSprite(chave, s); } ctx.drawImage(s.cv, x - s.M, base - s.base, s.cv.width / k, s.cv.height / k); } });
@@ -3403,6 +3788,8 @@
     /* v3.75: o barracão do porto e os bichos do rio */
     const rio = c.rio;
     if(rio){ const b = rio.barracao; if(b && vis(b.x, b.base, 220)) L.push({ y: b.base, f: () => barracao(ctx, b, t) }); rio.bichos.forEach(o => { if(vis(o.x, o.y, 90)) L.push({ y: o.y, f: () => bicho(ctx, o, t) }); }); }
+    /* v3.82: o Parque Arthur Thomas (as construções e os bichos) */
+    parqueNaFila(L, ctx, t, vis);
     c.postes.forEach(p => { if(vis(p.x, p.y, 70)) L.push({ y: p.y, f: () => poste(ctx, p) }); });
     V.carros.forEach(car => { if(vis(car.x, car.y, 90)) L.push({ y: car.y, f: () => carro(ctx, car) }); });
     c.bancos.forEach(b => { if(vis(b.x, b.y, 60)) L.push({ y: b.y - 1, f: () => banco(ctx, b) }); });
@@ -3439,7 +3826,7 @@
       ctx.fillStyle = cor; ctx.fillRect(X(o.x), Y(o.y), Math.round(LW / S), Math.round(LH / S));
       if(g && g.t === 'casa' && g.h.id === meu){ ctx.fillStyle = INK; ctx.fillRect(X(o.x) + 4, Y(o.y) + 4, Math.round(LW / S) - 8, Math.round(LH / S) - 8); ctx.fillStyle = AMARELO; ctx.fillRect(X(o.x) + 6, Y(o.y) + 6, Math.round(LW / S) - 12, Math.round(LH / S) - 12); }
     }
-    c.regs.forEach(R => { ctx.fillStyle = { lago: '#D9C27F', zerao: '#D9C27F', bosque: '#B8964C', gleba: '#DCCFB6', estadio: '#A4A8AE', feira: '#F2D8A7', aeroporto: '#CDBB86', acel: '#D9C27F' }[R.k] || '#E6DECD'; ctx.fillRect(X(R.x), Y(R.y), Math.round(R.w / S), Math.round(R.h / S)); });
+    c.regs.forEach(R => { ctx.fillStyle = { lago: '#D9C27F', zerao: '#D9C27F', bosque: '#B8964C', gleba: '#DCCFB6', estadio: '#A4A8AE', feira: '#F2D8A7', aeroporto: '#CDBB86', acel: '#D9C27F', arthur: '#9C7E3E' }[R.k] || '#E6DECD'; ctx.fillRect(X(R.x), Y(R.y), Math.round(R.w / S), Math.round(R.h / S)); });
     if(c.acel){ const a = c.acel, h = a.hp; ctx.fillStyle = '#A4553A'; ctx.beginPath(); ctx.moveTo(X(h.x), Y(h.y + 6)); a.bases.forEach(b => ctx.lineTo(X(b.x) + (b.x > h.x ? 2 : b.x < h.x ? -2 : 0), Y(b.y) - (b.x === h.x ? 2 : 0))); ctx.closePath(); ctx.fill();
       ctx.strokeStyle = '#2B2F38'; ctx.lineWidth = 2; ctx.beginPath(); a.cerca.forEach((p, i) => (i ? ctx.lineTo(X(p.x), Y(p.y)) : ctx.moveTo(X(p.x), Y(p.y)))); ctx.stroke(); }
     if(c.aeroporto){ const p = c.aeroporto.pista; ctx.fillStyle = '#2B2F38'; ctx.fillRect(X(p.x), Y(p.y), Math.round(p.w / S), Math.max(2, Math.round(p.h / S))); }
@@ -3447,13 +3834,15 @@
     /* v3.75: o Rio Tibagi embaixo, de ponta a ponta, com os dois píeres */
     const rio = c.rio; if(rio){ ctx.fillStyle = '#D9C27F'; ctx.fillRect(0, Y(rio.y0), cv.width, Math.ceil(RIO_H / S)); ctx.fillStyle = '#9C7E3E'; rio.cols.forEach(q => ctx.fillRect(X(q.x), Y(q.b), 1, Math.max(1, Math.round((rio.y0 + RIO_H - q.b) / S))));
       ctx.fillStyle = '#2F7FC1'; rio.cols.forEach(q => ctx.fillRect(X(q.x), Y(q.t), 1, Math.max(1, Math.round((q.b - q.t) / S)))); ctx.fillStyle = '#8E5B33'; rio.piers.forEach(p => ctx.fillRect(X(p.xp) - 1, Y(p.y), 3, Math.max(2, Math.round(p.h / S)))); }
+    /* v3.82: o lago e o ribeirão do Arthur Thomas */
+    if(c.arthur){ const a = c.arthur; ctx.fillStyle = '#2F7FC1'; a.lago.cols.forEach(q => ctx.fillRect(X(q.x), Y(q.t), 1, Math.max(1, Math.round((q.b - q.t) / S)))); ctx.strokeStyle = '#2F7FC1'; ctx.lineWidth = 1; a.riachos.forEach(r => { ctx.beginPath(); r.pts.forEach((q, i) => i ? ctx.lineTo(X(q.x), Y(q.y)) : ctx.moveTo(X(q.x), Y(q.y))); ctx.stroke(); }); }
     const l = c.lago; ctx.fillStyle = '#C9D0D8'; l.bandas[0][1].forEach(q => ctx.fillRect(X(q.x), Y(q.t), 1, Math.max(1, Math.round((q.b - q.t) / S))));
     ctx.fillStyle = '#2F7FC1'; l.cols.forEach(q => ctx.fillRect(X(q.x), Y(q.t), 1, Math.max(1, Math.round((q.b - q.t) / S))));
     const z = c.zerao; ctx.strokeStyle = '#A4553A'; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(X(z.cx), Y(z.cy), z.rx / S - 1, z.ry / S - 1, 0, 0, Math.PI * 2); ctx.stroke();
     if(z.skate){ const s = z.skate; ctx.fillStyle = '#A4A8AE'; ctx.fillRect(X(s.x0), Y(s.y0), Math.round((s.x1 - s.x0 - 30) / S), Math.round((s.y1 - s.y0 - 50) / S)); ctx.fillStyle = '#6A7078'; ctx.fillRect(X(s.bowl.x) - 2, Y(s.bowl.y) - 1, 4, 3); }
     const e = c.estadio.campo; ctx.fillStyle = '#2E5BFF'; ctx.fillRect(X(e.x) - 4, Y(e.y) - 6, Math.round(e.w / S) + 8, Math.round(e.h / S) + 10); ctx.fillStyle = '#D9C27F'; ctx.fillRect(X(e.x), Y(e.y), Math.round(e.w / S), Math.round(e.h / S));
     ctx.fillStyle = '#7F8A96'; c.gleba.forEach(g => ctx.fillRect(X(g.x), Y(g.base - 40), Math.max(2, Math.round(g.w / S)), 3));
-    [['LAGO IGAPO', l.x + l.w / 2, l.y + l.h / 2], ['ZERAO', z.cx, z.cy], ['BOSQUE', c.bosque.cx, c.bosque.cy], ['CENTRO', c.praca.cx, c.praca.y + LH + 40], ['ESTADIO', c.estadio.campo.x + c.estadio.campo.w / 2, c.estadio.campo.y + c.estadio.campo.h / 2], ['GLEBA', c.glebaR.R.x + c.glebaR.R.w / 2, c.glebaR.R.y + LH / 2]].concat(c.feira ? [['FEIRA', c.feira.R.x + c.feira.R.w / 2, c.feira.R.y + c.feira.R.h + 30]] : []).concat(c.aeroporto ? [['AEROPORTO', c.aeroporto.R.x + c.aeroporto.R.w / 2, c.aeroporto.R.y + 120]] : []).concat(c.acel ? [['ACEL', c.acel.hp.x, c.acel.hp.y - 250]] : []).concat(rio ? [['RIO TIBAGI', c.W * .55, rio.cyF(c.W * .55)]] : []).forEach(([t, x, y]) => pixPlaca(ctx, t, X(x), Y(y), { fundo: PAPEL }));
+    [['LAGO IGAPO', l.x + l.w / 2, l.y + l.h / 2], ['ZERAO', z.cx, z.cy], ['BOSQUE', c.bosque.cx, c.bosque.cy], ['CENTRO', c.praca.cx, c.praca.y + LH + 40], ['ESTADIO', c.estadio.campo.x + c.estadio.campo.w / 2, c.estadio.campo.y + c.estadio.campo.h / 2], ['GLEBA', c.glebaR.R.x + c.glebaR.R.w / 2, c.glebaR.R.y + LH / 2]].concat(c.feira ? [['FEIRA', c.feira.R.x + c.feira.R.w / 2, c.feira.R.y + c.feira.R.h + 30]] : []).concat(c.aeroporto ? [['AEROPORTO', c.aeroporto.R.x + c.aeroporto.R.w / 2, c.aeroporto.R.y + 120]] : []).concat(c.acel ? [['ACEL', c.acel.hp.x, c.acel.hp.y - 250]] : []).concat(c.arthur ? [['ARTHUR THOMAS', c.arthur.R.x + c.arthur.R.w / 2, c.arthur.R.y + 300]] : []).concat(rio ? [['RIO TIBAGI', c.W * .55, rio.cyF(c.W * .55)]] : []).forEach(([t, x, y]) => pixPlaca(ctx, t, X(x), Y(y), { fundo: PAPEL }));
     const mostra = quemAparece(); ctx.fillStyle = PAPEL; for(const r of V.remotos.values()) if(mostra.has(r.sid) && !r.npc) ctx.fillRect(X(r.x) - 1, Y(r.y) - 1, 3, 3);
     if(V.eu && Date.now() % 1000 < 650){ ctx.fillStyle = INK; ctx.fillRect(X(V.eu.x) - 3, Y(V.eu.y) - 3, 7, 7); ctx.fillStyle = ROSA; ctx.fillRect(X(V.eu.x) - 2, Y(V.eu.y) - 2, 5, 5); }
   }
@@ -3597,7 +3986,7 @@
     }
     if(e.mov || V.voo) V.paradoT = 0; else if(!V.paradoT) V.paradoT = Date.now();
     skatePasso(dtReal);
-    bots(dt); passoMoradores(dt); carros(dt); bolas(dt); passoNpcs(dt); passoTarefa(dt); mjUI(); rioPasso(dt); rioUI();
+    bots(dt); passoMoradores(dt); carros(dt); bolas(dt); passoNpcs(dt); passoTarefa(dt); mjUI(); rioPasso(dt); rioUI(); passoArthur(dt);
     if(V.tarefa && (!V.tarefaUiT || t - V.tarefaUiT > .25)){ V.tarefaUiT = t; tarefaUI(); }
     if(V.anEu) V.nivelEu = V.anEu();
     const z = V.z, cw = V.cssW, ch = V.cssH;
@@ -3628,6 +4017,8 @@
     if(rio && y > rio.y0 + 14){ for(const p of rio.piers) if(x > p.x && x < p.x + p.w && y > p.y && y < p.y + p.h) return 'madeira'; if(rio.prainha && x > rio.prainha.x0 && x < rio.prainha.x1) return 'areia'; const t = rio.colEm(x).t; return y > t - 44 ? 'terra' : 'grama'; }
     for(const R of c.regs) if(x >= R.x && x <= R.x + R.w && y >= R.y && y <= R.y + R.h){
       if(R.k === 'bosque') return 'terra';
+      /* v3.82: no Arthur Thomas, madeira nos pontilhões, na barragem e nos decks; pedra na praça; o resto é terra */
+      if(R.k === 'arthur'){ const a = c.arthur; if(!a) return 'terra'; const d = a.deck; if(a.secos.some(s => x > s.x && x < s.x + s.w && y > s.y && y < s.y + s.h) || (x > d.x && x < d.x + d.w && y > d.y && y < d.y + d.h)) return 'madeira'; const pr = a.praca; return x > pr.x && x < pr.x + pr.w && y < pr.y + pr.h ? 'pedra' : 'terra'; }
       if(R.k === 'zerao' || R.k === 'lago') return 'grama';
       if(R.k === 'acel'){ const a = c.acel; return a && x > a.hp.x - 34 && x < a.hp.x + 34 && y > a.hp.y + 28 ? 'pedra' : 'grama'; }
       if(R.k === 'estadio'){ const f = c.estadio.campo; return x > f.x && x < f.x + f.w && y > f.y && y < f.y + f.h ? 'grama' : 'pedra'; }
@@ -3653,11 +4044,14 @@
     const c = V.cid, x = V.eu.x, y = V.eu.y, perto = (p, r) => p ? clamp(1 - Math.hypot(x - p.x, y - p.y) / r, 0, 1) : 0;
     const R = c.regs.find(R => x >= R.x - 80 && x <= R.x + R.w + 80 && y >= R.y - 80 && y <= R.y + R.h + 80);
     const g = c.grade[Math.floor((y - TOPO) / (LH + RUA))], f = g && g[Math.floor((x - RUA) / (LW + RUA))];
-    const verde = (R && /bosque|zerao|lago|acel/.test(R.k)) || !!(f && f.t === 'enche' && /pracinha|bosquinho/.test(f.f.t)) || (rio && y > rio.y0 - 20);
-    const lg = c.lago, rio = c.rio, beira = rio && y > rio.y0 - 60, agua = (lg && x > lg.x - 60 && x < lg.x + lg.w + 60 && y > lg.y - 60 && y < lg.y + lg.h + 60) || beira ? 1 : 0;
+    /* v3.82: o rio é lido antes (o verde usava ele uma linha antes de existir: fora do verde, dava erro e o ambiente parava) */
+    const lg = c.lago, rio = c.rio, ar = c.arthur;
+    const verde = (R && /bosque|zerao|lago|acel|arthur/.test(R.k)) || !!(f && f.t === 'enche' && /pracinha|bosquinho/.test(f.f.t)) || (rio && y > rio.y0 - 20);
+    const beira = rio && y > rio.y0 - 60, agua = (lg && x > lg.x - 60 && x < lg.x + lg.w + 60 && y > lg.y - 60 && y < lg.y + lg.h + 60) || beira ? 1 : 0;
     const gente = Math.max(perto({ x: c.praca.cx, y: c.praca.cy }, 700), c.feira ? perto({ x: c.feira.R.x + c.feira.R.w / 2, y: c.feira.R.y + c.feira.R.h / 2 }, 600) : 0, perto(c.centro.concha ? { x: c.centro.concha.x + LW / 2, y: c.centro.concha.base + 60 } : null, 420) * .7);
-    const trafego = rio && y > rio.y0 + 60 ? .2 : R ? ({ lago: .3, bosque: .4, zerao: .55, aeroporto: .45, acel: .5 }[R.k] || .7) : 1;
-    S.ambiente({ trafego, passaros: verde ? 1 : .2, gente, agua: agua * ((R && R.k === 'lago') || (rio && y > rio.y0 + 60) ? 1 : .5) });
+    const trafego = rio && y > rio.y0 + 60 ? .2 : R ? ({ lago: .3, bosque: .4, zerao: .55, aeroporto: .45, acel: .5, arthur: .15 }[R.k] || .7) : 1;
+    const aguaAr = ar ? Math.max(perto({ x: (ar.lago.x0 + ar.lago.x1) / 2, y: ar.R.y + 690 }, 330), perto({ x: ar.salto.x, y: ar.salto.y1 }, 260)) : 0;
+    S.ambiente({ trafego, passaros: verde ? 1 : .2, gente, agua: Math.max(agua * ((R && R.k === 'lago') || (rio && y > rio.y0 + 60) ? 1 : .5), aguaAr) });
   }
   function laco(ts){
     if(!V.vivo) return;
@@ -4017,6 +4411,11 @@
       frases: ['Três voltas no Zerão: duas correndo, uma procurando o fone.', 'Meu relógio disse que eu dormi mal. Concordei com ele.', 'Corro pra pagar os pecados do pastel de domingo.'] },
     { nome: 'Tonhão do Som', onde: 'Concha Acústica', voz: 120, av: { pele: 5, cabelo: 'black', corCabelo: 0, topo: 'fone', roupa: 'regata', corRoupa: 0, corrente: 'ouro', corCalca: 0, tenis: 3 },
       frases: ['Esse som aqui toca até pensamento.', 'A cidade tocou Bach hoje. Eu dancei arrocha mesmo.', 'Grave bom é o que faz a pipoca pular do saco.'] },
+    /* v3.82: a bióloga do Arthur Thomas. Os fatos são do guia "Descobrindo o Parque" da Prefeitura (2026); as piadas são piada */
+    { nome: 'Bióloga Iara', onde: 'Parque Arthur Thomas', voz: 280, av: { pele: 3, cabelo: 'trancas', corCabelo: 0, topo: 'bone', roupa: 'camiseta', corRoupa: 3, corCalca: 3, tenis: 1 },
+      frases: ['O parque nasceu em 1975, numa doação da Companhia de Terras Norte do Paraná. Abriu em 1987.', 'Aqui funcionou a primeira usina de Londrina, a Usina Cambé, de 1939.', 'O Salto Beija-Flor tem uns 20 metros. A pedra é basalto, a mesma que vira a terra roxa.',
+        'São 85 hectares de Mata Atlântica a seis quilômetros do Centro.', 'Não dá comida pros macacos, viu? Eles aprendem a pedir. E depois a pegar.', 'Macaco-prego quebra coquinho com pedra. Pra abrir tua sacola, só a cara de pau.', 'A jaula tá vazia: os macacos daqui são livres. Quem entra nela é gente.',
+        'As ilhinhas do lago são assoreamento: terra e lixo que a chuva arrasta pra dentro.', 'Arthur Thomas era escocês, de Edimburgo. Nasceu em 1889.', 'Na Trilha do Tatu tem peroba-rosa centenária. Tatu mesmo eu nunca vi.'] },
     { nome: 'Rafa do Pix', onde: 'Sebo', voz: 230, av: { pele: 3, cabelo: 'curto', corCabelo: 0, skin: 'motoboy' },
       frases: ['Aceito pix, débito, crédito e elogio. Elogio não volta troco.', 'Tô devendo pra mim mesmo. Já negociei os juros.', 'Entrego em quinze minutos. Ou em quinze minutos e meia hora.'] }
   ];
@@ -4036,7 +4435,8 @@
     ['Vamos de pastel?', 'Pastel é refeição completa: massa, recheio e ar.'],
     ['A capivara tá me olhando.', 'Ela olha todo mundo. É fiscal do Igapó.'],
     ['Postou hoje?', 'Postei ontem. Hoje eu tô vendo quem curtiu.'],
-    ['Viu o kart dos bichos?', 'Vi. Perdi pra uma capivara de patinete.']
+    ['Viu o kart dos bichos?', 'Vi. Perdi pra uma capivara de patinete.'],
+    ['Fui no Arthur Thomas.', 'E os macacos?', 'Levaram meu pastel e meu orgulho.']
   ];
   const embaralha = L => { const a = L.slice(); for(let i = a.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
   function criaMoradores(){
@@ -4605,7 +5005,7 @@
       if(j && T.fase === 'jogando'){ b.disabled = j.t === 'seq'; b.innerHTML = `${ico('raio')} ${esc(j.t === 'tempo' ? j.verbo : j.t === 'segura' ? 'Segura: ' + j.verbo.toLowerCase() : 'Usa as setas')}`; return; }
       b.innerHTML = `${ico('raio')} ${esc(p.et.acao)}${ag ? '…' : ''}`; b.disabled = !!ag; return; }
     b.disabled = false;
-    b.innerHTML = p.tipo === 'morador' ? `${ico('chat')} Trocar ideia com ${esc(p.m.nome)}` : p.tipo === 'barco' ? `${ico('peixe')} Pegar um barquinho` : p.tipo === 'aeroporto' ? `${ico('aviao')} Voar (${C.correalTxt(precoVoo())})` : p.tipo === 'sebo' ? `${ico('musica')} Entrar no Sebo` : p.tipo === 'calcadao' ? `${ico('gente')} Entrar no Calçadão 3D` : p.tipo === 'atelie' ? `${ico('star')} Ateliê: skins` : p.tipo === 'torneio' ? `${ico('peixe')} Torneio de Pesca` : p.tipo === 'beisebol' ? `${ico('raio')} Jogar beisebol na ACEL` : p.tipo === 'quadra' ? `${ico('raio')} ${p.k === 'quadra-futsal' ? 'Desafio de pênalti' : 'Desafio de arremesso'}` : p.tipo === 'publi' ? `${ico('ext')} ${esc((PUBLI[p.k] || {}).nome || '')}: baixar o app` : p.tipo === 'pista' ? `${ico('raio')} ${p.k === 'moto' ? 'Autódromo do Café' : 'Corrida de patinete'}` : p.tipo === 'civico' ? `${ico('raio')} ${esc(CIVICOS[p.k].entra)}` : p.tipo === 'barraca' ? (aberta(p.b) ? `${ico(p.b.ico)} ${esc(p.b.botao)}` : `${ico('eye')} Hórus desligado: ligar`) : p.tipo === 'comida' ? `${ico('banca')} ${esc(COMIDAS[p.k][0])}` : p.tipo === 'aquario' ? `${ico('play')} Jogar ${esc(JOGOS[p.jogo].titulo)}` : p.tipo === 'banco' ? (p.pesca ? `${ico('gente')} Pescar no ${p.b.lugar.startsWith('Deck') ? 'deck' : 'píer'}` : `${ico('gente')} Sentar ${p.b.degrau ? 'na Concha' : 'no banco'}`) : p.tipo === 'mural' ? `${ico('tacha')} Abrir o Mural` : p.tipo === 'banca' ? `${ico('banca')} Banca do dia` : p.tipo === 'lote' ? `${ico('plus')} Lote livre` : meu ? `${ico('home')} Tua casa` : `${ico('home')} Bater na porta de @${esc(p.c.handle)}`;
+    b.innerHTML = p.tipo === 'morador' ? `${ico('chat')} Trocar ideia com ${esc(p.m.nome)}` : p.tipo === 'barco' ? `${ico('peixe')} Pegar um barquinho` : p.tipo === 'aeroporto' ? `${ico('aviao')} Voar (${C.correalTxt(precoVoo())})` : p.tipo === 'sebo' ? `${ico('musica')} Entrar no Sebo` : p.tipo === 'calcadao' ? `${ico('gente')} Entrar no Calçadão 3D` : p.tipo === 'atelie' ? `${ico('star')} Ateliê: skins` : p.tipo === 'torneio' ? `${ico('peixe')} Torneio de Pesca` : p.tipo === 'beisebol' ? `${ico('raio')} Jogar beisebol na ACEL` : p.tipo === 'quadra' ? `${ico('raio')} ${p.k === 'quadra-futsal' ? 'Desafio de pênalti' : 'Desafio de arremesso'}` : p.tipo === 'publi' ? `${ico('ext')} ${esc((PUBLI[p.k] || {}).nome || '')}: baixar o app` : p.tipo === 'pista' ? `${ico('raio')} ${p.k === 'moto' ? 'Autódromo do Café' : 'Corrida de patinete'}` : p.tipo === 'civico' ? `${ico('raio')} ${esc(CIVICOS[p.k].entra)}` : p.tipo === 'barraca' ? (aberta(p.b) ? `${ico(p.b.ico)} ${esc(p.b.botao)}` : `${ico('eye')} Hórus desligado: ligar`) : p.tipo === 'comida' ? `${ico('banca')} ${esc(COMIDAS[p.k][0])}` : p.tipo === 'aquario' || p.tipo === 'jogo' ? `${ico('play')} Jogar ${esc(JOGOS[p.jogo].titulo)}` : p.tipo === 'placa' ? `${ico('eye')} Ler: ${esc(p.titulo)}` : p.tipo === 'banco' ? (p.pesca ? `${ico('gente')} Pescar no ${p.b.lugar.startsWith('Deck') ? 'deck' : 'píer'}` : `${ico('gente')} Sentar ${p.b.degrau ? 'na Concha' : 'no banco'}`) : p.tipo === 'mural' ? `${ico('tacha')} Abrir o Mural` : p.tipo === 'banca' ? `${ico('banca')} Banca do dia` : p.tipo === 'lote' ? `${ico('plus')} Lote livre` : meu ? `${ico('home')} Tua casa` : `${ico('home')} Bater na porta de @${esc(p.c.handle)}`;
   }
   function tamanhoTela(){
     const st = C.$('cvr-stage'); if(!st || !V.cv) return;
@@ -4929,8 +5329,8 @@
     fechaJogo(true);
     let el = document.getElementById('cvr-jogo');
     if(!el){ el = document.createElement('div'); el.id = 'cvr-jogo'; el.className = 'cvr-jogo'; document.body.appendChild(el); }
-    el.innerHTML = `<div class="cvr-jogo-top"><span class="cvr-jogo-t"><b>${esc(j.titulo)}</b><small>${esc(NOME_C.aquario)} · ${esc(j.sub)}</small></span><button type="button" class="cvr-bc-b cvr-jogo-x" data-act="cvr-jogo-sair">${ico('x')}<span>Sair do aquário</span></button></div>
-      <div class="cvr-jogo-corpo"><div class="cvr-jogo-load" id="cvr-jogo-load">Enchendo o tanque…</div><iframe id="cvr-jogo-fr" src="${esc(j.src)}" title="${esc(j.titulo)}" allow="autoplay; fullscreen"></iframe></div>`;
+    el.innerHTML = `<div class="cvr-jogo-top"><span class="cvr-jogo-t"><b>${esc(j.titulo)}</b><small>${esc(j.onde || NOME_C.aquario)} · ${esc(j.sub)}</small></span><button type="button" class="cvr-bc-b cvr-jogo-x" data-act="cvr-jogo-sair">${ico('x')}<span>${esc(j.sair || 'Sair do aquário')}</span></button></div>
+      <div class="cvr-jogo-corpo"><div class="cvr-jogo-load" id="cvr-jogo-load">${esc(j.carrega || 'Enchendo o tanque…')}</div><iframe id="cvr-jogo-fr" src="${esc(j.src)}" title="${esc(j.titulo)}" allow="autoplay; fullscreen"></iframe></div>`;
     el.hidden = false;
     const fr = el.querySelector('iframe'); fr.addEventListener('load', () => { const l = document.getElementById('cvr-jogo-load'); if(l) l.hidden = true; try{ fr.contentWindow.focus(); }catch(e){} });
     V.jogo = { id, hist: false, ignora: 0 }; V.teclas.clear();
@@ -5324,7 +5724,9 @@
     if(p.tipo === 'banca'){ abreBalcao(BC_BANCA); return; }
     if(p.tipo === 'banco'){ const b = p.b; V.alvo = null; V.eu.x = b.x; V.eu.y = b.y + (b.degrau ? 0 : 2); V.eu.sit = true; V.eu.mov = false; V.eu.dir = 'baixo'; V.eu.pesca = p.pesca ? { ate: Date.now() + 3500 + Math.random() * 3500 } : null; portaUI(); enviaPos(true); if(p.pesca) C.toast('Jogou a linha. Espera que uma hora fisga.', 2800); return; }
     if(p.tipo === 'comida'){ come(p.k); return; }
-    if(p.tipo === 'aquario'){ abreJogo(p.jogo); return; }
+    if(p.tipo === 'aquario' || p.tipo === 'jogo'){ abreJogo(p.jogo); return; }
+    /* v3.82: as placas do Parque Arthur Thomas */
+    if(p.tipo === 'placa'){ C.toast(p.txt, 8000); return; }
     if(p.tipo === 'civico'){ trampoSheet(p.k); return; }
     if(p.tipo === 'tarefa'){ if(V.mjIgn && Date.now() - V.mjIgn < 800){ V.mjIgn = 0; return; } agirTarefa(); return; }
     if(p.tipo === 'lote'){
@@ -5345,7 +5747,7 @@
       <div class="meta">${nums || '<span class="note">Casa nova no pedaço.</span>'}</div>
       ${p.dois ? '<p class="fine">Dois quarteirões, um do lado do outro, ligados pela passarela por cima da rua: a casa e o estúdio. Só tem um desses no Correverso.</p>' : meu ? `<p class="fine">Todo mundo tem um quarteirão. A casa cresce com o que você faz no Corre: posts, seguidores, itens no catálogo e escolhas no Mural. Dinheiro não conta. Nível ${c.tier} de 4.</p>` : ''}
       <div class="acts">${PV ? '' : `<button type="button" class="btn pri" data-act="cvr-casa-entrar" data-id="${esc(c.id)}">${ico('home')} ${meu ? 'Entrar na casa' : 'Visitar a casa'}</button>`}<button type="button" class="btn" data-act="cvr-perfil" data-h="${esc(c.handle)}" data-meu="${meu ? '1' : ''}" data-cor="${esc((CASA[c.cat] || CASA.outros).a)}">${ico('eu')} ${meu ? 'Meu perfil' : 'Ver perfil'}</button>${meu ? `<button type="button" class="btn" data-act="cvr-avatar">${ico('edit')} Mudar avatar</button>` : ''}${!meu && C.msg && C.uid() && c.handle ? `<button type="button" class="btn" data-act="cvr-msg" data-h="${esc(c.handle)}" data-cor="${esc((CASA[c.cat] || CASA.outros).a)}">${ico('send')} Mensagem</button>` : ''}</div>
-      ${(meu || mansao || templo) && PV ? `<p class="fine">${templo ? 'Egito, Rosacruz e Maçonaria: o templo de 7 metros com o pavimento de mosaico, as colunas B e J, o Oriente com o trono e o delta, a rosa-cruz e o mural do Egito; a biblioteca hermética com o sarcófago, a câmara de reflexão, o quarto do faraó, o estúdio, o closet e, no mezanino, o gabinete com todas as ferramentas.' : mansao ? 'Concreto aparente do chão ao teto: o salão de 7 metros com o mural de mosaico do cosmos, a lareira, o lustre Sputnik e o piano; a bânia, a biblioteca com a radiola e, no mezanino, o gabinete com todas as ferramentas e o telefone vermelho.' : loft ? 'Lá dentro: sala com pé-direito duplo, cozinha, estúdio, closet e o escritório no mezanino, com todas as tuas ferramentas.' : 'Por dentro, a casa é em 3D: o escritório tem as tuas ferramentas e a loja tem os móveis (de graça por enquanto).'}</p>` : ''}</div>`);
+      ${(meu || mansao || templo) && PV ? `<p class="fine">${templo ? 'Egito e Rosacruz: o templo de 7 metros com o tablado de dentes de serra, a passadeira vermelha, a Shekinah e as três velas, o Oriente com a rosa-cruz e o sol alado, e o mural do Egito; a biblioteca hermética com o sarcófago, a sala do Umbral, o quarto do faraó, o estúdio, o closet e, no mezanino, o gabinete com todas as ferramentas.' : mansao ? 'Concreto aparente do chão ao teto: o salão de 7 metros com o mural de mosaico do cosmos, a lareira, o lustre Sputnik e o piano; a bânia, a biblioteca com a radiola e, no mezanino, o gabinete com todas as ferramentas e o telefone vermelho.' : loft ? 'Lá dentro: sala com pé-direito duplo, cozinha, estúdio, closet e o escritório no mezanino, com todas as tuas ferramentas.' : 'Por dentro, a casa é em 3D: o escritório tem as tuas ferramentas e a loja tem os móveis (de graça por enquanto).'}</p>` : ''}</div>`);
     if(PV && PV.previa){
       const cv = C.$('cvr-previa'), dono0 = meu ? C.st.me : { id: c.id, handle: c.handle };
       requestAnimationFrame(() => { if(cv && cv.isConnected) PV.previa(cv, dono0); });

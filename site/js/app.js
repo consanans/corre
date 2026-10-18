@@ -559,6 +559,9 @@
     ['Ateliê', 'star', 'A loja de skins', 'skin skins loja roupa fantasia uniforme atelie'],
     ['Estádio do Café', 'verso', 'O estádio da cidade', 'futebol estadio'],
     ['Aeroporto', 'aviao', 'Voo pra qualquer canto da cidade', 'voo voar aviao viajar paraquedas'],
+    ['Parque Arthur Thomas', 'verso', 'Mata, trilhas, macacos-prego e a Usina de 1939', 'parque arthur thomas mata trilha macaco macacos prego quati usina cambe lago'],
+    ['Jaula dos Macacos', 'play', 'O jogo Elo Perdido', 'elo perdido jogo jaula macaco macacos simao'],
+    ['Salto Beija-Flor', 'verso', 'A cachoeira do Arthur Thomas', 'salto beija flor cachoeira queda agua basalto'],
     ['Bosque dos Ipês', 'verso', 'Ipê florido o ano inteiro', 'bosque ipe ipes arvores'],
     ['Gleba Palhano', 'verso', 'Os prédios altos', 'predios gleba']
   ].map(([t, i, s, kw]) => ({ tipo: 'v', key: 'v:' + t, t, s, i, lugar: t, kw }));
