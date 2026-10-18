@@ -3513,8 +3513,11 @@
     const k = Math.min(1, dt * 6); V.cam.x += (tx - V.cam.x) * k; V.cam.y += (ty - V.cam.y) * k;
     /* v3.75: no barco, a única porta é a do píer (pra descer), e de um pouco mais longe (o barco não encosta) */
     let melhor = null, md = e.barco ? 100 : PORTA_R; if(!V.voo) for(const p of V.portas){ if(e.barco && (p.tipo !== 'barco' || !e.barco.livre)) continue; const d = Math.hypot(p.x - e.x, p.y - e.y); if(d < md){ md = d; melhor = p; } }
-    /* v3.76: perto de um morador (e de nenhuma porta mais perto), o botão é "Trocar ideia" */
-    if(!e.barco && !V.voo && V.moradores){ let fala = null, df = 80; for(const m of V.moradores){ const d = Math.hypot(m.x - e.x, m.y - e.y); if(m.papo && m.papo.eu && d < df){ df = d; fala = m; } else if(!fala && d < Math.min(md, 56)){ md = d; melhor = m.porta; } } if(fala) melhor = fala.porta; }
+    /* v3.76: perto de um morador (e de nenhuma porta mais perto), o botão é "Trocar ideia".
+       v3.77: entrada de verdade (loja, Sebo, Ateliê, casa, o Calçadão 3D) ganha sempre de morador, mesmo ele falando com
+       você: o Rafa do Pix mora na porta do Sebo e tomava o botão de entrar. Só o banco (sentar) cede pra quem conversa */
+    const firme = melhor && melhor.tipo !== 'banco' && md < 40;
+    if(!e.barco && !V.voo && V.moradores && !firme){ let fala = null, df = 80; for(const m of V.moradores){ const d = Math.hypot(m.x - e.x, m.y - e.y); if(m.papo && m.papo.eu && d < df){ df = d; fala = m; } else if(!fala && d < Math.min(md, 56)){ md = d; melhor = m.porta; } } if(fala) melhor = fala.porta; }
     if(V.portaT && !V.voo && !e.barco) melhor = V.portaT;
     if(melhor !== V.porta){ V.porta = melhor; portaUI(); }
     const zn = zonaDe(e.x, e.y); if(zn !== V.zona){ V.zona = zn; const zb = C.$('cvr-zona'); if(zb){ zb.hidden = !zn; zb.innerHTML = zn ? `${ico('pin')} ${esc(zn)}` : ''; } }
