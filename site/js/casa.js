@@ -1034,7 +1034,7 @@
      Bretas Barros: as "correntes entrelaçadas". Nos trechos 1 a 4 virou paver (de 2010 em diante), cinza com os elos
      em vermelho e amarelo; só o trecho 5 (da Rio de Janeiro à Minas Gerais) ainda tem a pedra portuguesa com o desenho
      de sempre. As luminárias originais são as araucárias de 5 globos (ficaram no trecho 5); nos outros, poste de LED.
-     Bancos de peroba em estrutura preta (os originais) e de concreto com encosto (os da reforma), floreiras, o quiosque
+     Bancos de peroba em estrutura preta (os originais) e de concreto com encosto (os da reforma), os vasos redondos de concreto, o quiosque
      geométrico com guarda-sol, a fonte luminosa e o orelhão. Na esquina da Rio de Janeiro, o Edifício América com o
      Relojão no alto (aqui ele marca a hora de Brasília de verdade); a Praça Marechal Floriano abre um lado do trecho 4,
      com a Catedral (o telhado de chalé) lá atrás; no trecho 5, a Praça Willie Davids e, do outro lado dela, o Cine
@@ -1046,19 +1046,21 @@
     concreto: '#BDB7AC', concretoE: '#9E988D', poste: '#23262D', globo: '#FFF4D6', peroba: '#8E5B33', perobaE: '#70452A', ferro: '#1E2026', grama: '#D6BE79', caminho: '#D9D1C1', terra: '#5A3A22', folha: '#8A603A', ipeAm: '#F5C542' };
   /* o elo visto de cima é um octógono (retângulo de canto cortado); octR é o mesmo girado e posto no lugar */
   const octR = (cx, cz, a, b, c, th) => { const co = Math.cos(th), si = Math.sin(th); return [[-a + c, -b], [a - c, -b], [a, -b + c], [a, b - c], [a - c, b], [-a + c, b], [-a, b - c], [-a, -b + c]].map(([x, z]) => [cx + x * co - z * si, cz + x * si + z * co]); };
-  /* as correntes entrelaçadas: duas famílias de correntes em diagonal, uma pra cada lado, elo atrás de elo; onde elas
-     se cruzam fecha o losango (o "quadriculado" que o povo fala). O polígono do chão não tem furo, então o elo é o anel
-     escuro com o miolo da cor do chão por cima, e o elo que vem depois passa por cima do de antes (o entrelaçado).
-     O passo e o espaço entre as correntes casam (espaço = 2,5 passos): os elos das duas famílias se encontram no centro */
+  /* as correntes entrelaçadas. v3.78, pela foto que o Thales mandou do trecho 5: o elo é RETANGULAR e a corrente anda
+     alinhada com a rua, atravessando o Calçadão (a 3.77 tinha posto em diagonal, pela leitura das descrições). Em cada
+     fileira alterna o elo aberto (o quadro escuro com o miolo claro, deitado) e o elo de lado (a barra escura cheia, que
+     entra nos dois vizinhos: por cima do de antes e por baixo do de depois, o entrelaçado). A fileira seguinte anda meio
+     passo, então a barra de uma cai no meio do quadro da outra e o desenho fecha em degrau: o "quadriculado" que o povo
+     fala. O polígono do chão não tem furo: o quadro é o retângulo escuro com o miolo da cor do chão por cima */
   function correntes(x0, z0, x1, z1, o){
-    const out = [], dc = o.esp * Math.SQRT2, dz = o.passo / Math.SQRT2, ca = Math.min(o.a, o.b) * .62;
-    [1, -1].forEach((dir, f) => {
-      const th = dir * Math.PI / 4, cor = Array.isArray(o.cor) ? o.cor[f] : o.cor, cMin = dir > 0 ? x0 - z1 : x0 + z0, cMax = dir > 0 ? x1 - z0 : x1 + z1;
-      for(let c = Math.floor(cMin / dc) * dc; c <= cMax + dc; c += dc) for(let z = Math.floor(z0 / dz) * dz; z <= z1 + dz; z += dz){
-        const x = dir > 0 ? c + z : c - z; if(x < x0 - .3 || x > x1 + .3 || z < z0 - .3 || z > z1 + .3) continue;
-        out.push({ pts: octR(x, z, o.a, o.b, ca, th), c: cor }, { pts: octR(x, z, o.a - o.t, o.b - o.t, Math.max(.04, ca - o.t * .45), th), c: o.fundo });
+    const out = [], P = o.quadro + o.barra - 2 * o.cruza;
+    for(let r = 0, z = z0 - o.alto / 2; z < z1; r++, z += o.passoZ){
+      const off = (r % 2) * P / 2, bz = z + (o.alto - o.barraAlto) / 2, c2 = o.cor2 || o.cor;
+      for(let x = x0 - P + off; x < x1 + .3; x += P){
+        out.push(ret(x, z, x + o.quadro, z + o.alto, o.cor), ret(x + o.t, z + o.t, x + o.quadro - o.t, z + o.alto - o.t, o.fundo));
+        const bx = x + o.quadro - o.cruza; out.push(ret(bx, bz, bx + o.barra, bz + o.barraAlto, c2));
       }
-    });
+    }
     return out;
   }
   /* a face de um prédio (pra pôr imagem): eixo 'x' é a parede em x = pos (de a0 a a1 em z), olhando pra +x (s = 1) ou
@@ -1175,8 +1177,11 @@
   const bancoPeroba = () => [B(.04, 0, .12, .44, .4, .07, KC.ferro), B(.04, 0, 2.01, .44, .4, .07, KC.ferro), ...[0, 1, 2, 3].map(i => B(.03 + i * .115, .4 + (3 - i) * .012, 0, .1, .05, 2.2, i % 2 ? KC.perobaE : KC.peroba)),
     B(-.04, .45, .12, .06, .55, .07, KC.ferro), B(-.04, .45, 2.01, .06, .55, .07, KC.ferro), B(-.07, .66, 0, .06, .11, 2.2, KC.peroba), B(-.07, .84, 0, .06, .11, 2.2, KC.perobaE)];
   const bancoConcreto = () => [B(.06, 0, .14, .38, .38, .3, KC.concretoE), B(.06, 0, 1.76, .38, .38, .3, KC.concretoE), B(0, .38, 0, .5, .1, 2.2, KC.concreto), B(-.1, .48, 0, .12, .52, 2.2, KC.concreto)];
-  /* a floreira (do desenho original; em 2019 ganharam flor colorida): sem verde, a folhagem é de palha escura */
-  const floreira = (c1, c2) => [B(0, 0, 0, .9, .5, 2, KC.concreto), B(.06, .5, .06, .78, .03, 1.88, KC.terra), ...[0, 1, 2, 3].map(i => B(.1 + (i % 2) * .36, .53, .15 + Math.floor(i / 2) * .9, .34, .26, .7, KC.folha)), ...Array.from({ length: 6 }, (_, i) => B(.15 + (i % 2) * .4, .76 + sorte(i + 9) * .1, .2 + Math.floor(i / 2) * .6, .16, .1, .16, i % 3 ? c1 : c2))];
+  /* o vaso redondo de concreto (os da foto, enfileirados no meio e na beira; em 2019 ganharam flor colorida): o oito
+     lados sai de duas caixas, uma girada (só a reta conta pra trombar). Sem verde: a folhagem é de palha escura */
+  const vaso = (c1, c2) => { const g = { yaw: Math.PI / 4, piv: [0, 0, 0] }; return [B(-.5, 0, -.5, 1, .46, 1, KC.concreto), Object.assign(B(-.5, 0, -.5, 1, .46, 1, KC.concreto), g),
+    B(-.44, .46, -.44, .88, .03, .88, KC.terra), ...[[-.22, -.2], [.12, -.16], [-.08, .16], [.2, .2]].map(([x, z], i) => B(x - .14, .49, z - .14, .28, .22 + (i % 2) * .1, .28, KC.folha)),
+    ...[[-.25, .05], [.18, -.25], [.05, .24], [-.05, -.05], [.27, .08]].map(([x, z], i) => B(x - .07, .68 + (i % 2) * .08, z - .07, .14, .1, .14, i % 2 ? c2 : c1))]; };
   const frade = () => [B(-.13, 0, -.13, .26, .72, .26, KC.concreto), B(-.15, .72, -.15, .3, .06, .3, KC.concretoE)];
   /* a sibipiruna: copa larga e baixa, dourada, com as flores amarelas */
   /* a copa vai num dourado puxado pro laranja: o amarelo puro, na sombra, vira oliva (e aqui não tem verde) */
@@ -1218,9 +1223,9 @@
     const W = 48, D = 84, K = { n: 0, decor: [], imgs: [], luzes: [], assentos: [], gente: [] }, chao = [];
     /* o chão: o paver do trecho 4 (cinza, os elos em vermelho e amarelo, a faixa tátil) e a pedra portuguesa do trecho
        5 (o desenho original, preto no branco); a praça e a rua vêm depois e cobrem o elo que passou da beira */
-    chao.push(ret(-2, -40, 50, 0, KC.paver), ...correntes(8, 0, 28, 34, { esp: 4, passo: 1.6, a: 1, b: .5, t: .2, cor: [KC.paverV, KC.paverA], fundo: KC.paver }));
+    chao.push(ret(-2, -40, 50, 0, KC.paver), ...correntes(8, 0, 28, 34, { quadro: 2, alto: 1.1, t: .29, barra: 1.05, barraAlto: .5, cruza: .29, passoZ: 1.62, cor: KC.paverV, cor2: KC.paverA, fundo: KC.paver }));
     chao.push(ret(11.8, 0, 12.2, 34, KC.tatil), ret(11.8, -40, 12.2, -9, KC.tatil));
-    chao.push(...correntes(8, 44, 28, 84, { esp: 4, passo: 1.6, a: 1, b: .5, t: .17, cor: KC.pedraP, fundo: KC.pedra }));
+    chao.push(...correntes(8, 44, 28, 84, { quadro: 2, alto: 1.1, t: .31, barra: 1.05, barraAlto: .52, cruza: .31, passoZ: 1.62, cor: KC.pedraP, fundo: KC.pedra }));
     /* as ruas: a São Paulo lá na frente, a Rio de Janeiro no meio e a Minas Gerais atrás da entrada; meio-fio,
        faixa amarela dupla no meio e a faixa de pedestre na largura do Calçadão */
     const rua = (z0, z1) => { chao.push(ret(-30, z0, 78, z1, KC.asfalto), ret(-30, z0 - .15, 78, z0 + .12, KC.meioFio), ret(-30, z1 - .12, 78, z1 + .15, KC.meioFio));
@@ -1289,7 +1294,7 @@
       B(52, 0, 10, 26, 8.5, 14, '#E9E1D0'), Object.assign(B(51.4, 8.5, 10, 27.2, .35, 17.5, '#5E6672'), { pitch: -1.16, piv: [52, 8.5, 10] }), Object.assign(B(51.4, 8.5, 6.5, 27.2, .35, 17.5, '#5E6672'), { pitch: 1.16, piv: [52, 8.5, 24] }),
       B(51.85, 24.2, 16.9, .2, 3.4, .2, OURO), B(51.85, 26.2, 16.2, .2, .2, 1.6, OURO)] });
     K.imgs.push({ P4: faceP4('x', 51.97, 10, 24, 8.5, 24.5, -1), img: () => calcImg('empena', 300, 340, empenaCatedral), cor: '#ECE5D4' }, { P4: faceP4('x', 51.97, 10, 24, 0, 8.5, -1), img: () => calcImg('catFrente', 300, 180, frenteCatedral), cor: '#E9E1D0' });
-    /* os móveis do trecho 5: araucárias, ipês, os bancos de peroba, floreiras, o quiosque, as mesas, o banquinho do
+    /* os móveis do trecho 5: araucárias, ipês, os bancos de peroba, os vasos redondos, o quiosque, as mesas, o banquinho do
        músico e o pano da artesã */
     const banco = (x, z, tipo, l, nome) => { const bl0 = tipo === 'peroba' ? bancoPeroba() : bancoConcreto(), bl = l > 0 ? bl0 : espelhaX(bl0, .5), i = K.decor.length;
       K.decor.push({ x, z, bl, acao: 'senta', banco: i, nome: nome || 'Sentar no banco' });
@@ -1298,7 +1303,8 @@
     [47, 59, 71, 83].forEach(z => { K.decor.push({ x: 11.2, z, bl: araucaria() }, { x: 24.8, z, bl: araucaria() }); K.luzes.push({ mancha: [11.2, .004, z, 2.6, 2.6, .17, 0, '255,240,200'] }, { mancha: [24.8, .004, z, 2.6, 2.6, .17, 0, '255,240,200'] }); });
     [[10.2, 53, ROSA], [10.2, 65, KC.ipeAm], [10.2, 77, '#FFB3D1'], [24.2, 53, PAPEL], [24.2, 77, LILAS]].forEach(([x, z, c]) => K.decor.push({ x, z, bl: ipe(c, 1.7) }));
     const bTrecho5 = [banco(8.9, 49.4, 'peroba', 1), banco(8.9, 61.4, 'peroba', 1), banco(8.9, 73.4, 'peroba', 1), banco(26.6, 49.4, 'peroba', -1), banco(26.6, 61.4, 'peroba', -1), banco(26.6, 73.4, 'peroba', -1)];
-    [[47.5, ROSA, AMARELO], [56, LARANJA, PAPEL], [80, LILAS, ROSA]].forEach(([z, a, b]) => K.decor.push({ x: 17.55, z: z - 1, bl: floreira(a, b) }));
+    [[47.5, ROSA, AMARELO], [56, LARANJA, PAPEL], [80, LILAS, ROSA], [9.9, 45.5, AMARELO, LILAS], [9.9, 69.5, ROSA, PAPEL], [9.9, 79.5, LARANJA, ROSA], [26.2, 45.5, LILAS, AMARELO], [26.2, 57.5, PAPEL, ROSA], [26.2, 69.9, ROSA, LARANJA]]
+      .forEach(v => { const [x, z, a, b] = v.length === 3 ? [18, ...v] : v; K.decor.push({ x, z, bl: vaso(a, b) }); });
     K.decor.push({ x: 18, z: 67, bl: quiosque() });
     K.imgs.push(...[['z', 65.78, 16.5, 19.5, -1], ['z', 68.22, 16.5, 19.5, 1]].map(([e, p, a0, a1, s]) => ({ P4: faceP4(e, p, a0, a1, 2.55, 2.7, s), img: () => calcImg('sucos', 200, 24, placaLoja({ nome: 'SUCOS · VITAMINAS', fundo: LARANJA, cor: PAPEL })), cor: LARANJA })));
     const mesa = (x, z, c) => { const i = K.decor.length; K.decor.push({ x, z, bl: mesaSol(c), acao: 'senta', banco: i, nome: 'Sentar na mesa' }); K.assentos.push({ x: x - .9, z, yaw: Math.PI / 2, banco: i, quem: null }, { x: x + .9, z, yaw: -Math.PI / 2, banco: i, quem: null }); return K.assentos.length - 2; };
@@ -1310,12 +1316,13 @@
     K.decor.push({ x: 30.2, z: 60.6, bl: [B(-.05, 0, -.05, .1, 1.1, .1, '#3A3E45'), B(-.4, 1.1, -.05, .8, .5, .08, '#5A3A22')] });
     K.decor.push({ x: 31.2, z: 62, bl: ipe(ROSA, 1.6) }, { x: 33.6, z: 74.6, bl: ipe(KC.ipeAm, 1.6) }, { x: 34.2, z: 58, bl: sibipiruna() });
     const bWillie = [banco(32.6, 64.2, 'peroba', -1), banco(32.6, 69.6, 'peroba', -1)];
-    /* o trecho 4: postes de LED, bancos de concreto, a fonte luminosa, floreiras, os carrinhos, a caixa de som do
+    /* o trecho 4: postes de LED, bancos de concreto, a fonte luminosa, os vasos, os carrinhos, a caixa de som do
        locutor, o totem e as placas de rua */
     [5, 17, 29].forEach(z => { K.decor.push({ x: 11.2, z, bl: posteLed(1) }, { x: 24.8, z, bl: posteLed(-1) }); K.luzes.push({ mancha: [12, .004, z, 2.4, 2.4, .15, 0, '235,240,255'] }, { mancha: [24, .004, z, 2.4, 2.4, .15, 0, '235,240,255'] }); });
     const bTrecho4 = [banco(8.9, 9.4, 'concreto', 1), banco(8.9, 21.4, 'concreto', 1), banco(26.6, 1.4, 'concreto', -1), banco(26.6, 28.2, 'concreto', -1)];
     K.decor.push({ x: 18, z: 14, bl: fonte() });
-    [[4.5, AMARELO, ROSA], [24.5, LILAS, LARANJA], [30.5, ROSA, PAPEL]].forEach(([z, a, b]) => K.decor.push({ x: 17.55, z: z - 1, bl: floreira(a, b) }));
+    [[4.5, AMARELO, ROSA], [24.5, LILAS, LARANJA], [30.5, ROSA, PAPEL], [9.9, 18.5, ROSA, AMARELO], [9.9, 25.4, LILAS, PAPEL], [26.2, 5.5, AMARELO, LARANJA]]
+      .forEach(v => { const [x, z, a, b] = v.length === 3 ? [18, ...v] : v; K.decor.push({ x, z, bl: vaso(a, b) }); });
     K.decor.push({ x: 22.8, z: 21.2, bl: carrinho('pipoca') }, { x: 12, z: 30.2, bl: carrinho('milho') }, { x: 26.4, z: 12.2, bl: carrinho('fruta') });
     K.decor.push({ x: 8.3, z: 4.2, bl: [B(0, 0, 0, .5, .85, .45, '#1B1D22'), B(.5, .5, .1, .01, .25, .25, '#3A3E45'), B(.5, .15, .1, .01, .25, .25, '#3A3E45')] });
     K.decor.push({ x: 30.2, z: 15.5, bl: [B(-.3, 0, -.3, .6, .32, .6, MAD)] });
