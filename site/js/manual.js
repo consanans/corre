@@ -6,13 +6,14 @@
   'use strict';
   const C = window.Corre, { esc, ico } = C;
   /* sobe esse número a cada atualização: quem já viu recebe de novo, abrindo nas novidades */
-  const VERSAO = '3.82';
+  const VERSAO = '3.83';
   const K = 'corre-manual-visto';
 
   /* O que tem de novo: só o que é super relevante pra galera (o Thales, v3.67). No máximo 8, o mais novo em cima, uma ou
      duas frases cada, no jeito de quem conta pro amigo. Conserto, acabamento e detalhe técnico não entram aqui (moram no
      CLAUDE.md); novidade grande que chega empurra a mais velha pra fora */
   const NOVIDADES = [
+    ['mapa', 'A cidade no mapa de Londrina', 'O Correverso foi pro lugar de verdade: o Estádio do Café no norte, o Zerão do lado do Igapó, o lago descendo até o Arthur Thomas, a Gleba do outro lado e o Aeroporto lá em cima. As casas mudaram de quarteirão; no Mapa, "Tua casa" leva direto.'],
     ['verso', 'Parque Arthur Thomas', 'A mata do Arthur Thomas chegou na cidade, do lado do Igapó: trilhas, o lago, a Usina de 1939, o Salto Beija-Flor e as placas que contam a história. Os macacos-prego pulam de galho em galho (não leva comida, que eles pegam), e na Jaula dos Macacos tem o jogo Elo Perdido.'],
     ['troca', 'Armário da casa', 'Na tua casa, para na frente do guarda-roupa: ele abre o teu avatar ali mesmo e você troca de skin (as do Ateliê também) sem sair pra rua.'],
     ['carro', 'Corrida com ronco e trilha', 'No kart e no Autódromo do Café (de moto ou de carro), o motor ronca e troca de marcha, o pneu canta na derrapagem e cada turbo, salto e batida faz barulho. Da contagem até a chegada toca "Pé na Tábua", a trilha de adrenalina feita aqui no Corre.'],
@@ -20,7 +21,6 @@
     ['gente', 'Cidade mais viva', 'Os moradores do Correverso andam, sentam e puxam papo quando você para perto (o botão amarelo pede mais uma). E o Zerão ganhou pista de skate: rampa, bowl, corrimão, manobra no ar e combo.'],
     ['peixe', 'Rio Tibagi', 'O Tibagi corre embaixo da cidade inteira. No Porto ou na Prainha você pega um barquinho e sai pescando piapara: espera a boia afundar, puxa na hora e segura a briga sem arrebentar a linha.'],
     ['recibo', 'Menu novo: a Comanda', 'No alto do menu, a comanda do teu dia: post atrasado, cliente pra retornar, cobrança vencida. Zerou, carimbo de tudo em dia. Embaixo, os teus blocos: o Corre monta pelo que você mais usa, ou você fixa e arrasta do teu jeito.'],
-    ['star', 'Ateliê: skins novas', '18 skins pro teu boneco, de Faraó a Diva do Calçadão, compradas com correal. O Ateliê tá no mapa da cidade, e dá pra provar antes no teu avatar.'],
   ];
   /* cada página: o que é, pra que serve no teu dia, e o botão que leva lá */
   const PAGINAS = [

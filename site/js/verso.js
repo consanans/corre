@@ -1399,26 +1399,28 @@
   const lotXY = (c, r) => ({ x: RUA + c * (LW + RUA), y: TOPO + r * (LH + RUA) });
   const ret = (c0, r0, c1, r1) => { const a = lotXY(c0, r0); return { x: a.x, y: a.y, w: (c1 - c0 + 1) * (LW + RUA) - RUA, h: (r1 - r0 + 1) * (LH + RUA) - RUA }; };
   const ruaY = s => TOPO - RUA / 2 + s * (LH + RUA), ruaX = i => RUA / 2 + i * (LW + RUA);
-  const CENTRO = { teatro: [4, 3], concha: [5, 3], praca: [6, 3], catedral: [7, 3], museu: [8, 3], arte: [9, 3], aquario: [0, 8], delegacia: [4, 2], bombeiros: [5, 2], hospital: [8, 2] };
+  const CENTRO = { teatro: [4, 3], concha: [5, 3], praca: [6, 3], catedral: [7, 3], museu: [8, 3], arte: [9, 3], aquario: [1, 8], delegacia: [4, 2], bombeiros: [5, 2], hospital: [8, 2] };
   const NOME_C = { teatro: 'Teatro Ouro Verde', concha: 'Concha Acústica', praca: 'Calçadão', catedral: 'Catedral', museu: 'Museu Histórico', arte: 'Museu de Arte', aquario: 'Aquário do Igapó', delegacia: 'Delegacia', bombeiros: 'Corpo de Bombeiros', hospital: 'Hospital do Corre' };
   /* o jogo do aquário: o Killer Ocean (feito pelo Lorenzo), servido daqui mesmo (site/jogos/) */
   /* v3.82: o Elo Perdido (o jogo que o Thales mandou) roda na Jaula dos Macacos do Parque Arthur Thomas; onde, sair e carrega
      dizem de onde é a moldura (sem eles, é a do Aquário) */
   const JOGOS = { killer: { id: 'killer', titulo: 'Killer Ocean', sub: 'por Lorenzo Malassise', src: 'jogos/killer-ocean.html' },
     elo: { id: 'elo', titulo: 'Elo Perdido', sub: 'simulador de primata quase humano', src: 'jogos/elo-perdido.html', onde: 'Jaula dos Macacos', sair: 'Sair da jaula', carrega: 'Abrindo o portão…' } };
+  /* v3.83 (o Thales, com o mapa de Londrina: "coloque as coisas da cidade mais ou menos onde elas estão em Londrina mesmo"):
+     o Centro no meio, em cima; o Estádio do Café (e o Autódromo, na porta dele) na zona norte; o Bosque colado no Centro;
+     o Zerão do lado do Moringão, na Higienópolis, entre o Centro e o começo do Igapó; o Igapó descendo pro sudeste até o
+     Parque Arthur Thomas (de onde vem o Ribeirão Cambé); a Gleba Palhano no sudoeste do lago; o Aeroporto a leste do
+     Centro, no canto de cima à direita; a ACEL embaixo dele. O Tibagi segue embaixo de tudo (o Thales pediu assim na 3.75) */
   const REGIOES = [
-    { k: 'bosque', nome: 'Bosque dos Ipês', c0: 1, r0: 3, c1: 3, r1: 5 },
-    { k: 'zerao', nome: 'Zerão', c0: 11, r0: 4, c1: 12, r1: 6 },
-    /* v3.82: o lago perdeu a última coluna pro Parque Arthur Thomas (o Ribeirão Cambé vem de lá) */
-    { k: 'lago', nome: 'Lago Igapó', c0: 1, r0: 7, c1: 10, r1: 9 },
-    { k: 'gleba', nome: 'Gleba Palhano', c0: 3, r0: 10, c1: 8, r1: 10 },
-    { k: 'estadio', nome: 'Estádio do Café', c0: 10, r0: 10, c1: 11, r1: 11 },
+    { k: 'bosque', nome: 'Bosque dos Ipês', c0: 2, r0: 1, c1: 3, r1: 2 },
+    { k: 'zerao', nome: 'Zerão', c0: 3, r0: 4, c1: 4, r1: 6 },
+    { k: 'lago', nome: 'Lago Igapó', c0: 2, r0: 7, c1: 10, r1: 9 },
+    { k: 'gleba', nome: 'Gleba Palhano', c0: 0, r0: 10, c1: 5, r1: 10 },
+    { k: 'estadio', nome: 'Estádio do Café', c0: 5, r0: 0, c1: 6, r1: 1 },
     { k: 'feira', nome: 'Feira do Corre', c0: 6, r0: 4, c1: 7, r1: 4 },
-    /* v3.40: o aeroporto, no canto mais longe do Centro (só tira lote de quem tá na ponta da cidade) */
-    { k: 'aeroporto', nome: 'Aeroporto de Londrina', c0: 0, r0: 10, c1: 2, r1: 11 },
-    /* v3.57: a ACEL e o campo de beisebol, no canto de cima à direita (lote de casa só chega lá depois da 44ª pessoa) */
-    { k: 'acel', nome: 'ACEL', c0: 11, r0: 0, c1: 12, r1: 1 },
-    /* v3.82: o Parque Arthur Thomas, na ponta do Igapó (o ribeirão desce de lá pro lago) */
+    /* o Thales: "joga o aeroporto pra cima e a ACEL pra baixo" */
+    { k: 'aeroporto', nome: 'Aeroporto de Londrina', c0: 10, r0: 0, c1: 12, r1: 1 },
+    { k: 'acel', nome: 'ACEL', c0: 11, r0: 4, c1: 12, r1: 5 },
     { k: 'arthur', nome: 'Parque Arthur Thomas', c0: 11, r0: 7, c1: 12, r1: 9 }
   ];
   /* ---------- a Feira do Corre: o menu inteiro em barracas, logo abaixo do Calçadão ----------
@@ -1450,11 +1452,14 @@
   const PREDIOS = ['branco', 'concreto', 'tijolo', '#D9B48F', '#B8C4CF', '#E8D7C3'];
   const CORES_CARRO = [AZUL, AMARELO, '#EEEBE4', '#1B1D22', LARANJA, '#C9CED6', ROSA, LILAS, '#8E4B2B'];
   const pega = (L, q) => L[Math.floor(q() * L.length)];
+  /* v3.83: os bairros pelo mapa de Londrina (o Centro em cima, a Higienópolis e o Kennedy a oeste, a Vila Brasil a leste,
+     o Lago Parque entre o Centro e o Igapó, e do outro lado do lago a Gleba, a Bela Suíça, o Colonial, o Caiçaras e o
+     Inglaterra) */
   function bairro(c, r){
-    if(r <= 2) return c <= 3 ? 'Vila Brasil' : c <= 9 ? 'Centro' : 'Vila Nova';
-    if(r <= 6) return c <= 3 ? 'Petrópolis' : c <= 9 ? (r === 3 ? 'Centro' : 'Vila Ipiranga') : 'Jardim Quebec';
-    if(r <= 9) return 'Jardim Shangri-lá';
-    return c <= 2 ? 'Guanabara' : c <= 8 ? 'Gleba Palhano' : 'Bela Suíça';
+    if(r <= 3) return c <= 3 ? 'Kennedy' : c <= 9 ? 'Centro' : 'Vila Brasil';
+    if(r <= 6) return c <= 4 ? 'Higienópolis' : c <= 8 ? 'Lago Parque' : c === 9 ? 'Jardim América' : 'Santos Dumont';
+    if(r <= 9) return c <= 1 ? 'Residencial do Lago' : c >= 11 ? 'Igapó' : 'Lago Igapó';
+    return c <= 5 ? 'Gleba Palhano' : c <= 7 ? 'Bela Suíça' : c <= 9 ? 'Colonial' : c === 10 ? 'Jardim Caiçaras' : 'Inglaterra';
   }
   const arvRua = (K, o, q, p) => [0, 1].forEach(lado => { if(q() < (p || .55)) K.arv.push({ x: o.x + (lado ? LW - 18 : 18), y: o.y + LH + 6, cor: pega(IPES, q) }); });
 
@@ -1568,7 +1573,8 @@
   /* Lago Igapó: comprido e sinuoso, com a margem em blocos */
   function montaLago(R, K, sorte){
     const B = 12, x0 = R.x + 150, n = Math.floor((R.w - 300) / B), x1 = x0 + n * B, meio = R.y + R.h / 2, tMin = R.y + 140, bMax = R.y + R.h - 140;
-    const cyF = x => meio + 92 * Math.sin(x / 560 + 1.7) + 30 * Math.sin(x / 240 + .6);
+    /* v3.83: o lago desce pro sudeste (a ponta de cá, perto da Higienópolis, fica mais alta; a de lá, perto do Arthur Thomas, mais baixa) */
+    const cyF = x => meio + 92 * Math.sin(x / 560 + 1.7) + 30 * Math.sin(x / 240 + .6) + (x - (R.x + R.w / 2)) * .07;
     const hwF = x => { const e = clamp(Math.min(x - x0, x1 - x) / 320, 0, 1); return Math.max(36, (172 + 68 * Math.sin(x / 410 + 2.3)) * (.3 + .7 * Math.sqrt(e))); };
     const cols = [];
     for(let i = 0; i < n; i++){
