@@ -61,8 +61,10 @@
   const cadeira = c => [B(.2, .45, .2, .6, .06, .6, c), B(.2, .51, .2, .6, .5, .08, c), B(.22, 0, .22, .07, .45, .07, MAD_E), B(.71, 0, .22, .07, .45, .07, MAD_E), B(.22, 0, .71, .07, .45, .07, MAD_E), B(.71, 0, .71, .07, .45, .07, MAD_E)];
   const mesaTrab = () => [B(0, .72, 0, 2, .06, 1, MAD), B(0, 0, .1, .08, .72, .8, MAD_E), B(1.92, 0, .1, .08, .72, .8, MAD_E), B(.7, .78, .3, .6, .4, .06, INK), B(.73, .81, .28, .54, .34, .02, CEU), B(.95, .78, .4, .1, .08, .1, INK), B(.6, .78, .62, .8, .03, .25, CINZA)];
   /* casa nova já vem com o básico (móvel, x, z, giro, andar, cor); a pessoa troca tudo depois */
-  const PADRAO_PADRAO = [['sofa', 8, 17, 0, 0, 0], ['mesa_centro', 8, 15, 0, 0, 0], ['rack_tv', 8, 12.3, 0, 0, 0], ['tapete_listra', 7.5, 14, 0, 0, 1], ['planta', 1, 18, 0], ['luminaria', 11, 18, 0, 0, 2], ['poster', 1, 12.15, 0, 0, 0], ['neon_coracao', 14, 12.15, 0, 0, 0],
-    ['cama_casal', 8, 4.5, 0, 0, 1], ['criado', 10, 4.5, 0], ['guarda_roupa', 7.4, 10.8, 0], ['tapete_quadrado', 10, 7.5, 0, 0, 2], ['poster', 11.5, 4.15, 0, 0, 2],
+  /* v3.81: a sala foi 1 m pra esquerda (o rack tampava metade da porta do quarto), e a cama e o criado saíram da frente
+     da porta da varanda */
+  const PADRAO_PADRAO = [['sofa', 7, 17, 0, 0, 0], ['mesa_centro', 7, 15, 0, 0, 0], ['rack_tv', 7, 12.3, 0, 0, 0], ['tapete_listra', 6.5, 14, 0, 0, 1], ['planta', 1, 18, 0], ['luminaria', 11, 18, 0, 0, 2], ['poster', 1, 12.15, 0, 0, 0], ['neon_coracao', 14, 12.15, 0, 0, 0],
+    ['cama_casal', 7.3, 4.5, 0, 0, 1], ['criado', 11.4, 4.5, 0], ['guarda_roupa', 7.4, 10.8, 0], ['tapete_quadrado', 10, 7.5, 0, 0, 2], ['poster', 11.5, 4.15, 0, 0, 2],
     ['geladeira', .4, 4.4, 0, 0, 0], ['fogao', 1.6, 4.4, 0], ['pia', 2.8, 4.4, 0], ['mesa_jantar', 2.5, 8, 0], ['cadeira', 1.5, 8.5, 1, 0, 1], ['cadeira', 4.5, 8.5, 3, 0, 1], ['balcao_cafe', 5.4, 4.4, 0],
     ['cadeira_praia', 2, 1, 0, 0, 0], ['mesa_redonda', 3.5, 1.2, 0], ['vaso', 17, .4, 0, 0, 2], ['pampa', 18.5, .4, 0]];
 
@@ -97,87 +99,14 @@
   ];
   const AGENTE = {}; AGENTES.forEach(a => { AGENTE[a.k] = a; });
   const agenteDe = dono => { const f = dono && dono.ferramentas && typeof dono.ferramentas === 'object' ? dono.ferramentas : {}; return AGENTE[f.agente] ? f.agente : 'zecaixa'; };
-  /* ---------- as plantas: a padrão (todo mundo) e o loft (a casa do @consanans) ---------- */
+  /* ---------- as plantas: a padrão (todo mundo); a do @consanans (o templo, v3.81) e a do @jeydiaz (a mansão, v3.80) ficam lá embaixo ---------- */
   const PLANTA_PADRAO = { k: 'padrao', W: 20, D: 20, ALT: 2.8, comodos: COMODOS_PADRAO, paredes: PAREDES_PADRAO, entrada: { x: 10, z: 20 }, padrao: PADRAO_PADRAO, tapete: { x: 9.3, z: 18.8, w: 1.4, d: 1 } };
-  /* o loft: pé-direito duplo na sala, janelões de ferro, parede de tijolo, cozinha aberta com ilha, escada de concreto e o
-     escritório inteiro no mezanino. Embaixo do mezanino: quarto, estúdio de som e closet. Tudo em 24 x 20. */
-  const ociaL = c => [B(0, .3, 0, 1.8, .1, 1.8, c), Object.assign(B(0, .3, 0, 1.8, .1, 1.8, c), { yaw: Math.PI / 4 }), B(.6, 0, .6, .6, .3, .6, MAD_E)];
-  const LOFT_DECOR = [
-    /* sala: sofá modular preto com almofadas, sofá roxo, mesas redondas, tapete, luminária, pampas, lustre de tubos */
-    { x: 3, z: 13.5, bl: [B(0, .12, 0, 4, .35, 1.1, INK), B(0, .47, 0, 4, .48, .3, '#1B1D22'), B(3, .12, 1.1, 1.1, .35, 1.3, INK), B(.3, .47, .35, .6, .32, .32, ROSA), B(1.2, .47, .35, .6, .32, .32, AMARELO), B(2.1, .47, .35, .6, .32, .32, LILAS), B(3.1, .47, .35, .6, .32, .32, PAPEL), B(3.1, .47, 1.3, .6, .3, .3, ROSA), ...pes(4, 1.1, .12, '#4A4E56')] },
-    { x: .5, z: 9.2, bl: [B(0, .12, 0, 1.1, .35, 3.2, '#5B3D8A'), B(0, .47, 0, .3, .5, 3.2, '#4A2F70'), B(.35, .47, .3, .6, .3, .5, LILAS), B(.35, .47, 1.3, .6, .3, .5, ROSA), B(.35, .47, 2.3, .6, .3, .5, PAPEL), ...pes(1.1, 3.2, .12, '#4A4E56')] },
-    { x: 5.2, z: 10.6, bl: ociaL(MAD) },
-    { x: 7, z: 11.6, bl: [B(.3, .2, .3, 1.2, .08, 1.2, MAD), Object.assign(B(.3, .2, .3, 1.2, .08, 1.2, MAD), { yaw: Math.PI / 4 }), B(.7, 0, .7, .4, .2, .4, MAD_E)] },
-    { x: 1.8, z: 9, piso: true, bl: [B(0, 0, 0, 8.5, .03, 6.5, '#D9C27F'), B(.3, .03, .3, 7.9, .006, 5.9, '#E3D1A0')] },
-    { x: 10.8, z: 16.2, bl: [B(.3, 0, .3, .4, .06, .4, INK), B(.46, .06, .46, .08, 1.5, .08, INK), B(.15, 1.56, .15, .7, .45, .7, PAPEL)] },
-    { x: .6, z: 18, bl: [B(.35, 0, .35, .3, .5, .3, '#4A4E56'), B(.42, .5, .42, .16, 1, .16, '#D9C27F'), B(.3, 1.4, .3, .4, .4, .4, '#EAD9A8'), B(.2, .9, .5, .1, .7, .1, '#D9C27F')] },
-    { x: 12.4, z: 18, bl: [B(.35, 0, .35, .3, .5, .3, '#4A4E56'), B(.42, .5, .42, .16, 1, .16, '#D9C27F'), B(.3, 1.4, .3, .4, .4, .4, '#EAD9A8'), B(.6, 1, .4, .1, .6, .1, '#D9C27F')] },
-    { x: 6.5, z: 13.5, bl: [B(-.04, 4.5, -.04, .08, 1.5, .08, INK), ...[0, .55, 1.1, 1.75, 2.3, 2.85].map(a => Object.assign(B(-1.3, 4.45, -.05, 2.6, .09, .09, CINZA), { yaw: a })), ...[0, 1.1, 2.3].map(a => Object.assign(B(-1.3, 4.45, -.05, .3, .09, .09, PAPEL), { yaw: a })), ...[.55, 1.75, 2.85].map(a => Object.assign(B(1, 4.45, -.05, .3, .09, .09, PAPEL), { yaw: a }))] },
-    /* prateleira de discos e o grafite na parede da sala; skates na parede do lado */
-    { x: 2, z: 8.15, acao: 'discos', topo: 1.9, bl: [B(0, 1, 0, 6, .08, .36, MAD), B(0, 1.8, 0, 6, .08, .36, MAD), ...Array.from({ length: 16 }, (_, i) => B(.2 + i * .36, 1.08, .04, .3, .32, .04, [INK, ROSA, AZUL, AMARELO, PAPEL, LARANJA, LILAS][i % 7])), ...Array.from({ length: 14 }, (_, i) => B(.3 + i * .4, 1.88, .04, .3, .3, .04, [AZUL, INK, PAPEL, ROSA, AMARELO][i % 5]))] },
-    { x: 8.3, z: 8.15, bl: [B(0, 1.2, 0, .6, .6, .03, ROSA), B(.7, 1.5, 0, .8, .5, .03, AMARELO), B(1.6, 1.1, 0, .5, .9, .03, AZUL), B(2.2, 1.6, 0, .9, .4, .03, LILAS), B(3.2, 1.2, 0, .6, .7, .03, LARANJA), B(3.9, 1.5, 0, .5, .5, .03, PAPEL), B(.9, .9, 0, 3, .12, .03, INK)] },
-    { x: .15, z: 15, parede: true, acao: 'skate', bl: [B(0, .5, 0, .06, .85, .26, ROSA), B(0, 1.5, 0, .06, .85, .26, AZUL), B(.06, .7, .04, .05, .08, .08, PAPEL), B(.06, 1.2, .04, .05, .08, .08, PAPEL), B(.06, 1.7, .04, .05, .08, .08, PAPEL), B(.06, 2.2, .04, .05, .08, .08, PAPEL)] },
-    /* cozinha: bancada com pia e fogão, armários, geladeira vermelha, ilha de concreto com banquetas, mesa com cadeiras vermelhas */
-    { x: 14.2, z: 8.15, bl: [B(0, 0, 0, 6.6, .85, .6, MAD_E), B(0, .85, -.05, 6.6, .06, .7, CINZA), B(1.8, .86, .1, 1, .04, .4, '#7F8A96'), B(2.28, .9, .05, .06, .3, .06, CINZA), B(4.6, .91, .05, 1.1, .04, .5, INK), B(4.7, .94, .12, .3, .03, .3, '#4A4E56'), B(5.2, .94, .12, .3, .03, .3, '#4A4E56'), B(0, .91, 0, 6.6, .95, .05, '#D3CFC4'), B(0, 1.9, 0, 6.6, .8, .4, MAD_E), B(4.4, 1.6, 0, 1.5, .3, .6, CINZA), B(.4, 1, .45, .2, .3, .2, LARANJA), B(3.4, 1, .4, .25, .15, .25, AMARELO)] },
-    { x: 21, z: 8.3, bl: [B(0, 0, 0, .95, 2, .85, VERM), B(.1, 1.25, .85, .75, .02, .01, '#B4152E'), B(.8, .8, .85, .06, .35, .04, PAPEL), B(.8, 1.35, .85, .06, .3, .04, PAPEL)] },
-    { x: 15.2, z: 11.2, bl: [B(0, 0, 0, 3, .85, 1, '#4A4E56'), B(-.1, .85, -.1, 3.2, .08, 1.2, CINZA), B(.5, .6, 1.3, .5, .08, .5, VERM), B(.6, 0, 1.4, .06, .6, .06, INK), B(.94, 0, 1.4, .06, .6, .06, INK), B(.6, 0, 1.74, .06, .6, .06, INK), B(.94, 0, 1.74, .06, .6, .06, INK), B(1.9, .6, 1.3, .5, .08, .5, VERM), B(2, 0, 1.4, .06, .6, .06, INK), B(2.34, 0, 1.4, .06, .6, .06, INK), B(2, 0, 1.74, .06, .6, .06, INK), B(2.34, 0, 1.74, .06, .6, .06, INK), B(1.2, .93, .3, .5, .18, .5, PAPEL), B(1.3, 1.11, .4, .3, .12, .3, LARANJA)] },
-    { x: 16.3, z: 14.8, bl: [B(0, .75, 0, 2.2, .08, 1.6, MAD), B(.1, 0, .1, .12, .75, .12, INK), B(1.98, 0, .1, .12, .75, .12, INK), B(.1, 0, 1.38, .12, .75, .12, INK), B(1.98, 0, 1.38, .12, .75, .12, INK), B(.9, .83, .6, .4, .3, .4, PAPEL), B(1, 1.13, .7, .2, .2, .2, ROSA)] },
-    { x: 16.6, z: 13.6, bl: cadeira(VERM) }, { x: 17.4, z: 13.6, bl: cadeira(VERM) },
-    { x: 16.6, z: 16.6, bl: cadeira(VERM).map(b => Object.assign({}, b, { yaw: Math.PI })) }, { x: 17.4, z: 16.6, bl: cadeira(VERM).map(b => Object.assign({}, b, { yaw: Math.PI })) },
-    /* quarto: cama preta e branca, criados, cabeceira de ripas, tapete, parede de fotos analógicas */
-    { x: 2.6, z: .5, bl: [B(0, .15, 0, 2, .28, 2, INK), B(-.4, .3, -.05, 2.8, 1.4, .12, MAD), B(.05, .43, .1, 1.9, .2, 1.85, BRANCO), B(.15, .63, .15, .7, .12, .4, AMARELO), B(1.15, .63, .15, .7, .12, .4, ROSA), B(.05, .6, .75, 1.9, .12, 1.2, INK), B(.05, .72, 1.5, 1.9, .03, .35, '#D9C27F')] },
-    { x: 1.4, z: .5, bl: [B(.1, 0, .1, .8, .55, .8, MAD_E), B(.3, .55, .3, .4, .3, .4, AMARELO)] }, { x: 4.9, z: .5, bl: [B(.1, 0, .1, .8, .55, .8, MAD_E), B(.3, .55, .3, .4, .3, .4, LILAS)] },
-    { x: 2, z: 3, piso: true, bl: [B(0, 0, 0, 3.6, .03, 2.4, '#D9CCEF')] },
-    { x: 1, z: .15, parede: true, bl: [...Array.from({ length: 5 }, (_, i) => [B(i * 1.1, 1.3, 0, .7, .55, .05, INK), B(i * 1.1 + .06, 1.36, .05, .58, .43, .01, i % 2 ? PAPEL : '#C9CDD3')]).flat()] },
-    /* estúdio: mesa de DJ, monitores, pedestal de mic, painéis acústicos, caixa de discos, luz neon rosa */
-    { x: 12, z: .5, acao: 'discos', topo: .72, bl: ITEM_MESA_DJ() }, { x: 9.7, z: .4, bl: [B(.15, 0, .15, .7, 1.2, .7, '#15171B'), B(.3, .2, .85, .4, .4, .02, '#34383F'), B(.4, .75, .85, .2, .2, .02, '#34383F')] }, { x: 15.6, z: .4, bl: [B(.15, 0, .15, .7, 1.2, .7, '#15171B'), B(.3, .2, .85, .4, .4, .02, '#34383F'), B(.4, .75, .85, .2, .2, .02, '#34383F')] },
-    { x: 13.6, z: 3.6, bl: [B(.2, 0, .2, .6, .06, .6, INK), B(.46, .06, .46, .08, 1.55, .08, INK), B(.36, 1.5, .36, .28, .22, .28, CINZA)] },
-    { x: 9.4, z: .15, parede: true, bl: Array.from({ length: 6 }, (_, i) => B(i * 1.45, 1.6, 0, 1.2, .9, .07, i % 2 ? '#2A2D33' : '#3A3E45')) },
-    { x: 11, z: .15, parede: true, bl: [B(0, 2.65, 0, 3.2, .1, .05, ROSA)] },
-    { x: 16.5, z: 2.6, bl: [B(0, 0, 0, .9, .55, .9, MAD), ...Array.from({ length: 8 }, (_, i) => B(.1 + i * .1, .55, .1, .04, .3, .7, [INK, ROSA, AZUL, AMARELO][i % 4]))] },
-    { x: 9.5, z: 4.5, piso: true, bl: [B(0, 0, 0, 8, .03, 3, '#4A4E56')] },
-    /* closet: arara com roupas, prateleira de tênis, espelho */
-    { x: 18.4, z: .4, bl: [B(0, 0, 0, .08, 1.9, .5, CINZA), B(5, 0, 0, .08, 1.9, .5, CINZA), B(0, 1.85, .22, 5.08, .06, .06, CINZA), ...Array.from({ length: 10 }, (_, i) => B(.3 + i * .47, 1.05, .14, .35, .78, .22, [INK, PAPEL, ROSA, AZUL, AMARELO, LARANJA, LILAS, '#B4152E', INK, PAPEL][i]))] },
-    { x: 23.35, z: 1, bl: [B(0, 0, 0, .6, 2.1, 5, PAPEL), ...[.5, 1.1, 1.7].flatMap(y => Array.from({ length: 6 }, (_, i) => B(.08, y, .3 + i * .78, .42, .22, .55, [PAPEL, INK, ROSA, AMARELO, AZUL, '#B4152E'][(i + Math.round(y * 3)) % 6])))] },
-    { x: 19, z: 6, bl: [B(.2, 0, .3, .6, .06, .4, INK), B(.25, .06, .45, .5, 1.7, .1, OURO), B(.3, .16, .55, .4, 1.5, .02, CEU)] },
-    /* mezanino: o painel de cotações do canto financeiro (velas rosa e ciano, nada de verde) */
-    { x: 23.85, z: 1.2, y: 3, parede: true, bl: [B(0, 1.1, 0, .06, 1.3, 2.6, INK), ...[0, 1, 2, 3, 4, 5, 6, 7].map(i => B(-.01, 1.3 + [.3, .5, .2, .7, .45, .8, .35, .6][i], .25 + i * .3, .03, [.4, .3, .5, .25, .45, .2, .5, .35][i], .14, i % 3 === 1 ? '#38E1FF' : ROSA)), B(-.01, 1.18, .15, .02, .04, 2.3, CINZA)] },
-    /* mezanino: tapete e planta no escritório */
-    { x: 7, z: 2.2, y: 3, piso: true, bl: [B(0, 0, 0, 9, .03, 4.5, '#2B2F38'), B(.3, .03, .3, 8.4, .006, 3.9, '#3A3E45')] },
-    { x: 21.5, z: 6.4, y: 3, bl: [B(.3, 0, .3, .4, .4, .4, '#B5562F'), B(.15, .4, .15, .7, .45, .7, ROSA), B(.3, .85, .3, .4, .35, .4, LILAS)] }
-  ];
   function ITEM_MESA_DJ(){ return M.blocos(ITEM.mesa_dj, 0); }
-  const PLANTA_LOFT = {
-    k: 'loft', W: 24, D: 20, ALT: 6,
-    comodos: [
-      { k: 'sala', nome: 'Sala', x0: 0, z0: 8, x1: 14, z1: 20, piso: '#A4A8AE', linha: 'rgba(15,18,24,.13)' },
-      { k: 'cozinha', nome: 'Cozinha', x0: 14, z0: 8, x1: 22, z1: 20, piso: '#B8BCC2', piso2: '#A9AEB5', xadrez: true, linha: 'rgba(15,18,24,.1)' },
-      { k: 'escada', nome: 'Escada', x0: 22, z0: 8, x1: 24, z1: 20, piso: '#A4A8AE', linha: 'rgba(15,18,24,.13)' },
-      { k: 'quarto', nome: 'Quarto', x0: 0, z0: 0, x1: 9, z1: 8, piso: '#C89B6A', linha: 'rgba(60,30,10,.16)' },
-      { k: 'estudio', nome: 'Estúdio', x0: 9, z0: 0, x1: 18, z1: 8, piso: '#2B2F38', linha: 'rgba(255,255,255,.07)' },
-      { k: 'closet', nome: 'Closet', x0: 18, z0: 0, x1: 24, z1: 8, piso: '#C89B6A', linha: 'rgba(60,30,10,.16)' },
-      { k: 'escritorio', nome: 'Escritório (mezanino)', x0: 0, z0: 0, x1: 24, z1: 8, n: 1, piso: '#C89B6A', linha: 'rgba(60,30,10,.2)' }
-    ],
-    paredes: [
-      { a: [0, 20], b: [24, 20], ext: [0, 1], portas: [[11.4, 12.6]], janelas: [[14, 20.5]], altas: [[1, 10]], entrada: true },
-      { a: [24, 0], b: [24, 20], ext: [1, 0], janelas: [[1, 7], [12, 18]] },
-      { a: [0, 0], b: [0, 20], ext: [-1, 0], janelas: [[1, 6]], altas: [[9, 19]] },
-      { a: [0, 0], b: [24, 0], ext: [0, -1], tijolo: true },
-      { a: [0, 8], b: [22, 8], portas: [[4, 5.2], [13, 14.2], [20, 21.2]], alt: 3 },
-      { a: [9, 0], b: [9, 8], alt: 3 }, { a: [18, 0], b: [18, 8], alt: 3 }
-    ],
-    entrada: { x: 12, z: 20 }, tapete: { x: 11.3, z: 18.8, w: 1.4, d: 1 },
-    mezanino: { x0: 0, z0: 0, x1: 24, z1: 8, y: 3, grade: [[0, 8, 22, 8]] },
-    escada: { x0: 22.6, z0: 8, x1: 24, z1: 18, topo: 3 },
-    decor: LOFT_DECOR,
-    estacoes: { studio: { x: 9.5, z: .4, y: 3 }, feed: { x: 3, z: .15, y: 3 }, ia: { x: 6, z: .5, y: 3 }, horus: { x: .15, z: 1, y: 3 }, mural: { x: .15, z: 4, y: 3 }, marcas: { x: 23.4, z: 1, y: 3 }, grana: { x: 23.2, z: 4.5, y: 3 }, vendas: { x: 17.5, z: 5.3, y: 3 }, nicho: { x: 1, z: 6, y: 3 }, estilo: { x: 3.4, z: 6.2, y: 3 }, manual: { x: 12.5, z: 1.2, y: 3 }, banca: { x: 14.6, z: .4, y: 3 }, rolo: { x: 17.2, z: 1, y: 3 }, agente: { x: 19.6, z: 1.3, y: 3 } },
-    padrao: []
-  };
   const ehDoFundador = dono => !!dono && (dono.handle === 'consanans' || (C.fundadorId && dono.id === C.fundadorId()) || (C.ehFundador && C.ehFundador() && dono.id === (C.st.me && C.st.me.id)));
   /* v3.80: casa com planta própria pelo @ (ou pelo id, se o @ mudar): a mansão brutalista do @jeydiaz */
   const PLANTA_DE = { jeydiaz: () => PLANTA_BRUTAL, '673d15ac-ac78-4493-8abe-8a82f498a109': () => PLANTA_BRUTAL };
   Object.setPrototypeOf(PLANTA_DE, null);
-  const plantaDe = dono => { if(ehDoFundador(dono)) return PLANTA_LOFT; const f = dono && (PLANTA_DE[String(dono.handle || '').toLowerCase()] || PLANTA_DE[String(dono.id || '')]); return f ? f() : PLANTA_PADRAO; };
+  const plantaDe = dono => { if(ehDoFundador(dono)) return PLANTA_TEMPLO; const f = dono && (PLANTA_DE[String(dono.handle || '').toLowerCase()] || PLANTA_DE[String(dono.id || '')]); return f ? f() : PLANTA_PADRAO; };
   function usaPlanta(pl){ PL = pl; W = pl.W; D = pl.D; ALT = pl.ALT; COMODOS = pl.comodos; PAREDES = pl.paredes; ENTRADA = pl.entrada; PADRAO = pl.padrao; }
   usaPlanta(PLANTA_PADRAO);
 
@@ -1760,7 +1689,7 @@
       { x: 1.8, z: .3, bl: [B(0, 0, 0, .8, .55, .6, KB.noz), B(.25, .55, .15, .3, .1, .3, KB.ouro), B(.37, .65, .27, .06, .4, .06, KB.ouro), luzB(B(.2, 1.05, .1, .4, .3, .4, '#FFE2B0'))] },
       { x: 6, z: .3, bl: [B(0, 0, 0, .8, .55, .6, KB.noz), B(.25, .55, .15, .3, .1, .3, KB.ouro), B(.37, .65, .27, .06, .4, .06, KB.ouro), luzB(B(.2, 1.05, .1, .4, .3, .4, '#FFE2B0'))] },
       { x: 2.3, z: 3.4, piso: true, bl: [B(0, 0, 0, 4, .02, 3, '#2A2F5A'), B(.25, .02, .25, 3.5, .004, 2.5, '#7A1C22')] },
-      { x: 6.6, z: 8.25, bl: [B(0, 0, 0, 3, 2.5, .6, KB.noz), B(1.48, .2, -.01, .04, 2.1, .01, INK), B(1.3, 1.1, -.03, .08, .3, .03, KB.ouro), B(1.62, 1.1, -.03, .08, .3, .03, KB.ouro), B(.1, 2.5, .05, 2.8, .1, .5, KB.nozC)] },
+      { x: 6.6, z: 8.25, acao: 'roupa', bl: [B(0, 0, 0, 3, 2.5, .6, KB.noz), B(1.48, .2, -.01, .04, 2.1, .01, INK), B(1.3, 1.1, -.03, .08, .3, .03, KB.ouro), B(1.62, 1.1, -.03, .08, .3, .03, KB.ouro), B(.1, 2.5, .05, 2.8, .1, .5, KB.nozC)] },
       /* ---- a bânia: madeira por dentro, banco de dois degraus, a fornalha de pedras, a tina e os vênikis ---- */
       { x: 10.2, z: .16, parede: true, bl: [B(0, 0, 0, 7.6, 3.2, .05, KB.banha), ...Array.from({ length: 10 }, (_, i) => B(0, .3 + i * .3, .05, 7.6, .02, .01, KB.banhaE))] },
       { x: 10.5, z: .3, bl: [B(0, 0, 0, 7, .9, .7, KB.banhaE), B(-.02, .9, 0, 7.04, .07, .74, KB.banha), B(0, 0, .7, 7, .42, .8, KB.banhaE), B(-.02, .42, .7, 7.04, .07, .84, KB.banha)] },
@@ -1780,6 +1709,352 @@
       { x: 6, z: 2.2, y: 3.4, piso: true, bl: [B(0, 0, 0, 9, .03, 4.6, '#4A1A1E'), B(.3, .03, .3, 8.4, .006, 4, '#7A2A30')] },
       { x: 24.4, z: 5.6, y: 3.4, bl: [B(0, .7, 0, .9, .06, .7, KB.noz), B(.38, 0, .28, .14, .7, .14, KB.noz), B(.2, .76, .15, .5, .1, .36, KB.verm), B(.15, .86, .14, .6, .07, .14, KB.verm), B(.36, .86, .3, .18, .03, .18, PAPEL)] },
       { x: 26.4, z: 6, y: 3.4, bl: [B(.2, 0, .2, .4, .06, .4, KB.noz), B(.36, .06, .36, .08, .7, .08, KB.noz), esferaB(.05, .7, .05, .7, '#3C6FD6'), Object.assign(B(.02, 1.03, .38, .76, .04, .04, KB.ouro), { roll: .4 })] }
+    ]
+  };
+  /* ---------- v3.81 · o templo do @consanans: Egito, Rosacruz e Maçonaria ----------
+     O Thales: "faça o interior da minha casa tipo como você fez para o @jeydiaz, mas com tema de egito/rosacruz/
+     maçonaria". No lugar do loft, 30 x 24 com pé-direito de 7 m. Embaixo: o templo (a loja), com o pavimento de mosaico
+     preto e branco de borda dentada, a passadeira, as colunas B e J de bronze com as romãs e os globos, as colunas de
+     papiro, os bancos azuis do Norte e do Sul, o altar dos juramentos com o livro aberto, o esquadro e o compasso e as
+     três luzes, o Oriente nos degraus (o trono debaixo do dossel vermelho, a mesa com o malhete, as esfinges e os
+     braseiros), e em cima dele o delta com o olho, o sol e a lua; na parede, o mural do Egito (a abóbada estrelada, a
+     procissão de deuses e gente, os hieróglifos e o friso de lótus) e, na parede da biblioteca, a rosa-cruz e o sol
+     alado. Ao lado, a biblioteca hermética (o sarcófago, a esfera armilar, a bancada de alquimia, a gata de Bastet) e a
+     câmara de reflexão (a caveira, a ampulheta, o pão, o sal e o enxofre, e o V.I.T.R.I.O.L. na parede). Embaixo do
+     mezanino, o quarto do faraó (a cama de pés de leão com o dossel, o Anúbis deitado no baú, os hieróglifos), o
+     estúdio (a mesa de DJ toca os discos, o ankh de neon) e o closet (o armário do olho de Hórus troca a skin). No
+     mezanino, o gabinete com as ferramentas, o papiro da pesagem do coração, o painel da loja, a pirâmide e o ankh.
+     Tudo desenho nosso. Nada de verde (Osíris vai de preto, a cor da terra fértil) */
+  const KT = { bronze: '#A8732E', bronzeE: '#7A5220', bronzeC: '#C99A55', pedra: '#D9C08A', pedraE: '#B89A62', lapis: '#22408E', ouro: '#D9A93A', ouroC: '#F2D27A', mad: '#4A2E1E', madC: '#6E4A32', azul: '#2A4FA8', escuro: '#1E1F24', papiro: '#E8D9B0' };
+  /* ---- as pinturas ---- */
+  const estrela5 = (g, x, y, r, c) => { g.beginPath(); for(let i = 0; i < 10; i++){ const a = -Math.PI / 2 + i * Math.PI / 5, rr = i % 2 ? r * .42 : r; g.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr); } g.closePath(); g.fillStyle = c; g.fill(); };
+  /* um hieróglifo na caixa s x s (canto de cima à esquerda em x, y) */
+  function hiero(g, k, x, y, s, c){
+    g.fillStyle = c; g.strokeStyle = c; g.lineWidth = Math.max(1.5, s * .12); g.lineCap = 'round';
+    const m = s / 2, L = (a, b, cc, d) => { g.beginPath(); g.moveTo(x + a * s, y + b * s); g.lineTo(x + cc * s, y + d * s); g.stroke(); };
+    if(k === 'ankh'){ g.beginPath(); g.ellipse(x + m, y + s * .22, s * .16, s * .2, 0, 0, Math.PI * 2); g.stroke(); L(.5, .42, .5, .98); L(.22, .5, .78, .5); }
+    else if(k === 'olho'){ g.beginPath(); g.ellipse(x + m, y + s * .38, s * .36, s * .16, 0, 0, Math.PI * 2); g.stroke(); g.beginPath(); g.arc(x + m, y + s * .38, s * .1, 0, Math.PI * 2); g.fill(); L(.4, .54, .34, .9); L(.62, .54, .82, .62); L(.82, .62, .78, .88); }
+    else if(k === 'agua'){ [.25, .5, .75].forEach(v => { g.beginPath(); for(let i = 0; i <= 6; i++) g.lineTo(x + s * (.05 + i * .15), y + s * v + (i % 2 ? -s * .07 : s * .07)); g.stroke(); }); }
+    else if(k === 'sol'){ g.beginPath(); g.arc(x + m, y + m, s * .36, 0, Math.PI * 2); g.stroke(); g.beginPath(); g.arc(x + m, y + m, s * .08, 0, Math.PI * 2); g.fill(); }
+    else if(k === 'pena'){ g.beginPath(); g.ellipse(x + m, y + m, s * .14, s * .44, 0, 0, Math.PI * 2); g.fill(); L(.5, .1, .5, .98); }
+    else if(k === 'passaro'){ g.beginPath(); g.ellipse(x + s * .45, y + s * .55, s * .3, s * .2, 0, 0, Math.PI * 2); g.fill(); g.beginPath(); g.arc(x + s * .74, y + s * .3, s * .12, 0, Math.PI * 2); g.fill(); L(.84, .3, .98, .36); L(.4, .72, .36, .98); L(.55, .72, .6, .98); L(.15, .55, .02, .7); }
+    else if(k === 'junco'){ L(.5, .98, .5, .2); g.beginPath(); g.moveTo(x + s * .5, y + s * .2); g.quadraticCurveTo(x + s * .9, y + s * .1, x + s * .7, y + s * .5); g.fill(); }
+    else if(k === 'escaravelho'){ g.beginPath(); g.ellipse(x + m, y + s * .58, s * .24, s * .3, 0, 0, Math.PI * 2); g.fill(); g.beginPath(); g.arc(x + m, y + s * .2, s * .12, 0, Math.PI * 2); g.fill(); L(.26, .45, .06, .35); L(.74, .45, .94, .35); L(.26, .7, .06, .8); L(.74, .7, .94, .8); }
+    else if(k === 'cobra'){ g.beginPath(); g.moveTo(x + s * .1, y + s * .9); g.bezierCurveTo(x + s * .9, y + s * .9, x + s * .1, y + s * .3, x + s * .8, y + s * .15); g.stroke(); }
+    else { g.beginPath(); g.arc(x + m, y + s * .9, s * .4, Math.PI, 0); g.fill(); }
+  }
+  const HIEROS = ['ankh', 'olho', 'agua', 'sol', 'pena', 'passaro', 'junco', 'escaravelho', 'cobra', 'pao'];
+  const COR_HIERO = [PRETO, AZUL_EG, SOL, PRETO, '#8A5A1E'];
+  /* uma coluna de hieróglifos entre as figuras */
+  function hieroColuna(g, x, y, h, semente){ const s = h / 6.4; g.strokeStyle = SOL; g.lineWidth = 1; g.strokeRect(x - s * .6, y, s * 1.2, h); for(let i = 0; i < 6; i++) hiero(g, HIEROS[(semente * 7 + i * 3) % HIEROS.length], x - s * .45, y + i * s * 1.05 + s * .1, s * .9, COR_HIERO[(semente + i) % COR_HIERO.length]); }
+  /* uma figura de perfil, olhando pra direita (o Oriente), pés em (x, yb), altura H */
+  function egFig(g, x, yb, H, tipo){
+    const u = H / 10, escuro = tipo === 'osiris', P = escuro ? '#1C1C20' : PELE;
+    const R = (x0, y0, w, h, c) => { g.fillStyle = c; g.fillRect(x + x0 * u, yb - (y0 + h) * u, w * u, h * u); };
+    const poli = (pts, c) => { g.beginPath(); pts.forEach(([a, b], i) => (i ? g.lineTo : g.moveTo).call(g, x + a * u, yb - b * u)); g.closePath(); g.fillStyle = c; g.fill(); };
+    if(tipo === 'osiris'){
+      /* o rei morto: o corpo enfaixado de branco, a coroa atef com as plumas, o cajado e o mangual cruzados */
+      poli([[-.9, 0], [1, 0], [1.1, 7], [-.9, 7]], LINHO); R(-.6, 7, 1.3, 1.3, P); R(.55, 7.3, .2, .5, P);
+      poli([[-.5, 8.3], [.6, 8.3], [.35, 10.2], [-.25, 10.2]], LINHO); R(-.75, 8.3, .25, 1.6, SOL); R(.6, 8.3, .25, 1.6, SOL);
+      [[OURO, 6.9], [AZUL_EG, 6.65], [SOL, 6.4]].forEach(([c, y]) => R(-.9, y, 2, .25, c));
+      g.strokeStyle = OURO; g.lineWidth = u * .28; g.beginPath(); g.moveTo(x + .2 * u, yb - 5.4 * u); g.lineTo(x + 1.4 * u, yb - 7.6 * u); g.stroke(); g.beginPath(); g.arc(x + 1.2 * u, yb - 7.9 * u, .35 * u, Math.PI, Math.PI * 2.2); g.stroke();
+      g.strokeStyle = AZUL_EG; g.beginPath(); g.moveTo(x + 1 * u, yb - 5.4 * u); g.lineTo(x - .2 * u, yb - 7.4 * u); g.stroke();
+      return;
+    }
+    /* as pernas (a da frente adiantada, o passo) e os pés */
+    R(-.55, 0, .5, 3.8, P); R(.55, 0, .5, 3.8, P); R(-.75, 0, .85, .25, P); R(.5, 0, 1, .25, P);
+    if(tipo === 'isis'){ poli([[-1, 0], [1.4, 0], [.95, 7], [-.75, 7]], LINHO); R(-.75, 0, .7, .25, P); R(.65, 0, .8, .25, P); }
+    else { poli([[-.9, 3.6], [1.45, 3.6], [.85, 5.4], [-.75, 5.4]], LINHO); R(-.75, 5.2, 1.6, .3, OURO); }
+    /* o tronco, o braço de trás e o da frente estendido */
+    R(-.75, 5.4, 1.55, 2, P); R(-1, 5.6, .4, 1.6, P); R(.6, 6.55, 1.9, .38, P);
+    /* o colar largo */
+    [[OURO, 7], [AZUL_EG, 6.75], [SOL, 6.5]].forEach(([c, y]) => R(-.75, y, 1.6, .25, c));
+    if(tipo === 'isis'){
+      /* as asas abertas pra frente, de pena em pena */
+      poli([[.5, 7.1], [4.6, 7.6], [4.4, 5.2], [.5, 5.7]], OURO);
+      [[AZUL_EG, .5], [SOL, 1.4], [AZUL_EG, 2.3], [SOL, 3.2]].forEach(([c, a]) => poli([[.5 + a, 7.1 + a * .12], [1.2 + a, 7.2 + a * .1], [1.2 + a, 5.6 + a * .1], [.5 + a, 5.7 + a * .1]], c));
+    }
+    /* a cabeça de cada um */
+    if(tipo === 'farao'){ R(-.85, 6.6, .8, 2.3, AZUL_EG); [6.9, 7.4, 7.9, 8.4].forEach(y => R(-.85, y, .8, .12, OURO)); R(-.4, 7.35, 1, 1.35, P); R(-.55, 8.6, 1.25, .45, AZUL_EG); R(.5, 8.85, .14, .35, OURO); R(.42, 6.9, .16, .5, AZUL_EG); }
+    else if(tipo === 'sacerdote'){ R(-.4, 7.35, 1, 1.45, P); }
+    else if(tipo === 'horus'){ R(-.85, 6.6, .75, 2, AZUL_EG); R(-.45, 7.35, 1, 1.45, '#3A2A1E'); poli([[.55, 8.5], [.95, 8.25], [.55, 7.95]], OURO); R(-.3, 7.6, .55, .12, AMARELO); g.beginPath(); g.arc(x + .05 * u, yb - 9.5 * u, .7 * u, 0, Math.PI * 2); g.fillStyle = SOL; g.fill(); }
+    else if(tipo === 'anubis'){ R(-.85, 6.6, .75, 2, AZUL_EG); R(-.4, 7.35, .95, 1.15, '#1A1A1E'); R(.5, 7.55, .85, .45, '#1A1A1E'); R(-.35, 8.4, .28, 1, '#1A1A1E'); R(.02, 8.4, .28, 1, '#1A1A1E'); R(.2, 8.05, .16, .1, OURO); }
+    else if(tipo === 'thoth'){ R(-.85, 6.6, .75, 2, AZUL_EG); R(-.4, 7.4, .9, 1.1, '#1E1E22'); g.strokeStyle = '#1E1E22'; g.lineWidth = u * .2; g.beginPath(); g.moveTo(x + .45 * u, yb - 8.1 * u); g.quadraticCurveTo(x + 1.6 * u, yb - 8 * u, x + 1.9 * u, yb - 6.9 * u); g.stroke(); R(.05, 8.05, .14, .1, PAPEL); }
+    else if(tipo === 'isis'){ R(-.9, 6.4, .8, 2.3, PRETO); R(-.35, 7.35, .9, 1.3, P); R(-.2, 8.65, .65, .3, OURO); R(-.05, 8.95, .35, .35, OURO); }
+    if(tipo !== 'anubis' && tipo !== 'horus') R(.15, 8.05, .16, .1, PRETO);
+    /* o que leva na mão: o ankh (gente), o cetro (deuses) ou a paleta (Toth) */
+    const hx = x + 2.4 * u, hy = yb - 6.75 * u;
+    g.strokeStyle = OURO; g.lineWidth = u * .22;
+    if(tipo === 'horus' || tipo === 'anubis'){ g.beginPath(); g.moveTo(hx, yb); g.lineTo(hx, hy - 2.4 * u); g.lineTo(hx + .5 * u, hy - 2.7 * u); g.stroke(); g.beginPath(); g.moveTo(hx - .25 * u, yb); g.lineTo(hx, yb - .5 * u); g.lineTo(hx + .25 * u, yb); g.stroke(); }
+    else if(tipo === 'thoth'){ R(2.2, 6.4, .5, 1.6, PAPEL); R(2.3, 7.6, .3, .15, PRETO); }
+    else if(tipo !== 'isis'){ g.beginPath(); g.ellipse(hx, hy - .9 * u, .3 * u, .4 * u, 0, 0, Math.PI * 2); g.stroke(); g.beginPath(); g.moveTo(hx, hy - .5 * u); g.lineTo(hx, hy + 1.2 * u); g.moveTo(hx - .45 * u, hy - .3 * u); g.lineTo(hx + .45 * u, hy - .3 * u); g.stroke(); }
+  }
+  /* o friso de lótus: flor aberta e botão, um depois do outro, no azul */
+  function lotus(g, y0, w, h){
+    g.fillStyle = AZUL_EG; g.fillRect(0, y0, w, h); g.fillStyle = OURO; g.fillRect(0, y0, w, h * .07);
+    const n = Math.round(w / (h * .9));
+    for(let i = 0; i < n; i++){ const cx = (i + .5) * w / n, b = y0 + h * .95, top = y0 + h * .2;
+      g.fillStyle = OURO; g.fillRect(cx - h * .03, top + h * .4, h * .06, b - top - h * .4);
+      if(i % 2){ g.beginPath(); g.ellipse(cx, top + h * .35, h * .14, h * .26, 0, 0, Math.PI * 2); g.fillStyle = SOL; g.fill(); }
+      else { [[-.28, PAPEL], [.28, PAPEL], [0, SOL]].forEach(([dx, c]) => { g.beginPath(); g.moveTo(cx, top + h * .55); g.lineTo(cx + dx * h - h * .1, top); g.lineTo(cx + dx * h + h * .1, top); g.closePath(); g.fillStyle = c; g.fill(); }); }
+    }
+  }
+  /* o mural do templo: a abóbada estrelada, os dentes de serra, a procissão rumo ao Oriente e o lótus */
+  function muralEgito(g, w, h){
+    g.fillStyle = CREME; g.fillRect(0, 0, w, h);
+    const t0 = h * .15; g.fillStyle = FRISO; g.fillRect(0, 0, w, t0);
+    for(let i = 0; i < 34; i++) estrela5(g, (i + .5) / 34 * w, t0 * (i % 2 ? .34 : .66), t0 * .17, OURO);
+    g.fillStyle = OURO; g.fillRect(0, t0, w, h * .015);
+    const sz = h * .05, sy = t0 + h * .015; g.fillStyle = PAPEL; g.fillRect(0, sy, w, sz); g.fillStyle = PRETO;
+    for(let x = 0; x < w; x += sz){ g.beginPath(); g.moveTo(x, sy); g.lineTo(x + sz, sy); g.lineTo(x + sz / 2, sy + sz); g.closePath(); g.fill(); }
+    const yb = h * .84, H = h * .53;
+    ['sacerdote', 'farao', 'anubis', 'isis', 'thoth', 'horus', 'sacerdote'].forEach((t, i) => { const x = w * (.09 + i * .133); hieroColuna(g, x - w * .05, h * .27, h * .5, i); egFig(g, x, yb, H, t); });
+    g.fillStyle = OURO; g.fillRect(0, yb + h * .01, w, h * .015);
+    lotus(g, h * .865, w, h * .135);
+  }
+  /* o painel de hieróglifos do quarto, com o cartucho no meio */
+  function hieroglifos(g, w, h){
+    g.fillStyle = CREME; g.fillRect(0, 0, w, h); g.fillStyle = SOL; g.fillRect(0, 0, w, h * .04); g.fillRect(0, h * .96, w, h * .04);
+    const s = h * .26;
+    for(let r = 0; r < 3; r++) for(let i = 0; i < Math.floor(w / s); i++){ const x = i * s + s * .08; if(x > w * .38 && x < w * .6) continue; hiero(g, HIEROS[(i * 3 + r * 5) % HIEROS.length], x, h * .07 + r * s * 1.12, s * .82, COR_HIERO[(i + r) % COR_HIERO.length]); }
+    /* o cartucho: a corda de ouro em volta, os sinais dentro */
+    const cx0 = w * .4, cw = w * .2; g.strokeStyle = OURO; g.lineWidth = h * .04; g.beginPath(); g.roundRect ? g.roundRect(cx0, h * .1, cw, h * .8, h * .3) : g.rect(cx0, h * .1, cw, h * .8); g.stroke();
+    g.fillStyle = OURO; g.fillRect(cx0 - h * .02, h * .86, cw + h * .04, h * .05);
+    ['sol', 'ankh', 'escaravelho'].forEach((k, i) => hiero(g, k, cx0 + cw * .5 - h * .11, h * .16 + i * h * .23, h * .22, [SOL, PRETO, AZUL_EG][i]));
+  }
+  /* a câmara de reflexão: o V.I.T.R.I.O.L., o galo, a ampulheta e a frase */
+  function vitriol(g, w, h){
+    g.fillStyle = '#141418'; g.fillRect(0, 0, w, h); g.strokeStyle = '#8E7A4A'; g.lineWidth = 3; g.strokeRect(6, 6, w - 12, h - 12);
+    g.fillStyle = '#EDE6D6'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    let t = Math.round(h * .22); g.font = `700 ${t}px Georgia, serif`; while(t > 8 && g.measureText('V.I.T.R.I.O.L.').width > w * .86){ t--; g.font = `700 ${t}px Georgia, serif`; }
+    g.fillText('V.I.T.R.I.O.L.', w / 2, h * .24);
+    g.font = `italic ${Math.round(h * .07)}px Georgia, serif`; g.fillStyle = '#B8AE98';
+    g.fillText('Visita interiora terrae,', w / 2, h * .44); g.fillText('rectificando, invenies occultum lapidem', w / 2, h * .53);
+    /* o galo: corpo, rabo, crista vermelha */
+    const gx = w * .22, gy = h * .78; g.fillStyle = '#EDE6D6';
+    g.beginPath(); g.ellipse(gx, gy, h * .1, h * .07, 0, 0, Math.PI * 2); g.fill(); g.beginPath(); g.arc(gx + h * .09, gy - h * .09, h * .045, 0, Math.PI * 2); g.fill();
+    g.beginPath(); g.moveTo(gx - h * .08, gy - h * .02); g.quadraticCurveTo(gx - h * .2, gy - h * .2, gx - h * .14, gy + h * .02); g.fill();
+    g.fillStyle = SOL; g.fillRect(gx + h * .07, gy - h * .16, h * .05, h * .04); g.fillStyle = OURO; g.beginPath(); g.moveTo(gx + h * .13, gy - h * .1); g.lineTo(gx + h * .18, gy - h * .085); g.lineTo(gx + h * .13, gy - h * .07); g.fill();
+    g.strokeStyle = '#EDE6D6'; g.lineWidth = 2; g.beginPath(); g.moveTo(gx - h * .02, gy + h * .06); g.lineTo(gx - h * .03, gy + h * .14); g.moveTo(gx + h * .03, gy + h * .06); g.lineTo(gx + h * .04, gy + h * .14); g.stroke();
+    /* a ampulheta */
+    const ax = w * .78, ay = h * .78, aw = h * .1, ah = h * .14; g.fillStyle = '#8E7A4A'; g.fillRect(ax - aw, ay - ah - 3, aw * 2, 3); g.fillRect(ax - aw, ay + ah, aw * 2, 3);
+    g.fillStyle = '#EDE6D6'; g.beginPath(); g.moveTo(ax - aw * .8, ay - ah); g.lineTo(ax + aw * .8, ay - ah); g.lineTo(ax, ay); g.lineTo(ax + aw * .8, ay + ah); g.lineTo(ax - aw * .8, ay + ah); g.lineTo(ax, ay); g.closePath(); g.fill();
+    g.fillStyle = '#C9A24E'; g.beginPath(); g.moveTo(ax - aw * .45, ay + ah); g.lineTo(ax + aw * .45, ay + ah); g.lineTo(ax, ay + ah * .4); g.closePath(); g.fill();
+  }
+  /* o painel da loja (o mapa do aprendiz): o céu com o sol, a lua e a estrela flamejante, as três colunas, a escada
+     que sobe do altar até a estrela, o pavimento e a borda dentada */
+  function painelLoja(g, w, h){
+    const ceu = g.createLinearGradient(0, 0, 0, h * .7); ceu.addColorStop(0, '#0E1636'); ceu.addColorStop(1, '#22408E'); g.fillStyle = ceu; g.fillRect(0, 0, w, h);
+    for(let i = 0; i < 26; i++){ const x = ((i * 97) % 100) / 100 * w, y = ((i * 53) % 60) / 100 * h * .9; g.fillStyle = '#FFF6D8'; g.fillRect(x, y, 2, 2); }
+    g.beginPath(); g.arc(w * .1, h * .16, h * .09, 0, Math.PI * 2); g.fillStyle = '#F2C230'; g.fill();
+    g.beginPath(); g.arc(w * .9, h * .16, h * .08, 0, Math.PI * 2); g.fillStyle = '#E9ECF2'; g.fill(); g.beginPath(); g.arc(w * .915, h * .145, h * .07, 0, Math.PI * 2); g.fillStyle = '#16204A'; g.fill();
+    estrela5(g, w * .5, h * .13, h * .1, '#F2C230'); g.fillStyle = SOL; g.font = `700 ${Math.round(h * .07)}px Georgia, serif`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('G', w * .5, h * .135);
+    /* o chão: o pavimento em xadrez com a borda dentada */
+    const py = h * .78, q = h * .055; g.fillStyle = PAPEL; g.fillRect(0, py, w, h - py);
+    for(let r = 0; r < 4; r++) for(let i = 0; i < w / q; i++) if((i + r) % 2){ g.fillStyle = PRETO; g.fillRect(i * q, py + r * q, q, q); }
+    /* a escada de Jacó, do altar à estrela */
+    g.strokeStyle = '#C9A24E'; g.lineWidth = 2; g.beginPath(); g.moveTo(w * .47, py - h * .08); g.lineTo(w * .485, h * .25); g.moveTo(w * .53, py - h * .08); g.lineTo(w * .515, h * .25); g.stroke();
+    for(let y = h * .3; y < py - h * .1; y += h * .06){ const f = (y - h * .25) / (py - h * .33), dx = w * (.015 + .015 * f); g.beginPath(); g.moveTo(w * .5 - dx, y); g.lineTo(w * .5 + dx, y); g.stroke(); }
+    /* o altar com o livro, o esquadro e o compasso */
+    g.fillStyle = '#4A2E1E'; g.fillRect(w * .45, py - h * .1, w * .1, h * .1); g.fillStyle = PAPEL; g.fillRect(w * .455, py - h * .13, w * .09, h * .035);
+    g.strokeStyle = '#F2C230'; g.lineWidth = 2; g.beginPath(); g.moveTo(w * .5, py - h * .17); g.lineTo(w * .475, py - h * .1); g.moveTo(w * .5, py - h * .17); g.lineTo(w * .525, py - h * .1); g.stroke();
+    /* as três colunas: a dórica, a jônica e a coríntia */
+    [[.2, 'd'], [.33, 'j'], [.72, 'c']].forEach(([fx, t]) => { const cx = w * fx, cw = w * .04, top = h * .38;
+      g.fillStyle = '#EEE8DA'; g.fillRect(cx - cw / 2, top, cw, py - top); g.fillStyle = 'rgba(15,18,24,.18)'; for(let k = 1; k < 4; k++) g.fillRect(cx - cw / 2 + k * cw / 4, top, 1, py - top);
+      g.fillStyle = '#EEE8DA'; g.fillRect(cx - cw * .75, top - h * .04, cw * 1.5, h * .04); g.fillRect(cx - cw * .7, py - h * .03, cw * 1.4, h * .03);
+      if(t === 'j'){ g.fillStyle = '#C9A24E'; g.beginPath(); g.arc(cx - cw * .75, top - h * .02, h * .02, 0, Math.PI * 2); g.arc(cx + cw * .75, top - h * .02, h * .02, 0, Math.PI * 2); g.fill(); }
+      if(t === 'c'){ g.fillStyle = '#C9A24E'; for(let k = -1; k <= 1; k++){ g.beginPath(); g.ellipse(cx + k * cw * .4, top - h * .06, cw * .2, h * .04, 0, 0, Math.PI * 2); g.fill(); } } });
+  }
+  /* o papiro da pesagem do coração: o morto levado por Anúbis, a balança (o coração contra a pena), Toth anotando e
+     Osíris no trono. Em cima, a fileira de hieróglifos entre as linhas */
+  function livroMortos(g, w, h){
+    g.fillStyle = KT.papiro; g.fillRect(0, 0, w, h);
+    for(let i = 0; i < 160; i++){ g.fillStyle = 'rgba(120,90,40,.08)'; g.fillRect(((i * 37) % 100) / 100 * w, 0, 1, h); }
+    g.fillStyle = SOL; g.fillRect(0, h * .04, w, h * .02); g.fillStyle = PRETO; g.fillRect(0, h * .22, w, h * .015); g.fillStyle = SOL; g.fillRect(0, h * .92, w, h * .025);
+    const s = h * .14; for(let i = 0; i < Math.floor(w / (s * 1.1)); i++) hiero(g, HIEROS[(i * 7) % HIEROS.length], i * s * 1.1 + s * .1, h * .07, s * .85, COR_HIERO[i % COR_HIERO.length]);
+    const yb = h * .9, H = h * .62;
+    egFig(g, w * .08, yb, H, 'sacerdote'); egFig(g, w * .2, yb, H, 'anubis');
+    /* a balança: o poste, o travessão, os pratos, o coração e a pena */
+    const bx = w * .42, top = yb - H * .85; g.fillStyle = PRETO; g.fillRect(bx - 2, top, 4, yb - top); g.fillRect(bx - w * .06, top, w * .12, 3);
+    [[-1, 'coracao'], [1, 'pena']].forEach(([sd, k]) => { const px = bx + sd * w * .055; g.strokeStyle = PRETO; g.lineWidth = 1.5; g.beginPath(); g.moveTo(px, top); g.lineTo(px - w * .02, top + H * .35); g.moveTo(px, top); g.lineTo(px + w * .02, top + H * .35); g.stroke(); g.fillStyle = OURO; g.fillRect(px - w * .025, top + H * .35, w * .05, 3);
+      if(k === 'coracao'){ g.fillStyle = SOL; g.beginPath(); g.ellipse(px, top + H * .3, w * .012, H * .06, 0, 0, Math.PI * 2); g.fill(); } else hiero(g, 'pena', px - H * .06, top + H * .2, H * .14, PAPEL); });
+    egFig(g, w * .6, yb, H, 'thoth');
+    /* Osíris no trono, com o degrau */
+    g.fillStyle = OURO; g.fillRect(w * .78, yb - H * .45, w * .07, H * .45); g.fillStyle = AZUL_EG; g.fillRect(w * .78, yb - H * .06, w * .12, H * .06);
+    egFig(g, w * .86, yb, H * .95, 'osiris');
+  }
+  /* ---- as peças em 3D ---- */
+  /* a coluna de papiro do Hórus, esticada pros 7 m do templo */
+  const papiroAlto = s => colunaEg().map(b => Object.assign({}, b, { y: b.y * s, h: b.h * s }));
+  /* B e J: as colunas de bronze da entrada, as romãs em volta do capitel e o globo em cima (a terra numa, o céu na outra) */
+  const colunaBJ = ceu => [B(-.05, 0, -.05, 1, .3, 1, PRETO), B(.05, .3, .05, .8, .12, .8, KT.bronzeE),
+    B(.2, .42, .2, .5, 3.5, .5, KT.bronze), Object.assign(B(.2, .42, .2, .5, 3.5, .5, KT.bronze), { yaw: Math.PI / 4 }),
+    B(.12, 3.92, .12, .66, .1, .66, KT.bronzeE), B(.08, 4.02, .08, .74, .42, .74, KT.bronzeC),
+    ...[[.06, .06], [.66, .06], [.06, .66], [.66, .66], [.36, .02], [.36, .7], [.02, .36], [.7, .36]].map(([x, z]) => esferaB(x - .04, 4.16, z - .04, .16, SOL)),
+    B(.14, 4.44, .14, .62, .08, .62, KT.bronzeE), esferaB(.06, 4.52, .06, .78, ceu ? FRISO : '#3C6FD6')];
+  /* a esfinge deitada, olhando pra frente (+z) */
+  const esfinge = () => { const P = KT.pedra, E = KT.pedraE; return [B(0, 0, 0, 1, .3, 2.3, E), B(.1, .3, .2, .8, .55, 1.5, P), B(.12, .3, 1.6, .26, .22, .7, P), B(.62, .3, 1.6, .26, .22, .7, P),
+    B(.22, .65, 1.4, .56, .5, .5, P), B(.18, 1.08, 1.45, .64, .62, .32, KT.lapis), ...[1.14, 1.32, 1.5].map(y => B(.17, y, 1.47, .66, .06, .3, KT.ouro)),
+    B(.24, 1.1, 1.62, .52, .5, .44, P), B(.17, .78, 1.7, .14, .45, .2, KT.lapis), B(.69, .78, 1.7, .14, .45, .2, KT.lapis),
+    B(.33, 1.32, 2.06, .1, .05, .01, PRETO), B(.57, 1.32, 2.06, .1, .05, .01, PRETO), B(.45, 1.2, 2.04, .1, .09, .04, E), B(.42, .95, 1.98, .16, .15, .08, KT.ouro), B(.4, .4, -.05, .1, .1, .3, P)]; };
+  const obelisco = () => [B(0, 0, 0, .8, .3, .8, PRETO), B(.1, .3, .1, .6, 1.4, .6, KT.pedra), B(.13, 1.7, .13, .54, 1.3, .54, KT.pedra), B(.16, 3, .16, .48, .9, .48, KT.pedra),
+    B(.2, 3.9, .2, .4, .18, .4, KT.ouro), B(.26, 4.08, .26, .28, .14, .28, KT.ouro), B(.32, 4.22, .32, .16, .12, .16, KT.ouroC),
+    ...[.55, .95, 1.35].map((y, i) => B(.36, y, .09, .08, .2, .02, i % 2 ? KT.lapis : PRETO)), ...[.55, .95, 1.35].map((y, i) => B(.09, y, .36, .02, .2, .08, i % 2 ? PRETO : KT.lapis))];
+  /* os três lumes em volta do altar (castiçal alto com a vela acesa) */
+  const lume = () => [B(-.16, 0, -.16, .32, .08, .32, OURO), B(-.04, .08, -.04, .08, 1.25, .08, OURO), B(-.12, 1.33, -.12, .24, .06, .24, OURO), B(-.06, 1.39, -.06, .12, .32, .12, LINHO), luzB(B(-.035, 1.71, -.035, .07, .1, .07, AMARELO)), luzB(B(-.015, 1.81, -.015, .03, .06, .03, LARANJA))];
+  const braseiro = () => [B(0, 0, 0, .1, 1, .1, KT.bronzeE), B(.5, 0, 0, .1, 1, .1, KT.bronzeE), B(.25, 0, .45, .1, 1, .1, KT.bronzeE), B(-.05, 1, -.05, .7, .22, .65, KT.bronze), luzB(B(.1, 1.2, .08, .4, .25, .4, LARANJA)), luzB(B(.2, 1.42, .18, .2, .25, .2, '#FFE45E'))];
+  /* banco azul da loja, com o encosto do lado da parede (x0 = encosto à esquerda) */
+  const bancoLoja = (L, encEsq) => [B(0, 0, 0, .7, .42, L, KT.mad), B(0, .42, 0, .7, .08, L, KT.azul), B(encEsq ? 0 : .56, .42, 0, .14, .78, L, KT.mad), B(encEsq ? 0 : .56, 1.2, 0, .14, .05, L, OURO)];
+  /* o delta luminoso: o triângulo de ouro, o olho no meio e os raios em volta (de frente pro templo, +z) */
+  function delta(cx, cy, z){
+    const L = 1.7, hT = L * Math.sqrt(3) / 2, yb = cy - hT / 3, out = [];
+    const lado = (mx, my, ang) => Object.assign(B(mx - L / 2, my - .035, z, L, .07, .05, OURO), { roll: ang });
+    out.push(lado(cx, yb, 0), lado(cx - L / 4, yb + hT / 2, Math.PI / 3), lado(cx + L / 4, yb + hT / 2, -Math.PI / 3));
+    for(let i = 0; i < 16; i++){ const a = i / 16 * Math.PI * 2, r = hT * .66; out.push(Object.assign(B(cx + r, cy - .02, z - .02, i % 2 ? .4 : .65, .04, .03, KT.ouroC), { roll: a, piv: [cx, cy, z] })); }
+    out.push(B(cx - .22, cy - .09, z + .04, .44, .18, .02, PAPEL), B(cx - .07, cy - .07, z + .06, .14, .14, .02, PRETO), B(cx - .02, cy - .02, z + .08, .04, .04, .01, PAPEL));
+    return out;
+  }
+  /* a lua crescente de prata, pontinho por pontinho */
+  const lua = (cx, cy, z) => Array.from({ length: 11 }, (_, i) => { const a = Math.PI * (.35 + i * .13), r = .42, g = 1 - Math.abs(i - 5) / 6; return B(cx + Math.cos(a) * r - .06, cy + Math.sin(a) * r - .06, z, .12 + .1 * g, .12 + .1 * g, .05, '#D8DCE4'); });
+  /* a rosa-cruz e o sol alado: na parede da biblioteca, de frente pro templo (-x) */
+  const rosaCruz = (x, cy, cz) => [B(x, cy - 1.25, cz - .14, .06, 2.4, .28, OURO), B(x, cy - .14, cz - 1, .06, .28, 2, OURO), ...[[cy + 1.15, cz], [cy - 1.25, cz], [cy, cz - 1], [cy, cz + 1]].map(([y, z]) => esferaB(x - .1, y - .1, z - .1, .2, KT.ouroC)),
+    esferaB(x - .3, cy - .25, cz - .25, .5, SOL), ...Array.from({ length: 7 }, (_, i) => { const a = i / 7 * Math.PI * 2; return esferaB(x - .2, cy + Math.sin(a) * .28 - .1, cz + Math.cos(a) * .28 - .1, .2, VINHO); }), esferaB(x - .38, cy - .07, cz - .07, .14, '#7A0F1E')];
+  const solAlado = (x, cy, cz) => [esferaB(x - .3, cy - .25, cz - .25, .5, SOL), ...[[.3, 1.9, OURO], [.15, 1.6, KT.lapis], [0, 1.3, OURO], [-.14, 1, SOL]].flatMap(([dy, L, c]) => [B(x, cy + dy - .06, cz - .25 - L, .05, .13, L, c), B(x, cy + dy - .06, cz + .25, .05, .13, L, c)]),
+    B(x - .06, cy - .38, cz - .32, .06, .14, .1, OURO), B(x - .06, cy - .38, cz + .22, .06, .14, .1, OURO)];
+  /* o sarcófago deitado: a caixa preta, a tampa de ouro com o rosto, o nemes listrado e os braços cruzados */
+  const sarcofago = () => [B(0, 0, 0, 1.3, .45, 2.7, PRETO), B(.15, .45, .15, 1, .4, 2.4, OURO), B(.2, .85, .3, .9, .1, 2.15, OURO), B(.22, .85, .18, .86, .32, .62, KT.lapis),
+    ...[.28, .42, .56, .7].map(z => B(.21, .85, z, .88, .33, .05, OURO)), B(.4, .95, .3, .5, .3, .35, OURO), B(.48, 1.25, .38, .1, .01, .06, PRETO), B(.72, 1.25, .38, .1, .01, .06, PRETO), B(.56, 1.0, .65, .18, .2, .12, KT.lapis),
+    traco(.35, 1.1, .95, 1.5, .96, KT.lapis), traco(.95, 1.1, .35, 1.5, .965, SOL), B(.25, .95, 1.6, .8, .03, .9, KT.lapis), ...[1.75, 2.05].map(z => B(.25, .97, z, .8, .02, .05, OURO))];
+  /* a esfera armilar: o pé, a terra no meio e os anéis de bronze */
+  function armilar(){ const cy = 1.35, r = .45, out = [B(-.2, 0, -.2, .4, .08, .4, KT.bronzeE), B(-.03, .08, -.03, .06, .85, .06, KT.bronze), esferaB(-.12, cy - .12, -.12, .24, '#3C6FD6')];
+    for(let i = 0; i < 10; i++){ const a0 = i / 10 * Math.PI * 2, a1 = (i + 1) / 10 * Math.PI * 2; out.push(traco(Math.cos(a0) * r, Math.sin(a0) * r, Math.cos(a1) * r, Math.sin(a1) * r, cy, KT.ouro)); const am = (a0 + a1) / 2, L = 2 * r * Math.sin(Math.PI / 10); out.push(Object.assign(B(Math.cos(am) * r - L / 2, cy + Math.sin(am) * r - .02, -.02, L, .04, .04, KT.bronzeC), { roll: am + Math.PI / 2 })); }
+    return out; }
+  /* a gata de Bastet no pedestal, com o brinco de ouro */
+  const bastet = () => [B(0, 0, 0, .5, .55, .5, PRETO), B(-.02, .55, -.02, .54, .04, .54, OURO), B(.15, .59, .1, .2, .38, .3, '#1A1A1E'), B(.13, .95, .14, .24, .2, .2, '#1A1A1E'), B(.14, 1.15, .16, .06, .1, .06, '#1A1A1E'), B(.3, 1.15, .16, .06, .1, .06, '#1A1A1E'),
+    B(.12, .9, .12, .26, .04, .24, OURO), B(.33, 1.05, .14, .03, .05, .03, OURO), B(.2, 1.02, .34, .04, .03, .01, OURO), B(.3, 1.02, .34, .04, .03, .01, OURO), B(.2, .59, .38, .1, .08, .12, '#1A1A1E')];
+  /* a estante encostada numa parede de x (os livros de frente pra +x) */
+  const estanteX = L => { const n = Math.floor(L / .18), out = [B(0, 0, 0, .45, 2.8, L, KT.mad)];
+    [.1, 1, 1.9].forEach((y, r) => { out.push(B(0, y - .04, 0, .5, .04, L, KT.madC)); for(let i = 0; i < n; i++) out.push(B(.45, y, .05 + i * .18, .05, .6 + ((i + r) % 3) * .08, .14, [SOL, KT.lapis, LINHO, OURO, PRETO, VINHO, '#C8743A'][(i * 3 + r) % 7])); });
+    return out; };
+  /* o Anúbis deitado no baú, como o da tumba de Tutancâmon (olhando pra +x) */
+  const anubisBau = () => [B(0, 0, 0, 1.6, .7, .7, OURO), ...[.2, .45].map(y => B(-.01, y, -.01, 1.62, .06, .72, KT.lapis)), B(.15, .7, .15, 1, .3, .4, '#141418'), B(1.05, .7, .17, .45, .12, .12, '#141418'), B(1.05, .7, .41, .45, .12, .12, '#141418'),
+    B(1.0, .95, .16, .3, .3, .38, '#141418'), B(1.28, .98, .25, .22, .13, .2, '#141418'), B(1.03, 1.24, .19, .08, .2, .08, '#141418'), B(1.03, 1.24, .41, .08, .2, .08, '#141418'), B(.95, .95, .14, .07, .22, .42, OURO), B(1.2, 1.1, .15, .06, .04, .01, OURO), B(1.2, 1.1, .54, .06, .04, .01, OURO), B(0, .7, .25, .2, .08, .2, '#141418')];
+  /* a cama do faraó: os pés de leão, a tampa de ouro, o lençol de linho, a manta azul e o pé da cama */
+  const camaEg = () => [...[[0, 0], [2.65, 0], [0, 2.3], [2.65, 2.3]].flatMap(([x, z]) => [B(x, 0, z, .15, .35, .15, OURO), B(x - .02, 0, z + .1, .19, .06, .12, OURO)]),
+    B(0, .35, 0, 2.8, .1, 2.45, OURO), B(.1, .45, .1, 2.6, .2, 2.25, LINHO), B(.1, .65, .9, 2.6, .05, 1.45, KT.lapis), B(.1, .7, 1.3, 2.6, .005, .12, OURO),
+    B(.4, .65, .2, .7, .18, .4, LINHO), B(1.7, .65, .2, .7, .18, .4, LINHO), B(0, .45, 2.35, 2.8, .45, .1, OURO), ...[.4, 1.2, 2].map(x => B(x, .55, 2.45, .4, .25, .01, KT.lapis))];
+  const dossel = () => [...[[-.1, -.1], [2.85, -.1], [-.1, 2.5], [2.85, 2.5]].map(([x, z]) => B(x, 0, z, .08, 2.7, .08, OURO)), B(-.1, 2.7, -.1, 3.03, .08, .08, OURO), B(-.1, 2.7, 2.5, 3.03, .08, .08, OURO), B(-.1, 2.7, -.1, .08, .08, 2.68, OURO), B(2.85, 2.7, -.1, .08, .08, 2.68, OURO),
+    B(-.08, 2.3, -.08, 3, .4, .02, LINHO), B(-.08, 2.3, 2.5, 3, .4, .02, LINHO), B(-.08, 2.3, -.08, .02, .4, 2.6, LINHO), B(2.9, 2.3, -.08, .02, .4, 2.6, LINHO)];
+  /* o ankh de neon rosa do estúdio, na parede do fundo */
+  const ankhNeon = (x, y, z, c) => [luzB(B(x + .3, y + 1.06, z, .4, .06, .03, c)), luzB(B(x + .22, y + .7, z, .06, .4, .03, c)), luzB(B(x + .72, y + .7, z, .06, .4, .03, c)), luzB(B(x + .3, y + .66, z, .4, .06, .03, c)), luzB(B(x + .47, y, z, .06, .64, .03, c)), luzB(B(x + .15, y + .5, z, .7, .06, .03, c))];
+  const PLANTA_TEMPLO = {
+    k: 'templo', W: 30, D: 24, ALT: 7,
+    comodos: [
+      { k: 'templo', nome: 'O templo', x0: 0, z0: 8, x1: 22, z1: 24, piso: '#2A2B31', linha: 'rgba(255,255,255,.05)' },
+      { k: 'camara', nome: 'Câmara de reflexão', x0: 22, z0: 19, x1: 27, z1: 24, piso: '#1E1F24', linha: 'rgba(255,255,255,.04)' },
+      { k: 'biblioteca', nome: 'Biblioteca hermética', x0: 22, z0: 8, x1: 30, z1: 24, piso: '#5A3A28', linha: 'rgba(30,15,5,.22)' },
+      { k: 'quarto', nome: 'Quarto do faraó', x0: 0, z0: 0, x1: 9, z1: 8, piso: '#C9A86A', linha: 'rgba(60,30,10,.16)' },
+      { k: 'estudio', nome: 'Estúdio', x0: 9, z0: 0, x1: 19, z1: 8, piso: '#2B2F38', linha: 'rgba(255,255,255,.07)' },
+      { k: 'closet', nome: 'Closet', x0: 19, z0: 0, x1: 30, z1: 8, piso: '#8A5A3A', linha: 'rgba(40,20,5,.2)' },
+      { k: 'escritorio', nome: 'Gabinete (mezanino)', x0: 0, z0: 0, x1: 30, z1: 8, n: 1, piso: '#1E2A5A', linha: 'rgba(242,210,122,.12)' }
+    ],
+    paredes: [
+      { a: [0, 24], b: [30, 24], ext: [0, 1], portas: [[10.2, 11.8]], altas: [[1, 8], [14, 21]], janelas: [[27.6, 29.4]], entrada: true, cor: CREME },
+      { a: [30, 0], b: [30, 24], ext: [1, 0], janelas: [[20, 23]], cor: CREME },
+      { a: [0, 0], b: [0, 24], ext: [-1, 0], janelas: [[2.5, 5.5]], cor: CREME },
+      { a: [0, 0], b: [30, 0], ext: [0, -1], cor: CREME2 },
+      { a: [0, 8], b: [30, 8], portas: [[1.4, 2.6], [17.6, 18.8], [24.2, 25.4]], alt: 3.4, cor: CREME2 },
+      { a: [9, 0], b: [9, 8], alt: 3.4, cor: CREME2 }, { a: [19, 0], b: [19, 8], alt: 3.4, cor: CREME2 },
+      { a: [22, 8], b: [22, 24], portas: [[6, 7.4]], alt: 3.4, cor: CREME2 },
+      { a: [22, 19], b: [27, 19], portas: [[3.4, 4.6]], alt: 3.2, cor: '#2A2B31' }, { a: [27, 19], b: [27, 24], alt: 3.2, cor: '#2A2B31' }
+    ],
+    entrada: { x: 11, z: 24 }, tapete: { x: 10.3, z: 22.8, w: 1.4, d: 1 },
+    mezanino: { x0: 0, z0: 0, x1: 30, z1: 8, y: 3.4, grade: [[0, 8, 28.4, 8]] },
+    escada: { x0: 28.4, z0: 8, x1: 30, z1: 18, topo: 3.4 },
+    estacoes: { studio: { x: 9.5, z: .4, y: 3.4 }, feed: { x: 3, z: .15, y: 3.4 }, ia: { x: 6, z: .5, y: 3.4 }, horus: { x: .15, z: 1, y: 3.4 }, mural: { x: .15, z: 4, y: 3.4 }, marcas: { x: 29.4, z: 1, y: 3.4 }, grana: { x: 29.2, z: 4.6, y: 3.4 }, vendas: { x: 16.8, z: 5.4, y: 3.4 }, nicho: { x: 1, z: 6.2, y: 3.4 }, estilo: { x: 3.4, z: 6.4, y: 3.4 }, manual: { x: 12.5, z: 1.6, y: 3.4 }, banca: { x: 14.6, z: .4, y: 3.4 }, rolo: { x: 19.2, z: .9, y: 3.4 }, agente: { x: 21.6, z: 1.3, y: 3.4 } },
+    padrao: [],
+    /* o pavimento de mosaico com a borda dentada, e a passadeira da porta até ele */
+    chao: (() => { const out = [ret(5.3, 11.9, 16.7, 20.1, PRETO), ret(5.42, 12.02, 16.58, 19.98, MARMORE), ...serra(5.42, 12.02, 16.58, 19.98, .4), ret(6, 12.6, 16, 19.4, '#F2EFE6')];
+      for(let i = 0; i < 10; i++) for(let j = 0; j < 7; j++) if((i + j) % 2) out.push(ret(6 + i, 12.6 + j, 7 + i, 13.6 + j, PRETO));
+      out.push(ret(10.3, 20.1, 11.7, 23.7, VINHO), ret(10.3, 20.1, 10.38, 23.7, OURO), ret(11.62, 20.1, 11.7, 23.7, OURO));
+      return out; })(),
+    imgs: [
+      { P4: faceP4('x', .17, 8.6, 23.4, 1.25, 6.65, 1), n: [1, 0, 0], img: () => calcImg('temploMural', 1184, 432, muralEgito), cor: CREME },
+      { P4: faceP4('z', .17, 1, 8, 1.35, 3.15, 1), n: [0, 0, 1], img: () => calcImg('temploHiero', 560, 144, hieroglifos), cor: CREME },
+      { P4: faceP4('z', 23.83, 22.4, 26.6, 1, 2.9, -1), n: [0, 0, -1], img: () => calcImg('temploVitriol', 336, 152, vitriol), cor: '#141418' },
+      { P4: faceP4('z', .17, 8.6, 17.4, 4.75, 6.65, 1), n: [0, 0, 1], img: () => calcImg('temploPapiro', 704, 152, livroMortos), cor: KT.papiro },
+      { P4: faceP4('z', .17, 23.8, 28.8, 4.6, 6.6, 1), n: [0, 0, 1], img: () => calcImg('temploPainel', 500, 200, painelLoja), cor: '#22408E' }
+    ],
+    decor: [
+      /* ---- o templo ---- */
+      /* o Oriente: três degraus de mármore, o tapete azul, o trono de ouro com o dossel vermelho e a mesa do malhete */
+      { x: 5, z: 8.3, bl: [B(0, 0, 0, 12, .18, 3.4, MARMORE), B(1, .18, 0, 10, .18, 2.6, MARMORE), B(2, .36, 0, 8, .18, 1.8, MARMORE), B(2.1, .54, .05, 7.8, .005, 1.7, KT.lapis), B(0, .18, 3.38, 12, .005, .02, OURO), B(1, .36, 2.58, 10, .005, .02, OURO)] },
+      { x: 9.2, z: 8.3, bl: [B(0, .54, 0, 3.6, 2.5, .06, VINHO), B(-.2, 3, 0, 4, .3, 1.3, VINHO), B(-.2, 2.95, 1.26, 4, .06, .05, OURO), B(-.2, 3.3, 0, 4, .05, 1.3, OURO), ...[.4, 1.2, 2.4, 3.2].map(x => B(x, .54, .06, .04, 2.5, .01, '#6E1220'))] },
+      { x: 10.3, z: 8.45, bl: [B(0, .54, 0, 1.4, .5, .9, KT.ouro), B(.1, 1.04, .1, 1.2, .1, .7, KT.lapis), B(0, .54, 0, 1.4, 2.1, .14, KT.ouro), B(.15, .94, .14, 1.1, 1.5, .02, KT.lapis), B(-.05, 1.04, 0, .16, .35, .9, KT.ouro), B(1.29, 1.04, 0, .16, .35, .9, KT.ouro), B(.5, 2.24, .14, .4, .3, .02, KT.ouroC), esferaB(-.06, 2.64, -.06, .2, KT.ouroC), esferaB(1.26, 2.64, -.06, .2, KT.ouroC)] },
+      { x: 10.1, z: 9.45, bl: [B(0, .54, 0, 1.8, .82, .55, KT.mad), B(-.05, 1.36, -.05, 1.9, .06, .65, OURO), B(.3, 1.42, .2, .35, .08, .1, KT.mad), B(.44, 1.42, .3, .07, .04, .25, KT.madC), B(1.4, 1.42, .2, .1, .3, .1, LINHO), luzB(B(1.42, 1.72, .22, .06, .08, .06, AMARELO))] },
+      /* em cima do Oriente: o delta com o olho, o sol e a lua */
+      { x: 0, z: 0, bl: [...delta(11, 5.3, 8.35), esferaB(5.2, 4.6, 8.15, .9, '#F2C230'), ...Array.from({ length: 12 }, (_, i) => Object.assign(B(5.65 + .6, 5.05 - .02, 8.55, .35, .04, .03, '#F2D27A'), { roll: i / 12 * Math.PI * 2, piv: [5.65, 5.05, 8.55] })), ...lua(16.6, 5.05, 8.4)] },
+      /* as esfinges dos lados do Oriente e os braseiros */
+      { x: 3, z: 8.6, bl: esfinge() }, { x: 19.6, z: 8.6, bl: esfinge() },
+      { x: 4.2, z: 11, bl: braseiro() }, { x: 17.3, z: 11, bl: braseiro() },
+      /* o altar dos juramentos: o livro aberto, o compasso e o esquadro; e as três luzes em volta */
+      { x: 10.55, z: 15.55, bl: [B(0, 0, 0, .9, .9, .9, KT.mad), B(-.05, .9, -.05, 1, .06, 1, OURO), B(.1, .1, .9, .7, .7, .01, KT.madC), B(.3, .3, .91, .3, .3, .01, OURO),
+        Object.assign(B(.12, .96, .2, .33, .04, .5, PAPEL), { roll: .14 }), Object.assign(B(.45, .96, .2, .33, .04, .5, PAPEL), { roll: -.14 }),
+        traco(.45, .25, .3, .66, 1.035, OURO), traco(.45, .25, .6, .66, 1.035, OURO), traco(.3, .34, .45, .7, 1.04, KT.ouroC), traco(.6, .34, .45, .7, 1.04, KT.ouroC)] },
+      { x: 11, z: 14.6, bl: lume() }, { x: 9.65, z: 16.9, bl: lume() }, { x: 12.35, z: 16.9, bl: lume() },
+      /* as colunas B e J na entrada (a terra e o céu) */
+      { x: 7.6, z: 20.6, bl: colunaBJ(false) }, { x: 13.6, z: 20.6, bl: colunaBJ(true) },
+      /* as colunas de papiro e os bancos do Norte e do Sul */
+      ...[12.6, 16.2, 19.8].flatMap(z => [{ x: 3.3, z, bl: papiroAlto(1.45) }, { x: 17.9, z, bl: papiroAlto(1.45) }]),
+      { x: 1, z: 11.6, bl: bancoLoja(3.8, true) }, { x: 1, z: 16.4, bl: bancoLoja(4.2, true) },
+      { x: 20.3, z: 11.2, bl: bancoLoja(2.4, false) }, { x: 20.3, z: 16, bl: bancoLoja(5, false) },
+      /* os obeliscos dos cantos da frente */
+      { x: .4, z: 22.6, bl: obelisco() }, { x: 20.8, z: 22.4, bl: obelisco() },
+      /* na parede da biblioteca, de frente pro templo: a rosa-cruz e, em cima da porta, o sol alado */
+      { x: 0, z: 0, parede: true, bl: [...rosaCruz(21.8, 1.95, 18.2), ...solAlado(21.8, 2.75, 14.7)] },
+      /* ---- a biblioteca hermética ---- */
+      { x: 22.16, z: 8.5, bl: estanteX(5.2) }, { x: 22.16, z: 15.7, bl: estanteX(3) },
+      { x: 24.2, z: 9.6, bl: sarcofago() },
+      { x: 27.2, z: 10.6, bl: armilar() },
+      { x: 23.3, z: 16.3, bl: [B(0, .75, 0, 1.9, .06, .8, KT.madC), ...[[.08, .08], [1.72, .08], [.08, .62], [1.72, .62]].map(([x, z]) => B(x, 0, z, .1, .75, .1, KT.mad)), esferaB(.2, .81, .2, .28, SOL), B(.3, 1.08, .3, .06, .2, .06, '#C8CDD4'), esferaB(.6, .81, .4, .22, KT.lapis), B(.68, 1.02, .48, .05, .16, .05, '#C8CDD4'), esferaB(.95, .81, .2, .2, LILAS),
+        B(1.25, .81, .2, .4, .06, .3, KT.lapis), B(1.27, .87, .22, .36, .04, .26, LINHO), B(1.6, .81, .5, .1, .3, .1, LINHO), luzB(B(1.62, 1.11, .52, .06, .08, .06, AMARELO)), B(1.15, .81, .55, .14, .04, .14, KT.ouro), B(1.17, .85, .57, .1, .14, .1, '#E8F2FF'), B(1.15, .99, .55, .14, .04, .14, KT.ouro)] },
+      { x: 26.3, z: 13.4, bl: [B(.15, 0, .15, .4, .06, .4, KT.mad), B(.3, .06, .3, .1, 1, .1, KT.mad), Object.assign(B(0, 1.06, .1, .7, .06, .5, KT.madC), { pitch: -.3 }), Object.assign(B(.05, 1.12, .12, .6, .06, .44, LINHO), { pitch: -.3 })] },
+      { x: 27.6, z: 22.9, bl: bastet() },
+      { x: 23.2, z: 12.9, piso: true, bl: [B(0, 0, 0, 4, .02, 2.6, '#7A1C22'), B(.2, .02, .2, 3.6, .004, 2.2, '#8E2A2E')] },
+      /* ---- a câmara de reflexão: escura, a mesa com a caveira, a ampulheta, a vela, o pão, o sal e o enxofre ---- */
+      { x: 23, z: 22.7, bl: [B(0, .75, 0, 1.9, .06, .85, '#2A1A10'), ...[[.08, .08], [1.72, .08], [.08, .67], [1.72, .67]].map(([x, z]) => B(x, 0, z, .1, .75, .1, '#2A1A10')),
+        esferaB(.35, .81, .22, .32, '#EDE6D6'), B(.4, .79, .2, .22, .1, .14, '#EDE6D6'), B(.4, .96, .21, .08, .07, .01, PRETO), B(.56, .96, .21, .08, .07, .01, PRETO), B(.48, .88, .2, .06, .06, .01, PRETO),
+        B(.95, .81, .3, .26, .03, .2, '#8E7A4A'), B(.95, 1.2, .3, .26, .03, .2, '#8E7A4A'), B(1, .84, .33, .16, .16, .14, '#E8F2FF'), B(1.03, 1.0, .36, .1, .2, .08, '#E8F2FF'), B(1.02, .84, .34, .12, .06, .12, '#C9A24E'),
+        B(1.4, .81, .5, .1, .28, .1, LINHO), luzB(B(1.42, 1.09, .52, .06, .09, .06, AMARELO)), B(1.35, .81, .15, .32, .1, .16, '#C89B5A'), B(1.65, .81, .5, .16, .05, .16, '#F2F0EA'), B(1.65, .81, .25, .16, .05, .16, '#E8C547')] },
+      { x: 23.7, z: 21.7, bl: [B(0, 0, 0, .1, .45, .1, '#2A1A10'), B(.4, 0, 0, .1, .45, .1, '#2A1A10'), B(0, 0, .4, .1, .45, .1, '#2A1A10'), B(.4, 0, .4, .1, .45, .1, '#2A1A10'), B(-.02, .45, -.02, .54, .06, .54, '#3A2418')] },
+      /* ---- o quarto do faraó ---- */
+      { x: 2.6, z: .45, bl: camaEg() }, { x: 2.6, z: .45, bl: dossel() },
+      { x: 1.5, z: .4, bl: [B(0, 0, 0, .8, .55, .55, KT.mad), B(-.02, .55, -.02, .84, .04, .59, OURO), luzB(B(.25, .59, .13, .3, .42, .3, '#FFE9C4'))] },
+      { x: 5.75, z: .4, bl: [B(0, 0, 0, .8, .55, .55, KT.mad), B(-.02, .55, -.02, .84, .04, .59, OURO), luzB(B(.25, .59, .13, .3, .42, .3, '#FFE9C4'))] },
+      { x: 6.6, z: 5.6, bl: anubisBau() },
+      { x: 2.2, z: 3.5, piso: true, bl: [B(0, 0, 0, 3.6, .02, 2.4, '#7A1C22'), B(.15, .02, .15, 3.3, .004, 2.1, KT.lapis), B(.3, .025, .3, 3, .004, 1.8, '#7A1C22')] },
+      /* ---- o estúdio: a mesa de DJ toca os discos da casa ---- */
+      { x: 12.5, z: .5, acao: 'discos', topo: .72, bl: ITEM_MESA_DJ() },
+      { x: 10.3, z: .4, bl: [B(.15, 0, .15, .7, 1.2, .7, '#15171B'), B(.3, .2, .85, .4, .4, .02, '#34383F'), B(.4, .75, .85, .2, .2, .02, '#34383F')] },
+      { x: 15.9, z: .4, bl: [B(.15, 0, .15, .7, 1.2, .7, '#15171B'), B(.3, .2, .85, .4, .4, .02, '#34383F'), B(.4, .75, .85, .2, .2, .02, '#34383F')] },
+      { x: 9.5, z: .16, parede: true, bl: [...Array.from({ length: 6 }, (_, i) => B(i * 1.5, 1.35, 0, 1.25, .95, .07, [KT.lapis, PRETO, '#7E3A28', KT.lapis, PRETO, '#7E3A28'][i])), ...Array.from({ length: 6 }, (_, i) => B(i * 1.5 + .1, 1.42, .07, 1.05, .04, .01, OURO)), ...ankhNeon(3.6, 2.2, .08, ROSA)] },
+      { x: 14.4, z: 3.2, bl: [B(.2, 0, .2, .5, .05, .5, INK), B(.42, .05, .42, .06, 1.5, .06, INK), B(.36, 1.5, .36, .18, .24, .18, '#8F96A0')] },
+      { x: 9.25, z: 3.6, bl: [B(0, 0, 0, .9, .45, 2.6, KT.lapis), B(0, .45, 0, .25, .55, 2.6, KT.lapis), B(.25, .45, .2, .6, .12, 1.1, '#2E52B0'), B(.25, .45, 1.3, .6, .12, 1.1, '#2E52B0'), B(.15, .45, 0, .75, .4, .15, KT.lapis), B(.15, .45, 2.45, .75, .4, .15, KT.lapis)] },
+      { x: 17.4, z: .16, parede: true, bl: [B(0, 1.4, 0, .9, 1.1, .05, PRETO), B(.08, 1.48, .05, .74, .74, .01, OURO), B(.3, 1.7, .06, .3, .3, .01, PRETO), B(.15, 2.3, .05, .6, .1, .01, OURO)] },
+      { x: 11, z: 3, piso: true, bl: [B(0, 0, 0, 5, .02, 3.2, '#3A2A1E'), B(.2, .02, .2, 4.6, .004, 2.8, '#7E3A28')] },
+      /* ---- o closet: o armário do olho de Hórus (troca a skin), o espelho, a arara e a sapateira ---- */
+      { x: 20.6, z: .3, acao: 'roupa', bl: [B(0, 0, 0, 3.6, 2.7, .7, KT.mad), B(-.05, 2.7, -.05, 3.7, .12, .8, OURO), ...[.9, 1.8, 2.7].map(x => B(x - .01, .1, .7, .02, 2.5, .01, '#2A1A10')),
+        ...[.78, 1, 1.68, 1.9, 2.58, 2.8].map(x => B(x, 1.2, .7, .05, .28, .03, OURO)),
+        B(1.45, 2.05, .7, .7, .06, .02, OURO), B(1.5, 1.86, .7, .6, .05, .02, OURO), B(1.68, 1.89, .71, .22, .15, .02, KT.lapis), B(1.58, 1.7, .7, .06, .16, .02, OURO), B(1.96, 1.66, .7, .06, .22, .02, OURO), B(2.0, 1.62, .7, .22, .05, .02, OURO)] },
+      { x: 24.7, z: .3, bl: [B(0, 0, 0, 1, 2.2, .1, OURO), B(.08, .1, .1, .84, 2, .01, '#BFD9F2'), B(.15, 1.6, .11, .1, .4, .01, PAPEL)] },
+      { x: 26.2, z: .4, bl: [B(0, 0, 0, .08, 1.9, .5, OURO), B(3.3, 0, 0, .08, 1.9, .5, OURO), B(0, 1.85, .22, 3.38, .06, .06, OURO), ...Array.from({ length: 8 }, (_, i) => B(.3 + i * .38, 1.05, .14, .3, .78, .22, [PRETO, LINHO, KT.lapis, SOL, OURO, ROSA, VINHO, AZUL][i]))] },
+      { x: 29.4, z: 2.2, bl: [B(0, 0, 0, .55, 2, 4.2, KT.mad), ...[.4, .9, 1.4].flatMap((y, r) => Array.from({ length: 6 }, (_, i) => B(-.05, y, .2 + i * .66, .45, .2, .5, [PAPEL, PRETO, SOL, KT.lapis, OURO, ROSA][(i + r * 2) % 6])))] },
+      { x: 23.8, z: 4.2, bl: [B(0, 0, 0, 1.3, .45, .8, VINHO), B(-.02, .45, -.02, 1.34, .04, .84, OURO)] },
+      { x: 21.2, z: 2.6, piso: true, bl: [B(0, 0, 0, 5.2, .02, 3.6, '#2A1A3A'), B(.2, .02, .2, 4.8, .004, 3.2, KT.lapis)] },
+      /* ---- o gabinete, no mezanino ---- */
+      { x: 3.6, z: 1.6, y: 3.4, piso: true, bl: [B(0, 0, 0, 16.4, .03, 5.4, KT.lapis), B(.25, .03, .25, 15.9, .006, 4.9, '#2E52B0'), B(.4, .036, .4, 15.6, .004, .06, OURO), B(.4, .036, 4.94, 15.6, .004, .06, OURO)] },
+      { x: 25.8, z: 5.6, y: 3.4, bl: [B(0, 0, 0, 1, .8, 1, PRETO), B(.08, .8, .08, .84, .16, .84, KT.pedra), B(.18, .96, .18, .64, .16, .64, KT.pedra), B(.28, 1.12, .28, .44, .16, .44, KT.pedra), B(.38, 1.28, .38, .24, .14, .24, OURO)] },
+      { x: 7.6, z: 6.6, y: 3.4, bl: [B(0, 0, 0, .7, .1, .5, PRETO), B(.29, .1, .19, .12, .95, .12, OURO), B(.05, .9, .19, .6, .12, .12, OURO), B(.2, 1.05, .19, .3, .08, .12, OURO), B(.14, 1.12, .19, .08, .32, .12, OURO), B(.48, 1.12, .19, .08, .32, .12, OURO), B(.2, 1.42, .19, .3, .08, .12, OURO)] }
     ]
   };
   const LUGARES = {
@@ -2551,7 +2826,10 @@
       const [ax, az] = p.a, [bx, bz] = p.b, L = Math.hypot(bx - ax, bz - az), dx = (bx - ax) / L, dz = (bz - az) / L, meia = ESP / 2;
       /* parede que passa do mezanino (as de fora) também segura quem tá em cima */
       const alta = !!PL.mezanino && (p.alt || ALT) > PL.mezanino.y + .5;
-      const marca = (x0, z0, x1, z1) => { marcaEm(g0, x0, z0, x1, z1); if(alta) marcaEm(g1, x0, z0, x1, z1); };
+      /* v3.81: a parede marca a grade com 6 cm de folga (célula que ela só raspa não conta). Porta de 1,2 m que caía
+         torta na grade de 25 cm (as do 9,4 ao 10,6 da casa padrão) ficava com duas células livres, e o boneco precisa
+         de três: o quarto da casa padrão não tinha como entrar andando */
+      const F = .06, marca = (x0, z0, x1, z1) => { x0 += F; z0 += F; x1 -= F; z1 -= F; marcaEm(g0, x0, z0, x1, z1); if(alta) marcaEm(g1, x0, z0, x1, z1); };
       const gaps = (p.portas || []).slice();
       let cortes = [0, L]; gaps.forEach(gp => cortes.push(gp[0], gp[1])); cortes = [...new Set(cortes)].sort((a, b) => a - b);
       for(let i = 0; i + 1 < cortes.length; i++){
@@ -2691,8 +2969,9 @@
     S.itens.forEach((it, i) => { const o = ITEM[it.k]; if(!o || !o.acao) return; const p = pegadaDe(o, it.r); out.push({ id: 'i' + i, a: o.acao, x: it.x, z: it.z, w: p.w, d: p.d, y: chaoItem(it), parede: !!o.parede, topo: Math.max(...blocosDe(it).map(b => b.y + b.h)) }); });
     return out;
   }
-  const acaoPraMim = a => a.a === 'senta' ? !!(a.e && !(S.eu && S.eu.sit) && assentoLivre(a.e)) : a.a !== 'skate' || S.meu;
-  const rotuloAcao = a => a.a === 'senta' ? (a.e && a.e.nome) || 'Sentar' : a.a === 'relojao' ? 'A hora no Relojão' : a.a === 'desafio' ? `${(quadraAqui() || {}).nome || 'Desafio'} (${TENT})` : a.a === 'largada' ? (comBicho() ? 'Escolher bicho e largar' : autodromo() ? 'Moto ou carro: largar' : `Largar (${VOLTAS} voltas)`) : a.a === 'pesca' ? 'Pescar aqui' : a.a === 'skate' ? (C.st.me && C.st.me.verso && C.st.me.verso.skate ? 'Largar o skate' : 'Pegar o skate') : a.a === 'jogo' ? 'Jogar Killer Ocean' : (S.discoAtual ? '♪ ' + (C.beats ? C.beats.nome(S.discoAtual) : 'tocando') : '♪ Discos');
+  /* v3.81: o armário (trocar de skin) é como o skate: só na tua casa */
+  const acaoPraMim = a => a.a === 'senta' ? !!(a.e && !(S.eu && S.eu.sit) && assentoLivre(a.e)) : (a.a !== 'skate' && a.a !== 'roupa') || S.meu;
+  const rotuloAcao = a => a.a === 'senta' ? (a.e && a.e.nome) || 'Sentar' : a.a === 'relojao' ? 'A hora no Relojão' : a.a === 'desafio' ? `${(quadraAqui() || {}).nome || 'Desafio'} (${TENT})` : a.a === 'largada' ? (comBicho() ? 'Escolher bicho e largar' : autodromo() ? 'Moto ou carro: largar' : `Largar (${VOLTAS} voltas)`) : a.a === 'pesca' ? 'Pescar aqui' : a.a === 'skate' ? (C.st.me && C.st.me.verso && C.st.me.verso.skate ? 'Largar o skate' : 'Pegar o skate') : a.a === 'jogo' ? 'Jogar Killer Ocean' : a.a === 'roupa' ? 'Trocar de skin' : (S.discoAtual ? '♪ ' + (C.beats ? C.beats.nome(S.discoAtual) : 'tocando') : '♪ Discos');
   /* vai até a frente e faz */
   function vaiNaAcao(a){
     if(!S.eu || !a || !acaoPraMim(a)) return;
@@ -2705,6 +2984,9 @@
   }
   async function fazAcao(a){
     if(a.a === 'discos'){ discosSheet(); return; }
+    /* v3.81: parou na frente do armário da tua casa: troca de skin (abre o avatar, com as do Ateliê); salvou, o boneco
+       daqui troca na hora */
+    if(a.a === 'roupa'){ if(S.meu && C.verso && C.verso.avatar) C.verso.avatar('armario'); return; }
     if(a.a === 'senta'){ senta(a.e); return; }
     if(a.a === 'relojao'){ const [h, m] = horaBR(); C.toast(`O Relojão do Edifício América marca ${h}:${String(m).padStart(2, '0')}. Lá em cima, olhando de longe (arrasta pra cima), dá pra ver.`, 4200); return; }
     if(a.a === 'pesca'){ comecaPesca(a.e && a.e.spot); return; }
@@ -4053,7 +4335,9 @@
       const ox = e.x, oz = e.z; mover(e, dx / n * VEL * dt * Math.min(1, n), dz / n * VEL * dt * Math.min(1, n));
       const andou = Math.hypot(e.x - ox, e.z - oz);
       e.andando = andou > .0005; if(e.andando){ e.passo += dt * 9; e.yaw = Math.atan2(dx, dz); e.parado = 0; const np = Math.floor(e.passo / Math.PI); if(np !== S.passoN){ S.passoN = np; if(C.versoSom && puloCasa(e) === 0) C.versoSom.passo(naEscada(e.x, e.z) || nivelDe(e.y) === 1 ? 'madeira' : 'piso', .8); } }
-      else { e.parado = (e.parado || 0) + dt; if(e.parado > .4){ if(S.acao && S.alvo && !S.rota.length && Math.hypot(S.alvo.x - e.x, S.alvo.z - e.z) < 2.4) chegou(); else { S.alvo = null; S.acao = null; S.rota = []; } } }
+      /* v3.81: travou a menos de 70 cm de um ponto do meio da rota (no templo, a quina da câmara encosta no pé da
+         escada): segue pro próximo em vez de largar o caminho */
+      else { e.parado = (e.parado || 0) + dt; if(e.parado > .4){ const fal = S.alvo ? Math.hypot(S.alvo.x - e.x, S.alvo.z - e.z) : 9; if(S.alvo && (S.rota.length ? fal < .7 : S.acao && fal < 2.4)) chegou(); else { S.alvo = null; S.acao = null; S.rota = []; } } }
     } else { e.andando = false; }
     /* a câmera segue o boneco (e sobe junto no mezanino); andando, ela vai girando pra ficar atrás dele, a não ser
        que você tenha acabado de arrastar pra olhar de outro lado */
@@ -4104,7 +4388,7 @@
     if(S.modo === 'andar' && !S.alvo && !pertoDe()){ const L = corredoresVivo(); if(L.length){ const txt = S.segue != null ? `Seguindo: ${L[Math.min(L.length - 1, S.segue)].nome}` : 'Assistir a corrida'; S.perto = null; if(b.dataset.txt !== txt){ b.dataset.txt = txt; b.hidden = false; b.innerHTML = `${ico('eye')}<span>${txt}</span>`; } return; } else S.segue = null; }
     const p = S.modo === 'andar' && !S.alvo ? pertoDe() : null; S.perto = p;
     const txt = p ? p.nome : '';
-    if(b.dataset.txt !== txt){ b.dataset.txt = txt; b.hidden = !p; if(p) b.innerHTML = `${ico(p.t === 'saida' ? 'prev' : p.t === 'escada' ? 'up' : p.t === 'npc' ? 'chat' : p.t === 'est' ? 'raio' : p.a && p.a.a === 'discos' ? 'musica' : p.a && p.a.a === 'jogo' ? 'play' : p.a && p.a.a === 'pesca' ? 'peixe' : p.a && (p.a.a === 'largada' || p.a.a === 'desafio') ? 'raio' : 'eu')}<span>${esc(p.nome)}</span>`; }
+    if(b.dataset.txt !== txt){ b.dataset.txt = txt; b.hidden = !p; if(p) b.innerHTML = `${ico(p.t === 'saida' ? 'prev' : p.t === 'escada' ? 'up' : p.t === 'npc' ? 'chat' : p.t === 'est' ? 'raio' : p.a && p.a.a === 'discos' ? 'musica' : p.a && p.a.a === 'jogo' ? 'play' : p.a && p.a.a === 'pesca' ? 'peixe' : p.a && p.a.a === 'roupa' ? 'troca' : p.a && (p.a.a === 'largada' || p.a.a === 'desafio') ? 'raio' : 'eu')}<span>${esc(p.nome)}</span>`; }
   }
   function acaoPerto(){
     if(S.desafio){ dispara(); return; }
@@ -4322,7 +4606,7 @@
   function seleciona(i){ S.sel = i; S.cacheItens = null; barra(); }
   /* a loja: coleções (as de parede e de teto juntam o que encosta na parede e o que pendura no teto, de qualquer coleção) */
   const daLoja = c => (c === 'parede' ? ITENS.filter(i => i.parede) : c === 'teto' ? ITENS.filter(i => i.teto) : ITENS.filter(i => i.cat === c));
-  const etiquetaItem = it => { const t = []; if(it.luxo) return 'Em breve'; if(it.cores) t.push(it.cores.length + ' cores'); if(it.anima) t.push('mexe'); if(it.acao) t.push(it.acao === 'jogo' ? 'joga' : it.acao === 'discos' ? 'toca' : 'pega'); if(it.parede) t.push('parede'); if(it.teto) t.push('teto'); return t.join(' · ') || 'grátis'; };
+  const etiquetaItem = it => { const t = []; if(it.luxo) return 'Em breve'; if(it.cores) t.push(it.cores.length + ' cores'); if(it.anima) t.push('mexe'); if(it.acao) t.push(it.acao === 'jogo' ? 'joga' : it.acao === 'discos' ? 'toca' : it.acao === 'roupa' ? 'troca a skin' : 'pega'); if(it.parede) t.push('parede'); if(it.teto) t.push('teto'); return t.join(' · ') || 'grátis'; };
   function loja(cat){
     if(!S.meu) return;
     const c = cat || S.lojaCat || 'sala'; S.lojaCat = c;

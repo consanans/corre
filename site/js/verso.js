@@ -5336,16 +5336,16 @@
     const c = p.c, f = c.p || {}, meu = c.id === (C.st.me && C.st.me.id), cat = ((C.mural && C.mural.CATS || []).find(x => x[0] === f.categoria) || [])[1] || '';
     const nums = [[f.posts, 'post', 'posts'], [f.seg, 'seguidor', 'seguidores'], [f.itens, 'item no catálogo', 'itens no catálogo'], [f.esc, 'escolha no Mural', 'escolhas no Mural']].filter(([n]) => n).map(([n, a, b]) => `<span class="tag">${n} ${n === 1 ? a : b}</span>`).join('');
     /* a porta: a prévia da casa por dentro com o botão de entrar em cima, e o perfil embaixo */
-    const PV = C.casa, pl = PV && PV.plantaDe ? PV.plantaDe(c) : null, loft = !!(pl && pl.mezanino), mansao = !!(pl && pl.k === 'brutal');
+    const PV = C.casa, pl = PV && PV.plantaDe ? PV.plantaDe(c) : null, loft = !!(pl && pl.mezanino), mansao = !!(pl && pl.k === 'brutal'), templo = !!(pl && pl.k === 'templo');
     C.sheet(`<div class="form cvr-porta-s"><div class="sheet-head"><h2>${meu ? 'Tua casa' : 'Casa de @' + esc(c.handle)}</h2><button type="button" class="cbtn plain" data-close aria-label="Fechar">${ico('x')}</button></div>
-      ${PV ? `<div class="cvr-previa"><canvas id="cvr-previa" width="320" height="180" aria-label="A casa por dentro, vista de cima"></canvas><span class="cvr-previa-t">${mansao ? 'mansão brutalista · 2 andares' : loft ? 'loft · 2 andares' : 'por dentro · 3D'}</span>
+      ${PV ? `<div class="cvr-previa"><canvas id="cvr-previa" width="320" height="180" aria-label="A casa por dentro, vista de cima"></canvas><span class="cvr-previa-t">${mansao ? 'mansão brutalista · 2 andares' : templo ? 'o templo · 2 andares' : loft ? 'loft · 2 andares' : 'por dentro · 3D'}</span>
         <button type="button" class="btn pri cvr-entrar" data-act="cvr-casa-entrar" data-id="${esc(c.id)}">${ico('home')} ${meu ? 'Entrar na casa' : 'Visitar a casa'}</button></div>` : ''}
       <div class="cvr-casa-h">${C.avatar(f, 'l')}<div><b>${esc(f.nome || c.handle)}</b><small>@${esc(c.handle)}${f.cidade ? ' · ' + esc(f.cidade) : ''}</small>${cat ? `<span class="tag cat">${esc(cat)}</span>` : ''}</div></div>
       ${f.faz ? `<p>${esc(f.faz)}</p>` : ''}
       <div class="meta">${nums || '<span class="note">Casa nova no pedaço.</span>'}</div>
       ${p.dois ? '<p class="fine">Dois quarteirões, um do lado do outro, ligados pela passarela por cima da rua: a casa e o estúdio. Só tem um desses no Correverso.</p>' : meu ? `<p class="fine">Todo mundo tem um quarteirão. A casa cresce com o que você faz no Corre: posts, seguidores, itens no catálogo e escolhas no Mural. Dinheiro não conta. Nível ${c.tier} de 4.</p>` : ''}
       <div class="acts">${PV ? '' : `<button type="button" class="btn pri" data-act="cvr-casa-entrar" data-id="${esc(c.id)}">${ico('home')} ${meu ? 'Entrar na casa' : 'Visitar a casa'}</button>`}<button type="button" class="btn" data-act="cvr-perfil" data-h="${esc(c.handle)}" data-meu="${meu ? '1' : ''}" data-cor="${esc((CASA[c.cat] || CASA.outros).a)}">${ico('eu')} ${meu ? 'Meu perfil' : 'Ver perfil'}</button>${meu ? `<button type="button" class="btn" data-act="cvr-avatar">${ico('edit')} Mudar avatar</button>` : ''}${!meu && C.msg && C.uid() && c.handle ? `<button type="button" class="btn" data-act="cvr-msg" data-h="${esc(c.handle)}" data-cor="${esc((CASA[c.cat] || CASA.outros).a)}">${ico('send')} Mensagem</button>` : ''}</div>
-      ${(meu || mansao) && PV ? `<p class="fine">${mansao ? 'Concreto aparente do chão ao teto: o salão de 7 metros com o mural de mosaico do cosmos, a lareira, o lustre Sputnik e o piano; a bânia, a biblioteca com a radiola e, no mezanino, o gabinete com todas as ferramentas e o telefone vermelho.' : loft ? 'Lá dentro: sala com pé-direito duplo, cozinha, estúdio, closet e o escritório no mezanino, com todas as tuas ferramentas.' : 'Por dentro, a casa é em 3D: o escritório tem as tuas ferramentas e a loja tem os móveis (de graça por enquanto).'}</p>` : ''}</div>`);
+      ${(meu || mansao || templo) && PV ? `<p class="fine">${templo ? 'Egito, Rosacruz e Maçonaria: o templo de 7 metros com o pavimento de mosaico, as colunas B e J, o Oriente com o trono e o delta, a rosa-cruz e o mural do Egito; a biblioteca hermética com o sarcófago, a câmara de reflexão, o quarto do faraó, o estúdio, o closet e, no mezanino, o gabinete com todas as ferramentas.' : mansao ? 'Concreto aparente do chão ao teto: o salão de 7 metros com o mural de mosaico do cosmos, a lareira, o lustre Sputnik e o piano; a bânia, a biblioteca com a radiola e, no mezanino, o gabinete com todas as ferramentas e o telefone vermelho.' : loft ? 'Lá dentro: sala com pé-direito duplo, cozinha, estúdio, closet e o escritório no mezanino, com todas as tuas ferramentas.' : 'Por dentro, a casa é em 3D: o escritório tem as tuas ferramentas e a loja tem os móveis (de graça por enquanto).'}</p>` : ''}</div>`);
     if(PV && PV.previa){
       const cv = C.$('cvr-previa'), dono0 = meu ? C.st.me : { id: c.id, handle: c.handle };
       requestAnimationFrame(() => { if(cv && cv.isConnected) PV.previa(cv, dono0); });
@@ -5439,13 +5439,14 @@
     };
     requestAnimationFrame(roda);
   }
-  function avatarSheet(primeira){
-    const me = C.st.me; let av = avLimpo(me.verso, me.id);
+  /* v3.81: "armario" é o guarda-roupa da casa: o mesmo avatar, com outro nome (é ali que se troca a skin) */
+  function avatarSheet(primeira, deOnde){
+    const me = C.st.me; let av = avLimpo(me.verso, me.id); const armario = deOnde === 'armario';
     const sw = (k, L) => `<div class="cvr-sw" role="radiogroup">${L.map((c, i) => `<button type="button" role="radio" data-k="${k}" data-v="${i}" aria-checked="${av[k] === i}" style="--c:${c}" aria-label="${k} ${i + 1}"></button>`).join('')}</div>`;
     const ch = (k, L) => `<div class="cvr-ch" role="radiogroup">${L.map(([v, n]) => `<button type="button" role="radio" data-k="${k}" data-s="${v}" aria-checked="${av[k] === v}">${n}</button>`).join('')}</div>`;
     /* v3.66: as skins do Ateliê, com o cadeado e o preço de quem ainda não tem */
     const chLoja = () => `<div class="cvr-ch cvr-ch-loja" role="radiogroup">${SKINS_LOJA.map(x => `<button type="button" role="radio" data-k="skin" data-s="${x[0]}" data-loja="${x[0]}" aria-checked="${av.skin === x[0]}">${tenhoSkin(x[0]) ? '' : ico('lock')}${esc(x[1])}${tenhoSkin(x[0]) ? '' : `<i>${C.correalFmt(precoSkin(x[0]))}</i>`}</button>`).join('')}</div>`;
-    C.sheet(`<div class="form cvr-av"><div class="sheet-head"><h2>${primeira ? 'Monta teu avatar' : 'Teu avatar'}</h2><button type="button" class="cbtn plain" data-close aria-label="Fechar">${ico('x')}</button></div>
+    C.sheet(`<div class="form cvr-av"><div class="sheet-head"><h2>${primeira ? 'Monta teu avatar' : armario ? 'O armário' : 'Teu avatar'}</h2><button type="button" class="cbtn plain" data-close aria-label="Fechar">${ico('x')}</button></div>
       <div class="cvr-av-cols"><div class="cvr-av-prev"><canvas id="cvr-prev" width="32" height="34" aria-label="Prévia do avatar"></canvas><div class="acts"><button type="button" class="btn sm" id="cvr-gira">Girar</button><button type="button" class="btn sm" id="cvr-sorte">Sortear</button></div></div>
       <div class="cvr-av-f">
         <div class="fld"><span class="lbl-s">Personagem</span>${ch('personagem', PERSONAGENS)}<small class="fine">Escolhe um e anda pela cidade como ele. "Você mesmo" usa o boneco montado aqui embaixo.</small></div>
@@ -5475,7 +5476,10 @@
       const bt = ev.currentTarget; if(bt.disabled) return; bt.disabled = true;
       /* v3.66: provou uma skin do Ateliê que não é tua: compra antes (o banco tiraria ela do avatar) */
       if(av.skin && LOJA[av.skin] && !tenhoSkin(av.skin)){ const ok = await compraSkin(av.skin).catch(() => false); if(!ok){ bt.disabled = false; return; } av.personagem = ''; }
-      try{ await C.saveMe({ verso: Object.assign({}, me.verso && typeof me.verso === 'object' ? me.verso : {}, av) }); if(V.eu) V.eu.av = avLimpo(C.st.me.verso, me.id); anunciar(); C.closeSheet(); C.toast('Avatar salvo.'); }
+      try{ await C.saveMe({ verso: Object.assign({}, me.verso && typeof me.verso === 'object' ? me.verso : {}, av) }); if(V.eu) V.eu.av = avLimpo(C.st.me.verso, me.id);
+        /* v3.81: salvou dentro de casa (o armário): o boneco da casa troca na hora */
+        const S3 = C.casa && C.casa.estado && C.casa.aberta && C.casa.aberta() ? C.casa.estado() : null; if(S3 && S3.eu) S3.eu.av = avLimpo(C.st.me.verso, me.id);
+        anunciar(); C.closeSheet(); C.toast(armario ? 'Trocou de roupa.' : 'Avatar salvo.'); }
       catch(e){ bt.disabled = false; C.toast(C.errMsg(e, 'Não deu pra salvar o avatar.')); }
     });
   }
@@ -5548,5 +5552,5 @@
     marcaPulo: () => { if(!V.eu) return; V.eu.puN = ((V.eu.puN || 0) % 999) + 1; enviaPos(true); },
     publiImg, publiLogo, publiSheet, PUBLI, logoSharks, meuSid: () => sid, kartManda: d => { if(V.rede && V.rede.kart && C.casa && C.casa.aberta()) V.rede.kart(Object.assign({ sid }, d)); },
     skin, avLimpo, nivel, cores: { PELES, CAB_CORES, ROUPA_CORES, CALCA_CORES, TENIS_CORES }, anunciar, enviaPos, retoma: () => { V.tAnt = 0; V.teclas.clear(); portaUI(); }, mic: () => V.mic, peers: () => V.peers, remotos: () => V.remotos, montaCidade, desenhaCasa: (c, k) => (ESTILO_SPRITE()[c.estilo] || spriteCasa)(c, k).cv, estado: () => V, vivo: () => !!V.vivo, chip: chipVolta, balcao: () => BC, abreBalcao, fechaBalcao, gente: () => contaGente(), aparece: () => [...quemAparece()], PERSONAGENS,
-    atualizaAv: () => { if(V.eu && C.st.me){ V.eu.av = avLimpo(C.st.me.verso, C.st.me.id); anunciar(); } }, come, falaAuto, bolas: () => V.bolas || [], COMIDAS, JOGOS, abreJogo, fechaJogo, jogo: () => V.jogo, zoom: poeZoom, zoomFator, SKINS, SKIN, TAREFAS, CIVICOS, PATENTES, patenteDe, pegaTarefa, largaTarefa, agirTarefa, tarefa: () => V.tarefa, trampoSheet };
+    atualizaAv: () => { if(V.eu && C.st.me){ V.eu.av = avLimpo(C.st.me.verso, C.st.me.id); anunciar(); } }, avatar: deOnde => avatarSheet(false, deOnde), come, falaAuto, bolas: () => V.bolas || [], COMIDAS, JOGOS, abreJogo, fechaJogo, jogo: () => V.jogo, zoom: poeZoom, zoomFator, SKINS, SKIN, TAREFAS, CIVICOS, PATENTES, patenteDe, pegaTarefa, largaTarefa, agirTarefa, tarefa: () => V.tarefa, trampoSheet };
 })();
