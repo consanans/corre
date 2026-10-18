@@ -1200,7 +1200,9 @@
   /* balões que a cidade solta sozinha (comendo, pescando, gol); viajam como 100 + índice */
   const FALAS_AUTO = ['nham nham', 'fisgou!', 'hmm… nada', 'uma bota…', 'golaço!', 'na cesta!', 'tarefa feita!', 'bi-bi!', 'trim-trim!', 'uhuuu!',
     /* v3.76: as manobras da pista de skate */
-    'ollie!', 'kickflip!', 'heelflip!', 'shove-it!', 'tre flip!', 'air!', 'frontside 180!', 'indy grab!', '540 do zerão!', '50-50 grind!', 'caiu!'];
+    'ollie!', 'kickflip!', 'heelflip!', 'shove-it!', 'tre flip!', 'air!', 'frontside 180!', 'indy grab!', '540 do zerão!', '50-50 grind!', 'caiu!',
+    /* v3.85: a piapara de 4,850 (21) */
+    'a mais pesada! 4,850 kg!'];
   function falaAuto(i){ if(!V.eu || !FALAS_AUTO[i]) return; V.eu.fala = { t: FALAS_AUTO[i], ate: Date.now() + 3500 }; if(V.rede && V.rede.emo) try{ V.rede.emo(100 + i); }catch(e){} }
   /* quem é quem: o nome e o @ de cada um vêm do servidor. Enquanto não vem (ou se ninguém confirmou), é visitante */
   function aplicaQuem(r){
@@ -3923,7 +3925,8 @@
     else if(!eu && o.jg){ pixPlaca(ctx, 'NO AQUARIO', o.x, yb, { fundo: '#38E1FF' }); yb -= 13 / V.k; }
     else if(!eu && o.pt > 0 && o.av && o.av.skin && !o.av.personagem && PATENTES[o.av.skin]){ pixPlaca(ctx, PATENTES[o.av.skin][o.pt].toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''), o.x, yb, { fundo: '#38E1FF' }); yb -= 13 / V.k; }
     /* v3.75: no barco, a maior piapara do dia vai em cima do nome */
-    if(o.barco){ const kg = eu ? piaparaHoje() : o.pd === diaBR() % 1e5 ? o.pp / 100 : 0; if(kg > 0){ pixPlaca(ctx, 'PIAPARA ' + kgTxt(kg) + 'KG', o.x, yb, { fundo: '#9CC9F0' }); yb -= 13 / V.k; } }
+    /* v3.85: quem tirou a de 4,850 hoje leva a plaquinha amarela */
+    if(o.barco){ const kg = eu ? piaparaHoje() : o.pd === diaBR() % 1e5 ? o.pp / 100 : 0; if(kg > 0){ const top = kg >= PIAPARA_MAX - .001; pixPlaca(ctx, top ? 'PIAPARA 4,850KG' : 'PIAPARA ' + kgTxt(kg) + 'KG', o.x, yb, { fundo: top ? AMARELO : '#9CC9F0' }); yb -= 13 / V.k; } }
     /* v3.76: o balão comprido fica pra depois de todos os nomes (senão a plaquinha de quem tá do lado tampa a fala) */
     if(o.fala && o.fala.ate > (agora || Date.now()) && txtN(o.fala.t).length > 24) (V.baloes || (V.baloes = [])).push([o.fala.t, o.x, yb]);
     else if(o.fala && o.fala.ate > (agora || Date.now())){ const b = pixPlaca(ctx, o.fala.t, o.x, yb, { fundo: PAPEL, max: 24 }); ctx.save(); naBase(ctx); ctx.fillStyle = INK; const tx = b.ix + Math.floor(b.w / 2); ctx.fillRect(tx - 1, b.iy + b.h, 3, 1); ctx.fillRect(tx, b.iy + b.h + 1, 1, 1); ctx.restore(); }
@@ -4398,8 +4401,9 @@
       frases: ['Caí três vezes hoje. Uma foi de propósito, pra filmar.', 'Shape novo, joelho velho.', 'No Zerão o vento empurra. Eu digo que foi manobra.', 'Minha mãe acha que skate é fase. Tô na fase faz doze anos.'] },
     { nome: 'Tia Neide', onde: 'Gleba Palhano', voz: 290, av: { pele: 5, cabelo: 'black', corCabelo: 0, roupa: 'camiseta', corRoupa: 2, estampa: 'estrela', corCalca: 4 },
       frases: ['Bolo de pote de ninho com morango. Aceito pix e elogio.', 'Já vendi bolo pro prédio inteiro. O porteiro virou meu gerente.', 'A dieta começa segunda. Faz quinze anos que é segunda.', 'Bolo no pote é bolo que não aceita bagunça.'] },
-    { nome: 'Seu Massao', onde: 'Porto do Tibagi', voz: 160, av: { pele: 0, cabelo: 'curto', corCabelo: 4, topo: 'bone', roupa: 'jaqueta', corRoupa: 3, corCalca: 3 },
-      frases: ['Piapara grande gosta de corredeira. Joga perto das pedras.', 'A melhor isca é paciência. A segunda é massa de pão.', 'Quem puxa na beliscada volta com história, não com peixe.', 'No Tibagi o peixe te observa. Fala baixo.', 'Pescador não mente. Só arredonda o peso pra cima.'] },
+    /* v3.85: era o Seu Massao; o Thales pediu o Seu Pedro no lugar */
+    { nome: 'Seu Pedro', onde: 'Porto do Tibagi', voz: 160, av: { pele: 0, cabelo: 'curto', corCabelo: 4, topo: 'bone', roupa: 'jaqueta', corRoupa: 3, corCalca: 3 },
+      frases: ['Piapara grande gosta de corredeira. Joga perto das pedras.', 'A melhor isca é paciência. A segunda é massa de pão.', 'Quem puxa na beliscada volta com história, não com peixe.', 'No Tibagi o peixe te observa. Fala baixo.', 'Pescador não mente. Só arredonda o peso pra cima.', 'A mais pesada desse rio deu 4,850 na balança. Eu vi. Quase.'] },
     { nome: 'Lari', onde: 'Museu de Arte', voz: 300, av: { pele: 2, cabelo: 'longo', corCabelo: 5, oculos: 'grau', roupa: 'moletom', corRoupa: 0, corCalca: 0, tenis: 2 },
       frases: ['Fiz o logo em cinco minutos. Levei dez anos pra fazer em cinco.', 'Cliente pediu pra deixar mais clean. Tirei ele do projeto.', 'Minha paleta não tem verde. Questão de princípio.', 'Cobrei por hora, achou caro. Cobrei por projeto, achou demorado.', 'Aumenta o logo? Aumento. O preço junto.'] },
     { nome: 'Juninho Coach', onde: 'Calçadão', voz: 210, av: { pele: 1, cabelo: 'moicano', corCabelo: 3, oculos: 'escuro', roupa: 'jaqueta', corRoupa: 6, corrente: 'ouro', corCalca: 0, tenis: 0 },
@@ -4431,7 +4435,7 @@
     'Freela bom é o que paga. O resto é portfólio.', 'Já seguiu o @consanans? Foi ele que fez a cidade.'];
   /* quando dois moradores se cruzam: um fala, o outro responde (e às vezes o primeiro fecha) */
   const PAPOS = [
-    ['Viu a piapara do Massao?', 'Vi a foto. Tava de lado pra parecer maior.'],
+    ['Viu a piapara do Seu Pedro?', 'Vi a foto. Tava de lado pra parecer maior.'],
     ['Bora no Zerão amanhã cedo?', 'Cedo que horas? Antes do meio-dia é madrugada.'],
     ['Calor, né?', 'Calor? Eu tô é assando.'],
     ['Fechei um freela de logo.', 'Pagou?', 'Pagou em exposição.'],
@@ -5474,6 +5478,8 @@
   const CORES_BARCO = [AMARELO, ROSA, AZUL, LARANJA, LILAS, '#E2412E'];
   const diaBR = () => Math.floor((Date.now() - 3 * 3600e3) / 864e5);
   const kgTxt = kg => (Math.round(kg * 100) / 100).toFixed(2).replace('.', ',');
+  /* v3.85: a mais pesada do Tibagi tem 4,850 kg (o Thales), e só ela; o peso com três casas é o da balança */
+  const PIAPARA_MAX = 4.85, RIO_TETO = 4.79, kg3 = kg => kg.toFixed(3).replace('.', ',');
   const somRio = k => { if(C.versoSom && C.versoSom.rio) C.versoSom.rio(k); };
   /* o barco (desenhado em pontos da tela, como o boneco) ocupa no mundo um tamanho que muda com o zoom */
   const meioBarco = () => clamp(17 / V.k, 20, 48);
@@ -5536,7 +5542,12 @@
     if(e.mov && performance.now() - (V.rastroT || 0) > 90){ V.rastroT = performance.now(); rastro(e.x - b.lado * meioBarco(), e.y + 1); }
   }
   /* ---- a pesca ---- */
-  function rioRec(){ try{ const o = JSON.parse(localStorage.getItem(RIO_K) || 'null'); return o && typeof o === 'object' ? o : {}; }catch(e){ return {}; } }
+  function rioRec(){
+    try{ const o = JSON.parse(localStorage.getItem(RIO_K) || 'null'); if(!o || typeof o !== 'object') return {};
+      /* v3.85: antes a corredeira dava até 5,4 kg; o recorde de antes fica abaixo da de 4,850, pra ela ainda ser recorde */
+      ['kg', 'max'].forEach(k => { if(Number(o[k]) > RIO_TETO && Number(o[k]) !== PIAPARA_MAX) o[k] = RIO_TETO; });
+      return o; }catch(e){ return {}; }
+  }
   function rioGuarda(kg){
     const o = rioRec(), hoje = diaBR(); if(o.dia !== hoje){ o.dia = hoje; o.kg = 0; }
     const dia = kg > (o.kg || 0), vida = kg > (o.max || 0); if(dia) o.kg = kg; if(vida) o.max = kg; o.n = (o.n || 0) + 1;
@@ -5545,13 +5556,17 @@
   }
   const piaparaHoje = () => { const o = rioRec(); return o.dia === diaBR() ? Number(o.kg) || 0 : 0; };
   /* o que morde: quase sempre piapara (a maioria de meio a dois quilos, de vez em quando uma de quatro), às vezes
-     lambari e, de vez em nunca, uma bota. Na corredeira a piapara vem 25% maior */
+     lambari e, de vez em nunca, uma bota. Na corredeira a piapara vem 25% maior.
+     v3.85: a de 4,850 kg é a mais pesada e é rara (1 em 20 piaparas na corredeira, 1 em 70 no remanso); as outras
+     param antes dela (até 4,6 no remanso e 4,79 na corredeira) */
   function sorteiaPeixe(corre){
     const r = Math.random();
     if(r < .05) return { k: 'bota', kg: .9, forca: .16, d0: .5 };
     if(r < .2){ const kg = .04 + Math.random() * .14; return { k: 'lambari', kg, forca: .2, d0: .35 }; }
-    let kg = .5 + Math.pow(Math.random(), 2.2) * 4.1; if(corre) kg = Math.min(5.4, kg * 1.25);
-    kg = Math.round(kg * 100) / 100; return { k: 'piapara', kg, forca: .35 + kg / 6, d0: Math.min(1.1, .7 + kg * .07) };
+    const pia = kg => ({ k: 'piapara', kg, forca: .35 + kg / 6, d0: Math.min(1.1, .7 + kg * .07) });
+    if(Math.random() < (corre ? .05 : .015)) return Object.assign(pia(PIAPARA_MAX), { trofeu: true });
+    let kg = .5 + Math.pow(Math.random(), 2.2) * 4.1; if(corre) kg = Math.min(RIO_TETO, kg * 1.25);
+    return pia(Math.round(kg * 100) / 100);
   }
   function lanca(){
     const e = V.eu, b = e && e.barco; if(!b) return;
@@ -5579,7 +5594,9 @@
   function fimSalto(){
     const R = V.rio, e = V.eu, P = R.peixe; V.rio = null;
     e.item = { k: P.k, ate: Date.now() + 9000 };
-    if(P.k === 'piapara'){ const g = rioGuarda(P.kg); falaAuto(1); if(C.versoSom) C.versoSom.acerto(); C.toast(`Piapara de ${kgTxt(P.kg)} kg!${g.vida ? ' O teu recorde de todos os tempos.' : g.dia ? ' O teu recorde de hoje.' : ''}`, 4000); anunciar(); }
+    /* v3.85: a de 4,850 vai pra balança (e fica mais tempo na mão, pra foto) */
+    if(P.k === 'piapara' && (P.trofeu || P.kg >= PIAPARA_MAX)){ const g = rioGuarda(PIAPARA_MAX); e.item.ate = Date.now() + 20000; falaAuto(21); anunciar(); balanca(g); }
+    else if(P.k === 'piapara'){ const g = rioGuarda(P.kg); falaAuto(1); if(C.versoSom) C.versoSom.acerto(); C.toast(`Piapara de ${kgTxt(P.kg)} kg!${g.vida ? ' O teu recorde de todos os tempos.' : g.dia ? ' O teu recorde de hoje.' : ''}`, 4000); anunciar(); }
     else if(P.k === 'lambari'){ falaAuto(1); C.toast(`Um lambari de ${Math.round(P.kg * 1000)} g. A piapara grande gosta da corredeira.`, 3200); }
     else { falaAuto(3); C.toast('Uma bota velha. O rio agradece a faxina.', 2800); }
     portaUI(); rioUI(); enviaPos(true);
@@ -5608,7 +5625,11 @@
     if(R.fase !== 'briga') return;
     const P = R.peixe;
     /* de tempo em tempo ela corre (a piapara grande corre mais e mais forte) */
-    if(agora > R.prox){ R.corrida = !R.corrida; R.prox = agora + (R.corrida ? 450 + Math.random() * 900 * (.6 + P.forca) : 1200 + Math.random() * 2000); if(R.corrida && P.k === 'piapara') somRio('corre'); rioUI(true); }
+    /* v3.85: e cansa: cada corrida tira 8% da força dela, até 60% (a de 4,850 cansa devagar: 5%, até 70%). Sem isso a
+       piapara de mais de 4 kg levava de um a dois minutos de briga perfeita */
+    if(agora > R.prox){ R.corrida = !R.corrida; R.prox = agora + (R.corrida ? 450 + Math.random() * 900 * (.6 + P.forca) : 1200 + Math.random() * 2000);
+      if(R.corrida && P.k === 'piapara'){ somRio('corre'); if(P.f0 == null) P.f0 = P.forca; P.forca = Math.max(P.f0 * (P.trofeu ? .7 : .6), P.forca * (P.trofeu ? .95 : .92)); }
+      rioUI(true); }
     const puxa = P.forca * (R.corrida ? .95 + Math.random() * .25 : .22), alvo = R.hold ? .3 + puxa * .62 : puxa * .42;
     R.ten += (alvo - R.ten) * Math.min(1, dt * 3.2);
     if(R.hold && R.ten < 1) R.d -= dt * (R.corrida ? .025 : .1) * (1.2 - Math.min(.6, P.forca * .4));
@@ -5637,7 +5658,7 @@
       else if(f === 'briga'){ titulo = P.k === 'piapara' ? (R.corrida ? 'Ela correu! Solta!' : 'Piapara na linha!') : P.k === 'lambari' ? 'Peixinho na linha' : 'Tá pesado e não briga…';
         corpo = '<div class="mj-barra"><i class="mj-zona"></i><i class="mj-nivel"></i></div><div class="mj-prog"><i></i></div>';
         dica = R.corrida && P.k === 'piapara' ? 'Segurando na corrida, a linha arrebenta. Solta e espera ela cansar.' : 'Segura o botão pra recolher, com a agulha na faixa rosa. Quando ela correr, solta.'; }
-      else { titulo = P && P.k === 'piapara' ? `Pegou! Piapara de ${kgTxt(P.kg)} kg` : P && P.k === 'lambari' ? 'Pegou um lambari' : 'Pegou… uma bota'; chip = ''; dica = ''; }
+      else { titulo = P && P.trofeu ? 'Pegou! A mais pesada do Tibagi' : P && P.k === 'piapara' ? `Pegou! Piapara de ${kgTxt(P.kg)} kg` :P && P.k === 'lambari' ? 'Pegou um lambari' : 'Pegou… uma bota'; chip = ''; dica = ''; }
       el.className = 'cvr-mj cvr-rio' + (f === 'briga' && R.corrida && P.k === 'piapara' ? ' corre' : '');
       el.innerHTML = `<div class="mj-h"><b>${esc(titulo)}</b>${chip || f === 'briga' ? `<span class="rio-chip">${esc(chip)}</span>` : ''}</div>${corpo}${dica ? `<small>${esc(dica)}</small>` : ''}`;
     }
@@ -5699,6 +5720,228 @@
     ctx.fillStyle = '#9CC9F0'; gotas.forEach(([gx, gy], k) => ctx.fillRect(gx + (k % 2 ? 2 : -2), gy + 2, 1, 1));
     peixePx(ctx, ix, iy, R.peixe.k, s.x1 >= s.x0 ? -1 : 1);
     ctx.restore();
+  }
+  /* ---------- v3.85 · a balança da piapara de 4,850 kg ----------
+     Pegou a mais pesada do Tibagi: a tela vira a pesagem. A balancinha digital desce pendurada na corda, a piapara pula
+     da água pro gancho, a mola sacode e os números correm até travar em 4,850 (o HOLD acende, bip-bip). Aí é festa:
+     o carimbo de RECORDE, a faixa em cima, confete estourando da balança e chovendo, fogos dos dois lados, as capivaras
+     pulando de bandeirinha nos barrancos, os flashes dos fotógrafos da beira, o sol de raios girando, bolhas subindo e
+     gota pingando do rabo. Tudo em pixel grande (uma tela pequena esticada sem borrar), no jeito da cidade.
+     Tocou antes de travar, pula pro 4,850; depois, fecha (Esc, espaço e Enter também). Os primeiros 1,2 s não contam, pra
+     quem ainda tá segurando o botão da briga não pular sem ver. Sozinha, some em uns 10 s. Com "reduzir movimento", ela
+     já aparece travada e parada, sem confete, fogos nem flash. Os fatos ficam em V.balanca (pros testes). */
+  const SEG7 = { 0: 'abcdef', 1: 'bc', 2: 'abdeg', 3: 'abcdg', 4: 'bcfg', 5: 'acdfg', 6: 'acdefg', 7: 'abc', 8: 'abcdefg', 9: 'abcdfg' };
+  const FESTA = [AMARELO, ROSA, AZUL, LARANJA, LILAS, PAPEL];
+  /* a piapara grande (a do troféu): de lado, cabeça pra esquerda, com contorno; a boca fica em (1, 15) */
+  let PIA_G = null;
+  function piaparaGrande(){
+    if(PIA_G) return PIA_G;
+    const cv = document.createElement('canvas'); cv.width = 48; cv.height = 30; const g = cv.getContext('2d'), my = 15, ox = 1;
+    const P = (x, y, w, h, c) => { g.fillStyle = c; g.fillRect(ox + x, y, w, h); };
+    const FIN = '#E8A04A', FIN2 = '#D9902F';
+    /* a meia altura do corpo em cada coluna: a cabeça redonda, o mais alto perto de um terço, afinando até o rabo */
+    const meia = x => Math.round(x < 4 ? 2.5 + x * .9 : x < 14 ? 6 + (x - 4) * .25 : 8.5 - (x - 14) * .27);
+    for(let x = 12; x <= 20; x++){ const alt = Math.round(4.5 - Math.abs(x - 15) * .6); if(alt > 0) P(x, my - meia(x) - alt, 1, alt, x % 2 ? FIN : FIN2); }
+    for(let d = 0; d <= 9; d++){ const sp = Math.round(d * .8); P(36 + d, my - 3 - sp, 1, 3, FIN); P(36 + d, my + 1 + sp, 1, 3, FIN); if(d > 6){ P(36 + d, my - 3 - sp, 1, 1, FIN2); P(36 + d, my + 3 + sp, 1, 1, FIN2); } }
+    for(let x = 0; x <= 36; x++){ const h = meia(x);
+      for(let y = my - h; y <= my + h; y++){ const f = (y - (my - h)) / Math.max(1, 2 * h); P(x, y, 1, 1, f < .2 ? '#6E7888' : f < .42 ? '#B9C0CA' : f < .76 ? ((x + y) % 3 ? '#E9EDF2' : '#F8FAFC') : '#C7CDD5'); } }
+    for(let x = 19; x <= 22; x++) P(x, my + meia(x) + 1, 1, x < 21 ? 2 : 1, FIN);
+    for(let x = 28; x <= 31; x++) P(x, my + meia(x) + 1, 1, x < 30 ? 2 : 1, FIN);
+    P(8, my + 2, 3, 1, FIN); P(9, my + 3, 3, 1, FIN); P(10, my + 4, 2, 1, FIN2);
+    for(let y = my - 4; y <= my + 4; y++) P(8 + (Math.abs(y - my) > 2 ? 1 : 0), y, 1, 1, '#9AA2AD');
+    [15, 22, 29].forEach(x => P(x, my - 1, 2, 2, '#1B1D22'));
+    P(4, my - 3, 2, 2, PAPEL); P(5, my - 2, 1, 1, INK); P(0, my, 2, 1, '#5A606A');
+    /* o contorno: todo ponto vazio encostado no peixe vira tinta */
+    const im = g.getImageData(0, 0, cv.width, cv.height), d = im.data, W = cv.width, cheio = (x, y) => x >= 0 && y >= 0 && x < W && y < cv.height && d[(y * W + x) * 4 + 3] > 0 && !(d[(y * W + x) * 4] === 15 && d[(y * W + x) * 4 + 1] === 18);
+    const borda = [];
+    for(let y = 0; y < cv.height; y++) for(let x = 0; x < W; x++) if(!d[(y * W + x) * 4 + 3] && (cheio(x - 1, y) || cheio(x + 1, y) || cheio(x, y - 1) || cheio(x, y + 1))) borda.push([x, y]);
+    g.fillStyle = INK; borda.forEach(([x, y]) => g.fillRect(x, y, 1, 1));
+    return (PIA_G = cv);
+  }
+  /* texto de pixel numa tela qualquer (x, y é o meio, ou a ponta com al 'e'/'d'), com contorno e sombra se pedir */
+  function txtV(g, t, x, y, s, cor, al, borda){
+    t = txtN(t); const w = pixLarg(t, s); const ix = al === 'e' ? x : al === 'd' ? x - w : Math.round(x - w / 2), iy = Math.round(y - 5 * s / 2);
+    const vai = (dx, dy, c) => { g.fillStyle = c; let cx = ix + dx; for(const ch of t){ const gl = GL[ch] || GL['?']; gl.forEach((row, ry) => { for(let j = 0; j < row.length; j++) if(row.charCodeAt(j) === 49) g.fillRect(cx + j * s, iy + dy + ry * s, s, s); }); cx += (gl[0].length + 1) * s; } };
+    if(borda){ vai(1, 2, 'rgba(0,0,0,.45)'); for(const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 1], [-1, -1], [1, -1], [-1, 1], [1, 1]]) vai(dx, dy, borda); }
+    vai(0, 0, cor); return w;
+  }
+  /* um dígito de sete segmentos (10 x 18): os apagados ficam de fantasma, como num visor de verdade */
+  function dig7(g, x, y, ch, on, off){
+    const S = { a: [2, 0, 6, 2], b: [8, 2, 2, 6], c: [8, 10, 2, 6], d: [2, 16, 6, 2], e: [0, 10, 2, 6], f: [0, 2, 2, 6], g: [2, 8, 6, 2] }, acesos = SEG7[ch] || '';
+    for(const k in S){ const s = S[k]; g.fillStyle = acesos.includes(k) ? on : off; g.fillRect(x + s[0], y + s[1], s[2], s[3]); }
+  }
+  /* retângulo de canto redondo em pontos (linha por linha) */
+  function cantoR(g, x, y, w, h, r, c){ g.fillStyle = c; for(let i = 0; i < h; i++){ const k = i < r ? r - i - .5 : i >= h - r ? i - (h - r) + .5 : 0, ins = k ? Math.round(r - Math.sqrt(Math.max(0, r * r - k * k))) : 0; g.fillRect(x + ins, y + i, w - ins * 2, 1); } }
+  /* a balancinha: argola em cima, corpo amarelo com o visor, os dois botões e o gancho embaixo. (cx, y) é o alto da argola */
+  function desenhaBalanca(g, cx, y, vis){
+    const bx = cx - 44, by = y + 10;
+    g.fillStyle = INK; g.fillRect(cx - 8, y - 1, 16, 12); g.fillStyle = '#C9CED6'; g.fillRect(cx - 7, y, 14, 3); g.fillRect(cx - 7, y, 3, 10); g.fillRect(cx + 4, y, 3, 10); g.fillStyle = '#EEF1F4'; g.fillRect(cx - 6, y + 1, 4, 1);
+    cantoR(g, bx - 1, by - 1, 90, 68, 7, INK); cantoR(g, bx, by, 88, 66, 6, AMARELO);
+    g.fillStyle = '#FBF7A6'; g.fillRect(bx + 6, by + 2, 76, 2); g.fillStyle = '#E8B53A'; g.fillRect(bx + 4, by + 61, 80, 3); g.fillRect(bx + 84, by + 8, 2, 52);
+    txtV(g, 'CORRE', cx, by + 8, 1, INK);
+    const lx = bx + 6, ly = by + 13;
+    g.fillStyle = INK; g.fillRect(lx, ly, 76, 32); g.fillStyle = vis.claro ? '#FFF1D6' : vis.lit ? '#24170C' : '#14171E'; g.fillRect(lx + 2, ly + 2, 72, 28);
+    const on = vis.claro ? INK : vis.lit ? '#FFB23D' : '#B88A4A', off = vis.claro ? '#E9D9BC' : '#2C2117';
+    txtV(g, 'HOLD', lx + 4, ly + 6, 1, vis.hold ? on : off, 'e'); txtV(g, 'KG', lx + 70, ly + 25, 1, on, 'd');
+    const ds = vis.txt.replace(',', ''), xs = [lx + 5, lx + 20, lx + 33, lx + 46];
+    for(let i = 0; i < 4; i++) dig7(g, xs[i], ly + 10, ds[i], on, off);
+    g.fillStyle = on; g.fillRect(lx + 16, ly + 25, 2, 2); g.fillRect(lx + 15, ly + 27, 2, 1);
+    g.fillStyle = INK; g.fillRect(bx + 23, by + 47, 9, 7); g.fillRect(bx + 56, by + 47, 9, 7); g.fillStyle = ROSA; g.fillRect(bx + 24, by + 48, 7, 5); g.fillStyle = AZUL; g.fillRect(bx + 57, by + 48, 7, 5);
+    g.fillStyle = 'rgba(255,255,255,.55)'; g.fillRect(bx + 25, by + 48, 3, 1); g.fillRect(bx + 58, by + 48, 3, 1);
+    txtV(g, 'MAX 50KG', cx, by + 58, 1, '#8A6A1E');
+    /* o gancho: a haste e o J, a ponta pro lado */
+    const hy = by + 66; g.fillStyle = INK; g.fillRect(cx - 2, hy, 4, 9); g.fillStyle = '#C9CED6'; g.fillRect(cx - 1, hy, 2, 8);
+    g.fillStyle = INK; [[0, 9], [0, 10], [0, 11], [1, 12], [2, 13], [3, 13], [4, 12], [5, 11], [5, 10]].forEach(([dx, dy]) => g.fillRect(cx - 1 + dx, hy + dy, 2, 1));
+    return hy + 12;
+  }
+  /* a capivara torcedora de bandeirinha, de pé no barranco (x, y = os pés) */
+  function capiTorce(g, x, y, lado, ban, t){
+    const R = (dx, dy, w, h, c) => { g.fillStyle = c; g.fillRect(lado > 0 ? x + dx : x - dx - w, y + dy, w, h); };
+    const M = '#8A5A3B', E = '#6B4429', C2 = '#A87652';
+    R(-9, -10, 15, 8, INK); R(-8, -9, 13, 6, M); R(-8, -4, 13, 1, E); R(3, -14, 8, 8, INK); R(4, -13, 6, 6, M); R(9, -12, 2, 4, C2);
+    R(5, -15, 2, 2, INK); R(7, -11, 1, 1, INK); R(10, -10, 1, 1, INK);
+    R(-7, -2, 2, 2, E); R(-3, -2, 2, 2, E); R(1, -2, 2, 2, E);
+    R(5, -24, 1, 14, INK); const on = Math.sin(t * 9) > 0 ? 1 : 0; R(6, -24 + on, 6, 4, ban); R(6, -24 + on, 6, 1, 'rgba(255,255,255,.35)');
+  }
+  /* o carimbo, pronto uma vez */
+  let CARIMBO = null;
+  function carimbo(){
+    if(CARIMBO) return CARIMBO;
+    const w = pixLarg('RECORDE!', 2) + 14, cv = document.createElement('canvas'); cv.width = w + 4; cv.height = 24; const g = cv.getContext('2d');
+    g.fillStyle = INK; g.fillRect(0, 0, w + 4, 24); g.fillStyle = ROSA; g.fillRect(2, 2, w, 20); g.fillStyle = PAPEL; g.fillRect(4, 4, w - 4, 1); g.fillRect(4, 19, w - 4, 1);
+    txtV(g, 'RECORDE!', Math.round((w + 4) / 2), 12, 2, PAPEL, 'c', INK);
+    return (CARIMBO = cv);
+  }
+  /* a câmera do fotógrafo da beira, no tripé (o flash é um sol branco pequeno em cima) */
+  function camera(g, x, y, flash){
+    g.fillStyle = INK; g.fillRect(x, y + 4, 1, 9); g.fillRect(x - 4, y + 12, 2, 1); g.fillRect(x + 3, y + 12, 2, 1); [[-1, 7], [-2, 9], [-3, 11], [1, 7], [2, 9], [3, 11]].forEach(([dx, dy]) => g.fillRect(x + dx, y + dy, 1, 2));
+    g.fillRect(x - 7, y - 4, 14, 9); g.fillRect(x - 4, y - 6, 5, 2); g.fillRect(x + 3, y - 6, 3, 2);
+    g.fillStyle = '#3A3F4A'; g.fillRect(x - 6, y - 3, 12, 7); g.fillStyle = '#C9CED6'; g.fillRect(x - 3, y - 5, 3, 1); g.fillRect(x + 4, y - 5, 1, 1);
+    g.fillStyle = INK; g.fillRect(x - 3, y - 2, 6, 5); g.fillStyle = '#9CC9F0'; g.fillRect(x - 2, y - 1, 4, 3); g.fillStyle = PAPEL; g.fillRect(x - 2, y - 1, 1, 1);
+    if(flash > 0){ const r = Math.round(3 + flash * 7), fx = x + 4, fy = y - 8; g.fillStyle = 'rgba(255,255,255,' + (.35 + flash * .65).toFixed(2) + ')'; g.fillRect(fx - 1, fy - r, 3, r * 2 + 1); g.fillRect(fx - r, fy - 1, r * 2 + 1, 3); g.fillRect(fx - 2, fy - 2, 5, 5); }
+  }
+  function balanca(rec){
+    const velho = document.getElementById('cvr-balanca'); if(velho) velho.remove();
+    const el = document.createElement('div'); el.id = 'cvr-balanca'; el.className = 'cvr-balanca'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'A mais pesada do Tibagi');
+    el.innerHTML = `<canvas aria-hidden="true"></canvas><p class="sr-only" aria-live="assertive">Piapara de 4,850 quilos: a mais pesada do Tibagi.${rec && rec.vida ? ' O teu recorde de todos os tempos.' : ''} Toca pra fechar.</p>`;
+    document.body.appendChild(el);
+    const cv = el.querySelector('canvas'), gt = cv.getContext('2d'), buf = document.createElement('canvas'), g = buf.getContext('2d');
+    const calmo = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+    const TRAVA = calmo ? 0 : 2750, FIM = calmo ? 7000 : 10200, ESPERA = calmo ? 600 : 1200;
+    const B = V.balanca = { t0: performance.now(), fase: calmo ? 'travou' : 'pesando', txt: calmo ? '4850' : '0000', vida: !!(rec && rec.vida), calmo, px: 1, W: 0, H: 0 };
+    let raf = 0, fim = false, ult = B.t0, travouEm = 0, txtT = 0, fogoT = 0, fogoLado = 0, fotoT = 0, gotaT = 0, chuvaT = 0, molou = false;
+    const conf = [], fogos = [], fogs = [], bolhas = [], gotas = [], fotos = [], brilhos = [];
+    /* a escala do pixel: a cena inteira (uns 250 de altura) cabe na tela, com o maior pixel inteiro que der */
+    let L = {};
+    const tam = () => {
+      const d = Math.min(2, window.devicePixelRatio || 1), W = Math.round(innerWidth * d), H = Math.round(innerHeight * d);
+      cv.width = W; cv.height = H; const px = Math.max(1, Math.min(Math.floor(H / 252), Math.floor(W / 172)));
+      buf.width = Math.ceil(W / px); buf.height = Math.ceil(H / px); Object.assign(B, { px, W: buf.width, H: buf.height });
+      /* a faixa de cima numa linha, ou em duas, ou miúda */
+      const BW = buf.width, f1 = 'A MAIS PESADA DO TIBAGI'; let faixa = [f1], fs = 2;
+      if(pixLarg(f1, 2) + 22 > BW - 6){ faixa = ['A MAIS PESADA', 'DO TIBAGI']; if(pixLarg(faixa[0], 2) + 22 > BW - 6){ faixa = [f1]; fs = 1; } }
+      const fh = faixa.length * 5 * fs + (faixa.length - 1) * 3 + 10, total = fh + 6 + 10 + 66 + 12 + 96 + 8 + 30;
+      const top = Math.max(2, Math.round((buf.height - total) / 2));
+      L = { cx: Math.round(BW / 2), faixa, fs, fh, fy: top, anel: top + fh + 6, txy: top + fh + 6 + 10 + 66 + 12 + 96 + 8, chao: buf.height - 9 };
+      L.capis = [[Math.max(16, Math.round(BW * .1)), 1, ROSA], [BW - Math.max(16, Math.round(BW * .1)), -1, AZUL]];
+      /* os fotógrafos dos lados, na altura do peixe (entre a balança e o texto de baixo, pra não tampar nada) */
+      const y1 = L.anel + 100, y2 = Math.max(y1 + 20, L.txy - 22);
+      L.cams = [[Math.round(BW * .08), y1], [Math.round(BW * .2), y2], [Math.round(BW * .92), y1 + 8], [Math.round(BW * .8), y2 - 6]];
+    }; tam();
+    const fecha = () => { if(fim) return; fim = true; B.fase = 'fim'; el.classList.add('sai'); removeEventListener('keydown', tecla, true); removeEventListener('resize', tam); removeEventListener('hashchange', fecha); setTimeout(() => { cancelAnimationFrame(raf); el.remove(); if(V.balanca === B) V.balanca = null; }, 650); };
+    const trava = agora => { if(travouEm) return; travouEm = agora; B.fase = 'travou'; B.txt = '4850'; somRio('bip'); setTimeout(() => somRio('trofeu'), 220); estoura(); };
+    const toque = () => { const ag = performance.now(); if(ag - B.t0 < ESPERA) return; if(!travouEm) trava(ag); else if(ag - travouEm > 600 || calmo) fecha(); };
+    const tecla = e => { if(e.repeat) { if(e.key === ' ' || e.key === 'Enter') e.preventDefault(); return; } if(e.key === 'Escape'){ e.preventDefault(); e.stopPropagation(); if(performance.now() - B.t0 > 300) fecha(); } else if(e.key === ' ' || e.key === 'Enter'){ e.preventDefault(); e.stopPropagation(); toque(); } };
+    /* saiu da cidade no meio (outra página), a balança vai junto */
+    addEventListener('keydown', tecla, true); addEventListener('resize', tam); addEventListener('hashchange', fecha);
+    el.addEventListener('pointerdown', ev => { ev.preventDefault(); toque(); });
+    /* travou: o confete estoura da balança, e começa o resto */
+    function estoura(){
+      if(calmo) return;
+      const ox = L.cx, oy = L.anel + 10 + 30;
+      for(let i = 0; i < 170; i++){ const a = Math.random() * Math.PI * 2, v = 60 + Math.random() * 150; conf.push({ x: ox, y: oy, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 70, c: FESTA[i % FESTA.length], ph: Math.random() * 6, vida: 5 + Math.random() * 2 }); }
+      for(let i = 0; i < 14; i++) brilhos.push({ x: ox + (Math.random() - .5) * 150, y: L.anel + Math.random() * 170, ph: Math.random() * 6, c: i % 3 ? PAPEL : AMARELO });
+    }
+    for(let i = 0; i < 18; i++) bolhas.push({ x: Math.random() * B.W, y: B.H - Math.random() * B.H * .5, v: 10 + Math.random() * 20, ph: Math.random() * 6 });
+    somRio('tchibum');
+    const ease = f => { const c = 1.6; f -= 1; return 1 + (c + 1) * f * f * f + c * f * f; };
+    const passo = agora => {
+      if(!el.isConnected) return;
+      const dt = Math.min(.05, (agora - ult) / 1000); ult = agora; const t = agora - B.t0, s = t / 1000, BW = B.W, BH = B.H;
+      if(!calmo && !molou && t >= 950){ molou = true; somRio('mola'); }
+      if(!travouEm && t >= TRAVA) trava(agora);
+      const tt = travouEm ? (agora - travouEm) / 1000 : -1;
+      if(t > FIM) fecha();
+      /* o fundo: a noite azul do rio, a luz atrás da balança e o sol de raios (fraco pesando, forte depois de travar) */
+      const fundo = g.createLinearGradient(0, 0, 0, BH); fundo.addColorStop(0, '#0B1633'); fundo.addColorStop(1, '#06091A'); g.fillStyle = fundo; g.fillRect(0, 0, BW, BH);
+      const lcx = L.cx, lcy = L.anel + 40, R = Math.hypot(BW, BH);
+      g.save(); g.translate(lcx, lcy); g.rotate(calmo ? 0 : s * .25);
+      /* rosa e laranja: amarelo fraquinho em cima do azul vira verde-oliva */
+      for(let i = 0; i < 16; i++){ g.beginPath(); g.moveTo(0, 0); g.arc(0, 0, R, i / 16 * Math.PI * 2, (i + .5) / 16 * Math.PI * 2); g.closePath(); g.fillStyle = i % 2 ? ROSA : LARANJA; g.globalAlpha = tt >= 0 ? .14 + (calmo ? 0 : .05 * Math.sin(s * 3)) : .04; g.fill(); }
+      g.restore(); g.globalAlpha = 1;
+      const luz = g.createRadialGradient(lcx, lcy, 0, lcx, lcy, 120); luz.addColorStop(0, tt >= 0 ? 'rgba(255,170,120,.32)' : 'rgba(156,201,240,.18)'); luz.addColorStop(1, 'rgba(255,170,120,0)'); g.fillStyle = luz; g.fillRect(0, 0, BW, BH);
+      /* a água embaixo, os barrancos de terra roxa dos lados e as bolhas subindo */
+      g.fillStyle = '#173A7A'; g.fillRect(0, L.chao, BW, BH - L.chao); g.fillStyle = '#2E5BFF';
+      for(let x = 0; x < BW; x += 6) g.fillRect(x + Math.round(Math.sin(s * 2 + x * .3) * 2), L.chao + 2 + (x % 12 ? 0 : 3), 3, 1);
+      L.capis.forEach(([x, lado]) => { const w = 34, x0 = lado > 0 ? x - 14 : x - 20; g.fillStyle = INK; g.fillRect(x0 - 1, L.chao - 6, w + 2, 7); g.fillStyle = '#7A3A28'; g.fillRect(x0, L.chao - 5, w, 6); g.fillStyle = '#C9B26A'; g.fillRect(x0, L.chao - 5, w, 1); });
+      if(!calmo) bolhas.forEach(b => { b.y -= b.v * dt; if(b.y < -4){ b.y = BH + 2; b.x = Math.random() * BW; } const bx = Math.round(b.x + Math.sin(s * 2 + b.ph) * 3), by = Math.round(b.y); g.fillStyle = 'rgba(156,201,240,.55)'; g.fillRect(bx, by, 2, 2); g.fillStyle = 'rgba(255,255,255,.7)'; g.fillRect(bx, by, 1, 1); });
+      /* os fogos dos dois lados (de 0,55 a 0,9 s um do outro, lado sim lado não) */
+      if(tt >= 0 && !calmo && agora > fogoT){ fogoT = agora + 550 + Math.random() * 350; fogoLado ^= 1; const esq = !!fogoLado, x = esq ?BW * (.08 + Math.random() * .22) : BW * (.7 + Math.random() * .22); fogos.push({ x, y: L.chao - 4, vy: -(BH * .55 + Math.random() * BH * .25), alvo: BH * (.12 + Math.random() * .25), c: FESTA[Math.floor(Math.random() * 5)] }); }
+      for(let i = fogos.length - 1; i >= 0; i--){ const f = fogos[i]; f.y += f.vy * dt; f.vy *= .985; g.fillStyle = '#FFE7A8'; g.fillRect(Math.round(f.x), Math.round(f.y), 1, 3);
+        if(f.y <= f.alvo){ fogos.splice(i, 1); somRio('fogo'); const n = 28; for(let k = 0; k < n; k++){ const a = k / n * Math.PI * 2, v = 38 + Math.random() * 30; fogs.push({ x: f.x, y: f.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, c: k % 4 ? f.c : PAPEL, vida: 1.1 + Math.random() * .4, t: 0 }); } } }
+      for(let i = fogs.length - 1; i >= 0; i--){ const p = fogs[i]; p.t += dt; if(p.t > p.vida){ fogs.splice(i, 1); continue; } p.vx *= .97; p.vy = p.vy * .97 + 40 * dt; p.x += p.vx * dt; p.y += p.vy * dt; g.globalAlpha = Math.max(0, 1 - p.t / p.vida); g.fillStyle = p.c; const z = p.t < .25 ? 2 : 1; g.fillRect(Math.round(p.x), Math.round(p.y), z, z); }
+      g.globalAlpha = 1;
+      /* a corda e a balança descendo (com a mola sacudindo quando a piapara engancha) */
+      const desce = calmo ? 1 : Math.min(1, t / 650), queda = calmo ? 0 : Math.round((1 - ease(desce)) * -(L.anel + 120));
+      const tm = calmo ? 99 : (t - 950) / 1000, amp = tm > 0 ? Math.exp(-1.9 * tm) : 0, mola = tm > 0 ? Math.round(7 * amp * Math.cos(8.5 * tm)) : 0;
+      const tremor = !calmo && tt >= 0 && tt < .45 ? Math.round((Math.random() - .5) * 8 * (1 - tt / .45)) : 0;
+      const ay = L.anel + queda + mola, ax = L.cx + tremor;
+      g.fillStyle = '#B79C6A'; g.fillRect(ax - 1, 0, 2, ay); g.fillStyle = '#7E6A44'; for(let y = (Math.floor(s * 30) % 4); y < ay; y += 4) g.fillRect(ax - 1, y, 1, 2);
+      /* os números: zero até ela enganchar, depois correm com a mola e travam em 4,850 */
+      if(!travouEm){ if(tm <= 0) B.txt = '0000'; else if(agora > txtT){ txtT = agora + 70; let v = (PIAPARA_MAX + 2.6 * amp * Math.cos(8.5 * tm) + (Math.random() - .5) * .06 * (amp + .1)) * Math.min(1, tm / .12); v = clamp(v, 0, 9.999); B.txt = v.toFixed(3).replace('.', ''); somRio('tique'); } }
+      const claro = tt >= 0 && tt < .16 && !calmo;
+      const gancho = desenhaBalanca(g, ax, ay, { txt: B.txt.slice(0, 1) + ',' + B.txt.slice(1), lit: tm > 0 || calmo, hold: tt >= 0 && (calmo || Math.floor(tt * 2.5) % 2 === 0 || tt > 2), claro });
+      /* a piapara: voa da água até o gancho (de 0,5 a 0,95 s), engancha e fica balançando, pingando do rabo */
+      const spr = piaparaGrande(); let px0 = ax, py0 = gancho, giro = Math.PI / 2;
+      if(!calmo && t < 950){ const f = clamp((t - 500) / 450, 0, 1); px0 = Math.round(ax + (1 - f) * BW * .28); py0 = Math.round(BH + 30 + (gancho - BH - 30) * f - Math.sin(f * Math.PI) * 40); giro = Math.PI / 2 * f - (1 - f) * .3; }
+      else giro += (calmo ? 0 : .35 * Math.exp(-.8 * Math.max(0, tm)) * Math.sin(3.1 * Math.max(0, tm)) + .05 * Math.sin(s * 1.4));
+      if(calmo || t >= 500){ g.save(); g.imageSmoothingEnabled = false; g.translate(px0, py0); g.rotate(giro); g.scale(2, 2); g.drawImage(spr, -1, -15); g.restore(); }
+      if(!calmo && t >= 950 && agora > gotaT){ gotaT = agora + 180 + Math.random() * 260; const cauda = 92; gotas.push({ x: px0 - Math.sin(giro - Math.PI / 2) * cauda, y: py0 + Math.cos(giro - Math.PI / 2) * cauda, vy: 0 }); }
+      for(let i = gotas.length - 1; i >= 0; i--){ const d = gotas[i]; d.vy += 260 * dt; d.y += d.vy * dt; if(d.y >= L.chao){ gotas.splice(i, 1); g.fillStyle = '#9CC9F0'; g.fillRect(Math.round(d.x) - 2, L.chao - 1, 1, 1); g.fillRect(Math.round(d.x) + 2, L.chao - 1, 1, 1); continue; } g.fillStyle = '#9CC9F0'; g.fillRect(Math.round(d.x), Math.round(d.y), 1, 2); }
+      /* as capivaras da beira pulando de bandeirinha e as câmeras dos fotógrafos (o flash, no máximo uns três por segundo) */
+      L.capis.forEach(([x, lado, ban], k) => capiTorce(g, x, L.chao - 5 - (tt >= 0 && !calmo ? Math.round(Math.abs(Math.sin(s * 6 + k * 1.7)) * 7) : 0), lado, ban, s + k));
+      if(tt >= 0 && !calmo && agora > fotoT){ fotoT = agora + 330 + Math.random() * 380; fotos.push({ i: Math.floor(Math.random() * L.cams.length), t0: agora }); }
+      L.cams.forEach(([x, y], i) => { const u = fotos.filter(o => o.i === i).pop(); camera(g, x, y, u ? Math.max(0, 1 - (agora - u.t0) / 160) : 0); });
+      while(fotos.length > 8) fotos.shift();
+      /* a faixa de cima: "PESANDO..." piscando; travou, a faixa rosa cai do alto */
+      if(tt < 0){ if(Math.floor(s * 3) % 3 !== 2) txtV(g, 'PESANDO' + '...'.slice(0, 1 + Math.floor(s * 3) % 3), L.cx, L.fy + L.fh / 2, 2, PAPEL, 'c', INK); }
+      else { const f = calmo ? 1 : ease(Math.min(1, tt / .45)), fy = Math.round(L.fy + (1 - f) * -(L.fh + 20)), larg = Math.max(...L.faixa.map(x => pixLarg(x, L.fs))) + 18;
+        g.fillStyle = INK; g.fillRect(L.cx - larg / 2 - 7, fy + 3, 9, L.fh); g.fillRect(L.cx + larg / 2 - 2, fy + 3, 9, L.fh); g.fillStyle = '#C23574'; g.fillRect(L.cx - larg / 2 - 6, fy + 4, 7, L.fh - 2); g.fillRect(L.cx + larg / 2 - 1, fy + 4, 7, L.fh - 2);
+        g.fillStyle = INK; g.fillRect(Math.round(L.cx - larg / 2) - 1, fy - 1, larg + 2, L.fh + 2); g.fillStyle = ROSA; g.fillRect(Math.round(L.cx - larg / 2), fy, larg, L.fh); g.fillStyle = 'rgba(255,255,255,.25)'; g.fillRect(Math.round(L.cx - larg / 2), fy, larg, 2);
+        L.faixa.forEach((linha, k) => txtV(g, linha, L.cx, fy + 5 + k * (5 * L.fs + 3) + 5 * L.fs / 2, L.fs, AMARELO, 'c', INK)); }
+      /* o carimbo RECORDE! cai na ponta da faixa, de lado, no vão entre a faixa e a balança (desenhado reto numa tela à
+         parte e girado sem alisar, pra continuar pixel) */
+      if(tt >= 0){ const f = calmo ? 1 : Math.min(1, tt / .18), esc = calmo ? 1 : 1 + (1 - f) * 2.2 + (tt > .18 && tt < .5 ? Math.sin((tt - .18) * 30) * .05 : 0);
+        const cb = carimbo(), larg = Math.max(...L.faixa.map(x => pixLarg(x, L.fs))) + 18, sx = Math.min(BW - cb.width / 2 - 2, L.cx + larg / 2 - 12);
+        g.save(); g.imageSmoothingEnabled = false; g.translate(Math.round(sx), L.fy + L.fh + 9); g.rotate(-.2); g.scale(esc, esc); g.drawImage(cb, -Math.round(cb.width / 2), -Math.round(cb.height / 2)); g.restore(); }
+      /* embaixo: o peso, o recorde e o "toca pra fechar" */
+      if(tt >= 0){ const ap = calmo ? 1 : Math.min(1, (tt - .35) / .3); if(ap > 0){ g.globalAlpha = ap; const s1 = pixLarg('PIAPARA DE 4,850 KG', 2) > BW - 6 ? 1 : 2;
+        txtV(g, 'PIAPARA DE 4,850 KG', L.cx, L.txy + 5, s1, AMARELO, 'c', INK);
+        txtV(g, B.vida ? 'O TEU RECORDE DE TODOS OS TEMPOS' : 'DE NOVO A MAIS PESADA!', L.cx, L.txy + 17, 1, PAPEL, 'c', INK);
+        if((calmo || tt > 1.6) && Math.floor(s * 2) % 2 === 0) txtV(g, 'TOCA PRA FECHAR', L.cx, L.txy + 27, 1, '#9CC9F0', 'c', INK);
+        g.globalAlpha = 1; } }
+      /* o confete (o estouro e a chuva que vem depois) e os brilhos piscando em volta */
+      if(tt >= 0 && !calmo && agora > chuvaT && tt < 6){ chuvaT = agora + 45; conf.push({ x: Math.random() * BW, y: -4, vx: (Math.random() - .5) * 20, vy: 20 + Math.random() * 30, c: FESTA[Math.floor(Math.random() * FESTA.length)], ph: Math.random() * 6, vida: 6 }); }
+      for(let i = conf.length - 1; i >= 0; i--){ const c = conf[i]; c.vida -= dt; if(c.vida <= 0 || c.y > BH + 4){ conf.splice(i, 1); continue; } c.vx *= .985; c.vy = Math.min(c.vy + 90 * dt, 55); c.x += (c.vx + Math.sin(s * 5 + c.ph) * 14) * dt; c.y += c.vy * dt;
+        const vira = Math.sin(s * 9 + c.ph); g.fillStyle = c.c; g.fillRect(Math.round(c.x), Math.round(c.y), vira > .3 ? 2 : 1, vira < -.3 ? 2 : 1); }
+      brilhos.forEach(b => { const k = Math.sin(s * 4 + b.ph); if(k < .2) return; const r = k > .8 ? 2 : 1, x = Math.round(b.x), y = Math.round(b.y); g.fillStyle = b.c; g.fillRect(x, y - r, 1, r * 2 + 1); g.fillRect(x - r, y, r * 2 + 1, 1); });
+      B.part = conf.length + fogs.length;
+      /* o clarão de quando trava (um só, e curto) */
+      if(claro){ g.fillStyle = 'rgba(255,255,255,' + (.4 * (1 - tt / .16)).toFixed(2) + ')'; g.fillRect(0, 0, BW, BH); }
+      gt.imageSmoothingEnabled = false; gt.drawImage(buf, 0, 0, BW * B.px, BH * B.px);
+      raf = requestAnimationFrame(passo);
+    };
+    raf = requestAnimationFrame(passo);
   }
   function abrePorta(){
     if(V.voo) return;
@@ -5960,5 +6203,7 @@
     marcaPulo: () => { if(!V.eu) return; V.eu.puN = ((V.eu.puN || 0) % 999) + 1; enviaPos(true); },
     publiImg, publiLogo, publiSheet, PUBLI, logoSharks, meuSid: () => sid, kartManda: d => { if(V.rede && V.rede.kart && C.casa && C.casa.aberta()) V.rede.kart(Object.assign({ sid }, d)); },
     skin, avLimpo, nivel, cores: { PELES, CAB_CORES, ROUPA_CORES, CALCA_CORES, TENIS_CORES }, anunciar, enviaPos, retoma: () => { V.tAnt = 0; V.teclas.clear(); portaUI(); }, mic: () => V.mic, peers: () => V.peers, remotos: () => V.remotos, montaCidade, desenhaCasa: (c, k) => (ESTILO_SPRITE()[c.estilo] || spriteCasa)(c, k).cv, estado: () => V, vivo: () => !!V.vivo, chip: chipVolta, balcao: () => BC, abreBalcao, fechaBalcao, gente: () => contaGente(), aparece: () => [...quemAparece()], PERSONAGENS,
-    atualizaAv: () => { if(V.eu && C.st.me){ V.eu.av = avLimpo(C.st.me.verso, C.st.me.id); anunciar(); } }, avatar: deOnde => avatarSheet(false, deOnde), come, falaAuto, bolas: () => V.bolas || [], COMIDAS, JOGOS, abreJogo, fechaJogo, jogo: () => V.jogo, zoom: poeZoom, zoomFator, SKINS, SKIN, TAREFAS, CIVICOS, PATENTES, patenteDe, pegaTarefa, largaTarefa, agirTarefa, tarefa: () => V.tarefa, trampoSheet };
+    atualizaAv: () => { if(V.eu && C.st.me){ V.eu.av = avLimpo(C.st.me.verso, C.st.me.id); anunciar(); } }, avatar: deOnde => avatarSheet(false, deOnde), come, falaAuto, bolas: () => V.bolas || [], COMIDAS, JOGOS, abreJogo, fechaJogo, jogo: () => V.jogo, zoom: poeZoom, zoomFator, SKINS, SKIN, TAREFAS, CIVICOS, PATENTES, patenteDe, pegaTarefa, largaTarefa, agirTarefa, tarefa: () => V.tarefa, trampoSheet,
+    /* v3.85: o sorteio do rio e a balança (pros testes) */
+    sorteiaPeixe, balanca };
 })();

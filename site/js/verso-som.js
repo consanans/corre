@@ -485,6 +485,15 @@
     if(k === 'corre'){ for(let i = 0; i < 6; i++) estalo(t + i * .03, 3200, 3, .012, .03); return; }
     if(k === 'tchibum'){ estalo(t, 1100, .4, .4, .13, 'lowpass'); tom(t, 210, 60, .3, .07); estalo(t + .12, 2200, .7, .25, .05); return; }
     if(k === 'arrebenta'){ estalo(t, 2600, 6, .03, .12); tom(t, 900, 260, .12, .05, 'triangle'); return; }
+    /* v3.85 · a balança da piapara de 4,850: a mola sacudindo (boing que sobe e desce e morre), o tique dos números
+       correndo, o bip-bip de quando trava, a fanfarra com a torcida da beira e o estouro de cada fogo */
+    if(k === 'mola'){ for(let j = 0; j < 7; j++){ const a = 1 - j / 7, f = 250 + (j % 2 ? -1 : 1) * 110 * a; tom(t + j * .085, f, f * (j % 2 ? 1.3 : .78), .09, .05 * a, 'triangle'); } return; }
+    if(k === 'tique'){ estalo(t, 4200, 3, .012, .012); return; }
+    if(k === 'bip'){ tom(t, 2093, 2093, .07, .03, 'square'); tom(t + .12, 2093, 2093, .16, .03, 'square'); return; }
+    if(k === 'trofeu'){ const nt = ['G4', 'C5', 'E5', 'G5', 'E5', 'G5', 'C6'], du = [.12, .12, .12, .26, .12, .12, 1.1]; let ti = t + .05;
+      nt.forEach((n, j) => { const f = hz(midi(n)); tom(ti, f, f, du[j] * (j === nt.length - 1 ? 1 : .9), .045, 'pulso'); if(j === nt.length - 1) ['C5', 'E5', 'G5'].forEach(m => tom(ti, hz(midi(m)), hz(midi(m)), 1.4, .018, 'sawtooth')); ti += du[j]; });
+      torcida(t, 3.8); return; }
+    if(k === 'fogo'){ tom(t, 900, 140, .16, .012); estalo(t + .15, 1500, .5, .34, .07); for(let j = 0; j < 7; j++) estalo(t + .28 + Math.random() * .4, 5200, 3, .02, .018); return; }
     erro();
   }
   /* v3.76 · o papo dos moradores: uns bipes curtinhos na altura da voz de cada um (o "blá-blá-blá" de joguinho),

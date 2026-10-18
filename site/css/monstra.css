@@ -3334,3 +3334,9 @@ html.embed .msg-pg{height:calc(100dvh - 40px)}
 .cs-transe canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
 .cs-transe.sai{transition:opacity .6s ease;opacity:0}
 @keyframes cs-transe-in{from{opacity:0}to{opacity:1}}
+
+/* v3.85 · a balança da piapara de 4,850 kg: por cima de tudo, a tela inteira (o canvas desenha a cena em pixel grande); um toque fecha */
+.cvr-balanca{position:fixed;inset:0;z-index:99999;background:#06091A;cursor:pointer;touch-action:none;user-select:none;-webkit-user-select:none;animation:cvr-balanca-in .25s ease-out both}
+.cvr-balanca canvas{position:absolute;inset:0;width:100%;height:100%;display:block;image-rendering:pixelated}
+.cvr-balanca.sai{transition:opacity .6s ease;opacity:0}
+@keyframes cvr-balanca-in{from{opacity:0}to{opacity:1}}

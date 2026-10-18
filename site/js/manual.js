@@ -6,7 +6,7 @@
   'use strict';
   const C = window.Corre, { esc, ico } = C;
   /* sobe esse número a cada atualização: quem já viu recebe de novo, abrindo nas novidades */
-  const VERSAO = '3.84';
+  const VERSAO = '3.85';
   const K = 'corre-manual-visto';
 
   /* O que tem de novo: só o que é super relevante pra galera (o Thales, v3.67). No máximo 8, o mais novo em cima, uma ou
@@ -20,7 +20,7 @@
     ['carro', 'Corrida com ronco e trilha', 'No kart e no Autódromo do Café (de moto ou de carro), o motor ronca e troca de marcha, o pneu canta na derrapagem e cada turbo, salto e batida faz barulho. Da contagem até a chegada toca "Pé na Tábua", a trilha de adrenalina feita aqui no Corre.'],
     ['chat', 'Calçadão em 3D', 'Entra pelo Calçadão da cidade: a pedra portuguesa preta e branca, as luminárias de araucária, o Relojão marcando a hora de verdade e a Catedral no fundo da praça. Senta num banco que o povo puxa assunto.'],
     ['gente', 'Cidade mais viva', 'Os moradores do Correverso andam, sentam e puxam papo quando você para perto (o botão amarelo pede mais uma). E o Zerão ganhou pista de skate: rampa, bowl, corrimão, manobra no ar e combo.'],
-    ['peixe', 'Rio Tibagi', 'O Tibagi corre embaixo da cidade inteira. No Porto ou na Prainha você pega um barquinho e sai pescando piapara: espera a boia afundar, puxa na hora e segura a briga sem arrebentar a linha.'],
+    ['peixe', 'Rio Tibagi', 'O Tibagi corre embaixo da cidade inteira. No Porto ou na Prainha você pega um barquinho e sai pescando piapara: espera a boia afundar, puxa na hora e segura a briga sem arrebentar a linha. A mais pesada do rio tem 4,850 kg: quem tira ela vê a balança marcar e a festa.'],
   ];
   /* cada página: o que é, pra que serve no teu dia, e o botão que leva lá */
   const PAGINAS = [
