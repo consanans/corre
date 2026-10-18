@@ -515,7 +515,8 @@
   /* o estado de um plano em uma frase, e os botões que cabem */
   function estado(prod){
     const A = C.acesso, p = plano(prod);
-    if(A.fundador) return { txt: 'Fundador: liberado, sem pagar.', bts: [] };
+    /* v3.80: dono do Corre (corre_donos) tem tudo liberado, como o fundador */
+    if(A.fundador || A.dono) return { txt: A.fundador ? 'Fundador: liberado, sem pagar.' : 'Dono: liberado, sem pagar.', bts: [] };
     if(!p || (prod === 'studio' && !p.assinado && p.status !== 'cancelada')){
       if(prod === 'studio') return { txt: `Grátis: 1 rede social. Você usa ${A.usadas || 0}.`, bts: ['assinar'] };
       return { txt: 'Os 30 dias grátis começam no teu primeiro uso.', bts: ['assinar'] };
@@ -546,7 +547,7 @@
 
   /* a faixa do teste grátis no alto do Hórus e do Studio Houzi ('' quando não tem o que dizer) */
   C.planoFaixa = prod => {
-    const A = C.acesso; if(!A || A.fundador) return '';
+    const A = C.acesso; if(!A || A.fundador || A.dono) return '';
     const p = plano(prod), preco = reais(PRECO[prod]);
     let txt = '', bt = '', forte = false;
     if(!p) txt = `Os 30 dias grátis do ${NOME[prod]} começam no teu primeiro uso. Depois, ${preco} por mês.`;
@@ -602,7 +603,7 @@
      passou dos 7 */
   async function desisteVe(rota){
     const A = C.acesso, P = (A && A.planos) || {};
-    if(!A || A.fundador) return;
+    if(!A || A.fundador || A.dono) return;
     const k = Object.keys(P).filter(x => P[x].assinado && P[x].acesso && P[x].pago_ate && ['ativa', 'cancelada'].includes(P[x].status) && dias(P[x].pago_ate) >= 20);
     const antes = JSON.stringify(DV);
     Object.keys(DV).forEach(x => { if(!k.includes(x)) delete DV[x]; });

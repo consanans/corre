@@ -174,7 +174,10 @@
     padrao: []
   };
   const ehDoFundador = dono => !!dono && (dono.handle === 'consanans' || (C.fundadorId && dono.id === C.fundadorId()) || (C.ehFundador && C.ehFundador() && dono.id === (C.st.me && C.st.me.id)));
-  const plantaDe = dono => (ehDoFundador(dono) ? PLANTA_LOFT : PLANTA_PADRAO);
+  /* v3.80: casa com planta própria pelo @ (ou pelo id, se o @ mudar): a mansão brutalista do @jeydiaz */
+  const PLANTA_DE = { jeydiaz: () => PLANTA_BRUTAL, '673d15ac-ac78-4493-8abe-8a82f498a109': () => PLANTA_BRUTAL };
+  Object.setPrototypeOf(PLANTA_DE, null);
+  const plantaDe = dono => { if(ehDoFundador(dono)) return PLANTA_LOFT; const f = dono && (PLANTA_DE[String(dono.handle || '').toLowerCase()] || PLANTA_DE[String(dono.id || '')]); return f ? f() : PLANTA_PADRAO; };
   function usaPlanta(pl){ PL = pl; W = pl.W; D = pl.D; ALT = pl.ALT; COMODOS = pl.comodos; PAREDES = pl.paredes; ENTRADA = pl.entrada; PADRAO = pl.padrao; }
   usaPlanta(PLANTA_PADRAO);
 
@@ -1588,10 +1591,197 @@
       .forEach(([, n]) => poe('fala:' + n.i, [n.x, (n.sit || n.senta ? 1.5 : 2.02) + n.y, n.z], n.fala.t, 'fala' + (n.fala.voce ? ' voce' : '') + (n.papel === 'grita' ? ' grito' : '')));
   }
   /* as imagens das fachadas, das placas e do Relojão (uma por face) */
-  function solidosImgs(){ if(!PL || !PL.imgs) return []; if(!PL._is) PL._is = PL.imgs.map(p => painelSol(p.P4, p.img, p.cor || INK, null)); return PL._is; }
+  /* v3.80: imagem com "n" (a pintura numa parede de fora) some quando a câmera tá do outro lado (a parede vira mureta) */
+  function solidosImgs(cam){ if(!PL || !PL.imgs) return []; if(!PL._is) PL._is = PL.imgs.map(p => painelSol(p.P4, p.img, p.cor || INK, null));
+    if(!cam || !PL.imgs.some(p => p.n)) return PL._is;
+    return PL._is.filter((s, i) => { const p = PL.imgs[i], q = p.P4[0]; return !p.n || (cam.pos[0] - q[0]) * p.n[0] + (cam.pos[2] - q[2]) * p.n[2] > 0; }); }
   const ehCarro = k => k === 'hatch' || k === 'suv' || k === 'picape';
   const veicAuto = () => { let k = S.veicAuto; if(!k){ try{ k = localStorage.getItem('corre-autodromo') || ''; }catch(e){} } return VEIC_AUTO.find(v => v.k === k) || VEIC_AUTO[0]; };
   const PISTA_KART = k => ({ kart: true, k, rk: KART_DEF[k].rk, nome: KART_DEF[k].nome, sub: KART_DEF[k].sub, veic: 'patinete', vmax: 10, acel: 7.5, giro: 2.45, Kp: PLANTAS_KART[k].kart, def: KART_DEF[k] });
+  /* ---------- v3.80 · a mansão brutalista soviética do @jeydiaz ----------
+     O Thales: "faça a casa dele uma mansão brutalista soviética". 30 x 24, pé-direito de 7 m no salão. Tudo em concreto
+     aparente. Embaixo: o salão com o mural de mosaico (o cosmos: sol de raios, órbita, foguete e o cosmonauta, desenho
+     nosso), a lareira de concreto solta no meio do sofá de alvenaria, o lustre Sputnik, o piano de cauda, as colunas
+     com capitel, a passadeira vermelha até a escadaria e o capacete de cosmonauta no pedestal; a cozinha e a mesa de
+     banquete com o samovar e a "parede" de vitrine (a estante de cristais); embaixo do mezanino, o quarto com o tapete
+     pendurado na parede, a bânia (a sauna russa de madeira, com a fornalha de pedras, os vênikis secos e a tina) e a
+     biblioteca com a TV de madeira, as poltronas de couro, o xadrez e a radiola (toca os discos da casa). No mezanino,
+     o gabinete: as ferramentas, o mapa do cosmos, o globo e o telefone vermelho. A planta é dele pelo @ (e pelo id) */
+  const KB = { conc: '#A9ABAE', concE: '#7C7F84', concC: '#C4C5C7', verm: '#B3202A', vermE: '#7E1720', ouro: '#D9A93A', noz: '#5E3A22', nozC: '#8A5A36', creme: '#E9E1CF', couro: '#6B2E22', banha: '#C9A06A', banhaE: '#9C7A4A' };
+  const esferaB = (x, y, z, d, c) => Object.assign(B(x, y, z, d, d, d, c), { ex: { esfera: d / 2 } });
+  const luzB = b => Object.assign(b, { cru: true });
+  /* cadeira de jantar virada pra um lado (o encosto fica do lado oposto) */
+  const cadeiraP = (c, para) => { const pe = [B(.22, 0, .22, .07, .45, .07, INK), B(.71, 0, .22, .07, .45, .07, INK), B(.22, 0, .71, .07, .45, .07, INK), B(.71, 0, .71, .07, .45, .07, INK)], as = B(.2, .45, .2, .6, .08, .6, c);
+    const enc = { 'x+': B(.2, .53, .2, .08, .62, .6, c), 'x-': B(.72, .53, .2, .08, .62, .6, c), 'z+': B(.2, .53, .2, .6, .62, .08, c), 'z-': B(.2, .53, .72, .6, .62, .08, c) }[para];
+    return [...pe, as, enc]; };
+  /* uma coluna de concreto com o capitel alargado em cima */
+  const colunaB = () => [B(0, 0, 0, .8, 6.15, .8, KB.conc), B(.06, 0, .06, .1, 6.15, .1, KB.concC), B(-.3, 6.15, -.3, 1.4, .85, 1.4, KB.conc), B(-.15, 5.9, -.15, 1.1, .25, 1.1, KB.concE)];
+  /* o lustre Sputnik: a bola de latão e as varetas com a lâmpada na ponta, girando cada uma em volta do centro */
+  function sputnik(cx, cy, cz){
+    const out = [B(cx - .02, cy, cz - .02, .04, 7 - cy, .04, INK), esferaB(cx - .25, cy - .25, cz - .25, .5, KB.ouro)];
+    [[0, 6], [.75, 6], [-.75, 6]].forEach(([roll, n], g) => { for(let i = 0; i < n; i++){ const yaw = (i + g * .5) / n * Math.PI * 2, giro = { yaw, roll, piv: [cx, cy, cz] };
+      out.push(Object.assign(B(cx, cy - .018, cz - .018, 1.05, .036, .036, KB.ouro), giro), luzB(Object.assign(B(cx + 1.02, cy - .07, cz - .07, .14, .14, .14, '#FFE9A8'), giro))); } });
+    return out;
+  }
+  /* ---- as imagens: o mural de mosaico, o tapete na parede e o mapa do cosmos ---- */
+  /* o mosaico: o desenho é feito numa tela, depois cada pastilha pega a cor do meio dela, com um tremido de tom, e o
+     rejunte fica escuro entre elas */
+  function muralCosmos(g, w, h){
+    const R = (x0, y0, x1, y1, c) => { g.fillStyle = c; g.fillRect(x0 * w, y0 * h, (x1 - x0) * w, (y1 - y0) * h); };
+    R(0, 0, 1, 1, '#14205A');
+    /* o sol de raios no canto de cima à esquerda */
+    const sx = w * .18, sy = h * .2;
+    for(let i = 0; i < 18; i++){ const a0 = i / 18 * Math.PI * 2, a1 = a0 + Math.PI / 18; g.beginPath(); g.moveTo(sx, sy); g.lineTo(sx + Math.cos(a0) * w, sy + Math.sin(a0) * w); g.lineTo(sx + Math.cos(a1) * w, sy + Math.sin(a1) * w); g.closePath(); g.fillStyle = i % 2 ? '#1E3A8A' : '#26449E'; g.fill(); }
+    [[h * .34, '#F2C230'], [h * .26, '#FF8A3D'], [h * .18, '#FFE45E']].forEach(([r, c]) => { g.beginPath(); g.arc(sx, sy, r, 0, Math.PI * 2); g.fillStyle = c; g.fill(); });
+    /* a Terra (azul, nuvem branca e terra cor de barro: nada de verde) com a órbita */
+    const tx = w * .78, ty = h * .78; g.beginPath(); g.arc(tx, ty, h * .36, 0, Math.PI * 2); g.fillStyle = '#3C6FD6'; g.fill();
+    g.fillStyle = '#C8743A'; [[-.1, -.12, .16, .1], [.08, .05, .12, .14], [-.2, .12, .1, .08]].forEach(([dx, dy, rw, rh]) => { g.beginPath(); g.ellipse(tx + dx * h, ty + dy * h, rw * h, rh * h, .4, 0, Math.PI * 2); g.fill(); });
+    g.fillStyle = '#F2F0EA'; [[-.18, -.2, .14, .04], [.15, -.1, .12, .035]].forEach(([dx, dy, rw, rh]) => { g.beginPath(); g.ellipse(tx + dx * h, ty + dy * h, rw * h, rh * h, -.2, 0, Math.PI * 2); g.fill(); });
+    g.strokeStyle = '#E9E1CF'; g.lineWidth = h * .025; g.setLineDash([h * .04, h * .03]); g.beginPath(); g.ellipse(w * .6, h * .52, w * .34, h * .2, -.25, 0, Math.PI * 2); g.stroke(); g.setLineDash([]);
+    /* o Sputnik na órbita */
+    const kx = w * .32, ky = h * .68; g.fillStyle = '#E9E1CF'; g.beginPath(); g.arc(kx, ky, h * .045, 0, Math.PI * 2); g.fill(); g.strokeStyle = '#E9E1CF'; g.lineWidth = h * .012; [[-1, .9], [-1, 1.25], [1, 2.1], [1, 2.4]].forEach(([s, a]) => { g.beginPath(); g.moveTo(kx, ky); g.lineTo(kx + Math.cos(a) * s * h * .16, ky + Math.sin(a) * h * .16); g.stroke(); });
+    /* o foguete subindo na diagonal, com o rastro de fogo */
+    g.save(); g.translate(w * .5, h * .5); g.rotate(-.75);
+    g.fillStyle = '#FF8A3D'; g.beginPath(); g.moveTo(-h * .2, -h * .05); g.lineTo(-h * .62, 0); g.lineTo(-h * .2, h * .05); g.closePath(); g.fill();
+    g.fillStyle = '#FFE45E'; g.beginPath(); g.moveTo(-h * .2, -h * .03); g.lineTo(-h * .42, 0); g.lineTo(-h * .2, h * .03); g.closePath(); g.fill();
+    g.fillStyle = '#F2F0EA'; g.fillRect(-h * .2, -h * .06, h * .42, h * .12);
+    g.fillStyle = '#C8102E'; g.beginPath(); g.moveTo(h * .22, -h * .06); g.lineTo(h * .36, 0); g.lineTo(h * .22, h * .06); g.closePath(); g.fill();
+    g.fillRect(-h * .2, -h * .12, h * .1, h * .06); g.fillRect(-h * .2, h * .06, h * .1, h * .06);
+    g.fillStyle = '#3C6FD6'; g.beginPath(); g.arc(h * .08, 0, h * .03, 0, Math.PI * 2); g.fill();
+    g.restore();
+    /* o cosmonauta, de perfil pro alto: o capacete redondo com o vidro dourado, o ombro e o braço erguido */
+    const cx = w * .9, cy = h * .3;
+    g.fillStyle = '#F2F0EA'; g.fillRect(cx - h * .16, cy + h * .12, h * .32, h * .4); g.fillRect(cx - h * .26, cy - h * .2, h * .1, h * .36);
+    g.beginPath(); g.arc(cx, cy, h * .16, 0, Math.PI * 2); g.fill();
+    g.fillStyle = '#D9A93A'; g.beginPath(); g.ellipse(cx - h * .02, cy, h * .1, h * .08, 0, 0, Math.PI * 2); g.fill();
+    g.fillStyle = '#C8102E'; g.fillRect(cx - h * .14, cy + h * .2, h * .28, h * .04);
+    /* a estrela na mão erguida, e as estrelas do céu */
+    const estrela = (x, y, r, c) => { g.beginPath(); for(let i = 0; i < 10; i++){ const a = -Math.PI / 2 + i * Math.PI / 5, rr = i % 2 ? r * .42 : r; g.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr); } g.closePath(); g.fillStyle = c; g.fill(); };
+    estrela(cx - h * .21, cy - h * .3, h * .09, '#C8102E');
+    [[.42, .14], [.6, .1], [.55, .3], [.08, .55], [.22, .9], [.45, .88], [.7, .22], [.95, .7]].forEach(([fx, fy]) => estrela(w * fx, h * fy, h * .025, '#FFF6D8'));
+    /* as pastilhas */
+    const P = Math.max(4, Math.round(h / 44)), im = g.getImageData(0, 0, w, h).data;
+    g.fillStyle = '#2A2D33'; g.fillRect(0, 0, w, h);
+    for(let y = 0; y < h; y += P) for(let x = 0; x < w; x += P){
+      const i = ((Math.min(h - 1, y + (P >> 1)) * w) + Math.min(w - 1, x + (P >> 1))) * 4, j = .9 + ((x * 7 + y * 13) % 11) / 50;
+      g.fillStyle = `rgb(${Math.min(255, im[i] * j) | 0},${Math.min(255, im[i + 1] * j) | 0},${Math.min(255, im[i + 2] * j) | 0})`; g.fillRect(x, y, P - 1, P - 1);
+    }
+  }
+  /* o tapete pendurado em cima da cama: campo vinho, as barras azul e creme, o medalhão do meio e os cantos */
+  function tapeteParede(g, w, h){
+    const F = (x, y, ww, hh, c) => { g.fillStyle = c; g.fillRect(x, y, ww, hh); };
+    F(0, 0, w, h, '#1E2A4A'); F(w * .03, h * .05, w * .94, h * .9, '#E9D8B4'); F(w * .05, h * .09, w * .9, h * .82, '#7A1C22');
+    /* a barra de dentro, com os ganchos */
+    g.strokeStyle = '#D9A93A'; g.lineWidth = Math.max(2, h * .012); g.strokeRect(w * .08, h * .15, w * .84, h * .7);
+    for(let x = w * .1; x < w * .9; x += w * .04){ g.fillStyle = '#1E2A4A'; g.fillRect(x, h * .11, w * .015, h * .025); g.fillRect(x, h * .865, w * .015, h * .025); }
+    const losango = (cx, cy, rx, ry, c) => { g.beginPath(); g.moveTo(cx, cy - ry); g.lineTo(cx + rx, cy); g.lineTo(cx, cy + ry); g.lineTo(cx - rx, cy); g.closePath(); g.fillStyle = c; g.fill(); };
+    /* o medalhão: losangos uns dentro dos outros, com o octógono no meio */
+    const cx = w / 2, cy = h / 2;
+    [[.3, .36, '#1E2A4A'], [.26, .31, '#E9D8B4'], [.22, .26, '#B3202A'], [.16, .19, '#1E2A4A'], [.1, .12, '#D9A93A'], [.05, .06, '#7A1C22']].forEach(([rx, ry, c]) => losango(cx, cy, w * rx, h * ry, c));
+    [-1, 1].forEach(s => { losango(cx + s * w * .3, cy, w * .06, h * .1, '#E9D8B4'); losango(cx + s * w * .3, cy, w * .035, h * .06, '#1E2A4A'); });
+    /* os cantos e a fileira de botões */
+    [[.08, .15], [.92, .15], [.08, .85], [.92, .85]].forEach(([fx, fy]) => { g.beginPath(); g.moveTo(w * fx, h * fy); g.lineTo(w * fx + (fx < .5 ? 1 : -1) * w * .12, h * fy); g.lineTo(w * fx, h * fy + (fy < .5 ? 1 : -1) * h * .2); g.closePath(); g.fillStyle = '#1E2A4A'; g.fill(); });
+    for(let x = w * .14; x < w * .86; x += w * .06){ losango(x, h * .22, w * .012, h * .025, '#E9D8B4'); losango(x, h * .78, w * .012, h * .025, '#E9D8B4'); }
+    /* a franja embaixo */
+    for(let x = w * .04; x < w * .96; x += 4) F(x, h * .95, 2, h * .05, '#E9D8B4');
+  }
+  /* o mapa do cosmos do gabinete: o azul da noite, a grade, as órbitas, as constelações e o título */
+  function mapaCosmos(g, w, h){
+    g.fillStyle = '#101A3A'; g.fillRect(0, 0, w, h);
+    g.strokeStyle = 'rgba(233,225,207,.18)'; g.lineWidth = 1; for(let x = 0; x < w; x += w / 12){ g.beginPath(); g.moveTo(x, 0); g.lineTo(x, h); g.stroke(); } for(let y = 0; y < h; y += h / 5){ g.beginPath(); g.moveTo(0, y); g.lineTo(w, y); g.stroke(); }
+    const sx = w * .5, sy = h * .55; g.strokeStyle = 'rgba(233,225,207,.55)'; [.12, .2, .28, .38, .48].forEach((r, i) => { g.beginPath(); g.ellipse(sx, sy, w * r, h * r * .9, 0, 0, Math.PI * 2); g.stroke(); const a = i * 1.7 + .6; g.beginPath(); g.arc(sx + Math.cos(a) * w * r, sy + Math.sin(a) * h * r * .9, h * (.025 + i * .006), 0, Math.PI * 2); g.fillStyle = ['#C6A6FF', '#E7B734', '#3C6FD6', '#C8743A', '#E9E1CF'][i]; g.fill(); });
+    g.beginPath(); g.arc(sx, sy, h * .07, 0, Math.PI * 2); g.fillStyle = '#F2C230'; g.fill();
+    const consts = [[[.06, .2], [.12, .14], [.18, .22], [.24, .16]], [[.78, .14], [.84, .26], [.9, .18], [.95, .3]], [[.08, .8], [.15, .72], [.2, .86]]];
+    g.strokeStyle = 'rgba(255,246,216,.6)'; consts.forEach(cs => { g.beginPath(); cs.forEach(([x, y], i) => (i ? g.lineTo : g.moveTo).call(g, x * w, y * h)); g.stroke(); cs.forEach(([x, y]) => { g.fillStyle = '#FFF6D8'; g.fillRect(x * w - 2, y * h - 2, 4, 4); }); });
+    letreiro(g, 'КОСМОС', w * .5, h * .12, w * .4, h * .12, '#E7B734', 900);
+  }
+  const PLANTA_BRUTAL = {
+    k: 'brutal', W: 30, D: 24, ALT: 7,
+    comodos: [
+      { k: 'sala', nome: 'Salão', x0: 0, z0: 9, x1: 20, z1: 24, piso: '#8E9196', linha: 'rgba(15,18,24,.12)' },
+      { k: 'cozinha', nome: 'Cozinha e banquete', x0: 20, z0: 9, x1: 30, z1: 24, piso: '#E3DBC8', piso2: '#B8574A', xadrez: true, linha: 'rgba(60,30,10,.12)' },
+      { k: 'quarto', nome: 'Quarto', x0: 0, z0: 0, x1: 10, z1: 9, piso: '#8A5A3A', linha: 'rgba(40,20,5,.2)' },
+      { k: 'banha', nome: 'Bânia (sauna russa)', x0: 10, z0: 0, x1: 18, z1: 9, piso: '#B5824A', linha: 'rgba(60,30,10,.22)' },
+      { k: 'biblioteca', nome: 'Biblioteca', x0: 18, z0: 0, x1: 30, z1: 9, piso: '#6E4A32', linha: 'rgba(30,15,5,.22)' },
+      { k: 'escritorio', nome: 'Gabinete (mezanino)', x0: 0, z0: 0, x1: 30, z1: 9, n: 1, piso: '#6A2A2E', linha: 'rgba(20,5,5,.25)' }
+    ],
+    paredes: [
+      { a: [0, 24], b: [30, 24], ext: [0, 1], portas: [[9.2, 10.8]], altas: [[1, 8], [12, 19]], janelas: [[22, 24.5], [26, 28.5]], entrada: true, cor: KB.conc },
+      { a: [30, 0], b: [30, 24], ext: [1, 0], janelas: [[12, 15], [18, 21]], cor: KB.conc },
+      { a: [0, 0], b: [0, 24], ext: [-1, 0], janelas: [[3, 6]], cor: KB.conc },
+      { a: [0, 0], b: [30, 0], ext: [0, -1], cor: KB.concE },
+      { a: [0, 9], b: [30, 9], portas: [[4, 5.2], [13, 14.2], [24.2, 25.4]], alt: 3.4, cor: KB.concC },
+      { a: [10, 0], b: [10, 9], alt: 3.4, cor: KB.concC }, { a: [18, 0], b: [18, 9], alt: 3.4, cor: KB.concC },
+      { a: [20, 9], b: [20, 24], portas: [[11, 12.4]], alt: 3.4, cor: KB.concC }
+    ],
+    entrada: { x: 10, z: 24 }, tapete: { x: 9.3, z: 22.8, w: 1.4, d: 1 },
+    mezanino: { x0: 0, z0: 0, x1: 30, z1: 9, y: 3.4, grade: [[0, 9, 18.6, 9], [20, 9, 30, 9]] },
+    escada: { x0: 18.6, z0: 9, x1: 20, z1: 19, topo: 3.4 },
+    estacoes: { studio: { x: 9.5, z: .4, y: 3.4 }, feed: { x: 3, z: .15, y: 3.4 }, ia: { x: 6, z: .5, y: 3.4 }, horus: { x: .15, z: 1, y: 3.4 }, mural: { x: .15, z: 4, y: 3.4 }, marcas: { x: 29.4, z: 1, y: 3.4 }, grana: { x: 29.2, z: 4.5, y: 3.4 }, vendas: { x: 15.2, z: 5.6, y: 3.4 }, nicho: { x: 1, z: 6.4, y: 3.4 }, estilo: { x: 3.4, z: 6.6, y: 3.4 }, manual: { x: 12.6, z: 1.6, y: 3.4 }, banca: { x: 14.6, z: .4, y: 3.4 }, agente: { x: 21.6, z: 1.3, y: 3.4 } },
+    padrao: [],
+    /* as imagens nas paredes de fora (n: pra que lado olham; com a câmera do lado de fora, a parede vira mureta e a imagem some) */
+    imgs: [
+      { P4: faceP4('x', .17, 9.7, 23.3, 1.3, 6.3, 1), n: [1, 0, 0], img: () => calcImg('brutalMural', 704, 256, muralCosmos), cor: '#1E3A8A' },
+      { P4: faceP4('z', .17, 1.8, 7.2, 1.05, 3.05, 1), n: [0, 0, 1], img: () => calcImg('brutalTapete', 324, 120, tapeteParede), cor: '#7A1C22' },
+      { P4: faceP4('z', .17, 12.2, 17.8, 4.7, 6.7, 1), n: [0, 0, 1], img: () => calcImg('brutalMapa', 336, 120, mapaCosmos), cor: '#101A3A' }
+    ],
+    decor: [
+      /* ---- o salão ---- */
+      { x: 9.3, z: 18.6, piso: true, bl: [B(0, 0, 0, 1.4, .02, 5, KB.verm), B(.12, .02, 0, 1.16, .004, 5, '#C42A33'), B(0, .021, 0, .07, .004, 5, KB.ouro), B(1.33, .021, 0, .07, .004, 5, KB.ouro)] },
+      { x: 10.7, z: 18.6, piso: true, bl: [B(0, 0, 0, 7.9, .02, 1.4, KB.verm), B(0, .02, .12, 7.9, .004, 1.16, '#C42A33'), B(0, .021, 0, 7.9, .004, .07, KB.ouro), B(0, .021, 1.33, 7.9, .004, .07, KB.ouro)] },
+      { x: 7.4, z: 10, bl: colunaB() }, { x: 12, z: 10, bl: colunaB() }, { x: 7.4, z: 21.4, bl: colunaB() }, { x: 12, z: 21.4, bl: colunaB() },
+      /* o sofá de alvenaria em U, de almofada vermelha, em volta da lareira solta */
+      { x: 1.6, z: 12.3, piso: true, bl: [B(0, 0, 0, 5.6, .02, 6, '#4A3236'), B(.25, .02, .25, 5.1, .004, 5.5, '#5E3E42')] },
+      { x: 1.4, z: 12.2, bl: [B(0, 0, 0, 6, .42, .8, KB.conc), B(0, .42, .25, 6, .12, .55, KB.verm), B(0, .42, 0, 6, .62, .25, KB.conc), B(.1, .54, .25, 5.8, .32, .1, KB.vermE)] },
+      { x: 1.2, z: 13, bl: [B(0, 0, 0, .8, .42, 5.4, KB.conc), B(.25, .42, 0, .55, .12, 5.4, KB.verm), B(0, .42, 0, .25, .62, 5.4, KB.conc), B(.25, .54, .1, .1, .32, 5.2, KB.vermE)] },
+      { x: 2.2, z: 17.8, bl: [B(0, 0, 0, 4.2, .42, .8, KB.conc), B(0, .42, 0, 4.2, .12, .55, KB.verm), B(0, .42, .55, 4.2, .62, .25, KB.conc), B(.1, .54, .45, 4, .32, .1, KB.vermE)] },
+      /* a lareira aberta: o fogo na bacia, em cima do bloco de concreto, e a coifa pendurada na chaminé até o teto */
+      { x: 3.7, z: 14.6, bl: [B(0, 0, 0, 1.6, .45, 1.6, KB.concE), B(.22, .45, .22, 1.16, .1, 1.16, '#2A2D33'), B(.35, .55, .7, .9, .12, .16, '#5A3A22'), B(.7, .55, .35, .16, .12, .9, '#5A3A22'), luzB(B(.5, .62, .5, .6, .3, .6, LARANJA)), luzB(B(.6, .82, .6, .4, .34, .4, '#FFE45E')), luzB(B(.7, 1.12, .7, .2, .22, .2, '#FFF3B0')), B(.1, 1.95, .1, 1.4, .8, 1.4, KB.conc), B(.14, 1.9, .14, 1.32, .05, 1.32, '#3A3D44'), B(.45, 2.75, .45, .7, 4.25, .7, KB.conc)] },
+      { x: 0, z: 0, bl: sputnik(4.5, 5.2, 15.4) },
+      /* o piano de cauda, a banqueta e a partitura */
+      { x: 12.8, z: 12.2, bl: [B(0, .7, 0, 2.4, .32, 1.5, INK), B(0, 1.02, 0, 2.4, .04, 1.5, '#15171B'), B(.1, 0, .1, .14, .7, .14, INK), B(2.16, 0, .1, .14, .7, .14, INK), B(1.1, 0, 1.25, .14, .7, .14, INK), B(.1, .9, 1.5, 2.2, .06, .3, '#F2F0EA'), ...Array.from({ length: 11 }, (_, i) => B(.2 + i * .19, .96, 1.5, .08, .03, .17, INK)), B(.7, 1.06, 1.35, 1, .4, .04, '#15171B'), B(.8, 1.12, 1.33, .8, .3, .01, PAPEL), B(.7, 0, 2.05, 1, .5, .4, INK), B(.7, .5, 2.05, 1, .06, .4, KB.vermE)] },
+      /* o capacete de cosmonauta no pedestal, aos pés da escadaria */
+      { x: 16, z: 21, bl: [B(0, 0, 0, .9, 1.1, .9, KB.concC), B(-.05, 1.1, -.05, 1, .06, 1, KB.concE), esferaB(.08, 1.16, .08, .74, '#F2F0EA'), B(.2, 1.36, .8, .5, .3, .04, KB.ouro), B(.12, 1.16, .08, .66, .12, .66, '#C8CDD4'), B(.38, 1.92, .38, .14, .08, .14, KB.verm)] },
+      /* os vasos de capim-dos-pampas nos janelões */
+      { x: .6, z: 22.6, bl: [B(0, 0, 0, .7, .9, .7, KB.concE), B(.2, .9, .2, .3, 1.4, .3, '#D9C27F'), B(.05, 1.6, .25, .2, .9, .2, '#E3D1A0'), B(.45, 1.5, .1, .2, .8, .2, '#E3D1A0')] },
+      { x: 17.4, z: 22.6, bl: [B(0, 0, 0, .7, .9, .7, KB.concE), B(.2, .9, .2, .3, 1.4, .3, '#D9C27F'), B(.05, 1.6, .25, .2, .9, .2, '#E3D1A0'), B(.45, 1.5, .1, .2, .8, .2, '#E3D1A0')] },
+      /* ---- a cozinha e o banquete ---- */
+      { x: 23.6, z: 12.4, bl: [B(0, .72, 0, 2.8, .08, 8, KB.noz), ...[[.15, .15], [2.5, .15], [.15, 7.7], [2.5, 7.7], [.15, 3.9], [2.5, 3.9]].map(([x, z]) => B(x, 0, z, .15, .72, .15, KB.noz)), B(1.1, .8, .2, .6, .006, 7.6, KB.creme)] },
+      { x: 24.75, z: 15.8, bl: [B(0, .8, 0, .5, .12, .5, KB.ouro), esferaB(-.02, .9, -.02, .54, KB.ouro), B(.2, 1.42, .2, .1, .2, .1, KB.ouro), B(.48, 1.08, .2, .14, .04, .08, KB.ouro), B(.12, 1.62, .12, .26, .18, .26, KB.creme), B(.18, 1.62, .4, .14, .1, .02, KB.verm)] },
+      ...[13, 15, 17, 19].flatMap(z => [{ x: 22.7, z, bl: cadeiraP(KB.verm, 'x+') }, { x: 26.5, z, bl: cadeiraP(KB.verm, 'x-') }]),
+      { x: 24.6, z: 11.4, bl: cadeiraP(KB.verm, 'z+') }, { x: 24.6, z: 20.5, bl: cadeiraP(KB.verm, 'z-') },
+      ...[14.2, 16.4, 18.6].map(z => ({ x: 25, z, bl: [B(-.015, 2.75, -.015, .03, 1.3, .03, INK), B(-.28, 2.45, -.28, .56, .3, .56, KB.verm), luzB(B(-.12, 2.38, -.12, .24, .08, .24, '#FFE9A8'))] })),
+      { x: 29.25, z: 10.2, bl: [B(0, 0, 0, .7, .88, 7.6, KB.creme), B(-.06, .88, 0, .76, .05, 7.6, '#8F96A0'), ...[.6, 2, 3.4, 4.8, 6.2].map(z => B(-.02, .1, z + .1, .02, .7, 1.1, '#D8CFB8')), B(.05, .93, 1.4, .5, .04, .9, '#7F8A96'), B(.05, .93, 4.2, .55, .05, .9, '#F2F0EA'), ...[[.15, 4.3], [.15, 4.7], [.4, 4.3], [.4, 4.7]].map(([x, z]) => B(x, .98, z, .14, .02, .14, INK)), B(.1, .98, 5.8, .3, .25, .3, KB.verm), B(.3, 1.7, 0, .4, .75, 7.6, KB.creme), ...[.2, 1.7, 3.2, 4.7, 6.2].map(z => B(.28, 1.75, z, .02, .65, 1.2, '#D8CFB8'))] },
+      { x: 29.1, z: 18.6, bl: [B(0, 0, 0, .85, 1.75, .8, '#F2F0EA'), B(.05, 1.75, .05, .75, .12, .7, '#E9E5DC'), B(-.05, 1, .3, .05, .35, .12, '#C8CDD4'), B(-.02, 1.5, .25, .02, .08, .3, KB.ouro), B(-.02, .95, 0, .02, .02, .8, '#C8CDD4')] },
+      { x: 20.4, z: 9.2, bl: [B(0, 0, 0, 3.6, .9, .55, KB.noz), B(0, 0, 0, 3.6, 2.4, .08, KB.noz), B(0, 1.95, 0, 3.6, .45, .55, KB.noz), B(0, .9, 0, .08, 1.05, .55, KB.noz), B(3.52, .9, 0, .08, 1.05, .55, KB.noz), B(.08, 1.42, .08, 3.44, .04, .45, KB.nozC), ...Array.from({ length: 9 }, (_, i) => B(.25 + i * .36, .94, .2, .14, .24, .14, i % 3 ? '#E8F2FF' : '#BFD9F2')), ...Array.from({ length: 6 }, (_, i) => B(.3 + i * .55, 1.46, .12, .4, .38, .04, i % 2 ? '#F2F0EA' : '#1E3A8A')), ...Array.from({ length: 4 }, (_, i) => B(.2 + i * .85, .2, .55, .7, .5, .02, KB.nozC))] },
+      { x: 25.8, z: 9.2, bl: [B(0, 0, 0, 3.8, .9, .55, KB.noz), B(0, 0, 0, 3.8, 2.4, .08, KB.noz), B(0, 1.95, 0, 3.8, .45, .55, KB.noz), B(0, .9, 0, .08, 1.05, .55, KB.noz), B(3.72, .9, 0, .08, 1.05, .55, KB.noz), B(.08, 1.42, .08, 3.64, .04, .45, KB.nozC), ...Array.from({ length: 10 }, (_, i) => B(.25 + i * .34, .94, .2, .14, .24, .14, i % 3 ? '#E8F2FF' : '#BFD9F2')), ...Array.from({ length: 6 }, (_, i) => B(.3 + i * .58, 1.46, .12, .4, .38, .04, i % 2 ? KB.ouro : '#F2F0EA')), ...Array.from({ length: 4 }, (_, i) => B(.2 + i * .9, .2, .55, .75, .5, .02, KB.nozC))] },
+      /* ---- o quarto ---- */
+      { x: 2.8, z: .3, bl: [B(0, 0, 0, 3, .35, 2.5, KB.noz), B(0, .35, 0, 3, 1.1, .15, KB.noz), B(.1, .35, .15, 2.8, .25, 2.3, KB.creme), B(.1, .6, .9, 2.8, .07, 1.55, KB.verm), B(.1, .67, .9, 2.8, .02, .2, '#E9D8B4'), B(.3, .6, .25, 1, .16, .5, PAPEL), B(1.7, .6, .25, 1, .16, .5, PAPEL)] },
+      { x: 1.8, z: .3, bl: [B(0, 0, 0, .8, .55, .6, KB.noz), B(.25, .55, .15, .3, .1, .3, KB.ouro), B(.37, .65, .27, .06, .4, .06, KB.ouro), luzB(B(.2, 1.05, .1, .4, .3, .4, '#FFE2B0'))] },
+      { x: 6, z: .3, bl: [B(0, 0, 0, .8, .55, .6, KB.noz), B(.25, .55, .15, .3, .1, .3, KB.ouro), B(.37, .65, .27, .06, .4, .06, KB.ouro), luzB(B(.2, 1.05, .1, .4, .3, .4, '#FFE2B0'))] },
+      { x: 2.3, z: 3.4, piso: true, bl: [B(0, 0, 0, 4, .02, 3, '#2A2F5A'), B(.25, .02, .25, 3.5, .004, 2.5, '#7A1C22')] },
+      { x: 6.6, z: 8.25, bl: [B(0, 0, 0, 3, 2.5, .6, KB.noz), B(1.48, .2, -.01, .04, 2.1, .01, INK), B(1.3, 1.1, -.03, .08, .3, .03, KB.ouro), B(1.62, 1.1, -.03, .08, .3, .03, KB.ouro), B(.1, 2.5, .05, 2.8, .1, .5, KB.nozC)] },
+      /* ---- a bânia: madeira por dentro, banco de dois degraus, a fornalha de pedras, a tina e os vênikis ---- */
+      { x: 10.2, z: .16, parede: true, bl: [B(0, 0, 0, 7.6, 3.2, .05, KB.banha), ...Array.from({ length: 10 }, (_, i) => B(0, .3 + i * .3, .05, 7.6, .02, .01, KB.banhaE))] },
+      { x: 10.5, z: .3, bl: [B(0, 0, 0, 7, .9, .7, KB.banhaE), B(-.02, .9, 0, 7.04, .07, .74, KB.banha), B(0, 0, .7, 7, .42, .8, KB.banhaE), B(-.02, .42, .7, 7.04, .07, .84, KB.banha)] },
+      { x: 16.2, z: 6, bl: [B(0, 0, 0, 1.3, .95, 1.2, '#2A2D33'), B(.1, .3, 1.2, .5, .35, .02, '#FF8A3D'), ...[[.15, .2], [.5, .15], [.85, .25], [.3, .6], [.7, .65], [.5, .9]].map(([x, z], i) => esferaB(x, .93, z - .05, .3 + (i % 2) * .06, i % 3 ? '#7F848C' : '#5C6470')), B(.5, 1.2, .5, .2, 2.3, .2, '#3A3D44')] },
+      { x: 15.4, z: 7.6, bl: [B(0, 0, 0, .4, .35, .4, KB.nozC), B(.05, .35, .05, .3, .02, .3, CEU), B(.15, .37, .1, .05, .5, .05, KB.noz)] },
+      { x: 11, z: 6, bl: [B(0, 0, 0, 1.6, .9, 1.6, KB.nozC), Object.assign(B(0, 0, 0, 1.6, .9, 1.6, KB.nozC), { yaw: Math.PI / 4 }), B(-.03, .3, -.03, 1.66, .06, 1.66, INK), B(.12, .87, .12, 1.36, .02, 1.36, '#6FA8D8')] },
+      { x: 10.16, z: 3.4, parede: true, bl: [B(0, 1.5, 0, .05, .5, .06, KB.noz), B(-.02, .8, -.12, .08, .75, .3, '#C9A24A'), B(0, 1.5, .8, .05, .5, .06, KB.noz), B(-.02, .8, .68, .08, .75, .3, '#B8902E')] },
+      /* ---- a biblioteca ---- */
+      { x: 18.6, z: .2, bl: [B(0, 0, 0, 10.8, 3.2, .45, KB.noz), ...[.15, 1.15, 2.15].flatMap((y, r) => Array.from({ length: 18 }, (_, i) => B(.15 + i * .58, y + .05, .4, .3 + ((i * 7 + r * 3) % 4) * .05, .62 + ((i + r) % 3) * .08, .06, [KB.verm, '#1E3A8A', KB.creme, KB.ouro, '#2A2D33', '#7A1C22', '#C8743A'][(i + r * 2) % 7]))), ...[1.05, 2.05].map(y => B(0, y, 0, 10.8, .06, .45, KB.nozC))] },
+      { x: 19.8, z: 3.2, bl: [B(0, 0, .1, .9, .45, .85, KB.couro), B(0, .45, 0, .9, .8, .2, KB.couro), B(-.12, .2, .1, .14, .55, .85, KB.couro), B(.88, .2, .1, .14, .55, .85, KB.couro)] },
+      { x: 22.4, z: 3.2, bl: [B(0, 0, .1, .9, .45, .85, KB.couro), B(0, .45, 0, .9, .8, .2, KB.couro), B(-.12, .2, .1, .14, .55, .85, KB.couro), B(.88, .2, .1, .14, .55, .85, KB.couro)] },
+      { x: 21.15, z: 3.5, bl: [B(.3, 0, .3, .1, .66, .1, KB.noz), B(0, .66, 0, .7, .06, .7, KB.noz), ...Array.from({ length: 16 }, (_, i) => B(.03 + (i % 4) * .16, .72, .03 + Math.floor(i / 4) * .16, .16, .006, .16, (i + Math.floor(i / 4)) % 2 ? KB.creme : '#2A2D33')), B(.1, .73, .1, .06, .1, .06, PAPEL), B(.5, .73, .45, .06, .12, .06, INK)] },
+      { x: 20.8, z: 6.5, bl: [B(.1, 0, .1, .1, .4, .1, KB.noz), B(1, 0, .1, .1, .4, .1, KB.noz), B(0, .4, 0, 1.2, .75, .7, KB.noz), B(.15, .5, -.02, .7, .55, .02, '#2B3A4A'), B(.22, .58, -.03, .2, .2, .01, '#4A6A84'), B(.95, .9, -.02, .1, .1, .02, KB.ouro), B(.95, .65, -.02, .1, .1, .02, KB.ouro), B(.5, 1.15, .3, .04, .4, .04, INK), Object.assign(B(.5, 1.15, .3, .04, .5, .04, INK), { roll: .5 })] },
+      { x: 26.4, z: 7.7, acao: 'discos', topo: .9, bl: [B(0, 0, 0, 2, .85, .6, KB.noz), B(-.02, .85, -.02, 2.04, .06, .64, KB.nozC), B(.12, .12, -.02, 1.1, .6, .02, '#C9B48A'), ...[.2, .32, .44, .56].map(y => B(.12, y, -.03, 1.1, .015, .01, '#9C8858')), B(1.35, .5, -.02, .5, .2, .02, '#F2E2A8'), B(1.4, .58, -.03, .4, .01, .01, KB.verm), B(1.42, .22, -.02, .1, .1, .02, KB.ouro), B(1.7, .22, -.02, .1, .1, .02, KB.ouro)] },
+      { x: 28.6, z: 3.4, bl: [B(.25, 0, .25, .3, .05, .3, INK), B(.37, .05, .37, .06, 1.6, .06, KB.ouro), luzB(B(.15, 1.55, .15, .5, .4, .5, '#FFE2B0'))] },
+      /* ---- o gabinete, no mezanino ---- */
+      { x: 6, z: 2.2, y: 3.4, piso: true, bl: [B(0, 0, 0, 9, .03, 4.6, '#4A1A1E'), B(.3, .03, .3, 8.4, .006, 4, '#7A2A30')] },
+      { x: 24.4, z: 5.6, y: 3.4, bl: [B(0, .7, 0, .9, .06, .7, KB.noz), B(.38, 0, .28, .14, .7, .14, KB.noz), B(.2, .76, .15, .5, .1, .36, KB.verm), B(.15, .86, .14, .6, .07, .14, KB.verm), B(.36, .86, .3, .18, .03, .18, PAPEL)] },
+      { x: 26.4, z: 6, y: 3.4, bl: [B(.2, 0, .2, .4, .06, .4, KB.noz), B(.36, .06, .36, .08, .7, .08, KB.noz), esferaB(.05, .7, .05, .7, '#3C6FD6'), Object.assign(B(.02, 1.03, .38, .76, .04, .04, KB.ouro), { roll: .4 })] }
+    ]
+  };
   const LUGARES = {
     horus: { titulo: 'Casa do Hórus', planta: PLANTA_HORUS, ola: 'Casa do Hórus. O radar é o altar do meio: chega e toca.',
       estacoes: () => [{ id: 'radar', liga: 'horus', titulo: 'Radar do Hórus', rota: '#/horus', cor: INK, x: 5.6, z: 5, w: 2.8, d: 2.8, bl: RADAR, tag: [1.4, 1.75, 1.4], y: 0 }] },
@@ -3763,7 +3953,7 @@
     /* v3.77: a luz dos postes e das vitrines no chão (e as sombras de quem mora no lugar) */
     if(PL.luzes) pisos.push(...PL.luzes); if(S.calc) pisos.push(...calcManchas(t));
     pisos.push(...sombras(extras));
-    let solidos = [...solidosParedes(cam), ...solidosAndares(), ...solidosFixos(), ...solidosItens(), ...solidosAnimados(t), ...extras, ...solidosDisco(t), ...solidosPesca(t), ...solidosDesafio(), ...solidosKart(t), ...solidosPaineis(), ...solidosImgs(), ...calcSolidos(t)];
+    let solidos = [...solidosParedes(cam), ...solidosAndares(), ...solidosFixos(), ...solidosItens(), ...solidosAnimados(t), ...extras, ...solidosDisco(t), ...solidosPesca(t), ...solidosDesafio(), ...solidosKart(t), ...solidosPaineis(), ...solidosImgs(cam), ...calcSolidos(t)];
     const mv = S.corrida && S.eu ? S.corrida.P.veic : '', RK = S.corrida && S.corrida.kart ? S.corrida : null;
     const yv = S.eu ? S.eu.yaw + (RK ? RK.yawVis + ((RK.rodouAte || 0) > Date.now() ? (Date.now() - RK.rodouT0) / 1000 * 9 : 0) : 0) : 0;
     const bichoEu = comBicho() && bichoOk(S.kartBicho) ? S.kartBicho : null, avEu = bichoEu != null ? avBicho(bichoEu) : S.eu && S.eu.av;
@@ -3932,7 +4122,13 @@
   }
   function chegou(){
     /* no meio de uma rota (pela escada): o próximo ponto */
-    if(S.rota && S.rota.length){ S.alvo = S.rota.shift(); return; }
+    if(S.rota && S.rota.length){
+      /* v3.80: o trecho depois da escada também desvia do que tiver no caminho (na mansão, a parede da cozinha fica do
+         lado da escada: andando reto, ele subia a escada de novo e chegava em cima do mezanino) */
+      const prox = S.rota.shift(), d = prox && S.eu && nivelDe(S.eu.y) === prox.n ? desvia(prox.x, prox.z, prox.n) : null;
+      if(d && d.length){ S.alvo = d.shift(); S.rota = d.concat(S.rota); } else S.alvo = prox;
+      return;
+    }
     const a = S.acao; S.alvo = null; S.acao = null; if(!a) return;
     if(a.t === 'saida'){ fechar(); return; }
     if(a.t === 'est') abreEstacao(a.e);
@@ -3975,9 +4171,11 @@
     const atual = S.eu ? nivelDe(S.eu.y) : 0, e = PL.escada;
     if(!e || n === atual) return desvia(x, z, n) || [{ x, z, n }];
     const cx = (e.x0 + e.x1) / 2, pe = { x: cx, z: e.z1 + .9, n: 0 }, topo = { x: cx, z: e.z0 - .7, n: 1 };
-    if(n === 1) return [pe, topo, { x, z, n }];
+    /* v3.80: até a escada também desvia (no mezanino cheio de móvel, andando reto ele parava encostado num) */
+    const ate = p => desvia(p.x, p.z, p.n) || [p];
+    if(n === 1) return [...ate(pe), topo, { x, z, n }];
     const lado = x < e.x0 - .5 ? [{ x: e.x0 - 1, z: e.z1 + .9, n: 0 }] : [];
-    return [topo, pe, ...lado, { x, z, n }];
+    return [...ate(topo), pe, ...lado, { x, z, n }];
   }
 
   /* ---------- as ferramentas do escritório abrem o balcão por cima da casa ---------- */
@@ -4440,7 +4638,9 @@
   }
   C.casa = { abrir, fechar, escolhePista, aberta: () => S.aberta, estado: () => S, res: v => { S.resFixa = !!v; if(v) S.res = v; tamanho(); return S.res; },
     /* pros testes: anda até uma ação como o toque faria ('d3' = decoração 3, 'i0' = móvel 0) */
-    vaiAcao: id => { const a = acoes().find(x => x.id === id); if(a) vaiNaAcao(a); return !!a; }, ITENS, CAT, ESTACOES, encosta, alturaItem: (it, i) => alturaItem(it, i), COMODOS: () => COMODOS, planta: () => PL, plantaDe, lerCasa, miniatura, tela, serial, previa, acoes, disco: () => S.disco, discoAtual: () => S.discoAtual, poeDisco, AGENTES, agenteDe: () => agenteDe(S.dono),
+    vaiAcao: id => { const a = acoes().find(x => x.id === id); if(a) vaiNaAcao(a); return !!a; },
+    /* v3.80, pros testes: anda até uma ferramenta (pela escada, se for no mezanino), como o toque nela */
+    vaiEstacao: id => { const e = (S.fixos || []).find(f => f.id === id); if(e) vaiNaEstacao(e); return !!e; }, ITENS, CAT, ESTACOES, encosta, alturaItem: (it, i) => alturaItem(it, i), COMODOS: () => COMODOS, planta: () => PL, plantaDe, lerCasa, miniatura, tela, serial, previa, acoes, disco: () => S.disco, discoAtual: () => S.discoAtual, poeDisco, AGENTES, agenteDe: () => agenteDe(S.dono),
     sala: () => (S.aberta && S.dono ? String(S.dono.id || '') : ''), lugar: () => (S.aberta ? S.lugar || '' : ''), LUGARES,
     camisa: () => camisaSharks(),
     placar: () => (S.aberta && S.lugar === 'pesca' && S.placar && S.placar.r === rodadaAgora() ? { c: Math.round(S.placar.kg * 100), r: S.placar.r % 1e6 } : null), quadra: () => { const Q = quadraAqui(); if(!Q) return null; return { qp: melhorQuadra(Q), qd: diaBR() % 1e5 }; },

@@ -111,7 +111,7 @@
       else if(m.novos) v.mural = { txt: plural(m.novos, 'novo', 'novos'), n: m.novos, nivel: 'info', diz: m.novos === 1 ? '1 pedido novo pra você no Mural' : `${m.novos} pedidos novos pra você no Mural` };
     }).catch(() => {}) : null;
     const planos = (C.acesso ? Promise.resolve(C.acesso) : C.acessoCarrega ? C.acessoCarrega() : Promise.resolve(null)).then(A => {
-      if(!A || A.fundador || !A.planos) return;
+      if(!A || A.fundador || A.dono || !A.planos) return;
       const NOME = { studio: 'Studio', houzi: 'Studio Houzi', horus: 'Hórus' };
       Object.keys(A.planos).forEach(k => {
         const p = A.planos[k], dias = p.teste_ate ? Math.ceil((Date.parse(p.teste_ate) - Date.now()) / 864e5) : null;

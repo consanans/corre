@@ -13,7 +13,7 @@
   const lim = () => pro() ? Infinity : C.acesso && C.acesso.redes ? (C.acesso.redes >= 999 ? Infinity : C.acesso.redes) : Math.max(1, Number(C.st.me && C.st.me.redes) || 1);
   const nRedes = n => n === Infinity ? 'quantas redes sociais quiser' : `${n} ${n === 1 ? 'rede social' : 'redes sociais'}`;
   /* v3.60: o nome do plano do Studio (o fundador não paga; quem assinou tem o Plano Studio) */
-  const nomePlano = () => pro() ? 'Plano Corre+' : C.acesso && C.acesso.fundador ? 'Fundador' : C.acesso && C.acesso.planos && C.acesso.planos.studio && C.acesso.planos.studio.acesso ? 'Plano Studio' : lim() > 1 ? 'Plano grátis + liberadas' : 'Plano grátis';
+  const nomePlano = () => pro() ? 'Plano Corre+' : C.acesso && C.acesso.fundador ? 'Fundador' : C.acesso && C.acesso.dono ? 'Dono' : C.acesso && C.acesso.planos && C.acesso.planos.studio && C.acesso.planos.studio.acesso ? 'Plano Studio' : lim() > 1 ? 'Plano grátis + liberadas' : 'Plano grátis';
   const comRede = () => M.list.filter(m => m.rede);
   /* v3.61: as redes que o plano cobre (as mais antigas primeiro). Quem tinha o "4 ou mais" e cancelou (ou não pagou)
      segue com as marcas e as redes guardadas, mas só as que cabem no plano abrem o painel e o Studio */

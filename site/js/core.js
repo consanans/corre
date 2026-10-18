@@ -592,7 +592,7 @@
       if(!u) return null;
       const planos = {};
       d.t.corre_assinaturas.filter(a => a.dono === u).forEach(a => { planos[a.produto] = { status: a.status, nivel: a.nivel, valor: a.valor, teste_ate: a.teste_ate, pago_ate: a.pago_ate, link: a.link, assinado: !!a.asaas_assinatura, acesso: plAcesso(d, u, a.produto) }; });
-      return { fundador: plFund(d, u), redes: plRedes(d, u), usadas: d.t.corre_portfolio.filter(x => x.dono === u && x.rede).length, cliente: d.t.corre_asaas_clientes.some(c => c.dono === u),
+      return { fundador: plFund(d, u), dono: plFund(d, u), redes: plRedes(d, u), usadas: d.t.corre_portfolio.filter(x => x.dono === u && x.rede).length, cliente: d.t.corre_asaas_clientes.some(c => c.dono === u),
         planos, acesso: { studio: true, houzi: plAcesso(d, u, 'houzi'), horus: plAcesso(d, u, 'horus') } };
     };
     function rules(t, r, d, isNew){

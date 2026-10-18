@@ -18,10 +18,12 @@
   /* quem tem dois quarteirões: quem fez o Corre */
   const ESPECIAL = { consanans: 'dois' };
   /* casas com estilo próprio */
-  const ESTILOS = { maiacrds: 'tinta', 'tropicalink.00': 'tropical', lolouzimaki: 'blocos', playboy: 'pimp', apenassantoro: 'dj' };
+  const ESTILOS = { maiacrds: 'tinta', 'tropicalink.00': 'tropical', lolouzimaki: 'blocos', playboy: 'pimp', apenassantoro: 'dj', jeydiaz: 'brutal' };
   /* v3.55: @ chamado "constructor" ou "__proto__" não vira fundador nem estilo */
   Object.setPrototypeOf(ESPECIAL, null); Object.setPrototypeOf(ESTILOS, null);
-  const ESTILO_SPRITE = () => ({ tinta: spriteTinta, tropical: spriteTropical, blocos: spriteBlocos, pimp: spritePimp, dj: spriteDJ });
+  const ESTILO_SPRITE = () => ({ tinta: spriteTinta, tropical: spriteTropical, blocos: spriteBlocos, pimp: spritePimp, dj: spriteDJ, brutal: spriteBrutal });
+  /* v3.80: a mansão brutalista do @jeydiaz ocupa quase o lote inteiro, seja qual for o tamanho da casa */
+  const LARG_ESTILO = { brutal: 288 };
   const INK = '#0F1218', PAPEL = '#FFFFFF', AMARELO = '#F2EC54', ROSA = '#FF4F9A', AZUL = '#2E5BFF', LARANJA = '#FF8A3D', LILAS = '#C6A6FF';
 
   const hash = s => { let h = 2166136261; for(const ch of String(s)){ h ^= ch.codePointAt(0); h = Math.imul(h, 16777619); } return h >>> 0; };
@@ -1469,8 +1471,8 @@
     /* as casas */
     const casas = [];
     resto.forEach((p, i) => {
-      const s = slots[i], o = lotXY(s.c, s.r), tier = nivel(p), w = LARG[tier], x = o.x + (LW - w) / 2, dir = hash(p.id + 'p') & 1;
-      const h = { id: p.id, p, cat: CASA[p.categoria] ? p.categoria : 'outros', tier, handle: p.handle, nome: p.nome, x, w, base: o.y + LH - 34, lote: o, c: s.c, r: s.r, portaX: Math.round(x + (dir ? w * .72 : w * .28)), estilo: ESTILOS[String(p.handle || '').toLowerCase()] || '' };
+      const s = slots[i], o = lotXY(s.c, s.r), tier = nivel(p), est = ESTILOS[String(p.handle || '').toLowerCase()] || '', w = LARG_ESTILO[est] || LARG[tier], x = o.x + (LW - w) / 2, dir = hash(p.id + 'p') & 1;
+      const h = { id: p.id, p, cat: CASA[p.categoria] ? p.categoria : 'outros', tier, handle: p.handle, nome: p.nome, x, w, base: o.y + LH - 34, lote: o, c: s.c, r: s.r, portaX: Math.round(x + (dir ? w * .72 : w * .28)), estilo: est };
       casas.push(h); grade[s.r][s.c] = { t: 'casa', h }; arvRua(K, o, rng(hash('rua' + s.c + ',' + s.r)));
     });
     const vazios = slots.slice(resto.length, resto.length + LIVRES).map(s => { grade[s.r][s.c] = { t: 'vazio' }; return Object.assign(lotXY(s.c, s.r), { c: s.c, r: s.r }); });
@@ -3076,6 +3078,101 @@
     const sX = x0 + (lado > 0 ? w * .47 : w * .53);
     [[0, 0], [0, 1]].forEach(([, i]) => { const sy = base - 22 - i * 22; ctx.beginPath(); ctx.rect(sX - 13, sy, 26, 22); forma(ctx, '#15171B', 1.4); ctx.beginPath(); ctx.arc(sX, sy + 13, 7, 0, Math.PI * 2); ctx.fillStyle = '#34383F'; ctx.fill(); ctx.beginPath(); ctx.arc(sX, sy + 13, 2.2, 0, Math.PI * 2); ctx.fillStyle = '#121316'; ctx.fill(); ctx.beginPath(); ctx.arc(sX, sy + 4.5, 2.2, 0, Math.PI * 2); ctx.fillStyle = '#34383F'; ctx.fill(); });
     luzParede(ctx, x0 + 14, base, 60); luzParede(ctx, x0 + w - 14, base, 60);
+    return { cv, W, H, M, base };
+  }
+  /* v3.80 · a casa do @jeydiaz: mansão brutalista soviética (o Thales pediu). Concreto aparente com a marca das
+     tábuas da forma e as manchas de chuva, o térreo de vidro recuado em cima de pilares em V, o bloco em balanço com as
+     janelas em fita atrás dos brises, o painel de mosaico do lado (um foguete subindo num sol de raios, em pastilha,
+     desenho nosso), a marquise grossa com a escadaria, a torre redonda com as aletas no telhado, o letreiro de neon
+     vermelho na treliça (o @ dele) e a estrela vermelha no mastro. */
+  function spriteBrutal(c, k){
+    const w = c.w, gH = 64, mH = 118, CIMA = 150, M = 52, W = w + M * 2, H = gH + mH + CIMA + M + 24;
+    const { cv, ctx } = folha(W, H, k), x0 = M, base = H - M, px = c.portaX - c.x, lado = px > w / 2 ? 1 : -1, u = 1 / k, dep = 4 / k;
+    const r = rng(hash(c.id + 'brutal')), CONC = '#9EA1A6', CONC_C = '#B9BBBE', CONC_E = '#6E7177', VERM = '#C8102E', OURO = '#F2C230', CEU = '#6FA8FF';
+    const marcas = (x, y, ww, hh, passo) => {
+      /* a marca das tábuas (linhas finas na horizontal) e as manchas de chuva escorrendo das quinas */
+      ctx.save(); ctx.beginPath(); ctx.rect(x, y, ww, hh); ctx.clip();
+      ctx.fillStyle = 'rgba(15,18,24,.09)'; for(let yy = y + passo; yy < y + hh; yy += passo) ctx.fillRect(x, yy, ww, Math.max(u, .7));
+      ctx.fillStyle = 'rgba(255,255,255,.07)'; for(let yy = y + passo + 1; yy < y + hh; yy += passo) ctx.fillRect(x, yy, ww, Math.max(u, .5));
+      for(let a = 0; a < Math.round(ww / 26); a++){ const sx = x + r() * ww, sw = 2 + r() * 5, sh = hh * (.2 + r() * .55); const g = ctx.createLinearGradient(0, y, 0, y + sh); g.addColorStop(0, 'rgba(40,42,48,.26)'); g.addColorStop(1, 'rgba(40,42,48,0)'); ctx.fillStyle = g; ctx.fillRect(sx, y, sw, sh); }
+      ctx.restore();
+    };
+    /* concreto de forma é liso: a textura de bloco fica só um fundo (sem parecer tijolo) */
+    const laje = (x, y, ww, hh) => { bloco(ctx, x, y, ww, hh, 'concreto'); ctx.fillStyle = 'rgba(158,161,166,.74)'; ctx.fillRect(x, y, ww, hh); ctx.fillStyle = 'rgba(255,255,255,.18)'; ctx.fillRect(x, y, ww, Math.max(u, 1.4)); ctx.fillStyle = 'rgba(15,18,24,.22)'; ctx.fillRect(x, y + hh - 2, ww, 2); };
+    ctx.fillStyle = 'rgba(15,18,24,.32)'; ctx.fillRect(x0 - 16, base - 2, w + 32, 11);
+    /* ---- o mastro e a estrela, atrás de tudo ---- */
+    const tX = x0 + w * (lado > 0 ? .3 : .7), topoBloco = base - gH - mH, tW = Math.min(78, w * .3), tH = 58, tY = topoBloco - tH;
+    const mX = tX, mTopo = tY - 74;
+    ctx.fillStyle = '#3A3D44'; ctx.fillRect(mX - 1.6, mTopo, 3.2, tY - mTopo);
+    for(let yy = mTopo + 10; yy < tY; yy += 9){ ctx.fillStyle = '#5A5E66'; ctx.fillRect(mX - 4, yy, 8, Math.max(u, 1)); }
+    const estrela = (cx, cy, R, cor) => { ctx.beginPath(); for(let i = 0; i < 10; i++){ const a = -Math.PI / 2 + i * Math.PI / 5, rr = i % 2 ? R * .42 : R; ctx.lineTo(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr); } ctx.closePath(); ctx.save(); ctx.shadowColor = '#FF3B4E'; ctx.shadowBlur = 14; ctx.fillStyle = cor; ctx.fill(); ctx.restore(); ctx.lineWidth = Math.max(u, 1.1); ctx.strokeStyle = '#7A0A18'; ctx.stroke(); };
+    estrela(mX, mTopo - 4, 13, VERM);
+    ctx.beginPath(); for(let i = 0; i < 10; i++){ const a = -Math.PI / 2 + i * Math.PI / 5, rr = i % 2 ? 2.6 : 6.4; ctx.lineTo(mX + Math.cos(a) * rr, mTopo - 4 + Math.sin(a) * rr); } ctx.closePath(); ctx.fillStyle = 'rgba(255,190,190,.65)'; ctx.fill();
+    /* ---- o letreiro de neon na treliça, do outro lado do telhado ---- */
+    const nome = String(c.handle || '').toUpperCase().replace(/[^A-Z0-9._]/g, '').slice(0, 12) || 'CORRE';
+    const lX = x0 + w * (lado > 0 ? .72 : .28), lW = w * .4, ls = Math.max(1, Math.floor(Math.min(lW * .9 * k / pixLarg(nome, 1), k * 2.6))), lAlt = 5 * ls / k + 10, lY = topoBloco - dep - 26;
+    ctx.strokeStyle = '#2A2D33'; ctx.lineWidth = Math.max(u, 1);
+    ctx.beginPath(); for(let xx = lX - lW / 2; xx <= lX + lW / 2 + .1; xx += 10){ ctx.moveTo(xx, topoBloco - dep); ctx.lineTo(xx, lY - lAlt / 2); } for(let xx = lX - lW / 2; xx < lX + lW / 2 - 1; xx += 10){ ctx.moveTo(xx, topoBloco - dep); ctx.lineTo(xx + 10, lY - lAlt / 2); ctx.moveTo(xx + 10, topoBloco - dep); ctx.lineTo(xx, lY - lAlt / 2); } ctx.stroke();
+    ctx.fillStyle = '#2A2D33'; ctx.fillRect(lX - lW / 2 - 2, lY - lAlt / 2 - 2, lW + 4, 3);
+    ctx.save(); ctx.shadowColor = '#FF3B4E'; ctx.shadowBlur = 12; pixTxt(ctx, nome, lX, lY - lAlt / 2 - 10, ls, '#FF4458', 'c'); ctx.restore();
+    ctx.save(); ctx.shadowColor = '#FF3B4E'; ctx.shadowBlur = 3; pixTxt(ctx, nome, lX, lY - lAlt / 2 - 10, ls, '#FFD6DB', 'c'); ctx.restore();
+    /* ---- a torre redonda com as aletas ---- */
+    bloco(ctx, tX - tW / 2, tY, tW, tH, 'concreto');
+    for(let a = 0; a < 9; a++){ const f = (a + .5) / 9, xx = tX - tW / 2 + f * tW, larg = tW / 9 * .5, luz = Math.cos((f - .3) * Math.PI); ctx.fillStyle = luz > .4 ? CONC_C : luz > 0 ? CONC : CONC_E; ctx.fillRect(xx - larg / 2, tY + 4, larg, tH - 8); ctx.fillStyle = 'rgba(15,18,24,.3)'; ctx.fillRect(xx + larg / 2, tY + 4, Math.max(u, larg * .25), tH - 8); }
+    ctx.fillStyle = 'rgba(15,18,24,.55)'; ctx.fillRect(tX - tW / 2 + 3, tY + tH * .45, tW - 6, 6); vidro(ctx, tX - tW / 2 + 3, tY + tH * .45, tW - 6, 6, r() < .7, 9);
+    ctx.beginPath(); ctx.ellipse(tX, tY, tW / 2 + 3, 5, 0, 0, Math.PI * 2); forma(ctx, CONC_C, 1.2);
+    /* ---- o bloco em balanço (mais largo que o térreo) ---- */
+    const bx = x0 - 10, bw = w + 20, by = topoBloco;
+    laje(bx, by, bw, mH); marcas(bx, by, bw, mH, 7);
+    /* o mosaico: no lado sem a porta, uma placa de pastilha de 3 px */
+    const mw = Math.round(bw * .3), mx = lado > 0 ? bx + 12 : bx + bw - 12 - mw, my = by + 10, mh = mH - 20, P = 3;
+    ctx.fillStyle = '#2A2D33'; ctx.fillRect(mx - 3, my - 3, mw + 6, mh + 6);
+    const sol = [mx + mw * .5, my + mh * .3], ang = -1.05, ca = Math.cos(ang), sa = Math.sin(ang), fg = [mx + mw * .5, my + mh * .62];
+    for(let yy = 0; yy < mh; yy += P) for(let xx = 0; xx < mw; xx += P){
+      const X = mx + xx + P / 2, Y = my + yy + P / 2, dx = X - sol[0], dy = Y - sol[1], d = Math.hypot(dx, dy), raio = ((Math.atan2(dy, dx) + Math.PI) / (Math.PI / 8)) | 0;
+      let cor = Y > my + mh * .82 ? (((xx / P) + (yy / P)) % 3 ? '#2E5BFF' : '#1E3FB8') : d < mw * .16 ? OURO : raio % 2 ? '#FF8A3D' : CEU;
+      /* o foguete: um corpo inclinado com a ponta vermelha e o fogo atrás */
+      const lx = (X - fg[0]) * ca + (Y - fg[1]) * sa, ly = -(X - fg[0]) * sa + (Y - fg[1]) * ca;
+      if(Math.abs(ly) < mw * .09 && lx > -mw * .3 && lx < mw * .24) cor = lx > mw * .12 ? VERM : Math.abs(ly) < mw * .03 && lx > -mw * .05 && lx < mw * .05 ? CEU : '#EEEBE4';
+      if(lx >= mw * .24 && lx < mw * .34 && Math.abs(ly) < (mw * .34 - lx) * .9) cor = VERM;
+      if(lx < -mw * .3 && lx > -mw * .62 && Math.abs(ly) < (lx + mw * .62) * .32) cor = (xx + yy) % 2 ? '#FFE45E' : '#FF8A3D';
+      if(Math.abs(ly) > mw * .09 && Math.abs(ly) < mw * .17 && lx > -mw * .3 && lx < -mw * .18) cor = VERM;
+      ctx.fillStyle = cor; ctx.fillRect(mx + xx, my + yy, P - Math.max(u, .5), P - Math.max(u, .5));
+    }
+    [[.15, .12], [.84, .2], [.1, .55], [.88, .5]].forEach(([fx, fy]) => { const sx = mx + mw * fx, sy = my + mh * fy; ctx.fillStyle = '#FFFFFF'; ctx.fillRect(sx - 1.5, sy - .5, 3, 1); ctx.fillRect(sx - .5, sy - 1.5, 1, 3); });
+    /* as janelas em fita, fundas, com a sombra da laje e os brises na frente */
+    const fx0 = lado > 0 ? mx + mw + 14 : bx + 12, fx1 = lado > 0 ? bx + bw - 12 : mx - 14;
+    [[by + 16, 26], [by + 64, 26]].forEach(([fy, fh]) => {
+      vidro(ctx, fx0, fy, fx1 - fx0, fh, r() < .65, 40);
+      ctx.fillStyle = 'rgba(15,18,24,.45)'; ctx.fillRect(fx0, fy, fx1 - fx0, 5);
+      for(let xx = fx0 + 4; xx < fx1 - 3; xx += 11){ ctx.fillStyle = CONC; ctx.fillRect(xx, fy - 3, 4, fh + 6); ctx.fillStyle = CONC_E; ctx.fillRect(xx + 3, fy - 3, 1.6, fh + 6); ctx.fillStyle = 'rgba(255,255,255,.2)'; ctx.fillRect(xx, fy - 3, Math.max(u, .8), fh + 6); }
+      ctx.fillStyle = CONC_C; ctx.fillRect(fx0 - 4, fy + fh + 3, fx1 - fx0 + 8, 4); ctx.fillStyle = 'rgba(15,18,24,.3)'; ctx.fillRect(fx0 - 4, fy + fh + 7, fx1 - fx0 + 8, 2);
+    });
+    /* a sombra que o balanço faz no térreo */
+    const gy = base - gH;
+    /* ---- o térreo: vidro recuado e os pilares em V ---- */
+    ctx.fillStyle = '#3A3D44'; ctx.fillRect(x0 + 6, gy, w - 12, gH);
+    vidro(ctx, x0 + 14, gy + 10, w - 28, gH - 10, true, 30);
+    const sg = ctx.createLinearGradient(0, gy, 0, gy + 22); sg.addColorStop(0, 'rgba(15,18,24,.55)'); sg.addColorStop(1, 'rgba(15,18,24,0)'); ctx.fillStyle = sg; ctx.fillRect(x0 + 6, gy, w - 12, 22);
+    const nP = 5;
+    for(let a = 0; a < nP; a++){
+      const cx = x0 + 14 + a * (w - 28) / (nP - 1); if(Math.abs(cx - (x0 + px)) < 34) continue;
+      ctx.beginPath(); ctx.moveTo(cx - 3, base); ctx.lineTo(cx + 3, base); ctx.lineTo(cx + 9, gy); ctx.lineTo(cx - 9, gy); ctx.closePath(); forma(ctx, CONC, 1.2);
+      ctx.beginPath(); ctx.moveTo(cx + 1, base); ctx.lineTo(cx + 3, base); ctx.lineTo(cx + 9, gy); ctx.lineTo(cx + 5, gy); ctx.closePath(); ctx.fillStyle = 'rgba(15,18,24,.28)'; ctx.fill();
+    }
+    /* a porta, a marquise grossa e a escadaria */
+    const dX = x0 + px;
+    porta(ctx, dX, base, 34, 50, '#1B1D22');
+    ctx.fillStyle = '#FFD37A'; ctx.fillRect(dX - 15, base - 48, 30, 3);
+    const mqW = 74, mqY = base - 62;
+    laje(dX - mqW / 2, mqY, mqW, 9);
+    ctx.fillStyle = 'rgba(15,18,24,.35)'; ctx.fillRect(dX - mqW / 2 + 3, mqY + 9, mqW - 6, 3);
+    ctx.fillStyle = CONC; ctx.fillRect(dX - mqW / 2 + 4, mqY + 9, 4, base - mqY - 9); ctx.fillRect(dX + mqW / 2 - 8, mqY + 9, 4, base - mqY - 9);
+    [0, 1, 2].forEach(d => { const sw = 44 + d * 12, sy = base + d * 4; ctx.beginPath(); ctx.rect(dX - sw / 2, sy, sw, 4); forma(ctx, d % 2 ? CONC_C : CONC, 1); });
+    pixPlaca(ctx, '@' + (c.handle || ''), dX, mqY - 7, { fundo: VERM, cor: '#FFFFFF', borda: INK, max: Math.max(6, Math.floor(w * .5 * k / 4.4)) });
+    luzParede(ctx, dX - 26, base, 50); luzParede(ctx, dX + 26, base, 50);
+    /* os holofotes do chão que lavam o concreto */
+    [x0 + 10, x0 + w - 10].forEach(hx => { const g = ctx.createLinearGradient(0, base, 0, by); g.addColorStop(0, 'rgba(255,226,170,.32)'); g.addColorStop(1, 'rgba(255,226,170,0)'); ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(hx - 3, base); ctx.lineTo(hx + 3, base); ctx.lineTo(hx + 22, by); ctx.lineTo(hx - 22, by); ctx.closePath(); ctx.fill(); ctx.fillStyle = '#2A2D33'; ctx.fillRect(hx - 4, base - 4, 8, 4); });
     return { cv, W, H, M, base };
   }
   /* Gleba Palhano: as torres da beira do lago */
@@ -5239,16 +5336,16 @@
     const c = p.c, f = c.p || {}, meu = c.id === (C.st.me && C.st.me.id), cat = ((C.mural && C.mural.CATS || []).find(x => x[0] === f.categoria) || [])[1] || '';
     const nums = [[f.posts, 'post', 'posts'], [f.seg, 'seguidor', 'seguidores'], [f.itens, 'item no catálogo', 'itens no catálogo'], [f.esc, 'escolha no Mural', 'escolhas no Mural']].filter(([n]) => n).map(([n, a, b]) => `<span class="tag">${n} ${n === 1 ? a : b}</span>`).join('');
     /* a porta: a prévia da casa por dentro com o botão de entrar em cima, e o perfil embaixo */
-    const PV = C.casa, loft = !!(PV && PV.plantaDe && PV.plantaDe(c).mezanino);
+    const PV = C.casa, pl = PV && PV.plantaDe ? PV.plantaDe(c) : null, loft = !!(pl && pl.mezanino), mansao = !!(pl && pl.k === 'brutal');
     C.sheet(`<div class="form cvr-porta-s"><div class="sheet-head"><h2>${meu ? 'Tua casa' : 'Casa de @' + esc(c.handle)}</h2><button type="button" class="cbtn plain" data-close aria-label="Fechar">${ico('x')}</button></div>
-      ${PV ? `<div class="cvr-previa"><canvas id="cvr-previa" width="320" height="180" aria-label="A casa por dentro, vista de cima"></canvas><span class="cvr-previa-t">${loft ? 'loft · 2 andares' : 'por dentro · 3D'}</span>
+      ${PV ? `<div class="cvr-previa"><canvas id="cvr-previa" width="320" height="180" aria-label="A casa por dentro, vista de cima"></canvas><span class="cvr-previa-t">${mansao ? 'mansão brutalista · 2 andares' : loft ? 'loft · 2 andares' : 'por dentro · 3D'}</span>
         <button type="button" class="btn pri cvr-entrar" data-act="cvr-casa-entrar" data-id="${esc(c.id)}">${ico('home')} ${meu ? 'Entrar na casa' : 'Visitar a casa'}</button></div>` : ''}
       <div class="cvr-casa-h">${C.avatar(f, 'l')}<div><b>${esc(f.nome || c.handle)}</b><small>@${esc(c.handle)}${f.cidade ? ' · ' + esc(f.cidade) : ''}</small>${cat ? `<span class="tag cat">${esc(cat)}</span>` : ''}</div></div>
       ${f.faz ? `<p>${esc(f.faz)}</p>` : ''}
       <div class="meta">${nums || '<span class="note">Casa nova no pedaço.</span>'}</div>
       ${p.dois ? '<p class="fine">Dois quarteirões, um do lado do outro, ligados pela passarela por cima da rua: a casa e o estúdio. Só tem um desses no Correverso.</p>' : meu ? `<p class="fine">Todo mundo tem um quarteirão. A casa cresce com o que você faz no Corre: posts, seguidores, itens no catálogo e escolhas no Mural. Dinheiro não conta. Nível ${c.tier} de 4.</p>` : ''}
       <div class="acts">${PV ? '' : `<button type="button" class="btn pri" data-act="cvr-casa-entrar" data-id="${esc(c.id)}">${ico('home')} ${meu ? 'Entrar na casa' : 'Visitar a casa'}</button>`}<button type="button" class="btn" data-act="cvr-perfil" data-h="${esc(c.handle)}" data-meu="${meu ? '1' : ''}" data-cor="${esc((CASA[c.cat] || CASA.outros).a)}">${ico('eu')} ${meu ? 'Meu perfil' : 'Ver perfil'}</button>${meu ? `<button type="button" class="btn" data-act="cvr-avatar">${ico('edit')} Mudar avatar</button>` : ''}${!meu && C.msg && C.uid() && c.handle ? `<button type="button" class="btn" data-act="cvr-msg" data-h="${esc(c.handle)}" data-cor="${esc((CASA[c.cat] || CASA.outros).a)}">${ico('send')} Mensagem</button>` : ''}</div>
-      ${meu && PV ? `<p class="fine">${loft ? 'Lá dentro: sala com pé-direito duplo, cozinha, estúdio, closet e o escritório no mezanino, com todas as tuas ferramentas.' : 'Por dentro, a casa é em 3D: o escritório tem as tuas ferramentas e a loja tem os móveis (de graça por enquanto).'}</p>` : ''}</div>`);
+      ${(meu || mansao) && PV ? `<p class="fine">${mansao ? 'Concreto aparente do chão ao teto: o salão de 7 metros com o mural de mosaico do cosmos, a lareira, o lustre Sputnik e o piano; a bânia, a biblioteca com a radiola e, no mezanino, o gabinete com todas as ferramentas e o telefone vermelho.' : loft ? 'Lá dentro: sala com pé-direito duplo, cozinha, estúdio, closet e o escritório no mezanino, com todas as tuas ferramentas.' : 'Por dentro, a casa é em 3D: o escritório tem as tuas ferramentas e a loja tem os móveis (de graça por enquanto).'}</p>` : ''}</div>`);
     if(PV && PV.previa){
       const cv = C.$('cvr-previa'), dono0 = meu ? C.st.me : { id: c.id, handle: c.handle };
       requestAnimationFrame(() => { if(cv && cv.isConnected) PV.previa(cv, dono0); });
