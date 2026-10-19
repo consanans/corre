@@ -537,6 +537,16 @@
   }
   /* v3.76 · o grind no corrimão: o ferro raspando (um chiado agudo curtinho, chamado várias vezes enquanto desliza) */
   function grind(){ if(!fxOk()) return; const t = ac.currentTime + .005; estalo(t, 5200, 2.4, .07, .028); tom(t, 1900, 1650, .06, .006, 'sawtooth'); }
+  /* v4.03 · o Lambe-Lambe do Noel: o bip da contagem, o clique do obturador (o espelho batendo), o passarinho (dois
+     piados que sobem), o motorzinho da polaroid empurrando a foto pra fora e o abano do chacoalhar */
+  function foto(k){
+    if(!fxOk()) return; const t = ac.currentTime + .005;
+    if(k === 'bip'){ tom(t, 1568, 1568, .09, .03, 'square'); return; }
+    if(k === 'clique'){ estalo(t, 2600, 2.5, .03, .09); estalo(t + .045, 900, 1.6, .05, .07, 'lowpass'); tom(t, 180, 90, .06, .04, 'triangle'); return; }
+    if(k === 'passarinho'){ [0, .13, .26].forEach((d, i) => { const f = 2200 + i * 260; tom(t + .05 + d, f, f * 1.35, .08, .014, 'sine'); }); return; }
+    if(k === 'sai'){ for(let i = 0; i < 14; i++) tom(t + i * .055, 120 + (i % 2) * 18, 110, .05, .02, 'sawtooth'); estalo(t, 400, 1.2, .8, .02, 'lowpass'); return; }
+    if(k === 'chaco'){ estalo(t, 1800, 1.4, .07, .04); estalo(t + .09, 1500, 1.4, .07, .035); return; }
+  }
   function porta(){ if(!fxOk()) return; const t = ac.currentTime + .01; estalo(t, 600, 1.8, .12, .07); tom(t, 160, 120, .12, .06, 'triangle'); estalo(t + .14, 520, 1.6, .1, .05); }
 
   /* ---------- liga, pausa, sai: quem manda é o modo e o estado da cidade ---------- */
@@ -943,7 +953,7 @@
     /* mais um botão de som (o da casa) */
     botao(b){ if(b && !botoes.includes(b)){ botoes.push(b); pinta(); } },
     sai, alterna, modo: () => modoAtual, tocando: () => musicaOn && modoAtual === 'tudo', ativo: () => ativo,
-    passo, pulo, cai, buzina, carroPassa, motor, ambiente, aviao, moeda, porta, taco, luva, taiko, acerto, erro, rio, papo, grind, macaco, transe,
+    passo, pulo, cai, buzina, carroPassa, motor, ambiente, aviao, moeda, porta, taco, luva, taiko, acerto, erro, rio, papo, grind, macaco, transe, foto,
     /* v3.79 · as corridas: corrida(estado) a cada quadro (null para), corridaFx(golpe) e a música */
     corrida, corridaFx, corridaMusica, corridaLog: () => CR.log.slice(), corridaEstado: () => ({ musica: CM.on, motor: !!CR.n, veic: CR.n ? CR.n.veic : null, marcha: CR.marcha, lado: +CR.lado.toFixed(2) }),
     amostra, amostraFx, amostraCorrida, amostraMotor, amostraGolpes, faixas: () => prontas().map(f => f.nome), faixa: () => prontas()[fi].nome,

@@ -1820,10 +1820,16 @@
           ['presente', -196, 74], ['presente', -404, -112], ['presente', 204, 98], ['presente', 412, 92], ['presente', -560, -56], ['presente', 560, -48], ['presente', -300, 150], ['presente', 330, -150],
           ['cisne', -390, 124], ['cisne', 430, 156]].forEach(([k, dx, dy], i) => { const x = xn + dx, y = yn + dy; if(naAgua(x, y, k === 'cisne' ? 14 : 0) && (k !== 'cisne' || (naAgua(x - 44, y, 14) && naAgua(x + 44, y, 14)))) agua.push({ k, x, y, i }); });
         L.noel = { x: xn, y: yn, agua, placa: px != null ? { x: Math.round(px), y: Math.round(sul(px)) } : null, letreiro: lx != null ? { x: Math.round(lx), y: Math.round(sul(lx)) } : null };
-        if(L.noel.placa) K.decor.push({ tipo: 'placaNoel', x: L.noel.placa.x, y: L.noel.placa.y }); } }
+        if(L.noel.placa) K.decor.push({ tipo: 'placaNoel', x: L.noel.placa.x, y: L.noel.placa.y });
+        /* v4.03: a barraquinha da foto com o Papai Noel, na mesma orla, o mais de frente pra ele que der (longe da placa e
+           do letreiro). O lugar fica guardado o ano inteiro, como o dele; a barraquinha só monta no Natal */
+        /* (o livreP da placa olha qualquer banco abaixo do lago, até os de outro quarteirão; aqui só o que tá em volta) */
+        const livreF = x => { const y = sul(x); return y != null && !K.bancos.some(b => Math.abs(b.x - x) < 58 && Math.abs(b.y - y) < 110) && !K.postes.some(q => Math.abs(q.x - x) < 34 && Math.abs(q.y - y) < 80) && !K.quiosques.some(q => Math.abs(q.x - x) < 90 && Math.abs(q.base - y) < 100); };
+        const fx = [0, 30, -30, 60, -60, 130, -130, 160, -160, 200, -200, 240, -240, 420, -420, 470, -470].map(d => xn + d).find(x => livreF(x) && (px == null || Math.abs(x - px) > 104) && (lx == null || Math.abs(x - lx) > 130));
+        if(fx != null){ L.noel.foto = { x: Math.round(fx), y: Math.round(sul(fx)) }; K.decor.push({ tipo: 'fotoNoel', x: L.noel.foto.x, y: L.noel.foto.y }); } } }
     /* muita árvore na beira */
-    const np = L.noel && L.noel.placa, nl = L.noel && L.noel.letreiro;
-    const ocupado = (x, y) => K.quiosques.some(q => Math.abs(q.x - x) < 64 && y > q.base - 40 && y < q.base + 44) || evita(x, 26) || (sx && Math.abs(x - sx) < 150 && y < foraEm(sx).t + 10) || (np && Math.abs(x - np.x) < 90 && Math.abs(y - np.y) < 80) || (nl && Math.abs(x - nl.x) < 100 && Math.abs(y - nl.y) < 90);
+    const np = L.noel && L.noel.placa, nl = L.noel && L.noel.letreiro, nf = L.noel && L.noel.foto;
+    const ocupado = (x, y) => K.quiosques.some(q => Math.abs(q.x - x) < 64 && y > q.base - 40 && y < q.base + 44) || evita(x, 26) || (sx && Math.abs(x - sx) < 150 && y < foraEm(sx).t + 10) || (np && Math.abs(x - np.x) < 90 && Math.abs(y - np.y) < 80) || (nl && Math.abs(x - nl.x) < 100 && Math.abs(y - nl.y) < 90) || (nf && Math.abs(x - nf.x) < 90 && Math.abs(y - nf.y) < 96);
     for(let x = R.x + 30; x < R.x + R.w - 16; x += 56 + Math.floor(sorte() * 32)){
       const f = foraEm(x);
       if(!f){ for(let y = R.y + 70; y < R.y + R.h - 12; y += 84 + sorte() * 40) if(sorte() < .75) K.arv.push({ x: Math.round(x + (sorte() - .5) * 18), y: Math.round(y), cor: pega(IPES, sorte), g: sorte() < .3 }); continue; }
@@ -2183,7 +2189,9 @@
     /* v3.82: no Parque Arthur Thomas, a Jaula dos Macacos (o Elo Perdido) e as placas de ler */
     if(c.arthur){ const a = c.arthur; P.push({ x: a.jaula.x, y: a.jaula.base + 14, tipo: 'jogo', jogo: 'elo' }); a.placas.forEach(o => P.push({ x: o.x, y: o.y + 6, tipo: 'placa', titulo: o.titulo, txt: o.txt })); }
     /* v3.87: no Natal, a placa do Papai Noel do Igapó (os números são os do de verdade) */
-    const np = c.lago && c.lago.noel && c.lago.noel.placa;
+    const np = c.lago && c.lago.noel && c.lago.noel.placa, nfo = c.lago && c.lago.noel && c.lago.noel.foto;
+    /* v4.03: a barraquinha da foto, de frente pro Papai Noel */
+    if(nfo && natal()) P.push({ x: nfo.x, y: nfo.y + 10, tipo: 'polaroid' });
     if(np && natal()) P.push({ x: np.x, y: np.y + 6, tipo: 'placa', noel: true, titulo: 'O maior Papai Noel do mundo', txt: '27 metros, 15 toneladas e uns 450 mil pontos de LED, em pé numa balsa presa por quatro âncoras no Lago Igapó 2. Acendeu em 30/11/2025, no LondriNatal, e o Guinness confirmou o recorde em 5/12 (o de antes era de Águeda, em Portugal, com 21 m).' });
     /* a Delegacia, o quartel e o Hospital: na porta, o trampo de cada uniforme */
     ['delegacia', 'bombeiros', 'hospital'].forEach(k => { if(c.centro[k]) P.push({ x: c.centro[k].x + LW / 2, y: c.centro[k].base + 8, tipo: 'civico', k }); });
@@ -3052,6 +3060,199 @@
       luzesVivas(ctx, n, t); fogosNoel(ctx, n, t);
     } });
   }
+  /* ---------------- v4.03 · o Lambe-Lambe do Noel (a barraquinha da foto) ----------------
+     O Thales: "um lugar onde as pessoas podem tirar foto em frente ao papai noel, a foto sai revelada tipo polaroid e a
+     pessoa pode compartilhar no insta"; "o personagem dele na frente e o papai noel em segundo plano"; "tipo uma
+     barraquinha"; "uma experiência que todo londrinense gostaria de ter". Na barraquinha da orla do Igapó: escolhe o
+     acessório (gorro do Noel ou chifre de rena) e a legenda, o Seu Zé do Lambe-Lambe grita "olha o passarinho!", 3, 2, 1,
+     o flash, sai um passarinho da câmera e a polaroid desliza pra fora e revela devagar (do escuro pra cor, como a de
+     verdade; chacoalhar não adianta, mas pode). A foto é montada aqui, não é print da tela: o céu da hora, os prédios da
+     Gleba acesos do outro lado do lago, o Papai Noel desfocado lá atrás com o reflexo na água, os fogos de noite, a grade
+     da orla com o #EU ❤ LONDRINA no canto e o teu boneco grande na frente, com quem tiver do teu lado (até 3, gente de
+     verdade, sem morador). Postar no Insta manda a imagem pronta (1080x1350: a polaroid inclinada num fundo de luzinhas
+     e "feito no Correverso") pelo compartilhar do celular; sem ele, baixa o arquivo. Nada vai pro banco. */
+  const PO = { on: false, el: null, foto: null, card: null, t: [], aces: 'gorro', leg: 0, gente: [] };
+  const POLA_LEG = ['Natal pé-vermelho', 'Eu e o maior Papai Noel do mundo', 'Feliz Natal, Londrina!'];
+  const POLA_ACES = [['gorro', 'Gorro do Noel'], ['rena', 'Chifre de rena'], ['nada', 'Sem nada']];
+  const POLA_CHACO = ['Não precisa chacoalhar. Mas pode.', 'Chacoalhar não acelera, mas o OutKast mandou.', 'A química é que revela, viu? Calma.'];
+  try{ const o = JSON.parse(localStorage.getItem('corre-pola') || 'null'); if(o){ if(POLA_ACES.some(a => a[0] === o.aces)) PO.aces = o.aces; if(o.leg >= 0 && o.leg < POLA_LEG.length) PO.leg = o.leg; } }catch(e){}
+  let POLA_FONTE = null;
+  /* a letra da legenda é a de pixel do Studio (lab/fontes), a mesma cara do Correverso */
+  function fontePola(){
+    if(!POLA_FONTE){ POLA_FONTE = { pronta: Promise.resolve() }; if(window.FontFace && document.fonts){ const f = new FontFace('CorrePixel', 'url(lab/fontes/pixel.ttf)'); POLA_FONTE.pronta = f.load().then(x => { document.fonts.add(x); }).catch(() => {}); } }
+    return POLA_FONTE.pronta;
+  }
+  /* o boneco num quadrinho de 40x44 (sobra em cima pro gorro e o chifre), de frente, com o acessório */
+  function bonecoPola(av, aces){
+    const cv = document.createElement('canvas'); cv.width = 40; cv.height = 44; const g = cv.getContext('2d');
+    skin(g, av, 20, 42, 'baixo', null, 1);
+    const px = g.getImageData(0, 0, 40, 44).data, cheio = (x, y) => px[(y * 40 + x) * 4 + 3] > 40;
+    let topo = -1; for(let y = 0; y < 44 && topo < 0; y++) for(let x = 0; x < 40; x++) if(cheio(x, y)){ topo = y; break; }
+    if(topo < 0 || aces === 'nada') return cv;
+    let e = 40, d = -1; for(let y = topo; y < topo + 4; y++) for(let x = 0; x < 40; x++) if(cheio(x, y)){ e = Math.min(e, x); d = Math.max(d, x); }
+    const cx = Math.round((e + d) / 2), w = Math.max(6, d - e + 1), R = (x, y, ww, hh, c) => { g.fillStyle = c; g.fillRect(x, y, ww, hh); };
+    if(aces === 'gorro'){
+      R(cx - Math.ceil(w / 2) - 1, topo, w + 2, 2, '#F6F3EC');
+      R(cx - Math.ceil(w / 2) + 1, topo - 3, w - 2, 3, '#D42A35'); R(cx - 2, topo - 5, Math.ceil(w / 2) + 1, 2, '#D42A35'); R(cx + Math.ceil(w / 2) - 1, topo - 4, 2, 2, '#D42A35');
+      R(cx + Math.ceil(w / 2), topo - 3, 2, 2, '#F6F3EC'); R(cx - Math.ceil(w / 2) + 1, topo - 1, w - 2, 1, '#9E1C26');
+    }else if(aces === 'rena'){
+      /* (o chifre nasce 2 pontos pra dentro: o contorno escuro da cabeça some no céu de noite e ele parecia boiar) */
+      const M = '#7A4A2A', tb = topo + 2; [-1, 1].forEach(l => { const bx = cx + l * Math.max(2, Math.floor(w / 2) - 1); R(bx, tb - 5, 1, 5, M); R(bx + l, tb - 6, 1, 2, M); R(bx + l * 2, tb - 7, 1, 2, M); R(bx - l, tb - 7, 1, 2, M); R(bx + l, tb - 4, 2, 1, M); });
+      R(cx - 1, topo + 7, 2, 2, '#E8303A');
+    }
+    return cv;
+  }
+  /* a foto (quadrada): S pontos de lado */
+  function retratoNoel(S, gente, aces){
+    const cv = document.createElement('canvas'); cv.width = cv.height = S; const g = cv.getContext('2d'), c = ceuAgora(), nt = c.escuro > .45, tarde = !nt && c.quente > .3;
+    const r = rng(hash('pola:' + C.hojeBR())), agua = S * .64;
+    /* o céu da hora */
+    const ce = g.createLinearGradient(0, 0, 0, agua);
+    if(nt){ ce.addColorStop(0, '#080B26'); ce.addColorStop(1, '#2B2766'); } else if(tarde){ ce.addColorStop(0, '#3A3C8C'); ce.addColorStop(.62, '#E2687E'); ce.addColorStop(1, '#FFB36E'); } else { ce.addColorStop(0, '#5E9AD8'); ce.addColorStop(1, '#D3E6F7'); }
+    g.fillStyle = ce; g.fillRect(0, 0, S, agua);
+    if(nt){ g.fillStyle = '#FFFFFF'; for(let i = 0; i < 70; i++){ const s = r() < .15 ? 2 : 1; g.globalAlpha = .4 + r() * .6; g.fillRect(r() * S, r() * agua * .7, s * S / 600, s * S / 600); } g.globalAlpha = 1; }
+    /* os prédios da Gleba do outro lado do lago (acesos de noite) */
+    const pr = rng(hash('gleba-pola')); let x = -S * .02;
+    while(x < S){ const w = S * (.035 + pr() * .05), h = S * (.06 + pr() * pr() * .2), y0 = agua - S * .015 - h;
+      g.fillStyle = nt ? '#171A3C' : tarde ? '#5A4A78' : '#9DB3CC'; g.fillRect(x, y0, w, h + S * .02);
+      g.fillStyle = nt ? 'rgba(255,214,140,.85)' : tarde ? 'rgba(255,200,150,.5)' : 'rgba(255,255,255,.45)';
+      const jw = Math.max(1, w / 9), jh = Math.max(1, S / 300); for(let yy = y0 + S * .01; yy < agua - S * .02; yy += jh * 3) for(let xx = x + jw; xx < x + w - jw; xx += jw * 2.2) if(pr() < (nt ? .45 : .7)) g.fillRect(xx, yy, jw, jh);
+      x += w + S * (.004 + pr() * .02); }
+    /* a margem do lado de lá (ipê amarelo e rosa, nada de verde) e o lago */
+    g.fillStyle = nt ? '#151633' : '#4A3F5C'; g.fillRect(0, agua - S * .018, S, S * .022);
+    for(let i = 0; i < 26; i++){ const tx = r() * S, tr = S * (.012 + r() * .016); g.fillStyle = nt ? 'rgba(90,70,40,.9)' : r() < .5 ? '#E8B83A' : '#E07AA6'; g.beginPath(); g.arc(tx, agua - S * .016, tr, Math.PI, 0); g.fill(); }
+    const ag = g.createLinearGradient(0, agua, 0, S); ag.addColorStop(0, nt ? '#151B44' : tarde ? '#6A5A8E' : '#4D7FB5'); ag.addColorStop(1, nt ? '#0A0E26' : '#2C4E7E'); g.fillStyle = ag; g.fillRect(0, agua, S, S - agua);
+    /* o Papai Noel lá atrás, desfocado (a foto foca em quem tá na frente), com o ar aceso em volta */
+    const nx = S * .6, nb = agua + S * .02, k = (S * .5) / NOEL_TOPO, sp = spriteNoel(k);
+    const luzG = g.createRadialGradient(nx, nb - S * .3, S * .02, nx, nb - S * .3, S * .42); luzG.addColorStop(0, nt ? 'rgba(255,214,150,.45)' : 'rgba(255,230,190,.22)'); luzG.addColorStop(1, 'rgba(255,214,150,0)'); g.fillStyle = luzG; g.fillRect(0, 0, S, agua + S * .1);
+    const temFiltro = 'filter' in g;
+    if(temFiltro) g.filter = `blur(${Math.max(1, S / 520).toFixed(1)}px)`;
+    g.drawImage(sp.cv, nx - sp.M * k, nb - sp.base * k, sp.cv.width, sp.cv.height);
+    /* o reflexo na água (de cabeça pra baixo, apagado e cortado em listras) */
+    g.save(); g.beginPath(); g.rect(0, nb, S, S - nb); g.clip(); g.globalAlpha = nt ? .32 : .2; g.translate(0, nb * 2); g.scale(1, -1); g.drawImage(sp.cv, nx - sp.M * k, nb - sp.base * k, sp.cv.width, sp.cv.height); g.restore();
+    if(temFiltro) g.filter = 'none';
+    g.fillStyle = nt ? 'rgba(10,14,38,.5)' : 'rgba(40,70,110,.35)'; for(let yy = nb + 2; yy < S; yy += S / 90) g.fillRect(0, yy, S, S / 360);
+    /* as luzinhas do contorno dele (de noite brilham mais) */
+    luzesNoel().forEach(([px, py], i) => { if(i % 2) return; const lx = nx + px * k, ly = nb + py * k; g.fillStyle = nt ? 'rgba(255,240,200,.95)' : 'rgba(255,250,230,.7)'; g.beginPath(); g.arc(lx, ly, S / 520, 0, Math.PI * 2); g.fill(); if(nt){ g.fillStyle = 'rgba(255,214,140,.18)'; g.beginPath(); g.arc(lx, ly, S / 160, 0, Math.PI * 2); g.fill(); } });
+    /* os fogos (de noite): duas rajadas douradas */
+    if(nt) [[S * .2, S * .16, S * .1], [S * .88, S * .1, S * .08]].forEach(([fx, fy, fr], j) => { for(let q = 0; q < 28; q++){ const a = q / 28 * Math.PI * 2, rr = fr * (.75 + (q % 3) * .12); g.fillStyle = j && q % 4 === 0 ? 'rgba(255,110,110,.9)' : q % 2 ? 'rgba(255,214,120,.95)' : 'rgba(255,243,196,.95)'; g.fillRect(fx + Math.cos(a) * rr, fy + Math.sin(a) * rr, S / 300, S / 300); g.fillStyle = 'rgba(255,214,120,.35)'; g.fillRect(fx + Math.cos(a) * rr * .55, fy + Math.sin(a) * rr * .55, S / 400, S / 400); } });
+    /* a calçada e a grade da orla, com o #EU ❤ LONDRINA no canto */
+    const ch = S * .84; g.fillStyle = nt ? '#3A3A4A' : '#B9B2A6'; g.fillRect(0, ch, S, S - ch); g.fillStyle = nt ? 'rgba(255,255,255,.06)' : 'rgba(0,0,0,.08)'; for(let xx = 0; xx < S; xx += S / 14) g.fillRect(xx, ch, S / 400, S - ch);
+    g.fillStyle = nt ? '#C9C6D6' : '#F2EFE8'; g.fillRect(0, S * .79, S, S / 110); g.fillRect(0, S * .815, S, S / 160); for(let xx = S * .02; xx < S; xx += S / 13) g.fillRect(xx, S * .79, S / 150, ch - S * .79);
+    g.save(); g.font = `${Math.round(S * .03)}px CorrePixel, monospace`; g.textAlign = 'right'; g.fillStyle = '#FFFFFF'; g.shadowColor = 'rgba(0,0,0,.4)'; g.shadowBlur = S / 120;
+    g.fillText('EU', S * .9, S * .735); g.fillStyle = '#E8303A'; g.fillText('♥', S * .945, S * .735); g.fillStyle = '#FFFFFF'; g.fillText('LONDRINA', S * .985, S * .775); g.restore();
+    /* a gente, grande, na frente (o pixel esticado sem alisar) */
+    const n = gente.length, e = Math.max(2, Math.floor(Math.min(S * .66 / 40, S * .92 / (n * 26)))), larg = n * 26 * e, x0 = (n === 1 ? S * .34 : S / 2) - larg / 2;
+    g.imageSmoothingEnabled = false;
+    gente.forEach((p, i) => { const b = bonecoPola(p.av, p.eu ? aces : 'nada'), bx = x0 + i * 26 * e - 7 * e, by = S * 1.005 - 44 * e;
+      g.fillStyle = 'rgba(0,0,0,.28)'; g.beginPath(); g.ellipse(bx + 20 * e, by + 42 * e, 9 * e, 2 * e, 0, 0, Math.PI * 2); g.fill();
+      g.drawImage(b, bx, by, 40 * e, 44 * e); });
+    g.imageSmoothingEnabled = true;
+    /* o flash: a frente mais clara, as bordas mais escuras, um tom quente de filme e o grão */
+    const fl = g.createRadialGradient(S * .4, S * .78, S * .05, S * .4, S * .78, S * .5); fl.addColorStop(0, 'rgba(255,255,255,.14)'); fl.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = fl; g.fillRect(0, 0, S, S);
+    const vg = g.createRadialGradient(S / 2, S / 2, S * .35, S / 2, S / 2, S * .75); vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,.35)'); g.fillStyle = vg; g.fillRect(0, 0, S, S);
+    g.fillStyle = 'rgba(255,214,170,.06)'; g.fillRect(0, 0, S, S);
+    const gr = rng(hash('grao')); for(let i = 0; i < S * 3; i++){ g.fillStyle = gr() < .5 ? 'rgba(255,255,255,.05)' : 'rgba(0,0,0,.05)'; g.fillRect(gr() * S, gr() * S, S / 400, S / 400); }
+    return cv;
+  }
+  /* a imagem pra postar (1080x1350, o 4:5 do feed; no story fica no meio): a polaroid inclinada num fundo de luzinhas */
+  function cartaoPola(foto, handle, leg, data){
+    const W = 1080, H = 1350, cv = document.createElement('canvas'); cv.width = W; cv.height = H; const g = cv.getContext('2d');
+    const bg = g.createRadialGradient(W / 2, H * .45, 60, W / 2, H * .45, H * .8); bg.addColorStop(0, '#2A2766'); bg.addColorStop(1, '#090B22'); g.fillStyle = bg; g.fillRect(0, 0, W, H);
+    const r = rng(hash('bokeh')); ['255,214,120', '255,90,90', '255,243,196', '255,122,184'].forEach((cor, j) => { for(let i = 0; i < 9; i++){ const x = r() * W, y = r() * H, rr = 20 + r() * 70, b = g.createRadialGradient(x, y, 0, x, y, rr); b.addColorStop(0, `rgba(${cor},.35)`); b.addColorStop(1, `rgba(${cor},0)`); g.fillStyle = b; g.fillRect(x - rr, y - rr, rr * 2, rr * 2); } });
+    const cw = 820, fp = 44, fs = cw - fp * 2, chh = fs + fp + 210;
+    g.save(); g.translate(W / 2, H * .47); g.rotate(-.04);
+    g.shadowColor = 'rgba(0,0,0,.55)'; g.shadowBlur = 50; g.shadowOffsetY = 18; g.fillStyle = '#F7F4EC'; g.fillRect(-cw / 2, -chh / 2, cw, chh); g.shadowColor = 'transparent';
+    g.drawImage(foto, -cw / 2 + fp, -chh / 2 + fp, fs, fs);
+    g.fillStyle = '#1B1D24'; g.textAlign = 'center'; g.font = '52px CorrePixel, monospace'; g.fillText(leg, 0, -chh / 2 + fp + fs + 92, cw - 80);
+    g.fillStyle = '#5A5D66'; g.font = '30px CorrePixel, monospace'; g.fillText(`@${handle} · Igapó, Londrina · ${data}`, 0, -chh / 2 + fp + fs + 150, cw - 80);
+    g.restore();
+    g.fillStyle = 'rgba(255,255,255,.75)'; g.textAlign = 'center'; g.font = '28px CorrePixel, monospace'; g.fillText('FEITO NO CORREVERSO · APP.CORRESOCIAL.COM', W / 2, H - 58);
+    return cv;
+  }
+  const dataPola = () => { const d = C.hojeBR().split('-'); return `${d[2]}/${d[1]}/${d[0]}`; };
+  /* quem sai na foto: você e até 3 pessoas de verdade a menos de 90 px (os moradores não) */
+  function quemNaFoto(){
+    const L = [{ eu: true, av: V.eu.av || avLimpo(C.st.me.verso, C.st.me.id), h: C.st.me.handle }];
+    [...V.remotos.values()].filter(r => r && !r.bot && !r.npc && r.av && r.handle && Math.hypot(r.x - V.eu.x, r.y - V.eu.y) < 90).sort((a, b) => Math.hypot(a.x - V.eu.x, a.y - V.eu.y) - Math.hypot(b.x - V.eu.x, b.y - V.eu.y)).slice(0, 3)
+      .forEach(r => L.push({ av: r.av, h: r.handle }));
+    return L;
+  }
+  const prevAces = (cv, k) => { const g = cv.getContext('2d'); g.imageSmoothingEnabled = false; g.clearRect(0, 0, cv.width, cv.height); g.fillStyle = '#E6DECD'; g.fillRect(0, 0, cv.width, cv.height); g.drawImage(bonecoPola(V.eu.av || avLimpo(C.st.me.verso, C.st.me.id), k), 0, 0, cv.width, cv.height); };
+  /* a barraquinha: o acessório, a legenda e quem vai sair na foto */
+  function fotoNoel(){
+    if(PO.on || !V.eu || !C.st.me) return;
+    V.alvo = null; V.eu.mov = false; V.teclas.clear(); fontePola();
+    PO.gente = quemNaFoto();
+    const outros = PO.gente.slice(1).map(p => '@' + p.h);
+    C.sheet(`<div class="form pola-s"><div class="sheet-head"><h2>${ico('camera')} Lambe-Lambe do Noel</h2><button type="button" class="cbtn plain" data-close aria-label="Fechar">${ico('x')}</button></div>
+      <p class="pola-ze">"Chega mais, que o Papai Noel não sai daí não. Escolhe o enfeite e olha o passarinho!" <small>Seu Zé do Lambe-Lambe</small></p>
+      <fieldset class="pola-esc"><legend>Na cabeça</legend><div class="pola-aces" role="radiogroup">${POLA_ACES.map(([k, t]) => `<button type="button" role="radio" data-act="cvr-pola-aces" data-k="${k}" aria-checked="${PO.aces === k}"><canvas width="80" height="88" data-k="${k}" aria-hidden="true"></canvas><span>${t}</span></button>`).join('')}</div></fieldset>
+      <fieldset class="pola-esc"><legend>A legenda</legend><div class="pola-legs" role="radiogroup">${POLA_LEG.map((t, i) => `<button type="button" role="radio" data-act="cvr-pola-leg" data-i="${i}" aria-checked="${PO.leg === i}">${esc(t)}</button>`).join('')}</div></fieldset>
+      <p class="fine">${outros.length ? `Vai sair na foto: você e ${esc(outros.join(', '))}.` : 'Tá sozinho? Chama alguém pra chegar perto da barraquinha que sai junto na foto.'}</p>
+      <div class="acts"><button type="button" class="btn pri" data-act="cvr-pola-tira">${ico('camera')} Tirar a foto</button></div></div>`, 'pola-folha');
+    document.querySelectorAll('.pola-aces canvas').forEach(cv => prevAces(cv, cv.dataset.k));
+  }
+  const poAgenda = (f, ms) => { PO.t.push(setTimeout(f, ms)); };
+  function fechaPola(){ PO.t.forEach(clearTimeout); PO.t = []; if(PO.el) PO.el.remove(); PO.el = null; PO.on = false; PO.foto = null; PO.card = null; }
+  /* 3, 2, 1, o flash, o passarinho e a polaroid saindo */
+  function tiraPola(){
+    if(PO.on) return; C.closeSheet(); PO.on = true;
+    const calmo = matchMedia('(prefers-reduced-motion: reduce)').matches, som = k => { if(C.versoSom && C.versoSom.foto) C.versoSom.foto(k); };
+    const el = document.createElement('div'); el.id = 'cvr-pola'; el.className = 'pola'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-modal', 'true'); el.setAttribute('aria-label', 'Foto com o Papai Noel');
+    el.innerHTML = `<button type="button" class="pola-x" data-act="cvr-pola-x" aria-label="Fechar">${ico('x')}</button><p class="pola-grito">Olha o passarinho!</p><div class="pola-conta" aria-live="assertive"></div><div class="pola-flash"></div>`;
+    document.body.appendChild(el); PO.el = el;
+    const conta = el.querySelector('.pola-conta');
+    const seq = ['3', '2', '1']; let i = 0;
+    const vai = () => { if(!PO.on) return; if(i < seq.length){ conta.textContent = seq[i]; conta.classList.remove('pula'); void conta.offsetWidth; conta.classList.add('pula'); som('bip'); i++; poAgenda(vai, 750); } else fontePola().then(() => { if(PO.on) dispara(calmo, som); }); };
+    poAgenda(vai, 500);
+  }
+  function dispara(calmo, som){
+    const el = PO.el; if(!el) return;
+    PO.foto = retratoNoel(960, PO.gente, PO.aces);
+    const leg = POLA_LEG[PO.leg], h = C.st.me.handle, data = dataPola();
+    PO.card = cartaoPola(PO.foto, h, leg, data);
+    som('clique'); el.querySelector('.pola-conta').textContent = ''; el.querySelector('.pola-grito').hidden = true;
+    const fl = el.querySelector('.pola-flash'); fl.classList.add('on'); poAgenda(() => fl.classList.remove('on'), 90);
+    if(!calmo){ const p = document.createElement('i'); p.className = 'pola-passaro'; p.setAttribute('aria-hidden', 'true'); p.innerHTML = '<svg viewBox="0 0 16 12" width="48" height="36" shape-rendering="crispEdges"><path fill="#FFC93D" d="M4 4h6v1h2v1h2v1h-2v1H9v1H5V8H3V6h1z"/><path fill="#0F1218" d="M10 5h1v1h-1z"/><path fill="#FF8A3D" d="M14 6h2v1h-2z"/><path fill="#E8A92A" d="M5 2h3v2H5z"/></svg>'; el.appendChild(p); som('passarinho'); }
+    poAgenda(() => {
+      if(!PO.on) return; som('sai');
+      el.insertAdjacentHTML('beforeend', `<div class="pola-palco"><figure class="pola-card${calmo ? ' pronta' : ''}"><div class="pola-foto"><img alt="${esc(`@${h} na frente do Papai Noel do Igapó`)}"><i class="pola-veu" aria-hidden="true"></i></div>
+        <figcaption><b>${esc(leg)}</b><small>@${esc(h)} · Igapó, Londrina · ${esc(data)}</small></figcaption></figure></div>
+        <p class="pola-st" aria-live="polite">${calmo ? 'Pronta!' : 'Revelando…'}${calmo ? '' : ` <button type="button" class="btn sm" data-act="cvr-pola-chaco">Chacoalhar</button>`}</p>
+        <div class="pola-acts"${calmo ? '' : ' hidden'}><button type="button" class="btn pri" data-act="cvr-pola-insta">${ico('share')} Postar no Insta</button><button type="button" class="btn" data-act="cvr-pola-baixa">${ico('down')} Baixar</button>
+          <button type="button" class="btn" data-act="cvr-pola-outra">${ico('camera')} Outra foto</button><button type="button" class="btn ghost" data-act="cvr-pola-x">Fechar</button></div>`);
+      el.querySelector('.pola-foto img').src = PO.foto.toDataURL('image/jpeg', .9);
+      if(calmo) return;
+      const card = el.querySelector('.pola-card'); requestAnimationFrame(() => card.classList.add('sai'));
+      poAgenda(() => card.classList.add('revela'), 1100);
+      poAgenda(() => prontaPola(), 6200);
+    }, calmo ? 200 : 700);
+  }
+  function prontaPola(){
+    const el = PO.el; if(!el) return; const card = el.querySelector('.pola-card'); if(card) card.classList.add('revela', 'pronta');
+    const st = el.querySelector('.pola-st'); if(st) st.textContent = 'Pronta! Ficou boa, hein.';
+    const a = el.querySelector('.pola-acts'); if(a && a.hidden){ a.hidden = false; const b = a.querySelector('button'); if(b) b.focus({ preventScroll: true }); }
+  }
+  const blobPola = () => new Promise(r => PO.card ? PO.card.toBlob(r, 'image/jpeg', .92) : r(null));
+  function baixaPola(b){ const u = URL.createObjectURL(b), a = document.createElement('a'); a.href = u; a.download = `corre-noel-${C.st.me.handle}.jpg`; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(u), 4000); }
+  Object.assign(C.acts, {
+    'cvr-pola-aces': el => { PO.aces = el.dataset.k; document.querySelectorAll('.pola-aces [role="radio"]').forEach(b => b.setAttribute('aria-checked', String(b === el))); try{ localStorage.setItem('corre-pola', JSON.stringify({ aces: PO.aces, leg: PO.leg })); }catch(e){} },
+    'cvr-pola-leg': el => { PO.leg = Number(el.dataset.i) || 0; document.querySelectorAll('.pola-legs [role="radio"]').forEach(b => b.setAttribute('aria-checked', String(b === el))); try{ localStorage.setItem('corre-pola', JSON.stringify({ aces: PO.aces, leg: PO.leg })); }catch(e){} },
+    'cvr-pola-tira': () => tiraPola(),
+    'cvr-pola-x': () => fechaPola(),
+    'cvr-pola-outra': () => { fechaPola(); fotoNoel(); },
+    'cvr-pola-chaco': () => { const c = PO.el && PO.el.querySelector('.pola-card'); if(!c) return; c.classList.remove('chacoalha'); void c.offsetWidth; c.classList.add('chacoalha'); const st = PO.el.querySelector('.pola-st'); if(st && st.firstChild) st.firstChild.textContent = POLA_CHACO[(PO.chaco = ((PO.chaco || 0) + 1)) % POLA_CHACO.length] + ' '; if(C.versoSom && C.versoSom.foto) C.versoSom.foto('chaco'); },
+    'cvr-pola-insta': async () => {
+      const b = await blobPola(); if(!b) return;
+      const F = window.File, arq = F ? new F([b], `corre-noel-${C.st.me.handle}.jpg`, { type: 'image/jpeg' }) : null;
+      if(arq && navigator.canShare && navigator.canShare({ files: [arq] })){
+        try{ await navigator.share({ files: [arq], text: `${POLA_LEG[PO.leg]} 🎅 Eu e o maior Papai Noel do mundo, no Igapó. #Londrina #Natal #Correverso` }); return; }catch(e){ if(e && e.name === 'AbortError') return; }
+      }
+      baixaPola(b); C.toast('A foto foi pro teu aparelho. Abre o Instagram e posta ela no story ou no feed.', 6000);
+    },
+    'cvr-pola-baixa': async () => { const b = await blobPola(); if(b){ baixaPola(b); C.toast('Foto baixada.', 2500); } }
+  });
   /* a guirlanda da porta: anel de fita vermelha com bolinhas de ouro e o laço embaixo */
   function guirlanda(ctx, x, y){
     ctx.lineWidth = 4; ctx.strokeStyle = INK; ctx.beginPath(); ctx.arc(x, y, 8, 0, Math.PI * 2); ctx.stroke(); ctx.lineWidth = 2.6; ctx.strokeStyle = VERM_N; ctx.stroke();
@@ -3175,6 +3376,28 @@
       case 'ipe': arvore(ctx, { x: d.x, y: d.y, cor: ROSA, g: 2 }); if(natal()) estrela(ctx, d.x, d.y - 170, 13); break;
       /* v3.87: a placa do Papai Noel do Igapó, na orla de baixo (só no Natal) */
       case 'placaNoel': if(natal()){ ctx.fillStyle = INK; ctx.fillRect(d.x - 40, d.y - 30, 4, 30); ctx.fillRect(d.x + 36, d.y - 30, 4, 30); pixPlaca(ctx, 'O MAIOR PAPAI NOEL', d.x, d.y - 40, { fundo: VERM_N, cor: PAPEL }); pixPlaca(ctx, 'DO MUNDO: 27 M', d.x, d.y - 28, { fundo: PAPEL }); } break;
+      /* v4.03: a barraquinha da foto com o Papai Noel (só no Natal): toldo listrado de vermelho e branco, a placa, o varal
+         com as polaroides do dia, o balcão e a câmera no tripé com a luzinha vermelha piscando */
+      case 'fotoNoel': if(natal()){
+        const x = d.x, y = d.y;
+        ctx.fillStyle = 'rgba(15,18,24,.25)'; ctx.fillRect(x - 44, y - 3, 88, 6);
+        ctx.fillStyle = INK; ctx.fillRect(x - 38, y - 60, 3, 60); ctx.fillRect(x + 35, y - 60, 3, 60);
+        /* o varal com as polaroides balançando um tiquinho */
+        ctx.fillStyle = '#6B5A48'; ctx.fillRect(x - 35, y - 44, 70, 1);
+        [-26, -12, 2, 16].forEach((dx, i) => { const b = Math.sin(t * 1.6 + i) > .6 ? u : 0; ctx.fillStyle = '#F6F3EC'; ctx.fillRect(x + dx, y - 43 + b, 9, 11); ctx.fillStyle = i % 2 ? '#3B4A7A' : '#7A3B4A'; ctx.fillRect(x + dx + 1.5, y - 41.5 + b, 6, 6); ctx.fillStyle = OURO_N; ctx.fillRect(x + dx + 3.5, y - 45 + b, 2, 3); });
+        /* o balcão de madeira com a frente branca e a polaroid desenhada */
+        ctx.beginPath(); ctx.rect(x - 32, y - 24, 64, 24); forma(ctx, '#8A5A3C', 1.4); ctx.fillStyle = '#F6F3EC'; ctx.fillRect(x - 28, y - 20, 56, 16);
+        ctx.fillStyle = VERM_N; ctx.fillRect(x - 8, y - 18, 16, 12); ctx.fillStyle = '#F6F3EC'; ctx.fillRect(x - 6, y - 16, 12, 7); ctx.fillStyle = '#2B2F38'; ctx.fillRect(x - 4, y - 15, 8, 5);
+        /* o toldo de gomos e a placa em cima */
+        for(let i = 0; i < 8; i++){ ctx.fillStyle = i % 2 ? PAPEL : VERM_N; ctx.fillRect(x - 42 + i * 10.5, y - 70, 10.5, 12); ctx.beginPath(); ctx.arc(x - 36.75 + i * 10.5, y - 58, 5.25, 0, Math.PI); ctx.fill(); }
+        ctx.strokeStyle = INK; ctx.lineWidth = Math.max(1, 1.05 / V.k); ctx.strokeRect(x - 42, y - 70, 84, 12);
+        pixPlaca(ctx, 'FOTO COM O NOEL', x, y - 80, { fundo: VERM_N, cor: PAPEL });
+        /* a câmera no tripé, do lado de fora, virada pro lago */
+        ctx.fillStyle = '#2B2F38'; ctx.fillRect(x + 44, y - 22, 2, 22); ctx.fillRect(x + 38, y - 2, 14, 2); ctx.fillRect(x + 40, y - 12, 2, 10); ctx.fillRect(x + 48, y - 12, 2, 10);
+        ctx.beginPath(); ctx.rect(x + 37, y - 32, 16, 11); forma(ctx, '#F6F3EC', 1.2); ctx.fillStyle = '#2B2F38'; ctx.beginPath(); ctx.arc(x + 45, y - 26.5, 3.4, 0, Math.PI * 2); ctx.fill();
+        if(Math.floor(t * 2) % 2){ ctx.fillStyle = '#FF4A4A'; ctx.fillRect(x + 49, y - 31, 2, 2); }
+        luz(x, y - 40, 96, .85);
+      } break;
       /* v3.75: o guarda-sol da prainha do Tibagi, de gomos (a cor e o branco) */
       case 'guardasol': { ctx.fillStyle = 'rgba(15,18,24,.2)'; ctx.fillRect(d.x - 24, d.y - 3, 48, 6); ctx.fillStyle = '#EEEBE4'; ctx.fillRect(d.x - 1, d.y - 40, 3, 40);
         [[-24, -44, 48, 4], [-19, -48, 38, 4], [-11, -51, 22, 3]].forEach(([x, y, w, h]) => { ctx.fillStyle = d.cor; ctx.fillRect(d.x + x, d.y + y, w, h); ctx.fillStyle = PAPEL; for(let k = x + 6; k < x + w - 4; k += 12) ctx.fillRect(d.x + k, d.y + y, 6, h); });
@@ -5767,7 +5990,7 @@
       if(j && T.fase === 'jogando'){ b.disabled = j.t === 'seq'; b.innerHTML = `${ico('raio')} ${esc(j.t === 'tempo' ? j.verbo : j.t === 'segura' ? 'Segura: ' + j.verbo.toLowerCase() : 'Usa as setas')}`; return; }
       b.innerHTML = `${ico('raio')} ${esc(p.et.acao)}${ag ? '…' : ''}`; b.disabled = !!ag; return; }
     b.disabled = false;
-    b.innerHTML = p.tipo === 'morador' ? `${ico('chat')} Trocar ideia com ${esc(p.m.nome)}` : p.tipo === 'barco' ? `${ico('peixe')} Pegar um barquinho` : p.tipo === 'aeroporto' ? `${ico('aviao')} Voar (${C.correalTxt(precoVoo())})` : p.tipo === 'sebo' ? `${ico('musica')} Entrar no Sebo` : p.tipo === 'calcadao' ? `${ico('gente')} Entrar no Calçadão 3D` : p.tipo === 'atelie' ? `${ico('star')} Ateliê: skins` : p.tipo === 'torneio' ? `${ico('peixe')} Torneio de Pesca` : p.tipo === 'beisebol' ? `${ico('raio')} Jogar beisebol na ACEL` : p.tipo === 'quadra' ? `${ico('raio')} ${p.k === 'quadra-futsal' ? 'Desafio de pênalti' : 'Desafio de arremesso'}` : p.tipo === 'publi' ? `${ico('ext')} ${esc((PUBLI[p.k] || {}).nome || '')}: baixar o app` : p.tipo === 'pista' ? `${ico('raio')} ${p.k === 'moto' ? 'Autódromo do Café' : 'Corrida de patinete'}` : p.tipo === 'civico' ? `${ico('raio')} ${esc(CIVICOS[p.k].entra)}` : p.tipo === 'barraca' ? (aberta(p.b) ? `${ico(p.b.ico)} ${esc(p.b.botao)}` : `${ico('eye')} Hórus desligado: ligar`) : p.tipo === 'comida' ? `${ico('banca')} ${esc(COMIDAS[p.k][0])}` : p.tipo === 'aquario' || p.tipo === 'jogo' ? `${ico('play')} Jogar ${esc(JOGOS[p.jogo].titulo)}` : p.tipo === 'placa' ? `${ico('eye')} Ler: ${esc(p.titulo)}` : p.tipo === 'banco' ? (p.pesca ? `${ico('gente')} Pescar no ${p.b.lugar.startsWith('Deck') ? 'deck' : 'píer'}` : `${ico('gente')} Sentar ${p.b.degrau ? 'na Concha' : 'no banco'}`) : p.tipo === 'mural' ? `${ico('tacha')} Abrir o Mural` : p.tipo === 'banca' ? `${ico('banca')} Banca do dia` : p.tipo === 'lote' ? `${ico('plus')} Lote livre` : meu ? `${ico('home')} Tua casa` : `${ico('home')} Bater na porta de @${esc(p.c.handle)}`;
+    b.innerHTML = p.tipo === 'morador' ? `${ico('chat')} Trocar ideia com ${esc(p.m.nome)}` : p.tipo === 'barco' ? `${ico('peixe')} Pegar um barquinho` : p.tipo === 'aeroporto' ? `${ico('aviao')} Voar (${C.correalTxt(precoVoo())})` : p.tipo === 'sebo' ? `${ico('musica')} Entrar no Sebo` : p.tipo === 'calcadao' ? `${ico('gente')} Entrar no Calçadão 3D` : p.tipo === 'atelie' ? `${ico('star')} Ateliê: skins` : p.tipo === 'torneio' ? `${ico('peixe')} Torneio de Pesca` : p.tipo === 'beisebol' ? `${ico('raio')} Jogar beisebol na ACEL` : p.tipo === 'quadra' ? `${ico('raio')} ${p.k === 'quadra-futsal' ? 'Desafio de pênalti' : 'Desafio de arremesso'}` : p.tipo === 'publi' ? `${ico('ext')} ${esc((PUBLI[p.k] || {}).nome || '')}: baixar o app` : p.tipo === 'pista' ? `${ico('raio')} ${p.k === 'moto' ? 'Autódromo do Café' : 'Corrida de patinete'}` : p.tipo === 'civico' ? `${ico('raio')} ${esc(CIVICOS[p.k].entra)}` : p.tipo === 'barraca' ? (aberta(p.b) ? `${ico(p.b.ico)} ${esc(p.b.botao)}` : `${ico('eye')} Hórus desligado: ligar`) : p.tipo === 'comida' ? `${ico('banca')} ${esc(COMIDAS[p.k][0])}` : p.tipo === 'aquario' || p.tipo === 'jogo' ? `${ico('play')} Jogar ${esc(JOGOS[p.jogo].titulo)}` : p.tipo === 'placa' ? `${ico('eye')} Ler: ${esc(p.titulo)}` : p.tipo === 'polaroid' ? `${ico('camera')} Tirar foto com o Papai Noel` : p.tipo === 'banco' ? (p.pesca ? `${ico('gente')} Pescar no ${p.b.lugar.startsWith('Deck') ? 'deck' : 'píer'}` : `${ico('gente')} Sentar ${p.b.degrau ? 'na Concha' : 'no banco'}`) : p.tipo === 'mural' ? `${ico('tacha')} Abrir o Mural` : p.tipo === 'banca' ? `${ico('banca')} Banca do dia` : p.tipo === 'lote' ? `${ico('plus')} Lote livre` : meu ? `${ico('home')} Tua casa` : `${ico('home')} Bater na porta de @${esc(p.c.handle)}`;
   }
   function tamanhoTela(){
     const st = C.$('cvr-stage'); if(!st || !V.cv) return;
@@ -6063,6 +6286,7 @@
     if(C.casa && C.casa.aberta()) try{ C.casa.fechar(true); }catch(e){}
     const tenta = f => { try{ f(); }catch(e){} };
     tenta(() => fechaJogo(true));
+    tenta(() => fechaPola());
     tenta(() => { if(V.pad){ V.pad.destroi(); V.pad = null; } });
     tenta(() => { if(C.versoSom) C.versoSom.sai(); });
     /* saiu no meio do voo: chega no destino (o voo tava pago) */
@@ -6082,6 +6306,8 @@
   const TECLAS = new Set(['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'a', 'd', 'w', 's']);
   function tecla(e){
     if(V.jogo){ V.teclas.clear(); return; }
+    /* v4.03: com a polaroid na tela a cidade não anda; o Esc fecha ela */
+    if(PO.on){ V.teclas.clear(); if(e.type === 'keydown' && e.key === 'Escape'){ e.preventDefault(); fechaPola(); } return; }
     if(BC.aberto){ V.teclas.clear(); if(e.type === 'keydown' && e.key === 'Escape'){ e.preventDefault(); fechaBalcao(); } return; }
     if(C.casa && C.casa.aberta()){ V.teclas.clear(); return; }
     const alvo = e.target, digitando = alvo && (alvo.tagName === 'INPUT' || alvo.tagName === 'TEXTAREA' || alvo.tagName === 'SELECT' || alvo.isContentEditable);
@@ -6809,6 +7035,7 @@
     if(p.tipo === 'aquario' || p.tipo === 'jogo'){ abreJogo(p.jogo); return; }
     /* v3.82: as placas do Parque Arthur Thomas */
     if(p.tipo === 'placa'){ C.toast(p.txt, 8000); if(p.noel) olhaNoel(9000); return; }
+    if(p.tipo === 'polaroid'){ fotoNoel(); return; }
     if(p.tipo === 'civico'){ trampoSheet(p.k); return; }
     if(p.tipo === 'tarefa'){ if(V.mjIgn && Date.now() - V.mjIgn < 800){ V.mjIgn = 0; return; } agirTarefa(); return; }
     if(p.tipo === 'lote'){
@@ -7044,6 +7271,8 @@
   });
 
   C.verso = { miniVeiculo, trocaVeiculo, veiculoDe, alturaPulo, PULO_MS, SKINS_LOJA,
+    /* v4.03 · o Lambe-Lambe do Noel (pros testes) */
+    fotoNoel, tiraPola, fechaPola, retratoNoel, pola: () => ({ on: PO.on, aces: PO.aces, leg: PO.leg, gente: PO.gente.map(p => p.h), foto: !!PO.foto, card: PO.card ? [PO.card.width, PO.card.height] : null }), noelFoto: () => (V.cid && V.cid.lago && V.cid.lago.noel && V.cid.lago.noel.foto) || null,
     /* v4.0 · o céu e os eventos (pros testes: hora(21.5), clima('chuva'), null volta pro relógio e pro sorteio) */
     hora: v => { if(v !== undefined){ horaForca = v; V.ceu = null; } return horaBR(); }, clima: v => { if(v !== undefined){ climaForca = v; V.ceu = null; } return climaDe(); },
     ceu: () => ceuAgora(), evento: () => { const a = eventoAgora(); return a ? { k: a.e.k, nome: a.e.nome, seg: a.seg } : null; }, luzes: () => (V.luz || []).length / 4, palco: () => V.palco, agenda: agendaSheet, EVENTOS, halloween: v => { if(v !== undefined){ hallForca = v; hallVisto.t = 0; } return halloween(); }, halloweenDe, loja: lojaSheet, compraSkin, vesteSkin, carregaLoja, skinsMinhas: () => [...LJ.minhas],
