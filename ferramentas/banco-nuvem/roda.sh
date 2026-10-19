@@ -77,6 +77,10 @@ testa teste374.sql 9
 delta delta-v380.sql 'delta v3.80 ok'
 delta delta-v380.sql 'delta v3.80 ok'
 testa teste380.sql 8
+# v3.91: a coleção de Halloween no Ateliê (só a vitrine muda)
+delta delta-v391.sql 'delta v3.91 ok'
+delta delta-v391.sql 'delta v3.91 ok'
+testa teste391.sql 8
 . "$AQUI/virada343.sh"
 if grep -q 'FALHOU\|ERROR' $D/saida; then echo "deu FALHOU ou erro (acima)"; exit 1; fi
 echo "tudo ok: $(grep -c '^ok:' $D/saida) checagens"

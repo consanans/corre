@@ -3395,3 +3395,7 @@ body.cvr-cheia .cvr-top .cvr-tt{display:none}
 body:not(.cvr-cheia) .cvr-sair-dica{display:none}
 @media (max-width:640px){ .cvr-top .cvr-sair .cvr-sair-l{display:none} .cvr-top .cvr-sair .cvr-sair-c{display:inline} }
 @media (prefers-reduced-motion:reduce){ .cvr-sair-dica{animation:none} }
+/* v3.91 · a coleção de Halloween no Ateliê: a sombra e o selo laranja e o pé do cartão puxando pro roxo da noite */
+.lj-g-halloween{--lj:#FF7A1A}
+.lj-card.lj-halloween{--lj:#FF7A1A;background:linear-gradient(160deg,var(--paper) 62%,#F1E6FF)}
+.lj-card.lj-halloween .lj-rar{background:#FF7A1A;color:var(--ink)}

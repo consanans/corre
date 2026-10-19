@@ -3,8 +3,8 @@
    · A música da cidade (v3.62: o Thales pediu "algo mais música clássica", "jazz"): uma rodada de três, uma depois da
      outra: "Rua do Corre" (o tema original do Corre) em trio de jazz, o Prelúdio em Dó de Bach e o Cânone em Ré de
      Pachelbel (os dois em domínio público, arranjados aqui). Fica baixinha quando tem conversa no mic e pausa dentro
-     das casas (lá tocam os discos) e no aquário. v3.87: no Natal (15/10 até o Dia de Reis) entram mais duas, também em
-     domínio público: Noite Feliz (Gruber, 1818) na celesta e nos violinos e Jingle Bells (Pierpont, 1857) com o guizo.
+     das casas (lá tocam os discos) e no aquário. (Na 3.87 entraram Noite Feliz e Jingle Bells no Natal; na 3.91 o
+     Thales pediu pra tirar: a rodada voltou a ser só as três.)
    · Os sons da cidade: passo (muda na calçada, na grama, na madeira do píer, no piso de casa), pulo e aterrissagem,
      carro passando perto, buzina ao longe, passarinho nos parques, gente no Calçadão e na Feira, água no Lago, o motor
      do teu veículo (carro, moto, scooter), a catraca da bike, o zumbido do patinete, o skate rolando, a buzina e a
@@ -99,59 +99,11 @@
     ev.push([f, 'cello', midi('D2'), BARc * 1.5, .14], [f, 'violino', midi('D4'), BARc * 1.5, .05], [f, 'violino', midi('F#4'), BARc * 1.5, .045], [f, 'violino', midi('A4'), BARc * 1.5, .045], [f, 'violino', midi('D5'), BARc * 1.5, .05]);
     return { ev: ordena(ev), volta: f + BARc * 1.8 };
   }
-  /* v3.87 · as duas de Natal (as duas em domínio público), que só entram na rodada de 15/10 até o Dia de Reis */
-  /* 4. Noite Feliz (Franz Gruber, 1818), em 6/8: na primeira vez a celesta (sino) canta e a harpa (o piano em arpejo)
-     acompanha; na segunda, os violinos cantam e o sino dobra as notas longas uma oitava acima */
-  function noiteFeliz(){
-    const E = 60 / 168, BARn = 6 * E;
-    const MELN = ['G4:3 A4:1 G4:2', 'E4:6', 'G4:3 A4:1 G4:2', 'E4:6', 'D5:4 D5:2', 'B4:6', 'C5:4 C5:2', 'G4:6', 'A4:4 A4:2', 'C5:3 B4:1 A4:2', 'G4:3 A4:1 G4:2', 'E4:6',
-      'A4:4 A4:2', 'C5:3 B4:1 A4:2', 'G4:3 A4:1 G4:2', 'E4:6', 'D5:4 D5:2', 'F5:3 D5:1 B4:2', 'C5:6', 'E5:6', 'C5:3 G4:1 E4:2', 'G4:3 F4:1 D4:2', 'C4:6', 'C4:6'];
-    const CHN = ['C', 'C', 'C', 'C', 'G7', 'G7', 'C', 'C', 'F', 'F', 'C', 'C', 'F', 'F', 'C', 'C', 'G7', 'G7', 'C', 'C', 'C', 'G7', 'C', 'C'];
-    const ARP = { C: ['C3', 'G3', 'C4', 'E4', 'C4', 'G3'], G7: ['G2', 'D3', 'F3', 'B3', 'F3', 'D3'], F: ['F2', 'C3', 'F3', 'A3', 'F3', 'C3'] }, RAIZ = { C: 'C3', G7: 'G2', F: 'F2' };
-    const ev = [], VOLTAS = 2;
-    for(let v = 0; v < VOLTAS; v++) MELN.forEach((compasso, b) => {
-      const bar = v * MELN.length + b, t0 = bar * BARn, a = CHN[b];
-      ARP[a].forEach((n, j) => ev.push([t0 + j * E, 'piano', [midi(n)], E * 1.6, j ? .055 : .07]));
-      ev.push([t0, 'cello', midi(RAIZ[a]), BARn * .96, .06]);
-      let k = 0; compasso.split(' ').forEach(tk => { const [n, q] = tk.split(':'), d = Number(q), m = midi(n);
-        if(v === 0) ev.push([t0 + k * E, 'sino', m + 12, d * E, .15]);
-        else { ev.push([t0 + k * E, 'violino', m, d * E * .97, .075]); if(d >= 4) ev.push([t0 + k * E, 'sino', m + 12, d * E, .08]); }
-        k += d; });
-    });
-    const f = VOLTAS * MELN.length * BARn;
-    ev.push([f, 'cello', midi('C2'), BARn * 1.5, .07], [f, 'piano', ['C3', 'G3', 'C4', 'E4', 'G4'].map(midi), BARn * 1.5, .05], [f, 'sino', midi('C6'), BARn * 1.5, .08]);
-    return { ev: ordena(ev), volta: f + BARn * 1.6 };
-  }
-  /* 5. Jingle Bells (James Lord Pierpont, 1857): a estrofe e o refrão duas vezes, com o guizo do trenó nas colcheias, o
-     baixo no 1 e no 3, o piano no 2 e no 4 e o sino cantando (no segundo refrão o vibrafone vem junto) */
-  function jingle(){
-    const Q = .5, BARj = 4 * Q;
-    const VERSO = ['G4:1 E5:1 D5:1 C5:1', 'G4:3 G4:.5 G4:.5', 'G4:1 E5:1 D5:1 C5:1', 'A4:4', 'A4:1 F5:1 E5:1 D5:1', 'B4:4', 'G5:1 G5:1 F5:1 D5:1', 'E5:4',
-      'G4:1 E5:1 D5:1 C5:1', 'G4:4', 'G4:1 E5:1 D5:1 C5:1', 'A4:3 A4:1', 'A4:1 F5:1 E5:1 D5:1', 'G5:1 G5:1 G5:1 G5:1', 'A5:1 G5:1 F5:1 D5:1', 'C5:4'];
-    const REFRAO = ['E5:1 E5:1 E5:2', 'E5:1 E5:1 E5:2', 'E5:1 G5:1 C5:1.5 D5:.5', 'E5:4', 'F5:1 F5:1 F5:1.5 F5:.5', 'F5:1 E5:1 E5:1 E5:.5 E5:.5', 'E5:1 D5:1 D5:1 E5:1', 'D5:2 G5:2',
-      'E5:1 E5:1 E5:2', 'E5:1 E5:1 E5:2', 'E5:1 G5:1 C5:1.5 D5:.5', 'E5:4', 'F5:1 F5:1 F5:1.5 F5:.5', 'F5:1 E5:1 E5:1 E5:.5 E5:.5', 'G5:1 G5:1 F5:1 D5:1', 'C5:4'];
-    const CHV = ['C', 'C', 'C', 'F', 'F', 'G', 'G7', 'C', 'C', 'C', 'C', 'F', 'F', 'G7', 'G7', 'C'], CHR = ['C', 'C', 'C', 'C', 'F', 'C', 'D7', 'G7', 'C', 'C', 'C', 'C', 'F', 'C', 'G7', 'C'];
-    const VZ = { C: ['E3', 'G3', 'C4'], F: ['F3', 'A3', 'C4'], G: ['D3', 'G3', 'B3'], G7: ['D3', 'F3', 'B3'], D7: ['D3', 'F#3', 'C4'] }, RZ = { C: 'C3', F: 'F2', G: 'G2', G7: 'G2', D7: 'D3' };
-    const partes = [[VERSO, CHV, 0], [REFRAO, CHR, 0], [REFRAO, CHR, 1]], ev = []; let bar = 0;
-    partes.forEach(([mel, ch, vib]) => mel.forEach((compasso, b) => {
-      const t0 = bar * BARj, a = ch[b], r = midi(RZ[a]);
-      ev.push([t0, 'contra', r, Q * .9, .24], [t0 + 2 * Q, 'contra', r + 7, Q * .9, .2]);
-      [1, 3].forEach(q => ev.push([t0 + q * Q, 'piano', VZ[a].map(midi), Q * .8, .045]));
-      for(let j = 0; j < 8; j++) ev.push([t0 + j * Q / 2, 'guizo', j % 2 ? .02 : .034]);
-      let k = 0; compasso.split(' ').forEach(tk => { const [n, q] = tk.split(':'), d = Number(q), m = midi(n);
-        ev.push([t0 + k * Q, 'sino', m + 12, d * Q, .1]); if(vib) ev.push([t0 + k * Q, 'vibra', m, d * Q * .95, .09]); k += d; });
-      bar++;
-    }));
-    const f = bar * BARj;
-    ev.push([f, 'contra', midi('C2'), BARj, .26], [f, 'piano', ['C3', 'E3', 'G3', 'C4'].map(midi), BARj, .05], [f, 'sino', midi('C6'), BARj, .1], [f, 'guizo', .05], [f + .25, 'guizo', .04]);
-    return { ev: ordena(ev), volta: f + BARj * 1.2 };
-  }
-  /* a rodada: toca uma, respira e entra a outra (as de Natal só no Natal) */
-  const FAIXAS = [{ k: 'jazz', nome: 'Rua do Corre, em trio de jazz', faz: jazz }, { k: 'noite', nome: 'Noite Feliz · Gruber, 1818', faz: noiteFeliz, natal: true }, { k: 'bach', nome: 'Bach · Prelúdio em Dó', faz: bach },
-    { k: 'jingle', nome: 'Jingle Bells · Pierpont, 1857', faz: jingle, natal: true }, { k: 'canon', nome: 'Pachelbel · Cânone em Ré', faz: canon }];
-  const natalAgora = () => !!(C.verso && C.verso.natal && C.verso.natal());
+  /* a rodada: toca uma, respira e entra a outra. v3.91: as duas de Natal da 3.87 saíram (o Thales: "mantém a decoração
+     de Natal, mas tira as músicas, mantém as que estavam") */
+  const FAIXAS = [{ k: 'jazz', nome: 'Rua do Corre, em trio de jazz', faz: jazz }, { k: 'bach', nome: 'Bach · Prelúdio em Dó', faz: bach }, { k: 'canon', nome: 'Pachelbel · Cânone em Ré', faz: canon }];
   let faixas = null, fi = 0;
-  const prontas = () => faixas || (faixas = FAIXAS.map(f => Object.assign({ k: f.k, nome: f.nome, natal: !!f.natal }, f.faz())));
+  const prontas = () => faixas || (faixas = FAIXAS.map(f => Object.assign({ k: f.k, nome: f.nome }, f.faz())));
   /* ---------- a mesa: música, efeitos e ambiente, cada um no seu canal ---------- */
   let ac = null, master = null, bus = null, musOut = null, fx = null, amb = null, ruido = null, marrom = null, onda = null;
   let timer = 0, ev = [], i = 0, t0 = 0, musicaOn = false;
@@ -280,19 +232,6 @@
     o1.connect(lp); o2.connect(lp); lp.connect(g); g.connect(bus);
     o1.start(t); o2.start(t); lfo.start(t); o1.stop(t + d + 1); o2.stop(t + d + 1); lfo.stop(t + d + 1);
   }
-  /* v3.87 · o sino (a celesta do Natal): o seno com os parciais de sino (2,76 e 5,4 vezes) que somem rápido */
-  function sino(t, m, d, v){
-    const f = hz(m), fim = t + Math.min(2.2, d + 1.2);
-    [[1, v, fim], [2.76, v * .32, t + .5], [5.4, v * .14, t + .25], [2, v * .2, t + .9]].forEach(([r, a, ate]) => { const o = ac.createOscillator(), g = ac.createGain(); o.type = 'sine'; o.frequency.value = f * r;
-      g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(a, t + .004); g.gain.exponentialRampToValueAtTime(.0001, ate); o.connect(g); g.connect(bus); o.start(t); o.stop(ate + .05); });
-  }
-  /* o guizo do trenó: o chiado agudo curtinho e dois tlins por cima */
-  function guizo(t, v){
-    const s = ac.createBufferSource(), bp = ac.createBiquadFilter(), g = ac.createGain(); s.buffer = ruido; bp.type = 'bandpass'; bp.frequency.value = 8200; bp.Q.value = 2.5;
-    g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(v, t + .004); g.gain.exponentialRampToValueAtTime(.0001, t + .16);
-    s.connect(bp); bp.connect(g); g.connect(bus); s.start(t, Math.random() * .5); s.stop(t + .18);
-    [5600, 7300].forEach((fq, j) => { const o = ac.createOscillator(), go = ac.createGain(); o.frequency.value = fq * (1 + Math.random() * .03); go.gain.setValueAtTime(.0001, t + j * .012); go.gain.exponentialRampToValueAtTime(v * .25, t + j * .012 + .003); go.gain.exponentialRampToValueAtTime(.0001, t + .12); o.connect(go); go.connect(bus); o.start(t); o.stop(t + .15); });
-  }
   function toca(e, base){
     const t = base + e[0], tipo = e[1];
     if(tipo === 'piano'){ e[2].forEach(m => piano(t, m, e[3], e[4])); return; }
@@ -300,9 +239,6 @@
     if(tipo === 'contra') return contra(t, e[2], e[3], e[4]);
     if(tipo === 'ride' || tipo === 'chick') return prato(t, e[2], tipo === 'chick');
     if(tipo === 'violino' || tipo === 'cello') return corda(t, e[2], e[3], e[4], tipo === 'cello');
-    /* v3.87 · os do Natal */
-    if(tipo === 'sino') return sino(t, e[2], e[3], e[4]);
-    if(tipo === 'guizo') return guizo(t, e[2]);
     /* v3.79 · os da música da corrida */
     if(tipo === 'sbaixo') return sbaixo(t, e[2], e[3], e[4]);
     if(tipo === 'serra') return serra(t, e[2], e[3], e[4]);
@@ -320,7 +256,7 @@
     if(!ac || !musicaOn || ac.state !== 'running') return;
     const ate = ac.currentTime + .8;
     while(true){
-      if(i >= ev.length){ const F = prontas(); t0 += F[fi].volta; do fi = (fi + 1) % F.length; while(F[fi].natal && !natalAgora()); ev = F[fi].ev; i = 0; pinta();
+      if(i >= ev.length){ const F = prontas(); t0 += F[fi].volta; fi = (fi + 1) % F.length; ev = F[fi].ev; i = 0; pinta();
         /* trocou de música: o nome aparece rapidinho (na hora em que ela começa a soar) */
         const nome = F[fi].nome, quando = Math.max(0, (t0 + (ev[0] ? ev[0][0] : 0) - ac.currentTime) * 1000);
         setTimeout(() => { if(musicaOn && modoAtual === 'tudo' && !st().pausa && !st().casa) C.toast('♪ ' + nome, 2600); }, quando); }
@@ -586,7 +522,7 @@
   function porta(){ if(!fxOk()) return; const t = ac.currentTime + .01; estalo(t, 600, 1.8, .12, .07); tom(t, 160, 120, .12, .06, 'triangle'); estalo(t + .14, 520, 1.6, .1, .05); }
 
   /* ---------- liga, pausa, sai: quem manda é o modo e o estado da cidade ---------- */
-  function monta(){ const AC = window.AudioContext || window.webkitAudioContext; if(!AC) return false; ac = new AC(); mesa(); if(natalAgora()) fi = 1; ev = prontas()[fi].ev; return true; }
+  function monta(){ const AC = window.AudioContext || window.webkitAudioContext; if(!AC) return false; ac = new AC(); mesa(); ev = prontas()[fi].ev; return true; }
   function nivela(x, v, tc){ if(!ac || !x) return; const t = ac.currentTime; x.gain.cancelScheduledValues(t); x.gain.setValueAtTime(x.gain.value, t); x.gain.setTargetAtTime(v, t, tc || .8); }
   /* o que deve tocar agora (e em que volume) */
   function confere(){

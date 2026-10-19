@@ -50,6 +50,19 @@
     natalVisto = { t: agora, v: (m === 10 && dia >= 15) || m === 11 || m === 12 || (m === 1 && dia <= 6) };
     return natalVisto.v;
   }
+  /* v3.91 · o Halloween (o Thales: "adiciona opções de skin de halloween e faz algumas decorações em algumas casas"): de
+     1º de outubro até Finados (2/11), pelo dia de Brasília. Nessa época o Ateliê vende a coleção de Halloween e algumas
+     casas se enfeitam; o resto do ano a coleção some da vitrine (quem comprou continua vestindo) e as casas voltam.
+     &halloween=1 ou 0 no endereço força, como o Natal */
+  let hallForca = null, hallVisto = { t: 0, v: false };
+  try{ const q = new URLSearchParams(location.search).get('halloween'); if(q === '1' || q === '0') hallForca = q === '1'; }catch(e){}
+  function halloween(){
+    if(hallForca != null) return hallForca;
+    const agora = Date.now(); if(agora - hallVisto.t < 60e3) return hallVisto.v;
+    const d = new Date(agora - 3 * 3600e3), m = d.getUTCMonth() + 1, dia = d.getUTCDate();
+    hallVisto = { t: agora, v: m === 10 || (m === 11 && dia <= 2) };
+    return hallVisto.v;
+  }
 
   /* ---------- texturas de bloco (16x16, feitas aqui mesmo, cada material com o seu ruído e as juntas) ---------- */
   const TEXB = { concreto: '#A4A8AE', escuro: '#4A4E56', branco: '#EEEBE4', preto: '#1B1D22', corten: '#8E4B2B', madeira: '#B3793F', lote: '#E6DECD', calcada: '#C9D0D8', rua: '#2B2F38', dois: '#3A3E45', tronco: '#6B4A32', vidroOn: '#FFD37A', vidroOff: '#2A3442', praca: '#DCCFB6', gramado: '#D9C27F', terra: '#A4553A', agua: '#2F7FC1', mosaico: '#F1EDE4', tijolo: '#8C3B2E', zinco: '#9AA0A8' };
@@ -250,10 +263,21 @@
     ['capeta', 'Capetinha', .3, 'estilo', 'Chifrinhos, colete vermelho e rabo de seta.'],
     ['mumia', 'Múmia', .3, 'estilo', 'Enrolada da cabeça aos pés, com o olho aceso.'],
     ['piloto', 'Piloto Turbo', .3, 'estilo', 'Macacão branco com faixa quadriculada e capacete rosa.'],
-    ['rockeiro', 'Rockeiro', .3, 'estilo', 'Jaqueta de couro com tachas, bandana e a guitarra nas costas.']
+    ['rockeiro', 'Rockeiro', .3, 'estilo', 'Jaqueta de couro com tachas, bandana e a guitarra nas costas.'],
+    /* v3.91 · a coleção de Halloween: só se compra de 1º/10 até Finados (halloween()); comprou, é tua pra sempre */
+    ['abobora', 'Cabeça de Abóbora', 1, 'halloween', 'Abóbora entalhada com a vela acesa por dentro, gravata-borboleta e tênis laranja.'],
+    ['saci', 'Saci', 1, 'halloween', 'Carapuça vermelha, cachimbo soltando fumaça e o redemoinho em volta. 31 de outubro também é o Dia do Saci.'],
+    ['bruxa', 'Bruxa do Caldeirão', .6, 'halloween', 'Chapéu pontudo de fivela, vestido roxo de estrelinhas e a vassoura nas costas.'],
+    ['esqueleto', 'Esqueleto', .6, 'halloween', 'Macacão preto com os ossos pintados e a caveira com o olho que acende.'],
+    ['lobisomem', 'Lobisomem do Tibagi', .6, 'halloween', 'Orelha, focinho, olho amarelo e a camisa rasgada de quem virou na sexta de lua cheia.'],
+    ['lencol', 'Fantasma de Lençol', .3, 'halloween', 'O lençol da cama com dois furos pros olhos. O tênis aparece embaixo.'],
+    ['mortovivo', 'Morto-Vivo', .3, 'halloween', 'Roupa em farrapo, pele lilás, um olho arregalado e a costura no rosto.'],
+    ['gatopreto', 'Gato Preto', .3, 'halloween', 'Orelhinhas, coleira com sino e o rabo pra cima.']
   ];
   const LOJA = {}; SKINS_LOJA.forEach(x => { LOJA[x[0]] = x; }); Object.setPrototypeOf(LOJA, null);
-  const RARIDADE = { lendaria: 'Lendária', rara: 'Rara', estilo: 'Estilo' };
+  const RARIDADE = { lendaria: 'Lendária', rara: 'Rara', estilo: 'Estilo', halloween: 'Halloween' };
+  /* v3.91: a de Halloween fora da época não se compra (quem já tem segue vestindo) */
+  const foraDeEpoca = k => !!LOJA[k] && LOJA[k][3] === 'halloween' && !halloween();
   /* todas as skins que o avatar aceita (o desenho de quem passa na cidade também passa por aqui) */
   const SKINS_TODAS = SKINS.concat(SKINS_LOJA.map(x => [x[0], x[1]]));
   const SKIN = {};
@@ -586,6 +610,151 @@
         if(o.lado){ px(-4, hy + 1, 8, 1, INK); px(-5, hy + 1, 1, 2, INK); return; }
         px(-4, hy + 1, 8, 1, INK); px(-2, hy + 1, 1, 1, PAPEL); px(1, hy + 1, 1, 1, PAPEL); px(4, hy + 1, 1, 2, INK);
         if(!o.costas) px(-5, hy + 5, 1, 1, PRATA);
+      } };
+    /* ---------- v3.91 · a coleção de Halloween ----------
+       Oito, desenhadas pro Corre, no mesmo jeito das de cima (as duas de 1,00 têm o "fx" que mexe). Duas do Brasil: o
+       Saci (31/10 é o Dia do Saci) e o Lobisomem. Nada de verde: o talo da abóbora é marrom, a bruxa não é verde, e o
+       morto-vivo é lilás. A vela da abóbora tremula (brasa(), a cada quadro) */
+    const ABO = '#FF7A1A', ABO2 = '#D9580B', ABO3 = '#A8420A', TALO = '#6B4A32', OSSO = '#EDE6D6', OSSO2 = '#BFB6A2', BRUXA = '#3B2466', BRUXA2 = '#2A1A4A',
+      PELO = '#6B4A32', PELO2 = '#4A3424', PELO3 = '#A07A55', PALIDO = '#A9A3BF', PALIDO2 = '#8A83A3', TRAPO = '#6B5B7A', PALHA = '#D9C27F', COSTURA = '#5E3A4A', BOCA = '#3B1A1A';
+    const brasa = () => { const f = Math.floor(performance.now() / 110) % 7; return f === 0 ? '#FFF2A8' : f < 4 ? '#FFD23F' : '#FFB02E'; };
+    SKIN.abobora = { R: INK, L: BRUXA, T: ABO, cobre: true, loja: true,
+      tronco: (px, o) => {
+        if(o.lado){ px(0, -15, 2, 1, ABO); cinto(px, o, ABO2); return; }
+        if(!o.costas){ px(-2, -15, 1, 2, ABO); px(1, -15, 1, 2, ABO); px(-1, -14, 2, 1, ABO2); px(-1, -12, 1, 1, ABO2); px(-1, -10, 1, 1, ABO2); }
+        cinto(px, o, ABO2, OURO);
+      },
+      cabeca: (px, o) => {
+        const hy = o.hy, b = brasa();
+        px(-4, hy - 1, 8, 1, ABO); px(-5, hy, 10, 7, ABO); px(-4, hy + 7, 8, 1, ABO2); px(-1, hy - 3, 2, 2, TALO); px(1, hy - 3, 1, 1, TALO);
+        if(o.lado){ px(-5, hy + 1, 1, 5, ABO2); px(-1, hy - 1, 1, 8, ABO2); px(4, hy + 1, 1, 5, ABO2); px(2, hy + 2, 1, 1, b); px(2, hy + 3, 2, 1, b); px(1, hy + 5, 4, 1, b); px(2, hy + 6, 1, 1, b); return; }
+        px(-2, hy - 1, 1, 8, ABO2); px(1, hy - 1, 1, 8, ABO2); px(4, hy, 1, 7, ABO2);
+        if(o.costas) return;
+        px(-3, hy + 2, 1, 1, b); px(-4, hy + 3, 2, 1, b); px(2, hy + 2, 1, 1, b); px(2, hy + 3, 2, 1, b); px(-1, hy + 4, 2, 1, b);
+        px(-3, hy + 5, 6, 1, b); px(-2, hy + 6, 1, 1, b); px(1, hy + 6, 1, 1, b); px(-1, hy + 5, 1, 1, ABO3);
+      },
+      fx: (px, o) => brilho(px, o.lado ? [[0, -26], [3, -21], [-4, -12]] : [[-4, -24], [4, -22], [0, -26], [-3, -13], [3, -10]], '#FFB02E') };
+    SKIN.saci = { R: '#E8DFC8', L: VERM, T: '#5E3A26', manga: 'curta', perna: 'bermuda', loja: true,
+      tronco: (px, o) => {
+        if(o.lado){ px(-2, -9, 4, 1, MARROM); px(-1, -13, 2, 2, BEGE); return; }
+        cinto(px, o, MARROM); if(o.costas) return;
+        px(-3, -13, 2, 2, BEGE); px(-3, -13, 1, 1, MARROM); px(2, -11, 1, 2, BEGE);
+      },
+      cabeca: (px, o) => {
+        const hy = o.hy;
+        if(o.lado){
+          px(-4, hy - 1, 8, 2, VERM); px(-4, hy, 8, 1, SANGUE); px(-4, hy - 2, 7, 1, VERM); px(-5, hy - 3, 5, 1, VERM); px(-6, hy - 4, 4, 1, VERM); px(-7, hy - 3, 2, 1, VERM); px(-7, hy - 2, 1, 2, SANGUE);
+          px(4, hy + 6, 2, 1, COURO2); px(5, hy + 4, 2, 2, '#3B2D22'); px(5, hy + 4, 2, 1, ABO); return;
+        }
+        px(-4, hy - 1, 8, 2, VERM); px(-4, hy, 8, 1, SANGUE); px(-3, hy - 2, 7, 1, VERM); px(-1, hy - 3, 5, 1, VERM); px(1, hy - 4, 4, 1, VERM); px(3, hy - 5, 3, 1, VERM); px(5, hy - 4, 2, 1, VERM); px(6, hy - 3, 1, 2, SANGUE);
+        if(o.costas) return;
+        px(1, hy + 6, 3, 1, COURO2); px(3, hy + 4, 2, 2, '#3B2D22'); px(3, hy + 4, 2, 1, ABO);
+      },
+      /* a fumaça do cachimbo sobe torta, e o redemoinho gira em volta das pernas (a poeira de trás some atrás delas) */
+      fx: (px, o) => {
+        const t = performance.now() / 1000;
+        if(!o.costas){ const bx = o.lado ? 5.5 : 3.5, by = o.hy + 3; for(let i = 0; i < 3; i++){ const f = (t * .7 + i / 3) % 1; px(Math.round(bx + Math.sin(f * 7 + i) * 1.2), Math.round(by - f * 7), f > .6 ? 1 : 2, 1, f > .7 ? 'rgba(220,221,227,.45)' : 'rgba(220,221,227,.85)'); } }
+        if(o.sentado) return;
+        for(let k = 0; k < 16; k++){ const a = t * 7 + k * .9, y = -1 - (k % 8), r = 4.5 + (k % 8) * .4; if(Math.sin(a) < -.25) continue; px(Math.round(Math.cos(a) * r) - 1, y, 1, 1, k % 3 ? 'rgba(201,183,156,.85)' : 'rgba(217,194,127,.95)'); }
+      } };
+    SKIN.bruxa = { R: BRUXA, L: BRUXA, T: INK, loja: true,
+      atras: (px, o) => { if(o.costas) return; if(o.lado){ px(-4, -27, 1, 21, COURO); px(-5, -7, 3, 6, PALHA); px(-5, -7, 3, 1, COURO2); return; } px(6, -27, 1, 21, COURO); px(5, -7, 3, 6, PALHA); px(5, -7, 3, 1, COURO2); },
+      tronco: (px, o) => {
+        saia(px, o, BRUXA, BRUXA2); cinto(px, o, LARANJA, OURO);
+        if(o.costas){ px(-6, -27, 1, 21, COURO); px(-7, -7, 3, 6, PALHA); px(-7, -7, 3, 1, COURO2); return; }
+        if(o.lado){ px(-1, -13, 1, 1, LARANJA); px(0, -5, 1, 1, LARANJA); return; }
+        px(-2, -15, 4, 1, LARANJA); px(-3, -12, 1, 1, LARANJA); px(2, -11, 1, 1, LARANJA); px(-2, -5, 1, 1, LARANJA); px(3, -3, 1, 1, LARANJA); px(-5, -2, 1, 1, LARANJA);
+      },
+      cabeca: (px, o) => {
+        const hy = o.hy;
+        if(o.lado){ px(-7, hy, 13, 1, INK); px(-4, hy - 2, 8, 2, INK); px(-4, hy - 1, 8, 1, LARANJA); px(-3, hy - 4, 6, 2, INK); px(-3, hy - 6, 5, 2, INK); px(-4, hy - 7, 3, 1, INK); px(-6, hy - 6, 2, 1, INK); return; }
+        px(-7, hy, 14, 1, INK); px(-4, hy - 2, 8, 2, INK); px(-4, hy - 1, 8, 1, LARANJA); if(!o.costas) px(-1, hy - 1, 2, 1, OURO);
+        px(-3, hy - 4, 6, 2, INK); px(-2, hy - 6, 4, 2, INK); px(0, hy - 7, 3, 1, INK); px(2, hy - 8, 2, 1, INK);
+      } };
+    SKIN.esqueleto = { R: INK, L: INK, T: INK, luva: OSSO, cobre: true, loja: true,
+      tronco: (px, o) => {
+        if(o.lado){ px(-2, -15, 1, 8, OSSO); [-14, -12, -10].forEach(y => px(-1, y, 2, 1, OSSO)); px(-2, -8, 3, 1, OSSO); px(-1, -7, 1, 5, OSSO2); return; }
+        if(o.costas){ px(-1, -15, 2, 8, OSSO); px(-3, -14, 2, 2, OSSO2); px(1, -14, 2, 2, OSSO2); px(-3, -8, 6, 1, OSSO); px(-6, -14, 1, 6, OSSO2); px(5, -14, 1, 6, OSSO2); px(-3, -7, 1, 5, OSSO2); px(2, -7, 1, 5, OSSO2); return; }
+        px(-1, -15, 2, 6, OSSO); [-14, -12, -10].forEach(y => { px(-3, y, 2, 1, OSSO); px(1, y, 2, 1, OSSO); });
+        px(-3, -8, 6, 1, OSSO); px(-2, -9, 1, 1, OSSO2); px(1, -9, 1, 1, OSSO2);
+        px(-6, -14, 1, 6, OSSO); px(5, -14, 1, 6, OSSO); px(-3, -7, 1, 5, OSSO); px(2, -7, 1, 5, OSSO);
+      },
+      cabeca: (px, o) => {
+        const hy = o.hy;
+        px(-4, hy, 8, 7, OSSO); px(-3, hy + 7, 6, 1, OSSO); px(3, hy, 1, 7, OSSO2);
+        if(o.lado){ px(1, hy + 3, 2, 2, INK); px(3, hy + 5, 1, 1, INK); px(0, hy + 6, 4, 1, OSSO2); px(1, hy + 6, 1, 1, INK); px(3, hy + 6, 1, 1, INK); return; }
+        if(o.costas) return;
+        px(-3, hy + 3, 2, 2, INK); px(1, hy + 3, 2, 2, INK); px(-1, hy + 5, 2, 1, INK);
+        px(-3, hy + 6, 6, 1, OSSO2); px(-2, hy + 6, 1, 1, INK); px(0, hy + 6, 1, 1, INK); px(2, hy + 6, 1, 1, INK);
+      },
+      /* o olho que acende no fundo da órbita, de vez em quando */
+      fx: (px, o) => { if(o.costas || Math.floor(performance.now() / 260) % 9 > 1) return; if(o.lado) px(2, o.hy + 4, 1, 1, ROSA); else { px(-2, o.hy + 4, 1, 1, ROSA); px(1, o.hy + 4, 1, 1, ROSA); } } };
+    SKIN.lobisomem = { R: VINHO, L: '#2E4A7A', T: PELO2, luva: PELO, cobre: true, loja: true,
+      atras: (px, o) => { if(o.lado){ px(-4, -9, 2, 2, PELO); px(-6, -11, 2, 3, PELO); px(-7, -12, 1, 2, PELO3); } },
+      tronco: (px, o) => {
+        if(o.costas){ px(-1, -9, 2, 2, PELO); px(-1, -7, 2, 3, PELO); px(-1, -4, 2, 1, PELO3); px(-3, -12, 2, 2, PELO); return; }
+        if(o.lado){ px(-1, -12, 2, 2, PELO); px(-2, -8, 1, 1, PELO); return; }
+        px(-2, -15, 4, 1, PELO); px(-3, -13, 2, 2, PELO); px(1, -11, 2, 2, PELO);
+        px(-4, -8, 1, 1, PELO); px(-1, -8, 1, 1, PELO); px(2, -8, 1, 1, PELO); px(-4, -3, 1, 1, PELO); px(3, -4, 1, 1, PELO);
+      },
+      cabeca: (px, o) => {
+        const hy = o.hy, ORE = '#C46A8A';
+        px(-4, hy, 8, 8, PELO); px(3, hy, 1, 8, PELO2);
+        if(o.lado){ px(-2, hy - 3, 2, 3, PELO); px(-1, hy - 2, 1, 1, ORE); px(4, hy + 4, 3, 3, PELO3); px(6, hy + 4, 1, 1, INK); px(4, hy + 7, 3, 1, PAPEL); px(2, hy + 3, 1, 1, AMARELO); px(-5, hy + 2, 1, 4, PELO2); return; }
+        px(-4, hy - 3, 2, 3, PELO); px(2, hy - 3, 2, 3, PELO);
+        if(o.costas){ px(-4, hy + 2, 8, 6, PELO2); return; }
+        px(-3, hy - 2, 1, 2, ORE); px(2, hy - 2, 1, 2, ORE);
+        px(-3, hy + 3, 2, 1, AMARELO); px(1, hy + 3, 2, 1, AMARELO); px(-2, hy + 3, 1, 1, INK); px(1, hy + 3, 1, 1, INK);
+        px(-2, hy + 4, 4, 3, PELO3); px(-1, hy + 4, 2, 1, INK); px(-2, hy + 7, 4, 1, BOCA); px(-2, hy + 7, 1, 1, PAPEL); px(1, hy + 7, 1, 1, PAPEL);
+        px(-5, hy + 4, 1, 3, PELO); px(4, hy + 4, 1, 3, PELO2);
+      } };
+    SKIN.lencol = { R: PAPEL, L: PAPEL, T: INK, luva: PAPEL, cobre: true, loja: true,
+      tronco: (px, o) => {
+        const SH = '#D9DEE6';
+        if(o.sentado){ if(o.lado) px(-3, -16, 7, 13, PAPEL); else { px(-6, -16, 12, 13, PAPEL); px(4, -16, 2, 13, SH); } return; }
+        if(o.lado){ px(-3, -16, 7, 14, PAPEL); px(3, -16, 1, 14, SH); px(-3, -2, 2, 1, PAPEL); px(1, -2, 2, 1, PAPEL); return; }
+        px(-6, -16, 12, 14, PAPEL); px(4, -16, 2, 14, SH); px(-6, -2, 2, 1, PAPEL); px(-2, -2, 3, 1, PAPEL); px(3, -2, 2, 1, SH);
+      },
+      cabeca: (px, o) => {
+        const hy = o.hy, SH = '#D9DEE6';
+        px(-3, hy - 2, 6, 1, PAPEL); px(-4, hy - 1, 8, 1, PAPEL); px(-5, hy, 10, 9, PAPEL); px(3, hy, 2, 9, SH);
+        if(o.costas) return;
+        if(o.lado){ px(1, hy + 3, 2, 2, INK); return; }
+        px(-3, hy + 3, 2, 2, INK); px(1, hy + 3, 2, 2, INK);
+      } };
+    SKIN.mortovivo = { R: TRAPO, L: '#4A4E56', T: '#5A4634', luva: PALIDO, cobre: true, loja: true,
+      tronco: (px, o) => {
+        if(o.lado){ px(-1, -12, 1, 2, PALIDO); px(-2, -8, 1, 1, PALIDO); px(0, -4, 1, 1, PALIDO); return; }
+        if(o.costas){ px(1, -13, 2, 1, PALIDO); px(-4, -8, 2, 1, PALIDO); return; }
+        px(-1, -15, 2, 1, PALIDO2); px(-2, -13, 1, 2, PALIDO); px(2, -10, 1, 1, PALIDO); px(-4, -8, 1, 1, PALIDO); px(0, -8, 2, 1, PALIDO); px(3, -8, 1, 1, PALIDO);
+        px(-3, -5, 1, 1, PALIDO); px(1, -3, 2, 1, PALIDO);
+      },
+      cabeca: (px, o) => {
+        const hy = o.hy, CAB = '#3B2D22';
+        px(-4, hy, 8, 8, PALIDO); px(3, hy, 1, 8, PALIDO2);
+        px(-4, hy, 8, 1, CAB); px(-4, hy + 1, 2, 1, CAB); px(1, hy + 1, 1, 1, CAB); px(-2, hy - 1, 1, 1, CAB); px(2, hy - 1, 1, 1, CAB);
+        if(o.lado){ px(2, hy + 3, 2, 2, PAPEL); px(3, hy + 4, 1, 1, INK); px(1, hy + 6, 3, 1, BOCA); px(-2, hy + 4, 1, 3, COSTURA); px(-3, hy + 5, 3, 1, COSTURA); return; }
+        if(o.costas){ px(-4, hy + 1, 8, 2, CAB); px(0, hy + 4, 3, 1, COSTURA); return; }
+        px(-3, hy + 3, 2, 2, PAPEL); px(-3, hy + 4, 1, 1, INK); px(1, hy + 4, 2, 1, INK);
+        px(-2, hy + 6, 3, 1, BOCA); px(-1, hy + 7, 1, 1, PAPEL); px(1, hy + 6, 3, 1, COSTURA); px(2, hy + 5, 1, 1, COSTURA); px(2, hy + 7, 1, 1, COSTURA);
+      } };
+    SKIN.gatopreto = { R: INK, L: INK, T: INK, loja: true,
+      atras: (px, o) => {
+        if(o.costas) return;
+        if(o.lado){ px(-4, -8, 2, 1, INK); px(-5, -10, 1, 2, INK); px(-6, -13, 1, 3, INK); px(-5, -14, 1, 1, INK); return; }
+        px(4, -7, 2, 1, INK); px(6, -9, 1, 2, INK); px(7, -12, 1, 3, INK); px(6, -13, 1, 1, INK);
+      },
+      tronco: (px, o) => {
+        if(o.costas){ px(-3, -15, 6, 1, ROSA); px(4, -9, 2, 1, INK); px(6, -12, 1, 3, INK); px(5, -13, 1, 1, INK); return; }
+        if(o.lado){ px(-2, -15, 4, 1, ROSA); px(1, -14, 1, 1, OURO); return; }
+        px(-3, -15, 6, 1, ROSA); px(-1, -14, 2, 1, OURO);
+      },
+      cabeca: (px, o) => {
+        const hy = o.hy, BIG = '#2B2F38';
+        if(o.lado){ px(0, hy - 3, 1, 1, INK); px(-1, hy - 2, 2, 2, INK); px(0, hy - 2, 1, 1, ROSA); px(3, hy + 5, 1, 1, ROSA); px(4, hy + 5, 2, 1, BIG); return; }
+        px(-4, hy - 3, 1, 1, INK); px(-4, hy - 2, 2, 2, INK); px(-3, hy - 2, 1, 1, ROSA); px(3, hy - 3, 1, 1, INK); px(2, hy - 2, 2, 2, INK); px(2, hy - 2, 1, 1, ROSA);
+        if(o.costas) return;
+        px(-1, hy + 5, 2, 1, ROSA); px(-6, hy + 5, 2, 1, BIG); px(4, hy + 5, 2, 1, BIG); px(-6, hy + 7, 2, 1, BIG); px(4, hy + 7, 2, 1, BIG);
       } };
   }
   const idx = (L, v, d) => Number.isInteger(v) && v >= 0 && v < L.length ? v : d;
@@ -2888,6 +3057,109 @@
     ctx.fillStyle = OURO_N; for(let i = 0; i < 6; i++){ const a = i / 6 * Math.PI * 2 + .3; ctx.fillRect(x + Math.cos(a) * 8 - 1, y + Math.sin(a) * 8 - 1, 2, 2); }
     ctx.fillStyle = OURO_N; ctx.beginPath(); ctx.moveTo(x, y + 8); ctx.lineTo(x - 5, y + 4); ctx.lineTo(x - 5, y + 12); ctx.closePath(); ctx.moveTo(x, y + 8); ctx.lineTo(x + 5, y + 4); ctx.lineTo(x + 5, y + 12); ctx.closePath(); ctx.fill();
   }
+  /* ---------- v3.91 · o Halloween nas casas (o Thales: "faz algumas decorações em algumas casas") ----------
+     Umas 4 em cada 10 casas se enfeitam, sempre as mesmas (o sorteio é pelo id, igual em todo aparelho), de 1º/10 até
+     Finados (halloween()). Toda casa enfeitada tem abóbora de vela acesa do lado da porta; o sorteio ainda dá umas
+     coisas a mais: teia no canto do térreo com a aranha subindo e descendo, fantasminha de lençol pendurado balançando,
+     morcegos voando em volta, lápides no jardim, varal de luzinha laranja e roxa e o caldeirão borbulhando. Convive com
+     o Natal (a guirlanda da porta fica). Nada de verde: o talo da abóbora é marrom e a poção do caldeirão é roxa */
+  const HW_LUZ = ['#FF7A1A', '#9B6BFF', '#FFB02E', '#C6A6FF'], HW_ABO = '#FF7A1A', HW_ABO2 = '#D9580B', HW_TALO = '#6B4A32';
+  const hwBrasa = (t, i) => { const f = Math.floor(t * 9 + i * 3) % 7; return f === 0 ? '#FFF2A8' : f < 4 ? '#FFD23F' : '#FFB02E'; };
+  function halloweenDe(h){
+    if(h.hw !== undefined) return h.hw;
+    const r = rng(hash('halloween:' + h.id));
+    if(r() > .42){ h.hw = null; return null; }
+    const lado = h.portaX > h.x + h.w / 2 ? 1 : -1, o = { ab: 1 + Math.floor(r() * 3), teia: r() < .55, fant: r() < .45, morc: r() < .6, lap: r() < .5, luz: r() < .45, cald: r() < .3, lado, sd: r() * 10 };
+    /* pelo menos duas coisas além das abóboras (uma casa só com abóbora passa batido) */
+    const extras = ['teia', 'fant', 'morc', 'lap', 'luz', 'cald']; let n = extras.filter(k => o[k]).length, i = Math.floor(r() * extras.length);
+    while(n < 2){ if(!o[extras[i % extras.length]]){ o[extras[i % extras.length]] = true; n++; } i++; }
+    const altura = 74 + 58 * ((h.tier || 0) >= 3 ? 2 : 1);
+    o.topo = h.base - altura;
+    /* o caldeirão do outro lado das abóboras; as lápides no jardim, fora do caminho da porta e longe do caldeirão */
+    o.cx = h.portaX - lado * 60; if(o.cx < h.x + 14 || o.cx > h.x + h.w - 14) o.cx = h.portaX + lado * 60;
+    o.lapides = [h.x + 16, h.x + h.w * .5, h.x + h.w - 16].filter(x => Math.abs(x - h.portaX) > 30 && (!o.cald || Math.abs(x - o.cx) > 26)).slice(0, 2 + (r() < .5 ? 1 : 0)).map((x, j) => ({ x: x + (r() - .5) * 8, y: h.base + 15 + j * 3, inc: (r() - .5) * .12 }));
+    h.hw = o; return o;
+  }
+  /* a abóbora de vela acesa (pixel por pixel, numa grade de 9 x 7), com a luz no chão */
+  function aboboraChao(ctx, x, y, p, t, i){
+    const b = hwBrasa(t, i), w = 9 * p, h = 7 * p;
+    const g = ctx.createRadialGradient(x, y - h * .5, 1, x, y - h * .5, 30 * p / 1.6); g.addColorStop(0, 'rgba(255,176,46,.3)'); g.addColorStop(1, 'rgba(255,176,46,0)'); ctx.fillStyle = g; ctx.fillRect(x - 30, y - h - 24, 60, 50);
+    ctx.fillStyle = 'rgba(15,18,24,.3)'; ctx.fillRect(x - w / 2 - 1, y - 1, w + 2, 3);
+    const P = (gx, gy, gw, gh, c) => { ctx.fillStyle = c; ctx.fillRect(x + (gx - 4.5) * p, y - (7 - gy) * p, gw * p, gh * p); };
+    ctx.fillStyle = INK; ctx.fillRect(x - w / 2 - .8, y - h + p - .8, w + 1.6, h - p + 1.6); ctx.fillRect(x - w / 2 + p - .8, y - h - .8, w - 2 * p + 1.6, h + 1.6);
+    P(1, 0, 7, 1, HW_ABO); P(0, 1, 9, 5, HW_ABO); P(1, 6, 7, 1, HW_ABO2); P(3, 0, 1, 7, HW_ABO2); P(5, 0, 1, 7, HW_ABO2); P(8, 1, 1, 5, HW_ABO2);
+    P(4, -1, 1, 1, HW_TALO); P(4, -2, 2, 1, HW_TALO);
+    P(1, 2, 2, 1, b); P(2, 1.5, 1, .5, b); P(6, 2, 2, 1, b); P(6, 1.5, 1, .5, b); P(4, 3, 1, 1, b); P(2, 4, 5, 1, b); P(3, 5, 1, 1, b); P(5, 5, 1, 1, b);
+  }
+  /* a teia no canto, com a aranha no fio (sobe e desce devagar) */
+  function teia(ctx, cx, cy, dir, t, sd){
+    const R = 24, u = 1 / V.k; ctx.strokeStyle = 'rgba(238,235,228,.85)'; ctx.lineWidth = Math.max(u, .7);
+    const ang = j => Math.PI / 2 * (j / 4);
+    ctx.beginPath(); for(let j = 0; j <= 4; j++){ const a = ang(j); ctx.moveTo(cx, cy); ctx.lineTo(cx + dir * Math.cos(a) * R, cy + Math.sin(a) * R); } ctx.stroke();
+    [.35, .65, .95].forEach(f => { ctx.beginPath(); for(let j = 0; j <= 4; j++){ const a = ang(j), px = cx + dir * Math.cos(a) * R * f, py = cy + Math.sin(a) * R * f; if(j) ctx.quadraticCurveTo(cx + dir * Math.cos(a - Math.PI / 16) * R * f * .86, cy + Math.sin(a - Math.PI / 16) * R * f * .86, px, py); else ctx.moveTo(px, py); } ctx.stroke(); });
+    const ax = cx + dir * 12, ay = cy + 16 + (Math.sin(t * .9 + sd) * .5 + .5) * 22;
+    ctx.beginPath(); ctx.moveTo(ax, cy + 9); ctx.lineTo(ax, ay); ctx.stroke();
+    ctx.fillStyle = INK; ctx.fillRect(ax - 2.5, ay, 5, 4); ctx.fillRect(ax - 1.5, ay - 2, 3, 2);
+    ctx.fillRect(ax - 5, ay + 1, 2.5, 1); ctx.fillRect(ax + 2.5, ay + 1, 2.5, 1); ctx.fillRect(ax - 5, ay + 3, 2.5, 1); ctx.fillRect(ax + 2.5, ay + 3, 2.5, 1);
+    ctx.fillStyle = '#FF4A4A'; ctx.fillRect(ax - 1.5, ay + .5, 1, 1); ctx.fillRect(ax + .5, ay + .5, 1, 1);
+  }
+  /* o fantasminha de lençol pendurado no beiral, balançando */
+  function fantasmaPendurado(ctx, x, y, t, sd){
+    const u = 1 / V.k; ctx.save(); ctx.translate(x, y); ctx.rotate(Math.sin(t * 1.6 + sd) * .16);
+    ctx.fillStyle = '#9AA0A8'; ctx.fillRect(-u / 2, 0, u, 10);
+    ctx.fillStyle = INK; ctx.fillRect(-7.5, 9, 15, 17); ctx.fillStyle = PAPEL; ctx.fillRect(-6.5, 10, 13, 15); ctx.fillRect(-5, 9.5, 10, 1);
+    ctx.fillStyle = '#D9DEE6'; ctx.fillRect(4, 11, 2.5, 14);
+    ctx.fillStyle = PAPEL; const o = Math.sin(t * 5 + sd) > 0 ? 1 : 0; for(let i = 0; i < 4; i++) ctx.fillRect(-6.5 + i * 3.5, 25, 2.5, 2 + ((i + o) % 2) * 1.5);
+    ctx.fillStyle = INK; ctx.fillRect(-4, 14, 2.5, 3.5); ctx.fillRect(1.5, 14, 2.5, 3.5); ctx.fillRect(-1.5, 19.5, 3, 2);
+    ctx.restore();
+  }
+  /* os morcegos: voam em oito em volta do alto da casa, batendo a asa */
+  function morcegos(ctx, h, o, t){
+    const cx = h.x + h.w / 2, cy = o.topo - 18;
+    for(let i = 0; i < 3; i++){
+      const a = t * 1.3 + i * 2.1 + o.sd, x = cx + Math.cos(a) * h.w * .42, y = cy + Math.sin(a * 2) * 16 - i * 6, sobe = Math.sin(t * 13 + i * 2) > 0;
+      ctx.fillStyle = INK; ctx.fillRect(x - 1.5, y - 1.5, 3, 4); ctx.fillRect(x - 1.5, y - 3, 1, 1.5); ctx.fillRect(x + .5, y - 3, 1, 1.5);
+      if(sobe){ ctx.fillRect(x - 6, y - 4, 4.5, 2); ctx.fillRect(x - 8, y - 6, 3, 2); ctx.fillRect(x + 1.5, y - 4, 4.5, 2); ctx.fillRect(x + 5, y - 6, 3, 2); }
+      else { ctx.fillRect(x - 6, y, 4.5, 2); ctx.fillRect(x - 8, y + 2, 3, 2); ctx.fillRect(x + 1.5, y, 4.5, 2); ctx.fillRect(x + 5, y + 2, 3, 2); }
+      ctx.fillStyle = '#FFD23F'; ctx.fillRect(x - 1, y - .8, .9, .9); ctx.fillRect(x + .1, y - .8, .9, .9);
+    }
+  }
+  /* a lápide no jardim (pedra cinza com a cruz riscada e o musgo... roxo) */
+  function lapide(ctx, l){
+    ctx.save(); ctx.translate(l.x, l.y); ctx.rotate(l.inc);
+    ctx.fillStyle = 'rgba(15,18,24,.28)'; ctx.fillRect(-8, -1, 16, 3);
+    ctx.fillStyle = INK; ctx.fillRect(-7, -15, 14, 15); ctx.fillRect(-5, -18, 10, 3);
+    ctx.fillStyle = '#9AA0A8'; ctx.fillRect(-6, -14, 12, 14); ctx.fillRect(-4, -17, 8, 3); ctx.fillStyle = '#7B818A'; ctx.fillRect(4, -14, 2, 14);
+    ctx.fillStyle = '#5A6070'; ctx.fillRect(-.75, -14, 1.5, 9); ctx.fillRect(-3.5, -11.5, 7, 1.5);
+    ctx.fillStyle = '#8A6BB5'; ctx.fillRect(-6, -2, 5, 2); ctx.fillRect(2, -1.5, 4, 1.5);
+    ctx.restore();
+  }
+  /* o varal de luzinha embaixo do balanço do térreo, piscando em laranja e roxo */
+  function varalHw(ctx, h, t){
+    const x1 = h.x + 6, x2 = h.x + h.w - 6, y0 = h.base - 70, n = Math.max(3, Math.floor((x2 - x1) / 10)), u = 1 / V.k;
+    ctx.strokeStyle = INK; ctx.lineWidth = Math.max(u, .8); ctx.beginPath(); ctx.moveTo(x1, y0); ctx.quadraticCurveTo((x1 + x2) / 2, y0 + 12, x2, y0); ctx.stroke();
+    for(let i = 0; i <= n; i++){ const f = i / n, m = 1 - f, x = m * m * x1 + 2 * m * f * (x1 + x2) / 2 + f * f * x2, y = m * m * y0 + 2 * m * f * (y0 + 12) + f * f * y0, on = (i + Math.floor(t * 2.5)) % 4 !== 0;
+      ctx.fillStyle = on ? HW_LUZ[i % 4] : '#3B2D22'; ctx.fillRect(x - 1.5, y + .5, 3, 3.5); if(on){ ctx.fillStyle = 'rgba(255,190,90,.22)'; ctx.fillRect(x - 3.5, y - 1, 7, 7); } }
+  }
+  /* o caldeirão: o fogo embaixo, a poção roxa e as bolhas subindo */
+  function caldeirao(ctx, x, y, t, sd){
+    const g = ctx.createRadialGradient(x, y - 14, 2, x, y - 14, 30); g.addColorStop(0, 'rgba(155,107,255,.3)'); g.addColorStop(1, 'rgba(155,107,255,0)'); ctx.fillStyle = g; ctx.fillRect(x - 30, y - 44, 60, 50);
+    ctx.fillStyle = 'rgba(15,18,24,.3)'; ctx.fillRect(x - 11, y - 1, 22, 3);
+    for(let i = 0; i < 3; i++){ const hh = 4 + ((Math.floor(t * 10) + i) % 3) * 1.5; ctx.fillStyle = i === 1 ? '#FFD23F' : '#FF7A1A'; ctx.fillRect(x - 6 + i * 4, y - hh, 3, hh); }
+    ctx.fillStyle = INK; ctx.fillRect(x - 11, y - 18, 22, 12); ctx.fillRect(x - 9, y - 6, 18, 2); ctx.fillRect(x - 12, y - 20, 24, 3); ctx.fillRect(x - 9, y - 3, 2, 3); ctx.fillRect(x + 7, y - 3, 2, 3);
+    ctx.fillStyle = '#2B2F38'; ctx.fillRect(x - 9, y - 16, 4, 8); ctx.fillStyle = '#9B6BFF'; ctx.fillRect(x - 10, y - 20, 20, 2);
+    for(let i = 0; i < 4; i++){ const f = (t * .6 + i / 4 + sd) % 1, bx = x - 6 + i * 4 + Math.sin(f * 9 + i) * 1.5, by = y - 21 - f * 18; ctx.fillStyle = f > .7 ? 'rgba(198,166,255,.5)' : '#C6A6FF'; const r = f > .5 ? 1.5 : 2.5; ctx.fillRect(bx - r / 2, by - r / 2, r, r); }
+  }
+  function hwNaFila(L, ctx, h, o, t, vis){
+    const yb = h.base;
+    if(o.luz) L.push({ y: yb + .6, f: () => varalHw(ctx, h, t) });
+    if(o.teia) L.push({ y: yb + .6, f: () => teia(ctx, o.lado > 0 ? h.x + 3 : h.x + h.w - 3, yb - 73, o.lado > 0 ? 1 : -1, t, o.sd) });
+    if(o.fant) L.push({ y: yb + .6, f: () => fantasmaPendurado(ctx, o.lado > 0 ? h.x + h.w * .22 : h.x + h.w * .78, yb - 74, t, o.sd) });
+    if(o.morc && vis(h.x + h.w / 2, o.topo, 120)) L.push({ y: yb + .6, f: () => morcegos(ctx, h, o, t) });
+    [24, -24, 38].slice(0, o.ab).forEach((dx, i) => L.push({ y: yb + 1, f: () => aboboraChao(ctx, h.portaX + dx * o.lado, yb + 2, i === 2 ? 1.25 : 1.6, t, i + o.sd) }));
+    if(o.lap) o.lapides.forEach(l => L.push({ y: l.y, f: () => lapide(ctx, l) }));
+    if(o.cald) L.push({ y: yb + 12, f: () => caldeirao(ctx, o.cx, yb + 12, t, o.sd) });
+  }
   /* coisas soltas pela cidade (placa, fonte, estátua, tabela, parquinho, academia, o ipê gigante) */
   function decor(ctx, d, t){
     const u = 1 / V.k;
@@ -4063,6 +4335,8 @@
       c.casas.concat(c.dois ? [c.dois] : []).forEach(h => { if(vis(h.portaX, h.base, 60)) L.push({ y: h.base + .5, f: () => guirlanda(ctx, h.portaX, h.base - 44) }); });
       noelNaFila(L, ctx, t, vis);
     }
+    /* v3.91: o Halloween nas casas sorteadas */
+    if(halloween()) c.casas.concat(c.dois ? [c.dois] : []).forEach(h => { const o = halloweenDe(h); if(o && vis(h.x + h.w / 2, h.base, Math.max(240, h.w))) hwNaFila(L, ctx, h, o, t, vis); });
     L.sort((a, b) => a.y - b.y).forEach(o => o.f());
     if(V.rio && V.rio.fase === 'salto') saltoPeixe(ctx, t);
     if(V.alvo){ ctx.strokeStyle = ROSA; ctx.lineWidth = Math.max(2, 1.05 / k0); ctx.beginPath(); ctx.ellipse(V.alvo.x, V.alvo.y, 10 + Math.sin(t * 6) * 2, 4, 0, 0, Math.PI * 2); ctx.stroke(); }
@@ -6362,10 +6636,13 @@
   /* ---------- v3.66 · o Ateliê: a loja de skins ----------
      As 18 skins da loja (SKINS_LOJA) se compram com correal e são da pessoa pra sempre. Quem diz o que ela tem e quanto
      custa é o banco (corre_skins_minhas e corre_skin_compra, delta-v366.sql); o banco também tira a skin paga de quem
-     salvar o avatar sem ter comprado. Sem o delta, a loja mostra tudo e diz que abre em breve. */
+     salvar o avatar sem ter comprado. Sem o delta, a loja mostra tudo e diz que abre em breve. v3.91: mais as 8 de
+     Halloween (delta-v391.sql), que só se compram de 1º/10 até Finados. */
   const LJ = { uid: '', minhas: new Set(), precos: {}, ok: null, carregando: null };
   const precoSkin = k => { const v = Number(LJ.precos[k]); return v > 0 ? v : (LOJA[k] ? LOJA[k][2] : 0); };
   const tenhoSkin = k => !k || !LOJA[k] || LJ.minhas.has(k);
+  /* v3.91: o banco respondeu e não tem o preço dela (a coleção nova chegou no site antes do delta do banco) */
+  const semPreco = k => LJ.ok === true && !(Number(LJ.precos[k]) > 0);
   function carregaLoja(){
     const u = C.uid() || ''; if(LJ.uid !== u){ LJ.uid = u; LJ.minhas = new Set(); LJ.ok = null; }
     if(!u) return Promise.resolve(LJ);
@@ -6392,6 +6669,9 @@
     await Promise.all([carregaLoja(), C.correalCarrega().catch(() => {})]);
     if(tenhoSkin(k)) return true;
     if(LJ.ok === false){ C.toast('O Ateliê ainda tá arrumando a vitrine. As skins chegam já, já.', 3800); return false; }
+    /* v3.91: a de Halloween só na época; e a que o banco ainda não tem preço (o delta novo não rodou) espera */
+    if(foraDeEpoca(k)){ C.toast(`${x[1]} é da coleção de Halloween: volta pra vitrine em outubro.`, 4200); return false; }
+    if(semPreco(k)){ C.toast(`${x[1]} chega no Ateliê já, já.`, 3600); return false; }
     const preco = precoSkin(k), saldo = Number(C.correal.saldo) || 0;
     if(!C.correalCobre(saldo, preco)){ C.toast(`${x[1]} sai por ${C.correalTxt(preco)} e você tem ${C.correalFmt(saldo)}. Faz uns trampos no Correverso (até ${C.correalFmt(C.correal.teto)} por dia) e volta.`, 5200); return false; }
     const sim = await C.confirma({ ico: 'correal', titulo: 'Comprar ' + x[1], texto: `Sai por <b>${C.correalTxt(preco)}</b>. Você tem <b>${C.correalFmt(saldo)}</b>. Comprou, é tua pra sempre.`, sim: `Comprar por ${C.correalFmt(preco)}`, nao: 'Agora não' });
@@ -6407,6 +6687,8 @@
     const av = C.st.me ? avLimpo(C.st.me.verso, C.st.me.id) : null, vestindo = !!av && !av.personagem && av.skin === k;
     if(LJ.ok === null) return '<span class="lj-msg">…</span>';
     if(LJ.ok === false && !tenhoSkin(k)) return `<span class="lj-preco">${ico('correal')} ${C.correalFmt(precoSkin(k))}</span><span class="lj-msg">em breve</span>`;
+    if(!tenhoSkin(k) && foraDeEpoca(k)) return '<span class="lj-msg">volta em outubro</span>';
+    if(!tenhoSkin(k) && semPreco(k)) return `<span class="lj-preco">${ico('correal')} ${C.correalFmt(precoSkin(k))}</span><span class="lj-msg">em breve</span>`;
     if(tenhoSkin(k)) return vestindo ? `<span class="lj-tua">${ico('check')} Vestindo</span><button type="button" class="btn sm" data-act="cvr-lj-tira">Tirar</button>`
       : `<span class="lj-tua">${ico('check')} É tua</span><button type="button" class="btn sm pri" data-act="cvr-lj-veste" data-k="${k}">Vestir</button>`;
     return `<button type="button" class="btn sm pri lj-compra" data-act="cvr-lj-compra" data-k="${k}" aria-label="Comprar ${esc(LOJA[k][1])} por ${C.correalTxt(precoSkin(k))}">${ico('correal')} ${C.correalFmt(precoSkin(k))}</button>`;
@@ -6414,11 +6696,14 @@
   const pintaLoja = () => document.querySelectorAll('.lj-acao[data-k]').forEach(el => { el.innerHTML = acaoLoja(el.dataset.k); el.closest('.lj-card').classList.toggle('tua', tenhoSkin(el.dataset.k)); });
   function lojaSheet(){
     const me = C.st.me; if(!me){ C.toast('Entra no Corre pra abrir o Ateliê.'); return; }
+    const tenhoLoja = k => LJ.minhas.has(k);
     const card = x => `<li class="lj-card lj-${x[3]}"><canvas class="lj-cv" width="32" height="34" data-k="${x[0]}" aria-hidden="true"></canvas><div class="lj-tx"><span class="lj-rar">${RARIDADE[x[3]]}</span><b>${esc(x[1])}</b><small>${esc(x[4])}</small></div><div class="lj-acao" data-k="${x[0]}"></div></li>`;
-    const grupo = (r, t) => `<h3 class="lj-g lj-g-${r}">${t}</h3><ul class="lj-l">${SKINS_LOJA.filter(x => x[3] === r).map(card).join('')}</ul>`;
+    const grupo = (r, t, so) => { const L = SKINS_LOJA.filter(x => x[3] === r && (!so || so(x[0]))); return L.length ? `<h3 class="lj-g lj-g-${r}">${t}</h3><ul class="lj-l">${L.map(card).join('')}</ul>` : ''; };
+    /* v3.91: na época, a coleção de Halloween vem primeiro; fora dela, só aparecem as que a pessoa já tem */
+    const hall = halloween() ? grupo('halloween', `${ico('star')} Halloween · só até Finados (2/11)`) : grupo('halloween', 'Halloween · da tua coleção', tenhoLoja);
     C.sheet(`<div class="form lj"><div class="sheet-head"><h2>${ico('star')} Ateliê do Corre</h2><button type="button" class="cbtn plain" data-close aria-label="Fechar">${ico('x')}</button></div>
       <p class="lj-topo">Skins pra vestir na cidade e dentro das casas, desenhadas aqui. Paga uma vez em correal e é tua pra sempre. Você tem <b class="num" data-correal-saldo>${C.correal.saldo == null ? '…' : C.correalFmt(C.correal.saldo)}</b> <span data-correal-unid>${C.correalUnid(C.correal.saldo || 0)}</span>.</p>
-      ${grupo('lendaria', 'Lendárias · com brilho')}${grupo('rara', 'Raras')}${grupo('estilo', 'Estilo')}
+      ${halloween() ? hall : ''}${grupo('lendaria', 'Lendárias · com brilho')}${grupo('rara', 'Raras')}${grupo('estilo', 'Estilo')}${halloween() ? '' : hall}
       <p class="fine">Correal não é dinheiro: se ganha fazendo trampo no Correverso (até ${C.correalFmt(C.correal.teto)} por dia). O Ateliê sempre pergunta antes de descontar. Os 14 uniformes de antes seguem de graça, no teu avatar.</p></div>`, 'wide lj-sheet');
     pintaLoja();
     carregaLoja().then(pintaLoja); C.correalCarrega().catch(() => {});
@@ -6441,7 +6726,7 @@
     const sw = (k, L) => `<div class="cvr-sw" role="radiogroup">${L.map((c, i) => `<button type="button" role="radio" data-k="${k}" data-v="${i}" aria-checked="${av[k] === i}" style="--c:${c}" aria-label="${k} ${i + 1}"></button>`).join('')}</div>`;
     const ch = (k, L) => `<div class="cvr-ch" role="radiogroup">${L.map(([v, n]) => `<button type="button" role="radio" data-k="${k}" data-s="${v}" aria-checked="${av[k] === v}">${n}</button>`).join('')}</div>`;
     /* v3.66: as skins do Ateliê, com o cadeado e o preço de quem ainda não tem */
-    const chLoja = () => `<div class="cvr-ch cvr-ch-loja" role="radiogroup">${SKINS_LOJA.map(x => `<button type="button" role="radio" data-k="skin" data-s="${x[0]}" data-loja="${x[0]}" aria-checked="${av.skin === x[0]}">${tenhoSkin(x[0]) ? '' : ico('lock')}${esc(x[1])}${tenhoSkin(x[0]) ? '' : `<i>${C.correalFmt(precoSkin(x[0]))}</i>`}</button>`).join('')}</div>`;
+    const chLoja = () => `<div class="cvr-ch cvr-ch-loja" role="radiogroup">${SKINS_LOJA.filter(x => !foraDeEpoca(x[0]) || LJ.minhas.has(x[0]) || av.skin === x[0]).map(x => `<button type="button" role="radio" data-k="skin" data-s="${x[0]}" data-loja="${x[0]}" aria-checked="${av.skin === x[0]}">${tenhoSkin(x[0]) ? '' : ico('lock')}${esc(x[1])}${tenhoSkin(x[0]) ? '' : `<i>${C.correalFmt(precoSkin(x[0]))}</i>`}</button>`).join('')}</div>`;
     C.sheet(`<div class="form cvr-av"><div class="sheet-head"><h2>${primeira ? 'Monta teu avatar' : armario ? 'O armário' : 'Teu avatar'}</h2><button type="button" class="cbtn plain" data-close aria-label="Fechar">${ico('x')}</button></div>
       <div class="cvr-av-cols"><div class="cvr-av-prev"><canvas id="cvr-prev" width="32" height="34" aria-label="Prévia do avatar"></canvas><div class="acts"><button type="button" class="btn sm" id="cvr-gira">Girar</button><button type="button" class="btn sm" id="cvr-sorte">Sortear</button></div></div>
       <div class="cvr-av-f">
@@ -6540,7 +6825,7 @@
     }
   });
 
-  C.verso = { miniVeiculo, trocaVeiculo, veiculoDe, alturaPulo, PULO_MS, SKINS_LOJA, loja: lojaSheet, compraSkin, vesteSkin, carregaLoja, skinsMinhas: () => [...LJ.minhas],
+  C.verso = { miniVeiculo, trocaVeiculo, veiculoDe, alturaPulo, PULO_MS, SKINS_LOJA, halloween: v => { if(v !== undefined){ hallForca = v; hallVisto.t = 0; } return halloween(); }, halloweenDe, loja: lojaSheet, compraSkin, vesteSkin, carregaLoja, skinsMinhas: () => [...LJ.minhas],
     /* v3.65 · a busca do Corre leva direto pra um lugar da cidade (o mesmo "ir pra lá" do Mapa, de graça). false = a cidade
        ainda não tá pronta (ou você tá dentro de um lugar 3D); null = esse lugar não existe aqui (ex.: sem casa ainda) */
     irPara: nome => {

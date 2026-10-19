@@ -2874,6 +2874,8 @@
   /* v3.66 · o brilho das skins lendárias no 3D: um cubinho branco que acende num ponto da lista (dx, y, dz), apaga e pula
      pro próximo. O boneco é montado a cada quadro, então o brilho anda sozinho */
   const LAPIS3 = '#1F4FA8';
+  /* v3.91: a vela dentro da abóbora (a mesma tremida da cidade) */
+  const brasa3 = () => { const f = Math.floor(performance.now() / 110) % 7; return f === 0 ? '#FFF2A8' : f < 4 ? '#FFD23F' : '#FFB02E'; };
   const brilho3 = (x, z, L) => { const t = Math.floor(performance.now() / 150); if(t % 4 === 3) return []; const p = L[(t * 3) % L.length]; return [B(x + p[0] - .025, p[1], z + p[2], .05, .05, .02, '#FFFFFF')]; };
   const SKIN3D = {
     policial: { R: '#1F3D7A', L: '#1B1F27', T: INK, cobre: true, bl: (x, z) => [B(x - .27, 1.38, z - .27, .54, .12, .54, '#1F3D7A'), B(x - .2, 1.38, z + .27, .4, .04, .2, INK), B(x - .1, 1.44, z + .27, .2, .05, .005, OURO), B(x - .26, .44, z - .13, .52, .05, .26, INK), B(x - .04, .44, z + .13, .08, .05, .005, OURO), B(x - .2, .8, z + .12, .07, .07, .01, OURO)] },
@@ -3004,6 +3006,70 @@
       B(x - .37, .92, z - .02, .04, .03, .04, '#C9CDD3'), B(x - .29, .92, z - .02, .04, .03, .04, '#C9CDD3'), B(x + .25, .92, z - .02, .04, .03, .04, '#C9CDD3'), B(x + .33, .92, z - .02, .04, .03, .04, '#C9CDD3'),
       B(x - .27, 1.3, z - .27, .54, .06, .54, INK), B(x - .1, 1.31, z + .275, .04, .04, .005, PAPEL), B(x + .06, 1.31, z + .275, .04, .04, .005, PAPEL),
       B(x - .16, .44, z - .2, .32, .3, .06, VERM), B(x - .12, .74, z - .2, .24, .12, .06, VERM), B(x - .05, .54, z - .205, .1, .06, .005, INK), B(x + .2, .8, z - .2, .05, .7, .03, '#5A3A1E'), B(x + .18, 1.5, z - .21, .09, .12, .04, INK)
+    ] },
+    /* ---------- v3.91 · a coleção de Halloween em 3D (os desenhos da cidade estão em verso.js, SKIN). A abóbora tremula a
+       vela (brasa3), o Saci solta fumaça e gira o redemoinho, o esqueleto acende o olho de vez em quando ---------- */
+    abobora: { R: INK, L: '#3B2466', T: '#FF7A1A', cobre: true, semCabeca: true, bl: (x, z) => {
+      const b = brasa3(), A2 = '#D9580B';
+      return [B(x - .32, .9, z - .32, .64, .56, .64, '#FF7A1A'), B(x - .26, 1.46, z - .26, .52, .04, .52, A2),
+        B(x - .13, .9, z + .32, .05, .56, .005, A2), B(x + .08, .9, z + .32, .05, .56, .005, A2), B(x - .13, .9, z - .325, .05, .56, .005, A2), B(x + .08, .9, z - .325, .05, .56, .005, A2),
+        B(x - .05, 1.5, z - .05, .1, .14, .1, '#6B4A32'),
+        B(x - .24, 1.22, z + .325, .12, .09, .005, b), B(x + .12, 1.22, z + .325, .12, .09, .005, b), B(x - .04, 1.12, z + .325, .08, .06, .005, b),
+        B(x - .2, .99, z + .325, .4, .07, .005, b), B(x - .05, 1.03, z + .33, .05, .03, .004, '#A8420A'),
+        B(x - .09, .88, z + .125, .18, .06, .01, '#FF7A1A'), B(x - .26, .44, z - .13, .52, .05, .26, A2)
+      ].concat(brilho3(x, z, [[-.25, 1.5, .2], [.2, 1.3, .33], [0, 1.66, 0], [-.2, .8, .13]]));
+    } },
+    saci: { R: '#E8DFC8', L: VERM, T: '#5E3A26', manga: 'curta', perna: 'bermuda', bl: (x, z) => {
+      const t = performance.now() / 1000, out = [
+        B(x - .27, 1.38, z - .27, .54, .12, .54, VERM), B(x - .22, 1.5, z - .2, .42, .1, .42, VERM), B(x - .12, 1.6, z - .14, .3, .1, .3, VERM),
+        B(x + .04, 1.68, z - .1, .22, .08, .2, VERM), B(x + .2, 1.56, z - .08, .12, .16, .14, '#B4152E'),
+        B(x + .04, 1.0, z + .25, .16, .03, .03, '#5A3A1E'), B(x + .17, .98, z + .27, .07, .09, .07, '#3B2D22'), B(x + .18, 1.07, z + .28, .05, .01, .05, '#FF7A1A'),
+        B(x - .26, .44, z - .13, .52, .05, .26, '#8C5A2E'), B(x - .2, .7, z + .125, .12, .12, .01, '#C9B79C')];
+      for(let i = 0; i < 3; i++){ const f = (t * .7 + i / 3) % 1, sz = .05 + f * .05; out.push(B(x + .2 + Math.sin(f * 7 + i) * .05 - sz / 2, 1.1 + f * .5, z + .3 - sz / 2, sz, sz, sz, '#DCDDE3')); }
+      for(let k = 0; k < 10; k++){ const a = t * 6 + k * .9, r = .34 + (k % 3) * .06; out.push(B(x + Math.cos(a) * r - .03, .04 + (k % 6) * .07, z + Math.sin(a) * r - .03, .06, .06, .06, k % 3 ? '#C9B79C' : '#D9C27F')); }
+      return out.concat(brilho3(x, z, [[.25, 1.62, -.05], [-.2, 1.45, .2]]));
+    } },
+    bruxa: { R: '#3B2466', L: '#3B2466', T: INK, bl: (x, z) => [
+      B(x - .29, .02, z - .17, .58, .44, .34, '#3B2466'), B(x - .33, .02, z - .21, .66, .1, .42, '#2A1A4A'), B(x - .26, .44, z - .13, .52, .05, .26, LARANJA),
+      B(x - .04, .44, z + .135, .08, .05, .005, OURO), B(x - .1, .9, z + .12, .2, .05, .01, LARANJA),
+      B(x - .18, .7, z + .125, .04, .04, .005, LARANJA), B(x + .1, .55, z + .125, .04, .04, .005, LARANJA), B(x - .12, .25, z + .175, .04, .04, .005, LARANJA), B(x + .15, .12, z + .215, .04, .04, .005, LARANJA),
+      B(x - .44, 1.42, z - .44, .88, .03, .88, INK), B(x - .25, 1.45, z - .25, .5, .14, .5, INK), B(x - .255, 1.47, z - .255, .51, .05, .51, LARANJA), B(x - .05, 1.47, z + .255, .1, .06, .005, OURO),
+      B(x - .17, 1.59, z - .17, .34, .14, .34, INK), B(x - .09, 1.73, z - .09, .2, .12, .18, INK), B(x - .01, 1.85, z - .05, .12, .08, .1, INK), B(x + .08, 1.9, z - .03, .08, .05, .06, INK),
+      B(x + .3, .1, z - .3, .04, 1.4, .04, '#8C5A2E'), B(x + .24, .04, z - .34, .16, .28, .12, '#D9C27F'), B(x + .24, .3, z - .34, .16, .03, .12, '#5A3A1E')
+    ] },
+    esqueleto: { R: INK, L: INK, T: INK, luva: '#EDE6D6', cobre: true, semCabeca: true, bl: (x, z) => {
+      const O = '#EDE6D6', O2 = '#BFB6A2', out = [B(x - .29, .92, z - .29, .58, .54, .58, O), B(x - .2, .9, z - .2, .4, .06, .4, O2),
+        B(x - .19, 1.14, z + .29, .13, .13, .005, INK), B(x + .06, 1.14, z + .29, .13, .13, .005, INK), B(x - .03, 1.06, z + .29, .06, .05, .005, INK),
+        B(x - .16, .97, z + .29, .32, .04, .005, O2), B(x - .03, .44, z - .125, .06, .5, .005, O), B(x - .04, .62, z + .125, .08, .3, .005, O), B(x - .16, .46, z + .125, .32, .05, .005, O)];
+      [.84, .74, .64].forEach(y => out.push(B(x - .21, y, z + .125, .14, .03, .005, O), B(x + .07, y, z + .125, .14, .03, .005, O)));
+      if(Math.floor(performance.now() / 260) % 9 < 2) out.push(B(x - .14, 1.18, z + .292, .04, .04, .004, ROSA), B(x + .1, 1.18, z + .292, .04, .04, .004, ROSA));
+      return out;
+    } },
+    lobisomem: { R: '#7A1F3D', L: '#2E4A7A', T: '#4A3424', luva: '#6B4A32', cobre: true, semCabeca: true, bl: (x, z) => [
+      B(x - .29, .92, z - .29, .58, .56, .58, '#6B4A32'), B(x - .27, 1.46, z - .08, .13, .16, .1, '#6B4A32'), B(x + .14, 1.46, z - .08, .13, .16, .1, '#6B4A32'),
+      B(x - .23, 1.48, z + .02, .06, .1, .005, '#C46A8A'), B(x + .17, 1.48, z + .02, .06, .1, .005, '#C46A8A'),
+      B(x - .14, .96, z + .29, .28, .2, .16, '#A07A55'), B(x - .05, 1.12, z + .45, .1, .05, .005, INK), B(x - .1, .96, z + .45, .03, .04, .004, PAPEL), B(x + .07, .96, z + .45, .03, .04, .004, PAPEL),
+      B(x - .2, 1.24, z + .29, .11, .05, .005, AMARELO), B(x + .09, 1.24, z + .29, .11, .05, .005, AMARELO),
+      B(x - .34, 1.02, z - .1, .05, .2, .2, '#6B4A32'), B(x + .29, 1.02, z - .1, .05, .2, .2, '#6B4A32'),
+      B(x - .16, .66, z + .125, .1, .1, .005, '#6B4A32'), B(x + .06, .56, z + .125, .1, .08, .005, '#6B4A32'), B(x - .12, .88, z + .125, .24, .06, .005, '#6B4A32'),
+      B(x - .05, .4, z - .3, .1, .1, .2, '#6B4A32'), B(x - .05, .3, z - .44, .1, .14, .1, '#A07A55')
+    ] },
+    lencol: { R: PAPEL, L: PAPEL, T: INK, luva: PAPEL, cobre: true, semCabeca: true, bl: (x, z) => [
+      B(x - .33, .12, z - .28, .66, 1.4, .56, PAPEL), B(x - .27, 1.52, z - .22, .54, .06, .44, PAPEL),
+      B(x - .18, 1.16, z + .28, .11, .13, .005, INK), B(x + .07, 1.16, z + .28, .11, .13, .005, INK),
+      B(x - .33, .12, z + .28, .14, .04, .005, '#D9DEE6'), B(x + .02, .12, z + .28, .16, .04, .005, '#D9DEE6')
+    ] },
+    mortovivo: { R: '#6B5B7A', L: '#4A4E56', T: '#5A4634', luva: '#A9A3BF', cobre: true, semCabeca: true, bl: (x, z) => [
+      B(x - .27, .93, z - .27, .54, .52, .54, '#A9A3BF'), B(x - .28, 1.42, z - .28, .56, .06, .56, '#3B2D22'), B(x - .1, 1.46, z - .1, .08, .06, .08, '#3B2D22'), B(x + .08, 1.46, z + .02, .06, .05, .06, '#3B2D22'),
+      B(x - .19, 1.16, z + .27, .12, .12, .005, PAPEL), B(x - .17, 1.18, z + .272, .05, .05, .004, INK), B(x + .06, 1.18, z + .27, .12, .04, .005, INK),
+      B(x - .12, 1.0, z + .27, .14, .04, .005, '#3B1A1A'), B(x + .04, 1.03, z + .27, .16, .02, .005, '#5E3A4A'),
+      B(x - .14, .66, z + .125, .06, .12, .005, '#A9A3BF'), B(x + .12, .56, z + .125, .06, .06, .005, '#A9A3BF'), B(x - .2, .46, z + .125, .14, .05, .005, '#A9A3BF')
+    ] },
+    gatopreto: { R: INK, L: INK, T: INK, bl: (x, z) => [
+      B(x - .26, 1.42, z - .06, .13, .14, .08, INK), B(x + .13, 1.42, z - .06, .13, .14, .08, INK), B(x - .22, 1.44, z + .02, .06, .08, .005, ROSA), B(x + .16, 1.44, z + .02, .06, .08, .005, ROSA),
+      B(x - .04, 1.06, z + .25, .08, .05, .005, ROSA), B(x - .4, 1.06, z + .25, .16, .015, .005, '#2B2F38'), B(x + .24, 1.06, z + .25, .16, .015, .005, '#2B2F38'),
+      B(x - .26, .9, z - .13, .52, .04, .26, ROSA), B(x - .04, .84, z + .13, .08, .07, .04, OURO),
+      B(x - .03, .48, z - .32, .06, .06, .2, INK), B(x - .03, .5, z - .38, .06, .36, .06, INK), B(x - .03, .82, z - .34, .06, .06, .06, INK)
     ] }
   };
   /* v3.77: senta = sentado (no banco do Calçadão): a perna vai pra frente, na altura do assento, e a mão no joelho */
@@ -3035,6 +3101,9 @@
     /* o uniforme por cima (chapéu, capacete, crachá, capa…) */
     if(SK) SK.bl(x, z).forEach(b => add(b));
     /* cabeça (8 x 8 → .5), olhos, barba, cabelo, o que tem na cabeça e os óculos */
+    /* v3.91: a skin que é a cabeça inteira (abóbora, caveira, lobisomem, lençol, morto-vivo) tira a cabeça do boneco: a
+       caixa maior por fora dela perdia pra cabeça na ordem de desenho, dependendo de onde tava a câmera */
+    if(!(SK && SK.semCabeca)){
     add(B(x - .25, .94, z - .25, .5, .5, .5, P));
     add(B(x - .16, 1.2, z + .25, .08, .08, .01, INK)); add(B(x + .08, 1.2, z + .25, .08, .08, .01, INK));
     if(av.barba !== 'nada') add(B(x - .2, .94, z + .24, .4, av.barba === 'barba' ? .14 : .08, .03, escurece(H, .85)));
@@ -3052,6 +3121,7 @@
     else if(topo === 'bandana'){ add(B(x - .27, 1.3, z - .27, .54, .08, .54, ROSA)); }
     if(av.oculos === 'escuro') add(B(x - .22, 1.18, z + .25, .44, .11, .03, INK));
     else if(av.oculos === 'grau'){ add(B(x - .2, 1.17, z + .25, .16, .12, .02, INK)); add(B(x + .04, 1.17, z + .25, .16, .12, .02, INK)); }
+    }
     /* o skate nas costas, de viés */
     if(av.skate){ add(B(x - .36, .4, z - .2, .72, .05, .22, '#2B2F38'), { pitch: 0, piv: [x, .4, z] }); add(B(x - .3, .45, z - .18, .08, .05, .08, PAPEL)); add(B(x + .22, .45, z - .18, .08, .05, .08, PAPEL)); }
     return out;
