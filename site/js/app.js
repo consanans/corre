@@ -563,8 +563,10 @@
     ['Jaula dos Macacos', 'play', 'O jogo Elo Perdido', 'elo perdido jogo jaula macaco macacos simao'],
     ['Salto Beija-Flor', 'verso', 'A cachoeira do Arthur Thomas', 'salto beija flor cachoeira queda agua basalto'],
     ['Bosque dos Ipês', 'verso', 'Ipê florido o ano inteiro', 'bosque ipe ipes arvores'],
-    ['Gleba Palhano', 'verso', 'Os prédios altos', 'predios gleba']
-  ].map(([t, i, s, kw]) => ({ tipo: 'v', key: 'v:' + t, t, s, i, lugar: t, kw }));
+    ['Gleba Palhano', 'verso', 'Os prédios altos', 'predios gleba'],
+    /* v3.87: só no Natal (15/10 até o Dia de Reis), quando ele tá no lago */
+    ['Papai Noel do Igapó', 'star', 'O maior do mundo, 27 m, em pé no lago', 'papai noel natal arvore luzes igapo gigante guinness presente', 'natal']
+  ].map(([t, i, s, kw, so]) => ({ tipo: 'v', key: 'v:' + t, t, s, i, lugar: t, kw, natal: so === 'natal' }));
   /* o que a pessoa abriu pela busca fica no aparelho (por login), pra voltar com um toque */
   const REC_K = 'corre-procura';
   const recentes = () => { try{ const o = JSON.parse(localStorage.getItem(REC_K) || 'null'); return o && st.me && o.u === st.me.id && Array.isArray(o.L) ? o.L.slice(0, 6) : []; }catch(e){ return []; } };
@@ -632,7 +634,7 @@
     P.lista = [];
     const tag = /^#[\p{L}\p{N}_]{2,}$/u.test(q) ? q.slice(1).toLowerCase() : '';
     const pontua = L => L.map(o => ({ o, n: nota(q, o.t, o.kw) })).filter(x => x.n).sort((a, b) => b.n - a.n).map(x => x.o);
-    const F = tag ? [] : pontua(FERR()).slice(0, 5), V = tag ? [] : pontua(LUGARES_V).slice(0, 4);
+    const F = tag ? [] : pontua(FERR()).slice(0, 5), V = tag ? [] : pontua(LUGARES_V.filter(l => !l.natal || (C.verso && C.verso.natal && C.verso.natal()))).slice(0, 4);
     /* hashtag não vai no banco (o "#tag no feed" leva pros posts); o resto, com 2 letras ou mais */
     const vaiNoBanco = !/^#/.test(q) && q.replace(/^@+/, '').length >= 2, B = P.bancoQ === q ? P.banco : null, esperando = vaiNoBanco && !B;
     const gente = B ? B.gente.map(umaPessoa) : [], grupos = B ? B.grupos.map(umGrupo) : [], posts = B ? B.posts.map(p => umPost(p, q)) : [];

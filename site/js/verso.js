@@ -37,6 +37,19 @@
   const BASE = ctx => ctx.__b || 1;
   const naBase = ctx => { const b = BASE(ctx); ctx.setTransform(b, 0, 0, b, 0, 0); };
   const ptBase = (ctx, x, y) => { const m = ctx.getTransform(), b = BASE(ctx); return [Math.round((m.a * x + m.e) / b), Math.round((m.d * y + m.f) / b), m.d / b]; };
+  /* v3.87 · o Natal (o Thales: "colocar decoração de natal na cidade e o papai noel flutuante no igapó, maior papai noel
+     do mundo"). A cidade se enfeita sozinha de 15 de outubro até o Dia de Reis (6 de janeiro, quando o Papai Noel de
+     verdade sai do Igapó), pelo dia de Brasília; o resto do ano ela volta ao normal. natalForca é o gancho dos testes */
+  let natalForca = null, natalVisto = { t: 0, v: false }, NT = 0;
+  /* &natal=1 no endereço mostra o Natal fora de época (pra conferir antes); &natal=0 desliga */
+  try{ const q = new URLSearchParams(location.search).get('natal'); if(q === '1' || q === '0') natalForca = q === '1'; }catch(e){}
+  function natal(){
+    if(natalForca != null) return natalForca;
+    const agora = Date.now(); if(agora - natalVisto.t < 60e3) return natalVisto.v;
+    const d = new Date(agora - 3 * 3600e3), m = d.getUTCMonth() + 1, dia = d.getUTCDate();
+    natalVisto = { t: agora, v: (m === 10 && dia >= 15) || m === 11 || m === 12 || (m === 1 && dia <= 6) };
+    return natalVisto.v;
+  }
 
   /* ---------- texturas de bloco (16x16, feitas aqui mesmo, cada material com o seu ruído e as juntas) ---------- */
   const TEXB = { concreto: '#A4A8AE', escuro: '#4A4E56', branco: '#EEEBE4', preto: '#1B1D22', corten: '#8E4B2B', madeira: '#B3793F', lote: '#E6DECD', calcada: '#C9D0D8', rua: '#2B2F38', dois: '#3A3E45', tronco: '#6B4A32', vidroOn: '#FFD37A', vidroOff: '#2A3442', praca: '#DCCFB6', gramado: '#D9C27F', terra: '#A4553A', agua: '#2F7FC1', mosaico: '#F1EDE4', tijolo: '#8C3B2E', zinco: '#9AA0A8' };
@@ -1620,9 +1633,28 @@
     for(let x = x0 + 110; x < x1 - 60; x += 172){ if(evita(x, 46)) continue; K.bancos.push({ x: Math.round(x), y: topo(x) - 24, lugar: 'Lago Igapó' }); }
     for(let x = x0 + 196; x < x1 - 60; x += 214){ if(evita(x, 46)) continue; K.bancos.push({ x: Math.round(x), y: fundo(x) + 32, lugar: 'Lago Igapó' }); }
     /* postes na calçada de fora */
-    for(let x = x0 + 150; x < x1 - 60; x += 330){ if(evita(x, 40)) continue; const f = foraEm(x); if(f) K.postes.push({ x: Math.round(x), y: f.t + 8 }); }
+    for(let x = x0 + 150; x < x1 - 60; x += 330){ if(evita(x, 40)) continue; const f = foraEm(x); if(f) K.postes.push({ x: Math.round(x), y: f.t + 8, orla: true }); }
+    /* v3.87: o Papai Noel do Igapó, no trecho mais largo da água que sobra longe das pontes, do píer e da ilhinha (o
+       "Igapó 2" daqui), em pé na balsa no meio do lago. Só aparece no Natal, mas o lugar (e a placa da orla de baixo, de frente pra ele) fica
+       guardado o ano inteiro, pra cidade não mudar de cara quando ele chega */
+    { const yDe = c => Math.round(Math.min(c.b - 40, (c.t + c.b) / 2 + 36));
+      /* a balsa inteira (uns 190 px pra cada lado) tem que ficar na água */
+      const ok = i => { const c = cols[i], xm = c.x + B / 2, y = yDe(c); return c.b - c.t >= 150 && !evita(xm, 280) && !(L.ilha && Math.abs(xm - L.ilha.x) < L.ilha.rad + 260) && cols.every(q => Math.abs(q.x + B / 2 - xm) > 240 || (q.t < y - 36 && q.b > y + 8)); };
+      let bi = -1; for(let i = Math.floor(n * .18); i < Math.ceil(n * .75); i++) if(ok(i) && (bi < 0 || cols[i].b - cols[i].t > cols[bi].b - cols[bi].t)) bi = i;
+      if(bi >= 0){ const c = cols[bi], xn = c.x + B / 2, yn = yDe(c), sul = x => { const f = foraEm(x); return f ? f.b - 16 : null; };
+        const livreP = x => sul(x) != null && !K.bancos.some(b => Math.abs(b.x - x) < 60 && b.y > yn) && !K.postes.some(p => Math.abs(p.x - x) < 30 && p.y > yn) && !K.quiosques.some(q => Math.abs(q.x - x) < 80 && q.base > yn);
+        const px = [-90, 90, -170, 170, -250, 250].map(d => xn + d).find(livreP), lx = px == null ? null : [-260, 260, -340, 340, -420, 420].map(d => xn + d).find(x => livreP(x) && Math.abs(x - px) > 150);
+        /* na água em volta: as árvores de luz, os presentes boiando e os cisnes (cada um só onde é água de verdade) */
+        const naAgua = (x, y, m) => { const q = colEm(x); return x > x0 + 40 && x < x1 - 40 && q.t + 26 + m < y && y < q.b - 14 - m && !evita(x, 60) && !(L.ilha && Math.hypot(x - L.ilha.x, y - L.ilha.y) < L.ilha.rad + 70); };
+        const agua = [];
+        [['palma', -330, -70], ['palma', -250, 72], ['palma', 262, 62], ['palma', 340, -60], ['palma', -470, 10], ['palma', 470, 22],
+          ['presente', -196, 74], ['presente', -404, -112], ['presente', 204, 98], ['presente', 412, 92], ['presente', -560, -56], ['presente', 560, -48], ['presente', -300, 150], ['presente', 330, -150],
+          ['cisne', -390, 124], ['cisne', 430, 156]].forEach(([k, dx, dy], i) => { const x = xn + dx, y = yn + dy; if(naAgua(x, y, k === 'cisne' ? 14 : 0) && (k !== 'cisne' || (naAgua(x - 44, y, 14) && naAgua(x + 44, y, 14)))) agua.push({ k, x, y, i }); });
+        L.noel = { x: xn, y: yn, agua, placa: px != null ? { x: Math.round(px), y: Math.round(sul(px)) } : null, letreiro: lx != null ? { x: Math.round(lx), y: Math.round(sul(lx)) } : null };
+        if(L.noel.placa) K.decor.push({ tipo: 'placaNoel', x: L.noel.placa.x, y: L.noel.placa.y }); } }
     /* muita árvore na beira */
-    const ocupado = (x, y) => K.quiosques.some(q => Math.abs(q.x - x) < 64 && y > q.base - 40 && y < q.base + 44) || evita(x, 26) || (sx && Math.abs(x - sx) < 150 && y < foraEm(sx).t + 10);
+    const np = L.noel && L.noel.placa, nl = L.noel && L.noel.letreiro;
+    const ocupado = (x, y) => K.quiosques.some(q => Math.abs(q.x - x) < 64 && y > q.base - 40 && y < q.base + 44) || evita(x, 26) || (sx && Math.abs(x - sx) < 150 && y < foraEm(sx).t + 10) || (np && Math.abs(x - np.x) < 90 && Math.abs(y - np.y) < 80) || (nl && Math.abs(x - nl.x) < 100 && Math.abs(y - nl.y) < 90);
     for(let x = R.x + 30; x < R.x + R.w - 16; x += 56 + Math.floor(sorte() * 32)){
       const f = foraEm(x);
       if(!f){ for(let y = R.y + 70; y < R.y + R.h - 12; y += 84 + sorte() * 40) if(sorte() < .75) K.arv.push({ x: Math.round(x + (sorte() - .5) * 18), y: Math.round(y), cor: pega(IPES, sorte), g: sorte() < .3 }); continue; }
@@ -1981,6 +2013,9 @@
     if(c.acel) P.push({ x: c.acel.porta.x, y: c.acel.porta.y, tipo: 'beisebol' }, { x: c.acel.casa.x, y: c.acel.casa.y, tipo: 'beisebol' });
     /* v3.82: no Parque Arthur Thomas, a Jaula dos Macacos (o Elo Perdido) e as placas de ler */
     if(c.arthur){ const a = c.arthur; P.push({ x: a.jaula.x, y: a.jaula.base + 14, tipo: 'jogo', jogo: 'elo' }); a.placas.forEach(o => P.push({ x: o.x, y: o.y + 6, tipo: 'placa', titulo: o.titulo, txt: o.txt })); }
+    /* v3.87: no Natal, a placa do Papai Noel do Igapó (os números são os do de verdade) */
+    const np = c.lago && c.lago.noel && c.lago.noel.placa;
+    if(np && natal()) P.push({ x: np.x, y: np.y + 6, tipo: 'placa', noel: true, titulo: 'O maior Papai Noel do mundo', txt: '27 metros, 15 toneladas e uns 450 mil pontos de LED, em pé numa balsa presa por quatro âncoras no Lago Igapó 2. Acendeu em 30/11/2025, no LondriNatal, e o Guinness confirmou o recorde em 5/12 (o de antes era de Águeda, em Portugal, com 21 m).' });
     /* a Delegacia, o quartel e o Hospital: na porta, o trampo de cada uniforme */
     ['delegacia', 'bombeiros', 'hospital'].forEach(k => { if(c.centro[k]) P.push({ x: c.centro[k].x + LW / 2, y: c.centro[k].base + 8, tipo: 'civico', k }); });
     /* comida: trucks do Zerão e quiosques do lago */
@@ -2252,6 +2287,13 @@
       for(let i = 0; i < 18; i++){ const f = (t * .8 + i / 18) % 1, lado = i % 2 ? 1 : -1, x = ch.x + lado * (2 + f * 26), y = ch.y - 56 + f * 52 - Math.sin(f * Math.PI) * 10; ctx.fillRect(sn(x), sn(y), u * 2, u * 2); }
       ctx.fillStyle = 'rgba(255,255,255,.4)'; const rr = 14 + (t * 20) % 14; ctx.fillRect(sn(ch.x - rr), ch.y + 4, rr * 2, u);
     }
+    /* v3.87: o reflexo do Papai Noel na água (faixas de vermelho e de luz que tremem) */
+    const nn = l.noel;
+    if(nn && natal() && nn.x > vx - 700 && nn.x < vx + vw + 700){
+      for(let i = 0; i < 7; i++){ const w = 300 - i * 34, dx = Math.sin(t * 2 + i * .9) * 7; ctx.fillStyle = i % 3 === 2 ? 'rgba(255,243,196,.34)' : i % 3 === 1 ? 'rgba(227,169,52,.3)' : 'rgba(212,42,53,.32)'; ctx.fillRect(sn(nn.x - w / 2 + dx), sn(nn.y + 6 + i * 5), w, u); }
+      /* o reflexo dourado das árvores de luz e dos presentes */
+      nn.agua.forEach(o => { if(o.k === 'cisne') return; const pal = o.k === 'palma'; for(let i = 0; i < (pal ? 6 : 3); i++){ const w = (pal ? 34 : 14) - i * (pal ? 5 : 3), dx = Math.sin(t * 2.2 + i + o.i) * 3; ctx.fillStyle = pal ? 'rgba(255,214,120,.36)' : 'rgba(255,140,100,.3)'; ctx.fillRect(sn(o.x - w / 2 + dx), sn(o.y + 4 + i * 5), w, u); } });
+    }
     (l.barcos || []).forEach(b => {
       const s = (b.f + t * b.v) % 2, p = s < 1 ? s : 2 - s, dir = s < 1 ? 1 : -1, x = l.x0 + 160 + p * (span - 320);
       if(x < vx - 60 || x > vx + vw + 60) return;
@@ -2281,7 +2323,9 @@
       if(s.x > vx + vw || s.x + s.w < vx || s.y > vy + vh || s.y + s.h < vy) return;
       ctx.fillStyle = 'rgba(15,18,24,.3)'; ctx.fillRect(s.x + 4, s.y + 6, s.w, s.h);
       ctx.fillStyle = pad(ctx, 'madeira'); ctx.fillRect(s.x, s.y, s.w, s.h);
-      if(s.tipo === 'ponte'){ ctx.fillStyle = pad(ctx, 'concreto'); ctx.fillRect(s.x - 5, s.y, 7, s.h); ctx.fillRect(s.x + s.w - 2, s.y, 7, s.h); ctx.fillStyle = '#121419'; for(let y = s.y + 10; y < s.y + s.h - 6; y += 40){ ctx.fillRect(s.x - 6, y, 9, 7); ctx.fillRect(s.x + s.w - 3, y, 9, 7); } }
+      if(s.tipo === 'ponte'){ ctx.fillStyle = pad(ctx, 'concreto'); ctx.fillRect(s.x - 5, s.y, 7, s.h); ctx.fillRect(s.x + s.w - 2, s.y, 7, s.h); ctx.fillStyle = '#121419'; for(let y = s.y + 10; y < s.y + s.h - 6; y += 40){ ctx.fillRect(s.x - 6, y, 9, 7); ctx.fillRect(s.x + s.w - 3, y, 9, 7); }
+        /* v3.87: no Natal, o pisca-pisca no guarda-corpo das pontes */
+        if(natal()) for(let y = s.y + 6, j = 0; y < s.y + s.h - 4; y += 11, j++){ lampada(ctx, s.x - 3, y, j); lampada(ctx, s.x + s.w + 1, y, j + 4); } }
       else { ctx.fillStyle = '#5A3A22'; for(let y = s.y + 30; y < s.y + s.h; y += 48){ ctx.fillRect(s.x - 4, y, 4, 10); ctx.fillRect(s.x + s.w, y, 4, 10); } }
     });
     /* v3.49: a placa do Torneio de Pesca, no começo do Píer do Igapó */
@@ -2635,6 +2679,8 @@
     ctx.fillStyle = 'rgba(15,18,24,.25)'; ctx.fillRect(a.x - 18 * s, a.y - 3, 36 * s, 7);
     bloco(ctx, a.x - 4 * s, a.y - 30 * s, 9 * s, 30 * s, 'tronco', true);
     bloco(ctx, a.x - 22 * s, a.y - 62 * s, 44 * s, 34 * s, f); bloco(ctx, a.x - 13 * s, a.y - 80 * s, 26 * s, 18 * s, f);
+    /* v3.87: no Natal, um ipê em cada três ganha pisca-pisca (a mata do Tibagi e a do Arthur Thomas ficam no escuro) */
+    if(natal() && !a.mata && !a.parque && (a.g === 2 || hash('n' + a.x + ':' + a.y) % 3 === 0)) copaNatal(ctx, a, s);
   }
   function banco(ctx, b){
     if(b.degrau) return;
@@ -2642,19 +2688,220 @@
     bloco(ctx, b.x - 18, b.y - 10, 4, 10, 'preto', true); bloco(ctx, b.x + 14, b.y - 10, 4, 10, 'preto', true);
     bloco(ctx, b.x - 22, b.y - 18, 44, 8, 'madeira');
   }
-  function poste(ctx, p){ ctx.fillStyle = 'rgba(15,18,24,.2)'; ctx.fillRect(p.x - 4, p.y - 1, 10, 3); ctx.fillStyle = '#2B2F38'; ctx.fillRect(p.x - 2, p.y - 56, 4, 56); ctx.fillRect(p.x - 2, p.y - 56, 13, 3); ctx.fillStyle = '#FFE7A8'; ctx.fillRect(p.x + 5, p.y - 53, 9, 3); }
+  function poste(ctx, p){ if(p.orla && natal()){ arcoLuz(ctx, p); return; } ctx.fillStyle = 'rgba(15,18,24,.2)'; ctx.fillRect(p.x - 4, p.y - 1, 10, 3); ctx.fillStyle = '#2B2F38'; ctx.fillRect(p.x - 2, p.y - 56, 4, 56); ctx.fillRect(p.x - 2, p.y - 56, 13, 3); ctx.fillStyle = '#FFE7A8'; ctx.fillRect(p.x + 5, p.y - 53, 9, 3); if(natal()) posteNatal(ctx, p); }
+  /* ---------- v3.87 · os enfeites de Natal ----------
+     Nada de verde, nem no Natal (regra do Corre): o pisca-pisca é branco quente, vermelho, dourado, azul e rosa; a
+     árvore de Natal é dourada (pinheiro seria verde); a guirlanda da porta é de fita vermelha com laço de ouro; e o
+     Bosque não tem pinheiro: o ipê gigante vira a árvore de Natal da cidade, com a estrela no alto */
+  const LUZES = ['#FFF3C4', '#FF4A4A', '#FFC93D', '#6FB6FF', '#FF7AB8'], VERM_N = '#D42A35', OURO_N = '#FFC93D';
+  /* uma lâmpada do pisca-pisca: cada uma pisca no seu tempo e a cor anda devagar pela fileira */
+  function lampada(ctx, x, y, i){
+    if((Math.floor(NT * 2.6) + i * 3) % 7 === 0) return;
+    const u = 1 / V.k; ctx.fillStyle = LUZES[(i + Math.floor(NT * .5)) % LUZES.length]; ctx.fillRect(sn(x), sn(y), u, u);
+  }
+  function lacoNatal(ctx, x, y){
+    ctx.fillStyle = VERM_N; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x - 8, y - 5); ctx.lineTo(x - 8, y + 5); ctx.closePath(); ctx.moveTo(x, y); ctx.lineTo(x + 8, y - 5); ctx.lineTo(x + 8, y + 5); ctx.closePath(); ctx.fill();
+    ctx.fillRect(x - 4, y + 1, 3, 9); ctx.fillRect(x + 1, y + 1, 3, 8); ctx.fillStyle = OURO_N; ctx.fillRect(x - 2, y - 2, 4, 4);
+  }
+  /* o poste vira bengala doce (a faixa vermelha em espiral) e ganha o laço */
+  function posteNatal(ctx, p){
+    ctx.fillStyle = VERM_N; for(let y = p.y - 50; y < p.y - 4; y += 9){ ctx.beginPath(); ctx.moveTo(p.x - 2, y + 4); ctx.lineTo(p.x + 2, y); ctx.lineTo(p.x + 2, y + 3); ctx.lineTo(p.x - 2, y + 7); ctx.closePath(); ctx.fill(); }
+    lacoNatal(ctx, p.x, p.y - 46);
+  }
+  /* o festão de luz de um poste pro vizinho da mesma calçada (feito uma vez por cidade) */
+  function fiosDe(c){
+    if(c.fios) return c.fios; const F = [];
+    c.postes.forEach(p => { let m = null; c.postes.forEach(q => { const dx = q.x - p.x; if(dx > 60 && dx < 430 && Math.abs(q.y - p.y) < 3 && (!m || dx < m.x - p.x)) m = q; }); if(m) F.push({ a: p, b: m, s: hash(p.x + ':' + p.y) % 97 }); });
+    return (c.fios = F);
+  }
+  function festao(ctx, f){
+    const ax = f.a.x + 2, bx = f.b.x - 2, y0 = f.a.y - 50, L = bx - ax, cai = Math.min(24, 8 + L * .04), n = Math.max(5, Math.round(L / 14));
+    ctx.strokeStyle = 'rgba(20,22,28,.7)'; ctx.lineWidth = Math.max(1, .5 / V.k); ctx.beginPath(); ctx.moveTo(ax, y0); ctx.quadraticCurveTo((ax + bx) / 2, y0 + cai * 2, bx, y0); ctx.stroke();
+    for(let j = 1; j < n; j++){ const s = j / n; lampada(ctx, ax + L * s - .5 / V.k, y0 + 4 * cai * s * (1 - s), f.s + j); }
+  }
+  /* o pisca-pisca na copa do ipê (um em cada três; o ipê gigante sempre) */
+  function copaNatal(ctx, a, s){
+    const r = rng(hash('luz:' + a.x + ':' + a.y)), n = Math.round(11 * s);
+    for(let j = 0; j < n; j++){ const top = r() < .3; lampada(ctx, a.x + (r() - .5) * (top ? 22 : 40) * s, a.y - (top ? 66 + r() * 10 : 34 + r() * 26) * s, j + Math.floor(r() * 40)); }
+  }
+  function estrela(ctx, x, y, r){
+    ctx.beginPath(); for(let i = 0; i < 10; i++){ const a = -Math.PI / 2 + i * Math.PI / 5, rr = i % 2 ? r * .45 : r; ctx.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr); } ctx.closePath(); forma(ctx, OURO_N, 1.4);
+    const brilha = .5 + .5 * Math.sin(NT * 3), u = 1 / V.k; ctx.fillStyle = `rgba(255,243,196,${(.35 + .5 * brilha).toFixed(2)})`;
+    ctx.fillRect(sn(x - u / 2), sn(y - r * 2.1), u, r * 1.1); ctx.fillRect(sn(x - u / 2), sn(y + r), u, r * 1.1); ctx.fillRect(sn(x - r * 2.1), sn(y - u / 2), r * 1.1, u); ctx.fillRect(sn(x + r), sn(y - u / 2), r * 1.1, u);
+  }
+  /* a árvore de Natal dourada (fica no lugar da estátua das pracinhas): quatro andares de festão de ouro, bola vermelha,
+     rosa e azul, o pisca-pisca, a estrela e os presentes no pé */
+  function arvNatal(ctx, x, y){
+    ctx.fillStyle = 'rgba(15,18,24,.25)'; ctx.fillRect(x - 34, y - 3, 68, 7);
+    bloco(ctx, x - 5, y - 16, 10, 14, 'tronco', true);
+    [[64, 0], [50, 20], [36, 38], [22, 54]].forEach(([w, dy]) => { const yb = y - 10 - dy; ctx.beginPath(); ctx.moveTo(x - w / 2, yb); ctx.lineTo(x + w / 2, yb); ctx.lineTo(x + w * .2, yb - 26); ctx.lineTo(x - w * .2, yb - 26); ctx.closePath(); forma(ctx, '#D9A93A', 1.6);
+      ctx.fillStyle = '#B8862A'; ctx.fillRect(x - w / 2 + 3, yb - 4, w - 6, 2); ctx.fillStyle = '#F2D27A'; ctx.fillRect(x - w * .2 + 2, yb - 25, w * .16, 3); });
+    [[-22, -18, VERM_N], [14, -24, ROSA], [-8, -40, AZUL], [16, -52, VERM_N], [-12, -62, ROSA], [6, -76, AZUL], [-24, -14, AZUL], [24, -14, ROSA]].forEach(([dx, dy, c]) => { ctx.beginPath(); ctx.arc(x + dx, y + dy, 3.4, 0, Math.PI * 2); forma(ctx, c, 1); });
+    for(let j = 0; j < 16; j++){ const f = j / 16, w = 60 - f * 44; lampada(ctx, x + Math.sin(j * 2.4) * w * .4, y - 16 - f * 72, j + 5); }
+    estrela(ctx, x, y - 96, 9);
+    [[-26, 12, ROSA], [12, 14, AZUL], [-6, 10, AMARELO]].forEach(([dx, w, c], i) => { const bx = x + dx, by = y - 12 + i % 2 * 2; ctx.beginPath(); ctx.rect(bx, by, w, 12 - i % 2 * 2); forma(ctx, c, 1.2); ctx.fillStyle = c === AMARELO ? VERM_N : PAPEL; ctx.fillRect(bx + w / 2 - 1, by, 2, 12 - i % 2 * 2); });
+  }
+  /* ---------- v3.87 · o maior Papai Noel do mundo, no Igapó ----------
+     O de verdade (LondriNatal 2025): 27 metros, 15 toneladas, uns 450 mil pontos de LED, em pé numa balsa presa por
+     quatro âncoras no Lago Igapó 2; acendeu em 30/11/2025 e o Guinness confirmou o recorde em 5/12 (o de antes era o de
+     Águeda, em Portugal, com 21 m). Pelas fotos que o Thales mandou ("o papai noel é em formato de cone, árvore de
+     Natal"): o corpo é um cone vermelho com arabescos brancos, os lados e os braços (verdes no de verdade, dourados
+     aqui, que verde não entra no Corre), as luvas de ouro segurando o painel do coração, a barba, o gorro caído pro lado,
+     os dois arcos escuros no pé e os presentes na balsa. Em volta, no lago: as árvores de luz, os presentes boiando e os
+     cisnes; na orla, o letreiro #EU ❤ LONDRINA e os postes curvos de luz. E os fogos, de tempo em tempo */
+  const NOEL = { V: '#D42A35', VE: '#9E1C26', L: '#E3A934', LE: '#B37A1E', B: '#F6F3EC', BE: '#D7D2C8', P: '#F1C19B', K: '#17181D' };
+  const NOEL_W = 520, NOEL_ESQ = 260, NOEL_TOPO = 532, NOEL_BAIXO = 40;
+  /* o sino do corpo (lados dourados) e o painel vermelho do meio, do ombro (-330) até a balsa (-22) */
+  const sinoNoel = (ctx, a, b) => { ctx.beginPath(); ctx.moveTo(-a, -330); ctx.quadraticCurveTo(-a - 40, -150, -b, -22); ctx.lineTo(b, -22); ctx.quadraticCurveTo(a + 40, -150, a, -330); ctx.closePath(); };
+  function spriteNoel(k){
+    const M = 16, W = NOEL_W + M * 2, H = NOEL_TOPO + NOEL_BAIXO + M * 2, { cv, ctx } = folha(W, H, k), cx = M + NOEL_ESQ, by = M + NOEL_TOPO;
+    ctx.translate(cx, by);
+    const elip = (x, y, rx, ry, cor, lw) => { ctx.beginPath(); ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2); forma(ctx, cor, lw || 2.4); };
+    const ret = (x, y, w, h, cor, lw) => { ctx.beginPath(); ctx.rect(x, y, w, h); forma(ctx, cor, lw || 2.4); };
+    const risco = (cor, lw) => { ctx.strokeStyle = cor; ctx.lineWidth = lw; ctx.stroke(); };
+    /* as quatro âncoras (os cabos somem na água) e a balsa */
+    ctx.strokeStyle = 'rgba(30,34,42,.8)'; ctx.lineWidth = 2; [[-180, -236, 30], [-150, -178, 36], [150, 178, 36], [180, 236, 30]].forEach(([a, b, d]) => { ctx.beginPath(); ctx.moveTo(a, -6); ctx.lineTo(b, d); ctx.stroke(); });
+    ret(-198, -24, 396, 24, '#2B2F38'); ctx.fillStyle = '#4A4E56'; for(let x = -190; x < 190; x += 46) ctx.fillRect(x, -8, 32, 3);
+    /* o corpo: o sino dourado, o painel vermelho com a sombra e os pontinhos de LED, e o pelo branco nas bordas */
+    sinoNoel(ctx, 72, 178); forma(ctx, NOEL.L); ctx.save(); sinoNoel(ctx, 72, 178); ctx.clip(); ctx.fillStyle = NOEL.LE; ctx.fillRect(110, -340, 120, 330); ctx.restore();
+    sinoNoel(ctx, 44, 120); ctx.fillStyle = NOEL.VE; ctx.fill(); ctx.save(); sinoNoel(ctx, 44, 120); ctx.clip();
+    ctx.fillStyle = NOEL.V; ctx.beginPath(); ctx.ellipse(-24, -170, 120, 210, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = 'rgba(255,190,190,.3)'; for(let y = -326; y < -24; y += 10) for(let x = -124 + (Math.abs(y / 10) % 2 ? 5 : 0); x < 124; x += 10) ctx.fillRect(x, y, 2, 2);
+    /* os arabescos brancos do painel */
+    ctx.lineCap = 'round'; ctx.strokeStyle = NOEL.B; ctx.lineWidth = 3.2;
+    [[-40, -150, 1], [36, -116, -1], [-56, -84, -1], [52, -184, 1], [0, -62, 1]].forEach(([x, y, d]) => { ctx.beginPath(); ctx.arc(x, y, 9, 0, Math.PI * 1.6 * d, d < 0); ctx.stroke(); ctx.beginPath(); ctx.moveTo(x + 9 * d, y); ctx.bezierCurveTo(x + 30 * d, y - 6, x + 26 * d, y + 30, x + 4 * d, y + 34); ctx.stroke(); ctx.beginPath(); ctx.arc(x + 4 * d, y + 40, 6, -Math.PI / 2, Math.PI, d > 0); ctx.stroke(); });
+    ctx.restore(); ctx.lineCap = 'butt';
+    sinoNoel(ctx, 44, 120); risco(NOEL.B, 5); sinoNoel(ctx, 72, 178); risco(INK, 2.4);
+    ret(-180, -34, 360, 14, NOEL.B, 2); ctx.fillStyle = NOEL.BE; for(let x = -172; x < 172; x += 16) ctx.fillRect(x, -26, 8, 3);
+    /* os dois arcos escuros no pé (como no de verdade) */
+    [-48, 48].forEach(x => { ctx.beginPath(); ctx.moveTo(x - 26, -34); ctx.lineTo(x - 26, -66); ctx.arc(x, -66, 26, Math.PI, 0); ctx.lineTo(x + 26, -34); ctx.closePath(); ctx.fillStyle = '#2A1418'; ctx.fill(); risco(NOEL.B, 3); });
+    /* os presentes na frente da balsa */
+    [[-172, 30, 26], [-140, 24, 20], [116, 26, 22], [146, 30, 28]].forEach(([x, w, h], i) => { ret(x, -22 - h, w, h, i % 2 ? '#FFB347' : NOEL.L, 2); ctx.fillStyle = NOEL.V; ctx.fillRect(x + w / 2 - 2, -22 - h, 4, h); ctx.fillRect(x, -22 - h / 2 - 2, w, 4); });
+    /* os braços dourados descendo do ombro, as luvas de ouro e o painel do coração no meio */
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    [-1, 1].forEach(l => { ctx.beginPath(); ctx.moveTo(l * 66, -328); ctx.lineTo(l * 100, -286); ctx.lineTo(l * 84, -246); risco(INK, 39); risco(NOEL.L, 34); });
+    ctx.lineCap = 'butt'; ctx.lineJoin = 'miter';
+    ret(-64, -300, 128, 96, NOEL.B, 2.4); ret(-56, -292, 112, 80, '#BFE3FF', 1.6);
+    ctx.beginPath(); ctx.moveTo(0, -224); ctx.bezierCurveTo(-46, -252, -40, -290, -16, -284); ctx.quadraticCurveTo(-4, -282, 0, -270); ctx.quadraticCurveTo(4, -282, 16, -284); ctx.bezierCurveTo(40, -290, 46, -252, 0, -224); ctx.closePath(); forma(ctx, NOEL.V, 2);
+    ctx.fillStyle = 'rgba(255,255,255,.55)'; ctx.fillRect(-26, -276, 8, 4);
+    elip(-70, -252, 20, 20, '#F2C14E'); elip(70, -252, 20, 20, '#F2C14E');
+    /* a cabeça: o laço vermelho embaixo da barba, o rosto, a barba, o bigode, o nariz, as bochechas e os olhos */
+    ctx.fillStyle = NOEL.V; ctx.beginPath(); ctx.moveTo(0, -308); ctx.lineTo(-22, -318); ctx.lineTo(-22, -298); ctx.closePath(); ctx.moveTo(0, -308); ctx.lineTo(22, -318); ctx.lineTo(22, -298); ctx.closePath(); forma(ctx, NOEL.V, 1.6);
+    elip(0, -372, 40, 34, NOEL.P);
+    ctx.beginPath(); ctx.moveTo(-44, -378); ctx.quadraticCurveTo(-54, -318, 0, -306); ctx.quadraticCurveTo(54, -318, 44, -378); ctx.quadraticCurveTo(24, -352, 0, -354); ctx.quadraticCurveTo(-24, -352, -44, -378); ctx.closePath(); forma(ctx, NOEL.B);
+    ctx.strokeStyle = NOEL.BE; ctx.lineWidth = 2; for(let i = 0; i < 5; i++){ ctx.beginPath(); ctx.arc(-28 + i * 14, -332 + (i % 2) * 8, 6, .2, Math.PI - .2); ctx.stroke(); }
+    elip(-14, -360, 17, 8, NOEL.B, 2); elip(14, -360, 17, 8, NOEL.B, 2); elip(0, -369, 8, 7, '#E9917C', 2);
+    ctx.fillStyle = 'rgba(240,120,120,.55)'; ctx.beginPath(); ctx.ellipse(-24, -372, 7, 5, 0, 0, Math.PI * 2); ctx.ellipse(24, -372, 7, 5, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = NOEL.K; ctx.fillRect(-18, -392, 6, 8); ctx.fillRect(12, -392, 6, 8); ctx.fillStyle = PAPEL; ctx.fillRect(-16, -391, 2, 2); ctx.fillRect(14, -391, 2, 2);
+    ret(-24, -402, 15, 5, NOEL.B, 1.4); ret(9, -402, 15, 5, NOEL.B, 1.4);
+    /* o gorro caindo pro lado, a aba de pelo e o pompom */
+    ctx.beginPath(); ctx.moveTo(-42, -414); ctx.quadraticCurveTo(-32, -482, 20, -502); ctx.quadraticCurveTo(66, -514, 86, -472); ctx.lineTo(72, -464); ctx.quadraticCurveTo(54, -482, 32, -474); ctx.quadraticCurveTo(46, -442, 44, -414); ctx.closePath(); forma(ctx, NOEL.V);
+    ctx.fillStyle = NOEL.VE; ctx.beginPath(); ctx.moveTo(30, -472); ctx.quadraticCurveTo(44, -444, 42, -416); ctx.lineTo(32, -416); ctx.quadraticCurveTo(32, -446, 22, -468); ctx.closePath(); ctx.fill();
+    ret(-48, -420, 96, 22, NOEL.B); ctx.fillStyle = NOEL.BE; for(let x = -42; x < 44; x += 13) ctx.fillRect(x, -405, 7, 3);
+    elip(84, -466, 16, 15, NOEL.B);
+    return { cv, W, H, M: cx, base: by };
+  }
+  /* o contorno de luz: os pontos são contados uma vez (o gorro, o pompom, a aba, a barba, o sino, o painel vermelho, a
+     barra, os arcos, o painel do coração e a balsa); a cada quadro uma falha escura corre em volta, como o pisca-pisca
+     que "anda" */
+  let NOEL_LUZ = null;
+  function luzesNoel(){
+    if(NOEL_LUZ) return NOEL_LUZ; const P = [];
+    const arco = (cx, cy, rx, ry, a0, a1, p) => { const n = Math.max(3, Math.round(Math.abs(a1 - a0) * (rx + ry) / 2 / p)); for(let i = 0; i <= n; i++){ const a = a0 + (a1 - a0) * i / n; P.push([cx + Math.cos(a) * rx, cy + Math.sin(a) * ry]); } };
+    const reta = (x0, y0, x1, y1, p) => { const n = Math.max(1, Math.round(Math.hypot(x1 - x0, y1 - y0) / p)); for(let i = 0; i <= n; i++) P.push([x0 + (x1 - x0) * i / n, y0 + (y1 - y0) * i / n]); };
+    const curva = (x0, y0, qx, qy, x1, y1, p) => { const n = Math.max(3, Math.round(Math.hypot(x1 - x0, y1 - y0) / p)); for(let i = 0; i <= n; i++){ const s = i / n, m = 1 - s; P.push([m * m * x0 + 2 * m * s * qx + s * s * x1, m * m * y0 + 2 * m * s * qy + s * s * y1]); } };
+    curva(-46, -416, -36, -486, 20, -506, 10); curva(20, -506, 70, -518, 90, -474, 10); arco(84, -466, 19, 18, 0, Math.PI * 2, 8);
+    reta(-52, -422, 52, -422, 10); curva(-46, -378, -58, -314, 0, -302, 10); curva(0, -302, 58, -314, 46, -378, 10);
+    [[72, 178, 12], [44, 120, 12]].forEach(([a, b, p]) => { curva(-a, -330, -a - 40, -150, -b, -24, p); curva(a, -330, a + 40, -150, b, -24, p); });
+    reta(-184, -36, 184, -36, 12); reta(-196, -26, 196, -26, 14); arco(-48, -66, 30, 30, Math.PI, Math.PI * 2, 8); arco(48, -66, 30, 30, Math.PI, Math.PI * 2, 8);
+    reta(-68, -304, 68, -304, 10); reta(-68, -200, 68, -200, 10); reta(-68, -304, -68, -200, 10); reta(68, -304, 68, -200, 10);
+    return (NOEL_LUZ = P);
+  }
+  function luzesVivas(ctx, n, t){
+    const u = 1 / V.k, cab = Math.floor(t * 9), P = luzesNoel();
+    P.forEach(([x, y], i) => { const f = ((cab - i) % 26 + 26) % 26; if(f < 3) return; ctx.fillStyle = f < 6 ? PAPEL : i % 7 === 0 ? OURO_N : '#FFF3C4'; ctx.fillRect(sn(n.x + x - u / 2), sn(n.y + y - u / 2), u, u); });
+    /* o brilho que pisca solto pelo corpo */
+    const r = rng(Math.floor(t * 4) + 7); ctx.fillStyle = PAPEL;
+    for(let i = 0; i < 22; i++){ const y = -40 - r() * 280, a = 72 + (178 - 72) * (y + 330) / 308, x = (r() - .5) * 2 * a; ctx.fillRect(sn(n.x + x), sn(n.y + y), u, u); }
+  }
+  /* os fogos: de tempo em tempo uma rajada dourada (às vezes com vermelho) estoura em volta dele, como na foto */
+  function fogosNoel(ctx, n, t){
+    const u = 1 / V.k;
+    for(let j = 0; j < 3; j++){
+      const ciclo = 3.4, fase = t / ciclo + j / 3, i = Math.floor(fase), f = fase - i; if(f > .55) continue;
+      const r = rng(i * 7 + j * 131), cx = n.x + (r() < .5 ? -1 : 1) * (150 + r() * 160), cy = n.y - 380 - r() * 200, raio = 50 + r() * 50, vermelho = r() < .3;
+      if(f < .12){ const s = f / .12; ctx.fillStyle = 'rgba(255,230,170,.9)'; ctx.fillRect(sn(cx), sn(n.y - 40 - (n.y - 40 - cy) * s), u, u * 4); continue; }
+      const p = (f - .12) / .43, a = 1 - p, R = raio * Math.sqrt(p);
+      if(f - .12 < .02 && V.eu && Math.hypot(V.eu.x - n.x, V.eu.y - n.y) < 700 && C.versoSom && V.fogoT !== i * 3 + j){ V.fogoT = i * 3 + j; C.versoSom.rio('fogo'); }
+      for(let q = 0; q < 26; q++){ const ang = q / 26 * Math.PI * 2 + i, x = cx + Math.cos(ang) * R, y = cy + Math.sin(ang) * R + p * p * 30;
+        ctx.fillStyle = `rgba(${vermelho && q % 3 === 0 ? '255,90,90' : q % 2 ? '255,214,120' : '255,243,196'},${a.toFixed(2)})`; ctx.fillRect(sn(x), sn(y), u, u);
+        ctx.fillStyle = `rgba(255,214,120,${(a * .5).toFixed(2)})`; ctx.fillRect(sn(cx + Math.cos(ang) * R * .7), sn(cy + Math.sin(ang) * R * .7 + p * p * 20), u, u); }
+    }
+  }
+  /* o que fica na água em volta (as árvores de luz, os presentes boiando e os cisnes) e o reflexo de cada um */
+  function palmaLuz(ctx, x, y, t, i){
+    const u = 1 / V.k; ctx.fillStyle = 'rgba(15,18,24,.4)'; ctx.fillRect(x - 10, y - 2, 20, 4); ctx.fillStyle = '#EEEBE4'; ctx.fillRect(x - 1, y - 64, 3, 64);
+    ctx.lineWidth = Math.max(1, .6 / V.k); for(let a = 0; a < 9; a++){ const d = (a - 4) / 4, ex = x + d * 30, ey = y - 46 + Math.abs(d) * 18; ctx.strokeStyle = a % 2 ? 'rgba(255,214,120,.9)' : 'rgba(255,243,196,.95)'; ctx.beginPath(); ctx.moveTo(x, y - 64); ctx.quadraticCurveTo(x + d * 22, y - 76, ex, ey); ctx.stroke(); if((Math.floor(t * 3) + a + i) % 4) { ctx.fillStyle = PAPEL; ctx.fillRect(sn(ex - u / 2), sn(ey), u, u); } }
+  }
+  function presenteBoia(ctx, x, y, t, i){
+    const b = Math.sin(t * 1.8 + i) * 1.5; ctx.fillStyle = 'rgba(15,40,80,.35)'; ctx.fillRect(x - 11, y + 1, 22, 3);
+    ctx.beginPath(); ctx.rect(x - 9, y - 16 + b, 18, 16); forma(ctx, i % 3 === 1 ? '#FFB347' : NOEL.V, 1.4); ctx.fillStyle = OURO_N; ctx.fillRect(x - 1.5, y - 16 + b, 3, 16); ctx.fillRect(x - 9, y - 9.5 + b, 18, 3); ctx.fillRect(x - 5, y - 20 + b, 4, 4); ctx.fillRect(x + 1, y - 20 + b, 4, 4);
+  }
+  function cisne(ctx, x, y, t, i){
+    const d = Math.sin(t * .12 + i * 2) > 0 ? 1 : -1, b = Math.sin(t * 1.5 + i) > .2 ? 1 / V.k : 0; y += b;
+    ctx.fillStyle = 'rgba(15,40,80,.3)'; ctx.fillRect(x - 14, y + 1, 28, 3);
+    ctx.beginPath(); ctx.ellipse(x, y - 6, 13, 7, 0, 0, Math.PI * 2); forma(ctx, '#F6F3EC', 1.4);
+    ctx.fillStyle = '#F6F3EC'; ctx.fillRect(x + d * 7 - 2, y - 22, 4, 14); ctx.fillRect(x + d * 7 - 2 + d * 2, y - 24, 6 * d, 4); ctx.fillStyle = LARANJA; ctx.fillRect(x + d * 13 - (d < 0 ? 4 : 0), y - 23, 4, 2); ctx.fillStyle = INK; ctx.fillRect(x + d * 9, y - 23, 1.5, 1.5);
+  }
+  function enfeiteAgua(ctx, o, t){ if(o.k === 'palma') palmaLuz(ctx, o.x, o.y, t, o.i); else if(o.k === 'presente') presenteBoia(ctx, o.x, o.y, t, o.i); else cisne(ctx, o.x + Math.sin(t * .1 + o.i) * 40, o.y + Math.cos(t * .13 + o.i) * 10, t, o.i); }
+  /* o letreiro #EU ❤ LONDRINA da orla (letra grande de pixel, o coração vermelho) */
+  function letreiroLondrina(ctx, x, y){
+    ctx.fillStyle = 'rgba(15,18,24,.3)'; ctx.fillRect(x - 70, y - 2, 140, 5); bloco(ctx, x - 66, y - 8, 132, 8, 'concreto', true);
+    pixTxt(ctx, 'LONDRINA', x, y - 18, 3, PAPEL); pixTxt(ctx, 'EU', x - 16, y - 40, 3, PAPEL);
+    const u = 1 / V.k, hx = x + 14, hy = y - 46; ctx.fillStyle = VERM_N; [[1, 0, 2], [4, 0, 2], [0, 1, 7], [0, 2, 7], [1, 3, 5], [2, 4, 3], [3, 5, 1]].forEach(([dx, dy, w]) => ctx.fillRect(sn(hx + dx * u * 1.5), sn(hy + dy * u * 1.5), w * u * 1.5, u * 1.5));
+    ctx.fillStyle = PAPEL; ctx.fillRect(sn(x - 44), sn(y - 46), u * 1.5, u * 6); ctx.fillRect(sn(x - 47), sn(y - 43), u * 6, u * 1.5); ctx.fillRect(sn(x - 47), sn(y - 39), u * 6, u * 1.5); ctx.fillRect(sn(x - 41), sn(y - 46), u * 1.5, u * 6);
+  }
+  /* o poste curvo de luz da orla (o de verdade é um arco branco aceso) */
+  function arcoLuz(ctx, p){
+    ctx.lineWidth = 3; ctx.strokeStyle = '#EEEBE4'; ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.quadraticCurveTo(p.x - 18, p.y - 40, p.x + 10, p.y - 78); ctx.stroke();
+    for(let j = 0; j < 8; j++){ const s = j / 7, m = 1 - s, x = m * m * p.x + 2 * m * s * (p.x - 18) + s * s * (p.x + 10), y = m * m * p.y + 2 * m * s * (p.y - 40) + s * s * (p.y - 78); lampada(ctx, x - .5 / V.k, y, j + p.x); }
+  }
+  /* olhar o Papai Noel: a câmera se afasta (zoom 1, sem gravar a preferência da pessoa) e sobe até ele; voltaZoom devolve */
+  const olhaNoel = ms => { if(!(V.cid && V.cid.lago && V.cid.lago.noel)) return; if(!V.olhaNoel && !V.zoomAntes && zoomFator() > 1.02){ V.zoomAntes = zoomFator(); V.zoomF = 1; tamanhoTela(); } V.olhaNoel = Date.now() + ms; };
+  function voltaZoom(){ V.olhaNoel = 0; if(V.zoomAntes){ V.zoomF = V.zoomAntes; V.zoomAntes = 0; if(V.vivo) tamanhoTela(); } }
+  function noelNaFila(L, ctx, t, vis){
+    const l = V.cid.lago, n = l && l.noel; if(!n || !natal()) return;
+    n.agua.forEach(o => { if(vis(o.x, o.y, 120)) L.push({ y: o.y, f: () => enfeiteAgua(ctx, o, t) }); });
+    if(n.letreiro && vis(n.letreiro.x, n.letreiro.y, 120)) L.push({ y: n.letreiro.y, f: () => letreiroLondrina(ctx, n.letreiro.x, n.letreiro.y) });
+    if(!vis(n.x, n.y, 420)) return;
+    L.push({ y: n.y, f: () => {
+      /* o ar em volta acende (a luz dele de longe) */
+      const g = ctx.createRadialGradient(n.x, n.y - 290, 40, n.x, n.y - 290, 340); g.addColorStop(0, 'rgba(255,214,150,.2)'); g.addColorStop(1, 'rgba(255,214,150,0)'); ctx.fillStyle = g; ctx.fillRect(n.x - 340, n.y - 630, 680, 640);
+      const k = V.kr || V.k; let s = V.sprites.get('noel'); if(!s){ s = spriteNoel(k); guardaSprite('noel', s); }
+      ctx.drawImage(s.cv, n.x - s.M, n.y - s.base, s.cv.width / k, s.cv.height / k);
+      luzesVivas(ctx, n, t); fogosNoel(ctx, n, t);
+    } });
+  }
+  /* a guirlanda da porta: anel de fita vermelha com bolinhas de ouro e o laço embaixo */
+  function guirlanda(ctx, x, y){
+    ctx.lineWidth = 4; ctx.strokeStyle = INK; ctx.beginPath(); ctx.arc(x, y, 8, 0, Math.PI * 2); ctx.stroke(); ctx.lineWidth = 2.6; ctx.strokeStyle = VERM_N; ctx.stroke();
+    ctx.fillStyle = OURO_N; for(let i = 0; i < 6; i++){ const a = i / 6 * Math.PI * 2 + .3; ctx.fillRect(x + Math.cos(a) * 8 - 1, y + Math.sin(a) * 8 - 1, 2, 2); }
+    ctx.fillStyle = OURO_N; ctx.beginPath(); ctx.moveTo(x, y + 8); ctx.lineTo(x - 5, y + 4); ctx.lineTo(x - 5, y + 12); ctx.closePath(); ctx.moveTo(x, y + 8); ctx.lineTo(x + 5, y + 4); ctx.lineTo(x + 5, y + 12); ctx.closePath(); ctx.fill();
+  }
   /* coisas soltas pela cidade (placa, fonte, estátua, tabela, parquinho, academia, o ipê gigante) */
   function decor(ctx, d, t){
     const u = 1 / V.k;
     switch(d.tipo){
       case 'placa': case 'placa2': { const s = d.s || 1, h = d.h || 30; ctx.fillStyle = INK; if(d.tipo === 'placa2'){ ctx.fillRect(d.x - 44, d.y - h, 5, h); ctx.fillRect(d.x + 40, d.y - h, 5, h); } else ctx.fillRect(d.x - 2, d.y - h, 4, h); pixPlaca(ctx, d.txt, d.x, d.y - h - (5 * s + 6) / 2 * u, { fundo: d.fundo || PAPEL, s }); break; }
       case 'fonte': { bloco(ctx, d.x - 28, d.y - 16, 56, 16, 'concreto'); ctx.fillStyle = pad(ctx, 'agua'); ctx.fillRect(d.x - 22, d.y - 16, 44, 6); ctx.fillStyle = 'rgba(255,255,255,.9)'; ctx.fillRect(sn(d.x - u), d.y - 42, u * 2, 26); for(let i = 0; i < 10; i++){ const f = (t * 1.1 + i / 10) % 1, lado = i % 2 ? 1 : -1; ctx.fillRect(sn(d.x + lado * (3 + f * 15)), sn(d.y - 42 + f * 26 - Math.sin(f * Math.PI) * 5), u, u); } break; }
-      case 'estatua': { bloco(ctx, d.x - 14, d.y - 26, 28, 26, 'concreto'); ctx.fillStyle = '#6E5B3E'; ctx.fillRect(d.x - 5, d.y - 52, 10, 26); ctx.fillRect(d.x - 4, d.y - 62, 8, 9); ctx.fillRect(d.x + 5, d.y - 56, 4, 14); ctx.fillRect(d.x + 6, d.y - 66, 3, 12); ctx.fillStyle = 'rgba(255,255,255,.18)'; ctx.fillRect(d.x - 5, d.y - 52, 3, 26); break; }
+      case 'estatua': { if(natal()){ arvNatal(ctx, d.x, d.y); break; } bloco(ctx, d.x - 14, d.y - 26, 28, 26, 'concreto'); ctx.fillStyle = '#6E5B3E'; ctx.fillRect(d.x - 5, d.y - 52, 10, 26); ctx.fillRect(d.x - 4, d.y - 62, 8, 9); ctx.fillRect(d.x + 5, d.y - 56, 4, 14); ctx.fillRect(d.x + 6, d.y - 66, 3, 12); ctx.fillStyle = 'rgba(255,255,255,.18)'; ctx.fillRect(d.x - 5, d.y - 52, 3, 26); break; }
       case 'tabela': { const L = d.lado; ctx.fillStyle = '#2B2F38'; ctx.fillRect(d.x - 2, d.y - 62, 4, 62); ctx.fillRect(L > 0 ? d.x : d.x - 10, d.y - 62, 10, 3); ctx.fillStyle = '#F4F3EF'; ctx.fillRect(L > 0 ? d.x + 8 : d.x - 11, d.y - 76, 3, 24); ctx.fillStyle = LARANJA; ctx.fillRect(L > 0 ? d.x + 11 : d.x - 21, d.y - 58, 10, 2); break; }
       case 'escorrega': { ctx.fillStyle = '#2B2F38'; ctx.fillRect(d.x - 14, d.y - 40, 3, 40); ctx.fillRect(d.x - 2, d.y - 40, 3, 40); for(let i = 0; i < 4; i++) ctx.fillRect(d.x - 14, d.y - 34 + i * 9, 15, 2); bloco(ctx, d.x - 16, d.y - 46, 20, 6, AMARELO, true); ctx.fillStyle = ROSA; for(let i = 0; i < 7; i++) ctx.fillRect(d.x + 4 + i * 4, d.y - 44 + i * 6, 6, 6); break; }
       case 'balanco': { ctx.fillStyle = '#2B2F38'; ctx.fillRect(d.x - 22, d.y - 46, 3, 46); ctx.fillRect(d.x + 19, d.y - 46, 3, 46); ctx.fillRect(d.x - 22, d.y - 46, 44, 3); const sw = sn(Math.sin(t * 2.4) * 5); ctx.fillStyle = '#9AA0A8'; ctx.fillRect(d.x - 10 + sw, d.y - 43, u, 30); ctx.fillRect(d.x + 8 + sw, d.y - 43, u, 30); ctx.fillStyle = AZUL; ctx.fillRect(d.x - 12 + sw, d.y - 14, 24, 4); break; }
       case 'barra': { ctx.fillStyle = AMARELO; ctx.fillRect(d.x - 12, d.y - 30, 3, 30); ctx.fillRect(d.x + 9, d.y - 30, 3, 30); ctx.fillRect(d.x - 12, d.y - 30, 24, 3); ctx.fillStyle = 'rgba(15,18,24,.25)'; ctx.fillRect(d.x - 14, d.y - 1, 28, 3); break; }
-      case 'ipe': arvore(ctx, { x: d.x, y: d.y, cor: ROSA, g: 2 }); break;
+      case 'ipe': arvore(ctx, { x: d.x, y: d.y, cor: ROSA, g: 2 }); if(natal()) estrela(ctx, d.x, d.y - 170, 13); break;
+      /* v3.87: a placa do Papai Noel do Igapó, na orla de baixo (só no Natal) */
+      case 'placaNoel': if(natal()){ ctx.fillStyle = INK; ctx.fillRect(d.x - 40, d.y - 30, 4, 30); ctx.fillRect(d.x + 36, d.y - 30, 4, 30); pixPlaca(ctx, 'O MAIOR PAPAI NOEL', d.x, d.y - 40, { fundo: VERM_N, cor: PAPEL }); pixPlaca(ctx, 'DO MUNDO: 27 M', d.x, d.y - 28, { fundo: PAPEL }); } break;
       /* v3.75: o guarda-sol da prainha do Tibagi, de gomos (a cor e o branco) */
       case 'guardasol': { ctx.fillStyle = 'rgba(15,18,24,.2)'; ctx.fillRect(d.x - 24, d.y - 3, 48, 6); ctx.fillStyle = '#EEEBE4'; ctx.fillRect(d.x - 1, d.y - 40, 3, 40);
         [[-24, -44, 48, 4], [-19, -48, 38, 4], [-11, -51, 22, 3]].forEach(([x, y, w, h]) => { ctx.fillStyle = d.cor; ctx.fillRect(d.x + x, d.y + y, w, h); ctx.fillStyle = PAPEL; for(let k = x + 6; k < x + w - 4; k += 12) ctx.fillRect(d.x + k, d.y + y, 6, h); });
@@ -3756,7 +4003,7 @@
   /* v3.52: os desenhos prontos (casas, prédios) agora são maiores; a memória guarda os 160 usados por último */
   function guardaSprite(chave, s){ V.sprites.set(chave, s); if(V.sprites.size > 160){ const velho = V.sprites.keys().next().value; V.sprites.delete(velho); } }
   function quadro(t){
-    const { ctx } = V, z = V.z, k0 = V.k, fx = V.fx || 1, k = V.kr || k0, vw = V.cssW / z, vh = V.cssH / z, c = V.cid;
+    const { ctx } = V, z = V.z, k0 = V.k, fx = V.fx || 1, k = V.kr || k0, vw = V.cssW / z, vh = V.cssH / z, c = V.cid; NT = t;
     const vx = V.cam.x - vw / 2, vy = V.cam.y - vh / 2, ox = -Math.round(vx * k0) * fx, oy = -Math.round(vy * k0) * fx;
     ctx.setTransform(k, 0, 0, k, ox, oy); ctx.imageSmoothingEnabled = false;
     chao(ctx, vx, vy, vw, vh); aguaViva(ctx, t, vx, vy, vw, vh); sobreAgua(ctx, vx, vy, vw, vh); aguaRio(ctx, t, vx, vy, vw, vh); sobreRio(ctx, vx, vy, vw, vh, t); aguaParque(ctx, t, vx, vy, vw, vh); sobreParque(ctx, vx, vy, vw, vh);
@@ -3810,6 +4057,12 @@
     if(V.eu) L.push({ y: V.eu.y + (V.eu.sit ? 1 : 0), f: () => boneco(ctx, V.eu, t, true) });
     if(V.eu && V.sk && V.sk.grind) L.push({ y: V.eu.y + 2, f: () => faiscas(ctx, V.eu.x, V.eu.y, t) });
     desenhaTarefa(L, ctx, t, vis);
+    /* v3.87: o Natal (o festão de poste em poste, a guirlanda nas portas e o Papai Noel do Igapó) */
+    if(natal()){
+      fiosDe(c).forEach(f => { if(vis((f.a.x + f.b.x) / 2, f.a.y, 240)) L.push({ y: f.a.y - .5, f: () => festao(ctx, f) }); });
+      c.casas.concat(c.dois ? [c.dois] : []).forEach(h => { if(vis(h.portaX, h.base, 60)) L.push({ y: h.base + .5, f: () => guirlanda(ctx, h.portaX, h.base - 44) }); });
+      noelNaFila(L, ctx, t, vis);
+    }
     L.sort((a, b) => a.y - b.y).forEach(o => o.f());
     if(V.rio && V.rio.fase === 'salto') saltoPeixe(ctx, t);
     if(V.alvo){ ctx.strokeStyle = ROSA; ctx.lineWidth = Math.max(2, 1.05 / k0); ctx.beginPath(); ctx.ellipse(V.alvo.x, V.alvo.y, 10 + Math.sin(t * 6) * 2, 4, 0, 0, Math.PI * 2); ctx.stroke(); }
@@ -3820,7 +4073,9 @@
     if(V.baloes && V.baloes.length){ V.baloes.forEach(b => balaoLongo(ctx, b[0], b[1], b[2])); V.baloes.length = 0; }
   }
   /* ---------- mapa: a cidade inteira numa tela, com viagem rápida ---------- */
-  const lugares = () => (V.casa ? [{ nome: 'Tua casa', x: V.casa.x, y: V.casa.y }] : []).concat(V.cid.lugares);
+  /* v3.87: no Natal, o Papai Noel do Igapó entra na lista (o lugar é a placa da orla, de frente pra ele) */
+  const noelLugar = () => { const n = V.cid.lago && V.cid.lago.noel; return n && n.placa && natal() ? [{ nome: 'Papai Noel do Igapó', x: n.placa.x, y: n.placa.y + 24 }] : []; };
+  const lugares = () => (V.casa ? [{ nome: 'Tua casa', x: V.casa.x, y: V.casa.y }] : []).concat(V.cid.lugares, noelLugar());
   function pertoLivre(x, y){ for(let r = 0; r < 300; r += 14){ for(let a = 0; a < 16; a++){ const px = x + Math.cos(a / 8 * Math.PI) * r, py = y + Math.sin(a / 8 * Math.PI) * r; if(!bate(px, py)) return { x: px, y: py }; if(!r) break; } } return null; }
   function teleporta(x, y){ if(!V.eu) return; saiDoBarco(); V.alvo = null; V.eu.sit = false; V.eu.mov = false; V.eu.x = x; V.eu.y = y; V.cam.x = x; V.cam.y = y - 40; anunciar(); portaUI(); C.closeSheet(); }
   function desenhaMapa(cv, S){
@@ -3846,6 +4101,9 @@
     if(c.arthur){ const a = c.arthur; ctx.fillStyle = '#2F7FC1'; a.lago.cols.forEach(q => ctx.fillRect(X(q.x), Y(q.t), 1, Math.max(1, Math.round((q.b - q.t) / S)))); ctx.strokeStyle = '#2F7FC1'; ctx.lineWidth = 1; a.riachos.forEach(r => { ctx.beginPath(); r.pts.forEach((q, i) => i ? ctx.lineTo(X(q.x), Y(q.y)) : ctx.moveTo(X(q.x), Y(q.y))); ctx.stroke(); }); }
     const l = c.lago; ctx.fillStyle = '#C9D0D8'; l.bandas[0][1].forEach(q => ctx.fillRect(X(q.x), Y(q.t), 1, Math.max(1, Math.round((q.b - q.t) / S))));
     ctx.fillStyle = '#2F7FC1'; l.cols.forEach(q => ctx.fillRect(X(q.x), Y(q.t), 1, Math.max(1, Math.round((q.b - q.t) / S))));
+    /* v3.87: no Natal, o Papai Noel em pé na balsa, no meio do lago */
+    if(l.noel && natal()){ const nx = X(l.noel.x), ny = Y(l.noel.y); ctx.fillStyle = '#2B2F38'; ctx.fillRect(nx - 9, ny - 2, 19, 3); ctx.fillStyle = '#E3A934'; [[-8, 17], [-7, 15], [-6, 13], [-5, 11], [-5, 11], [-4, 9]].forEach(([d, w], i) => ctx.fillRect(nx + d, ny - 3 - i * 2, w, 2));
+      ctx.fillStyle = '#D42A35'; [[-5, 11], [-5, 11], [-4, 9], [-4, 9], [-3, 7], [-3, 7]].forEach(([d, w], i) => ctx.fillRect(nx + d, ny - 3 - i * 2, w, 2)); ctx.fillStyle = '#F6F3EC'; ctx.fillRect(nx - 3, ny - 18, 7, 4); ctx.fillStyle = '#F1C19B'; ctx.fillRect(nx - 2, ny - 20, 5, 2); ctx.fillStyle = '#D42A35'; ctx.fillRect(nx - 2, ny - 24, 5, 3); ctx.fillStyle = '#F6F3EC'; ctx.fillRect(nx - 3, ny - 21, 7, 1); ctx.fillRect(nx + 3, ny - 24, 2, 2); }
     const z = c.zerao; ctx.strokeStyle = '#A4553A'; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(X(z.cx), Y(z.cy), z.rx / S - 1, z.ry / S - 1, 0, 0, Math.PI * 2); ctx.stroke();
     if(z.skate){ const s = z.skate; ctx.fillStyle = '#A4A8AE'; ctx.fillRect(X(s.x0), Y(s.y0), Math.round((s.x1 - s.x0 - 30) / S), Math.round((s.y1 - s.y0 - 50) / S)); ctx.fillStyle = '#6A7078'; ctx.fillRect(X(s.bowl.x) - 2, Y(s.bowl.y) - 1, 4, 3); }
     const e = c.estadio.campo; ctx.fillStyle = '#2E5BFF'; ctx.fillRect(X(e.x) - 4, Y(e.y) - 6, Math.round(e.w / S) + 8, Math.round(e.h / S) + 10); ctx.fillStyle = '#D9C27F'; ctx.fillRect(X(e.x), Y(e.y), Math.round(e.w / S), Math.round(e.h / S));
@@ -4004,7 +4262,11 @@
     /* v3.75: pescando, a câmera desce um tanto: o barco sobe na tela e o painel da pesca não tampa a boia (no celular,
        onde o painel e o botão ficam no meio da tela, desce mais) */
     const rioC = e.barco && V.rio && V.rio.fase ? ch / z * (V.pad ? .26 : .1) : 0;
-    const tx = clamp(e.x, cw / 2 / z, Math.max(cw / 2 / z, V.cid.W - cw / 2 / z)), ty = clamp(e.y - 40 - altC + rioC, TOPO - RUA - 300 + ch / 2 / z, Math.max(TOPO, V.cid.H - ch / 2 / z));
+    /* v3.87: lendo a placa do Papai Noel do Igapó (ou chegando nele pelo Mapa), a câmera se afasta e sobe até o meio dele,
+       pra ver o gigante inteiro; andou ou deu o tempo, ela volta */
+    const nl = V.cid.lago && V.cid.lago.noel; if(V.olhaNoel && (e.mov || Date.now() > V.olhaNoel)) voltaZoom();
+    const noelC = V.olhaNoel && nl ? Math.max(0, e.y - 40 - (nl.y - 236)) : 0;
+    const tx = clamp(V.olhaNoel && nl ? nl.x : e.x, cw / 2 / z, Math.max(cw / 2 / z, V.cid.W - cw / 2 / z)), ty = clamp(e.y - 40 - altC + rioC - noelC, TOPO - RUA - 300 + ch / 2 / z, Math.max(TOPO, V.cid.H - ch / 2 / z));
     const k = Math.min(1, dt * 6); V.cam.x += (tx - V.cam.x) * k; V.cam.y += (ty - V.cam.y) * k;
     /* v3.75: no barco, a única porta é a do píer (pra descer), e de um pouco mais longe (o barco não encosta) */
     let melhor = null, md = e.barco ? 100 : PORTA_R; if(!V.voo) for(const p of V.portas){ if(e.barco && (p.tipo !== 'barco' || !e.barco.livre)) continue; const d = Math.hypot(p.x - e.x, p.y - e.y); if(d < md){ md = d; melhor = p; } }
@@ -4448,6 +4710,16 @@
     ['Viu o kart dos bichos?', 'Vi. Perdi pra uma capivara de patinete.'],
     ['Fui no Arthur Thomas.', 'E os macacos?', 'Levaram meu pastel e meu orgulho.']
   ];
+  /* v3.87 · o que se fala no Natal (entra no meio das frases de sempre, de 15/10 até o Dia de Reis) */
+  const FRASES_NATAL = ['Já viu o Papai Noel do Igapó? 27 metros. Eu tenho 1,62 e me sinto igual.', 'Amigo secreto da firma: ganhei um pano de prato. Dei um pano de prato.',
+    'Trinta e quatro graus e o Papai Noel de casaco. Isso é profissionalismo.', 'Chester é um bicho que só existe em dezembro.', 'Panetone ou chocotone? Não respondo sem advogado.',
+    'Pedi um cliente que paga em dia. O Papai Noel visualizou.', 'Uva-passa no arroz divide família.', 'Esse pisca-pisca é igual meu Wi-Fi: liga, desliga, liga.'];
+  const PAPOS_NATAL = [
+    ['Vai passar o Natal onde?', 'Na casa da minha vó.', 'Com uva-passa?', 'Com tudo. Inclusive a tia do zap.'],
+    ['O Papai Noel do Igapó é o maior do mundo.', 'Maior que o de Águeda?', 'O de Águeda tinha 21. O nosso tem 27.'],
+    ['Já montou a árvore?', 'Montei. O gato desmontou.'],
+    ['Comprou presente?', 'Comprei pra mim. Pra garantir.']
+  ];
   const embaralha = L => { const a = L.slice(); for(let i = a.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
   function criaMoradores(){
     const c = V.cid, L = lugares(), calcadao = L.find(l => l.nome === 'Calçadão') || { x: c.praca.cx, y: c.praca.cy };
@@ -4460,7 +4732,7 @@
     });
   }
   /* a próxima frase do morador: as dele, embaralhadas, com duas das de todo mundo no meio */
-  function proximaFrase(m){ if(!m.fila.length) m.fila = embaralha(m.d.frases.concat(embaralha(FRASES_TODOS).slice(0, 2))); return m.fila.pop(); }
+  function proximaFrase(m){ if(!m.fila.length) m.fila = embaralha(m.d.frases.concat(embaralha(FRASES_TODOS).slice(0, 2), natal() ? embaralha(FRASES_NATAL).slice(0, 2) : [])); return m.fila.pop(); }
   const olhaPra = (m, x, y) => { if(m.sit) return; const dx = x - m.x, dy = y - m.y; m.dir = Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 'esq' : 'dir') : (dy < 0 ? 'cima' : 'baixo'); };
   function comecaPapo(quem, linhas, eu){
     const agora = Date.now(), p = { dono: quem[0], quem, linhas, i: 0, prox: agora + (eu ? 0 : 350), eu: !!eu };
@@ -4502,7 +4774,7 @@
       /* cruzou com outro morador: às vezes param e conversam */
       if(agora - m.papoT > 35000){
         const o = L.find(x => x !== m && !x.papo && agora - x.papoT > 35000 && Math.hypot(x.x - m.x, x.y - m.y) < 46);
-        if(o && Math.random() < dt * 1.5){ const d = sorteio(PAPOS); comecaPapo([m, o], d.map((t, k) => [k % 2 ? o : m, t])); continue; }
+        if(o && Math.random() < dt * 1.5){ const d = sorteio(natal() ? PAPOS.concat(PAPOS_NATAL) : PAPOS); comecaPapo([m, o], d.map((t, k) => [k % 2 ? o : m, t])); continue; }
       }
       /* o passeio: banco, encontrar alguém ou um canto perto de casa */
       m.esp -= dt;
@@ -5048,7 +5320,7 @@
   function zoomFator(){ if(V.zoomF) return V.zoomF; let f = 1.5; try{ const v = parseFloat(localStorage.getItem(ZOOM_K)); if(Number.isFinite(v)) f = v; }catch(e){} V.zoomF = Math.max(.8, Math.min(2.4, f)); return V.zoomF; }
   let zoomT = 0;
   function poeZoom(f){
-    V.zoomF = Math.max(.8, Math.min(2.4, f)); try{ localStorage.setItem(ZOOM_K, String(Math.round(V.zoomF * 100) / 100)); }catch(e){}
+    V.zoomAntes = 0; V.zoomF = Math.max(.8, Math.min(2.4, f)); try{ localStorage.setItem(ZOOM_K, String(Math.round(V.zoomF * 100) / 100)); }catch(e){}
     clearTimeout(zoomT); zoomT = setTimeout(() => { if(V.vivo) tamanhoTela(); }, 90);
   }
   function rodaCidade(e){ if(!V.vivo) return; e.preventDefault(); poeZoom(zoomFator() * (e.deltaY < 0 ? 1.1 : 1 / 1.1)); }
@@ -5255,7 +5527,7 @@
     if(V.stream){ const s = V.stream; tenta(() => s.getTracks().forEach(t => t.stop())); }
     V.stream = null; V.mic = false; V.anEu = null; V.pedindoMic = false;
     if(!V.vivo && !V.rede) return;
-    V.vivo = false; tenta(() => cancelAnimationFrame(V.raf)); clearInterval(V.prox); clearInterval(V.bate); clearInterval(V.avSync);
+    voltaZoom(); V.vivo = false; tenta(() => cancelAnimationFrame(V.raf)); clearInterval(V.prox); clearInterval(V.bate); clearInterval(V.avSync);
     for(const k of [...V.peers.keys()]) tenta(() => fechar(k, true));
     V.peers = new Map();
     const r = V.rede; V.rede = null; if(r) tenta(() => r.sair());
@@ -5975,7 +6247,7 @@
     if(p.tipo === 'comida'){ come(p.k); return; }
     if(p.tipo === 'aquario' || p.tipo === 'jogo'){ abreJogo(p.jogo); return; }
     /* v3.82: as placas do Parque Arthur Thomas */
-    if(p.tipo === 'placa'){ C.toast(p.txt, 8000); return; }
+    if(p.tipo === 'placa'){ C.toast(p.txt, 8000); if(p.noel) olhaNoel(9000); return; }
     if(p.tipo === 'civico'){ trampoSheet(p.k); return; }
     if(p.tipo === 'tarefa'){ if(V.mjIgn && Date.now() - V.mjIgn < 800){ V.mjIgn = 0; return; } agirTarefa(); return; }
     if(p.tipo === 'lote'){
@@ -6166,7 +6438,7 @@
     'cvr-casa': () => { if(!V.eu || !V.casa) return; saiDoBarco(); V.alvo = null; V.eu.sit = false; V.eu.pesca = null; V.eu.x = V.casa.x; V.eu.y = V.casa.y; V.entrando = .55; anunciar(); portaUI(); },
     'cvr-gente': () => genteSheet(),
     'cvr-mapa': () => { if(V.cid) mapaSheet(); },
-    'cvr-ir-lugar': el => { const l = lugares()[Number(el.dataset.i)]; if(!l) return; const p = pertoLivre(l.x, l.y); if(p) teleporta(p.x, p.y); },
+    'cvr-ir-lugar': el => { const l = lugares()[Number(el.dataset.i)]; if(!l) return; const p = pertoLivre(l.x, l.y); if(p){ teleporta(p.x, p.y); if(l.nome === 'Papai Noel do Igapó') olhaNoel(7000); } },
     'cvr-porta': () => abrePorta(),
     'cvr-mj-seta': el => mjSeta(el.dataset.d),
     'cvr-mj-larga': () => mjLarga(),
@@ -6197,7 +6469,7 @@
     irPara: nome => {
       if(!V.vivo || !V.cid || !V.eu || (C.casa && C.casa.aberta && C.casa.aberta())) return false;
       const l = lugares().find(x => x.nome === nome), p = l && pertoLivre(l.x, l.y); if(!p) return null;
-      teleporta(p.x, p.y); return true;
+      teleporta(p.x, p.y); if(nome === 'Papai Noel do Igapó') olhaNoel(7000); return true;
     },
     /* a casa avisa que você pulou lá dentro (quem tá na casa vê) */
     marcaPulo: () => { if(!V.eu) return; V.eu.puN = ((V.eu.puN || 0) % 999) + 1; enviaPos(true); },
@@ -6205,5 +6477,7 @@
     skin, avLimpo, nivel, cores: { PELES, CAB_CORES, ROUPA_CORES, CALCA_CORES, TENIS_CORES }, anunciar, enviaPos, retoma: () => { V.tAnt = 0; V.teclas.clear(); portaUI(); }, mic: () => V.mic, peers: () => V.peers, remotos: () => V.remotos, montaCidade, desenhaCasa: (c, k) => (ESTILO_SPRITE()[c.estilo] || spriteCasa)(c, k).cv, estado: () => V, vivo: () => !!V.vivo, chip: chipVolta, balcao: () => BC, abreBalcao, fechaBalcao, gente: () => contaGente(), aparece: () => [...quemAparece()], PERSONAGENS,
     atualizaAv: () => { if(V.eu && C.st.me){ V.eu.av = avLimpo(C.st.me.verso, C.st.me.id); anunciar(); } }, avatar: deOnde => avatarSheet(false, deOnde), come, falaAuto, bolas: () => V.bolas || [], COMIDAS, JOGOS, abreJogo, fechaJogo, jogo: () => V.jogo, zoom: poeZoom, zoomFator, SKINS, SKIN, TAREFAS, CIVICOS, PATENTES, patenteDe, pegaTarefa, largaTarefa, agirTarefa, tarefa: () => V.tarefa, trampoSheet,
     /* v3.85: o sorteio do rio e a balança (pros testes) */
-    sorteiaPeixe, balanca };
+    sorteiaPeixe, balanca,
+    /* v3.87: é Natal na cidade? natal(true/false) força (pros testes), natal(null) volta pro calendário */
+    natal: v => { if(v !== undefined){ natalForca = v; if(V.cid) V.portas = portas(); } return natal(); }, olhaNoel: ms => olhaNoel(ms || 9000) };
 })();
