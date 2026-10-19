@@ -24,6 +24,9 @@
      meio, em destaque: a praça. */
   const FUNDADOR = 'd1e9f6ac-f5d7-4723-8b02-eb0d1d7137b0';
   C.ehFundador = () => !!st.me && (st.me.id === FUNDADOR || (!!C.DEMO && st.me.handle === 'consanans'));
+  /* v4.04: dono (o fundador e quem tá na corre_donos, pelo corre_meu_acesso): vê a Lojinha. Até o acesso chegar do
+     banco, só o fundador */
+  C.ehDono = () => C.ehFundador() || !!(C.acesso && C.acesso.dono);
   /* a casa do fundador (o loft) é dele por id, mesmo que o @ mude */
   C.fundadorId = () => FUNDADOR;
   /* ferramentas ligadas no perfil (corre_perfis.ferramentas): o Hórus liga e desliga; o Studio tá sempre na porta */
@@ -41,7 +44,7 @@
     marcas: ['#/marcas', 'Portfólio e catálogo', 'marcas'], salvos: ['#/salvos', 'Salvos', 'save'], banca: ['#/banca', 'Banca do dia', 'banca'], refs: ['#/refs', 'Do teu nicho', 'cal'],
     /* v4.0 · o Link na bio (bio.js) */
     linkbio: ['#/linkbio', 'Link na bio', 'link'], convite: ['', 'Chamar a galera', 'presente'],
-    /* v4.02 · a Lojinha (o painel do dono, lojinha.js): só o fundador vê (o tem() filtra) */
+    /* v4.02 · a Lojinha (o painel do dono, lojinha.js): só os donos veem (o tem() filtra; v4.04: o Jey e o Lucas também) */
     lojinha: ['#/lojinha', 'Lojinha', 'grafico']
   });
   /* os grupos: [nome, ícone, o que mora dentro]. No computador cada um abre ali mesmo, no menu; no celular a gaveta
@@ -59,7 +62,7 @@
      lugar à Comanda, aos Teus e ao Tudo; os grupos seguem dentro do Tudo e da gaveta) */
   const PRACA = ['verso', 'mural'];
   /* o que depende do perfil ou do módulo carregado: o Hórus liga e desliga, o Studio Houzi e os Grupos podem não vir */
-  const tem = k => (k !== 'horus' || C.ferr('horus')) && (k !== 'houzi' || C.views.houzi) && (k !== 'grupos' || C.views.grupos) && (k !== 'lojinha' || (C.ehFundador() && !!C.views.lojinha));
+  const tem = k => (k !== 'horus' || C.ferr('horus')) && (k !== 'houzi' || C.views.houzi) && (k !== 'grupos' || C.views.grupos) && (k !== 'lojinha' || (C.ehDono() && !!C.views.lojinha));
   /* de qual item do menu cada página é (e pra onde a setinha de voltar leva). Banca e Nicho não são mais filhas do
      Início: moram na Banca, e o grupo aberto no menu já diz onde você tá */
   const DONO = { vendas: 'corre', grana: 'corre', estilo: 'corre', 'studio-dentro': 'studio', editar: 'perfil' };
@@ -1245,8 +1248,9 @@
     /* erro de rede NÃO é "perfil não existe": tenta de novo e, se não der, avisa (antes caía no cadastro e a pessoa recriava o perfil) */
     st.meErro = false;
     for(let i = 0; i < 3; i++){
-      /* v3.60: com o perfil, os planos (o Studio já sabe quantas redes cabem; não espera) */
-      try{ st.me = await api.one('corre_perfis', { eq: { id: st.user.id } }); if(st.me){ st.loadedFor = st.user.id; if(C.acessoCarrega) C.acessoCarrega(); } return; }
+      /* v3.60: com o perfil, os planos (o Studio já sabe quantas redes cabem; não espera). v4.04: chegou e é dono (sem
+         ser o fundador), o menu se refaz pra Lojinha aparecer */
+      try{ st.me = await api.one('corre_perfis', { eq: { id: st.user.id } }); if(st.me){ st.loadedFor = st.user.id; if(C.acessoCarrega) C.acessoCarrega().then(A => { if(A && A.dono && !C.ehFundador()) refazMenu(); }); } return; }
       catch(e){ if(i < 2) await new Promise(r => setTimeout(r, 700 * (i + 1))); }
     }
     st.me = null; st.meErro = true;

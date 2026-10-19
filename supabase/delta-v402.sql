@@ -13,7 +13,7 @@
 -- 2) ATIVO, ATÉ AQUI: o que a pessoa fez e já tem data no banco (post, mensagem, curtida, lead, venda, tarefa na
 --    cidade...) e a sessão do login (auth.sessions renova de hora em hora com o app aberto). Com o (1), daqui pra
 --    frente conta também quem só abriu e olhou.
--- 3) corre_lojinha(p_dias): o resumo inteiro num jsonb. Só o fundador (corre_ve_lojinha; pra mais alguém ver, é trocar
+-- 3) corre_lojinha(p_dias): o resumo inteiro num jsonb. Só os donos (corre_ve_lojinha; pra mudar quem vê, é trocar
 --    essa função). O fundador e o @corre ficam fora das contas de gente (são a casa, não o público).
 
 -- 1) o dia de cada um
@@ -35,9 +35,17 @@ language sql security definer set search_path = public as $$
 revoke all on function public.corre_marca_dia() from public, anon, authenticated, service_role;
 grant execute on function public.corre_marca_dia() to authenticated;
 
--- 2) quem vê a Lojinha: o fundador, por id (o @ pode mudar)
+-- 2) quem vê a Lojinha: os donos (o Thales, 19/10/2026: "Lucas e Jey veem a Lojinha"). É o corre_eh_dono da v3.80: o
+--    fundador, por id (o @ pode mudar), e quem tá em corre_donos (hoje o @jeydiaz e o @simonini.lucas0). Sem a v3.80,
+--    só o fundador
 create or replace function public.corre_ve_lojinha(p uuid) returns boolean
-language sql stable set search_path = public as $$ select p is not null and p = 'd1e9f6ac-f5d7-4723-8b02-eb0d1d7137b0'::uuid $$;
+language plpgsql stable set search_path = public as $$
+begin
+  if p is null then return false; end if;
+  if p = 'd1e9f6ac-f5d7-4723-8b02-eb0d1d7137b0'::uuid then return true; end if;
+  if to_regprocedure('public.corre_eh_dono(uuid)') is null then return false; end if;
+  return coalesce(public.corre_eh_dono(p), false);
+end $$;
 revoke all on function public.corre_ve_lojinha(uuid) from public, anon, authenticated, service_role;
 
 -- 2b) "montou o link na bio": o gatilho da v4.0 grava {"links": []} em todo perfil novo, então perfil sem nada não é

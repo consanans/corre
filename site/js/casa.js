@@ -1404,13 +1404,19 @@
     const agora = Date.now(); n.fala = { t, ate: agora + 1900 + t.length * 58, voce: !!voce };
     if(S.eu && C.versoSom && C.versoSom.papo && Math.hypot(n.x - S.eu.x, n.z - S.eu.z) < 10) C.versoSom.papo(Math.min(40, t.length), n.voz);
   }
+  /* v4.04: o canto do Marcão: 1,4 s pulando (três pulinhos) e o bumbo se você tá a até 12 m */
+  function cantaCalc(n){
+    n.cantaAte = Date.now() + 1400;
+    if(S.eu && C.versoSom && C.versoSom.taiko && Math.hypot(n.x - S.eu.x, n.z - S.eu.z) < 12) C.versoSom.taiko(3);
+  }
   /* trocar ideia: quem é de vender, vende; quem tá sentado ou em roda fala com você */
   function trocaIdeia(n){
     const agora = Date.now(); if(!n || agora - (n.botaoT || 0) < 900) return; n.botaoT = agora;
     if(!n.sit && !n.senta && n.papel !== 'anda' && S.eu) n.olha = agora + 6000;
     /* v4.04: o torcedor para de andar pra falar com você */
     if(n.grita && n.papel === 'anda') n.paraAte = agora + 6500;
-    diz(n, n.falas ? proxFala(n) : n.papel === 'anda' ? sorteia(FALA_PASSA) : sorteia(FALA_VOCE), true);
+    const t = n.falas ? proxFala(n) : n.papel === 'anda' ? sorteia(FALA_PASSA) : sorteia(FALA_VOCE);
+    diz(n, t, true); if(n.grita && t === C.verso.canto) cantaCalc(n);
   }
   function vaiFalar(n){
     const e = S.eu; if(!e || !n) return;
@@ -1453,7 +1459,9 @@
       if(n.papel === 'grita'){ if(agora > n.prox && perto(n) < 20){ diz(n, proxFala(n)); n.prox = agora + 8000 + Math.random() * 8000; } if(n.mao === 'violao'){ n.passo += dt * 11; n.andando = true; } }
       /* v4.04: o torcedor solta uma das dele andando (se você tá a até 20 m) e para pra quem chega perto (olhando) */
       if(n.papel === 'anda' && n.grita){
-        if(agora > n.gritoT && perto(n) < 20 && !(n.fala && n.fala.ate > agora)){ diz(n, proxFala(n)); n.gritoT = agora + 9000 + Math.random() * 7000; }
+        /* um a cada três é o canto ("Uh, terror! Falange Azul! Fanáticooos!"): para, pula três vezes e sacode a bandeira */
+        if(agora > n.gritoT && perto(n) < 20 && !(n.fala && n.fala.ate > agora)){ n.gritoN = (n.gritoN || 0) + 1; const t = n.gritoN % 3 === 1 && C.verso.canto ? C.verso.canto : proxFala(n); diz(n, t); if(t === C.verso.canto) cantaCalc(n); n.gritoT = agora + 9000 + Math.random() * 7000; }
+        if(agora < (n.cantaAte || 0)){ n.y = Math.abs(Math.sin((n.cantaAte - agora) / 1400 * 3 * Math.PI)) * .26; n.andando = false; if(!(n.z > 33.2 && n.z < 44.8)) continue; } else if(n.y) n.y = 0;
         /* no meio da Rio de Janeiro ele não para (segurava o carro): termina de atravessar */
         const naRua = n.z > 33.2 && n.z < 44.8;
         if(perto(n) < 2.6 && !e.sit && !naRua) n.paraAte = Math.max(n.paraAte || 0, agora + 1500);
@@ -1501,7 +1509,8 @@
     /* v4.04: a bandeira do Marcão: o mastro na mão direita e o pano saindo pra trás em diagonal (de frente e de lado ele
        aparece), balançando com o passo. Perto do mastro as listras rubro-negras; na ponta, o azul com a faixa branca */
     else if(n.mao === 'bandeira'){
-      const mx = x + .26, mz = z + .08, onda = { yaw: .8 + Math.sin(n.passo * .55) * .18 + (n.andando ? 0 : Math.sin(Date.now() / 700) * .08), piv: [mx, 0, mz] };
+      const canta = (n.cantaAte || 0) > Date.now();
+      const mx = x + .26, mz = z + .08, onda = { yaw: .8 + (canta ? Math.sin(Date.now() / 85) * .5 : Math.sin(n.passo * .55) * .18 + (n.andando ? 0 : Math.sin(Date.now() / 700) * .08)), piv: [mx, 0, mz] };
       add(B(mx - .025, .48, mz - .025, .05, 2.12, .05, '#8C5A2E')); add(B(mx - .045, 2.6, mz - .045, .09, .09, .09, OURO));
       const pano = (b, c) => out.push(solido(b, [onda, giro], c, dono));
       for(let r = 0; r < 4; r++) pano(B(mx + .03, 2.5 - (r + 1) * .13, mz - .015, .45, .13, .03), r % 2 ? INK : '#B4152E');

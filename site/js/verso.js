@@ -5371,7 +5371,10 @@
      aliadas. União Sinistra, com maiúscula, é o nome de OUTRA aliança (Mancha Verde, Força Jovem do Vasco e Galoucura,
      do lado da Império Alviverde do Coxa): aqui "sinistra" é o elogio, nunca o nome. Torcida aqui é bandeira e
      cantoria: nada de briga e nada de xingar o rival */
-  const TORCIDA = ['A união da Fanáticos com a Falange Azul é sinistra. Furacão e Tubarão lado a lado!', 'Falange Azul nasceu em 1992, de uma turma de amigos. Virou das maiores do Sul.',
+  /* o canto (o Thales: "Uh terror, Falange Azul, Fanáticooos"): o Marcão puxa um a cada três que solta, pulando, com o
+     bumbo e a bandeira sacudindo */
+  const CANTO = 'Uh, terror! Falange Azul! Fanáticooos!';
+  const TORCIDA = [CANTO, 'A união da Fanáticos com a Falange Azul é sinistra. Furacão e Tubarão lado a lado!', 'Falange Azul nasceu em 1992, de uma turma de amigos. Virou das maiores do Sul.',
     'A Fanáticos é de 1977. O Calçadão também. Coincidência? Acho que não.', 'Furacão no peito, Tubarão no coração. Aliado é aliado.',
     'Sabe por que o Corre não tem verde? Aqui é rubro-negro e azul. Verde, só se o cliente pedir.', 'Repara: nem a grama do Correverso é verde. É dourada. Questão de princípio.',
     'Semáforo do kart? Vermelho, amarelo e vai. Verde aqui não entra nem pra largar.', 'Coxa? Respeito o adversário. Só não pinto nada de verde.',
@@ -5437,7 +5440,8 @@
     ['Postou hoje?', 'Postei ontem. Hoje eu tô vendo quem curtiu.'],
     ['Viu o kart dos bichos?', 'Vi. Perdi pra uma capivara de patinete.'],
     ['Fui no Arthur Thomas.', 'E os macacos?', 'Levaram meu pastel e meu orgulho.'],
-    ['Por que não tem verde no Corre?', 'Pergunta pro Marcão Bandeira.', 'Perguntei. Ele respondeu cantando.']
+    ['Por que não tem verde no Corre?', 'Pergunta pro Marcão Bandeira.', 'Perguntei. Ele respondeu cantando.'],
+    ['Uh, terror!', 'Falange Azul!', 'Fanáticooos!']
   ];
   /* v3.87 · o que se fala no Natal (entra no meio das frases de sempre, de 15/10 até o Dia de Reis) */
   const FRASES_NATAL = ['Já viu o Papai Noel do Igapó? 27 metros. Eu tenho 1,62 e me sinto igual.', 'Amigo secreto da firma: ganhei um pano de prato. Dei um pano de prato.',
@@ -5484,6 +5488,7 @@
     let puxa = null; if(parado && !L.some(x => x.papo && x.papo.eu)){ let dm = 70; for(const m of L){ const d = Math.hypot(e.x - m.x, e.y - m.y); if(!m.papo && agora - m.falouEu > 40000 && d < dm){ dm = d; puxa = m; } } }
     for(const m of L){
       m.porta.x = m.x; m.porta.y = m.y;
+      if(m.pulos && m.pulos.length && performance.now() >= m.pulos[0]) m.puT = m.pulos.shift();
       const p = m.papo;
       if(p){
         m.mov = false;
@@ -5497,15 +5502,17 @@
           if(p.i < p.linhas.length){
             const [quem, t] = p.linhas[p.i++], dur = 1800 + t.length * 60;
             quem.fala = { t, ate: agora + dur }; p.prox = agora + dur + 250;
-            if(C.versoSom && C.versoSom.papo && Math.hypot(quem.x - e.x, quem.y - e.y) < 320) C.versoSom.papo(t.length, quem.d.voz);
+            if(t === CANTO) canta(quem, e);
+            else if(C.versoSom && C.versoSom.papo && Math.hypot(quem.x - e.x, quem.y - e.y) < 320) C.versoSom.papo(t.length, quem.d.voz);
           } else fimPapo(p, agora);
         }
         continue;
       }
       /* v4.04: quem grita (o Marcão) solta uma das dele andando, de tempo em tempo, se você tá por perto */
       if(m.d.grita && agora > m.gritoT && !(m.fala && m.fala.ate > agora) && Math.hypot(e.x - m.x, e.y - m.y) < 260){
-        const t = proximaFrase(m); m.fala = { t, ate: agora + 1800 + t.length * 60 }; m.gritoT = agora + 13000 + Math.random() * 8000;
-        if(C.versoSom && C.versoSom.papo) C.versoSom.papo(t.length, m.d.voz);
+        m.gritoN = (m.gritoN || 0) + 1;
+        const t = m.gritoN % 3 === 1 ? CANTO : proximaFrase(m); m.fala = { t, ate: agora + 1800 + t.length * 60 }; m.gritoT = agora + 13000 + Math.random() * 8000;
+        if(t === CANTO) canta(m, e); else if(C.versoSom && C.versoSom.papo) C.versoSom.papo(t.length, m.d.voz);
       }
       /* você parou perto: ele puxa assunto (cada morador, no máximo uma vez a cada 40 s) */
       if(m === puxa){ m.falouEu = agora; comecaPapo([m], [[m, proximaFrase(m)]], true); continue; }
@@ -5530,6 +5537,11 @@
         else { const ox = m.x, oy = m.y; mover(m, ax / d * m.vel * dt, ay / d * m.vel * dt); m.mov = true; m.passo += dt * (m.av.skate ? 7 : 9); m.dir = Math.abs(ax) > Math.abs(ay) ? (ax < 0 ? 'esq' : 'dir') : (ay < 0 ? 'cima' : 'baixo'); if(Math.hypot(m.x - ox, m.y - oy) < .05){ m.alvo = null; m.esp = .8; m.mov = false; } }
       }
     }
+  }
+  /* v4.04: o canto: três pulinhos no ritmo do "Uh, ter-ror" e o bumbo (taiko) se você tá perto */
+  function canta(m, e){
+    const t0 = performance.now(); m.pulos = [t0, t0 + 430, t0 + 860]; m.puMs = 360; m.puH = .7;
+    if(C.versoSom && C.versoSom.taiko && e && Math.hypot(m.x - e.x, m.y - e.y) < 320) C.versoSom.taiko(3);
   }
   /* só solta quem ainda tá neste papo (quem já entrou noutro segue nele) */
   function fimPapo(p, agora){ p.quem.forEach(m => { if(m.papo !== p) return; m.papo = null; m.papoT = agora; m.esp = 1.2 + Math.random() * 2.5; }); }
@@ -7307,7 +7319,7 @@
 
   C.verso = { miniVeiculo, trocaVeiculo, veiculoDe, alturaPulo, PULO_MS, SKINS_LOJA,
     /* v4.03 · o Lambe-Lambe do Noel (pros testes) */
-    torcida: TORCIDA,
+    torcida: TORCIDA, canto: CANTO,
     fotoNoel, tiraPola, fechaPola, retratoNoel, pola:() => ({ on: PO.on, aces: PO.aces, leg: PO.leg, gente: PO.gente.map(p => p.h), foto: !!PO.foto, card: PO.card ? [PO.card.width, PO.card.height] : null }), noelFoto: () => (V.cid && V.cid.lago && V.cid.lago.noel && V.cid.lago.noel.foto) || null,
     /* v4.0 · o céu e os eventos (pros testes: hora(21.5), clima('chuva'), null volta pro relógio e pro sorteio) */
     hora: v => { if(v !== undefined){ horaForca = v; V.ceu = null; } return horaBR(); }, clima: v => { if(v !== undefined){ climaForca = v; V.ceu = null; } return climaDe(); },

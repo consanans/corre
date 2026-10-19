@@ -191,7 +191,9 @@
 
   C.views.lojinha = async app => {
     document.title = 'Lojinha · Corre';
-    if(!C.ehFundador()){ app.innerHTML = C.header('lojinha') + `<main class="wrap lo"><section class="card"><h1 class="ch">Lojinha</h1><p>A Lojinha é só do dono do Corre.</p></section></main>`; return; }
+    /* v4.04: os donos (o Jey e o Lucas também); pelo endereço, espera o acesso chegar antes de dizer que não */
+    if(!C.ehDono() && !C.acesso && C.acessoCarrega){ const rota = C.rota; await C.acessoCarrega(); if(rota !== C.rota) return; }
+    if(!C.ehDono()){ app.innerHTML =C.header('lojinha') + `<main class="wrap lo"><section class="card"><h1 class="ch">Lojinha</h1><p>A Lojinha é só do dono do Corre.</p></section></main>`; return; }
     if(!L.r) app.innerHTML = C.header('lojinha') + `<main class="wrap lo"><section class="card"><p>Contando a lojinha…</p></section></main>`;
     else pinta(app);
     await carrega(app);

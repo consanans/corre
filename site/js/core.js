@@ -630,12 +630,15 @@
     /* ---- v3.60: os planos na demonstração (as mesmas contas do delta-v360.sql). O fundador é o @consanans ---- */
     const PL_FUND = 'd1e9f6ac-f5d7-4723-8b02-eb0d1d7137b0';
     const plFund = (d, u) => { const p = d.t.corre_perfis.find(x => x.id === u); return u === PL_FUND || !!(p && p.handle === 'consanans'); };
+    /* v4.04: os donos do demo, como a corre_donos de produção (o @jeydiaz e o @simonini.lucas0) */
+    const PL_DONOS = ['jeydiaz', 'simonini.lucas0'];
+    const plDono = (d, u) => { const p = d.t.corre_perfis.find(x => x.id === u); return plFund(d, u) || !!(p && PL_DONOS.includes(p.handle)); };
     const plMais = (dia, n) => new Date(Date.parse(dia + 'T12:00:00Z') + n * 864e5).toISOString().slice(0, 10);
-    const plAcesso = (d, u, prod) => plFund(d, u) || d.t.corre_assinaturas.some(a => a.dono === u && a.produto === prod
+    const plAcesso = (d, u, prod) => plDono(d, u) || d.t.corre_assinaturas.some(a => a.dono === u && a.produto === prod
       && ((a.teste_ate && Date.parse(a.teste_ate) > Date.now()) || (a.pago_ate && plMais(a.pago_ate, 3) >= hojeBR())));
     const plRedes = (d, u) => {
       const p = d.t.corre_perfis.find(x => x.id === u) || {};
-      if(plFund(d, u) || p.plano === 'pro') return 999;
+      if(plDono(d, u) || p.plano === 'pro') return 999;
       const a = d.t.corre_assinaturas.find(x => x.dono === u && x.produto === 'studio');
       return Math.max(Number(p.redes) || 1, 1, a && plAcesso(d, u, 'studio') ? (a.nivel >= 4 ? 999 : a.nivel) : 1);
     };
@@ -647,10 +650,11 @@
     const skinPrecoDemo = k => { const x = ((C.verso && C.verso.SKINS_LOJA) || []).find(s => s[0] === k); return x ? centDe(x[2]) : 0; };
     const plTrava = (d, u, prod) => { plGarante(d, u, prod); if(!plAcesso(d, u, prod)) throw { message: 'o teste grátis acabou', hint: prod + '_assinatura', code: 'P0001' }; };
     /* v4.02 · a Lojinha no demo: as mesmas contas do corre_lojinha (delta-v402.sql), em cima das tabelas de mentira.
-       Só o @consanans abre (como o C.ehFundador do demo); ele e o @corre ficam fora da conta de gente */
+       Só os donos abrem (v4.04: o @consanans, o @jeydiaz e o @simonini.lucas0); o @consanans e o @corre ficam fora da
+       conta de gente */
     const lojinhaDemo = (d, eu, pDias) => {
       const me = d.t.corre_perfis.find(p => p.id === eu);
-      if(!me || me.handle !== 'consanans') throw { message: 'A Lojinha é só do dono do Corre.', code: '42501', hint: 'so_fundador' };
+      if(!me || !plDono(d, eu)) throw { message: 'A Lojinha é só do dono do Corre.', code: '42501', hint: 'so_fundador' };
       const dias = Math.max(7, Math.min(+pDias || 30, 120)), hoje = hojeBR(), diaDe = s => s ? hojeBR(new Date(s)) : '';
       const menos = (dia, n) => new Date(Date.parse(dia + 'T12:00:00Z') - n * 864e5).toISOString().slice(0, 10);
       const ini = menos(hoje, dias - 1);
@@ -711,7 +715,7 @@
       if(!u) return null;
       const planos = {};
       d.t.corre_assinaturas.filter(a => a.dono === u).forEach(a => { planos[a.produto] = { status: a.status, nivel: a.nivel, valor: a.valor, teste_ate: a.teste_ate, pago_ate: a.pago_ate, link: a.link, assinado: !!a.asaas_assinatura, acesso: plAcesso(d, u, a.produto) }; });
-      return { fundador: plFund(d, u), dono: plFund(d, u), redes: plRedes(d, u), usadas: d.t.corre_portfolio.filter(x => x.dono === u && x.rede).length, cliente: d.t.corre_asaas_clientes.some(c => c.dono === u),
+      return { fundador: plFund(d, u), dono: plDono(d, u), redes: plRedes(d, u), usadas: d.t.corre_portfolio.filter(x => x.dono === u && x.rede).length, cliente: d.t.corre_asaas_clientes.some(c => c.dono === u),
         planos, acesso: { studio: true, houzi: plAcesso(d, u, 'houzi'), horus: plAcesso(d, u, 'horus') } };
     };
     function rules(t, r, d, isNew){

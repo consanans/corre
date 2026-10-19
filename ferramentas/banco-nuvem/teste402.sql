@@ -107,5 +107,14 @@ select case when (select (a->>'dias_periodo')::int = 7 and jsonb_array_length(a-
 select pg_temp.como('00000000-0000-0000-0000-0000000402b1'); set role authenticated;
 do $$ begin perform corre_lojinha(30); raise notice 'FALHOU: outra pessoa abriu a Lojinha'; exception when insufficient_privilege then raise notice 'ok: só o fundador abre a Lojinha'; end $$;
 reset role;
+-- e quem tá em corre_donos (v3.80) também abre; saiu da lista, não abre mais
+insert into corre_donos (dono, obs) values ('00000000-0000-0000-0000-0000000402b1', 'teste402') on conflict do nothing;
+select pg_temp.como('00000000-0000-0000-0000-0000000402b1'); set role authenticated;
+do $$ begin perform corre_lojinha(30); raise notice 'ok: quem é dono (corre_donos) abre a Lojinha'; exception when insufficient_privilege then raise notice 'FALHOU: o dono não abriu a Lojinha'; end $$;
+reset role;
+delete from corre_donos where dono = '00000000-0000-0000-0000-0000000402b1';
+select pg_temp.como('00000000-0000-0000-0000-0000000402b1'); set role authenticated;
+do $$ begin perform corre_lojinha(30); raise notice 'FALHOU: saiu de dono e ainda abre'; exception when insufficient_privilege then raise notice 'ok: saiu da lista de donos, não abre mais'; end $$;
+reset role;
 select case when has_function_privilege('anon', 'corre_lojinha(integer)', 'execute') or has_function_privilege('anon', 'corre_marca_dia()', 'execute')
   then 'FALHOU: sem login executa a Lojinha ou a marca do dia' else 'ok: sem login não executa a Lojinha nem a marca do dia' end;

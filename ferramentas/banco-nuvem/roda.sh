@@ -90,7 +90,7 @@ testa teste400.sql 13
 $P -f "$AQUI/semente402.sql"
 delta delta-v402.sql 'delta v4.02 ok'
 delta delta-v402.sql 'delta v4.02 ok'
-testa teste402.sql 17
+testa teste402.sql 19
 . "$AQUI/virada343.sh"
 if grep -q 'FALHOU\|ERROR' $D/saida; then echo "deu FALHOU ou erro (acima)"; exit 1; fi
 echo "tudo ok: $(grep -c '^ok:' $D/saida) checagens"
