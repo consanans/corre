@@ -143,7 +143,13 @@
     desce: '<path d="m6 9 6 6 6-6"/>',
     /* v3.88 · a tela cheia do 3D: os quatro cantos abrindo (entrar) e fechando (sair) */
     cheia: '<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>',
-    janela: '<path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/>'
+    janela: '<path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/>',
+    /* v4.0 · o Link na bio (corrente, QR) e a Estreia (presente do convite, sol e lua da cidade) */
+    link: '<path d="M10 14a4 4 0 0 0 5.66 0l3-3a4 4 0 0 0-5.66-5.66l-1 1"/><path d="M14 10a4 4 0 0 0-5.66 0l-3 3a4 4 0 0 0 5.66 5.66l1-1"/>',
+    qr: '<rect x="4" y="4" width="6" height="6"/><rect x="14" y="4" width="6" height="6"/><rect x="4" y="14" width="6" height="6"/><path d="M14 14h2v2h-2zM18 18h2v2h-2zM14 18v2M18 14h2"/>',
+    presente: '<rect x="4" y="9" width="16" height="11" rx="1"/><path d="M3 9h18M12 9v11M12 9c-1.5-3-5-4-5-1.5S10 9 12 9zM12 9c1.5-3 5-4 5-1.5S14 9 12 9z"/>',
+    lua: '<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/>',
+    chuva: '<path d="M7 15a4 4 0 0 1 .5-8 5 5 0 0 1 9.5 1.5A3.5 3.5 0 0 1 17 15H7z"/><path d="M9 18l-1 2M13 18l-1 2M17 18l-1 2"/>'
   };
   const ico = (k, cls) => `<svg class="ic${cls ? ' ' + cls : ''}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${I[k] || ''}</svg>`;
   /* ---------- v3.89 · a tela cheia (o 3D da casa e dos lugares, e os jogos da cidade) ----------
@@ -324,7 +330,7 @@
       'corre_grupo_ver', 'corre_grupos_lista', 'corre_grupos_de', 'corre_grupo_membros_lista']);
     /* chamadas que não mudam nada que a tela leia (ou que precisam vir sempre fresquinhas): não usam nem limpam a memória */
     const AO_VIVO = new Set(['corre_feed_viu', 'corre_verso_sinal', 'corre_verso_entrar', 'corre_verso_quem', 'corre_handle_livre', 'corre_avisos_n', 'corre_avisos',
-      'corre_msg_abrir', 'corre_msg_enviar', 'corre_msg_caixa', 'corre_msg_lista', 'corre_msg_lida', 'corre_msg_estado', 'corre_msg_apagar', 'corre_msg_badge', 'corre_grupo_papo', 'corre_meu_acesso']);
+      'corre_msg_abrir', 'corre_msg_enviar', 'corre_msg_caixa', 'corre_msg_lista', 'corre_msg_lida', 'corre_msg_estado', 'corre_msg_apagar', 'corre_msg_badge', 'corre_grupo_papo', 'corre_meu_acesso', 'corre_bio_marca']);
     const copia = v => { if(v == null || typeof v !== 'object') return v; try{ return structuredClone(v); }catch(e){ return JSON.parse(JSON.stringify(v)); } };
     const limpa = () => { geracao++; CACHE.clear(); };
     function lido(chave, faz){
@@ -459,8 +465,8 @@
   const HOUZI_EX = {"spec":{"v":1,"territorio":"editorial","amostra":1,"nome":"Grão Torto","tagline":"café de esquina","nicho":"cafe","cidade":"Londrina, PR","desde":"2021","pers":[0.35,0.55,0.55,0.35,0.2],"modo":"branding","campos":["cafe","rua"],"logo":{"arranjo":"wordmark","caixa":"titulo","track":0.005,"efeito":"","gesto":"troca","tagline":true,"corTexto":"texto","trocaPor":"ideia"},"simbolo":{"tipo":"ideia","icone":"xicara","ideia":"grao","estilo":"linha","seed":84829},"tipo":{"display":"lora-bolditalic","texto":"lora-regular"},"cores":{"p":"#2B2B2E","s":"#D8D4CB","a":"#B8913A","ink":"#161618","paper":"#F6F2EA","fundo":"paper","esquema":"receita","receita":"Grafite e Ouro"},"textura":"papel","aplic":["revista","sacola","cartao","instagram","copo","fachada"],"seed":273184829,"descr":"Café de bairro, torra própria"},"voz":{"conceito":"Grão Torto é o café que trata cada detalhe como página de revista.","manifesto":"Grão Torto acredita que pressa é inimiga do bom. Por isso cada café é pensado como uma página de revista: com respiro, com ritmo, com intenção. É pra quem acorda cedo que repara. Que lê a legenda inteira. Que volta pela segunda vez.","taglines":["Grão Torto. Pra ler devagar.","A pausa boa do dia, com tempo.","O detalhe é a história.","Feito com atenção em Londrina.","Menos, e melhor."],"e":["calma","precisa","elegante"],"nao_e":["barulhenta","apressada","exagerada"],"fala":["Pensado com calma, feito pra durar.","Nem tudo precisa ser pra ontem.","A pausa boa do dia, no detalhe."],"nao_fala":["IMPERDÍVEL!!!","Só hoje, corre!","O melhor do Brasil."],"bio":"café de esquina · Café em Londrina. Chama no direct.","wa":"Olá, que bom ter você aqui. Aqui é o Grão Torto. Me conta o que procura e eu te ajudo com calma.","ia":false}};
   function demoApi(){
     const KEY = 'corre-demo-v2', mem = {};
-    const T = ['corre_perfis', 'corre_portfolio', 'corre_destaques', 'corre_stories', 'corre_insta', 'corre_contas', 'corre_lancamentos', 'corre_rolo_salvos', 'corre_leads', 'corre_posts', 'corre_feed', 'corre_curtidas', 'corre_comentarios', 'corre_seguindo', 'corre_story_curtidas', 'corre_visitas', 'corre_estilo', 'corre_produtos', 'corre_mural', 'corre_mural_propostas', 'corre_vendas', 'corre_refs', 'corre_lead_fotos', 'corre_mural_chat', 'corre_verso_bloq', 'corre_votos', 'corre_salvos', 'corre_recomendacoes', 'corre_feed_vistas', 'corre_avisos_lidos', 'corre_conversas', 'corre_conversa_membros', 'corre_mensagens', 'corre_push', 'corre_push_pref', 'corre_grupos', 'corre_grupo_membros', 'corre_houzi_marcas', 'corre_correal', 'corre_correal_log', 'corre_tarefa_vez', 'corre_ig_contas', 'corre_houzi_privado', 'corre_assinaturas', 'corre_asaas_clientes', 'corre_skins'];
-    const PRIV = ['corre_contas', 'corre_lancamentos', 'corre_rolo_salvos', 'corre_leads', 'corre_posts', 'corre_visitas', 'corre_estilo', 'corre_produtos', 'corre_mural', 'corre_mural_propostas', 'corre_vendas', 'corre_refs', 'corre_lead_fotos', 'corre_verso_bloq', 'corre_votos', 'corre_salvos', 'corre_feed_vistas', 'corre_avisos_lidos', 'corre_push', 'corre_push_pref', 'corre_correal', 'corre_correal_log', 'corre_tarefa_vez', 'corre_ig_contas', 'corre_houzi_privado', 'corre_assinaturas', 'corre_asaas_clientes', 'corre_skins'];
+    const T = ['corre_perfis', 'corre_portfolio', 'corre_destaques', 'corre_stories', 'corre_insta', 'corre_contas', 'corre_lancamentos', 'corre_rolo_salvos', 'corre_leads', 'corre_posts', 'corre_feed', 'corre_curtidas', 'corre_comentarios', 'corre_seguindo', 'corre_story_curtidas', 'corre_visitas', 'corre_estilo', 'corre_produtos', 'corre_mural', 'corre_mural_propostas', 'corre_vendas', 'corre_refs', 'corre_lead_fotos', 'corre_mural_chat', 'corre_verso_bloq', 'corre_votos', 'corre_salvos', 'corre_recomendacoes', 'corre_feed_vistas', 'corre_avisos_lidos', 'corre_conversas', 'corre_conversa_membros', 'corre_mensagens', 'corre_push', 'corre_push_pref', 'corre_grupos', 'corre_grupo_membros', 'corre_houzi_marcas', 'corre_correal', 'corre_correal_log', 'corre_tarefa_vez', 'corre_ig_contas', 'corre_houzi_privado', 'corre_assinaturas', 'corre_asaas_clientes', 'corre_skins', 'corre_bio_conta', 'corre_convites'];
+    const PRIV = ['corre_contas', 'corre_lancamentos', 'corre_rolo_salvos', 'corre_leads', 'corre_posts', 'corre_visitas', 'corre_estilo', 'corre_produtos', 'corre_mural', 'corre_mural_propostas', 'corre_vendas', 'corre_refs', 'corre_lead_fotos', 'corre_verso_bloq', 'corre_votos', 'corre_salvos', 'corre_feed_vistas', 'corre_avisos_lidos', 'corre_push', 'corre_push_pref', 'corre_correal', 'corre_correal_log', 'corre_tarefa_vez', 'corre_ig_contas', 'corre_houzi_privado', 'corre_assinaturas', 'corre_asaas_clientes', 'corre_skins', 'corre_bio_conta', 'corre_convites'];
     const now = () => new Date().toISOString();
     const inH = h => new Date(Date.now() + h * 36e5).toISOString();
     /* o mesmo do corre_tarefa_valor (delta-v338 + delta-v3391: 3 tarefas por uniforme) */
@@ -1504,6 +1510,41 @@
           const l = v.lead_id && d.t.corre_leads.find(x => x.id === v.lead_id && x.dono === v.dono);
           if(l){ l.st = 'fechado'; l.prox = null; l.hist = [{ t: now(), k: 'res', v: 'Aprovou o orçamento pelo link.' }].concat(l.hist || []).slice(0, 40); }
           write(d); return { ok: true, st: 'fechado' };
+        }
+        /* ---- v4.0: o Link na bio e o convite (as mesmas regras do delta-v400.sql) ---- */
+        if(n === 'corre_bio_marca'){
+          const p = d.t.corre_perfis.find(x => x.handle === String((a && a.p_handle) || '').toLowerCase().trim()), k = String((a && a.p_chave) || '');
+          if(!p || p.id === uidOf(d) || !/^[a-z0-9:_-]{1,48}$/.test(k)) return null;
+          const dia = hojeBR(); let r = d.t.corre_bio_conta.find(x => x.dono === p.id && x.dia === dia && x.chave === k);
+          if(!r){ if(d.t.corre_bio_conta.filter(x => x.dono === p.id && x.dia === dia).length >= 80) return null; r = { dono: p.id, dia, chave: k, n: 0 }; d.t.corre_bio_conta.push(r); }
+          r.n = Math.min(r.n + 1, 1e6); write(d); return null;
+        }
+        if(n === 'corre_bio_numeros'){
+          const eu = uidOf(d); if(!eu) throw { message: 'login', code: '42501' };
+          const nd = Math.max(1, Math.min(+(a && a.p_dias) || 30, 90)), corte = new Date(Date.parse(hojeBR() + 'T12:00:00Z') - nd * 864e5).toISOString().slice(0, 10);
+          const porDia = {}, toques = {}; let visitas = 0;
+          d.t.corre_bio_conta.filter(x => x.dono === eu && x.dia > corte).forEach(x => { if(x.chave === 'visita'){ visitas += x.n; porDia[x.dia] = (porDia[x.dia] || 0) + x.n; } else toques[x.chave] = (toques[x.chave] || 0) + x.n; });
+          return { dias: nd, visitas, porDia: Object.keys(porDia).sort().map(dia => ({ dia, n: porDia[dia] })), toques };
+        }
+        if(n === 'corre_convite_aceita'){
+          const eu = uidOf(d); if(!eu) return { ok: false, motivo: 'login' };
+          const me = d.t.corre_perfis.find(x => x.id === eu); if(!me) return { ok: false, motivo: 'sem_perfil' };
+          if(me.created_at && Date.parse(me.created_at) < Date.now() - 2 * 864e5) return { ok: false, motivo: 'velho' };
+          const p = d.t.corre_perfis.find(x => x.handle === String((a && a.p_handle) || '').toLowerCase().trim());
+          if(!p || p.id === eu) return { ok: false, motivo: 'quem' };
+          if(d.t.corre_convites.some(x => x.quem === eu)) return { ok: false, motivo: 'ja' };
+          const paga = d.t.corre_convites.filter(x => x.por === p.id && x.pago > 0).length < 10 ? 0.5 : 0;
+          d.t.corre_convites.push({ quem: eu, por: p.id, em: now(), pago: paga });
+          const da = (dono, v, motivo) => { let w = d.t.corre_correal.find(x => x.dono === dono); if(!w){ w = { dono, saldo: 0, ganho: 0, gasto: 0, updated_at: now() }; d.t.corre_correal.push(w); }
+            w.saldo = (centDe(w.saldo) + centDe(v)) / 100; w.ganho = (centDe(w.ganho) + centDe(v)) / 100; w.updated_at = now(); d.t.corre_correal_log.push({ id: rid(), dono, valor: v, motivo, created_at: now() }); return w.saldo; };
+          const saldo = da(eu, 0.5, 'convite:chegou'); if(paga) da(p.id, paga, 'convite:trouxe');
+          write(d); return { ok: true, ganhou: 0.5, saldo, pagou_quem_chamou: !!paga };
+        }
+        if(n === 'corre_convites_meus'){
+          const eu = uidOf(d); if(!eu) return null;
+          const meus = d.t.corre_convites.filter(x => x.por === eu).sort((x, y) => String(y.em).localeCompare(String(x.em)));
+          return { n: meus.length, ganho: meus.reduce((t, x) => t + centDe(x.pago), 0) / 100, valor: 0.5, teto: 10,
+            gente: meus.slice(0, 30).map(x => { const p = d.t.corre_perfis.find(y => y.id === x.quem) || {}; return { handle: p.handle, nome: p.nome, avatar_url: p.avatar_url || '', em: x.em }; }).filter(x => x.handle) };
         }
         if(n === 'corre_meu_acesso') return plMeu(d, uidOf(d));
         if(n === 'corre_teste_comeca'){ if(!uidOf(d)) throw { message: 'login', hint: 'login' }; plGarante(d, uidOf(d), a && a.p_produto); write(d); return plMeu(d, uidOf(d)); }

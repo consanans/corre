@@ -105,7 +105,9 @@
   let faixas = null, fi = 0;
   const prontas = () => faixas || (faixas = FAIXAS.map(f => Object.assign({ k: f.k, nome: f.nome }, f.faz())));
   /* ---------- a mesa: música, efeitos e ambiente, cada um no seu canal ---------- */
-  let ac = null, master = null, bus = null, musOut = null, fx = null, amb = null, ruido = null, marrom = null, onda = null;
+  let ac = null, master = null, bus = null, musOut = null, fx = null, amb = null, ruido = null, marrom = null, onda = null, cidBus = null, showBus = null;
+  /* toca uma nota num volume próprio: os instrumentos ligam no "bus" na hora em que nascem */
+  const pelo = (b, f) => { const b0 = bus; if(b) bus = b; try{ f(); } finally{ bus = b0; } };
   let timer = 0, ev = [], i = 0, t0 = 0, musicaOn = false;
   let ativo = false, esperando = false, estado = null, vigia = 0, modoAtual = 'tudo';
   const lePref = () => { try{ const v = localStorage.getItem(PREF_K); return v === '0' ? 'mudo' : v === 'fx' ? 'fx' : 'tudo'; }catch(e){ return 'tudo'; } };
@@ -125,6 +127,9 @@
     rev.buffer = b;
     bus = ac.createGain();
     bus.connect(seco); bus.connect(rev); rev.connect(molhado);
+    /* v4.0: a música da cidade e a do show da Concha entram cada uma pelo seu volume (o show sobe com a distância e a da
+       cidade abaixa junto) */
+    cidBus = ac.createGain(); cidBus.connect(bus); showBus = ac.createGain(); showBus.gain.value = 0; showBus.connect(bus);
     seco.connect(lp); molhado.connect(lp); lp.connect(comp); comp.connect(musOut); musOut.connect(master);
     /* efeitos e ambiente passam por um limitador, pra nada estourar no fone */
     const lim = ac.createDynamicsCompressor(); lim.threshold.value = -10; lim.knee.value = 6; lim.ratio.value = 8; lim.connect(master);
@@ -261,7 +266,7 @@
         const nome = F[fi].nome, quando = Math.max(0, (t0 + (ev[0] ? ev[0][0] : 0) - ac.currentTime) * 1000);
         setTimeout(() => { if(musicaOn && modoAtual === 'tudo' && !st().pausa && !st().casa) C.toast('♪ ' + nome, 2600); }, quando); }
       if(t0 + ev[i][0] >= ate) break;
-      if(t0 + ev[i][0] > ac.currentTime - .05) try{ toca(ev[i], t0); }catch(e){}
+      if(t0 + ev[i][0] > ac.currentTime - .05) try{ pelo(cidBus, () => toca(ev[i], t0)); }catch(e){}
       i++;
     }
   }
@@ -395,7 +400,7 @@
     else alvo(m.g.gain, v > .05 ? .02 + .045 * v : .0001);
   }
   /* o ambiente: trânsito ao fundo, gente falando, água do lago; passarinho e buzina de longe de vez em quando */
-  let amb0 = null, ambNivel = { trafego: .6, passaros: .3, gente: .1, agua: 0 }, ambT = 0;
+  let amb0 = null, ambNivel = { trafego: .6, passaros: .3, gente: .1, agua: 0, chuva: 0, grilo: 0 }, ambT = 0;
   function laco(buf, tipo, f, q){ const s = ac.createBufferSource(), fl = ac.createBiquadFilter(), g = ac.createGain(); s.buffer = buf; s.loop = true; fl.type = tipo; fl.frequency.value = f; fl.Q.value = q; g.gain.value = .0001; s.connect(fl); fl.connect(g); g.connect(amb); s.start(0, Math.random() * .9); return { s, fl, g }; }
   function montaAmbiente(){
     /* v3.55: voltou pra cidade: o ambiente já existe, mas os passarinhos e as buzinas de longe precisam ser agendados de novo */
@@ -404,7 +409,9 @@
     const ge = laco(ruido, 'bandpass', 900, 1.1), am = ac.createGain(); am.gain.value = .55; ge.fl.disconnect(); ge.fl.connect(am); am.connect(ge.g);
     [3.1, 4.7, 7.3].forEach((f, k) => { const l = ac.createOscillator(), lg = ac.createGain(); l.frequency.value = f; lg.gain.value = .14 + k * .03; l.connect(lg); lg.connect(am.gain); l.start(); });
     const ag = laco(marrom, 'bandpass', 420, .8), lf = ac.createOscillator(), lfg = ac.createGain(); lf.frequency.value = .16; lfg.gain.value = 160; lf.connect(lfg); lfg.connect(ag.fl.frequency); lf.start();
-    amb0 = { tr, ge, ag };
+    /* v4.0: a chuva (o chiado fino das gotas e o grave do aguaceiro) */
+    const ch = laco(ruido, 'highpass', 1500, .4), ch2 = laco(marrom, 'lowpass', 520, .6);
+    amb0 = { tr, ge, ag, ch, ch2 };
     clearTimeout(ambT); ambT = setTimeout(eventos, 1500);
   }
   function ambiente(n){
@@ -412,6 +419,7 @@
     if(!ac || !amb0) return;
     const t = ac.currentTime, a = (x, y) => { x.gain.cancelScheduledValues(t); x.gain.setTargetAtTime(Math.max(.0001, y), t, 1.2); };
     a(amb0.tr.g, .11 * ambNivel.trafego); a(amb0.ge.g, .035 * ambNivel.gente); a(amb0.ag.g, .06 * ambNivel.agua);
+    if(amb0.ch){ a(amb0.ch.g, .045 * ambNivel.chuva); a(amb0.ch2.g, .07 * ambNivel.chuva * ambNivel.chuva); }
   }
   function passarinho(){
     const t = ac.currentTime + .02, base = sorte(2600, 3900), n = 2 + Math.floor(Math.random() * 4), v = .03 * (.4 + ambNivel.passaros);
@@ -422,6 +430,15 @@
       o.connect(g); if(pan){ pan.pan.value = sorte(-.7, .7); g.connect(pan); pan.connect(amb); } else g.connect(amb);
       o.start(tt); o.stop(tt + .1);
     }
+  }
+  /* v4.0: o grilo da noite (três trilos curtos, agudos, de um lado ou do outro) */
+  function grilo(){
+    const t = ac.currentTime + .02, f = sorte(4200, 4900), v = .012 * (.5 + ambNivel.grilo), pan = ac.createStereoPanner ? ac.createStereoPanner() : null;
+    if(pan){ pan.pan.value = sorte(-.8, .8); pan.connect(amb); }
+    for(let k = 0; k < 3; k++){ const tt = t + k * .13, o = ac.createOscillator(), g = ac.createGain(), am = ac.createOscillator(), ag = ac.createGain();
+      o.type = 'sine'; o.frequency.value = f; am.frequency.value = 38; ag.gain.value = v; am.connect(ag); ag.connect(g.gain);
+      g.gain.setValueAtTime(0, tt); g.gain.linearRampToValueAtTime(v, tt + .01); g.gain.setValueAtTime(v, tt + .07); g.gain.linearRampToValueAtTime(0, tt + .09);
+      o.connect(g); g.connect(pan || amb); o.start(tt); am.start(tt); o.stop(tt + .1); am.stop(tt + .1); }
   }
   function buzinaLonge(){
     const t = ac.currentTime + .02, dupla = Math.random() < .5, f = sorte(340, 420);
@@ -438,6 +455,7 @@
     const s = st(), ok = fxOk() && !s.casa;
     if(ok){
       if(Math.random() < .25 + ambNivel.passaros * .7) try{ passarinho(); }catch(e){}
+      if(ambNivel.grilo > .2 && Math.random() < .3 + ambNivel.grilo * .6) try{ grilo(); }catch(e){}
       if(Math.random() < ambNivel.trafego * .09) try{ buzinaLonge(); }catch(e){}
     }
     ambT = setTimeout(eventos, sorte(1800, 4200) / (.5 + ambNivel.passaros));
@@ -693,6 +711,47 @@
       CM.i++;
     }
   }
+  /* ---------- v4.0 · o Som na Concha ----------
+     "Concha ao Vivo" (do Corre): boom bap a 90 por minuto, em lá menor (Am9, Dm9, Fmaj7, E7), com o balanço atrasado no
+     contratempo, o baixo acústico, o piano elétrico e o vibrafone na segunda metade. Toca no show das 12h30 e das 20h, com
+     o volume pela distância até a Concha (show(nivel), de 0 a 1); a música da cidade abaixa junto. A melodia é nossa */
+  function conchaAoVivo(){
+    const Bt = 60 / 90, E = Bt / 2, sw = E * .18, BAR = 4 * Bt, ev = [];
+    const CH = [['A2', ['A3', 'C4', 'E4', 'G4', 'B4']], ['D2', ['D3', 'F3', 'A3', 'C4', 'E4']], ['F2', ['F3', 'A3', 'C4', 'E4']], ['E2', ['E3', 'G#3', 'B3', 'D4', 'F4']]];
+    const MEL = ['E5:2 G5:1 A5:3 G5:1 E5:1', 'D5:2 F5:1 A5:2 C6:1 A5:2', 'C6:3 A5:1 G5:2 E5:2', 'G#5:2 B5:2 D6:2 B5:2'];
+    for(let b = 0; b < 8; b++){
+      const t = b * BAR, [raiz, ac0] = CH[b % 4], r = midi(raiz), tons = ac0.map(midi), off = k => t + k * E + (k % 2 ? sw : 0);
+      [0, 5].concat(b % 2 ? [7] : [3]).forEach(k => ev.push([off(k), 'bumbo', .3]));
+      [2, 6].forEach(k => ev.push([off(k), 'caixa', .16]));
+      for(let k = 0; k < 8; k++) ev.push([off(k), 'chick', k % 2 ? .016 : .028]);
+      ev.push([off(0), 'piano', tons, Bt * 1.6, .032], [off(5), 'piano', tons.slice(1), E * 1.2, .024]);
+      ev.push([off(0), 'contra', r, E * 2.6, .12], [off(3), 'contra', r + 12, E * .9, .08], [off(5), 'contra', r + 7, E * 1.6, .1], [off(7), 'contra', r + (b % 4 === 3 ? 4 : 10), E * .9, .07]);
+      if(b >= 4){ let k = 0; MEL[b % 4].split(' ').forEach(tk => { const [n, q] = tk.split(':'), d = Number(q); ev.push([off(k), 'vibra', midi(n), d * E * .95, .05]); k += d; }); }
+      if(b === 0) ev.push([t, 'crash', .03]);
+    }
+    return { ev: ordena(ev), volta: 8 * BAR, nome: 'Concha ao Vivo' };
+  }
+  const SH = { on: false, m: null, i: 0, t0: 0, timer: 0, nivel: 0, zero: 0 };
+  function show(nivel){
+    nivel = Math.max(0, Math.min(1, Number(nivel) || 0)); SH.nivel = nivel;
+    if(!ac || !ativo || !showBus) return false;
+    if(nivel > .02){
+      SH.zero = 0;
+      if(!SH.on){ SH.m = SH.m || conchaAoVivo(); SH.on = true; SH.i = 0; SH.t0 = ac.currentTime + .1; clearInterval(SH.timer); SH.timer = setInterval(tickShow, 150); tickShow(); }
+    } else if(SH.on){ if(!SH.zero) SH.zero = performance.now(); else if(performance.now() - SH.zero > 3000){ SH.on = false; clearInterval(SH.timer); } }
+    nivela(showBus, nivel * 1.1, .6); nivela(cidBus, 1 - nivel * .92, .6);
+    return true;
+  }
+  function tickShow(){
+    if(!ac || !SH.on || ac.state !== 'running') return;
+    const M = SH.m, ate = ac.currentTime + .8;
+    for(let guarda = 0; guarda < 4000; guarda++){
+      if(SH.i >= M.ev.length){ SH.t0 += M.volta; SH.i = 0; }
+      const e = M.ev[SH.i]; if(SH.t0 + e[0] >= ate) break;
+      if(SH.t0 + e[0] > ac.currentTime - .05 && modoAtual === 'tudo' && SH.nivel > .02) try{ pelo(showBus, () => toca(e, SH.t0)); }catch(x){}
+      SH.i++;
+    }
+  }
   /* o motor de cada veículo: quantas marchas, o giro baixo e o alto (Hz) e o volume */
   const VEIC_SOM = { patinete: { n: 1, f0: 150, f1: 760, g: .05 }, moto: { n: 6, f0: 60, f1: 200, g: .06 }, hatch: { n: 5, f0: 44, f1: 132, g: .065 }, suv: { n: 5, f0: 38, f1: 116, g: .07 }, picape: { n: 5, f0: 34, f1: 104, g: .075 } };
   const CR = { n: null, marcha: 0, acAnt: 0, ult: 0, visto: 0, lado: 0, log: [] };
@@ -887,6 +946,8 @@
     passo, pulo, cai, buzina, carroPassa, motor, ambiente, aviao, moeda, porta, taco, luva, taiko, acerto, erro, rio, papo, grind, macaco, transe,
     /* v3.79 · as corridas: corrida(estado) a cada quadro (null para), corridaFx(golpe) e a música */
     corrida, corridaFx, corridaMusica, corridaLog: () => CR.log.slice(), corridaEstado: () => ({ musica: CM.on, motor: !!CR.n, veic: CR.n ? CR.n.veic : null, marcha: CR.marcha, lado: +CR.lado.toFixed(2) }),
-    amostra, amostraFx, amostraCorrida, amostraMotor, amostraGolpes, faixas: () => prontas().map(f => f.nome), faixa: () => prontas()[fi].nome
+    amostra, amostraFx, amostraCorrida, amostraMotor, amostraGolpes, faixas: () => prontas().map(f => f.nome), faixa: () => prontas()[fi].nome,
+    /* v4.0 · o show da Concha (o volume pela distância; 0 para) e o estado pros testes */
+    show, showEstado: () => ({ on: SH.on, nivel: SH.nivel, ambiente: Object.assign({}, ambNivel) }), conchaAoVivo
   };
 })();

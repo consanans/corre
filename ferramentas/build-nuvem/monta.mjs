@@ -1,12 +1,12 @@
 // CORRE · o build na nuvem (sessão do Claude), enquanto o build.mjs de verdade não tá no repositório.
-// Refaz o corre.min.js e o houzi.min.js do mesmo jeito do build de verdade: cada arquivo dentro de um try/catch com o
+// Refaz o corre.min.js, o houzi.min.js e (desde a v4.0) o verso.min.js do mesmo jeito do build de verdade: cada arquivo dentro de um try/catch com o
 // nome dele (um erro num módulo não derruba o app), tudo junto e minificado pelo esbuild 0.25.10 (es2020, utf8).
 // Conferido em 13/10/2026: com o site/js da v3.40, sai byte a byte igual ao que tava no ar.
 // O CSS NÃO é refeito daqui (o minificador de lá é outro e não bate byte a byte). Regra nova de CSS vai no FIM de um
 // arquivo de origem (site/css/*.css), começando com o comentário "/* vX.YY · …"; este script minifica esse pedaço e põe
 // no fim do corre.min.css depois de "/* +vX.YY */" (trocando, se já tiver). O build de verdade refaz tudo das origens.
 // Uso: node ferramentas/build-nuvem/monta.mjs 3.41   (sem número: só confere se os .min batem com o site/js)
-import { readFileSync, writeFileSync, mkdtempSync, readdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdtempSync, readdirSync, existsSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { join, dirname } from 'node:path';
 import { tmpdir } from 'node:os';
@@ -15,8 +15,11 @@ import { fileURLToPath } from 'node:url';
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const JS = join(RAIZ, 'site', 'js');
 /* a ordem importa (core antes de quem usa o C.*, app por último); tirada dos marcadores do corre.min.js da v3.40 */
-const CORRE = 'scene stickers core igcontas rolo-data rolo rolo-som banca grana estilo marcas vendas visitas estudio studio lote pad verso-som veiculos verso beats moveis casa manual stories feed insta mensagens grupos avisos push horus-presets horus horus-turbo horus-max mural meucorre negocio refs app'.split(' ');
+const CORRE = 'scene stickers core igcontas rolo-data rolo rolo-som banca grana estilo marcas vendas visitas estudio studio lote manual stories feed insta mensagens grupos avisos push horus-presets horus horus-turbo horus-max mural meucorre negocio refs bio estreia app'.split(' ');
 const HOUZI = 'lab-motor lab-qr lab lab-som lab-filme lab-post lab-livro'.split(' ');
+/* v4.0: o Correverso desce à parte, só quando alguém entra na cidade (C.versoCarrega no app.js). Roda depois do app.js,
+   então tudo do C.* já existe quando ele chega. A ordem de dentro é a de antes. */
+const VERSO = 'pad verso-som veiculos verso beats moveis casa'.split(' ');
 
 function monta(lista, saida){
   const junto = lista.map(n => `try{\n${readFileSync(join(JS, n + '.js'), 'utf8')}\n}catch(e){try{console.error("[corre] ${n}.js",e)}catch(_){}}\n`).join('');
@@ -28,8 +31,8 @@ function monta(lista, saida){
 
 const versao = process.argv[2];
 let diferente = 0;
-for(const [lista, nome] of [[CORRE, 'corre.min.js'], [HOUZI, 'houzi.min.js']]){
-  const novo = monta(lista, nome), arq = join(JS, nome), velho = readFileSync(arq, 'utf8');
+for(const [lista, nome] of [[CORRE, 'corre.min.js'], [HOUZI, 'houzi.min.js'], [VERSO, 'verso.min.js']]){
+  const novo = monta(lista, nome), arq = join(JS, nome), velho = existsSync(arq) ? readFileSync(arq, 'utf8') : '';
   const igual = novo === velho;
   if(!igual) diferente++;
   if(versao){ if(!igual) writeFileSync(arq, novo); console.log(`${nome}: ${igual ? 'igual' : 'refeito'} (${novo.length} bytes)`); }

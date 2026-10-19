@@ -81,6 +81,11 @@ testa teste380.sql 8
 delta delta-v391.sql 'delta v3.91 ok'
 delta delta-v391.sql 'delta v3.91 ok'
 testa teste391.sql 8
+# v4.0: o Link na bio (o perfil já tem created_at travado e avatar, como na produção), os números e o convite
+$P -f "$AQUI/semente400.sql"
+delta delta-v400.sql 'delta v4.0 ok'
+delta delta-v400.sql 'delta v4.0 ok'
+testa teste400.sql 13
 . "$AQUI/virada343.sh"
 if grep -q 'FALHOU\|ERROR' $D/saida; then echo "deu FALHOU ou erro (acima)"; exit 1; fi
 echo "tudo ok: $(grep -c '^ok:' $D/saida) checagens"

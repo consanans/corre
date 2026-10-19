@@ -2857,7 +2857,7 @@
     bloco(ctx, b.x - 18, b.y - 10, 4, 10, 'preto', true); bloco(ctx, b.x + 14, b.y - 10, 4, 10, 'preto', true);
     bloco(ctx, b.x - 22, b.y - 18, 44, 8, 'madeira');
   }
-  function poste(ctx, p){ if(p.orla && natal()){ arcoLuz(ctx, p); return; } ctx.fillStyle = 'rgba(15,18,24,.2)'; ctx.fillRect(p.x - 4, p.y - 1, 10, 3); ctx.fillStyle = '#2B2F38'; ctx.fillRect(p.x - 2, p.y - 56, 4, 56); ctx.fillRect(p.x - 2, p.y - 56, 13, 3); ctx.fillStyle = '#FFE7A8'; ctx.fillRect(p.x + 5, p.y - 53, 9, 3); if(natal()) posteNatal(ctx, p); }
+  function poste(ctx, p){ luz(p.x + 8, p.y - 30, 122, .95); if(p.orla && natal()){ arcoLuz(ctx, p); return; } ctx.fillStyle = 'rgba(15,18,24,.2)'; ctx.fillRect(p.x - 4, p.y - 1, 10, 3); ctx.fillStyle = '#2B2F38'; ctx.fillRect(p.x - 2, p.y - 56, 4, 56); ctx.fillRect(p.x - 2, p.y - 56, 13, 3); ctx.fillStyle = '#FFE7A8'; ctx.fillRect(p.x + 5, p.y - 53, 9, 3); if(natal()) posteNatal(ctx, p); }
   /* ---------- v3.87 · os enfeites de Natal ----------
      Nada de verde, nem no Natal (regra do Corre): o pisca-pisca é branco quente, vermelho, dourado, azul e rosa; a
      árvore de Natal é dourada (pinheiro seria verde); a guirlanda da porta é de fita vermelha com laço de ouro; e o
@@ -2866,6 +2866,7 @@
   /* uma lâmpada do pisca-pisca: cada uma pisca no seu tempo e a cor anda devagar pela fileira */
   function lampada(ctx, x, y, i){
     if((Math.floor(NT * 2.6) + i * 3) % 7 === 0) return;
+    luz(x, y, 13, .85);
     const u = 1 / V.k; ctx.fillStyle = LUZES[(i + Math.floor(NT * .5)) % LUZES.length]; ctx.fillRect(sn(x), sn(y), u, u);
   }
   function lacoNatal(ctx, x, y){
@@ -3040,14 +3041,14 @@
   function voltaZoom(){ V.olhaNoel = 0; if(V.zoomAntes){ V.zoomF = V.zoomAntes; V.zoomAntes = 0; if(V.vivo) tamanhoTela(); } }
   function noelNaFila(L, ctx, t, vis){
     const l = V.cid.lago, n = l && l.noel; if(!n || !natal()) return;
-    n.agua.forEach(o => { if(vis(o.x, o.y, 120)) L.push({ y: o.y, f: () => enfeiteAgua(ctx, o, t) }); });
-    if(n.letreiro && vis(n.letreiro.x, n.letreiro.y, 120)) L.push({ y: n.letreiro.y, f: () => letreiroLondrina(ctx, n.letreiro.x, n.letreiro.y) });
+    n.agua.forEach(o => { if(vis(o.x, o.y, 120)){ L.push({ y: o.y, f: () => enfeiteAgua(ctx, o, t) }); if(o.k === 'palma') luz(o.x, o.y - 34, 70, .85); } });
+    if(n.letreiro && vis(n.letreiro.x, n.letreiro.y, 120)){ L.push({ y: n.letreiro.y, f: () => letreiroLondrina(ctx, n.letreiro.x, n.letreiro.y) }); luz(n.letreiro.x, n.letreiro.y - 24, 110, .9); }
     if(!vis(n.x, n.y, 420)) return;
     L.push({ y: n.y, f: () => {
       /* o ar em volta acende (a luz dele de longe) */
       const g = ctx.createRadialGradient(n.x, n.y - 290, 40, n.x, n.y - 290, 340); g.addColorStop(0, 'rgba(255,214,150,.2)'); g.addColorStop(1, 'rgba(255,214,150,0)'); ctx.fillStyle = g; ctx.fillRect(n.x - 340, n.y - 630, 680, 640);
       const k = V.kr || V.k; let s = V.sprites.get('noel'); if(!s){ s = spriteNoel(k); guardaSprite('noel', s); }
-      ctx.drawImage(s.cv, n.x - s.M, n.y - s.base, s.cv.width / k, s.cv.height / k);
+      ctx.drawImage(s.cv, n.x - s.M, n.y - s.base, s.cv.width / k, s.cv.height / k); luz(n.x, n.y - 260, 380, 1);
       luzesVivas(ctx, n, t); fogosNoel(ctx, n, t);
     } });
   }
@@ -3082,7 +3083,7 @@
   }
   /* a abóbora de vela acesa (pixel por pixel, numa grade de 9 x 7), com a luz no chão */
   function aboboraChao(ctx, x, y, p, t, i){
-    const b = hwBrasa(t, i), w = 9 * p, h = 7 * p;
+    const b = hwBrasa(t, i), w = 9 * p, h = 7 * p; luz(x, y - 6, 34 * p, .85);
     const g = ctx.createRadialGradient(x, y - h * .5, 1, x, y - h * .5, 30 * p / 1.6); g.addColorStop(0, 'rgba(255,176,46,.3)'); g.addColorStop(1, 'rgba(255,176,46,0)'); ctx.fillStyle = g; ctx.fillRect(x - 30, y - h - 24, 60, 50);
     ctx.fillStyle = 'rgba(15,18,24,.3)'; ctx.fillRect(x - w / 2 - 1, y - 1, w + 2, 3);
     const P = (gx, gy, gw, gh, c) => { ctx.fillStyle = c; ctx.fillRect(x + (gx - 4.5) * p, y - (7 - gy) * p, gw * p, gh * p); };
@@ -3202,6 +3203,8 @@
     else { bloco(ctx, x0, y - 18, L, 12, car.cor); bloco(ctx, x0 + (d > 0 ? 10 : 14), y - 28, 26, 10, car.cor); ctx.fillStyle = '#2A3442'; ctx.fillRect(x0 + (d > 0 ? 13 : 17), y - 26, 9, 7); ctx.fillRect(x0 + (d > 0 ? 24 : 28), y - 26, 9, 7); }
     ctx.fillStyle = '#0B0C10'; ctx.fillRect(x0 + 6, y - 8, 10, 9); ctx.fillRect(x0 + L - 16, y - 8, 10, 9); ctx.fillStyle = '#9AA0A8'; ctx.fillRect(x0 + 9, y - 5, 4, 3); ctx.fillRect(x0 + L - 13, y - 5, 4, 3);
     ctx.fillStyle = '#FFF3C4'; ctx.fillRect(d > 0 ? x0 + L - 3 : x0, y - 15, 3, 4); ctx.fillStyle = '#FF5A5A'; ctx.fillRect(d > 0 ? x0 : x0 + L - 3, y - 15, 3, 4);
+    /* v4.0: o farol de noite */
+    luz(car.x + d * (L / 2 + 30), y - 8, 52, .8); luz(car.x, y - 14, 30, .35);
   }
   function praca(ctx){
     const p = V.cid.praca;
@@ -4274,31 +4277,222 @@
   }
   /* v3.52: os desenhos prontos (casas, prédios) agora são maiores; a memória guarda os 160 usados por último */
   function guardaSprite(chave, s){ V.sprites.set(chave, s); if(V.sprites.size > 160){ const velho = V.sprites.keys().next().value; V.sprites.delete(velho); } }
+  /* ---------- v4.0 · o Correverso 4.0: o dia e a noite, a chuva e os eventos ao vivo ----------
+     A terceira frente da 4.0. Tudo sai do relógio de Brasília, igual em todo aparelho (nada novo na rede nem no banco):
+     - o céu: amanhece entre 5h e 7h30, o sol vai até as 17h, o fim de tarde puxa pro laranja e às 19h30 é noite. A noite é
+       uma máscara roxa por cima da cidade, com buracos onde tem luz: poste, varanda das casas, farol dos carros, vitrine,
+       a Concha, as torres da ACEL, o pisca-pisca do Natal, as abóboras e o Papai Noel. Você leva uma luzinha também. Lá
+       em cima, as estrelas e a lua;
+     - a chuva: a cada 2 horas o céu sorteia (o mesmo sorteio em todo aparelho) sol, garoa ou chuva, com mais água de
+       outubro a março, como em Londrina. Entra e sai devagar (15 minutos), escurece um pouco e tem o som;
+     - os eventos: o Som na Concha (12h30 e 20h, meia hora: luz de palco, plateia, o MC Garoa e a música "Concha ao Vivo")
+       e os Fogos no Igapó (21h, 5 minutos). A faixa AO VIVO no alto leva até lá; a Agenda da cidade fica no Mapa.
+     &hora=21.5 e &clima=chuva no endereço forçam a hora e o tempo (C.verso.hora e C.verso.clima, pros testes) */
+  let horaForca = (() => { const m = /[?&]hora=(\d{1,2}(?:\.\d+)?)/.exec(location.search); return m ? Math.min(23.99, +m[1]) : null; })();
+  let climaForca = (() => { const m = /[?&]clima=(sol|garoa|chuva)\b/.exec(location.search); return m ? m[1] : null; })();
+  const agoraBR = () => new Date(Date.now() - 3 * 3600e3);
+  const horaBR = () => { if(horaForca != null) return horaForca; const d = agoraBR(); return d.getUTCHours() + d.getUTCMinutes() / 60 + d.getUTCSeconds() / 3600; };
+  const frac = x => x - Math.floor(x);
+  /* [hora, escuro, quente]: o quanto a noite cobre e o laranja do sol baixo */
+  const CEU_K = [[0, 1, 0], [5, 1, 0], [5.8, .7, .4], [6.6, .2, .5], [7.4, 0, .1], [8.2, 0, 0], [16.7, 0, 0], [17.5, .06, .5], [18.2, .32, .8], [18.8, .66, .45], [19.4, .92, .12], [19.9, 1, 0], [24, 1, 0]];
+  function ceuDe(h){
+    for(let i = 1; i < CEU_K.length; i++){ const [h1, e1, q1] = CEU_K[i]; if(h <= h1){ const [h0, e0, q0] = CEU_K[i - 1], s = (h - h0) / ((h1 - h0) || 1); return { escuro: e0 + (e1 - e0) * s, quente: q0 + (q1 - q0) * s }; } }
+    return { escuro: 1, quente: 0 };
+  }
+  /* a chuva: um sorteio a cada 2 horas do dia de Brasília (mais água de outubro a março) */
+  function climaDe(){
+    if(climaForca) return { tipo: climaForca, f: climaForca === 'sol' ? 0 : 1 };
+    const d = agoraBR(), dia = Math.floor(d.getTime() / 864e5), h = horaBR(), bloco = Math.floor(h / 2), dentro = h - bloco * 2;
+    const mes = d.getUTCMonth(), aguas = mes >= 9 || mes <= 2, r = (hash('clima:' + dia + ':' + bloco) % 1000) / 1000;
+    const tipo = r < (aguas ? .12 : .05) ? 'chuva' : r < (aguas ? .3 : .14) ? 'garoa' : 'sol';
+    return { tipo, f: tipo === 'sol' ? 0 : clamp(Math.min(dentro / .25, (2 - dentro) / .25), 0, 1) };
+  }
+  function ceuAgora(){
+    const n = performance.now(); if(V.ceu && n - V.ceu.em < 1000) return V.ceu;
+    const h = horaBR(), c = ceuDe(h), cl = climaDe(), nuvem = cl.tipo === 'chuva' ? .38 * cl.f : cl.tipo === 'garoa' ? .18 * cl.f : 0;
+    return (V.ceu = { em: n, h, escuro: c.escuro, quente: c.quente * (1 - Math.min(1, nuvem * 2)), clima: cl, nuvem, ativo: c.escuro > .02 || nuvem > .01 || c.quente > .02 });
+  }
+  const noite = () => !!(V.ceu && V.ceu.escuro > .5);
+  const chovendo = () => !!(V.ceu && V.ceu.clima.f > .3);
+  /* a cor da máscara: branco (não muda nada) até o roxo da noite, e o cinza da nuvem por cima */
+  function corMascara(c){
+    const a = c.escuro * .9, N = [54, 46, 112], G = [190, 186, 206];
+    const v = N.map((x, i) => (255 * (1 - a) + x * a) * (1 - c.nuvem * (1 - G[i] / 255)));
+    return `rgb(${v.map(x => Math.round(x)).join(',')})`;
+  }
+  /* uma luz: um buraco na noite (x, y no mundo, raio, força). Lista plana: x, y, r, a */
+  const luz = (x, y, r, a) => { const c = V.ceu; if(c && c.escuro > .04 && V.luz) V.luz.push(x, y, r, a); };
+  let GLOW = null, GLOW_Q = null;
+  function brilhoSprite(cor){
+    const c = document.createElement('canvas'); c.width = c.height = 64; const g = c.getContext('2d'), r = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+    r.addColorStop(0, `rgba(${cor},1)`); r.addColorStop(.42, `rgba(${cor},.72)`); r.addColorStop(1, `rgba(${cor},0)`); g.fillStyle = r; g.fillRect(0, 0, 64, 64); return c;
+  }
+  function noiteDesenha(ctx, k, ox, oy){
+    const c = V.ceu; if(!c || !c.ativo) return;
+    const cv = V.cv, W = cv.width, H = cv.height, Q = 4, mw = Math.max(1, Math.ceil(W / Q)), mh = Math.max(1, Math.ceil(H / Q));
+    let m = V.masc; if(!m || m.width !== mw || m.height !== mh){ m = V.masc = document.createElement('canvas'); m.width = mw; m.height = mh; }
+    const mc = m.getContext('2d'), L = V.luz || [];
+    mc.globalCompositeOperation = 'source-over'; mc.globalAlpha = 1; mc.fillStyle = corMascara(c); mc.fillRect(0, 0, mw, mh);
+    if(L.length && c.escuro > .04){
+      const g = GLOW || (GLOW = brilhoSprite('255,255,255')); mc.globalCompositeOperation = 'destination-out';
+      for(let i = 0; i < L.length; i += 4){ const r = L[i + 2] * k / Q, x = (L[i] * k + ox) / Q, y = (L[i + 1] * k + oy) / Q; if(x + r < 0 || y + r < 0 || x - r > mw || y - r > mh) continue; mc.globalAlpha = Math.min(1, L[i + 3]); mc.drawImage(g, x - r, y - r, r * 2, r * 2); }
+      mc.globalAlpha = 1; mc.globalCompositeOperation = 'source-over';
+    }
+    ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.imageSmoothingEnabled = true;
+    ctx.globalCompositeOperation = 'multiply'; ctx.drawImage(m, 0, 0, W, H);
+    if(c.quente > .02){ ctx.globalCompositeOperation = 'soft-light'; ctx.fillStyle = `rgba(255,128,64,${(c.quente * .5).toFixed(3)})`; ctx.fillRect(0, 0, W, H); }
+    /* o brilho quente em volta das luzes pequenas (de noite) */
+    if(c.escuro > .3 && L.length){
+      const gq = GLOW_Q || (GLOW_Q = brilhoSprite('255,206,130')), al = (c.escuro - .3) / .7 * .3; ctx.globalCompositeOperation = 'lighter';
+      for(let i = 0; i < L.length; i += 4){ if(L[i + 2] > 140) continue; const r = L[i + 2] * k * .5, x = L[i] * k + ox, y = L[i + 1] * k + oy; if(x + r < 0 || y + r < 0 || x - r > W || y - r > H) continue; ctx.globalAlpha = al * Math.min(1, L[i + 3]); ctx.drawImage(gq, x - r, y - r, r * 2, r * 2); }
+    }
+    ctx.restore();
+  }
+  /* as estrelas e a lua (no céu de cima da cidade) */
+  function estrelas(ctx, t, vx, vy, vw){
+    const c = V.ceu, topo = TOPO - RUA; if(!c || c.escuro < .35 || vy > topo) return;
+    const a = (c.escuro - .35) / .65 * clamp(1 - c.nuvem * 2.4, 0, 1); if(a <= .02) return;
+    const u = 1 / V.k, r = rng(4242);
+    for(let i = 0; i < 150; i++){ const x = r() * V.cid.W, y = topo - 30 - r() * 900, br = r(); if(x < vx - 4 || x > vx + vw + 4 || y < vy - 4) continue; const tw = .55 + .45 * Math.sin(t * (1 + br * 2) + i), q = br > .92 ? 2 : 1; ctx.fillStyle = `rgba(255,248,230,${(a * tw * (.35 + br * .65)).toFixed(2)})`; ctx.fillRect(sn(x), sn(y), u * q, u * q); }
+    const lx = V.cid.W * .7, ly = topo - 330;
+    if(lx > vx - 60 && lx < vx + vw + 60 && ly > vy - 60){ ctx.fillStyle = `rgba(255,244,214,${a.toFixed(2)})`; ctx.beginPath(); ctx.arc(lx, ly, 22, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = `rgba(52,44,96,${(a * .92).toFixed(2)})`; ctx.beginPath(); ctx.arc(lx + 10, ly - 6, 19, 0, Math.PI * 2); ctx.fill(); }
+  }
+  /* a chuva na tela (sem guardar gota nenhuma: cada uma sai da conta com o tempo) */
+  function chuvaDesenha(ctx, t){
+    const c = V.ceu; if(!c || c.clima.f <= 0) return;
+    const cl = c.clima, forte = cl.tipo === 'chuva', W = V.cv.width, H = V.cv.height, fx = V.fx || 1, menos = (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) ? .4 : 1;
+    const n = Math.round(((forte ? 230 : 80) * cl.f * Math.min(2.2, (V.cssW * V.cssH) / (1366 * 860)) + 8) * menos);
+    const vy = (forte ? 1100 : 420) * fx, vx = vy * .16, len = (forte ? 16 : 7) * fx;
+    ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.strokeStyle = forte ? 'rgba(212,216,240,.5)' : 'rgba(222,224,240,.36)'; ctx.lineWidth = fx * (forte ? 1.2 : 1); ctx.beginPath();
+    for(let i = 0; i < n; i++){ const a = frac(i * .6180339887 + .13), b = frac(i * .7548776662 + .41), sp = .75 + frac(i * .569840291) * .5;
+      const y = (b * (H + len) + t * vy * sp) % (H + len) - len, x = (a * (W + 200) + t * vx * sp) % (W + 200) - 100;
+      ctx.moveTo(x, y); ctx.lineTo(x - len * .16, y - len); }
+    ctx.stroke();
+    if(forte){ ctx.fillStyle = 'rgba(222,226,246,.42)'; const r = rng(Math.floor(t * 8)); for(let i = 0; i < 26 * cl.f * menos; i++){ const x = r() * W, y = r() * H; ctx.fillRect(x - 3 * fx, y, 6 * fx, fx); ctx.fillRect(x - fx, y - fx, 2 * fx, fx); } }
+    ctx.restore();
+  }
+  /* ---------- os eventos ---------- */
+  const EVENTOS = [
+    { k: 'show', nome: 'Som na Concha', onde: 'Concha Acústica', ini: [12.5, 20], dur: .5, diz: 'O MC Garoa e o Tonhão do Som ao vivo na Concha Acústica, com luz de palco e plateia.' },
+    { k: 'fogos', nome: 'Fogos no Igapó', onde: 'Lago Igapó', ini: [21], dur: 5 / 60, diz: 'Cinco minutos de fogos em cima do Lago Igapó. A melhor vista é da orla.' }
+  ];
+  function eventoAgora(h){ h = h == null ? horaBR() : h; for(const e of EVENTOS) for(const i of e.ini) if(h >= i && h < i + e.dur) return { e, i, seg: (h - i) * 3600 }; return null; }
+  const proximos = h => { h = h == null ? horaBR() : h; const L = []; EVENTOS.forEach(e => e.ini.forEach(i => L.push({ e, i, em: ((i - h) % 24 + 24) % 24 }))); return L.sort((a, b) => a.em - b.em); };
+  const hhmm = h => { const m = Math.round(frac(h) * 60); return `${String(Math.floor(h)).padStart(2, '0')}h${m ? String(m).padStart(2, '0') : ''}`; };
+  const quantoFalta = em => em < 1 ? `${Math.max(1, Math.round(em * 60))} min` : `${Math.floor(em)}h${Math.round(frac(em) * 60) ? String(Math.round(frac(em) * 60)).padStart(2, '0') : ''}`;
+  const ceuNome = () => { const c = ceuAgora(), cl = c.clima.f > .3 ? c.clima.tipo : 'sol'; const quando = c.escuro > .6 ? 'noite' : c.quente > .3 ? (c.h < 12 ? 'amanhecer' : 'fim de tarde') : 'dia'; return cl === 'chuva' ? `${quando} de chuva` : cl === 'garoa' ? `${quando} de garoa` : quando === 'dia' ? 'dia de sol' : quando === 'noite' ? 'noite' : quando; };
+  /* o palco da Concha: o MC no palco e a plateia na frente (só enquanto tem show; ninguém disso vai pra rede) */
+  const LETRA = ['Londrina de noite, o corre não para', 'Do Calçadão ao Igapó, a cidade é nossa', 'Quem vende o almoço paga o jantar', 'Pé vermelho, cabeça erguida', 'Trampo de dia, rima de noite', 'Café, garoa e boleto vencendo', 'A Concha canta e a cidade responde', 'Barulho pro Tonhão do Som', 'Mão pro alto quem fez o corre hoje', 'Terra roxa no tênis, ouro na ideia'];
+  function palco(){
+    if(V.palco) return V.palco;
+    const cc = V.cid.centro.concha, cx = cc.x + LW / 2, P = [];
+    const mc = { sid: 'mc-garoa', bot: true, npc: true, nome: 'MC Garoa', av: avLimpo({ pele: 4, cabelo: 'trancas', corCabelo: 0, topo: 'bone', roupa: 'moletom', corRoupa: 1, corrente: 'ouro', perna: 'calca', corCalca: 0, tenis: 2 }, 'mc-garoa'), x: cx, y: cc.base - 28, dir: 'baixo', passo: 0, mov: false, sit: false, mic: false, fala: null };
+    const r = rng(2026);
+    /* a plateia em pé nos degraus (três fileiras de seis) */
+    for(let i = 0; i < 18; i++){ const fil = Math.floor(i / 6), x = cx - 110 + (i % 6) * 44 + (r() - .5) * 16, y = cc.base + 48 + fil * 30 + (r() - .5) * 6;
+      P.push({ sid: 'plateia-' + i, bot: true, npc: true, nome: '', av: avLimpo({}, 'plateia' + i), x, y, y0: y, dir: 'cima', passo: 0, mov: false, sit: false, mic: false, fase: r() * 6 }); }
+    return (V.palco = { mc, P, cx, cc, linha: 0, prox: 0 });
+  }
+  function showNaFila(L, ctx, t, vis){
+    const ag = eventoAgora(); if(!ag || ag.e.k !== 'show') { V.palco = null; return; }
+    const p = palco(), cc = p.cc; if(!vis(p.cx, cc.base, 520)) return;
+    const agora = Date.now();
+    if(agora > p.prox){ p.prox = agora + 4200; p.mc.fala = { t: LETRA[p.linha++ % LETRA.length], ate: agora + 3800 }; }
+    p.P.forEach(o => { o.y = o.y0 - Math.abs(Math.sin(t * 4.2 + o.fase)) * 3; L.push({ y: o.y0, f: () => boneco(ctx, o, t, false) }); });
+    /* o MC no palco: desenhado depois da Concha (senão o palco cobria ele) */
+    L.push({ y: cc.base + 1, f: () => { p.mc.dir = Math.sin(t * .7) > .6 ? 'esq' : Math.sin(t * .7) < -.6 ? 'dir' : 'baixo'; boneco(ctx, p.mc, t, false); } });
+    luz(p.cx, cc.base - 60, 230, 1);
+  }
+  /* a luz de palco: quatro fachos que varrem a plateia (rosa, amarelo, lilás e azul; nunca verde) */
+  function palcoLuzes(ctx, t){
+    const p = V.palco; if(!p) return;
+    const cc = p.cc, x0 = p.cx, y0 = cc.base - 150, cores = ['255,72,176', '255,232,0', '180,162,218', '111,182,255'];
+    ctx.save(); ctx.globalCompositeOperation = 'lighter';
+    cores.forEach((cor, i) => { const a = Math.sin(t * (.9 + i * .23) + i * 1.7) * .55, len = 330, dx = Math.sin(a) * len, dy = Math.cos(a) * len, lx = Math.cos(a) * 34, ly = -Math.sin(a) * 34;
+      const g = ctx.createLinearGradient(x0, y0, x0 + dx, y0 + dy); g.addColorStop(0, `rgba(${cor},.34)`); g.addColorStop(1, `rgba(${cor},0)`); ctx.fillStyle = g;
+      ctx.beginPath(); ctx.moveTo(x0 - 6 + i * 4, y0); ctx.lineTo(x0 + dx - lx, y0 + dy - ly); ctx.lineTo(x0 + dx + lx, y0 + dy + ly); ctx.closePath(); ctx.fill(); });
+    ctx.restore();
+  }
+  /* os fogos do Igapó: a luz deles vai pra máscara antes (acende o lago) e o desenho vem depois, por cima da noite */
+  const FOGO_COR = ['255,72,176', '255,232,0', '180,162,218', '111,182,255', '255,243,196', '255,108,47'];
+  function fogosDe(t){
+    const ag = eventoAgora(); if(!ag || ag.e.k !== 'fogos') return null;
+    const l = V.cid.lago; if(!l) return null; const n = l.noel, cx = n ? n.x : l.x + l.w / 2, cy = (n ? n.y : l.y + l.h / 2) - 300, R = [];
+    for(let j = 0; j < 6; j++){ const ciclo = 2.6, fase = t / ciclo + j / 6, i = Math.floor(fase), f = fase - i; if(f > .62) continue;
+      const r = rng(i * 13 + j * 977), x = cx + (r() - .5) * 900, y = cy - 80 - r() * 300, raio = 60 + r() * 70, cor = FOGO_COR[Math.floor(r() * FOGO_COR.length)], cor2 = FOGO_COR[Math.floor(r() * FOGO_COR.length)];
+      R.push({ i, j, f, x, y, raio, cor, cor2, base: (n ? n.y : l.y + l.h / 2) }); }
+    return R;
+  }
+  function fogosLuz(t){ const R = fogosDe(t); if(!R) return; R.forEach(b => { if(b.f > .14) luz(b.x, b.y + 40, b.raio * 1.8, (1 - (b.f - .14) / .48) * .55); }); }
+  function fogosDesenha(ctx, t){
+    const R = fogosDe(t); if(!R) return; const u = 1 / V.k;
+    R.forEach(b => {
+      if(b.f < .14){ const s = b.f / .14; ctx.fillStyle = 'rgba(255,236,190,.95)'; ctx.fillRect(sn(b.x), sn(b.base - (b.base - b.y) * s), u, u * 5); return; }
+      const p = (b.f - .14) / .48, a = 1 - p, R2 = b.raio * Math.sqrt(p);
+      if(b.f - .14 < .03 && V.eu && Math.hypot(V.eu.x - b.x, V.eu.y - b.y) < 1100 && C.versoSom && V.fogoEv !== b.i * 7 + b.j){ V.fogoEv = b.i * 7 + b.j; C.versoSom.rio('fogo'); }
+      for(let q = 0; q < 34; q++){ const ang = q / 34 * Math.PI * 2 + b.i, x = b.x + Math.cos(ang) * R2, y = b.y + Math.sin(ang) * R2 + p * p * 40;
+        ctx.fillStyle = `rgba(${q % 3 ? b.cor : b.cor2},${a.toFixed(2)})`; ctx.fillRect(sn(x), sn(y), u * 2, u * 2);
+        ctx.fillStyle = `rgba(${b.cor},${(a * .45).toFixed(2)})`; ctx.fillRect(sn(b.x + Math.cos(ang) * R2 * .62), sn(b.y + Math.sin(ang) * R2 * .62 + p * p * 26), u, u); }
+    });
+  }
+  /* a faixa no alto: AO VIVO durante o evento, "Em N min" nos 10 minutos antes. Um aviso por evento */
+  function evtTick(){
+    if(!V.vivo || !V.cid) return;
+    const b = C.$('cvr-evento'), h = horaBR(), ag = eventoAgora(h), px = proximos(h).find(x => !ag || x.e !== ag.e || x.i !== ag.i);
+    let txt = '', cls = '';
+    if(ag){ txt = `AO VIVO · ${ag.e.nome}`; cls = 'vivo'; }
+    else if(px && px.em <= 10 / 60){ txt = `Em ${quantoFalta(px.em)} · ${px.e.nome}`; cls = 'logo'; }
+    if(b){ b.hidden = !txt; if(txt && b.textContent !== txt) b.textContent = txt; b.className = 'cvr-evento' + (cls ? ' ' + cls : ''); b.dataset.k = ag ? ag.e.k : px ? px.e.k : ''; }
+    const chave = ag ? `${ag.e.k}:${ag.i}:${Math.floor(agoraBR().getTime() / 864e5)}` : '';
+    if(ag && V.evAvisou !== chave){ V.evAvisou = chave; C.toast(ag.seg < 150 ? `Começou: ${ag.e.nome}. Toca no AO VIVO pra ir.` : `Tá rolando: ${ag.e.nome}. Toca no AO VIVO pra ir.`, 4600); }
+    /* o som do show sobe com a distância até a Concha */
+    const S = C.versoSom;
+    if(S && S.show){ let nv = 0; if(ag && ag.e.k === 'show' && V.eu && !V.voo){ const cc = V.cid.centro.concha, d = Math.hypot(V.eu.x - (cc.x + LW / 2), V.eu.y - (cc.base + 100)); nv = clamp(1 - (d - 240) / 900, 0, 1); } S.show(nv); }
+  }
+  function agendaSheet(){
+    const h = horaBR(), ag = eventoAgora(h), L = EVENTOS.flatMap(e => e.ini.map(i => ({ e, i }))).sort((a, b) => a.i - b.i);
+    C.sheet(`<div class="form cvr-agenda"><div class="sheet-head"><h2>Agenda da cidade</h2><button type="button" class="cbtn plain" data-close aria-label="Fechar">${ico('x')}</button></div>
+      <p class="fine">Todo dia, pelo relógio de Brasília. Agora: <b>${hhmm(h)}</b>, ${esc(ceuNome())}.</p>
+      <ul class="cvr-ag">${L.map(({ e, i }) => { const vivo = !!ag && ag.e === e && ag.i === i, foi = !vivo && h >= i + e.dur, em = ((i - h) % 24 + 24) % 24;
+        return `<li class="${vivo ? 'vivo' : foi ? 'foi' : ''}"><b class="cvr-ag-h num">${hhmm(i)}</b><span class="cvr-ag-t"><b>${esc(e.nome)}</b><small>${esc(e.diz)}</small></span>
+          ${vivo ? `<button type="button" class="btn sm pri" data-act="cvr-ev-ir" data-k="${e.k}">Ir agora</button>` : `<small class="cvr-ag-q">${foi ? 'amanhã de novo' : 'daqui a ' + quantoFalta(em)}</small>`}</li>`; }).join('')}</ul>
+      <p class="fine">De noite a cidade acende; com chuva, ela molha. O céu é o mesmo pra todo mundo que tá na cidade.</p></div>`, 'cvr-agenda-sh');
+  }
+  function vaiEvento(k){
+    const e = EVENTOS.find(x => x.k === k); if(!e) return;
+    const l = lugares().find(x => x.nome === e.onde), cc = V.cid.centro.concha;
+    const alvo = k === 'show' ? { x: cc.x + LW / 2 + 40, y: cc.base + 120 } : l ? { x: l.x, y: l.y } : null; if(!alvo) return;
+    const p = pertoLivre(alvo.x, alvo.y); if(p){ C.closeSheet(); teleporta(p.x, p.y); }
+  }
+  const FRASES_NOITE = ['De noite Londrina fica mais bonita. E mais fria.', 'Já jantou? Porque eu já tô pensando no café da manhã.', 'A Concha de noite é outra coisa.', 'Quem trabalha de dia faz o corre de noite.', 'Olha a lua em cima do Igapó, minha gente.', 'Esse grilo canta mais que o Tonhão.'];
+  const FRASES_CHUVA = ['Esse céu de Londrina não avisa nada.', 'Choveu, o Calçadão esvazia e o pastel esfria.', 'Garoa fina é a que mais molha.', 'Terra roxa molhada gruda até na alma.', 'Pega o guarda-chuva que o tempo virou.'];
   function quadro(t){
     const { ctx } = V, z = V.z, k0 = V.k, fx = V.fx || 1, k = V.kr || k0, vw = V.cssW / z, vh = V.cssH / z, c = V.cid; NT = t;
     const vx = V.cam.x - vw / 2, vy = V.cam.y - vh / 2, ox = -Math.round(vx * k0) * fx, oy = -Math.round(vy * k0) * fx;
     ctx.setTransform(k, 0, 0, k, ox, oy); ctx.imageSmoothingEnabled = false;
+    /* v4.0: o céu da hora (a lista de luzes da noite começa vazia a cada quadro) */
+    ceuAgora(); V.luz = V.luz || []; V.luz.length = 0;
     chao(ctx, vx, vy, vw, vh); aguaViva(ctx, t, vx, vy, vw, vh); sobreAgua(ctx, vx, vy, vw, vh); aguaRio(ctx, t, vx, vy, vw, vh); sobreRio(ctx, vx, vy, vw, vh, t); aguaParque(ctx, t, vx, vy, vw, vh); sobreParque(ctx, vx, vy, vw, vh);
     const L = [];
     const vis = (x, y, m) => x > vx - m && x < vx + vw + m && y > vy - 40 && y < vy + vh + m * 1.6;
     const sprite = (chave, fazer, x, base) => L.push({ y: base, f: () => { let s = V.sprites.get(chave); if(!s){ s = fazer(); guardaSprite(chave, s); } ctx.drawImage(s.cv, x - s.M, base - s.base, s.cv.width / k, s.cv.height / k); } });
-    c.casas.forEach(h => { if(vis(h.x + h.w / 2, h.base, 320)) sprite(h.id, () => (ESTILO_SPRITE()[h.estilo] || spriteCasa)(h, k), h.x, h.base); });
+    c.casas.forEach(h => { if(vis(h.x + h.w / 2, h.base, 320)){ sprite(h.id, () => (ESTILO_SPRITE()[h.estilo] || spriteCasa)(h, k), h.x, h.base); luz(h.portaX, h.base - 24, 66, .75); } });
     if(c.dois){ const d = c.dois; if(vis(d.x + d.w / 2, d.base, 700)) L.push({ y: d.base, f: () => { if(!V.doisS) V.doisS = spriteDois(k); const s = V.doisS, sx = d.x - s.M, sy = d.base - s.base; ctx.drawImage(s.cv, sx, sy, s.cv.width / k, s.cv.height / k); overlayDois(ctx, s, sx, sy, t); } }); }
     const ce = c.centro, FZ = { teatro: spriteTeatro, concha: spriteConcha, catedral: spriteCatedral, museu: spriteMuseu, arte: spriteArte, aquario: spriteAquario, delegacia: spriteDelegacia, bombeiros: spriteBombeiros, hospital: spriteHospital };
-    Object.keys(FZ).forEach(nm => { const o = ce[nm]; if(vis(o.x + LW / 2, o.base, nm === 'catedral' ? 520 : 340)) sprite('c:' + nm, () => FZ[nm](k), o.x, o.base); });
+    Object.keys(FZ).forEach(nm => { const o = ce[nm]; if(vis(o.x + LW / 2, o.base, nm === 'catedral' ? 520 : 340)){ sprite('c:' + nm, () => FZ[nm](k), o.x, o.base); luz(o.x + LW / 2, o.base - (nm === 'concha' ? 90 : 20), nm === 'concha' ? 190 : 130, nm === 'concha' ? .75 : .55); } });
     /* os degraus da Concha */
     if(vis(ce.concha.x + LW / 2, ce.concha.base + 80, 300)) [0, 1, 2].forEach(i => L.push({ y: ce.concha.base + 34 + i * 30, f: () => bloco(ctx, ce.concha.x + 40, ce.concha.base + 34 + i * 30 - 14, 220, 14, 'concreto') }));
-    c.gleba.forEach(g => { if(vis(g.x + g.w / 2, g.base, 440)) sprite(g.id, () => spriteTorre(g, k), g.x, g.base); });
-    c.enche.forEach(f => { if((f.t === 'predio' || f.t === 'loja') && vis(f.x + LW / 2, f.base, 360)) sprite(f.id, () => f.t === 'predio' ? spritePredio(f, k) : spriteLoja(f, k), f.t === 'predio' ? f.px : f.x, f.base); });
-    c.quiosques.forEach(q => { if(vis(q.x, q.base, 160)) sprite(q.id, () => spriteQuiosque(q, k), q.x - 35, q.base); });
-    c.trucks.forEach(tr => { if(vis(tr.x, tr.base, 160)) sprite(tr.id, () => spriteTruck(tr, k), tr.x - 42, tr.base); });
-    c.barracas.forEach(b => { if(vis(b.x, b.base, 120)) sprite(b.id, () => spriteBarraca(b, k), b.x - 36, b.base); });
-    if(c.feira) c.feira.barracas.forEach(b => { if(!paraMim(b) || !vis(b.x, b.base, 150)) return; const ab = aberta(b); sprite('fb:' + b.id + (ab ? '' : ':f'), () => spriteBanca(b, k, ab), b.x - 46, b.base); });
+    c.gleba.forEach(g => { if(vis(g.x + g.w / 2, g.base, 440)){ sprite(g.id, () => spriteTorre(g, k), g.x, g.base); luz(g.x + g.w / 2, g.base - 20, 110, .6); } });
+    c.enche.forEach(f => { if((f.t === 'predio' || f.t === 'loja') && vis(f.x + LW / 2, f.base, 360)){ sprite(f.id, () => f.t === 'predio' ? spritePredio(f, k) : spriteLoja(f, k), f.t === 'predio' ? f.px : f.x, f.base); if(f.t === 'loja') luz(f.x + LW / 2, f.base - 20, 100, .7); } });
+    c.quiosques.forEach(q => { if(vis(q.x, q.base, 160)){ sprite(q.id, () => spriteQuiosque(q, k), q.x - 35, q.base); luz(q.x, q.base - 22, 72, .8); } });
+    c.trucks.forEach(tr => { if(vis(tr.x, tr.base, 160)){ sprite(tr.id, () => spriteTruck(tr, k), tr.x - 42, tr.base); luz(tr.x, tr.base - 22, 72, .8); } });
+    c.barracas.forEach(b => { if(vis(b.x, b.base, 120)){ sprite(b.id, () => spriteBarraca(b, k), b.x - 36, b.base); luz(b.x, b.base - 20, 64, .75); } });
+    if(c.feira) c.feira.barracas.forEach(b => { if(!paraMim(b) || !vis(b.x, b.base, 150)) return; const ab = aberta(b); sprite('fb:' + b.id + (ab ? '' : ':f'), () => spriteBanca(b, k, ab), b.x - 46, b.base); luz(b.x, b.base - 22, 80, .8); });
     const e = c.estadio; if(vis(e.fx + e.fw / 2, e.campo.y, 720)) sprite('estadio', () => spriteEstadio(e, k), e.fx, e.campo.y);
     /* v3.40: o aeroporto (terminal, torre, biruta e o teco-teco parado no pátio, quando não é você que tá voando nele) */
     const ae = c.aeroporto;
     if(ae){
-      if(vis(ae.term.x + ae.term.w / 2, ae.term.base, 380)) sprite('aero:t', () => spriteTerminal(k), ae.term.x, ae.term.base);
+      if(vis(ae.term.x + ae.term.w / 2, ae.term.base, 380)){ sprite('aero:t', () => spriteTerminal(k), ae.term.x, ae.term.base); luz(ae.term.x + ae.term.w / 2, ae.term.base - 20, 170, .7); }
       if(vis(ae.torre.x, ae.torre.base, 280)) sprite('aero:r', () => spriteTorreAero(k), ae.torre.x - 35, ae.torre.base);
       if(vis(ae.biruta.x, ae.biruta.y, 120)) L.push({ y: ae.biruta.y, f: () => biruta(ctx, ae.biruta, t) });
       if(!V.voo && vis(ae.vaga.x, ae.vaga.y, 180)) L.push({ y: ae.vaga.y, f: () => desenhaAviao(ctx, ae.vaga.x, ae.vaga.y, 0, 1, t, false, true) });
@@ -4309,7 +4503,7 @@
       if(vis(ac.sede.x + ac.sede.w / 2, ac.sede.base, 280)) sprite('acel:s', () => spriteSedeAcel(k), ac.sede.x, ac.sede.base);
       if(vis(ac.portal.x, ac.portal.base, 200)) sprite('acel:p', () => spritePortalAcel(k), ac.portal.x - 52, ac.portal.base);
       if(vis(ac.placar.x, ac.placar.base, 200)) sprite('acel:q', () => spritePlacarAcel(k), ac.placar.x - 65, ac.placar.base);
-      ac.torres.forEach(o => { if(vis(o.x, o.base, 260)) sprite('acel:l', () => spriteTorreLuz(k), o.x - 22, o.base); });
+      ac.torres.forEach(o => { if(vis(o.x, o.base, 260)){ sprite('acel:l', () => spriteTorreLuz(k), o.x - 22, o.base); luz(o.x, o.base - 40, 300, .9); } });
     }
     c.decor.forEach(d => { if(vis(d.x, d.y, 180)) L.push({ y: d.y, f: () => decor(ctx, d, t) }); });
     /* v3.75: o barracão do porto e os bichos do rio */
@@ -4321,12 +4515,14 @@
     V.carros.forEach(car => { if(vis(car.x, car.y, 90)) L.push({ y: car.y, f: () => carro(ctx, car) }); });
     c.bancos.forEach(b => { if(vis(b.x, b.y, 60)) L.push({ y: b.y - 1, f: () => banco(ctx, b) }); });
     (V.bolas || []).forEach(b => { if(vis(b.x, b.y, 40)) L.push({ y: b.y, f: () => desenhaBola(ctx, b) }); });
-    c.vazios.forEach((o, i) => { if(vis(o.x + LW / 2, o.y + LH, 260)){ L.push({ y: o.y + LH - 40, f: () => loteLivre(ctx, o) }); L.push({ y: o.y + LH * .55, f: () => outdoor(ctx, o, i) }); } });
+    c.vazios.forEach((o, i) => { if(vis(o.x + LW / 2, o.y + LH, 260)){ L.push({ y: o.y + LH - 40, f: () => loteLivre(ctx, o) }); L.push({ y: o.y + LH * .55, f: () => outdoor(ctx, o, i) }); luz(o.x + LW / 2, o.y + LH * .55 - 70, 150, .6); } });
     c.arv.forEach(a => { if(vis(a.x, a.y, 90)) L.push({ y: a.y, f: () => arvore(ctx, a) }); });
     if(vis(c.praca.cx, c.praca.cy, 220)) L.push({ y: c.praca.y + 150, f: () => praca(ctx) });
     const agora = Date.now(), mostra = quemAparece(agora), gente = [...V.remotos.values()].filter(r => mostra.has(r.sid) && vis(r.x, r.y, 60));
     gente.forEach(r => L.push({ y: r.y + (r.sit ? 1 : 0), f: () => boneco(ctx, r, t, false) }));
-    if(V.eu) L.push({ y: V.eu.y + (V.eu.sit ? 1 : 0), f: () => boneco(ctx, V.eu, t, true) });
+    if(V.eu){ L.push({ y: V.eu.y + (V.eu.sit ? 1 : 0), f: () => boneco(ctx, V.eu, t, true) }); luz(V.eu.x, V.eu.y - 16, 60, .5); }
+    /* v4.0: o show da Concha (o MC e a plateia) e a luz dos fogos */
+    showNaFila(L, ctx, t, vis); fogosLuz(t);
     if(V.eu && V.sk && V.sk.grind) L.push({ y: V.eu.y + 2, f: () => faiscas(ctx, V.eu.x, V.eu.y, t) });
     desenhaTarefa(L, ctx, t, vis);
     /* v3.87: o Natal (o festão de poste em poste, a guirlanda nas portas e o Papai Noel do Igapó) */
@@ -4338,12 +4534,15 @@
     /* v3.91: o Halloween nas casas sorteadas */
     if(halloween()) c.casas.concat(c.dois ? [c.dois] : []).forEach(h => { const o = halloweenDe(h); if(o && vis(h.x + h.w / 2, h.base, Math.max(240, h.w))) hwNaFila(L, ctx, h, o, t, vis); });
     L.sort((a, b) => a.y - b.y).forEach(o => o.f());
+    /* v4.0: a noite (e a nuvem) por cima de tudo, com os buracos de luz; depois o que brilha: estrelas, palco, fogos e a chuva */
+    noiteDesenha(ctx, k, ox, oy); estrelas(ctx, t, vx, vy, vw); palcoLuzes(ctx, t); fogosDesenha(ctx, t); chuvaDesenha(ctx, t);
     if(V.rio && V.rio.fase === 'salto') saltoPeixe(ctx, t);
     if(V.alvo){ ctx.strokeStyle = ROSA; ctx.lineWidth = Math.max(2, 1.05 / k0); ctx.beginPath(); ctx.ellipse(V.alvo.x, V.alvo.y, 10 + Math.sin(t * 6) * 2, 4, 0, 0, Math.PI * 2); ctx.stroke(); }
     if(V.porta && !(V.eu && V.eu.sit)){ const p = V.porta; ctx.save(); ctx.translate(p.x, p.y - (p.tipo === 'banco' ? 34 : p.tipo === 'morador' ? 48 / V.k : 4) + Math.round(Math.sin(t * 4) * 2)); ctx.beginPath(); ctx.moveTo(-8, -12); ctx.lineTo(8, -12); ctx.lineTo(0, 0); ctx.closePath(); forma(ctx, AMARELO, 2); ctx.restore(); }
     desenhaVoos(ctx, t, gente);
     /* nomes e balões por cima de tudo */
     gente.forEach(r => nomeDe(ctx, r, false, agora)); if(V.eu) nomeDe(ctx, V.eu, true, agora);
+    if(V.palco) nomeDe(ctx, V.palco.mc, false, agora);
     if(V.baloes && V.baloes.length){ V.baloes.forEach(b => balaoLongo(ctx, b[0], b[1], b[2])); V.baloes.length = 0; }
   }
   /* ---------- mapa: a cidade inteira numa tela, com viagem rápida ---------- */
@@ -4391,6 +4590,7 @@
     C.sheet(`<div class="form cvr-mapa"><div class="sheet-head"><h2>Mapa</h2><button type="button" class="cbtn plain" data-close aria-label="Fechar">${ico('x')}</button></div>
       <canvas id="cvr-mapa-cv" width="${mw}" height="${mh}" aria-label="Mapa da cidade. Toca num lugar pra ir direto pra lá."></canvas>
       <p class="fine">Toca no mapa pra ir direto pra lá, ou escolhe um lugar. Você é o quadradinho rosa; os brancos são quem tá na cidade.</p>
+      <button type="button" class="btn sm cvr-ag-bt" data-act="cvr-agenda">${ico('cal')} Agenda da cidade${eventoAgora() ? ` <b class="cvr-ag-vivo">AO VIVO: ${esc(eventoAgora().e.nome)}</b>` : ''}</button>
       ${c.feira ? `<p class="lbl-s">Feira do Corre: vai direto pra barraca</p><div class="cvr-lugares cvr-fb">${c.feira.barracas.filter(paraMim).map(b => `<button type="button" class="btn sm" data-act="cvr-ir-barraca" data-id="${esc(b.id)}">${ico(b.ico)} ${esc(b.titulo)}</button>`).join('')}</div><p class="lbl-s">Lugares</p>` : ''}
       <div class="cvr-lugares">${L.map((l, i) => `<button type="button" class="btn sm" data-act="cvr-ir-lugar" data-i="${i}">${esc(l.nome)}</button>`).join('')}</div></div>`, 'wide');
     const cv = C.$('cvr-mapa-cv'); if(!cv) return;
@@ -4600,7 +4800,9 @@
     const gente = Math.max(perto({ x: c.praca.cx, y: c.praca.cy }, 700), c.feira ? perto({ x: c.feira.R.x + c.feira.R.w / 2, y: c.feira.R.y + c.feira.R.h / 2 }, 600) : 0, perto(c.centro.concha ? { x: c.centro.concha.x + LW / 2, y: c.centro.concha.base + 60 } : null, 420) * .7);
     const trafego = rio && y > rio.y0 + 60 ? .2 : R ? ({ lago: .3, bosque: .4, zerao: .55, aeroporto: .45, acel: .5, arthur: .15 }[R.k] || .7) : 1;
     const aguaAr = ar ? Math.max(perto({ x: (ar.lago.x0 + ar.lago.x1) / 2, y: ar.R.y + 690 }, 330), perto({ x: ar.salto.x, y: ar.salto.y1 }, 260)) : 0;
-    S.ambiente({ trafego, passaros: verde ? 1 : .2, gente, agua: Math.max(agua * ((R && R.k === 'lago') || (rio && y > rio.y0 + 60) ? 1 : .5), aguaAr) });
+    /* v4.0: de noite menos trânsito e passarinho, mais grilo onde tem mato; com chuva, o som dela */
+    const cu = ceuAgora(), ch = cu.clima.f * (cu.clima.tipo === 'chuva' ? 1 : cu.clima.tipo === 'garoa' ? .45 : 0);
+    S.ambiente({ trafego: trafego * (1 - .45 * cu.escuro), passaros: (verde ? 1 : .2) * (1 - .9 * cu.escuro) * (1 - .7 * ch), gente, agua: Math.max(agua * ((R && R.k === 'lago') || (rio && y > rio.y0 + 60) ? 1 : .5), aguaAr), chuva: ch, grilo: cu.escuro * (verde ? 1 : .3) * (1 - ch) });
   }
   function laco(ts){
     if(!V.vivo) return;
@@ -4960,7 +5162,7 @@
     { nome: 'Gabi', onde: 'Zerão', voz: 310, av: { pele: 4, cabelo: 'trancas', corCabelo: 0, topo: 'fone', roupa: 'regata', corRoupa: 4, perna: 'bermuda', corCalca: 0, tenis: 3 },
       frases: ['Três voltas no Zerão: duas correndo, uma procurando o fone.', 'Meu relógio disse que eu dormi mal. Concordei com ele.', 'Corro pra pagar os pecados do pastel de domingo.'] },
     { nome: 'Tonhão do Som', onde: 'Concha Acústica', voz: 120, av: { pele: 5, cabelo: 'black', corCabelo: 0, topo: 'fone', roupa: 'regata', corRoupa: 0, corrente: 'ouro', corCalca: 0, tenis: 3 },
-      frases: ['Esse som aqui toca até pensamento.', 'A cidade tocou Bach hoje. Eu dancei arrocha mesmo.', 'Grave bom é o que faz a pipoca pular do saco.'] },
+      frases: ['Meio-dia e meia e oito da noite tem som aqui. Chega cedo.', 'Esse som aqui toca até pensamento.', 'A cidade tocou Bach hoje. Eu dancei arrocha mesmo.', 'Grave bom é o que faz a pipoca pular do saco.'] },
     /* v3.82: a bióloga do Arthur Thomas. Os fatos são do guia "Descobrindo o Parque" da Prefeitura (2026); as piadas são piada */
     { nome: 'Bióloga Iara', onde: 'Parque Arthur Thomas', voz: 280, av: { pele: 3, cabelo: 'trancas', corCabelo: 0, topo: 'bone', roupa: 'camiseta', corRoupa: 3, corCalca: 3, tenis: 1 },
       frases: ['O parque nasceu em 1975, numa doação da Companhia de Terras Norte do Paraná. Abriu em 1987.', 'Aqui funcionou a primeira usina de Londrina, a Usina Cambé, de 1939.', 'O Salto Beija-Flor tem uns 20 metros. A pedra é basalto, a mesma que vira a terra roxa.',
@@ -5010,7 +5212,7 @@
     });
   }
   /* a próxima frase do morador: as dele, embaralhadas, com duas das de todo mundo no meio */
-  function proximaFrase(m){ if(!m.fila.length) m.fila = embaralha(m.d.frases.concat(embaralha(FRASES_TODOS).slice(0, 2), natal() ? embaralha(FRASES_NATAL).slice(0, 2) : [])); return m.fila.pop(); }
+  function proximaFrase(m){ if(!m.fila.length) m.fila = embaralha(m.d.frases.concat(embaralha(FRASES_TODOS).slice(0, 2), natal() ? embaralha(FRASES_NATAL).slice(0, 2) : [], noite() ? embaralha(FRASES_NOITE).slice(0, 2) : [], chovendo() ? embaralha(FRASES_CHUVA).slice(0, 2) : [])); return m.fila.pop(); }
   const olhaPra = (m, x, y) => { if(m.sit) return; const dx = x - m.x, dy = y - m.y; m.dir = Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 'esq' : 'dir') : (dy < 0 ? 'cima' : 'baixo'); };
   function comecaPapo(quem, linhas, eu){
     const agora = Date.now(), p = { dono: quem[0], quem, linhas, i: 0, prox: agora + (eu ? 0 : 350), eu: !!eu };
@@ -5745,7 +5947,7 @@
     V.cid = montaCidade(lista); V.sol = solidos(); V.portas = portas(); V.carros = montaCarros(V.cid); V.bolas = novasBolas(V.cid);
     const st = C.$('cvr-stage');
     st.innerHTML = `<canvas id="cvr-cv" aria-label="A cidade do Correverso. Anda com as setas ou W A S D, ou toca onde quer ir."></canvas>
-      <div class="cvr-top"><button type="button" class="cvr-sair" data-act="cvr-sai-cidade" aria-label="Sair do Correverso">${ico('prev')}<span class="cvr-sair-l">Sair do Correverso</span><span class="cvr-sair-c" aria-hidden="true">Sair</span></button><span class="cvr-sair-dica" id="cvr-sair-dica" role="status" hidden></span><span class="cvr-tt">${ico('verso')} Correverso</span><span class="cvr-on" id="cvr-on"></span><button type="button" class="cvr-live" id="cvr-live" data-act="cvr-gente" hidden></button><span class="cvr-zona" id="cvr-zona" hidden></span><button type="button" class="cvr-tarefa" id="cvr-tarefa" data-act="cvr-trampo" hidden></button><button type="button" class="cvr-correal" id="cvr-correal" data-act="carteira" title="Carteira de correal" aria-label="Carteira de correal">${ico('correal')}<b class="num" data-correal-saldo>${C.correal.saldo == null ? '…' : C.correalFmt(C.correal.saldo)}</b></button><button type="button" class="cvr-som" id="cvr-som" data-act="cvr-som" aria-pressed="false" hidden></button><button type="button" class="cvr-som cvr-tela" id="cvr-tela" data-act="cvr-tela" aria-pressed="false"></button></div>
+      <div class="cvr-top"><button type="button" class="cvr-sair" data-act="cvr-sai-cidade" aria-label="Sair do Correverso">${ico('prev')}<span class="cvr-sair-l">Sair do Correverso</span><span class="cvr-sair-c" aria-hidden="true">Sair</span></button><span class="cvr-sair-dica" id="cvr-sair-dica" role="status" hidden></span><span class="cvr-tt">${ico('verso')} Correverso</span><span class="cvr-on" id="cvr-on"></span><button type="button" class="cvr-live" id="cvr-live" data-act="cvr-gente" hidden></button><span class="cvr-zona" id="cvr-zona" hidden></span><button type="button" class="cvr-evento" id="cvr-evento" data-act="cvr-evento" hidden></button><button type="button" class="cvr-tarefa" id="cvr-tarefa" data-act="cvr-trampo" hidden></button><button type="button" class="cvr-correal" id="cvr-correal" data-act="carteira" title="Carteira de correal" aria-label="Carteira de correal">${ico('correal')}<b class="num" data-correal-saldo>${C.correal.saldo == null ? '…' : C.correalFmt(C.correal.saldo)}</b></button><button type="button" class="cvr-som" id="cvr-som" data-act="cvr-som" aria-pressed="false" hidden></button><button type="button" class="cvr-som cvr-tela" id="cvr-tela" data-act="cvr-tela" aria-pressed="false"></button></div>
       <p class="cvr-hint" id="cvr-hint" hidden></p>
       <button type="button" class="cvr-mapinha" id="cvr-mapinha" data-act="cvr-mapa" title="Mapa" aria-label="Minimapa: onde você tá na cidade. Toca pra abrir o mapa grande e viajar"><canvas id="cvr-mapinha-cv" width="140" height="104" aria-hidden="true"></canvas></button>
       <div class="cvr-mj" id="cvr-mj" hidden></div><div class="cvr-mj cvr-rio" id="cvr-rio" hidden></div><div class="cvr-mj cvr-sk" id="cvr-sk" hidden></div>
@@ -5778,6 +5980,8 @@
     V.rede = C.LIVE ? redeLive(H) : redeDemo(H);
     if(!V.rede){ V.online = false; }
     V.prox = setInterval(proximidade, 400);
+    /* v4.0: a faixa dos eventos (AO VIVO) e o som do show, de segundo em segundo */
+    clearInterval(V.evT); V.palco = null; V.evAvisou = ''; V.evT = setInterval(evtTick, 1000); setTimeout(evtTick, 600);
     V.bate = setInterval(() => { if(V.vivo){ enviaPos(true); ui(); } }, 10e3);
     V.avSync = setInterval(() => { if(V.vivo && document.visibilityState === 'visible') sincronizaAvatar(); }, 60e3);
     addEventListener('keydown', tecla); addEventListener('keyup', tecla); addEventListener('blur', soltar); addEventListener('resize', tamanhoTela); addEventListener('hashchange', aoSairDaRota); addEventListener('pagehide', sair);
@@ -5791,7 +5995,7 @@
     if(C.pad && C.pad.toque()){ V.pad = C.pad.cria(st, { pula: () => { if(!mjAperta() && !rioAperta()) pula(); }, soltou: () => { mjHold(false); rioSolta(); } }); st.classList.add('toque'); padRotulo(); }
     if(C.versoSom) C.versoSom.entra(C.$('cvr-som'), () => ({ voz: [...V.peers.values()].some(p => p.estado === 'aovivo'), pausa: !!V.jogo, casa: !!(C.casa && C.casa.aberta()), balcao: !!BC.aberto }));
     /* v3.90: o Correverso é tela cheia do começo ao fim (a do navegador já foi pedida no C.views.verso, ainda no toque) */
-    cidadeCheia(true); sairDica();
+    cidadeCheia(true); sairDica(); dicaIphone();
     st.addEventListener('pointerdown', telaToque, true); st.addEventListener('pointerup', telaToque, true);
   }
   function aoSairDaRota(){ if(!/^#\/verso/.test(location.hash)) sair(); }
@@ -5840,6 +6044,16 @@
     const sa = d.parentElement && d.parentElement.querySelector('.cvr-sair'); if(sa && sa.offsetHeight) d.style.top = (sa.offsetTop + sa.offsetHeight + 12) + 'px';
     clearTimeout(V.sairDicaT); V.sairDicaT = setTimeout(() => { d.classList.add('some'); setTimeout(() => { d.hidden = true; d.classList.remove('some'); }, 450); }, 7000);
   }
+  /* v4.0 · o Thales: "no cel não tá abrindo full screen". No iPhone, o Safari não deixa site nenhum esconder as barras
+     (só vídeo vai pra tela cheia); com o Corre na Tela de Início, a barra do relógio fica transparente por cima da cidade
+     (black-translucent no index.html) e aí é a tela inteira. Então, no Safari do iPhone, ensina o caminho (3 vezes) */
+  function dicaIphone(){
+    const ua = navigator.userAgent || '', ios = /iPhone|iPod/.test(ua) || (/iPad|Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+    let app = false; try{ app = navigator.standalone === true || matchMedia('(display-mode: standalone)').matches; }catch(e){}
+    if(!ios || app || (C.tela && C.tela.pode())) return;
+    let n = 0; try{ n = +localStorage.getItem('corre-ios-cheia') || 0; if(n >= 3) return; localStorage.setItem('corre-ios-cheia', String(n + 1)); }catch(e){ return; }
+    clearTimeout(V.iosT); V.iosT = setTimeout(() => { if(/^#\/verso/.test(location.hash)) C.toast('No iPhone, a tela cheia de verdade é com o Corre na Tela de Início: toca em Compartilhar e depois em Adicionar à Tela de Início.', 9000); }, 7600);
+  }
   /* sair da cidade nunca pode travar no meio: cada passo da limpeza é independente
      (antes, um erro aqui deixava a rede e os ouvintes pendurados e a cidade não abria de novo) */
   function sair(){
@@ -5857,7 +6071,7 @@
     if(V.stream){ const s = V.stream; tenta(() => s.getTracks().forEach(t => t.stop())); }
     V.stream = null; V.mic = false; V.anEu = null; V.pedindoMic = false;
     if(!V.vivo && !V.rede) return;
-    voltaZoom(); V.vivo = false; tenta(() => cancelAnimationFrame(V.raf)); clearInterval(V.prox); clearInterval(V.bate); clearInterval(V.avSync);
+    voltaZoom(); V.vivo = false; tenta(() => cancelAnimationFrame(V.raf)); clearInterval(V.prox); clearInterval(V.bate); clearInterval(V.avSync); clearInterval(V.evT); V.palco = null; if(C.versoSom && C.versoSom.show) tenta(() => C.versoSom.show(0));
     for(const k of [...V.peers.keys()]) tenta(() => fechar(k, true));
     V.peers = new Map();
     const r = V.rede; V.rede = null; if(r) tenta(() => r.sair());
@@ -6793,6 +7007,10 @@
     'cvr-avatar': () => avatarSheet(false),
     /* v3.66: o Ateliê (a loja de skins) */
     'cvr-loja': () => lojaSheet(),
+    /* v4.0 · a faixa do evento (ao vivo, leva até lá; antes, abre a agenda) e a agenda */
+    'cvr-evento': el => { const ag = eventoAgora(); if(ag) vaiEvento(ag.e.k); else agendaSheet(); },
+    'cvr-agenda': () => agendaSheet(),
+    'cvr-ev-ir': el => vaiEvento(el.dataset.k),
     'cvr-lj-compra': async el => { const k = el.dataset.k; el.disabled = true; try{ if(await compraSkin(k)){ await vesteSkin(k); C.toast(`${LOJA[k][1]} é tua e já tá vestindo.`, 3600); } }catch(e){ C.toast(C.errMsg(e, 'Não deu pra vestir agora.')); }finally{ pintaLoja(); } },
     'cvr-lj-veste': async el => { el.disabled = true; try{ await vesteSkin(el.dataset.k); }catch(e){ C.toast(C.errMsg(e, 'Não deu pra vestir agora.')); } pintaLoja(); },
     'cvr-lj-tira': async el => { el.disabled = true; try{ await vesteSkin(''); }catch(e){ C.toast(C.errMsg(e, 'Não deu agora.')); } pintaLoja(); },
@@ -6825,7 +7043,10 @@
     }
   });
 
-  C.verso = { miniVeiculo, trocaVeiculo, veiculoDe, alturaPulo, PULO_MS, SKINS_LOJA, halloween: v => { if(v !== undefined){ hallForca = v; hallVisto.t = 0; } return halloween(); }, halloweenDe, loja: lojaSheet, compraSkin, vesteSkin, carregaLoja, skinsMinhas: () => [...LJ.minhas],
+  C.verso = { miniVeiculo, trocaVeiculo, veiculoDe, alturaPulo, PULO_MS, SKINS_LOJA,
+    /* v4.0 · o céu e os eventos (pros testes: hora(21.5), clima('chuva'), null volta pro relógio e pro sorteio) */
+    hora: v => { if(v !== undefined){ horaForca = v; V.ceu = null; } return horaBR(); }, clima: v => { if(v !== undefined){ climaForca = v; V.ceu = null; } return climaDe(); },
+    ceu: () => ceuAgora(), evento: () => { const a = eventoAgora(); return a ? { k: a.e.k, nome: a.e.nome, seg: a.seg } : null; }, luzes: () => (V.luz || []).length / 4, palco: () => V.palco, agenda: agendaSheet, EVENTOS, halloween: v => { if(v !== undefined){ hallForca = v; hallVisto.t = 0; } return halloween(); }, halloweenDe, loja: lojaSheet, compraSkin, vesteSkin, carregaLoja, skinsMinhas: () => [...LJ.minhas],
     /* v3.65 · a busca do Corre leva direto pra um lugar da cidade (o mesmo "ir pra lá" do Mapa, de graça). false = a cidade
        ainda não tá pronta (ou você tá dentro de um lugar 3D); null = esse lugar não existe aqui (ex.: sem casa ainda) */
     irPara: nome => {

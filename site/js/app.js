@@ -38,7 +38,9 @@
     verso: ['#/verso', 'Correverso', 'verso'], corre: ['#/corre', 'Vendas e Grana', 'grana'], mural: ['#/mural', 'Mural', 'tacha'],
     houzi: ['#/houzi', 'Studio Houzi', 'houzi'], perfil: ['#/@' + me.handle, 'Meu perfil', 'eu'], grupos: ['#/grupos', 'Grupos', 'gente'],
     horus: ['#/horus', 'Hórus', 'eye'], rolo: ['#/rolo', 'Rolo 360', 'rolo'], carteira: ['', 'Carteira de correal', 'correal'], planos: ['#/planos', 'Planos', 'cartao'],
-    marcas: ['#/marcas', 'Portfólio e catálogo', 'marcas'], salvos: ['#/salvos', 'Salvos', 'save'], banca: ['#/banca', 'Banca do dia', 'banca'], refs: ['#/refs', 'Do teu nicho', 'cal']
+    marcas: ['#/marcas', 'Portfólio e catálogo', 'marcas'], salvos: ['#/salvos', 'Salvos', 'save'], banca: ['#/banca', 'Banca do dia', 'banca'], refs: ['#/refs', 'Do teu nicho', 'cal'],
+    /* v4.0 · o Link na bio (bio.js) */
+    linkbio: ['#/linkbio', 'Link na bio', 'link'], convite: ['', 'Chamar a galera', 'presente']
   });
   /* os grupos: [nome, ícone, o que mora dentro]. No computador cada um abre ali mesmo, no menu; no celular a gaveta
      da tua foto já mostra eles abertos. v3.44 (o Thales pediu pra juntar o tanto que der): a Rede junta o Início, as
@@ -49,7 +51,7 @@
     lab: ['Laboratório', 'lab', ['studio', 'houzi', 'horus', 'marcas']],
     fin: ['Financeiro', 'calc', ['corre', 'carteira', 'planos']],
     banca: ['Banca', 'toldo', ['banca', 'refs', 'rolo']],
-    eu: ['Perfil', 'eu', ['perfil', 'salvos']]
+    eu: ['Perfil', 'eu', ['perfil', 'linkbio', 'convite', 'salvos']]
   };
   /* a praça: o Correverso e o Mural, juntos no meio do menu. (v3.70: a lista em grupos e a barra fixa do celular deram
      lugar à Comanda, aos Teus e ao Tudo; os grupos seguem dentro do Tudo e da gaveta) */
@@ -782,6 +784,53 @@
     return C.views[nome](app, resto);
   };
   C.views.houzi = portaHouzi('houzi'); C.views.bb = portaHouzi('bb');
+  /* v4.0 · o Correverso (cidade, 3D, móveis, sons, veículos) era mais da metade do que o app baixava na entrada. Agora
+     ele mora no verso.min.js e só desce quando alguém entra na cidade, abre a carteira ou o Ateliê. Quando chega, ele
+     mesmo troca estas portas pelas de verdade. Com o build antigo (tudo num arquivo só) as portas nem entram. */
+  let versoP = null;
+  C.versoCarrega = () => versoP || (versoP = new Promise((ok, falha) => {
+    const base = document.querySelector('script[src*="corre.min.js"]'), src = base ? base.getAttribute('src').replace('corre.min.js', 'verso.min.js') : 'js/verso.min.js';
+    const s = document.createElement('script'); s.src = src; s.onload = () => ok(); s.onerror = () => { versoP = null; s.remove(); falha({ message: 'A cidade não carregou. Confere a internet e tenta de novo.' }); };
+    document.head.appendChild(s);
+  }));
+  if(!C.views.verso){
+    C.views.verso = async (app, resto) => {
+      const porta = C.views.verso;
+      document.title = 'Correverso · Corre';
+      app.innerHTML = C.header('verso') + `<main class="wrap cvr" id="cvr"><div class="cvr-stage" id="cvr-stage"><div class="cvr-load"><b>Correverso</b><span>Abrindo a cidade…</span></div></div></main>`;
+      /* a tela cheia só sai no toque que trouxe pra cá: pede já, antes de esperar a cidade descer (v3.90) */
+      if(C.tela && st.me){ C.tela.fica = 'cidade'; C.tela.poe('cidade'); }
+      const rota = C.rota;
+      try{ await C.versoCarrega(); }
+      catch(e){
+        if(C.tela){ C.tela.fica = null; C.tela.tira('cidade'); }
+        if(rota !== C.rota) return;
+        const sg = $('cvr-stage');
+        if(sg) sg.innerHTML = `<div class="cvr-load cvr-erro"><b>Correverso</b><span>${esc(e.message)}</span><button type="button" class="btn sm pri" data-act="tenta-de-novo">Tentar de novo</button></div>`;
+        return;
+      }
+      if(rota !== C.rota || C.views.verso === porta) return;
+      return C.views.verso(app, resto);
+    };
+    /* o que abre a cidade por cima de outra página: a carteira (menu e Perfil) e o Ateliê (a busca) */
+    ['carteira', 'cvr-loja'].forEach(k => {
+      if(C.acts[k]) return;
+      const porta = C.acts[k] = async (el, ev) => {
+        try{ await C.versoCarrega(); }catch(e){ toast(e.message); return; }
+        if(C.acts[k] !== porta) return C.acts[k](el, ev);
+      };
+    });
+    /* com a página parada e a internet folgada, a cidade já vem descendo em segundo plano (não roda; só fica guardada) */
+    const adianta = () => {
+      const c = navigator.connection;
+      if(versoP || C.EMBED || (c && (c.saveData || /2g/.test(c.effectiveType || '')))) return;
+      const base = document.querySelector('script[src*="corre.min.js"]');
+      if(!base) return;
+      const l = document.createElement('link'); l.rel = 'prefetch'; l.as = 'script'; l.href = base.getAttribute('src').replace('corre.min.js', 'verso.min.js');
+      document.head.appendChild(l);
+    };
+    setTimeout(() => { if(window.requestIdleCallback) window.requestIdleCallback(adianta, { timeout: 4000 }); else adianta(); }, 9000);
+  }
   C.views.vendas = app => C.views.corre(app, 'vendas');
   C.views.grana = app => C.views.corre(app, 'grana');
 
@@ -798,11 +847,11 @@
       <h1 class="mega">Corre</h1>
       <p class="tagline"><span class="hl">Mostra teu corre.</span></p>
       <section class="login-card" id="entrar" aria-label="Entrar no Corre">
-        <p class="lead">Pra quem vende serviço ou produto, de qualquer segmento: acha cliente, manda orçamento, recebe e vê quanto o corre tá rendendo. Você mostra o que quiser. O resto fica mocado.</p>
-        <div class="chips" aria-label="O que tem no Corre"><span class="chip">Studio</span><span class="chip">Hórus</span><span class="chip">Mural</span><span class="chip">Correverso</span><span class="chip">Vendas e Grana</span></div>
+        <p class="lead">Pra quem vende serviço ou produto, de qualquer segmento: acha cliente, manda orçamento, recebe e vê quanto o corre tá rendendo. Você mostra o que quiser; o resto fica só contigo.</p>
+        <div class="chips" aria-label="O que tem no Corre"><span class="chip">Link na bio</span><span class="chip">Studio</span><span class="chip">Hórus</span><span class="chip">Mural</span><span class="chip">Correverso</span><span class="chip">Vendas e Grana</span></div>
         ${conviteLogin()}<div class="g-oficial" id="g-oficial" hidden></div><button type="button" class="btn-google" id="btn-google" data-act="google">${G_LOGO}<span>Entrar com Google</span></button><button type="button" class="lnk g-outro" id="g-outro" data-act="google" hidden><span>Não abriu? Entra pelo outro jeito</span></button>${C.CFG.APPLE_LOGIN || C.DEMO ? `<button type="button" class="btn-apple" id="btn-apple" data-act="apple">${APPLE_LOGO}<span>Continuar com a Apple</span></button>` : ''}
         ${dentroDeApp() ? `<div class="iab-aviso"><b>Abriu pelo Instagram ou WhatsApp?</b><p>O Google às vezes não deixa entrar por aqui. Se travar, abre o Corre no navegador${/Android/i.test(navigator.userAgent) ? '' : ' (no menu ••• , "Abrir no navegador")'}.</p><div class="acts">${/Android/i.test(navigator.userAgent) ? `<a class="btn sm pri" href="${esc(C.insta ? C.insta.intentUrl() : `intent://${location.host + location.pathname}#Intent;scheme=https;package=com.android.chrome;end`)}">Abrir no Chrome</a>` : ''}<button type="button" class="btn sm" data-act="iab-copia">Copiar o link</button></div></div>` : ''}
-        <button type="button" class="lnk man-login" data-act="manual">${ico('manual')} Como funciona o Corre</button>
+        <div class="login-mais"><button type="button" class="lnk man-login" data-act="es-desce">${ico('desce')} O que tem no Corre</button><button type="button" class="lnk man-login" data-act="manual">${ico('manual')} Como funciona</button></div>
         <div class="em-breve" role="note" aria-label="App do Corre no celular: em breve no iOS e no Android">
           <span class="eb-tag" aria-hidden="true">Em breve</span>
           <span class="eb-loja">${ico('cel')}<span><small>App pra iPhone</small><b>iOS</b></span></span>
@@ -810,8 +859,8 @@
         </div>
         <p class="fine">Ao entrar, você concorda com os <a href="termos.html">Termos de uso</a> e a <a href="privacidade.html">Política de privacidade</a>.</p>
       </section>
-      <p class="login-assina">Um produto <b>Houzi Records</b> <span class="la-x"><i aria-hidden="true">×</i><span class="sr-only">e</span> <b>Simonini Software</b></span></p>
-    </main>`;
+    </main>${C.estreia ? C.estreia.vitrineLogin() : ''}
+    <p class="login-assina">Um produto <b>Houzi Records</b> <span class="la-x"><i aria-hidden="true">×</i><span class="sr-only">e</span> <b>Simonini Software</b></span></p>`;
     botaoGoogle();
   }
   /* v3.38: com o GOOGLE_CLIENT_ID no config, entra o botão do próprio Google (a janela mostra o endereço do Corre).
@@ -1010,7 +1059,10 @@
         st.loadedFor = st.user.id;
         /* entrou pelo link de alguém: já segue quem chamou */
         const chamou = isNew && C.insta ? await C.insta.segueQuemChamou(st.me) : null;
-        toast(isNew ? (chamou ? `Perfil criado. Você já segue @${chamou.handle}, que te chamou.` : 'Perfil criado. Bem-vindo ao Corre.') : 'Perfil salvo.', chamou ? 4200 : undefined);
+        /* v4.0 · a Estreia: o convite rende correal pros dois, e o app se monta pela categoria */
+        let ganhou = null;
+        if(isNew && C.estreia){ if(chamou) ganhou = await C.estreia.aceita(chamou.handle); await C.estreia.monta(st.me); }
+        toast(isNew ? (chamou ? `Perfil criado. Você já segue @${chamou.handle}, que te chamou${ganhou && ganhou.ok ? ', e ganhou 0,50 de correal de boas-vindas' : ''}.` : 'Perfil criado. Bem-vindo ao Corre.') : 'Perfil salvo.', chamou ? 5200 : undefined);
         go('#/');
       }catch(err){
         if(err && err.code === '23505'){ hHint.className = 'hint bad'; hHint.textContent = `@${p.handle} já tem dono. Tenta outro.`; hIn.focus(); toast('Esse @ já tem dono.'); }
@@ -1026,6 +1078,7 @@
     /* v3.43: os atalhos seguem a ordem dos grupos do menu (Laboratório, Financeiro, Banca), pro olho achar no mesmo lugar */
     app.innerHTML = C.header('inicio') + `<main class="wrap home">
       <div class="hello"><h1><span class="hl">E aí, ${esc(C.firstName(me.nome))}.</span></h1><p>Teu corre tá <b>${desb(me) ? 'desbaratinado' : 'na vitrine'}</b>. <a href="#/@${esc(me.handle)}">Ver meu perfil</a></p></div>
+      <div id="h-passos"></div>
       <nav class="atalhos" aria-label="Tuas ferramentas"><a class="atalho" href="#/studio">${ico('magia')}<span>Studio</span></a>${C.views.houzi ? `<a class="atalho" href="#/houzi">${ico('houzi')}<span>Studio Houzi</span></a>` : ''}<a class="atalho" href="#/corre">${ico('grana')}<span>Vendas e Grana</span></a><a class="atalho" href="#/banca">${ico('banca')}<span>Banca do dia</span></a><a class="atalho" href="#/refs">${ico('cal')}<span>Do teu nicho</span></a><a class="atalho" href="#/rolo">${ico('rolo')}<span>Rolo 360</span></a>${C.ferr('horus') ? `<a class="atalho" href="#/horus">${ico('eye')}<span>Hórus</span></a>` : ''}<a class="atalho ghost" href="#/@${esc(me.handle)}">${ico('plus')}<span>Teu corre</span></a></nav>
       <section class="card sbar-card" aria-label="Stories" id="h-stories"><div class="sbar"><p class="sb-empty">Carregando stories…</p></div></section>
       <div id="h-grupos" class="h-grupos"></div>
@@ -1042,6 +1095,7 @@
       <p class="foot"><a href="privacidade.html">Privacidade</a> <a href="termos.html">Termos</a> <span class="credit">Londrina desenhada no traço da Monstra</span></p>
     </main>`;
     if(C.correMes) C.correMes($('h-corre'));
+    if(C.estreia) C.estreia.passos($('h-passos'));
     C.storiesBar().then(h => { const el = $('h-stories'); if(el) el.innerHTML = h; });
     if(C.rolo && $('h-rolo')) C.rolo.player($('h-rolo'));
     if(C.feed) C.feed.mount($('h-feed'));
@@ -1071,6 +1125,7 @@
       <div class="ferr-l">
         <div class="ferr-i ferr-cart"><span class="ferr-ico">${ico('correal')}</span><div class="ferr-tx"><b>Correal: <span class="num" data-correal-saldo>${C.correal.saldo == null ? '…' : C.correalFmt(C.correal.saldo)}</span></b><small>A moeda do Correverso (não é dinheiro). Cada tarefa feita na cidade vale centavos de correal, até ${C.correalFmt(C.correal.teto)} por dia; correal paga a IA do Studio, do Studio Houzi e do Hórus quando acaba o grátis do dia.</small></div><button type="button" class="btn sm" data-act="carteira">Carteira</button></div>
         <div class="ferr-i"><span class="ferr-ico">${ico('magia')}</span><div class="ferr-tx"><b>Studio</b><small>Programa o mês das marcas que você toca: a IA faz as artes e as legendas, e cada post sai sozinho no Instagram.</small></div><a class="btn sm pri" href="#/studio">${ico('next')} Entrar no Studio</a></div>
+        <div class="ferr-i"><span class="ferr-ico">${ico('link')}</span><div class="ferr-tx"><b>Link na bio</b><small>Tua página pra bio do Instagram: vitrine, orçamento, WhatsApp, Pix e teus links, com a cara da tua marca.</small></div><a class="btn sm pri" href="#/linkbio">${ico('next')} Montar</a></div>
         <div class="ferr-i"><span class="ferr-ico">${ico('grana')}</span><div class="ferr-tx"><b>Vendas e Grana</b><small>Do orçamento ao dinheiro na conta: vendas, o que tem pra receber, o extrato e o mês.</small></div><a class="btn sm pri" href="#/corre">${ico('next')} Abrir</a></div>
         ${C.views.houzi ? `<div class="ferr-i"><span class="ferr-ico">${ico('houzi')}</span><div class="ferr-tx"><b>Studio Houzi</b><small>Marca com conceito, do naming ao brandbook: logo em vetor, cores, letra, kit e PDF.</small></div><a class="btn sm" href="#/houzi">Abrir</a></div>` : ''}
         <div class="ferr-i${hz ? ' on' : ''}"><span class="ferr-ico">${ico('eye')}</span><div class="ferr-tx"><b>Hórus</b><small>${hz ? 'Ligado: o radar tá no Início e no teu menu.' : 'Radar de clientes: caça empresa no mapa e monta a abordagem. Liga quando quiser.'}</small></div>
@@ -1147,7 +1202,7 @@
           ${metaHTML}
           ${gdica ? `<p class="fine pf-gdica">${gdica}</p>` : ''}
           <div id="pf-nums"></div>
-          <div class="acts"><span id="pf-seguir"></span>${mine ? `<a class="btn pri" href="#/editar">Editar perfil</a><button type="button" class="btn" data-act="st-novo">${ico('plus')} Story</button>` : ''}${p.visibilidade === 'mocado' ? '' : `<button type="button" class="btn" data-act="copiar" data-h="${esc(p.handle)}">Copiar link</button>`}${mine && p.visibilidade !== 'mocado' && C.insta ? `<button type="button" class="btn" data-act="ig-story" data-k="perfil">${ico('ig')} No story do Insta</button>` : ''}${!mine && C.msg ? (p.handle === 'corre' ? `<a class="btn" href="#/msg/@consanans" title="O @corre é o perfil da casa: quem responde é o @consanans">${ico('send')} Falar com o Corre</a>` : `<a class="btn" href="#/msg/@${esc(p.handle)}">${ico('send')} Mensagem</a>`) : ''}${!mine && C.msg && st.user && st.me ? `<button type="button" class="btn ghost" data-act="msg-mandar" data-k="perfil" data-h="${esc(p.handle)}" title="Mandar esse perfil pra alguém">Indicar</button>` : ''}</div>
+          <div class="acts"><span id="pf-seguir"></span>${mine ? `<a class="btn pri" href="#/editar">Editar perfil</a><a class="btn" href="#/linkbio">${ico('link')} Link na bio</a><button type="button" class="btn" data-act="st-novo">${ico('plus')} Story</button>` : ''}${p.visibilidade === 'mocado' ? '' : `<button type="button" class="btn" data-act="copiar" data-h="${esc(p.handle)}">Copiar link</button>`}${mine && p.visibilidade !== 'mocado' && C.insta ? `<button type="button" class="btn" data-act="ig-story" data-k="perfil">${ico('ig')} No story do Insta</button>` : ''}${!mine && C.msg ? (p.handle === 'corre' ? `<a class="btn" href="#/msg/@consanans" title="O @corre é o perfil da casa: quem responde é o @consanans">${ico('send')} Falar com o Corre</a>` : `<a class="btn" href="#/msg/@${esc(p.handle)}">${ico('send')} Mensagem</a>`) : ''}${!mine && C.msg && st.user && st.me ? `<button type="button" class="btn ghost" data-act="msg-mandar" data-k="perfil" data-h="${esc(p.handle)}" title="Mandar esse perfil pra alguém">Indicar</button>` : ''}</div>
         </div>
       </section>
       ${mine ? ferramentasHTML() : ''}
@@ -1207,7 +1262,7 @@
     C.rota = (C.rota || 0) + 1;
     document.title = 'Corre';
     C.closeSheet();
-    document.body.classList.remove('em-bb');
+    document.body.classList.remove('em-bb', 'em-bio');
     const h = location.hash.replace(/^#\/?/, '');
     if(C.EMBED){
       /* a cidade é quem tá em volta: #/verso fecha o balcão; #/fechado é o balcão parado, sem nada rodando escondido */
@@ -1236,6 +1291,8 @@
     /* Studio Houzi (v3.37): a casa do Studio e o brandbook publicado abrem sem login (o resto do Studio pede login) */
     if(h === 'houzi' && C.views.houzi){ if(await precisaPerfil(location.hash)) return; window.scrollTo(0, 0); return C.views.houzi(app, ''); }
     if(h.startsWith('bb/') && C.views.bb){ if(st.user) await loadMe(); window.scrollTo(0, 0); return C.views.bb(app, h.slice(3)); }
+    /* v4.0 · o Link na bio (app.corresocial.com/@nome vira #/bio/nome no começo do index.html): abre sem login */
+    if(h.startsWith('bio/') && C.views.bio){ if(st.user) await loadMe(); window.scrollTo(0, 0); return C.views.bio(app, C.decURI(h.slice(4))); }
     if(!st.user && /^houzi\//.test(h)){ try{ localStorage.setItem('corre-volta', location.hash); }catch(e){} }
     /* Vendas: o orçamento que o cliente recebe abre sem login */
     if(h.startsWith('o/') && C.views.orcamentoVenda){ if(st.user) await loadMe(); window.scrollTo(0, 0); return C.views.orcamentoVenda(app, C.decURI(h.slice(2))); }
