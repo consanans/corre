@@ -5447,6 +5447,9 @@
     app.innerHTML = C.header('verso') + `<main class="wrap cvr" id="cvr"><div class="cvr-stage" id="cvr-stage"><div class="cvr-load"><b>Correverso</b><span>Abrindo a cidade…</span></div></div></main>`;
     chipVolta();
     if(!C.st.me) return;
+    /* v3.90: a tela cheia do navegador sai aqui, ainda no toque que trouxe pra cidade (depois das esperas do banco o
+       navegador já não deixa); a cidade cobrindo o Corre entra no abreCidade */
+    V.telaFalta = true; if(C.tela){ C.tela.fica = 'cidade'; C.tela.poe('cidade'); }
     const gen = V.gen;
     let lista = [];
     /* o avatar vem sempre do banco: o boneco que você montou no celular é o mesmo no computador
@@ -5458,7 +5461,7 @@
     try{ abreCidade(lista); }
     catch(e){
       try{ console.error('[correverso]', e); }catch(_){}
-      sair();
+      sair(); cidadeCheia(false);
       const st = C.$('cvr-stage');
       if(st) st.innerHTML = `<div class="cvr-load cvr-erro"><b>Correverso</b><span>A cidade travou ao abrir.</span><button type="button" class="btn sm pri" data-act="cvr-de-novo">Tentar de novo</button><small>${esc(String((e && e.message) || e).slice(0, 140))}</small></div>`;
     }
@@ -5468,7 +5471,7 @@
     V.cid = montaCidade(lista); V.sol = solidos(); V.portas = portas(); V.carros = montaCarros(V.cid); V.bolas = novasBolas(V.cid);
     const st = C.$('cvr-stage');
     st.innerHTML = `<canvas id="cvr-cv" aria-label="A cidade do Correverso. Anda com as setas ou W A S D, ou toca onde quer ir."></canvas>
-      <div class="cvr-top"><span class="cvr-tt">${ico('verso')} Correverso</span><span class="cvr-on" id="cvr-on"></span><button type="button" class="cvr-live" id="cvr-live" data-act="cvr-gente" hidden></button><span class="cvr-zona" id="cvr-zona" hidden></span><button type="button" class="cvr-tarefa" id="cvr-tarefa" data-act="cvr-trampo" hidden></button><button type="button" class="cvr-correal" id="cvr-correal" data-act="carteira" title="Carteira de correal" aria-label="Carteira de correal">${ico('correal')}<b class="num" data-correal-saldo>${C.correal.saldo == null ? '…' : C.correalFmt(C.correal.saldo)}</b></button><button type="button" class="cvr-som" id="cvr-som" data-act="cvr-som" aria-pressed="false" hidden></button><button type="button" class="cvr-som cvr-tela" id="cvr-tela" data-act="cvr-tela" aria-pressed="false"></button></div>
+      <div class="cvr-top"><button type="button" class="cvr-sair" data-act="cvr-sai-cidade" aria-label="Sair do Correverso">${ico('prev')}<span class="cvr-sair-l">Sair do Correverso</span><span class="cvr-sair-c" aria-hidden="true">Sair</span></button><span class="cvr-sair-dica" id="cvr-sair-dica" role="status" hidden></span><span class="cvr-tt">${ico('verso')} Correverso</span><span class="cvr-on" id="cvr-on"></span><button type="button" class="cvr-live" id="cvr-live" data-act="cvr-gente" hidden></button><span class="cvr-zona" id="cvr-zona" hidden></span><button type="button" class="cvr-tarefa" id="cvr-tarefa" data-act="cvr-trampo" hidden></button><button type="button" class="cvr-correal" id="cvr-correal" data-act="carteira" title="Carteira de correal" aria-label="Carteira de correal">${ico('correal')}<b class="num" data-correal-saldo>${C.correal.saldo == null ? '…' : C.correalFmt(C.correal.saldo)}</b></button><button type="button" class="cvr-som" id="cvr-som" data-act="cvr-som" aria-pressed="false" hidden></button><button type="button" class="cvr-som cvr-tela" id="cvr-tela" data-act="cvr-tela" aria-pressed="false"></button></div>
       <p class="cvr-hint" id="cvr-hint" hidden></p>
       <button type="button" class="cvr-mapinha" id="cvr-mapinha" data-act="cvr-mapa" title="Mapa" aria-label="Minimapa: onde você tá na cidade. Toca pra abrir o mapa grande e viajar"><canvas id="cvr-mapinha-cv" width="140" height="104" aria-hidden="true"></canvas></button>
       <div class="cvr-mj" id="cvr-mj" hidden></div><div class="cvr-mj cvr-rio" id="cvr-rio" hidden></div><div class="cvr-mj cvr-sk" id="cvr-sk" hidden></div>
@@ -5513,23 +5516,55 @@
     V.voo = null; V.passoN = 0;
     if(C.pad && C.pad.toque()){ V.pad = C.pad.cria(st, { pula: () => { if(!mjAperta() && !rioAperta()) pula(); }, soltou: () => { mjHold(false); rioSolta(); } }); st.classList.add('toque'); padRotulo(); }
     if(C.versoSom) C.versoSom.entra(C.$('cvr-som'), () => ({ voz: [...V.peers.values()].some(p => p.estado === 'aovivo'), pausa: !!V.jogo, casa: !!(C.casa && C.casa.aberta()), balcao: !!BC.aberto }));
-    /* v3.89: quem ligou a tela cheia da cidade entra com ela de novo (o toque que trouxe pra cidade ainda vale, quase sempre) */
-    let cheia = false; try{ cheia = localStorage.getItem(CHEIA_K) === 'cheia'; }catch(e){} cidadeCheia(cheia, false);
+    /* v3.90: o Correverso é tela cheia do começo ao fim (a do navegador já foi pedida no C.views.verso, ainda no toque) */
+    cidadeCheia(true); sairDica();
+    st.addEventListener('pointerdown', telaToque, true); st.addEventListener('pointerup', telaToque, true);
   }
   function aoSairDaRota(){ if(!/^#\/verso/.test(location.hash)) sair(); }
-  /* ---------- v3.89 · a tela cheia da cidade (o Thales: "coloca opção de full screen do jogo todo no celular") ----------
-     O botão dos cantos, no alto da cidade, faz duas coisas: a cidade ocupa a tela toda (some o cabeçalho, o menu e a
-     barra de baixo do Corre; isso vale em qualquer celular, o iPhone inclusive) e, onde o navegador deixa, a barra dele
-     some também (C.tela, dono 'cidade'). Fica ligada entrando e saindo do 3D e dos jogos, e o aparelho lembra
-     (corre-cidade-tela). Desliga no mesmo botão, ou saindo da cidade (o voltar) */
-  const CHEIA_K = 'corre-cidade-tela';
-  function cidadeCheia(on, toque){
+  /* ---------- v3.89/v3.90 · a tela cheia da cidade ----------
+     v3.89 (o Thales: "coloca opção de full screen do jogo todo no celular"): o botão dos cantos, no alto da cidade. v3.90
+     (o Thales: "faça o jogo inteiro full screen, desde que entra no Correverso fica tudo full"): toda entrada na cidade
+     já é tela cheia, sem perguntar e sem lembrar o contrário. São duas coisas juntas: a cidade cobre a tela toda (some o
+     cabeçalho, o menu e a barra de baixo do Corre; vale em qualquer celular, o iPhone inclusive) e, onde o navegador
+     deixa, a barra dele some também (C.tela, dono e fica 'cidade': o 3D e os jogos que abrem e fecham devolvem a tela
+     cheia pra cidade). Pra voltar pro Corre, o Sair amarelo no alto à esquerda (só aparece em tela cheia) ou o voltar.
+     Os cantinhos tiram a tela cheia até sair da cidade (o menu do Corre volta a aparecer do lado) */
+  function cidadeCheia(on){
     document.body.classList.toggle('cvr-cheia', !!on);
-    if(toque){ try{ localStorage.setItem(CHEIA_K, on ? 'cheia' : ''); }catch(e){} }
-    if(C.tela){ if(on) C.tela.poe('cidade'); else C.tela.tira('cidade'); }
-    const b = C.$('cvr-tela'); if(b){ b.setAttribute('aria-pressed', on ? 'true' : 'false'); b.title = on ? 'Sair da tela cheia' : 'Tela cheia: a cidade na tela toda'; b.setAttribute('aria-label', b.title); b.innerHTML = ico(on ? 'janela' : 'cheia'); }
+    if(C.tela){ C.tela.fica = on ? 'cidade' : null; if(on) C.tela.poe('cidade'); else C.tela.tira('cidade'); }
+    const b = C.$('cvr-tela'); if(b){ b.setAttribute('aria-pressed', on ? 'true' : 'false'); b.title = on ? 'Sair da tela cheia (fica na cidade, com o menu do Corre)' : 'Tela cheia: a cidade na tela toda'; b.setAttribute('aria-label', b.title); b.innerHTML = ico(on ? 'janela' : 'cheia'); }
     if(V.vivo) tamanhoTela();
-    if(on && toque) C.toast('Tela cheia. Pra voltar pro Corre, toca nos cantinhos de novo.', 3200);
+  }
+  /* a tela cheia do navegador que não veio (a cidade aberta sem toque: recarregou, link direto) ou que caiu (no celular:
+     trocou de app, o voltar) volta no próximo toque na cidade. Com o mouse e o teclado, só a que nunca veio: no
+     computador o Esc é pedido da pessoa. O navegador só conta como toque o pointerdown do mouse e o pointerup do dedo */
+  function telaToque(ev){
+    if(!document.body.classList.contains('cvr-cheia') || !C.tela || !C.tela.pode() || C.tela.el()) return;
+    const rato = ev.type === 'keydown' || ev.pointerType === 'mouse';
+    if(ev.type === 'pointerdown' ? !rato : ev.type === 'pointerup' && rato) return;
+    if(rato && !V.telaFalta) return;
+    if(ev.target && ev.target.closest && ev.target.closest('.cvr-tela, .cvr-sair')) return;
+    C.tela.poe('cidade');
+  }
+  addEventListener('keydown', ev => { if(V.vivo && V.telaFalta && ev.key !== 'Escape' && !(ev.target && ev.target.closest && ev.target.closest('input, textarea, select, [contenteditable]'))) telaToque(ev); });
+  if(C.tela) C.tela.ouve(() => { if(C.tela.el()) V.telaFalta = false; });
+  /* de onde a pessoa veio, pro Sair levar de volta; e saindo da cidade por qualquer caminho (até no meio do "Abrindo a
+     cidade…", antes de ela montar), a tela cheia sai junto */
+  addEventListener('hashchange', ev => {
+    const aqui = /^#\/verso/.test(location.hash);
+    if(aqui){ try{ const de = new URL(ev.oldURL).hash; if(de && !/^#\/verso/.test(de)) V.de = de; }catch(e){} return; }
+    if(document.body.classList.contains('cvr-cheia') || (C.tela && C.tela.fica === 'cidade')) cidadeCheia(false);
+  });
+  /* o balão que aponta o Sair, nas três primeiras vezes */
+  const SAIR_DICA_K = 'corre-cidade-dica';
+  function sairDica(){
+    const d = C.$('cvr-sair-dica'); if(!d) return; let n = 0; try{ n = +localStorage.getItem(SAIR_DICA_K) || 0; }catch(e){}
+    if(n >= 3){ d.hidden = true; return; }
+    try{ localStorage.setItem(SAIR_DICA_K, String(n + 1)); }catch(e){}
+    d.textContent = 'Pra voltar pro Corre, é aqui' + (V.pad ? ' (ou o voltar do celular)' : ' (ou o voltar do navegador)'); d.hidden = false;
+    /* logo embaixo do Sair (a faixa de cima quebra em duas linhas no celular, e embaixo dela o bico apontaria pra outra coisa) */
+    const sa = d.parentElement && d.parentElement.querySelector('.cvr-sair'); if(sa && sa.offsetHeight) d.style.top = (sa.offsetTop + sa.offsetHeight + 12) + 'px';
+    clearTimeout(V.sairDicaT); V.sairDicaT = setTimeout(() => { d.classList.add('some'); setTimeout(() => { d.hidden = true; d.classList.remove('some'); }, 450); }, 7000);
   }
   /* sair da cidade nunca pode travar no meio: cada passo da limpeza é independente
      (antes, um erro aqui deixava a rede e os ouvintes pendurados e a cidade não abria de novo) */
@@ -5548,7 +5583,6 @@
     if(V.stream){ const s = V.stream; tenta(() => s.getTracks().forEach(t => t.stop())); }
     V.stream = null; V.mic = false; V.anEu = null; V.pedindoMic = false;
     if(!V.vivo && !V.rede) return;
-    tenta(() => { document.body.classList.remove('cvr-cheia'); if(C.tela) C.tela.tira('cidade'); });
     voltaZoom(); V.vivo = false; tenta(() => cancelAnimationFrame(V.raf)); clearInterval(V.prox); clearInterval(V.bate); clearInterval(V.avSync);
     for(const k of [...V.peers.keys()]) tenta(() => fechar(k, true));
     V.peers = new Map();
@@ -6464,7 +6498,8 @@
     'cvr-jogo-sair': () => fechaJogo(),
     'cvr-jogo-tela': () => { if(C.tela) C.tela.alterna('jogo'); },
     /* v3.89: a tela cheia da cidade (o jogo todo) */
-    'cvr-tela': () => cidadeCheia(!document.body.classList.contains('cvr-cheia'), true),
+    'cvr-tela': () => cidadeCheia(!document.body.classList.contains('cvr-cheia')),
+    'cvr-sai-cidade': () => { location.hash = V.de || '#/'; },
     'cvr-trampo': () => { if(V.vivo) trampoSheet(null); },
     'cvr-pega-tarefa': el => pegaTarefa(el.dataset.u, el.dataset.k),
     'cvr-larga-tarefa': () => { largaTarefa(false); C.closeSheet(); },

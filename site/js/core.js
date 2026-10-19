@@ -156,21 +156,36 @@
   const TELA_K = 'corre-3d-tela', telaOuve = [];
   /* dono: quem pôs ('cidade', '3d' ou 'jogo'). Só quem pôs tira: a tela cheia que a pessoa ligou na cidade continua
      quando ela entra e sai do 3D ou de um jogo */
+  /* v3.90: fica é quem segura a tela cheia por baixo (a cidade, que desde a 3.90 é tela cheia do começo ao fim): o 3D
+     ou o jogo que fecha devolve a tela cheia pra ela em vez de sair, mesmo quando foi ele que pôs */
   const tela = C.tela = {
-    dono: null,
+    dono: null, fica: null, pede: false, larga: false,
     el: () => document.fullscreenElement || document.webkitFullscreenElement || null,
     pode(){ const d = document.documentElement; return !!((document.fullscreenEnabled || document.webkitFullscreenEnabled) && (d.requestFullscreen || d.webkitRequestFullscreen)); },
     quer(){ try{ return localStorage.getItem(TELA_K) !== 'janela'; }catch(e){ return true; } },
+    /* v3.90: um pedido por vez (pede); se mandaram sair enquanto o navegador ainda respondia (larga), sai quando ele
+       responder: antes, sair da cidade no meio do pedido deixava o navegador em tela cheia sem dono */
     poe(dono){
-      if(!tela.pode() || tela.el()) return; const d = document.documentElement, f = d.requestFullscreen || d.webkitRequestFullscreen; tela.dono = dono || '?';
-      try{ const p = f.call(d, { navigationUI: 'hide' }); if(p && p.catch) p.catch(() => { tela.dono = null; tela.avisa(); }); }catch(e){ tela.dono = null; }
+      if(!tela.pode() || tela.el() || tela.pede) return; const d = document.documentElement, f = d.requestFullscreen || d.webkitRequestFullscreen;
+      tela.dono = dono || '?'; tela.larga = false; tela.pede = true;
+      try{
+        const p = f.call(d, { navigationUI: 'hide' });
+        if(p && p.then) p.then(() => { tela.pede = false; if(tela.larga){ tela.larga = false; tela.sai(); } }, () => { tela.pede = false; tela.larga = false; if(!tela.el()) tela.dono = null; tela.avisa(); });
+        else tela.pede = false;
+      }catch(e){ tela.pede = false; tela.dono = null; }
     },
     tira(dono){
-      if(!dono || tela.dono !== dono) return; tela.dono = null; if(!tela.el()) return;
+      if(!dono || tela.dono !== dono) return;
+      if(tela.fica && tela.fica !== dono){ tela.dono = tela.fica; return; }
+      tela.sai();
+    },
+    sai(){
+      tela.dono = null; if(tela.pede) tela.larga = true; if(!tela.el()) return;
       const f = document.exitFullscreen || document.webkitExitFullscreen; try{ const p = f && f.call(document); if(p && p.catch) p.catch(() => {}); }catch(e){}
     },
-    /* o botão dos cantos do 3D e dos jogos: tira ou põe, e guarda a escolha */
-    alterna(dono){ const on = !!tela.el(); try{ localStorage.setItem(TELA_K, on ? 'janela' : 'cheia'); }catch(e){} if(on){ tela.dono = dono; tela.tira(dono); } else tela.poe(dono); },
+    /* o botão dos cantos do 3D e dos jogos: tira ou põe, e guarda a escolha. Tirar é pedido da pessoa: sai mesmo com a
+       cidade segurando; pôr dentro da cidade em tela cheia põe no nome dela (fica depois que o 3D fecha) */
+    alterna(dono){ const on = !!tela.el(); try{ localStorage.setItem(TELA_K, on ? 'janela' : 'cheia'); }catch(e){} if(on) tela.sai(); else tela.poe(tela.fica || dono); },
     botao(b){ if(!b) return; b.hidden = !tela.pode(); const on = !!tela.el(); b.setAttribute('aria-pressed', on ? 'true' : 'false'); b.title = on ? 'Sair da tela cheia' : 'Tela cheia'; b.setAttribute('aria-label', b.title); b.innerHTML = ico(on ? 'janela' : 'cheia'); },
     ouve(fn){ telaOuve.push(fn); },
     avisa(){ telaOuve.forEach(fn => { try{ fn(); }catch(e){} }); }
