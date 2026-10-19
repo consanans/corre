@@ -790,7 +790,11 @@
     caixa: (px, x, y) => { px(x, y - 1, 6, 5, '#E2412E'); px(x + 1, y, 4, 3, '#F4F3EF'); px(x + 2, y + 1, 2, 1, '#E2412E'); },
     amostra: (px, x, y) => { px(x + 1, y - 2, 3, 6, '#9CC9F0'); px(x + 1, y + 1, 3, 3, '#2F7FC1'); px(x + 1, y - 3, 3, 1, '#0F1218'); },
     pergaminho: (px, x, y) => { px(x, y - 1, 6, 4, '#F3E9D2'); px(x, y - 2, 6, 1, '#C9B79C'); px(x, y + 3, 6, 1, '#C9B79C'); px(x + 2, y, 2, 2, '#E2412E'); },
-    envelope: (px, x, y) => { px(x, y - 1, 6, 4, '#F4F3EF'); px(x, y - 1, 6, 1, '#C9B79C'); px(x + 1, y, 1, 1, '#C9B79C'); px(x + 4, y, 1, 1, '#C9B79C'); px(x + 2, y + 1, 2, 1, '#C9B79C'); px(x + 2, y + 2, 2, 1, '#E2412E'); }
+    envelope: (px, x, y) => { px(x, y - 1, 6, 4, '#F4F3EF'); px(x, y - 1, 6, 1, '#C9B79C'); px(x + 1, y, 1, 1, '#C9B79C'); px(x + 4, y, 1, 1, '#C9B79C'); px(x + 2, y + 1, 2, 1, '#C9B79C'); px(x + 2, y + 2, 2, 1, '#E2412E'); },
+    /* v4.04: a bandeira do Marcão: o mastro sobe da mão e o pano é meio rubro-negro (perto do mastro) e meio azul e branco
+       (na ponta). Nenhum escudo: só as cores. O pano fica do lado da cabeça (mais alto, a plaquinha do nome cobria) */
+    bandeira: (px, x, y) => { px(x + 1, y - 12, 1, 14, '#8C5A2E'); px(x + 1, y - 13, 1, 1, '#E2B04A');
+      for(let r = 0; r < 5; r++){ px(x + 2, y - 12 + r, 4, 1, r % 2 ? '#141216' : '#B4152E'); px(x + 6, y - 12 + r, 4, 1, r === 2 ? '#F4F3EF' : '#4BA3E3'); } }
   };
   /* v3.55: sem protótipo: um vizinho mandando item "__proto__" ou "valueOf" achava uma "função" aqui e travava a cidade de todo mundo */
   Object.setPrototypeOf(ITEM_MAO, null);
@@ -835,11 +839,14 @@
     /* o que leva na mão: na frente, do lado direito; de lado, na frente do braço; de costas não aparece */
     const item = ex.item && ITEM_MAO[ex.item] ? ITEM_MAO[ex.item] : null;
     const extras = () => {
-      if(item && dir !== 'cima') item(px, lado ? 3 : 5, -11);
+      /* (a bandeira passa da cabeça: de costas ela aparece também) */
+      if(item && (dir !== 'cima' || ex.item === 'bandeira')) item(px, lado ? 3 : 5, -11);
       /* a vara de pescar: sobe pra direita, a linha desce até a água com a boia rosa */
       if((ex.pesca || ex.vara) && sentado){ for(let i = 0; i < 8; i++) px(5 + (i >> 1), -8 - i, 1, 1, '#8C5A2E'); px(9, -15, 1, 1, '#8C5A2E'); if(!ex.vara){ for(let i = 0; i < 9; i++) px(10, -14 + i, 1, 1, 'rgba(15,18,24,.45)'); px(10, -5, 1, 1, '#FF4F9A'); } }
     };
-    const contraste = lum(R) > .55 ? INK : BR, acento = R === AMARELO ? ROSA : AMARELO;
+    /* v4.04: o morador pode ter a cor da listra (a camisa rubro-negra do Marcão); o avatar de gente nunca traz essa
+       chave, porque o avLimpo refaz o objeto só com o que conhece */
+    const contraste = av.listra || (lum(R) > .55 ? INK : BR), acento = R === AMARELO ? ROSA : AMARELO;
     const hy = -23, o = { lado, costas, esp, hy, fase, sentado };
     if(SK && SK.atras) SK.atras(px, o);
     if(!lado){
@@ -5357,6 +5364,20 @@
      tem o seu jeito de falar. Você parou perto, ele puxa assunto; o botão amarelo pede mais uma ("Trocar ideia com...").
      Quando dois se cruzam, às vezes param e conversam entre eles. Fala comprida vai num balão de até 4 linhas.
      A letra da cidade não tem aspas, parênteses nem porcentagem: as frases ficam sem eles. */
+  /* v4.04 · o Marcão Bandeira: o torcedor que anda o Calçadão (na cidade e no Calçadão 3D, que lê esta lista pelo
+     C.verso.torcida). O Thales pediu: "falando da união sinistra Fanáticos e Falange Azul e que não usamos verde no app".
+     Conferido (2026): a Falange Azul é a organizada do Londrina, de 5/2/1992, nascida de uma turma de amigos e com
+     escola de samba no nome de registro; a Os Fanáticos é a do Athletico, de 1977 (o ano do Calçadão); as duas são
+     aliadas. União Sinistra, com maiúscula, é o nome de OUTRA aliança (Mancha Verde, Força Jovem do Vasco e Galoucura,
+     do lado da Império Alviverde do Coxa): aqui "sinistra" é o elogio, nunca o nome. Torcida aqui é bandeira e
+     cantoria: nada de briga e nada de xingar o rival */
+  const TORCIDA = ['A união da Fanáticos com a Falange Azul é sinistra. Furacão e Tubarão lado a lado!', 'Falange Azul nasceu em 1992, de uma turma de amigos. Virou das maiores do Sul.',
+    'A Fanáticos é de 1977. O Calçadão também. Coincidência? Acho que não.', 'Furacão no peito, Tubarão no coração. Aliado é aliado.',
+    'Sabe por que o Corre não tem verde? Aqui é rubro-negro e azul. Verde, só se o cliente pedir.', 'Repara: nem a grama do Correverso é verde. É dourada. Questão de princípio.',
+    'Semáforo do kart? Vermelho, amarelo e vai. Verde aqui não entra nem pra largar.', 'Coxa? Respeito o adversário. Só não pinto nada de verde.',
+    'A Falange Azul também é escola de samba. Tá no nome, pode procurar.', 'Mosaico 3D na Baixada é coisa da Fanáticos. Aqui o 3D é no Calçadão mesmo.',
+    'Torcida boa é bandeira, bumbo e garganta. Briga não: briga é de quem não sabe cantar.', 'Dia de jogo no Café eu saio daqui cantando e chego lá rouco.',
+    'Furacão sopra, Tubarão morde. E o verde ficou do lado de fora.'];
   const MORADORES = [
     { nome: 'Seu Nenê', onde: 'Feira do Corre', voz: 150, av: { pele: 3, cabelo: 'raspado', corCabelo: 4, barba: 'barba', skin: 'chef' },
       frases: ['Pastel de vento não tem aqui. Aqui o vento é de graça.', 'Caldo de cana com limão cura tudo. Menos boleto.', 'Pastel de queijo, de carne e de queijo com mais queijo.', 'Na feira é freguês. No Insta é seguidor. A fome é a mesma.', 'Trinta anos de feira e ainda não sei fechar pastel calado.'] },
@@ -5373,6 +5394,10 @@
       frases: ['Fiz o logo em cinco minutos. Levei dez anos pra fazer em cinco.', 'Cliente pediu pra deixar mais clean. Tirei ele do projeto.', 'Minha paleta não tem verde. Questão de princípio.', 'Cobrei por hora, achou caro. Cobrei por projeto, achou demorado.', 'Aumenta o logo? Aumento. O preço junto.'] },
     { nome: 'Juninho Coach', onde: 'Calçadão', voz: 210, av: { pele: 1, cabelo: 'moicano', corCabelo: 3, oculos: 'escuro', roupa: 'jaqueta', corRoupa: 6, corrente: 'ouro', corCalca: 0, tenis: 0 },
       frases: ['Acordo cinco da manhã, banho gelado, sete dígitos. Os dígitos são da senha do wi-fi.', 'Não existe crise. Existe você sem a minha mentoria.', 'Tô vendendo curso de como vender curso.', 'Mindset de tubarão. Conta de sardinha.'] },
+    /* v4.04: anda sem sentar (anda), solta uma das dele de tempo em tempo andando (grita), leva a bandeira (item) e a
+       camisa vermelha de listra preta (listra); a calça é azul */
+    { nome: 'Marcão Bandeira', onde: 'Calçadão', voz: 170, anda: true, grita: true, item: 'bandeira', listra: INK,
+      av: { pele: 3, cabelo: 'raspado', corCabelo: 0, barba: 'cavanhaque', topo: 'bone', roupa: 'camiseta', corRoupa: 7, estampa: 'listras', corCalca: 1, tenis: 0 }, frases: TORCIDA },
     { nome: 'Valdir do Dogão', onde: 'Autódromo do Café', voz: 140, av: { pele: 2, cabelo: 'curto', corCabelo: 1, barba: 'cavanhaque', topo: 'bone', roupa: 'camiseta', corRoupa: 7, corCalca: 2 },
       frases: ['Aqui é salsicha, sem frescura. Vina é lá em Curitiba.', 'Purê, batata palha, milho, ervilha e fé.', 'Dogão duplo pra quem perdeu o ônibus e a paciência.', 'Curitibano pede vina, eu entrego salsicha e ele nem percebe.', 'Dia de jogo eu vendo o dobro. Dia de derrota, o triplo.'] },
     { nome: 'Seu Bené', onde: 'Catedral', voz: 130, av: { pele: 3, cabelo: 'raspado', corCabelo: 4, barba: 'barba', roupa: 'camiseta', corRoupa: 3, corCalca: 2, tenis: 1 },
@@ -5411,7 +5436,8 @@
     ['A capivara tá me olhando.', 'Ela olha todo mundo. É fiscal do Igapó.'],
     ['Postou hoje?', 'Postei ontem. Hoje eu tô vendo quem curtiu.'],
     ['Viu o kart dos bichos?', 'Vi. Perdi pra uma capivara de patinete.'],
-    ['Fui no Arthur Thomas.', 'E os macacos?', 'Levaram meu pastel e meu orgulho.']
+    ['Fui no Arthur Thomas.', 'E os macacos?', 'Levaram meu pastel e meu orgulho.'],
+    ['Por que não tem verde no Corre?', 'Pergunta pro Marcão Bandeira.', 'Perguntei. Ele respondeu cantando.']
   ];
   /* v3.87 · o que se fala no Natal (entra no meio das frases de sempre, de 15/10 até o Dia de Reis) */
   const FRASES_NATAL = ['Já viu o Papai Noel do Igapó? 27 metros. Eu tenho 1,62 e me sinto igual.', 'Amigo secreto da firma: ganhei um pano de prato. Dei um pano de prato.',
@@ -5431,6 +5457,10 @@
       const m = { sid: 'mor-' + i, bot: true, npc: true, morador: true, nome: d.nome, d, av: avLimpo(d.av, 'morador' + i), x: p.x, y: p.y, dir: 'baixo', passo: 0, mov: false, sit: false, mic: false,
         casa: { x: p.x, y: p.y }, esp: 1 + Math.random() * 4, alvo: null, papo: null, papoT: 0, falouEu: 0, fila: [], vel: 58 + Math.random() * 18 };
       m.porta = { tipo: 'morador', m, x: m.x, y: m.y };
+      /* v4.04: o que o morador leva na mão e a cor da listra (o avLimpo não guarda a listra: vai depois dele) */
+      if(d.item) m.item = d.item;
+      if(d.listra) m.av.listra = d.listra;
+      if(d.grita) m.gritoT = Date.now() + 3000 + Math.random() * 3000;
       return m;
     });
   }
@@ -5472,6 +5502,11 @@
         }
         continue;
       }
+      /* v4.04: quem grita (o Marcão) solta uma das dele andando, de tempo em tempo, se você tá por perto */
+      if(m.d.grita && agora > m.gritoT && !(m.fala && m.fala.ate > agora) && Math.hypot(e.x - m.x, e.y - m.y) < 260){
+        const t = proximaFrase(m); m.fala = { t, ate: agora + 1800 + t.length * 60 }; m.gritoT = agora + 13000 + Math.random() * 8000;
+        if(C.versoSom && C.versoSom.papo) C.versoSom.papo(t.length, m.d.voz);
+      }
       /* você parou perto: ele puxa assunto (cada morador, no máximo uma vez a cada 40 s) */
       if(m === puxa){ m.falouEu = agora; comecaPapo([m], [[m, proximaFrase(m)]], true); continue; }
       /* cruzou com outro morador: às vezes param e conversam */
@@ -5485,13 +5520,13 @@
         m.sit = false; const r = Math.random;
         const bancos = V.cid.bancos.filter(b => !b.degrau && Math.hypot(b.x - m.casa.x, b.y - m.casa.y) < 520);
         const perto = L.filter(x => x !== m && Math.hypot(x.x - m.x, x.y - m.y) < 650);
-        if(r() < .35 && bancos.length){ const b = sorteio(bancos); m.alvo = { x: b.x, y: b.y + 2, banco: true }; }
+        if(r() < .35 && bancos.length && !m.d.anda){ const b = sorteio(bancos); m.alvo = { x: b.x, y: b.y + 2, banco: true }; }
         else if(r() < .25 && perto.length){ const o = sorteio(perto); m.alvo = { x: o.x + (r() < .5 ? -30 : 30), y: o.y + 6 }; }
         else m.alvo = { x: clamp(m.casa.x + (r() - .5) * 520, 30, V.cid.W - 30), y: clamp(m.casa.y + (r() - .5) * 300, TOPO, V.cid.H - 30) };
       }
       if(m.alvo){
         const ax = m.alvo.x - m.x, ay = m.alvo.y - m.y, d = Math.hypot(ax, ay);
-        if(d < 5){ m.sit = !!m.alvo.banco; m.dir = 'baixo'; m.alvo = null; m.esp = (m.sit ? 9 : 2.5) + Math.random() * 6; m.mov = false; }
+        if(d < 5){ m.sit = !!m.alvo.banco; m.dir = 'baixo'; m.alvo = null; m.esp = m.d.anda ? .5 + Math.random() * 1.5 : (m.sit ? 9 : 2.5) + Math.random() * 6; m.mov = false; }
         else { const ox = m.x, oy = m.y; mover(m, ax / d * m.vel * dt, ay / d * m.vel * dt); m.mov = true; m.passo += dt * (m.av.skate ? 7 : 9); m.dir = Math.abs(ax) > Math.abs(ay) ? (ax < 0 ? 'esq' : 'dir') : (ay < 0 ? 'cima' : 'baixo'); if(Math.hypot(m.x - ox, m.y - oy) < .05){ m.alvo = null; m.esp = .8; m.mov = false; } }
       }
     }
@@ -7272,7 +7307,8 @@
 
   C.verso = { miniVeiculo, trocaVeiculo, veiculoDe, alturaPulo, PULO_MS, SKINS_LOJA,
     /* v4.03 · o Lambe-Lambe do Noel (pros testes) */
-    fotoNoel, tiraPola, fechaPola, retratoNoel, pola: () => ({ on: PO.on, aces: PO.aces, leg: PO.leg, gente: PO.gente.map(p => p.h), foto: !!PO.foto, card: PO.card ? [PO.card.width, PO.card.height] : null }), noelFoto: () => (V.cid && V.cid.lago && V.cid.lago.noel && V.cid.lago.noel.foto) || null,
+    torcida: TORCIDA,
+    fotoNoel, tiraPola, fechaPola, retratoNoel, pola:() => ({ on: PO.on, aces: PO.aces, leg: PO.leg, gente: PO.gente.map(p => p.h), foto: !!PO.foto, card: PO.card ? [PO.card.width, PO.card.height] : null }), noelFoto: () => (V.cid && V.cid.lago && V.cid.lago.noel && V.cid.lago.noel.foto) || null,
     /* v4.0 · o céu e os eventos (pros testes: hora(21.5), clima('chuva'), null volta pro relógio e pro sorteio) */
     hora: v => { if(v !== undefined){ horaForca = v; V.ceu = null; } return horaBR(); }, clima: v => { if(v !== undefined){ climaForca = v; V.ceu = null; } return climaDe(); },
     ceu: () => ceuAgora(), evento: () => { const a = eventoAgora(); return a ? { k: a.e.k, nome: a.e.nome, seg: a.seg } : null; }, luzes: () => (V.luz || []).length / 4, palco: () => V.palco, agenda: agendaSheet, EVENTOS, halloween: v => { if(v !== undefined){ hallForca = v; hallVisto.t = 0; } return halloween(); }, halloweenDe, loja: lojaSheet, compraSkin, vesteSkin, carregaLoja, skinsMinhas: () => [...LJ.minhas],

@@ -1317,6 +1317,10 @@
     [['Ana', 14.2, 70, -1, vo(2, 'longo', 1, 'camiseta', 2, 1)], ['Beto', 21.8, 60, 1, vo(4, 'curto', 0, 'jaqueta', 3, 0)], ['Cris', 14.8, 40, -1, vo(1, 'coque', 3, 'regata', 4, 0)], ['Davi', 21.2, 30, 1, vo(3, 'black', 0, 'moletom', 0, 2)],
       ['Elis', 14.4, 20, -1, vo(0, 'longo', 0, 'jaqueta', 5, 0)], ['Fabi', 21.6, 8, 1, vo(2, 'trancas', 0, 'camiseta', 1, 4)], ['Gu', 14.6, 80, -1, vo(4, 'moicano', 0, 'camiseta', 7, 0, { topo: 'fone' })], ['Hélio', 21.4, 50, 1, vo(1, 'raspado', 4, 'camiseta', 6, 3, { oculos: 'grau' })]]
       .forEach(([nome, x, z, dir, av], i) => K.gente.push({ nome, papel: 'anda', x, z, lane: x, dir, vel: 1.05 + (i % 3) * .18, av, mao: i % 3 ? 'sacola' : '', corSacola: [ROSA, AMARELO, AZUL, '#B4152E'][i % 4], voz: 220 + (i % 4) * 40 }));
+    /* v4.04 · o Marcão Bandeira: anda o Calçadão de ponta a ponta (a mão do meio, entre a fonte e quem passa de
+       sacola), com a bandeira e a camisa rubro-negra, falando da Fanáticos, da Falange Azul e do verde que não entra no
+       Corre (as falas são as da cidade, C.verso.torcida). Chegou perto, ele para e olha */
+    K.gente.push({ nome: 'Marcão Bandeira', papel: 'anda', x: 15.6, z: 58, lane: 15.6, dir: -1, vel: .95, av: vo(3, 'raspado', 0, 'camiseta', 7, 1, { estampa: 'listras', topo: 'bone', barba: 'cavanhaque' }), listra: INK, mao: 'bandeira', torcida: true, voz: 170 });
     /* onde não se anda: a beira das ruas da frente e de trás, a rua pros lados, o fundo da Praça Floriano */
     const bloq = [[0, 0, 48, .9], [0, 34, 7.6, 44], [28.4, 34, 48, 44], [44, 8, 48, 26], [0, 83.2, 15.5, 84], [20.5, 83.2, 48, 84]];
     return { k: 'lugar-calcadao', W, D, ALT: 3, longe: 44, cam: { ph: .38, dist: 7.4 }, phMin: -.13,
@@ -1375,12 +1379,17 @@
      tá perto de você, e só os 18 mais perto são desenhados (o celular agradece). O carro da Rio de Janeiro para pra
      quem tá na faixa; o pombo voa quando alguém chega perto e pousa de novo uns metros pra lá */
   const sorteia = L => L[Math.floor(Math.random() * L.length)];
+  /* v4.04: a próxima fala de quem tem as dele: embaralhadas, sem repetir até acabar a lista */
+  const proxFala = n => { if(!n.fila || !n.fila.length){ const a = n.falas.slice(); for(let i = a.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } n.fila = a; } return n.fila.pop(); };
   function calcCria(){
     if(!PL.gente || !C.verso || !C.verso.avLimpo) return null;
     const agora = Date.now(), grupos = {};
     PL.assentos.forEach(a => { a.quem = null; });
     const gente = PL.gente.map((d, i) => {
       const n = { i, nome: d.nome, papel: d.papel, av: C.verso.avLimpo(d.av, 'calc' + i), x: d.x || 0, z: d.z || 0, yaw: d.yaw || 0, y: d.y || 0, passo: Math.random() * 6, andando: false, fala: null, prox: agora + 2000 + Math.random() * 9000, mao: d.mao || '', voz: d.voz || 240, falas: d.falas || null, senta: !!d.senta, corSacola: d.corSacola };
+      /* v4.04: o torcedor (as falas são as da cidade), a listra da camisa e quando ele solta a primeira */
+      if(d.torcida){ n.falas = (C.verso.torcida || []).slice(); n.grita = true; n.gritoT = agora + 2500 + Math.random() * 3000; }
+      if(d.listra) n.av.listra = d.listra;
       if(d.assento != null){ const a = PL.assentos[d.assento]; a.quem = n; n.sit = a; n.x = a.x; n.z = a.z; n.yaw = a.yaw; }
       if(d.papel === 'anda'){ n.lane = d.lane; n.dir = d.dir; n.vel = d.vel; n.desvio = 0; n.yaw = d.dir > 0 ? 0 : Math.PI; }
       if(d.grupo){ const g = grupos[d.grupo] || (grupos[d.grupo] = { k: d.grupo, tipo: d.tipo || 'geral', quem: [], prox: agora + 1200 + Math.random() * 7000, papo: null, ult: -1 }); g.quem.push(n); n.grupo = g; }
@@ -1399,7 +1408,9 @@
   function trocaIdeia(n){
     const agora = Date.now(); if(!n || agora - (n.botaoT || 0) < 900) return; n.botaoT = agora;
     if(!n.sit && !n.senta && n.papel !== 'anda' && S.eu) n.olha = agora + 6000;
-    diz(n, n.falas ? sorteia(n.falas) : n.papel === 'anda' ? sorteia(FALA_PASSA) : sorteia(FALA_VOCE), true);
+    /* v4.04: o torcedor para de andar pra falar com você */
+    if(n.grita && n.papel === 'anda') n.paraAte = agora + 6500;
+    diz(n, n.falas ? proxFala(n) : n.papel === 'anda' ? sorteia(FALA_PASSA) : sorteia(FALA_VOCE), true);
   }
   function vaiFalar(n){
     const e = S.eu; if(!e || !n) return;
@@ -1439,7 +1450,15 @@
     /* sentado: de tempo em tempo, quem tá do lado puxa você pro papo */
     if(e.sit && agora > K.vozT){ const L = K.gente.filter(n => n.papel !== 'anda' && perto(n) < 3.2 && !(n.fala && n.fala.ate > agora)); if(L.length){ diz(sorteia(L), sorteia(FALA_VOCE), true); K.vozT = agora + 8000 + Math.random() * 5000; } else K.vozT = agora + 2000; }
     for(const n of K.gente){
-      if(n.papel === 'grita'){ if(agora > n.prox && perto(n) < 20){ diz(n, sorteia(n.falas)); n.prox = agora + 8000 + Math.random() * 8000; } if(n.mao === 'violao'){ n.passo += dt * 11; n.andando = true; } }
+      if(n.papel === 'grita'){ if(agora > n.prox && perto(n) < 20){ diz(n, proxFala(n)); n.prox = agora + 8000 + Math.random() * 8000; } if(n.mao === 'violao'){ n.passo += dt * 11; n.andando = true; } }
+      /* v4.04: o torcedor solta uma das dele andando (se você tá a até 20 m) e para pra quem chega perto (olhando) */
+      if(n.papel === 'anda' && n.grita){
+        if(agora > n.gritoT && perto(n) < 20 && !(n.fala && n.fala.ate > agora)){ diz(n, proxFala(n)); n.gritoT = agora + 9000 + Math.random() * 7000; }
+        /* no meio da Rio de Janeiro ele não para (segurava o carro): termina de atravessar */
+        const naRua = n.z > 33.2 && n.z < 44.8;
+        if(perto(n) < 2.6 && !e.sit && !naRua) n.paraAte = Math.max(n.paraAte || 0, agora + 1500);
+        if(agora < (n.paraAte || 0) && !naRua){ n.andando = false; n.yaw = Math.atan2(e.x - n.x, e.z - n.z); continue; }
+      }
       if(n.papel === 'anda'){
         /* desvia de você (pro lado de lá) e de quem tá parado no caminho; na ponta, volta pela outra mão */
         const ah = (e.z - n.z) * n.dir, lat = Math.abs(e.x - n.x), quer = ah > -.3 && ah < 2.4 && lat < 1 ? (e.x > n.lane ? -1.1 : 1.1) : 0;
@@ -1479,6 +1498,15 @@
     if(n.mao === 'mic'){ add(B(x + .2, .95, z + .2, .07, .22, .07, INK)); add(B(x + .18, 1.15, z + .18, .11, .1, .11, '#5A5F68')); }
     else if(n.mao === 'sacola'){ add(B(x - .52, .22, z - .06, .16, .3, .3, n.corSacola || ROSA)); add(B(x - .46, .52, z, .04, .1, .18, n.corSacola || ROSA)); }
     else if(n.mao === 'violao'){ add(B(x - .34, .5, z + .26, .5, .42, .12, '#B5722E')); add(B(x - .14, .66, z + .385, .12, .12, .01, INK)); add(B(x + .14, .7, z + .3, .56, .08, .06, '#5A3A22')); }
+    /* v4.04: a bandeira do Marcão: o mastro na mão direita e o pano saindo pra trás em diagonal (de frente e de lado ele
+       aparece), balançando com o passo. Perto do mastro as listras rubro-negras; na ponta, o azul com a faixa branca */
+    else if(n.mao === 'bandeira'){
+      const mx = x + .26, mz = z + .08, onda = { yaw: .8 + Math.sin(n.passo * .55) * .18 + (n.andando ? 0 : Math.sin(Date.now() / 700) * .08), piv: [mx, 0, mz] };
+      add(B(mx - .025, .48, mz - .025, .05, 2.12, .05, '#8C5A2E')); add(B(mx - .045, 2.6, mz - .045, .09, .09, .09, OURO));
+      const pano = (b, c) => out.push(solido(b, [onda, giro], c, dono));
+      for(let r = 0; r < 4; r++) pano(B(mx + .03, 2.5 - (r + 1) * .13, mz - .015, .45, .13, .03), r % 2 ? INK : '#B4152E');
+      pano(B(mx + .48, 1.98, mz - .015, .45, .52, .03), '#4BA3E3'); pano(B(mx + .48, 2.2, mz - .02, .45, .08, .04), PAPEL);
+    }
     return out;
   }
   function calcSolidos(t){
@@ -1519,7 +1547,7 @@
     const K = S.calc, e = S.eu; if(!K || !e) return;
     const agora = Date.now();
     K.gente.filter(n => n.fala && n.fala.ate > agora && Math.hypot(n.x - e.x, n.z - e.z) < 15).map(n => [Math.hypot(n.x - e.x, n.z - e.z) - (n.fala.voce ? 100 : 0), n]).sort((a, b) => a[0] - b[0]).slice(0, 4)
-      .forEach(([, n]) => poe('fala:' + n.i, [n.x, (n.sit || n.senta ? 1.5 : 2.02) + n.y, n.z], n.fala.t, 'fala' + (n.fala.voce ? ' voce' : '') + (n.papel === 'grita' ? ' grito' : '')));
+      .forEach(([, n]) => poe('fala:' + n.i, [n.x, (n.sit || n.senta ? 1.5 : 2.02) + n.y, n.z], n.fala.t, 'fala' + (n.fala.voce ? ' voce' : '') + (n.papel === 'grita' || n.grita ? ' grito' : '')));
   }
   /* as imagens das fachadas, das placas e do Relojão (uma por face) */
   /* v3.80: imagem com "n" (a pintura numa parede de fora) some quando a câmera tá do outro lado (a parede vira mureta) */
@@ -3093,7 +3121,8 @@
     /* tronco e braços */
     add(B(x - .25, .44, z - .12, .5, .5, .24, R));
     if(roupa === 'jaqueta') add(B(x - .03, .44, z + .12, .06, .5, .01, Rd));
-    if(estampa === 'listras'){ add(B(x - .25, .56, z + .12, .5, .05, .01, Rd)); add(B(x - .25, .7, z + .12, .5, .05, .01, Rd)); add(B(x - .25, .84, z + .12, .5, .05, .01, Rd)); }
+    /* (v4.04: o morador pode trazer a cor da listra: a camisa rubro-negra do Marcão) */
+    if(estampa === 'listras'){ const LS = av.listra || Rd; add(B(x - .25, .56, z + .12, .5, .05, .01, LS)); add(B(x - .25, .7, z + .12, .5, .05, .01, LS)); add(B(x - .25, .84, z + .12, .5, .05, .01, LS)); }
     else if(estampa !== 'nada') add(B(x - .08, .62, z + .12, .16, .16, .01, R === PAPEL ? ROSA : PAPEL));
     if(corrente === 'ouro') add(B(x - .12, .84, z + .12, .24, .04, .01, OURO));
     const braco = (sx, sinal) => { const T2 = { pitch: (senta ? -.5 : 0) - sw * sinal, piv: [x, .9, z] }; const manga = roupa === 'regata' ? P : R; add(B(x + sx, .62, z - .1, .14, .32, .2, manga), T2); add(B(x + sx, .44, z - .1, .14, .18, .2, roupa === 'camiseta' || roupa === 'regata' ? P : MAO), T2); };
@@ -4844,7 +4873,7 @@
     acoes().forEach(a => { if(!acaoPraMim(a) || (a.y > 1.5 ? 1 : 0) !== n) return; ve(Math.hypot(e.x - a.x - a.w / 2, e.z - a.z - a.d / 2) - Math.max(a.w, a.d) / 2, { t: 'acao', a, nome: rotuloAcao(a) }); });
     if(PL.escada){ const es = PL.escada, cx = (es.x0 + es.x1) / 2; ve(n === 1 ? Math.hypot(e.x - cx, e.z - (es.z0 - .7)) - .4 : Math.hypot(e.x - cx, e.z - (es.z1 + .9)) - .4, { t: 'escada', nome: n === 1 ? 'Descer a escada' : 'Subir a escada' }); }
     /* v3.77: perto de alguém do Calçadão (menos quem tá passando), o botão é trocar ideia */
-    if(S.calc && n === 0) S.calc.gente.forEach(g => { if(g.papel !== 'anda') ve(Math.hypot(e.x - g.x, e.z - g.z) - .5, { t: 'npc', n: g, nome: 'Trocar ideia com ' + g.nome }); });
+    if(S.calc && n === 0) S.calc.gente.forEach(g => { if(g.papel !== 'anda' || g.grita) ve(Math.hypot(e.x - g.x, e.z - g.z) - .5, { t: 'npc', n: g, nome: 'Trocar ideia com ' + g.nome }); });
     if(n === 0) ve(Math.hypot(e.x - ENTRADA.x, e.z - (ENTRADA.z - .4)) - .3, { t: 'saida', nome: S.meu ? 'Sair pra rua' : S.lugar ? LUGARES[S.lugar].sai || 'Sair pra Feira' : 'Sair' });
     return melhor;
   }
