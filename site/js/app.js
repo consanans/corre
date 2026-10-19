@@ -455,6 +455,8 @@
     if(logged && C.push) setTimeout(() => C.push.sync(), 1500);
     /* o manual abre sozinho na primeira entrada e a cada atualização */
     if(logged && C.manual) setTimeout(() => C.manual.talvez(), 900);
+    /* v4.01: no celular, fora do app da tela de início, o convite pra pôr o Corre na tela (depois do manual, uma folha por vez) */
+    if(logged && C.instala && !C.EMBED) setTimeout(() => C.instala.talvez(), 2600);
     /* em tela baixa a lista do menu rola: o item aceso aparece (depois de a página ir pra tela) */
     if(logged) setTimeout(() => { aVista(document.querySelector('.lado-nav [aria-current="page"]')); sinalRola(); }, 0);
     const v = logged && VOLTA[cru], volta = v ? (v[0] === 'perfil' ? ['#/@' + me.handle, 'Perfil'] : v) : null;
@@ -536,6 +538,7 @@
       { k: 'gr-novo', a: 'gr-novo', t: 'Criar grupo', i: 'gente', d: 'Juntar a tua turma', kw: 'novo grupo comunidade' },
       { k: 'mural-novo', h: '#/mural/novo', t: 'Fixar um pedido no Mural', i: 'tacha', d: 'Quem faz te manda proposta', kw: 'pedir servico orcamento' },
       { k: 'push', a: 'push-ajustes', t: 'Avisos no celular', i: 'bell', d: 'Liga e desliga as notificações', kw: 'notificacao notificacoes push celular' },
+      ...(C.instala && C.instala.falta() ? [{ k: 'instala', a: 'instala', t: 'Pôr o Corre na tela do celular', i: 'cel', d: 'Vira app: tela inteira e os avisos', kw: 'instalar app aplicativo tela inicio inicial icone atalho celular iphone android cheia full screen' }] : []),
       { k: 'manual', a: 'manual', t: 'Manual do Corre', i: 'manual', d: 'Como usar cada coisa', kw: 'ajuda duvida tutorial como funciona' },
       { k: 'loja', a: 'cvr-loja', t: 'Ateliê: loja de skins', i: 'star', d: 'Skins pro teu avatar, pagas em correal', kw: 'skin skins loja roupa fantasia uniforme avatar comprar atelie' },
       { k: 'privacidade', h: 'privacidade.html', t: 'Privacidade', i: 'lock', d: 'O que o Corre guarda e por quê', kw: 'dados lgpd' },

@@ -98,7 +98,8 @@
     ]);
     if(!$('h-passos') || st.me !== me) return;
     const bio = me.bio_link && typeof me.bio_link === 'object' && Object.keys(me.bio_link).length > 0;
-    const L = [
+    /* v4.01: no celular, o primeiro é pôr o Corre na tela (feito: aberto pelo ícone, ou disse que já pôs) */
+    const L = (celular() && !C.EMBED ? [['tela', noApp() || !!inLe().ja, 'Põe o Corre na tela do celular', 'Vira app: tela inteira, sem a barra do navegador, e os avisos chegam.', '', 'instala']] : []).concat([
       ['foto', !!me.avatar_url, 'Põe tua foto', 'Gente confia em quem mostra a cara.', '#/editar'],
       ['faz', !!me.faz, 'Diz o que você vende', 'Numa frase. O Corre monta teu Hórus, teu Mural e tua vitrine por ela.', '#/editar'],
       ['whats', !!me.whats_publico, 'Põe o WhatsApp pra clientes', 'Vira o botão "Chamar no WhatsApp" do perfil e do link na bio.', '#/editar'],
@@ -106,7 +107,7 @@
       ['vit', vit, 'Põe um preço na vitrine', 'O que você vende, com preço, no perfil e no link na bio.', '#/marcas'],
       ['post', post, 'Faz o primeiro post', 'Mostra um trampo teu pra rede.', '', 'novo-post'],
       ['verso', !!me.verso, 'Entra no Correverso', 'Monta teu boneco e conhece a cidade. Tarefa feita rende correal.', '#/verso']
-    ].concat(conv === null ? [] : [['conv', conv, 'Chama alguém pro Corre', 'Quem entrar pelo teu link ganha 0,50 de correal, e você também.', '', 'convite']]);
+    ]).concat(conv === null ? [] : [['conv', conv, 'Chama alguém pro Corre', 'Quem entrar pelo teu link ganha 0,50 de correal, e você também.', '', 'convite']]);
     const feitos = L.filter(p => p[1]).length;
     if(feitos === L.length){ el.innerHTML = ''; return; }
     let est = null; try{ est = JSON.parse(localStorage.getItem('corre-estreia:' + me.id) || 'null'); }catch(e){}
@@ -147,7 +148,84 @@
       : '<p class="fine">Ninguém entrou pelo teu link ainda. Manda pra quem faz um corre.</p>';
   }
 
+  /* ---------- v4.01 · o Corre na tela do celular ----------
+     O Thales: "recomende as pessoas a fazer mandando uma mensagem quando abre o app". Aberto pelo ícone da tela de início,
+     o Corre vira app: sem a barra do navegador (no iPhone é o único jeito de ter o Correverso e o 3D na tela toda: a Apple
+     não deixa site nenhum em tela cheia no Safari) e os avisos no celular chegam (no iPhone, só assim). Só no celular (pelo
+     aparelho, não pela largura) e fora do app instalado. A folha abre sozinha ao abrir o Corre, uma vez por dia no máximo
+     e no máximo 6 vezes; "Agora não" cala por 3 dias e "Já pus" por 10 (quem pôs e segue abrindo pelo navegador ouve de
+     novo). Nunca na mesma abertura em que o manual abriu sozinho (uma folha por vez: quem é novo vê a partir da segunda),
+     nunca no Correverso (a cidade tem a dica dela), no balcão nem no link na bio. Depois disso, fica o passo dos Primeiros
+     passos e a busca. No Android, o Chrome instala num toque (beforeinstallprompt); no iPhone, o caminho ensinado.
+     &nomanual pula, como pula o manual */
+  const UA = navigator.userAgent || '', K_IN = 'corre-instala';
+  const IOS = /iPhone|iPad|iPod/.test(UA) || (/Macintosh/.test(UA) && navigator.maxTouchPoints > 1), ANDROID = /Android/i.test(UA);
+  const IN = { ev: null, feito: false, visto0: null };
+  /* o manual de antes desta abertura: se mudou, ele abre sozinho agora e a folha de instalar espera a próxima */
+  try{ IN.visto0 = localStorage.getItem('corre-manual-visto'); }catch(e){}
+  function celular(){ return IOS || ANDROID; }
+  function noApp(){ try{ return navigator.standalone === true || matchMedia('(display-mode: standalone)').matches || matchMedia('(display-mode: fullscreen)').matches; }catch(e){ return false; } }
+  const dentroDeApp = () => C.insta && C.insta.dentroDeApp ? C.insta.dentroDeApp() : /Instagram|FBAN|FBAV|FB_IAB|FBIOS|WhatsApp|; wv\)/i.test(UA);
+  const inLe = () => { try{ return JSON.parse(localStorage.getItem(K_IN) || 'null') || {}; }catch(e){ return {}; } };
+  const inGrava = o => { try{ localStorage.setItem(K_IN, JSON.stringify(o)); }catch(e){} };
+  const falta = () => celular() && !noApp() && !C.EMBED;
+  /* o Chrome do Android avisa que dá pra instalar: guarda pro botão (e tira a faixinha dele, a folha é a nossa) */
+  window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); IN.ev = e; });
+  window.addEventListener('appinstalled', () => { IN.ev = null; inGrava(Object.assign(inLe(), { ja: Date.now() })); C.closeSheet(); toast('O Corre tá na tua tela. Daqui pra frente, abre por lá.', 4200); refazPassos(); });
+  const refazPassos = () => { const el = $('h-passos'); if(el && el.innerHTML) passos(el); };
+  /* o botão Compartilhar do iPhone (quadrado com a seta pra cima), desenhado pra pessoa reconhecer */
+  const COMP = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v11.5M8 7l4-4 4 4"/><path d="M8.5 10.5H6v10h12v-10h-2.5"/></svg>';
+  function instalaSheet(sozinho){
+    const iab = dentroDeApp(), ev = !iab && IN.ev, ios = IOS && !iab;
+    const onde = /CriOS/.test(UA) ? 'em cima, do lado do endereço' : /FxiOS|EdgiOS/.test(UA) ? 'no menu do navegador' : 'embaixo, no meio; no iOS mais novo ele fica dentro do <b>•••</b>';
+    const ganha = `<ul class="in-ganha">
+        <li>${ico('verso')}<span><b>Tela inteira.</b> O Correverso, o 3D e os jogos sem a barra do navegador.</span></li>
+        <li>${ico('bell')}<span><b>Avisos no celular.</b> Mensagem e pedido na hora, com o Corre fechado${IOS ? ' (no iPhone, só assim)' : ''}.</span></li>
+        <li>${ico('raio')}<span><b>Num toque.</b> O ícone do Corre do lado dos teus apps.</span></li></ul>`;
+    const passosHTML = iab ? `<p class="in-iab">Dentro do Instagram, do WhatsApp ou do Facebook não dá pra pôr na tela. Abre o Corre no ${IOS ? 'Safari' : 'Chrome'} primeiro (${IOS ? 'no <b>•••</b>, "Abrir no navegador"' : 'no <b>⋮</b>, "Abrir no Chrome"'}) e faz por lá.</p>`
+      : ev ? ''
+      : ios ? `<ol class="psh-passos">
+          <li>Toca em <b>Compartilhar</b> <span class="psh-k" aria-hidden="true">${COMP}</span> (${onde}).</li>
+          <li>Escolhe <b>Adicionar à Tela de Início</b> (se não tiver à vista, desce a lista). Se aparecer <b>Abrir como App Web</b>, deixa ligado. Confirma em <b>Adicionar</b>.</li>
+          <li>Abre o Corre <b>pelo ícone</b>, não pelo Safari. Na primeira vez, entra com o Google de novo: o app da tela tem o login dele.</li></ol>`
+      : ANDROID ? `<ol class="psh-passos">
+          <li>Toca no menu do navegador (no Chrome, o <b>⋮</b> em cima, à direita).</li>
+          <li>Escolhe <b>Instalar app</b> ou <b>Adicionar à tela inicial</b> e confirma.</li>
+          <li>Abre o Corre <b>pelo ícone</b> da tela.</li></ol>`
+      : `<p class="in-iab">Isso é no celular: abre o ${esc(location.host)} no navegador do celular e o Corre ensina o caminho.</p>`;
+    const botoes = iab ? `<button type="button" class="btn pri" data-act="iab-copia">${ico('copy')} Copiar o link</button><button type="button" class="btn ghost" data-act="inst-nao">Agora não</button>`
+      : ev ? `<button type="button" class="btn pri" data-act="inst-vai">${ico('cel')} Instalar o Corre</button><button type="button" class="btn ghost" data-act="inst-nao">Agora não</button>`
+      : celular() ? `<button type="button" class="btn pri" data-act="inst-ok">${ico('check')} Pronto, já pus</button><button type="button" class="btn ghost" data-act="inst-nao">Agora não</button>` : '';
+    C.sheet(`<div class="form inst"><div class="sheet-head"><h2>${ico('cel')} Põe o Corre na tela do celular</h2><button type="button" class="cbtn plain" data-close aria-label="Fechar">${ico('x')}</button></div>
+      <p class="in-lead">${sozinho ? 'Leva 10 segundos e o Corre vira app:' : 'Aberto pelo ícone, o Corre vira app:'}</p>
+      ${ganha}${passosHTML}
+      ${botoes ? `<div class="acts in-acts">${botoes}</div>` : ''}
+      ${ios && inLe().ja ? '<p class="fine">Já tem o Corre na tela? Fecha o Safari e abre pelo ícone.</p>' : ''}</div>`, 'inst-folha');
+  }
+  /* ao abrir o Corre (o C.header chama, depois do manual) */
+  function instalaTalvez(tent){
+    if(IN.feito || /[?&]nomanual\b/.test(location.search) || !st.me || !falta()) return;
+    if(C.manual && IN.visto0 !== C.manual.VERSAO){ IN.feito = true; return; }
+    const o = inLe();
+    if((o.n || 0) >= 6 || Date.now() < (o.ate || 0)){ IN.feito = true; return; }
+    /* na cidade e no link na bio, não (sem marcar: saiu pra outra página, a folha ainda pode vir) */
+    if(/^#\/(verso|bio\/)/.test(location.hash || '') || document.body.classList.contains('em-bio')) return;
+    const sh = $('sheet'); if(sh && !sh.hidden){ if((tent || 0) < 12) setTimeout(() => instalaTalvez((tent || 0) + 1), 2500); return; }
+    IN.feito = true;
+    inGrava(Object.assign(o, { n: (o.n || 0) + 1, ate: Date.now() + 20 * 36e5 }));
+    instalaSheet(true);
+  }
+
   Object.assign(C.acts, {
+    instala: () => instalaSheet(false),
+    'inst-ok': () => { inGrava(Object.assign(inLe(), { ja: Date.now(), ate: Date.now() + 10 * 864e5 })); C.closeSheet(); toast('Boa. Daqui pra frente, abre o Corre pelo ícone.', 3600); refazPassos(); },
+    'inst-nao': () => { inGrava(Object.assign(inLe(), { ate: Date.now() + 3 * 864e5 })); C.closeSheet(); },
+    'inst-vai': async el => {
+      const ev = IN.ev; if(!ev){ instalaSheet(false); return; }
+      el.disabled = true;
+      try{ ev.prompt(); const r = await ev.userChoice; IN.ev = null; if(r && r.outcome === 'accepted'){ inGrava(Object.assign(inLe(), { ja: Date.now() })); C.closeSheet(); toast('Instalando. O ícone do Corre aparece na tua tela.', 4200); refazPassos(); } else el.disabled = false; }
+      catch(e){ IN.ev = null; instalaSheet(false); }
+    },
     convite: () => conviteSheet(),
     'cv-copia': () => C.copy(conviteLink(st.me.handle), 'Link do convite copiado.'),
     'cv-manda': async () => {
@@ -162,4 +240,5 @@
     'es-desce': () => { const v = $('o-que-tem'); if(v) v.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' }); }
   });
   C.estreia = { vitrineLogin, monta, aceita, passos, conviteSheet, MONTA };
+  C.instala = { talvez: instalaTalvez, abrir: instalaSheet, falta, noApp };
 })();

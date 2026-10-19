@@ -3618,3 +3618,15 @@ body.em-bio{padding-top:0}
 .cvr-ag-t small{color:var(--ink-2);font-size:12.5px;line-height:1.35}
 .cvr-ag-q{color:var(--muted);font-size:12px;white-space:nowrap}
 @media (max-width:420px){.cvr-ag li{grid-template-columns:auto 1fr}.cvr-ag li>button,.cvr-ag li>.cvr-ag-q{grid-column:1/-1}}
+/* v4.01 · a folha "Põe o Corre na tela do celular": o que ganha (três linhas com ícone), o caminho (os passos do aviso no
+   celular, .psh-passos) e os botões um embaixo do outro no celular estreito */
+.inst .sheet-head h2{display:flex;align-items:center;gap:8px}
+.inst .sheet-head h2 svg{width:22px;height:22px;flex:none}
+.in-lead{margin:2px 0 8px;font-size:15px;font-weight:700}
+.in-ganha{list-style:none;margin:0 0 6px;padding:10px 12px;display:grid;gap:8px;border:2px solid var(--ink);border-radius:16px;background:var(--paper);box-shadow:3px 3px 0 var(--yellow)}
+.in-ganha li{display:flex;gap:10px;align-items:flex-start;font-size:14px;line-height:1.35;color:var(--ink-2)}
+.in-ganha li svg{flex:none;width:20px;height:20px;margin-top:1px;color:var(--ink)}
+.in-ganha b{color:var(--ink)}
+.in-iab{margin:10px 0 2px;font-size:14.5px}
+.in-acts{margin-top:14px}
+@media (max-width:420px){.in-acts{flex-direction:column;align-items:stretch}.in-acts .btn{justify-content:center}}
