@@ -5182,7 +5182,7 @@
   function monta(){
     const el = document.createElement('div'); el.className = 'cs-casa'; el.id = 'cs-casa';
     el.innerHTML = `<canvas id="cs-cv" aria-label="Por dentro da casa. Toca onde quer ir; arrasta pra girar a câmera."></canvas><div class="cs-tags" id="cs-tags"></div>
-      <div class="cs-top"><span class="cs-titulo"><b id="cs-titulo"></b><small id="cs-onde"></small></span><span class="cs-top-r"><b class="cs-live" id="cs-live" hidden></b><button type="button" class="cvr-bc-b cs-disco-b" id="cs-disco-b" data-act="cs-disco-b" hidden></button><button type="button" class="cvr-bc-b cvr-som cs-som" id="cs-som" data-act="cvr-som" aria-pressed="false" hidden></button><button type="button" class="cvr-bc-b cs-mic" id="cs-mic" data-act="cs-mic" aria-pressed="false">${ico('micoff')}<span>Mic desligado</span></button><button type="button" class="cvr-bc-b cs-sair" data-act="cs-sair">${ico('prev')}<span id="cs-sair-t">Sair pra rua</span></button></span></div>
+      <div class="cs-top"><span class="cs-top-l"><button type="button" class="cvr-bc-b cs-sair" data-act="cs-sair">${ico('prev')}<span class="cs-sair-l" id="cs-sair-t">Sair pra rua</span><span class="cs-sair-c" aria-hidden="true">Sair</span></button><span class="cs-titulo"><b id="cs-titulo"></b><small id="cs-onde"></small></span><span class="cs-dica" id="cs-dica" role="status" hidden></span></span><span class="cs-top-r"><b class="cs-live" id="cs-live" hidden></b><button type="button" class="cvr-bc-b cs-disco-b" id="cs-disco-b" data-act="cs-disco-b" hidden></button><button type="button" class="cvr-bc-b cvr-som cs-som" id="cs-som" data-act="cvr-som" aria-pressed="false" hidden></button><button type="button" class="cvr-bc-b cs-mic" id="cs-mic" data-act="cs-mic" aria-pressed="false">${ico('micoff')}<span>Mic desligado</span></button><button type="button" class="cvr-bc-b cs-tela" id="cs-tela" data-act="cs-tela" aria-pressed="false" hidden></button></span></div>
       <div class="cs-cam"><button type="button" data-act="cs-cam" data-k="esq" title="Girar (Q)" aria-label="Girar a câmera pra esquerda">${ico('prev')}</button><button type="button" data-act="cs-cam" data-k="dir" title="Girar (E)" aria-label="Girar a câmera pra direita">${ico('next')}</button><button type="button" data-act="cs-cam" data-k="perto" aria-label="Aproximar">${ico('plus')}</button><button type="button" data-act="cs-cam" data-k="longe" aria-label="Afastar">${ico('down')}</button></div>
       <div class="cs-bar" id="cs-bar"></div>
       <button type="button" class="cs-porta" id="cs-porta" data-act="cs-porta" hidden></button><div class="cs-pesca" id="cs-pesca" aria-live="polite" hidden></div>`;
@@ -5195,14 +5195,55 @@
     addEventListener('keydown', tecla); addEventListener('keyup', tecla); addEventListener('blur', soltar); addEventListener('resize', tamanho);
     tamanho();
   }
+  /* ---------- v3.88 · a tela cheia ----------
+     O Thales: "implementa o modo full screen quando acessar o 3d e veja a melhor forma do usuário voltar pra tela".
+     Entrou num 3D (casa, lugar ou pista), a página inteira vai pra tela cheia do navegador: some a barra de endereço e,
+     no celular, a do sistema. É a página toda, e não só o 3D, pra folha, aviso e balcão continuarem aparecendo por
+     cima. O pedido sai no próprio toque de entrar (o navegador só deixa assim), antes de qualquer espera.
+     Pra voltar: o Sair, sempre escrito, no alto à esquerda (o lugar do "voltar" em todo app), o voltar do celular ou
+     o Esc no computador. O navegador gasta o primeiro Esc (e o primeiro voltar do Android) tirando a tela cheia: o 3D
+     fica, e o botão dos cantos põe de novo. Saiu do 3D, sai da tela cheia junto (trocar de um lugar pro outro não sai).
+     Nas três primeiras vezes, um balão em cima do Sair mostra por onde volta. No iPhone o navegador não deixa (lá só
+     vídeo vai pra tela cheia; o app instalado já ocupa a tela toda) e o botão nem aparece. Quem tirou pelo botão fica
+     sem tela cheia nas próximas (corre-3d-tela) */
+  const TELA_K = 'corre-3d-tela', DICA_K = 'corre-3d-dica';
+  const fsEl = () => document.fullscreenElement || document.webkitFullscreenElement || null;
+  const fsPode = () => { const d = document.documentElement; return !!((document.fullscreenEnabled || document.webkitFullscreenEnabled) && (d.requestFullscreen || d.webkitRequestFullscreen)); };
+  const telaQuer = () => { try{ return localStorage.getItem(TELA_K) !== 'janela'; }catch(e){ return true; } };
+  function poeTela(){
+    if(!fsPode() || fsEl()) return; const d = document.documentElement, f = d.requestFullscreen || d.webkitRequestFullscreen;
+    S.minhaTela = true;
+    try{ const p = f.call(d, { navigationUI: 'hide' }); if(p && p.catch) p.catch(() => { S.minhaTela = false; botaoTela(); }); }catch(e){ S.minhaTela = false; }
+  }
+  function tiraTela(){
+    const eu = S.minhaTela; S.minhaTela = false; if(!eu || !fsEl()) return;
+    const f = document.exitFullscreen || document.webkitExitFullscreen; try{ const p = f && f.call(document); if(p && p.catch) p.catch(() => {}); }catch(e){}
+  }
+  function botaoTela(){
+    const b = C.$('cs-tela'); if(!b) return; b.hidden = !fsPode(); const on = !!fsEl();
+    b.setAttribute('aria-pressed', on ? 'true' : 'false'); b.title = on ? 'Sair da tela cheia' : 'Tela cheia'; b.setAttribute('aria-label', b.title); b.innerHTML = ico(on ? 'janela' : 'cheia');
+  }
+  /* o navegador tirou a tela cheia (Esc, voltar do Android, troca de app): o 3D fica, só o botão muda */
+  ['fullscreenchange', 'webkitfullscreenchange'].forEach(ev => document.addEventListener(ev, () => { if(!fsEl()) S.minhaTela = false; botaoTela(); }));
+  /* o balão que mostra por onde volta, nas três primeiras vezes */
+  function dicaSair(){
+    let n = 0; try{ n = parseInt(localStorage.getItem(DICA_K), 10) || 0; }catch(e){} if(n >= 3) return;
+    try{ localStorage.setItem(DICA_K, String(n + 1)); }catch(e){}
+    const d = C.$('cs-dica'); if(!d) return; const toque = !!(S.el && S.el.classList.contains('toque'));
+    d.textContent = toque ? 'Pra voltar, é aqui (ou o voltar do celular)' : 'Pra voltar, é aqui (ou Esc)';
+    /* no celular o aviso de boas-vindas fica no alto, por cima do Sair: o balão espera ele sair, e empurra o Decorar pra baixo */
+    const some = () => { d.classList.add('some'); S.dicaT = setTimeout(() => { d.hidden = true; if(S.el) S.el.classList.remove('dica-on'); }, 400); };
+    clearTimeout(S.dicaT); S.dicaT = setTimeout(() => { if(!S.aberta) return; d.hidden = false; d.classList.remove('some'); if(S.el) S.el.classList.add('dica-on'); S.dicaT = setTimeout(some, toque ? 6500 : 7000); }, toque ? 3600 : 0);
+  }
   /* abrir: se der qualquer erro, avisa na tela (em vez de ficar em silêncio) */
   async function abrir(o){
-    try{ await abrirMesmo(o); }
-    catch(e){ try{ console.error('[casa] abrir', e); }catch(_){} S.aberta = false; if(S.el) S.el.hidden = true; C.toast('Não deu pra abrir a casa: ' + String((e && e.message) || e).slice(0, 120), 6000); }
+    if(telaQuer()) poeTela();
+    try{ await abrirMesmo(o); if(!S.aberta) tiraTela(); }
+    catch(e){ tiraTela(); try{ console.error('[casa] abrir', e); }catch(_){} S.aberta = false; if(S.el) S.el.hidden = true; C.toast('Não deu pra abrir a casa: ' + String((e && e.message) || e).slice(0, 120), 6000); }
   }
   const comTempo = (p, ms) => Promise.race([p, new Promise(r => setTimeout(r, ms))]);
   async function abrirMesmo(o){
-    o = o || {}; if(S.aberta) fechar(true);
+    o = o || {}; if(S.aberta) fechar(true, true);
     if(!C.st.me || !C.verso) return;
     /* v3.45: um lugar (a Casa do Hórus) não é de ninguém: o "dono" é o próprio lugar, e a sala da presença leva o nome dele */
     const L = o.lugar && LUGARES[o.lugar] ? LUGARES[o.lugar] : null;
@@ -5240,11 +5281,15 @@
     S.resT = performance.now(); S.resMed = null; S.aberta = true; S.tAnt = 0;
     if(!S.hist){ try{ history.pushState({ cvrCasa: 1 }, ''); S.hist = true; }catch(e){} }
     if(C.verso.anunciar) C.verso.anunciar();
+    botaoTela(); dicaSair();
     cancelAnimationFrame(S.raf); S.raf = requestAnimationFrame(laco);
     C.toast(L ? L.ola : meu ? (PL.mezanino ? 'O escritório é lá em cima: sobe pela escada.' : 'Bem-vindo em casa. No escritório, cada móvel é uma ferramenta do Corre.') : `Casa de @${dono.handle || ''}. Só pra olhar.`, L ? 5200 : 3400);
   }
-  function fechar(semHist){
+  /* fica: trocando de um 3D pro outro (a tela cheia continua) */
+  function fechar(semHist, fica){
     if(!S.aberta) return;
+    if(!fica) tiraTela();
+    const dc = C.$('cs-dica'); if(dc){ clearTimeout(S.dicaT); dc.hidden = true; } if(S.el) S.el.classList.remove('dica-on');
     if(S.modo === 'colocar') cancelaGhost();
     S.aberta = false; S.lugar = ''; cancelAnimationFrame(S.raf); S.raf = 0; S.teclas.clear(); S.padTh = null; S.perto = null; if(S.pad) S.pad.solta();
     S.disco = null; S.discoAtual = ''; S.ouvindo = ''; S.pesca = null; if(S.corrida) somPara(); S.corrida = null; S.desafio = null; S.bsb = null; S.distPesca = null; S.kartVivo = null; S.calc = null; if(C.beats) C.beats.para();
@@ -5267,6 +5312,8 @@
 
   Object.assign(C.acts, {
     'cs-sair': () => fechar(),
+    /* v3.88: o botão dos cantos (pôr e tirar a tela cheia); a escolha fica no aparelho */
+    'cs-tela': () => { const on = !!fsEl(); try{ localStorage.setItem(TELA_K, on ? 'janela' : 'cheia'); }catch(e){} if(on){ S.minhaTela = true; tiraTela(); } else poeTela(); },
     'cs-enigma-outro': () => enigmaSheet(),
     'cs-porta': () => acaoPerto(),
     'cs-ia-quero': async el => { el.disabled = true; try{ const f = Object.assign({}, (C.st.me && C.st.me.ferramentas) || {}, { ia: 'lista' }); await C.saveMe({ ferramentas: f }); C.toast('Tá na lista do Computador IA. A gente te chama.', 3600); iaSheet(); }catch(e){ el.disabled = false; C.toast(C.errMsg(e)); } },

@@ -140,7 +140,10 @@
     /* v3.70: o Tudo do menu (quatro quadrados) e as setinhas de mudar a ordem no Ajeitar */
     grade: '<rect x="4" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.6"/>',
     sobe: '<path d="m6 15 6-6 6 6"/>',
-    desce: '<path d="m6 9 6 6 6-6"/>'
+    desce: '<path d="m6 9 6 6 6-6"/>',
+    /* v3.88 · a tela cheia do 3D: os quatro cantos abrindo (entrar) e fechando (sair) */
+    cheia: '<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>',
+    janela: '<path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/>'
   };
   const ico = (k, cls) => `<svg class="ic${cls ? ' ' + cls : ''}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${I[k] || ''}</svg>`;
 
