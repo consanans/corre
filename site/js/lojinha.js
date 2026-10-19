@@ -64,25 +64,25 @@
     const fina = dias.length > 45;
     const cols = dias.map((x, i) => {
       const v = vals[i], h = v ? Math.max(4, Math.round(100 * v / max)) : 0;
-      return `<span class="lj-col" tabindex="0" role="listitem" data-tip="${esc(`${x.dia === hoje ? 'Hoje' : ddmm(x.dia)} · ${pessoas(v)}`)}" aria-label="${esc(`${ddmm(x.dia)}: ${pessoas(v)}`)}"><i style="height:${h}%;background:${cor}"></i></span>`;
+      return `<span class="lo-col" tabindex="0" role="listitem" data-tip="${esc(`${x.dia === hoje ? 'Hoje' : ddmm(x.dia)} · ${pessoas(v)}`)}" aria-label="${esc(`${ddmm(x.dia)}: ${pessoas(v)}`)}"><i style="height:${h}%;background:${cor}"></i></span>`;
     }).join('');
     const ult = vals[vals.length - 1] || 0;
-    return `<figure class="lj-graf">
-      <figcaption><b>${esc(nome)}</b><span class="lj-graf-l">hoje <b class="num">${num(ult)}</b> · pico <b class="num">${num(vals[pico])}</b>${vals[pico] ? ` em ${ddmm(dias[pico].dia)}` : ''}</span></figcaption>
-      <div class="lj-eixo"><span>${num(max)}</span><span>0</span></div>
-      <div class="lj-cols${fina ? ' fina' : ''}" role="list" aria-label="${esc(nome)}, um por dia">${cols}</div>
-      <div class="lj-x"><span>${ddmm(dias[0] && dias[0].dia)}</span><span>${ddmm(dias[Math.floor(dias.length / 2)] && dias[Math.floor(dias.length / 2)].dia)}</span><span>hoje</span></div>
+    return `<figure class="lo-graf">
+      <figcaption><b>${esc(nome)}</b><span class="lo-graf-l">hoje <b class="num">${num(ult)}</b> · pico <b class="num">${num(vals[pico])}</b>${vals[pico] ? ` em ${ddmm(dias[pico].dia)}` : ''}</span></figcaption>
+      <div class="lo-eixo"><span>${num(max)}</span><span>0</span></div>
+      <div class="lo-cols${fina ? ' fina' : ''}" role="list" aria-label="${esc(nome)}, um por dia">${cols}</div>
+      <div class="lo-x"><span>${ddmm(dias[0] && dias[0].dia)}</span><span>${ddmm(dias[Math.floor(dias.length / 2)] && dias[Math.floor(dias.length / 2)].dia)}</span><span>hoje</span></div>
     </figure>`;
   }
   /* barras deitadas (o caminho, o uso, a IA): o rótulo e o número ficam fora da barra, na cor do texto */
   function barras(L2, cor, cls){
     const max = Math.max(1, ...L2.map(x => Number(x.v) || 0));
-    return `<ul class="lj-barras${cls ? ' ' + cls : ''}">${L2.map(x => `<li${x.marca ? ' class="marca"' : ''}><span class="lj-b-t">${esc(x.t)}${x.marca ? ` <em class="lj-queda">${esc(x.marca)}</em>` : ''}</span>
-      <span class="lj-b-v num">${esc(x.vtxt || num(x.v))}${x.sub ? `<small>${esc(x.sub)}</small>` : ''}</span>
-      <span class="lj-b-trilho" aria-hidden="true"><i style="width:${x.v ? Math.max(2, Math.round(100 * x.v / max)) : 0}%;background:${cor}"></i></span></li>`).join('')}</ul>`;
+    return `<ul class="lo-barras${cls ? ' ' + cls : ''}">${L2.map(x => `<li${x.marca ? ' class="marca"' : ''}><span class="lo-b-t">${esc(x.t)}${x.marca ? ` <em class="lo-queda">${esc(x.marca)}</em>` : ''}</span>
+      <span class="lo-b-v num">${esc(x.vtxt || num(x.v))}${x.sub ? `<small>${esc(x.sub)}</small>` : ''}</span>
+      <span class="lo-b-trilho" aria-hidden="true"><i style="width:${x.v ? Math.max(2, Math.round(100 * x.v / max)) : 0}%;background:${cor}"></i></span></li>`).join('')}</ul>`;
   }
-  const tile = (rot, v, sub, cls) => `<div class="lj-tile${cls ? ' ' + cls : ''}"><span class="lj-tile-r">${rot}</span><b class="lj-tile-v">${v}</b>${sub ? `<span class="lj-tile-s">${sub}</span>` : ''}</div>`;
-  const gente = L2 => L2 && L2.length ? `<ul class="lj-gente">${L2.map(p => `<li><a href="#/@${esc(p.handle || '')}">${C.avatar(p, 's')}<span class="lj-g-q"><b>${esc(p.nome || '@' + p.handle)}</b><small>@${esc(p.handle || '')}</small></span><b class="num lj-g-n">${num(p.n)}</b></a></li>`).join('')}</ul>` : '';
+  const tile = (rot, v, sub, cls) => `<div class="lo-tile${cls ? ' ' + cls : ''}"><span class="lo-tile-r">${rot}</span><b class="lo-tile-v">${v}</b>${sub ? `<span class="lo-tile-s">${sub}</span>` : ''}</div>`;
+  const gente = L2 => L2 && L2.length ? `<ul class="lo-gente">${L2.map(p => `<li><a href="#/@${esc(p.handle || '')}">${C.avatar(p, 's')}<span class="lo-g-q"><b>${esc(p.nome || '@' + p.handle)}</b><small>@${esc(p.handle || '')}</small></span><b class="num lo-g-n">${num(p.n)}</b></a></li>`).join('')}</ul>` : '';
 
   /* ---------- a página ---------- */
   function pinta(app){
@@ -103,69 +103,69 @@
     const iaL = ia && ia.tipos ? Object.entries(ia.tipos).map(([k, v]) => ({ t: IA[k] || k, v: Number(v) || 0 })).sort((a, b) => b.v - a.v) : [];
     const per = `${L.dias} dias`;
     const hora = new Date(L.em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' });
-    app.innerHTML = C.header('lojinha') + `<main class="wrap lj">
-      <header class="lj-topo">
+    app.innerHTML = C.header('lojinha') + `<main class="wrap lo">
+      <header class="lo-topo">
         <span class="mono">${ico('grafico')} Lojinha · só você vê</span>
-        <h1 class="lj-titulo">Como tá a <span class="hl">lojinha</span></h1>
+        <h1 class="lo-titulo">Como tá a <span class="hl">lojinha</span></h1>
         <p class="note">O Corre por números, ao vivo do banco. Sem contar você e o @corre. Tudo contagem: o dinheiro e as conversas de cada um seguem só de cada um.</p>
-      <div class="lj-filtro">
-        <div class="lj-per" role="group" aria-label="Período">${PERIODOS.map(n => `<button type="button" class="btn sm${n === L.dias ? ' pri' : ''}" data-act="lj-dias" data-n="${n}" aria-pressed="${n === L.dias}">${n} dias</button>`).join('')}</div>
-        <button type="button" class="btn sm" data-act="lj-atualiza">${ico('troca')} Atualizar</button>
-        <span class="fine lj-hora">Lido às ${esc(hora)}</span>
+      <div class="lo-filtro">
+        <div class="lo-per" role="group" aria-label="Período">${PERIODOS.map(n => `<button type="button" class="btn sm${n === L.dias ? ' pri' : ''}" data-act="lo-dias" data-n="${n}" aria-pressed="${n === L.dias}">${n} dias</button>`).join('')}</div>
+        <button type="button" class="btn sm" data-act="lo-atualiza">${ico('troca')} Atualizar</button>
+        <span class="fine lo-hora">Lido às ${esc(hora)}</span>
       </div>
       </header>
-      ${L1.length ? `<section class="card lj-leitura" aria-labelledby="lj-l"><h2 class="ch" id="lj-l">O que os números dizem</h2><ul>${L1.map(([i, t]) => `<li>${ico(i)}<span>${esc(t)}</span></li>`).join('')}</ul></section>` : ''}
-      <section class="lj-pulso" aria-label="O pulso">
-        <div class="lj-hero"><span class="lj-tile-r">Gente ativa na semana</span><b class="lj-hero-v">${num(g.ativos7)}</b><span class="lj-tile-s">de ${pessoas(g.perfis)} · hoje ${num(g.ativos_hoje)} · no mês ${num(g.ativos30)}</span></div>
-        <div class="lj-tiles">
+      ${L1.length ? `<section class="card lo-leitura" aria-labelledby="lo-l"><h2 class="ch" id="lo-l">O que os números dizem</h2><ul>${L1.map(([i, t]) => `<li>${ico(i)}<span>${esc(t)}</span></li>`).join('')}</ul></section>` : ''}
+      <section class="lo-pulso" aria-label="O pulso">
+        <div class="lo-hero"><span class="lo-tile-r">Gente ativa na semana</span><b class="lo-hero-v">${num(g.ativos7)}</b><span class="lo-tile-s">de ${pessoas(g.perfis)} · hoje ${num(g.ativos_hoje)} · no mês ${num(g.ativos30)}</span></div>
+        <div class="lo-tiles">
           ${tile('Perfis', num(g.perfis), `${delta >= 0 ? '▲' : '▼'} ${num(g.novos7)} essa semana (antes, ${num(g.novos7_antes)})`)}
           ${tile(`Entraram em ${per}`, num(g.novos), `${num(g.ativos_periodo)} ativos no período`)}
           ${tile('Voltaram', voltou, Number(g.voltaram_base) ? `${num(g.voltaram)} de ${num(g.voltaram_base)} com mais de 7 dias de casa` : 'falta gente com mais de 7 dias')}
           ${g.sem_perfil !== null && g.sem_perfil !== undefined ? tile('Pararam no cadastro', num(g.sem_perfil), 'entraram com o Google e não criaram o perfil', Number(g.sem_perfil) ? 'alerta' : '') : ''}
         </div>
       </section>
-      ${dias.length ? `<section class="card lj-dias" aria-labelledby="lj-d"><h2 class="ch" id="lj-d">Dia a dia <small>(${per})</small></h2>
-        <div class="lj-dois">${colunas(dias, 'ativos', 'Gente ativa', 'var(--pink)', hoje)}${colunas(dias, 'novos', 'Gente que entrou', 'var(--blue)', hoje)}</div>
-        <details class="lj-tab"><summary>Ver em tabela</summary><table><thead><tr><th scope="col">Dia</th><th scope="col">Ativos</th><th scope="col">Entraram</th></tr></thead>
+      ${dias.length ? `<section class="card lo-dias" aria-labelledby="lo-d"><h2 class="ch" id="lo-d">Dia a dia <small>(${per})</small></h2>
+        <div class="lo-dois">${colunas(dias, 'ativos', 'Gente ativa', 'var(--pink)', hoje)}${colunas(dias, 'novos', 'Gente que entrou', 'var(--blue)', hoje)}</div>
+        <details class="lo-tab"><summary>Ver em tabela</summary><table><thead><tr><th scope="col">Dia</th><th scope="col">Ativos</th><th scope="col">Entraram</th></tr></thead>
           <tbody>${dias.slice().reverse().map(x => `<tr><th scope="row">${ddmm(x.dia)}</th><td class="num">${num(x.ativos)}</td><td class="num">${num(x.novos)}</td></tr>`).join('')}</tbody></table></details>
       </section>` : ''}
-      <div class="lj-grade">
-        ${passos.length ? `<section class="card" aria-labelledby="lj-f"><h2 class="ch" id="lj-f">O caminho de quem chega</h2>
+      <div class="lo-grade">
+        ${passos.length ? `<section class="card" aria-labelledby="lo-f"><h2 class="ch" id="lo-f">O caminho de quem chega</h2>
           <p class="fine">Os Primeiros passos, somados: quantas pessoas já fizeram cada um (o % é de quem criou o perfil).</p>${barras(passos, 'var(--blue)', 'funil')}</section>` : ''}
-        ${usoT.length ? `<section class="card" aria-labelledby="lj-u"><h2 class="ch" id="lj-u">O que a galera usa <small>(${per})</small></h2>
+        ${usoT.length ? `<section class="card" aria-labelledby="lo-u"><h2 class="ch" id="lo-u">O que a galera usa <small>(${per})</small></h2>
           <p class="fine">Quantas pessoas usaram cada coisa no período. Contagem de gente, nunca de valor.</p>${barras(uso, 'var(--pink)')}
-          ${ninguem.length ? `<p class="fine lj-ninguem"><b>Ninguém ainda:</b> ${esc(ninguem.join(', ').toLowerCase())}.</p>` : ''}</section>` : ''}
-        ${bio ? `<section class="card" aria-labelledby="lj-b"><h2 class="ch" id="lj-b">Link na bio <small>(${per})</small></h2>
-          <div class="lj-tiles dois">${tile('Visitas', num(bio.visitas))}${tile('Toques nos botões', num(bio.toques))}</div>
-          ${bio.top && bio.top.length ? `<h3 class="lj-h3">As páginas mais vistas</h3>${gente(bio.top)}` : '<p class="fine">Nenhuma visita no período ainda.</p>'}</section>` : ''}
-        ${cv ? `<section class="card" aria-labelledby="lj-c"><h2 class="ch" id="lj-c">Convites</h2>
-          <div class="lj-tiles dois">${tile('Entraram por convite', num(cv.total), `${num(cv.periodo)} em ${per}`)}${tile('Renderam correal', num(cv.pagos))}</div>
-          ${cv.top && cv.top.length ? `<h3 class="lj-h3">Quem mais chamou</h3>${gente(cv.top)}` : '<p class="fine">Ninguém entrou por convite ainda.</p>'}</section>` : ''}
-        ${pl ? `<section class="card" aria-labelledby="lj-p"><h2 class="ch" id="lj-p">Planos</h2>
-          <div class="lj-tiles">${tile('Receita do mês', C.money(Number(pl.mrr) || 0), 'planos pagos com a fatura em dia', 'grana')}
+          ${ninguem.length ? `<p class="fine lo-ninguem"><b>Ninguém ainda:</b> ${esc(ninguem.join(', ').toLowerCase())}.</p>` : ''}</section>` : ''}
+        ${bio ? `<section class="card" aria-labelledby="lo-b"><h2 class="ch" id="lo-b">Link na bio <small>(${per})</small></h2>
+          <div class="lo-tiles dois">${tile('Visitas', num(bio.visitas))}${tile('Toques nos botões', num(bio.toques))}</div>
+          ${bio.top && bio.top.length ? `<h3 class="lo-h3">As páginas mais vistas</h3>${gente(bio.top)}` : '<p class="fine">Nenhuma visita no período ainda.</p>'}</section>` : ''}
+        ${cv ? `<section class="card" aria-labelledby="lo-c"><h2 class="ch" id="lo-c">Convites</h2>
+          <div class="lo-tiles dois">${tile('Entraram por convite', num(cv.total), `${num(cv.periodo)} em ${per}`)}${tile('Renderam correal', num(cv.pagos))}</div>
+          ${cv.top && cv.top.length ? `<h3 class="lo-h3">Quem mais chamou</h3>${gente(cv.top)}` : '<p class="fine">Ninguém entrou por convite ainda.</p>'}</section>` : ''}
+        ${pl ? `<section class="card" aria-labelledby="lo-p"><h2 class="ch" id="lo-p">Planos</h2>
+          <div class="lo-tiles">${tile('Receita do mês', C.money(Number(pl.mrr) || 0), 'planos pagos com a fatura em dia', 'grana')}
             ${tile('Studio', num(pl.studio), 'pagando')}${tile('Studio Houzi', num(pl.houzi), 'pagando')}${tile('Hórus', num(pl.horus), 'pagando')}
             ${tile('No teste grátis', num(pl.teste))}${tile('Fatura atrasada', num(pl.atrasados), Number(pl.atrasados) ? 'tá no Planos de cada um' : '', Number(pl.atrasados) ? 'alerta' : '')}</div>
           <p class="fine">${Number(pl.pendentes) ? `${pessoas(pl.pendentes)} assinou e não pagou a primeira. ` : ''}${Number(pl.cancelados) ? `${num(pl.cancelados)} cancelaram em ${per}. ` : ''}${pl.donos !== undefined ? `Donos (liberados sem pagar): ${num(pl.donos)}.` : ''}</p></section>` : ''}
-        ${ia ? `<section class="card" aria-labelledby="lj-i"><h2 class="ch" id="lj-i">IA <small>(${per})</small></h2>
+        ${ia ? `<section class="card" aria-labelledby="lo-i"><h2 class="ch" id="lo-i">IA <small>(${per})</small></h2>
           <p class="fine">É o que custa: ${num(ia.total)} ${Number(ia.total) === 1 ? 'chamada' : 'chamadas'} de ${pessoas(ia.pessoas)} (você conta aqui).</p>
           ${iaL.length ? barras(iaL, 'var(--ink-2)') : '<p class="fine">Nenhuma no período.</p>'}</section>` : ''}
       </div>
-      ${(r.chegaram || []).length ? `<section class="card lj-chegou" aria-labelledby="lj-n"><h2 class="ch" id="lj-n">Quem chegou por último</h2>
+      ${(r.chegaram || []).length ? `<section class="card lo-chegou" aria-labelledby="lo-n"><h2 class="ch" id="lo-n">Quem chegou por último</h2>
         <p class="fine">Pra dar as boas-vindas na mão. Os passos são foto, o que vende, WhatsApp, link na bio e Correverso.</p>
-        <ul>${r.chegaram.map(p => `<li><a href="#/@${esc(p.handle || '')}">${C.avatar(p, 's')}<span class="lj-n-q"><b>${esc(p.nome || '@' + p.handle)}</b><small>@${esc(p.handle || '')}${p.categoria && C.meuCorre && C.meuCorre.catNome(p.categoria) ? ` · ${esc(C.meuCorre.catNome(p.categoria))}` : ''}</small></span>
-          <span class="lj-n-d"><small>entrou ${esc(haQuanto(p.criado))}</small><small>${esc(ultimoTxt(p.ultimo, hoje))}</small></span>
-          <span class="lj-n-p" role="img" aria-label="${num(p.passos)} de 5 passos">${[0, 1, 2, 3, 4].map(i => `<i${i < (Number(p.passos) || 0) ? ' class="on"' : ''}></i>`).join('')}<small class="num">${num(p.passos)}/5</small></span></a></li>`).join('')}</ul></section>` : ''}
-      <p class="fine lj-pe">Ativo = fez alguma coisa no dia (post, mensagem, curtida, lead, venda, tarefa na cidade...), entrou com o Google ou abriu o Corre (esse último conta da 4.02 em diante). O dia é o de Brasília.</p>
-      <div class="lj-tip" id="lj-tip" role="tooltip" hidden></div>
+        <ul>${r.chegaram.map(p => `<li><a href="#/@${esc(p.handle || '')}">${C.avatar(p, 's')}<span class="lo-n-q"><b>${esc(p.nome || '@' + p.handle)}</b><small>@${esc(p.handle || '')}${p.categoria && C.meuCorre && C.meuCorre.catNome(p.categoria) ? ` · ${esc(C.meuCorre.catNome(p.categoria))}` : ''}</small></span>
+          <span class="lo-n-d"><small>entrou ${esc(haQuanto(p.criado))}</small><small>${esc(ultimoTxt(p.ultimo, hoje))}</small></span>
+          <span class="lo-n-p" role="img" aria-label="${num(p.passos)} de 5 passos">${[0, 1, 2, 3, 4].map(i => `<i${i < (Number(p.passos) || 0) ? ' class="on"' : ''}></i>`).join('')}<small class="num">${num(p.passos)}/5</small></span></a></li>`).join('')}</ul></section>` : ''}
+      <p class="fine lo-pe">Ativo = fez alguma coisa no dia (post, mensagem, curtida, lead, venda, tarefa na cidade...), entrou com o Google ou abriu o Corre (esse último conta da 4.02 em diante). O dia é o de Brasília.</p>
+      <div class="lo-tip" id="lo-tip" role="tooltip" hidden></div>
     </main>`;
     ouveTip();
   }
 
   /* o balãozinho das colunas: segue o dedo/mouse e o foco do teclado (o número também tá na tabela) */
   function ouveTip(){
-    const tip = $('lj-tip'); if(!tip) return;
+    const tip = $('lo-tip'); if(!tip) return;
     const mostra = (el, x, y) => { tip.textContent = el.dataset.tip || ''; tip.hidden = false; const w = tip.offsetWidth; tip.style.left = Math.max(8, Math.min(innerWidth - w - 8, x - w / 2)) + 'px'; tip.style.top = Math.max(8, y - 44) + 'px'; };
-    document.querySelectorAll('.lj-col').forEach(el => {
+    document.querySelectorAll('.lo-col').forEach(el => {
       el.addEventListener('pointermove', e => mostra(el, e.clientX, e.clientY));
       el.addEventListener('pointerleave', () => { tip.hidden = true; });
       el.addEventListener('focus', () => { const b = el.getBoundingClientRect(); mostra(el, b.left + b.width / 2, b.top); });
@@ -175,15 +175,15 @@
 
   async function carrega(app){
     const rota = C.rota;
-    if(L.r) document.querySelector('.lj') && document.querySelector('.lj').classList.add('lendo');
+    if(L.r) document.querySelector('.lo') && document.querySelector('.lo').classList.add('lendo');
     try{ L.r = await api.rpc('corre_lojinha', { p_dias: L.dias }); L.em = Date.now(); L.erro = null; }
     catch(e){ L.erro = e; }
     if(rota !== C.rota) return;
     if(L.erro || !L.r){
       const e = L.erro || {}, so = e.code === '42501' || e.hint === 'so_fundador', falta = e.code === 'PGRST202' || e.code === '42883' || /Could not find the function|does not exist/i.test(e.message || '');
-      app.innerHTML = C.header('lojinha') + `<main class="wrap lj"><section class="card"><h1 class="ch">Lojinha</h1>
+      app.innerHTML = C.header('lojinha') + `<main class="wrap lo"><section class="card"><h1 class="ch">Lojinha</h1>
         <p>${so ? 'A Lojinha é só do dono do Corre.' : falta ? 'A Lojinha liga quando o delta-v402.sql rodar no banco.' : esc(C.errMsg ? C.errMsg(e, 'Não deu pra ler os números agora.') : 'Não deu pra ler os números agora.')}</p>
-        ${so ? '' : `<div class="acts"><button type="button" class="btn" data-act="lj-atualiza">${ico('troca')} Tentar de novo</button></div>`}</section></main>`;
+        ${so ? '' : `<div class="acts"><button type="button" class="btn" data-act="lo-atualiza">${ico('troca')} Tentar de novo</button></div>`}</section></main>`;
       return;
     }
     pinta(app);
@@ -191,13 +191,13 @@
 
   C.views.lojinha = async app => {
     document.title = 'Lojinha · Corre';
-    if(!C.ehFundador()){ app.innerHTML = C.header('lojinha') + `<main class="wrap lj"><section class="card"><h1 class="ch">Lojinha</h1><p>A Lojinha é só do dono do Corre.</p></section></main>`; return; }
-    if(!L.r) app.innerHTML = C.header('lojinha') + `<main class="wrap lj"><section class="card"><p>Contando a lojinha…</p></section></main>`;
+    if(!C.ehFundador()){ app.innerHTML = C.header('lojinha') + `<main class="wrap lo"><section class="card"><h1 class="ch">Lojinha</h1><p>A Lojinha é só do dono do Corre.</p></section></main>`; return; }
+    if(!L.r) app.innerHTML = C.header('lojinha') + `<main class="wrap lo"><section class="card"><p>Contando a lojinha…</p></section></main>`;
     else pinta(app);
     await carrega(app);
   };
   Object.assign(C.acts, {
-    'lj-dias': el => { const n = Number(el.dataset.n); if(!PERIODOS.includes(n) || n === L.dias) return; L.dias = n; try{ localStorage.setItem('corre-lojinha-dias', String(n)); }catch(e){} carrega($('app')); },
-    'lj-atualiza': () => carrega($('app'))
+    'lo-dias': el => { const n = Number(el.dataset.n); if(!PERIODOS.includes(n) || n === L.dias) return; L.dias = n; try{ localStorage.setItem('corre-lojinha-dias', String(n)); }catch(e){} carrega($('app')); },
+    'lo-atualiza': () => carrega($('app'))
   });
 })();
