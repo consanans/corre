@@ -40,7 +40,9 @@
     horus: ['#/horus', 'Hórus', 'eye'], rolo: ['#/rolo', 'Rolo 360', 'rolo'], carteira: ['', 'Carteira de correal', 'correal'], planos: ['#/planos', 'Planos', 'cartao'],
     marcas: ['#/marcas', 'Portfólio e catálogo', 'marcas'], salvos: ['#/salvos', 'Salvos', 'save'], banca: ['#/banca', 'Banca do dia', 'banca'], refs: ['#/refs', 'Do teu nicho', 'cal'],
     /* v4.0 · o Link na bio (bio.js) */
-    linkbio: ['#/linkbio', 'Link na bio', 'link'], convite: ['', 'Chamar a galera', 'presente']
+    linkbio: ['#/linkbio', 'Link na bio', 'link'], convite: ['', 'Chamar a galera', 'presente'],
+    /* v4.02 · a Lojinha (o painel do dono, lojinha.js): só o fundador vê (o tem() filtra) */
+    lojinha: ['#/lojinha', 'Lojinha', 'grafico']
   });
   /* os grupos: [nome, ícone, o que mora dentro]. No computador cada um abre ali mesmo, no menu; no celular a gaveta
      da tua foto já mostra eles abertos. v3.44 (o Thales pediu pra juntar o tanto que der): a Rede junta o Início, as
@@ -49,7 +51,7 @@
   const GRUPOS = {
     rede: ['Rede', 'chat', ['inicio', 'msg', 'grupos', 'avisos']],
     lab: ['Laboratório', 'lab', ['studio', 'houzi', 'horus', 'marcas']],
-    fin: ['Financeiro', 'calc', ['corre', 'carteira', 'planos']],
+    fin: ['Financeiro', 'calc', ['lojinha', 'corre', 'carteira', 'planos']],
     banca: ['Banca', 'toldo', ['banca', 'refs', 'rolo']],
     eu: ['Perfil', 'eu', ['perfil', 'linkbio', 'convite', 'salvos']]
   };
@@ -57,7 +59,7 @@
      lugar à Comanda, aos Teus e ao Tudo; os grupos seguem dentro do Tudo e da gaveta) */
   const PRACA = ['verso', 'mural'];
   /* o que depende do perfil ou do módulo carregado: o Hórus liga e desliga, o Studio Houzi e os Grupos podem não vir */
-  const tem = k => (k !== 'horus' || C.ferr('horus')) && (k !== 'houzi' || C.views.houzi) && (k !== 'grupos' || C.views.grupos);
+  const tem = k => (k !== 'horus' || C.ferr('horus')) && (k !== 'houzi' || C.views.houzi) && (k !== 'grupos' || C.views.grupos) && (k !== 'lojinha' || (C.ehFundador() && !!C.views.lojinha));
   /* de qual item do menu cada página é (e pra onde a setinha de voltar leva). Banca e Nicho não são mais filhas do
      Início: moram na Banca, e o grupo aberto no menu já diz onde você tá */
   const DONO = { vendas: 'corre', grana: 'corre', estilo: 'corre', 'studio-dentro': 'studio', editar: 'perfil' };
@@ -457,6 +459,8 @@
     if(logged && C.manual) setTimeout(() => C.manual.talvez(), 900);
     /* v4.01: no celular, fora do app da tela de início, o convite pra pôr o Corre na tela (depois do manual, uma folha por vez) */
     if(logged && C.instala && !C.EMBED) setTimeout(() => C.instala.talvez(), 2600);
+    /* v4.02: avisa o banco que a pessoa abriu o Corre hoje (uma vez por dia por aparelho; a Lojinha conta) */
+    if(logged && C.marcaDia) setTimeout(() => C.marcaDia(), 1200);
     /* em tela baixa a lista do menu rola: o item aceso aparece (depois de a página ir pra tela) */
     if(logged) setTimeout(() => { aVista(document.querySelector('.lado-nav [aria-current="page"]')); sinalRola(); }, 0);
     const v = logged && VOLTA[cru], volta = v ? (v[0] === 'perfil' ? ['#/@' + me.handle, 'Perfil'] : v) : null;
@@ -524,6 +528,7 @@
       ['corre', 'Do orçamento ao dinheiro na conta', 'vendas venda grana dinheiro financeiro caixa receita despesa orcamento lucro'],
       ['carteira', 'Teu saldo de correal', 'correal saldo moeda'],
       ['planos', 'Assinaturas e faturas', 'assinatura assinar pagar pagamento fatura plano preco pix boleto cartao'],
+      ['lojinha', 'Como tá o Corre: gente, uso, planos e IA', 'painel dashboard numeros metricas estatistica dados lojinha crescimento usuarios'],
       ['banca', 'As manchetes do teu assunto', 'noticias noticia manchetes jornal'],
       ['refs', 'Referências e datas do teu nicho', 'referencias inspiracao nicho datas comemorativas'],
       ['rolo', 'Filmes em 360', 'filme filmes cinema'],

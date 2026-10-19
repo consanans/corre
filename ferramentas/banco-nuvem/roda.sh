@@ -86,6 +86,11 @@ $P -f "$AQUI/semente400.sql"
 delta delta-v400.sql 'delta v4.0 ok'
 delta delta-v400.sql 'delta v4.0 ok'
 testa teste400.sql 13
+# v4.02: a Lojinha (o painel do dono): o que ela lê e o Supabase de mentira não tinha, o delta 2x e as checagens
+$P -f "$AQUI/semente402.sql"
+delta delta-v402.sql 'delta v4.02 ok'
+delta delta-v402.sql 'delta v4.02 ok'
+testa teste402.sql 17
 . "$AQUI/virada343.sh"
 if grep -q 'FALHOU\|ERROR' $D/saida; then echo "deu FALHOU ou erro (acima)"; exit 1; fi
 echo "tudo ok: $(grep -c '^ok:' $D/saida) checagens"

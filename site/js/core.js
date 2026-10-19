@@ -137,6 +137,9 @@
     peixe: '<path d="M3 12c3.2-4.6 9.2-5.4 13.8-1.2L21 8v8l-4.2-2.8C12.2 17.4 6.2 16.6 3 12z"/><circle cx="8" cy="11.2" r=".9"/>',
     /* v3.65 · a lupa da busca */
     lupa: '<circle cx="10.5" cy="10.5" r="6.5"/><path d="m20.5 20.5-5.4-5.4"/>',
+    /* v4.02 · a Lojinha: as barrinhas do gráfico e o alvo (o gargalo) */
+    grafico: '<path d="M3.5 20.5h17"/><rect x="5" y="11" width="3.5" height="9.5" rx="1"/><rect x="10.25" y="4.5" width="3.5" height="16" rx="1"/><rect x="15.5" y="13.5" width="3.5" height="7" rx="1"/>',
+    alvo: '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r=".8" fill="currentColor"/>',
     /* v3.70: o Tudo do menu (quatro quadrados) e as setinhas de mudar a ordem no Ajeitar */
     grade: '<rect x="4" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.6"/>',
     sobe: '<path d="m6 15 6-6 6 6"/>',
@@ -465,8 +468,8 @@
   const HOUZI_EX = {"spec":{"v":1,"territorio":"editorial","amostra":1,"nome":"Grão Torto","tagline":"café de esquina","nicho":"cafe","cidade":"Londrina, PR","desde":"2021","pers":[0.35,0.55,0.55,0.35,0.2],"modo":"branding","campos":["cafe","rua"],"logo":{"arranjo":"wordmark","caixa":"titulo","track":0.005,"efeito":"","gesto":"troca","tagline":true,"corTexto":"texto","trocaPor":"ideia"},"simbolo":{"tipo":"ideia","icone":"xicara","ideia":"grao","estilo":"linha","seed":84829},"tipo":{"display":"lora-bolditalic","texto":"lora-regular"},"cores":{"p":"#2B2B2E","s":"#D8D4CB","a":"#B8913A","ink":"#161618","paper":"#F6F2EA","fundo":"paper","esquema":"receita","receita":"Grafite e Ouro"},"textura":"papel","aplic":["revista","sacola","cartao","instagram","copo","fachada"],"seed":273184829,"descr":"Café de bairro, torra própria"},"voz":{"conceito":"Grão Torto é o café que trata cada detalhe como página de revista.","manifesto":"Grão Torto acredita que pressa é inimiga do bom. Por isso cada café é pensado como uma página de revista: com respiro, com ritmo, com intenção. É pra quem acorda cedo que repara. Que lê a legenda inteira. Que volta pela segunda vez.","taglines":["Grão Torto. Pra ler devagar.","A pausa boa do dia, com tempo.","O detalhe é a história.","Feito com atenção em Londrina.","Menos, e melhor."],"e":["calma","precisa","elegante"],"nao_e":["barulhenta","apressada","exagerada"],"fala":["Pensado com calma, feito pra durar.","Nem tudo precisa ser pra ontem.","A pausa boa do dia, no detalhe."],"nao_fala":["IMPERDÍVEL!!!","Só hoje, corre!","O melhor do Brasil."],"bio":"café de esquina · Café em Londrina. Chama no direct.","wa":"Olá, que bom ter você aqui. Aqui é o Grão Torto. Me conta o que procura e eu te ajudo com calma.","ia":false}};
   function demoApi(){
     const KEY = 'corre-demo-v2', mem = {};
-    const T = ['corre_perfis', 'corre_portfolio', 'corre_destaques', 'corre_stories', 'corre_insta', 'corre_contas', 'corre_lancamentos', 'corre_rolo_salvos', 'corre_leads', 'corre_posts', 'corre_feed', 'corre_curtidas', 'corre_comentarios', 'corre_seguindo', 'corre_story_curtidas', 'corre_visitas', 'corre_estilo', 'corre_produtos', 'corre_mural', 'corre_mural_propostas', 'corre_vendas', 'corre_refs', 'corre_lead_fotos', 'corre_mural_chat', 'corre_verso_bloq', 'corre_votos', 'corre_salvos', 'corre_recomendacoes', 'corre_feed_vistas', 'corre_avisos_lidos', 'corre_conversas', 'corre_conversa_membros', 'corre_mensagens', 'corre_push', 'corre_push_pref', 'corre_grupos', 'corre_grupo_membros', 'corre_houzi_marcas', 'corre_correal', 'corre_correal_log', 'corre_tarefa_vez', 'corre_ig_contas', 'corre_houzi_privado', 'corre_assinaturas', 'corre_asaas_clientes', 'corre_skins', 'corre_bio_conta', 'corre_convites'];
-    const PRIV = ['corre_contas', 'corre_lancamentos', 'corre_rolo_salvos', 'corre_leads', 'corre_posts', 'corre_visitas', 'corre_estilo', 'corre_produtos', 'corre_mural', 'corre_mural_propostas', 'corre_vendas', 'corre_refs', 'corre_lead_fotos', 'corre_verso_bloq', 'corre_votos', 'corre_salvos', 'corre_feed_vistas', 'corre_avisos_lidos', 'corre_push', 'corre_push_pref', 'corre_correal', 'corre_correal_log', 'corre_tarefa_vez', 'corre_ig_contas', 'corre_houzi_privado', 'corre_assinaturas', 'corre_asaas_clientes', 'corre_skins', 'corre_bio_conta', 'corre_convites'];
+    const T = ['corre_perfis', 'corre_portfolio', 'corre_destaques', 'corre_stories', 'corre_insta', 'corre_contas', 'corre_lancamentos', 'corre_rolo_salvos', 'corre_leads', 'corre_posts', 'corre_feed', 'corre_curtidas', 'corre_comentarios', 'corre_seguindo', 'corre_story_curtidas', 'corre_visitas', 'corre_estilo', 'corre_produtos', 'corre_mural', 'corre_mural_propostas', 'corre_vendas', 'corre_refs', 'corre_lead_fotos', 'corre_mural_chat', 'corre_verso_bloq', 'corre_votos', 'corre_salvos', 'corre_recomendacoes', 'corre_feed_vistas', 'corre_avisos_lidos', 'corre_conversas', 'corre_conversa_membros', 'corre_mensagens', 'corre_push', 'corre_push_pref', 'corre_grupos', 'corre_grupo_membros', 'corre_houzi_marcas', 'corre_correal', 'corre_correal_log', 'corre_tarefa_vez', 'corre_ig_contas', 'corre_houzi_privado', 'corre_assinaturas', 'corre_asaas_clientes', 'corre_skins', 'corre_bio_conta', 'corre_convites', 'corre_ativo_dia'];
+    const PRIV = ['corre_contas', 'corre_lancamentos', 'corre_rolo_salvos', 'corre_leads', 'corre_posts', 'corre_visitas', 'corre_estilo', 'corre_produtos', 'corre_mural', 'corre_mural_propostas', 'corre_vendas', 'corre_refs', 'corre_lead_fotos', 'corre_verso_bloq', 'corre_votos', 'corre_salvos', 'corre_feed_vistas', 'corre_avisos_lidos', 'corre_push', 'corre_push_pref', 'corre_correal', 'corre_correal_log', 'corre_tarefa_vez', 'corre_ig_contas', 'corre_houzi_privado', 'corre_assinaturas', 'corre_asaas_clientes', 'corre_skins', 'corre_bio_conta', 'corre_convites', 'corre_ativo_dia'];
     const now = () => new Date().toISOString();
     const inH = h => new Date(Date.now() + h * 36e5).toISOString();
     /* o mesmo do corre_tarefa_valor (delta-v338 + delta-v3391: 3 tarefas por uniforme) */
@@ -643,6 +646,67 @@
     /* v3.66 · o preço de uma skin da loja no demo, em centavos (0 = não é da loja). A vitrine mora no verso.js */
     const skinPrecoDemo = k => { const x = ((C.verso && C.verso.SKINS_LOJA) || []).find(s => s[0] === k); return x ? centDe(x[2]) : 0; };
     const plTrava = (d, u, prod) => { plGarante(d, u, prod); if(!plAcesso(d, u, prod)) throw { message: 'o teste grátis acabou', hint: prod + '_assinatura', code: 'P0001' }; };
+    /* v4.02 · a Lojinha no demo: as mesmas contas do corre_lojinha (delta-v402.sql), em cima das tabelas de mentira.
+       Só o @consanans abre (como o C.ehFundador do demo); ele e o @corre ficam fora da conta de gente */
+    const lojinhaDemo = (d, eu, pDias) => {
+      const me = d.t.corre_perfis.find(p => p.id === eu);
+      if(!me || me.handle !== 'consanans') throw { message: 'A Lojinha é só do dono do Corre.', code: '42501', hint: 'so_fundador' };
+      const dias = Math.max(7, Math.min(+pDias || 30, 120)), hoje = hojeBR(), diaDe = s => s ? hojeBR(new Date(s)) : '';
+      const menos = (dia, n) => new Date(Date.parse(dia + 'T12:00:00Z') - n * 864e5).toISOString().slice(0, 10);
+      const ini = menos(hoje, dias - 1);
+      const fora = new Set(d.t.corre_perfis.filter(p => p.handle === 'consanans' || p.handle === 'corre').map(p => p.id));
+      const gente = d.t.corre_perfis.filter(p => !fora.has(p.id)), ids = new Set(gente.map(p => p.id));
+      const tab = k => d.t[k] || [];
+      const atv = [];
+      [['corre_feed', 'dono', 'created_at'], ['corre_mensagens', 'dono', 'created_at'], ['corre_curtidas', 'dono', 'created_at'], ['corre_comentarios', 'dono', 'created_at'],
+        ['corre_stories', 'dono', 'created_at'], ['corre_seguindo', 'quem', 'created_at'], ['corre_leads', 'dono', 'updated_at'], ['corre_vendas', 'dono', 'updated_at'],
+        ['corre_produtos', 'dono', 'created_at'], ['corre_mural', 'dono', 'created_at'], ['corre_posts', 'dono', 'updated_at'], ['corre_tarefa_vez', 'dono', 'comecou']]
+        .forEach(([t, q, w]) => tab(t).forEach(x => { if(x[q] && x[w]) atv.push([x[q], diaDe(x[w])]); }));
+      tab('corre_ativo_dia').forEach(x => atv.push([x.dono, x.dia]));
+      const ativos = de => new Set(atv.filter(([q, dia]) => ids.has(q) && dia >= de).map(x => x[0])).size;
+      const criado = p => diaDe(p.created_at) || '2000-01-01';
+      const montou = b => !!b && typeof b === 'object' && (Object.keys(b).some(k => k !== 'links') || (Array.isArray(b.links) && b.links.length > 0));
+      const tem = (t, q, p) => tab(t).some(x => x[q] === p.id);
+      const passos = p => [!!p.avatar_url, !!(p.faz || '').trim(), !!(p.whats_publico || '').trim(), montou(p.bio_link), !!p.verso].filter(Boolean).length;
+      const base = gente.filter(p => criado(p) <= menos(hoje, 7));
+      const pessoas = (t, q, w) => { const L = tab(t).filter(x => ids.has(x[q])); return { n: new Set(L.filter(x => diaDe(x[w]) >= ini).map(x => x[q])).size, total: new Set(L.map(x => x[q])).size }; };
+      const visitas = tab('corre_bio_conta').filter(x => x.dia >= ini);
+      const porPag = {}; visitas.filter(x => x.chave === 'visita').forEach(x => { porPag[x.dono] = (porPag[x.dono] || 0) + x.n; });
+      const quem = id => { const p = d.t.corre_perfis.find(x => x.id === id) || {}; return { handle: p.handle, nome: p.nome, avatar_url: p.avatar_url || '' }; };
+      const porConv = {}; tab('corre_convites').forEach(c => { porConv[c.por] = (porConv[c.por] || 0) + 1; });
+      const pag = a => a.status === 'ativa' && a.pago_ate && a.pago_ate >= menos(hoje, 3);
+      const assin = tab('corre_assinaturas').filter(a => !fora.has(a.dono));
+      return {
+        hoje, dias_periodo: dias, agora: new Date().toISOString(),
+        gente: { perfis: gente.length, novos: gente.filter(p => criado(p) >= ini).length, novos7: gente.filter(p => criado(p) > menos(hoje, 7)).length,
+          novos7_antes: gente.filter(p => criado(p) > menos(hoje, 14) && criado(p) <= menos(hoje, 7)).length, contas: gente.length, sem_perfil: 0,
+          ativos_hoje: ativos(hoje), ativos7: ativos(menos(hoje, 6)), ativos30: ativos(menos(hoje, 29)), ativos_periodo: ativos(ini),
+          voltaram_base: base.length, voltaram: base.filter(p => atv.some(([q, dia]) => q === p.id && dia > menos(hoje, 7))).length },
+        dias: Array.from({ length: dias }, (_, i) => { const dia = menos(hoje, dias - 1 - i); return { dia, novos: gente.filter(p => criado(p) === dia).length, ativos: new Set(atv.filter(([q, x]) => ids.has(q) && x === dia).map(x => x[0])).size }; }),
+        funil: { contas: gente.length, perfil: gente.length, foto: gente.filter(p => p.avatar_url).length, faz: gente.filter(p => (p.faz || '').trim()).length,
+          whats: gente.filter(p => (p.whats_publico || '').trim()).length, bio: gente.filter(p => montou(p.bio_link)).length, verso: gente.filter(p => p.verso).length,
+          vitrine: gente.filter(p => tab('corre_produtos').some(x => x.dono === p.id && x.publico !== false)).length, post: gente.filter(p => tem('corre_feed', 'dono', p)).length,
+          convidou: gente.filter(p => tem('corre_convites', 'por', p)).length },
+        uso: [['feed', 'corre_feed', 'dono', 'created_at'], ['stories', 'corre_stories', 'dono', 'created_at'], ['msg', 'corre_mensagens', 'dono', 'created_at'],
+          ['grupos', 'corre_grupo_membros', 'membro', 'created_at'], ['mural', 'corre_mural', 'dono', 'created_at'], ['propostas', 'corre_mural_propostas', 'dono', 'created_at'],
+          ['studio', 'corre_posts', 'dono', 'created_at'], ['houzi', 'corre_houzi_marcas', 'dono', 'created_at'], ['horus', 'corre_leads', 'dono', 'created_at'],
+          ['vendas', 'corre_vendas', 'dono', 'created_at'], ['grana', 'corre_lancamentos', 'dono', 'created_at'], ['catalogo', 'corre_produtos', 'dono', 'created_at'],
+          ['tarefas', 'corre_tarefa_vez', 'dono', 'comecou'], ['atelie', 'corre_skins', 'dono', 'created_at'], ['instagram', 'corre_ig_contas', 'dono', 'conectada_em'],
+          ['avisos', 'corre_push', 'dono', 'created_at']].map(([k, t, q, w]) => Object.assign({ k }, pessoas(t, q, w)))
+          .concat([{ k: 'linkbio', n: Object.keys(porPag).filter(x => ids.has(x)).length, total: gente.filter(p => montou(p.bio_link)).length }]),
+        bio: { visitas: visitas.filter(x => x.chave === 'visita').reduce((s, x) => s + x.n, 0), toques: visitas.filter(x => x.chave !== 'visita').reduce((s, x) => s + x.n, 0),
+          top: Object.entries(porPag).sort((x, y) => y[1] - x[1]).slice(0, 5).map(([id, n]) => Object.assign(quem(id), { n })) },
+        convites: { total: tab('corre_convites').length, periodo: tab('corre_convites').filter(c => diaDe(c.em) >= ini).length, pagos: tab('corre_convites').filter(c => +c.pago > 0).length,
+          top: Object.entries(porConv).sort((x, y) => y[1] - x[1]).slice(0, 5).map(([id, n]) => Object.assign(quem(id), { n })) },
+        planos: { studio: assin.filter(a => a.produto === 'studio' && pag(a)).length, houzi: assin.filter(a => a.produto === 'houzi' && pag(a)).length, horus: assin.filter(a => a.produto === 'horus' && pag(a)).length,
+          mrr: assin.filter(pag).reduce((s, a) => s + centDe(a.valor), 0) / 100, teste: assin.filter(a => a.status === 'teste' && a.teste_ate > new Date().toISOString()).length,
+          pendentes: assin.filter(a => a.status === 'pendente').length, atrasados: assin.filter(a => a.status === 'atrasada').length, cancelados: 0, donos: 0 },
+        ia: { pessoas: 0, total: 0, tipos: {} },
+        chegaram: gente.slice().sort((x, y) => String(y.created_at || '').localeCompare(String(x.created_at || ''))).slice(0, 12).map(p => ({ id: p.id, handle: p.handle, nome: p.nome,
+          avatar_url: p.avatar_url || '', categoria: p.categoria || '', criado: p.created_at || null, passos: passos(p),
+          ultimo: atv.filter(([q]) => q === p.id).map(x => x[1]).sort().pop() || null }))
+      };
+    };
     const plMeu = (d, u) => {
       if(!u) return null;
       const planos = {};
@@ -1546,6 +1610,14 @@
           return { n: meus.length, ganho: meus.reduce((t, x) => t + centDe(x.pago), 0) / 100, valor: 0.5, teto: 10,
             gente: meus.slice(0, 30).map(x => { const p = d.t.corre_perfis.find(y => y.id === x.quem) || {}; return { handle: p.handle, nome: p.nome, avatar_url: p.avatar_url || '', em: x.em }; }).filter(x => x.handle) };
         }
+        /* v4.02 · a Lojinha (delta-v402.sql): o dia de cada um e o resumo, as mesmas contas do banco */
+        if(n === 'corre_marca_dia'){
+          const eu = uidOf(d); if(!eu || !d.t.corre_perfis.some(p => p.id === eu)) return null;
+          d.t.corre_ativo_dia = d.t.corre_ativo_dia || []; const dia = hojeBR();
+          if(!d.t.corre_ativo_dia.some(x => x.dono === eu && x.dia === dia)){ d.t.corre_ativo_dia.push({ dono: eu, dia }); write(d); }
+          return null;
+        }
+        if(n === 'corre_lojinha') return lojinhaDemo(d, uidOf(d), a && a.p_dias);
         if(n === 'corre_meu_acesso') return plMeu(d, uidOf(d));
         if(n === 'corre_teste_comeca'){ if(!uidOf(d)) throw { message: 'login', hint: 'login' }; plGarante(d, uidOf(d), a && a.p_produto); write(d); return plMeu(d, uidOf(d)); }
         if(/^corre_mural_/.test(n)){ const r = muralRpc(n, a || {}, d, uidOf(d)); write(d); return r; }

@@ -97,7 +97,8 @@
       api.rpc('corre_convites_meus', {}).then(r => r ? (r.n || 0) > 0 : null).catch(() => null)
     ]);
     if(!$('h-passos') || st.me !== me) return;
-    const bio = me.bio_link && typeof me.bio_link === 'object' && Object.keys(me.bio_link).length > 0;
+    /* v4.02: o gatilho do banco grava {"links": []} em todo perfil novo; montou = tem link ou mexeu em outra coisa da página */
+    const b = me.bio_link, bio = !!b && typeof b === 'object' && (Object.keys(b).some(k => k !== 'links') || (Array.isArray(b.links) && b.links.length > 0));
     /* v4.01: no celular, o primeiro é pôr o Corre na tela (feito: aberto pelo ícone, ou disse que já pôs) */
     const L = (celular() && !C.EMBED ? [['tela', noApp() || !!inLe().ja, 'Põe o Corre na tela do celular', 'Vira app: tela inteira, sem a barra do navegador, e os avisos chegam.', '', 'instala']] : []).concat([
       ['foto', !!me.avatar_url, 'Põe tua foto', 'Gente confia em quem mostra a cara.', '#/editar'],
