@@ -146,6 +146,37 @@
     janela: '<path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/>'
   };
   const ico = (k, cls) => `<svg class="ic${cls ? ' ' + cls : ''}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${I[k] || ''}</svg>`;
+  /* ---------- v3.89 · a tela cheia (o 3D da casa e dos lugares, e os jogos da cidade) ----------
+     Desde a v3.88 o 3D entrava em tela cheia; o Thales: "você esqueceu de colocar full screen no jogo do macaco, que é 3D
+     também". Agora quem pede e tira é daqui, pros dois. É a página inteira (não só o 3D ou o jogo), pra folha, aviso e
+     balcão seguirem aparecendo por cima, e o pedido sai no toque de entrar (o navegador só deixa no toque). Só tira quem
+     pôs: quem já tava em tela cheia por conta própria continua. Sem a tela cheia no navegador (o iPhone, onde só
+     vídeo vai pra tela cheia), nada acontece e o botão dos cantos some. Quem tira ou põe pelo botão escolhe pras
+     próximas vezes (corre-3d-tela: 'janela' entra sem) */
+  const TELA_K = 'corre-3d-tela', telaOuve = [];
+  /* dono: quem pôs ('cidade', '3d' ou 'jogo'). Só quem pôs tira: a tela cheia que a pessoa ligou na cidade continua
+     quando ela entra e sai do 3D ou de um jogo */
+  const tela = C.tela = {
+    dono: null,
+    el: () => document.fullscreenElement || document.webkitFullscreenElement || null,
+    pode(){ const d = document.documentElement; return !!((document.fullscreenEnabled || document.webkitFullscreenEnabled) && (d.requestFullscreen || d.webkitRequestFullscreen)); },
+    quer(){ try{ return localStorage.getItem(TELA_K) !== 'janela'; }catch(e){ return true; } },
+    poe(dono){
+      if(!tela.pode() || tela.el()) return; const d = document.documentElement, f = d.requestFullscreen || d.webkitRequestFullscreen; tela.dono = dono || '?';
+      try{ const p = f.call(d, { navigationUI: 'hide' }); if(p && p.catch) p.catch(() => { tela.dono = null; tela.avisa(); }); }catch(e){ tela.dono = null; }
+    },
+    tira(dono){
+      if(!dono || tela.dono !== dono) return; tela.dono = null; if(!tela.el()) return;
+      const f = document.exitFullscreen || document.webkitExitFullscreen; try{ const p = f && f.call(document); if(p && p.catch) p.catch(() => {}); }catch(e){}
+    },
+    /* o botão dos cantos do 3D e dos jogos: tira ou põe, e guarda a escolha */
+    alterna(dono){ const on = !!tela.el(); try{ localStorage.setItem(TELA_K, on ? 'janela' : 'cheia'); }catch(e){} if(on){ tela.dono = dono; tela.tira(dono); } else tela.poe(dono); },
+    botao(b){ if(!b) return; b.hidden = !tela.pode(); const on = !!tela.el(); b.setAttribute('aria-pressed', on ? 'true' : 'false'); b.title = on ? 'Sair da tela cheia' : 'Tela cheia'; b.setAttribute('aria-label', b.title); b.innerHTML = ico(on ? 'janela' : 'cheia'); },
+    ouve(fn){ telaOuve.push(fn); },
+    avisa(){ telaOuve.forEach(fn => { try{ fn(); }catch(e){} }); }
+  };
+  /* o navegador tirou (Esc, o voltar do Android, troca de app): quem tá aberto continua, só o botão muda */
+  ['fullscreenchange', 'webkitfullscreenchange'].forEach(ev => document.addEventListener(ev, () => { if(!tela.el()) tela.dono = null; tela.avisa(); }));
 
   /* imagem: corta/encolhe no navegador antes de subir (story até 1080x1920, logo e foto quadradas) */
   function loadImg(file){

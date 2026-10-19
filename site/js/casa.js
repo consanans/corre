@@ -5206,25 +5206,10 @@
      Nas três primeiras vezes, um balão em cima do Sair mostra por onde volta. No iPhone o navegador não deixa (lá só
      vídeo vai pra tela cheia; o app instalado já ocupa a tela toda) e o botão nem aparece. Quem tirou pelo botão fica
      sem tela cheia nas próximas (corre-3d-tela) */
-  const TELA_K = 'corre-3d-tela', DICA_K = 'corre-3d-dica';
-  const fsEl = () => document.fullscreenElement || document.webkitFullscreenElement || null;
-  const fsPode = () => { const d = document.documentElement; return !!((document.fullscreenEnabled || document.webkitFullscreenEnabled) && (d.requestFullscreen || d.webkitRequestFullscreen)); };
-  const telaQuer = () => { try{ return localStorage.getItem(TELA_K) !== 'janela'; }catch(e){ return true; } };
-  function poeTela(){
-    if(!fsPode() || fsEl()) return; const d = document.documentElement, f = d.requestFullscreen || d.webkitRequestFullscreen;
-    S.minhaTela = true;
-    try{ const p = f.call(d, { navigationUI: 'hide' }); if(p && p.catch) p.catch(() => { S.minhaTela = false; botaoTela(); }); }catch(e){ S.minhaTela = false; }
-  }
-  function tiraTela(){
-    const eu = S.minhaTela; S.minhaTela = false; if(!eu || !fsEl()) return;
-    const f = document.exitFullscreen || document.webkitExitFullscreen; try{ const p = f && f.call(document); if(p && p.catch) p.catch(() => {}); }catch(e){}
-  }
-  function botaoTela(){
-    const b = C.$('cs-tela'); if(!b) return; b.hidden = !fsPode(); const on = !!fsEl();
-    b.setAttribute('aria-pressed', on ? 'true' : 'false'); b.title = on ? 'Sair da tela cheia' : 'Tela cheia'; b.setAttribute('aria-label', b.title); b.innerHTML = ico(on ? 'janela' : 'cheia');
-  }
-  /* o navegador tirou a tela cheia (Esc, voltar do Android, troca de app): o 3D fica, só o botão muda */
-  ['fullscreenchange', 'webkitfullscreenchange'].forEach(ev => document.addEventListener(ev, () => { if(!fsEl()) S.minhaTela = false; botaoTela(); }));
+  const DICA_K = 'corre-3d-dica', T = C.tela;
+  /* v3.89: quem pede e tira a tela cheia agora mora no core.js (C.tela), pra casa e jogos usarem igual */
+  const botaoTela = () => T.botao(C.$('cs-tela'));
+  T.ouve(botaoTela);
   /* o balão que mostra por onde volta, nas três primeiras vezes */
   function dicaSair(){
     let n = 0; try{ n = parseInt(localStorage.getItem(DICA_K), 10) || 0; }catch(e){} if(n >= 3) return;
@@ -5237,9 +5222,9 @@
   }
   /* abrir: se der qualquer erro, avisa na tela (em vez de ficar em silêncio) */
   async function abrir(o){
-    if(telaQuer()) poeTela();
-    try{ await abrirMesmo(o); if(!S.aberta) tiraTela(); }
-    catch(e){ tiraTela(); try{ console.error('[casa] abrir', e); }catch(_){} S.aberta = false; if(S.el) S.el.hidden = true; C.toast('Não deu pra abrir a casa: ' + String((e && e.message) || e).slice(0, 120), 6000); }
+    if(T.quer()) T.poe('3d');
+    try{ await abrirMesmo(o); if(!S.aberta) T.tira('3d'); }
+    catch(e){ T.tira('3d'); try{ console.error('[casa] abrir', e); }catch(_){} S.aberta = false; if(S.el) S.el.hidden = true; C.toast('Não deu pra abrir a casa: ' + String((e && e.message) || e).slice(0, 120), 6000); }
   }
   const comTempo = (p, ms) => Promise.race([p, new Promise(r => setTimeout(r, ms))]);
   async function abrirMesmo(o){
@@ -5288,7 +5273,7 @@
   /* fica: trocando de um 3D pro outro (a tela cheia continua) */
   function fechar(semHist, fica){
     if(!S.aberta) return;
-    if(!fica) tiraTela();
+    if(!fica) T.tira('3d');
     const dc = C.$('cs-dica'); if(dc){ clearTimeout(S.dicaT); dc.hidden = true; } if(S.el) S.el.classList.remove('dica-on');
     if(S.modo === 'colocar') cancelaGhost();
     S.aberta = false; S.lugar = ''; cancelAnimationFrame(S.raf); S.raf = 0; S.teclas.clear(); S.padTh = null; S.perto = null; if(S.pad) S.pad.solta();
@@ -5313,7 +5298,7 @@
   Object.assign(C.acts, {
     'cs-sair': () => fechar(),
     /* v3.88: o botão dos cantos (pôr e tirar a tela cheia); a escolha fica no aparelho */
-    'cs-tela': () => { const on = !!fsEl(); try{ localStorage.setItem(TELA_K, on ? 'janela' : 'cheia'); }catch(e){} if(on){ S.minhaTela = true; tiraTela(); } else poeTela(); },
+    'cs-tela': () => T.alterna('3d'),
     'cs-enigma-outro': () => enigmaSheet(),
     'cs-porta': () => acaoPerto(),
     'cs-ia-quero': async el => { el.disabled = true; try{ const f = Object.assign({}, (C.st.me && C.st.me.ferramentas) || {}, { ia: 'lista' }); await C.saveMe({ ferramentas: f }); C.toast('Tá na lista do Computador IA. A gente te chama.', 3600); iaSheet(); }catch(e){ el.disabled = false; C.toast(C.errMsg(e)); } },

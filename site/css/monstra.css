@@ -3359,3 +3359,23 @@ html.embed .msg-pg{height:calc(100dvh - 40px)}
 @media (max-width:640px){ .cs-casa .cs-sair .cs-sair-c{display:inline} .cs-casa .cs-sair .cs-sair-l{display:none} }
 @media (max-width:400px){ .cs-top-l .cs-titulo small{display:none} .cs-top-l .cs-titulo{padding:5px 8px} }
 @media (prefers-reduced-motion:reduce){ .cs-dica{animation:none} }
+/* v3.89 · a tela cheia do jogo todo: a cidade ocupa a tela inteira (o cabeçalho, o menu e a barra de baixo do Corre
+   ficam por baixo; o 3D, os jogos, o balcão, as folhas e os avisos continuam por cima), com a folga do entalhe do
+   celular; e a moldura dos jogos no jeito do 3D: o Sair amarelo à esquerda, sempre escrito, e o botão dos cantos */
+body.cvr-cheia{overflow:hidden}
+body.cvr-cheia .cvr-stage{position:fixed;inset:0;z-index:31;min-height:0;border:0;box-shadow:none}
+body.cvr-cheia .cvr-top{top:calc(10px + env(safe-area-inset-top,0px));left:calc(10px + env(safe-area-inset-left,0px));right:calc(10px + env(safe-area-inset-right,0px))}
+body.cvr-cheia .cvr-bar{bottom:calc(12px + env(safe-area-inset-bottom,0px))}
+.cvr-som.cvr-tela{padding:5px 7px}
+.cvr-stage .cvr-mapinha{top:var(--mini-t,58px)}
+.cvr-som.cvr-tela[aria-pressed="true"]{background:var(--yellow)}
+.cvr-jogo-top{justify-content:flex-start;position:relative;padding-top:env(safe-area-inset-top,0px);height:calc(44px + env(safe-area-inset-top,0px))}
+.cvr-jogo-t{flex:1}
+.cvr-jogo-x{background:var(--yellow);color:var(--ink);box-shadow:2px 2px 0 #000}
+.cvr-jogo-x .cvr-jogo-xc{display:none}
+.cvr-jogo-tela{flex:none;background:#F4F1EA;color:var(--ink);padding:0 9px}
+.cvr-jogo-dica{position:absolute;left:10px;top:calc(100% + 10px);z-index:3;max-width:min(270px,calc(100vw - 24px));padding:7px 10px;background:var(--ink);color:#fff;border:2px solid var(--yellow);font-family:var(--font-mono);font-size:12px;font-weight:700;line-height:1.3;pointer-events:none;animation:cs-dica-pula 1.1s ease-in-out infinite;transition:opacity .4s}
+.cvr-jogo-dica::before{content:'';position:absolute;left:18px;top:-9px;border:7px solid transparent;border-top:0;border-bottom:8px solid var(--yellow)}
+.cvr-jogo-dica.some{opacity:0}
+@media (max-width:640px){ .cvr-jogo-x .cvr-jogo-xl{display:none} .cvr-jogo-x .cvr-jogo-xc{display:inline} .cvr-jogo-t small{display:none} }
+@media (prefers-reduced-motion:reduce){ .cvr-jogo-dica{animation:none} }

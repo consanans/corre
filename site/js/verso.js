@@ -4137,6 +4137,10 @@
     const sx = mw <= w ? (mw - w) / 2 : clamp(Math.round(px - w / 2), 0, mw - w), sy = mh <= h ? (mh - h) / 2 : clamp(Math.round(py - h / 2), 0, mh - h);
     ctx.imageSmoothingEnabled = false; ctx.fillStyle = '#2B2F38'; ctx.fillRect(0, 0, w, h);
     ctx.drawImage(V.miniTudo, Math.round(sx), Math.round(sy), w, h, 0, 0, w, h);
+    /* v3.89 · o minimapa desce até onde a faixa de cima acaba: ela quebra em mais linhas quando aparece a zona, a tarefa ou
+       o botão da tela cheia, e com a altura fixa o minimapa tampava o que caía na linha de baixo */
+    const tp = cv.closest('.cvr-stage'), fx = tp && tp.querySelector('.cvr-top');
+    if(fx){ const t = Math.round(fx.offsetTop + fx.offsetHeight + 10) + 'px'; if(tp.style.getPropertyValue('--mini-t') !== t) tp.style.setProperty('--mini-t', t); }
   }
   function falando(o, eu){ if(eu) return V.mic && V.nivelEu > .035; const p = V.peers.get(o.sid); return !!p && (p.bot ? Math.sin(performance.now() / 260) > .2 : (p.nivel || 0) > .03); }
   function boneco(ctx, o, t, eu){
@@ -5292,7 +5296,8 @@
   function tamanhoTela(){
     const st = C.$('cvr-stage'); if(!st || !V.cv) return;
     const r = st.getBoundingClientRect(), tb = document.querySelector('.tabbar'), tbH = tb && getComputedStyle(tb).display !== 'none' ? tb.getBoundingClientRect().height + 18 : 18;
-    const h = Math.max(320, Math.round(innerHeight - r.top - tbH)); st.style.height = h + 'px';
+    /* v3.89: na tela cheia da cidade, o palco é a tela inteira */
+    const h = document.body.classList.contains('cvr-cheia') ? innerHeight : Math.max(320, Math.round(innerHeight - r.top - tbH)); st.style.height = h + 'px';
     const w = st.clientWidth, iw = Math.max(80, Math.floor(w / PX)), ih = Math.max(80, Math.floor(h / PX)), fx = V.fx = fxCidade();
     V.cv.width = iw * fx; V.cv.height = ih * fx; V.cv.style.width = iw * PX + 'px'; V.cv.style.height = ih * PX + 'px'; V.ctx.__b = fx;
     V.cssW = iw * PX; V.cssH = ih * PX; V.z = (w < 560 ? .82 : 1) * zoomFator(); V.k = V.z / PX; V.kr = V.k * fx;
@@ -5463,7 +5468,7 @@
     V.cid = montaCidade(lista); V.sol = solidos(); V.portas = portas(); V.carros = montaCarros(V.cid); V.bolas = novasBolas(V.cid);
     const st = C.$('cvr-stage');
     st.innerHTML = `<canvas id="cvr-cv" aria-label="A cidade do Correverso. Anda com as setas ou W A S D, ou toca onde quer ir."></canvas>
-      <div class="cvr-top"><span class="cvr-tt">${ico('verso')} Correverso</span><span class="cvr-on" id="cvr-on"></span><button type="button" class="cvr-live" id="cvr-live" data-act="cvr-gente" hidden></button><span class="cvr-zona" id="cvr-zona" hidden></span><button type="button" class="cvr-tarefa" id="cvr-tarefa" data-act="cvr-trampo" hidden></button><button type="button" class="cvr-correal" id="cvr-correal" data-act="carteira" title="Carteira de correal" aria-label="Carteira de correal">${ico('correal')}<b class="num" data-correal-saldo>${C.correal.saldo == null ? '…' : C.correalFmt(C.correal.saldo)}</b></button><button type="button" class="cvr-som" id="cvr-som" data-act="cvr-som" aria-pressed="false" hidden></button></div>
+      <div class="cvr-top"><span class="cvr-tt">${ico('verso')} Correverso</span><span class="cvr-on" id="cvr-on"></span><button type="button" class="cvr-live" id="cvr-live" data-act="cvr-gente" hidden></button><span class="cvr-zona" id="cvr-zona" hidden></span><button type="button" class="cvr-tarefa" id="cvr-tarefa" data-act="cvr-trampo" hidden></button><button type="button" class="cvr-correal" id="cvr-correal" data-act="carteira" title="Carteira de correal" aria-label="Carteira de correal">${ico('correal')}<b class="num" data-correal-saldo>${C.correal.saldo == null ? '…' : C.correalFmt(C.correal.saldo)}</b></button><button type="button" class="cvr-som" id="cvr-som" data-act="cvr-som" aria-pressed="false" hidden></button><button type="button" class="cvr-som cvr-tela" id="cvr-tela" data-act="cvr-tela" aria-pressed="false"></button></div>
       <p class="cvr-hint" id="cvr-hint" hidden></p>
       <button type="button" class="cvr-mapinha" id="cvr-mapinha" data-act="cvr-mapa" title="Mapa" aria-label="Minimapa: onde você tá na cidade. Toca pra abrir o mapa grande e viajar"><canvas id="cvr-mapinha-cv" width="140" height="104" aria-hidden="true"></canvas></button>
       <div class="cvr-mj" id="cvr-mj" hidden></div><div class="cvr-mj cvr-rio" id="cvr-rio" hidden></div><div class="cvr-mj cvr-sk" id="cvr-sk" hidden></div>
@@ -5508,8 +5513,24 @@
     V.voo = null; V.passoN = 0;
     if(C.pad && C.pad.toque()){ V.pad = C.pad.cria(st, { pula: () => { if(!mjAperta() && !rioAperta()) pula(); }, soltou: () => { mjHold(false); rioSolta(); } }); st.classList.add('toque'); padRotulo(); }
     if(C.versoSom) C.versoSom.entra(C.$('cvr-som'), () => ({ voz: [...V.peers.values()].some(p => p.estado === 'aovivo'), pausa: !!V.jogo, casa: !!(C.casa && C.casa.aberta()), balcao: !!BC.aberto }));
+    /* v3.89: quem ligou a tela cheia da cidade entra com ela de novo (o toque que trouxe pra cidade ainda vale, quase sempre) */
+    let cheia = false; try{ cheia = localStorage.getItem(CHEIA_K) === 'cheia'; }catch(e){} cidadeCheia(cheia, false);
   }
   function aoSairDaRota(){ if(!/^#\/verso/.test(location.hash)) sair(); }
+  /* ---------- v3.89 · a tela cheia da cidade (o Thales: "coloca opção de full screen do jogo todo no celular") ----------
+     O botão dos cantos, no alto da cidade, faz duas coisas: a cidade ocupa a tela toda (some o cabeçalho, o menu e a
+     barra de baixo do Corre; isso vale em qualquer celular, o iPhone inclusive) e, onde o navegador deixa, a barra dele
+     some também (C.tela, dono 'cidade'). Fica ligada entrando e saindo do 3D e dos jogos, e o aparelho lembra
+     (corre-cidade-tela). Desliga no mesmo botão, ou saindo da cidade (o voltar) */
+  const CHEIA_K = 'corre-cidade-tela';
+  function cidadeCheia(on, toque){
+    document.body.classList.toggle('cvr-cheia', !!on);
+    if(toque){ try{ localStorage.setItem(CHEIA_K, on ? 'cheia' : ''); }catch(e){} }
+    if(C.tela){ if(on) C.tela.poe('cidade'); else C.tela.tira('cidade'); }
+    const b = C.$('cvr-tela'); if(b){ b.setAttribute('aria-pressed', on ? 'true' : 'false'); b.title = on ? 'Sair da tela cheia' : 'Tela cheia: a cidade na tela toda'; b.setAttribute('aria-label', b.title); b.innerHTML = ico(on ? 'janela' : 'cheia'); }
+    if(V.vivo) tamanhoTela();
+    if(on && toque) C.toast('Tela cheia. Pra voltar pro Corre, toca nos cantinhos de novo.', 3200);
+  }
   /* sair da cidade nunca pode travar no meio: cada passo da limpeza é independente
      (antes, um erro aqui deixava a rede e os ouvintes pendurados e a cidade não abria de novo) */
   function sair(){
@@ -5527,6 +5548,7 @@
     if(V.stream){ const s = V.stream; tenta(() => s.getTracks().forEach(t => t.stop())); }
     V.stream = null; V.mic = false; V.anEu = null; V.pedindoMic = false;
     if(!V.vivo && !V.rede) return;
+    tenta(() => { document.body.classList.remove('cvr-cheia'); if(C.tela) C.tela.tira('cidade'); });
     voltaZoom(); V.vivo = false; tenta(() => cancelAnimationFrame(V.raf)); clearInterval(V.prox); clearInterval(V.bate); clearInterval(V.avSync);
     for(const k of [...V.peers.keys()]) tenta(() => fechar(k, true));
     V.peers = new Map();
@@ -5605,23 +5627,40 @@
   /* ---------- folhas ---------- */
   /* desenho pequeno em pixel: avatar numa telinha que o CSS aumenta sem borrar */
   function miniAvatar(cv, av, dir, fase){ const ctx = cv.getContext('2d'); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, cv.width, cv.height); ctx.fillStyle = '#E6DECD'; ctx.fillRect(0, 0, cv.width, cv.height); skin(ctx, av, Math.floor(cv.width / 2), cv.height - 2, dir || 'baixo', fase == null ? null : fase, 1); }
-  /* ---------- o jogo do aquário: abre por cima da cidade, numa moldura com o botão de sair; a cidade espera ---------- */
+  /* ---------- o jogo do aquário: abre por cima da cidade, numa moldura com o botão de sair; a cidade espera ----------
+     v3.89 (o Thales: "você esqueceu de colocar full screen no jogo do macaco, que é 3D também"): os jogos entram em tela
+     cheia como o 3D da casa (C.tela, no core.js, no toque de abrir) e a moldura ficou no jeito dele: o Sair amarelo no
+     alto à esquerda, sempre escrito, o botão dos cantos na direita e o balão que aponta o Sair nas três primeiras vezes.
+     O Esc aqui não fecha o jogo (o teclado é do jogo, lá dentro); em tela cheia, o primeiro Esc do navegador só tira
+     ela. Fechar o jogo (o Sair ou o voltar) tira a tela cheia junto */
   function abreJogo(id){
     const j = JOGOS[id]; if(!j || !V.vivo) return;
-    fechaJogo(true);
+    fechaJogo(true, true); if(C.tela && C.tela.quer()) C.tela.poe('jogo');
     let el = document.getElementById('cvr-jogo');
     if(!el){ el = document.createElement('div'); el.id = 'cvr-jogo'; el.className = 'cvr-jogo'; document.body.appendChild(el); }
-    el.innerHTML = `<div class="cvr-jogo-top"><span class="cvr-jogo-t"><b>${esc(j.titulo)}</b><small>${esc(j.onde || NOME_C.aquario)} · ${esc(j.sub)}</small></span><button type="button" class="cvr-bc-b cvr-jogo-x" data-act="cvr-jogo-sair">${ico('x')}<span>${esc(j.sair || 'Sair do aquário')}</span></button></div>
+    const sai = j.sair || 'Sair do aquário';
+    el.innerHTML = `<div class="cvr-jogo-top"><button type="button" class="cvr-bc-b cvr-jogo-x" data-act="cvr-jogo-sair" aria-label="${esc(sai)}">${ico('prev')}<span class="cvr-jogo-xl">${esc(sai)}</span><span class="cvr-jogo-xc" aria-hidden="true">Sair</span></button><span class="cvr-jogo-t"><b>${esc(j.titulo)}</b><small>${esc(j.onde || NOME_C.aquario)} · ${esc(j.sub)}</small></span><button type="button" class="cvr-bc-b cvr-jogo-tela" id="cvr-jogo-tela" data-act="cvr-jogo-tela" aria-pressed="false" hidden></button><span class="cvr-jogo-dica" id="cvr-jogo-dica" role="status" hidden></span></div>
       <div class="cvr-jogo-corpo"><div class="cvr-jogo-load" id="cvr-jogo-load">${esc(j.carrega || 'Enchendo o tanque…')}</div><iframe id="cvr-jogo-fr" src="${esc(j.src)}" title="${esc(j.titulo)}" allow="autoplay; fullscreen"></iframe></div>`;
-    el.hidden = false;
+    el.hidden = false; jogoTela();
     const fr = el.querySelector('iframe'); fr.addEventListener('load', () => { const l = document.getElementById('cvr-jogo-load'); if(l) l.hidden = true; try{ fr.contentWindow.focus(); }catch(e){} });
     V.jogo = { id, hist: false, ignora: 0 }; V.teclas.clear();
     try{ history.pushState({ cvrJogo: 1 }, ''); V.jogo.hist = true; }catch(e){}
-    anunciar();
+    anunciar(); jogoDica();
   }
-  function fechaJogo(dePop){
+  const jogoTela = () => { if(C.tela) C.tela.botao(document.getElementById('cvr-jogo-tela')); };
+  if(C.tela) C.tela.ouve(jogoTela);
+  /* o balão das três primeiras vezes (a mesma conta pros dois jogos) */
+  function jogoDica(){
+    let n = 0; try{ n = parseInt(localStorage.getItem('corre-jogo-dica'), 10) || 0; }catch(e){} if(n >= 3) return;
+    try{ localStorage.setItem('corre-jogo-dica', String(n + 1)); }catch(e){}
+    const d = document.getElementById('cvr-jogo-dica'); if(!d) return;
+    d.textContent = C.pad && C.pad.toque() ? 'Pra voltar pra cidade, é aqui (ou o voltar do celular)' : 'Pra voltar pra cidade, é aqui';
+    d.hidden = false; clearTimeout(V.jogoDicaT); V.jogoDicaT = setTimeout(() => { d.classList.add('some'); V.jogoDicaT = setTimeout(() => { d.hidden = true; }, 400); }, 7000);
+  }
+  /* fica: trocando de um jogo pro outro (a tela cheia continua) */
+  function fechaJogo(dePop, fica){
     const j = V.jogo; if(!j) return;
-    V.jogo = null;
+    V.jogo = null; clearTimeout(V.jogoDicaT); if(!fica && C.tela) C.tela.tira('jogo');
     const el = document.getElementById('cvr-jogo'); if(el){ el.innerHTML = ''; el.hidden = true; }
     if(j.hist && !dePop){ V.jogoIgnora = Date.now(); try{ history.back(); }catch(e){ V.jogoIgnora = 0; } }
     V.tAnt = 0; V.teclas.clear();
@@ -6423,6 +6462,9 @@
     'cvr-de-novo': () => C.refresh(),
     'cvr-mic': () => { if(V.mic) desligarMic(); else ligarMic(); },
     'cvr-jogo-sair': () => fechaJogo(),
+    'cvr-jogo-tela': () => { if(C.tela) C.tela.alterna('jogo'); },
+    /* v3.89: a tela cheia da cidade (o jogo todo) */
+    'cvr-tela': () => cidadeCheia(!document.body.classList.contains('cvr-cheia'), true),
     'cvr-trampo': () => { if(V.vivo) trampoSheet(null); },
     'cvr-pega-tarefa': el => pegaTarefa(el.dataset.u, el.dataset.k),
     'cvr-larga-tarefa': () => { largaTarefa(false); C.closeSheet(); },
