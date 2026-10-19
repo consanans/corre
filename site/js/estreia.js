@@ -62,9 +62,12 @@
   async function monta(me){
     if(!me) return null;
     const L = MONTA[me.categoria] || MONTA.outros;
-    /* o uso de mentira que põe esses na frente (o mesmo formato do menu esperto; 2,5 a 1,5: passa do 1,5 que ele pede) */
+    /* o uso de mentira que põe esses na frente (o mesmo formato do menu esperto; 3 a 1,5: passa do 1,5 que ele pede). O Início
+       segue o primeiro e as Mensagens o terceiro: no celular a barra de baixo fica Início, os dois do corre, o Correverso
+       no meio e as Mensagens */
     try{
-      const c = {}; L.forEach((k, i) => { c[k] = Math.round((2.5 - i * .2) * 100) / 100; });
+      const ordem = ['inicio', L[0], L[1], 'msg'].concat(L.slice(2)).filter((k, i, a) => k && a.indexOf(k) === i), c = {};
+      ordem.forEach((k, i) => { c[k] = Math.round((3 - i * .2) * 100) / 100; });
       localStorage.setItem('corre-menu-uso', JSON.stringify({ u: me.id, c, dia: C.hojeBR(), ult: '', t: 0 }));
       localStorage.removeItem('corre-menu-teus');
     }catch(e){}
