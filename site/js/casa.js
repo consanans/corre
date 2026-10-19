@@ -103,8 +103,10 @@
   const PLANTA_PADRAO = { k: 'padrao', W: 20, D: 20, ALT: 2.8, comodos: COMODOS_PADRAO, paredes: PAREDES_PADRAO, entrada: { x: 10, z: 20 }, padrao: PADRAO_PADRAO, tapete: { x: 9.3, z: 18.8, w: 1.4, d: 1 } };
   function ITEM_MESA_DJ(){ return M.blocos(ITEM.mesa_dj, 0); }
   const ehDoFundador = dono => !!dono && (dono.handle === 'consanans' || (C.fundadorId && dono.id === C.fundadorId()) || (C.ehFundador && C.ehFundador() && dono.id === (C.st.me && C.st.me.id)));
-  /* v3.80: casa com planta própria pelo @ (ou pelo id, se o @ mudar): a mansão brutalista do @jeydiaz */
-  const PLANTA_DE = { jeydiaz: () => PLANTA_BRUTAL, '673d15ac-ac78-4493-8abe-8a82f498a109': () => PLANTA_BRUTAL };
+  /* v3.80: casa com planta própria pelo @ (ou pelo id, se o @ mudar): a mansão brutalista do @jeydiaz e, desde a 3.86, a do @playboy */
+  const PLANTA_DE = { jeydiaz: () => PLANTA_BRUTAL, '673d15ac-ac78-4493-8abe-8a82f498a109': () => PLANTA_BRUTAL,
+    /* v3.86: a mansão de 20 milhões do @playboy */
+    playboy: () => PLANTA_LUXO };
   Object.setPrototypeOf(PLANTA_DE, null);
   const plantaDe = dono => { if(ehDoFundador(dono)) return PLANTA_TEMPLO; const f = dono && (PLANTA_DE[String(dono.handle || '').toLowerCase()] || PLANTA_DE[String(dono.id || '')]); return f ? f() : PLANTA_PADRAO; };
   function usaPlanta(pl){ PL = pl; W = pl.W; D = pl.D; ALT = pl.ALT; COMODOS = pl.comodos; PAREDES = pl.paredes; ENTRADA = pl.entrada; PADRAO = pl.padrao; }
@@ -2052,6 +2054,328 @@
       { x: 7.6, z: 6.6, y: 3.4, bl: [B(0, 0, 0, .7, .1, .5, PRETO), B(.29, .1, .19, .12, .95, .12, OURO), B(.05, .9, .19, .6, .12, .12, OURO), B(.2, 1.05, .19, .3, .08, .12, OURO), B(.14, 1.12, .19, .08, .32, .12, OURO), B(.48, 1.12, .19, .08, .32, .12, OURO), B(.2, 1.42, .19, .3, .08, .12, OURO)] }
     ]
   };
+  /* ---------- v3.86 · a mansão do @playboy: 20 milhões de dólares por dentro ----------
+     O Thales: "faça a casa do playboy por dentro super luxuosa, tipo aquelas mansões americanas de 20 milhões de
+     dólares". Por fora ela continua a mansão pimp (veludo roxo, ouro, oncinha); por dentro é Beverly Hills: mármore
+     branco, ouro e cristal, com o roxo do dono no veludo. 36 x 28, pé-direito de 7 m na frente.
+     Na frente, tudo aberto e alto: o hall com a rosa dos ventos de mármore no chão, a mesa redonda das flores, o lustre
+     de cristal de três andares, as panteras negras no pé da escadaria de mármore (passadeira roxa, corrimão de ouro) e
+     as colunas brancas de capitel dourado; o living com a lareira de mármore e o quadro da coroa em cima, o sofá em U,
+     o piano de cauda branco e o toca-discos (toca os discos da casa); a cozinha de chef (a ilha de mármore em cascata
+     com as banquetas de veludo, a coifa de ouro, o forno duplo, a geladeira de inox) e a mesa de jantar de 12 lugares
+     com o lustre. Embaixo do mezanino: a piscina coberta com a raia, o spa redondo, as espreguiçadeiras e o balde de
+     champanhe; o cinema (as poltronas de veludo roxo em três degraus, a cortina, a pipoqueira e a tela); a adega com a
+     parede de vidro pro hall; e a garagem dos esportivos (três carros e a moto, desenho e nome nossos, o do meio no
+     tablado giratório, o letreiro de neon). No mezanino: a suíte master (a cabeceira capitonê de veludo roxo até o
+     teto, a banheira de pé de frente pro vidro, a lareira e a TV), o gabinete com as ferramentas e os discos de ouro,
+     olhando pro hall por cima do corrimão de ouro, e o closet-boutique (a ilha de vidro com os relógios, a parede de
+     tênis, as bolsas, os ternos; o armário de espelho troca a skin). Nada de verde: a água é azul, a garrafa de vinho é
+     vinho, as flores são orquídeas brancas e rosas e o capim é dourado */
+  const KL = { marm: '#F1ECE4', marmE: '#DCD4C7', negro: '#16171B', negroC: '#2A2B31', ouro: '#D9A93A', ouroC: '#F2D27A', ouroE: '#A8802A', roxo: '#4A1D5E', roxoC: '#6E2C8A', roxoE: '#2C0F3A',
+    creme: '#F6F0E4', branco: '#FBF8F2', noz: '#3E2618', nozC: '#6A4428', inox: '#AEB4BC', agua: '#2F7FE0', aguaC: '#7FC0F7', trav: '#E3D9C6', parede: '#F1ECE3', paredeI: '#E8E1D5', espelho: '#DCE6EF', vinho: '#5A1622' };
+  /* ---- o chão: a rosa dos ventos do hall, os veios do mármore e a piscina ---- */
+  const rodaL = (cx, cz, r, c, n) => ({ pts: Array.from({ length: n || 32 }, (_, i) => { const a = i / (n || 32) * Math.PI * 2; return [cx + Math.cos(a) * r, cz + Math.sin(a) * r]; }), c });
+  function medalhao(cx, cz, r){
+    const out = [rodaL(cx, cz, r, KL.negro), rodaL(cx, cz, r * .94, KL.ouro), rodaL(cx, cz, r * .9, KL.marm), rodaL(cx, cz, r * .62, KL.negro), rodaL(cx, cz, r * .58, '#EDE6DA')];
+    /* a estrela de oito pontas: as longas pretas (as quatro do rumo, mais escuras), as curtas de ouro entre elas */
+    for(let i = 0; i < 16; i++){
+      const a = i / 16 * Math.PI * 2 - Math.PI / 2, longa = i % 2 === 0, L = longa ? r * .86 : r * .55, w = longa ? r * .13 : r * .09, ax = Math.cos(a), az = Math.sin(a), px = -az, pz = ax;
+      out.push({ pts: [[cx, cz], [cx + ax * L * .3 + px * w, cz + az * L * .3 + pz * w], [cx + ax * L, cz + az * L], [cx + ax * L * .3 - px * w, cz + az * L * .3 - pz * w]], c: longa ? (i % 4 === 0 ? KL.negro : KL.negroC) : KL.ouro });
+    }
+    out.push(rodaL(cx, cz, r * .12, KL.ouro, 16), rodaL(cx, cz, r * .05, KL.negro, 12));
+    return out;
+  }
+  /* os veios do mármore: riscos finos e tortos, sempre os mesmos (a semente) */
+  function veios(x0, z0, x1, z1, n, s){
+    const out = []; let k = s;
+    const rnd = () => { k = (k * 16807) % 2147483647; return k / 2147483647; };
+    for(let i = 0; i < n; i++){
+      const x = x0 + rnd() * (x1 - x0), z = z0 + rnd() * (z1 - z0), a = (rnd() - .5) * 1.1 + .5, L = .8 + rnd() * 2.2, w = .012 + rnd() * .018, dx = Math.cos(a), dz = Math.sin(a);
+      const x2 = Math.min(x1, Math.max(x0, x + dx * L)), z2 = Math.min(z1, Math.max(z0, z + dz * L));
+      out.push({ pts: [[x - dz * w, z + dx * w], [x2 - dz * w, z2 + dx * w], [x2 + dz * w, z2 - dx * w], [x + dz * w, z - dx * w]], c: 'rgba(150,138,120,.3)' });
+    }
+    return out;
+  }
+  /* a piscina coberta: a borda de travertino, a pastilha de ouro, a água azul, a escadinha, a raia do fundo e o brilho */
+  const CHAO_PISCINA = [ret(1.2, 1.2, 9.8, 8.4, '#CDBFA6'), ret(1.42, 1.42, 9.58, 8.18, KL.ouro), ret(1.52, 1.52, 9.48, 8.08, KL.agua),
+    ret(1.52, 1.52, 2.7, 2.3, '#5B9CEB'), ret(1.52, 2.3, 2.1, 3.1, '#4A8DE4'),
+    ret(5.35, 2.4, 5.65, 7.2, '#1E5FC0'), ret(4.95, 2.4, 6.05, 2.7, '#1E5FC0'), ret(4.95, 6.9, 6.05, 7.2, '#1E5FC0'),
+    ...[2.9, 4.1, 5.3, 6.5].map((z, i) => ret(2.2 + (i % 2) * .6, z, 8.8 - (i % 2) * .5, z + .05, 'rgba(255,255,255,.22)'))];
+  /* ---- as peças ---- */
+  /* o lustre de cristal: a corrente, até três andares de pingentes (os de cima menores), as velas de luz e a gota de baixo */
+  function lustre(cx, top, cz, r, andares){
+    const out = [B(cx - .03, top - 1.1, cz - .03, .06, 1.1, .06, KL.ouro)];
+    [[r, top - 2.3], [r * .68, top - 1.85], [r * .4, top - 1.45]].slice(0, andares || 3).forEach(([rr, y]) => {
+      const n = Math.max(8, Math.round(rr * 13));
+      for(let i = 0; i < n; i++){
+        const a = i / n * Math.PI * 2, x = cx + Math.cos(a) * rr, z = cz + Math.sin(a) * rr, L = 2 * Math.PI * rr / n + .02;
+        /* o aro de ouro: um gomo por pingente, girado no lugar */
+        out.push(Object.assign(B(cx + rr - .03, y, cz - L / 2, .06, .05, L, KL.ouro), { yaw: -a, piv: [cx, y, cz] }));
+        out.push(luzB(B(x - .035, y - .36 - (i % 2) * .12, z - .035, .07, .34 + (i % 2) * .12, .07, i % 3 ? '#F4F8FF' : '#FFF1C8')));
+        if(i % 2 === 0) out.push(luzB(B(x - .04, y + .05, z - .04, .08, .14, .08, '#FFE9A8')));
+      }
+      out.push(B(cx - .02, y, cz - .02, .04, top - y - 1.1, .04, KL.ouro));
+    });
+    out.push(esferaB(cx - .17, top - 2.75, cz - .17, .34, '#EAF2FF'), luzB(B(cx - .035, top - 3, cz - .035, .07, .26, .07, '#F4F8FF')));
+    return out;
+  }
+  /* a coluna branca de capitel e base de ouro, do chão ao teto */
+  const colunaL = () => [B(0, 0, 0, .6, 7, .6, KL.marm), B(.05, 0, .05, .08, 7, .08, KL.branco), B(-.1, 0, -.1, .8, .32, .8, KL.marmE), B(-.12, .32, -.12, .84, .05, .84, KL.ouro), B(-.12, 6.5, -.12, .84, .5, .84, KL.ouro), B(-.06, 6.4, -.06, .72, .1, .72, KL.ouroE)];
+  /* a pantera negra sentada, de coleira de ouro, no pedestal de mármore (olhando pra porta, z+) */
+  const pantera = () => [B(0, 0, 0, .8, .85, .8, KL.marm), B(-.04, .85, -.04, .88, .06, .88, KL.ouro), B(.17, .91, .06, .46, .42, .58, KL.negro), B(.22, 1.3, .34, .36, .5, .3, KL.negro), B(.21, 1.74, .4, .38, .28, .3, KL.negro),
+    B(.23, 2, .45, .08, .1, .08, KL.negro), B(.49, 2, .45, .08, .1, .08, KL.negro), B(.3, 1.74, .68, .2, .14, .1, KL.negro), B(.27, 1.86, .7, .06, .04, .01, KL.ouro), B(.47, 1.86, .7, .06, .04, .01, KL.ouro),
+    B(.2, 1.62, .4, .4, .06, .32, KL.ouro), B(.2, .91, .6, .1, .4, .1, KL.negro), B(.5, .91, .6, .1, .4, .1, KL.negro), B(.55, .91, .02, .08, .08, .5, KL.negro)];
+  /* uma cadeira (ou banqueta) de veludo com pé de ouro, virada pro lado dito (o encosto do outro lado) */
+  const banqueta = para => [B(.15, 0, .15, .05, .72, .05, KL.ouro), B(.6, 0, .15, .05, .72, .05, KL.ouro), B(.15, 0, .6, .05, .72, .05, KL.ouro), B(.6, 0, .6, .05, .72, .05, KL.ouro), B(.12, .3, .12, .58, .03, .58, KL.ouro), B(.1, .72, .1, .62, .1, .62, KL.roxo),
+    para === 'z-' ? B(.1, .82, .62, .62, .38, .1, KL.roxo) : B(.1, .82, .1, .62, .38, .1, KL.roxo)];
+  /* a poltrona do cinema, de frente pra tela (z-), em cima do degrau h */
+  const poltronaL = h => [B(0, h, 0, .85, .42, .8, KL.roxo), B(0, h + .42, .6, .85, .62, .22, KL.roxo), B(.04, h + .9, .6, .77, .14, .2, KL.roxoC), B(-.06, h + .15, .02, .1, .48, .78, KL.roxoE), B(.81, h + .15, .02, .1, .48, .78, KL.roxoE),
+    B(.06, h + .42, .06, .73, .06, .5, KL.roxoC), B(.83, h + .63, .1, .06, .02, .1, KL.ouro)];
+  /* a espreguiçadeira de frente pra água (z-), com a toalha roxa enrolada */
+  const espreguicadeira = () => [B(0, 0, 0, .72, .28, 1.9, KL.branco), B(.05, .28, .05, .62, .08, 1.2, KL.creme), Object.assign(B(.05, .3, 1.25, .62, .08, .66, KL.creme), { pitch: -.75, piv: [.36, .34, 1.25] }),
+    B(.16, .36, .2, .4, .1, .22, KL.roxo), B(.04, 0, .04, .06, .28, .06, KL.ouro), B(.62, 0, .04, .06, .28, .06, KL.ouro)];
+  /* o vaso de ouro com orquídeas brancas e rosas (as hastes escuras; folha nenhuma) */
+  const orquidea = () => [B(0, 0, 0, .5, .55, .5, KL.ouro), B(.04, .55, .04, .42, .04, .42, KL.ouroE), B(.12, .59, .2, .03, .8, .03, KL.noz), B(.32, .59, .26, .03, .7, .03, KL.noz),
+    ...[[.08, 1.25, .14, KL.branco], [.17, 1.12, .12, '#FFD6E7'], [.26, 1.3, .2, KL.branco], [.33, 1.18, .24, '#F7C6DA'], [.2, 1.38, .18, KL.branco], [.38, 1.05, .22, KL.branco]].map(([x, y, z, c]) => B(x, y, z, .1, .1, .07, c))];
+  /* o esportivo da garagem: baixo e comprido, de frente pro z+ e centrado; aro de ouro ou cromado. Desenho nosso, sem marca */
+  function esportivo(c, aro){
+    const out = [], hw = .98, L = 4.5, z0 = -L / 2, z1 = L / 2, VID = '#1E242E', esc = escurece(c, .62);
+    [1.45, -1.35].forEach(rz => [-hw - .02, hw - .26].forEach(rx => { out.push(B(rx, 0, rz - .36, .28, .72, .72, '#141519')); out.push(B(rx < 0 ? rx - .012 : rx + .272, .14, rz - .22, .02, .44, .44, aro)); }));
+    out.push(B(-hw, .14, z0, hw * 2, .38, L, c), B(-hw + .06, .52, z0 + .3, hw * 2 - .12, .1, L - .7, c), B(-hw + .2, .62, -.95, hw * 2 - .4, .3, 1.75, c));
+    out.push(B(-hw + .26, .66, .79, hw * 2 - .52, .24, .02, VID), B(-hw + .26, .66, -.96, hw * 2 - .52, .22, .02, VID), B(-hw + .19, .66, -.8, .02, .22, 1.45, VID), B(hw - .21, .66, -.8, .02, .22, 1.45, VID));
+    out.push(B(-hw - .005, .26, -.95, .01, .2, .8, '#141519'), B(hw - .005, .26, -.95, .01, .2, .8, '#141519'));
+    out.push(B(-hw + .12, .42, z1, .5, .06, .02, '#FFF6CF'), B(hw - .62, .42, z1, .5, .06, .02, '#FFF6CF'), B(-hw + .1, .4, z0 - .02, hw * 2 - .2, .05, .02, '#E2412E'));
+    out.push(B(-hw + .15, .62, z0 + .1, .06, .2, .06, esc), B(hw - .21, .62, z0 + .1, .06, .2, .06, esc), B(-hw + .05, .82, z0 + .02, hw * 2 - .1, .04, .34, esc));
+    out.push(B(-hw + .3, .16, z0 - .02, .5, .12, .02, '#141519'), B(.2, .2, z0 - .03, .12, .08, .02, aro));
+    return out;
+  }
+  /* a moto da garagem (a mesma silhueta da Corre 160 do Autódromo), de frente pro z+ */
+  const motoG = c => [B(-.07, 0, .38, .14, .44, .44, '#16181D'), B(-.07, 0, -.82, .14, .44, .44, '#16181D'), B(-.08, .15, .53, .16, .14, .14, KL.ouro), B(-.08, .15, -.67, .16, .14, .14, KL.ouro),
+    B(-.16, .32, -.62, .32, .26, 1, c), B(-.18, .56, -.12, .36, .2, .46, c), B(-.15, .58, -.6, .3, .1, .5, INK), B(-.04, .4, .38, .08, .5, .08, KL.inox), B(-.36, .88, .36, .72, .05, .05, INK), B(-.09, .66, .48, .18, .14, .06, '#FFF6CF')];
+  /* gira uma lista de blocos em volta de um ponto (o tablado giratório) */
+  const gira = (bl, yaw, px, pz) => bl.map(b => Object.assign({}, b, { yaw, piv: [px, 0, pz] }));
+  /* a escadaria: a passadeira roxa em cada degrau (com o varão de ouro no pé), os balaústres do lado de cá e os dois
+     corrimãos de ouro, inclinados junto com a escada (a escada em si é a do motor, no mármore da planta) */
+  const ESCADA_L = { x0: 16.5, z0: 11, x1: 19.5, z1: 20, topo: 3.6, cor: KL.marm, degrau: '#F8F4EE', pilar: KL.ouro };
+  function passadeira(e){
+    const n = Math.round(e.z1 - e.z0), passo = (e.z1 - e.z0) / n, out = [], cx = (e.x0 + e.x1) / 2, lw = 1.5;
+    for(let i = 0; i < n; i++){
+      const h = e.topo * (i + 1) / n, h0 = e.topo * i / n, z1 = e.z1 - i * passo, z0 = z1 - passo;
+      out.push(B(cx - lw / 2, h, z0, lw, .02, passo, KL.roxo), B(cx - lw / 2, h0, z1 - .012, lw, h - h0, .02, KL.roxoE), B(cx - lw / 2 - .04, h0 + .02, z1 - .035, lw + .08, .035, .035, KL.ouro));
+      out.push(B(e.x1 + .06, h, z0 + passo / 2 - .04, .08, .9, .08, KL.ouro));
+    }
+    const L = Math.hypot(e.z1 - e.z0, e.topo), ang = Math.atan2(e.topo, e.z1 - e.z0), y0 = .9 + e.topo / n;
+    [e.x0 - .18, e.x1 + .02].forEach(x => out.push(Object.assign(B(x, y0, e.z1 - L, .16, .07, L, KL.ouro), { pitch: ang, piv: [x + .08, y0, e.z1] })));
+    return out;
+  }
+  /* o fogo da lareira: línguas de alturas diferentes, o laranja atrás, o amarelo no meio e o miolo quase branco na
+     frente (uma caixa só lia como tijolo laranja) */
+  const chamas = (x, y, z, hs = [.34, .52, .42, .64, .47, .56, .36], passo = .165, dir = 1) => hs.flatMap((h, i) => {
+    const zz = z + i * passo, w = passo * .85;
+    return [luzB(B(x, y, zz, .04, h, w, '#F2612A')), luzB(B(x + .02 * dir, y, zz + w * .18, .04, h * .7, w * .64, '#FFA43A')), luzB(B(x + .04 * dir, y, zz + w * .29, .04, h * .38, w * .42, '#FFF1C9'))];
+  });
+  /* ---- as pinturas: o quadro da coroa (em cima da lareira), a tela do cinema e o neon da garagem ---- */
+  function quadroCoroa(g, w, h){
+    g.fillStyle = KL.roxoE; g.fillRect(0, 0, w, h);
+    /* o fundo: pinceladas largas de roxo e vinho */
+    for(let i = 0; i < 14; i++){ g.fillStyle = ['#4A1D5E', '#6E2C8A', '#3A1240', '#5A1A4A'][i % 4]; g.globalAlpha = .75; g.save(); g.translate(w * ((i * 37) % 100) / 100, h * ((i * 53) % 100) / 100); g.rotate(-.5 + (i % 5) * .2); g.fillRect(-w * .45, -h * .045, w * .9, h * .09); g.restore(); }
+    g.globalAlpha = 1;
+    /* a retícula rosa de baixo (pop art): a bolinha cresce descendo */
+    g.fillStyle = 'rgba(255,79,154,.55)'; for(let y = h * .55; y < h; y += 10) for(let x = 0; x < w; x += 10){ const r = 1 + (y - h * .55) / (h * .45) * 3.2; g.beginPath(); g.arc(x + (Math.round(y / 10) % 2) * 5, y, r, 0, Math.PI * 2); g.fill(); }
+    /* a coroa de ouro: as cinco pontas com a bolinha, a faixa e as pedras */
+    const cx = w / 2, by = h * .62, cw = w * .64, ch = h * .3, oy = g.createLinearGradient(0, by - ch, 0, by);
+    oy.addColorStop(0, '#FFE08A'); oy.addColorStop(.5, '#E7B734'); oy.addColorStop(1, '#9C7215');
+    const pontas = Array.from({ length: 5 }, (_, i) => [cx - cw / 2 + i * cw / 4, by - ch * (i % 2 ? .66 : 1)]);
+    g.beginPath(); g.moveTo(cx - cw / 2, by); pontas.forEach(([px, py], i) => { g.lineTo(px, py); if(i < 4) g.lineTo(px + cw / 8, by - ch * .45); }); g.lineTo(cx + cw / 2, by); g.closePath();
+    g.fillStyle = oy; g.fill(); g.lineWidth = 4; g.strokeStyle = KL.roxoE; g.stroke();
+    pontas.forEach(([px, py]) => { g.beginPath(); g.arc(px, py - 8, 9, 0, Math.PI * 2); g.fillStyle = '#FFE08A'; g.fill(); g.stroke(); });
+    g.fillStyle = '#9C7215'; g.fillRect(cx - cw / 2, by - ch * .2, cw, ch * .14);
+    [['#FF4F9A', -.3], ['#2E5BFF', 0], ['#B4152E', .3]].forEach(([c, f]) => { g.beginPath(); g.ellipse(cx + f * cw, by - ch * .13, 11, 8, 0, 0, Math.PI * 2); g.fillStyle = c; g.fill(); g.lineWidth = 2; g.stroke(); });
+    /* o ouro escorrendo da coroa, como tinta de spray */
+    g.fillStyle = '#E7B734'; [-.36, -.18, .05, .22, .4].forEach((f, i) => { const x = cx + f * cw, L = h * (.05 + (i * 7 % 5) * .03); g.fillRect(x - 3, by, 6, L); g.beginPath(); g.arc(x, by + L, 4.5, 0, Math.PI * 2); g.fill(); });
+    /* o cifrão no canto, a assinatura, e a moldura de ouro */
+    g.font = `900 ${Math.round(h * .08)}px Georgia, serif`; g.fillStyle = '#FFE08A'; g.textAlign = 'right'; g.textBaseline = 'alphabetic'; g.fillText('$', w * .88, h * .92);
+    g.strokeStyle = '#E7B734'; g.lineWidth = 16; g.strokeRect(8, 8, w - 16, h - 16); g.strokeStyle = '#9C7215'; g.lineWidth = 3; g.strokeRect(17, 17, w - 34, h - 34);
+  }
+  function telaCinema(g, w, h){
+    g.fillStyle = '#05060A'; g.fillRect(0, 0, w, h);
+    const y0 = h * .1, y1 = h * .9, ceu = g.createLinearGradient(0, y0, 0, y1);
+    ceu.addColorStop(0, '#1A0B3D'); ceu.addColorStop(.5, '#8E3FE0'); ceu.addColorStop(.78, '#FF5CA8'); ceu.addColorStop(1, '#FF9A5C'); g.fillStyle = ceu; g.fillRect(0, y0, w, y1 - y0);
+    /* o sol se pondo, cortado pelas listras */
+    const sx = w * .5, sy = h * .7; g.fillStyle = '#FFD27A'; g.beginPath(); g.arc(sx, sy, h * .2, Math.PI, 0); g.fill();
+    g.fillStyle = '#FF5CA8'; for(let i = 0; i < 5; i++) g.fillRect(sx - h * .22, sy - h * .02 - i * h * .035, h * .44, h * .012);
+    /* a cidade em silhueta (prédios nossos), o mais alto com a luz vermelha, e as janelas acesas */
+    g.fillStyle = '#14081F'; let x = 0, k = 7; while(x < w){ k = (k * 16807) % 2147483647; const bw = 18 + (k % 40), bh = h * (.08 + (k % 100) / 100 * .3); g.fillRect(x, y1 - bh, bw, bh); x += bw + 2; }
+    g.fillRect(w * .72, y1 - h * .5, w * .04, h * .5); g.fillRect(w * .738, y1 - h * .6, 2, h * .1); g.fillStyle = '#FF2D2D'; g.fillRect(w * .735, y1 - h * .6, 6, 6);
+    g.fillStyle = 'rgba(255,214,140,.8)'; for(let i = 0; i < 80; i++){ k = (k * 16807) % 2147483647; g.fillRect(k % w, y1 - 4 - (k % Math.round(h * .28)), 2, 3); }
+    letreiro(g, 'CORRE', w * .5, h * .3, w * .5, h * .18, '#FFF6D8', 900);
+    letreiro(g, 'o filme', w * .5, h * .43, w * .3, h * .06, '#FFE08A', 600);
+  }
+  function neonGaragem(g, w, h){
+    g.fillStyle = '#120A18'; g.fillRect(0, 0, w, h);
+    g.save(); g.shadowColor = '#FF4F9A'; g.shadowBlur = h * .25; letreiro(g, 'GARAGEM', w * .58, h * .54, w * .7, h * .62, '#FF8CC0', 900); g.restore();
+    letreiro(g, 'GARAGEM', w * .58, h * .54, w * .7, h * .62, '#FFE3F0', 900);
+    /* a coroa de neon, no laranja-ouro (amarelo de neon no escuro puxa pro verde) */
+    const cx = w * .1, cy = h * .56, s = h * .32;
+    g.save(); g.shadowColor = '#FFB23D'; g.shadowBlur = h * .2; g.strokeStyle = '#FFC861'; g.lineWidth = h * .06; g.lineJoin = 'round';
+    g.beginPath(); g.moveTo(cx - s, cy + s * .5); g.lineTo(cx - s, cy - s * .4); g.lineTo(cx - s * .5, cy); g.lineTo(cx, cy - s * .6); g.lineTo(cx + s * .5, cy); g.lineTo(cx + s, cy - s * .4); g.lineTo(cx + s, cy + s * .5); g.closePath(); g.stroke(); g.restore();
+  }
+  /* ---- a planta ---- */
+  const PLANTA_LUXO = {
+    k: 'luxo', W: 36, D: 28, ALT: 7,
+    comodos: [
+      { k: 'hall', nome: 'Hall de entrada', x0: 12, z0: 11, x1: 24, z1: 28, piso: KL.marm, linha: 'rgba(140,120,90,.16)' },
+      { k: 'sala', nome: 'Living', x0: 0, z0: 11, x1: 12, z1: 28, piso: KL.marm, linha: 'rgba(140,120,90,.16)' },
+      { k: 'cozinha', nome: 'Cozinha e jantar', x0: 24, z0: 11, x1: 36, z1: 28, piso: '#CDA77C', linha: 'rgba(80,50,20,.16)' },
+      { k: 'piscina', nome: 'Piscina e spa', x0: 0, z0: 0, x1: 13, z1: 11, piso: KL.trav, linha: 'rgba(120,100,70,.18)' },
+      { k: 'cinema', nome: 'Cinema', x0: 13, z0: 0, x1: 21, z1: 11, piso: '#2C1238', linha: 'rgba(255,255,255,.03)' },
+      { k: 'adega', nome: 'Adega', x0: 21, z0: 0, x1: 25, z1: 11, piso: '#3A2418', linha: 'rgba(0,0,0,.2)' },
+      { k: 'garagem', nome: 'Garagem dos esportivos', x0: 25, z0: 0, x1: 36, z1: 11, piso: '#2A2C33', piso2: '#1C1D22', xadrez: true, linha: 'rgba(255,255,255,.05)' },
+      { k: 'suite', nome: 'Suíte master (mezanino)', x0: 0, z0: 0, x1: 13, z1: 11, n: 1, piso: '#E6DED1', linha: 'rgba(120,100,70,.14)' },
+      { k: 'escritorio', nome: 'Gabinete (mezanino)', x0: 13, z0: 0, x1: 25, z1: 11, n: 1, piso: '#E6DED1', linha: 'rgba(120,100,70,.14)' },
+      { k: 'closet', nome: 'Closet (mezanino)', x0: 25, z0: 0, x1: 36, z1: 11, n: 1, piso: '#E6DED1', linha: 'rgba(120,100,70,.14)' }
+    ],
+    paredes: [
+      { a: [0, 28], b: [36, 28], ext: [0, 1], portas: [[17.2, 18.8]], altas: [[1, 10.5], [13, 16.6], [19.4, 23], [25, 35]], entrada: true, cor: KL.parede },
+      { a: [36, 0], b: [36, 28], ext: [1, 0], altas: [[19.5, 27]], cor: KL.parede },
+      { a: [0, 0], b: [0, 28], ext: [-1, 0], altas: [[1, 10], [12, 17.5], [21.5, 27]], cor: KL.parede },
+      { a: [0, 0], b: [36, 0], ext: [0, -1], janelas: [[2, 5], [7, 10]], cor: KL.paredeI },
+      /* embaixo do mezanino: a parede do fundo da frente, com a adega de vidro pro hall, e as divisões */
+      { a: [0, 11], b: [36, 11], portas: [[8.5, 10], [14, 15.4], [22.3, 23.7], [30, 31.6]], altas: [[21.2, 22.3], [23.7, 24.8]], alt: 3.6, cor: KL.paredeI },
+      { a: [13, 0], b: [13, 11], alt: 3.6, cor: KL.paredeI }, { a: [21, 0], b: [21, 11], alt: 3.6, cor: KL.paredeI },
+      { a: [25, 0], b: [25, 11], altas: [[3, 8]], alt: 3.6, cor: KL.paredeI }
+    ],
+    entrada: { x: 18, z: 28 }, tapete: { x: 17.3, z: 26.8, w: 1.4, d: 1 },
+    mezanino: { x0: 0, z0: 0, x1: 36, z1: 11, y: 3.6, grade: [[0, 11, 16.5, 11], [19.5, 11, 36, 11]], corrimao: KL.ouro, pilar: KL.ouroE },
+    escada: ESCADA_L,
+    estacoes: { studio: { x: 17.3, z: .4, y: 3.6 }, feed: { x: 15, z: .15, y: 3.6 }, ia: { x: 20.2, z: .5, y: 3.6 }, horus: { x: 13.2, z: 1, y: 3.6 }, mural: { x: 13.2, z: 4.2, y: 3.6 }, marcas: { x: 24.35, z: .6, y: 3.6 }, grana: { x: 24.15, z: 3.9, y: 3.6 }, vendas: { x: 21.2, z: 5.6, y: 3.6 }, nicho: { x: 14.2, z: 6.9, y: 3.6 }, estilo: { x: 15.5, z: 3.7, y: 3.6 }, manual: { x: 22.3, z: 2.5, y: 3.6 }, banca: { x: 22.7, z: .4, y: 3.6 }, agente: { x: 17.6, z: 3.5, y: 3.6 } },
+    padrao: [],
+    chao: [...veios(0, 11, 24, 28, 46, 1986), ...medalhao(18, 24.6, 2.3), ...CHAO_PISCINA, rodaL(31, 5.6, 2.7, KL.ouro), rodaL(31, 5.6, 2.58, '#3A3D44'), rodaL(31, 5.6, 2.2, '#33363D')],
+    /* ninguém anda dentro d'água */
+    bloqueio: [[1.4, 1.4, 9.6, 8.2]],
+    luzes: [{ mancha: [18, .004, 24.6, 3.4, 3.4, .14, 0, '255,236,190'] }, { mancha: [5.5, .004, 4.8, 4.6, 3.6, .14, 0, '120,190,255'] }, { mancha: [1.4, .004, 19.5, 1.7, 2.3, .2, 0, '255,170,90'] },
+      { mancha: [31, .004, 15.9, 3, 1.5, .1, 0, '255,230,180'] }, { mancha: [31, .004, 5.6, 2.8, 2.8, .14, 0, '255,220,240'] }, { mancha: [17, .004, 1.6, 3.2, 1.3, .16, 0, '170,140,255'] }, { mancha: [23, .004, 1.2, 1.8, .8, .16, 0, '255,200,140'] }],
+    imgs: [
+      { P4: faceP4('x', .67, 18.1, 20.9, 2.4, 5.9, 1), n: [1, 0, 0], img: () => calcImg('luxoQuadro', 340, 420, quadroCoroa), cor: KL.roxoE },
+      { P4: faceP4('z', .2, 14, 20, .6, 3.2, 1), n: [0, 0, 1], img: () => calcImg('luxoTela', 600, 260, telaCinema), cor: '#05060A' },
+      { P4: faceP4('z', .17, 27.4, 34.6, 2.05, 3.25, 1), n: [0, 0, 1], img: () => calcImg('luxoNeon', 600, 100, neonGaragem), cor: '#120A18' }
+    ],
+    decor: [
+      /* ---- o hall ---- */
+      { x: 0, z: 0, piso: true, bl: passadeira(ESCADA_L) },
+      { x: 18, z: 24.6, bl: [B(-.2, 0, -.2, .4, .75, .4, KL.ouro), Object.assign(B(-.2, 0, -.2, .4, .75, .4, KL.ouro), { yaw: Math.PI / 4 }), B(-.75, .75, -.75, 1.5, .06, 1.5, KL.negro), Object.assign(B(-.75, .75, -.75, 1.5, .06, 1.5, KL.negro), { yaw: Math.PI / 4 }),
+        B(-.77, .81, -.77, 1.54, .015, 1.54, KL.ouro), B(-.18, .81, -.18, .36, .45, .36, KL.ouro), esferaB(-.5, 1.2, -.32, .42, KL.branco), esferaB(-.02, 1.34, -.12, .46, '#FFD6E7'), esferaB(-.24, 1.3, .14, .38, KL.branco), esferaB(.14, 1.14, .2, .34, '#F7C6DA'), esferaB(-.38, 1.06, .14, .3, KL.branco), esferaB(.2, 1.1, -.42, .32, KL.branco)] },
+      { x: 0, z: 0, bl: lustre(18, 7, 24.6, 1.35, 3) },
+      /* as panteras do lado do primeiro degrau (na frente dele, elas trancavam quem desce e vira pro living) */
+      { x: 15.4, z: 19.2, bl: pantera() }, { x: 19.8, z: 19.2, bl: pantera() },
+      { x: 11.7, z: 12.6, bl: colunaL() }, { x: 11.7, z: 25.8, bl: colunaL() }, { x: 23.7, z: 12.6, bl: colunaL() }, { x: 23.7, z: 25.8, bl: colunaL() },
+      /* a moldura de ouro da porta e os capins dourados dos lados */
+      { x: 16.95, z: 27.7, parede: true, bl: [B(0, 0, 0, .22, 2.4, .15, KL.ouro), B(1.83, 0, 0, .22, 2.4, .15, KL.ouro), B(0, 2.25, 0, 2.05, .25, .15, KL.ouro), B(.6, 2.5, 0, .85, .3, .15, KL.ouroE)] },
+      { x: 15.6, z: 26.9, bl: [B(0, 0, 0, .6, .8, .6, KL.ouro), B(.22, .8, .22, .16, 1.3, .16, '#D9C27F'), B(.06, 1.4, .25, .16, .8, .16, '#E3D1A0'), B(.4, 1.3, .1, .16, .7, .16, '#E3D1A0')] },
+      { x: 19.8, z: 26.9, bl: [B(0, 0, 0, .6, .8, .6, KL.ouro), B(.22, .8, .22, .16, 1.3, .16, '#D9C27F'), B(.06, 1.4, .25, .16, .8, .16, '#E3D1A0'), B(.4, 1.3, .1, .16, .7, .16, '#E3D1A0')] },
+      /* ---- o living ---- */
+      { x: .15, z: 17.9, bl: [B(0, 0, 0, .5, 6.6, 3.2, KL.marm), B(.5, 0, -.3, .25, 1.45, 3.8, KL.marmE), B(.5, 1.45, -.4, .4, .12, 4, KL.marm), B(.88, 1.45, -.4, .02, .12, 4, KL.ouro), B(.74, .2, .6, .02, .95, 2, '#141519'),
+        B(.5, 0, -.4, 1, .05, 4, KL.negro), B(.78, .25, .9, .1, .1, 1.4, '#5A3A22'), B(.8, .33, 1.05, .1, .08, 1.1, '#3E2616'), ...chamas(.77, .35, 1.02), B(.5, 5.95, -.1, .2, .1, 3.4, KL.ouro)] },
+      { x: 1.6, z: 15.7, piso: true, bl: [B(0, 0, 0, 5.4, .02, 7.6, KL.ouro), B(.12, .02, .12, 5.16, .004, 7.36, KL.creme), B(.5, .025, .5, 4.4, .003, 6.6, '#E9DFF0')] },
+      { x: 5.6, z: 16.6, bl: [B(0, 0, 0, .9, .42, 5.8, KL.creme), B(.62, .42, 0, .28, .58, 5.8, KL.creme), B(0, .42, 0, .62, .12, 5.8, KL.branco), B(.45, .54, .4, .18, .42, .55, KL.roxo), B(.45, .54, 2.6, .18, .42, .55, KL.roxoC), B(.45, .54, 4.8, .18, .42, .55, KL.roxo), B(0, .4, 0, .02, .02, 5.8, KL.ouro)] },
+      { x: 2.6, z: 16.1, bl: [B(0, 0, 0, 3.9, .42, .9, KL.creme), B(0, .42, 0, 3.9, .58, .28, KL.creme), B(0, .42, .28, 3.9, .12, .62, KL.branco), B(.5, .54, .3, .55, .42, .18, KL.roxoC), B(2.2, .54, .3, .55, .42, .18, KL.roxo)] },
+      { x: 2.6, z: 21.9, bl: [B(0, 0, 0, 3.9, .42, .9, KL.creme), B(0, .42, .62, 3.9, .58, .28, KL.creme), B(0, .42, 0, 3.9, .12, .62, KL.branco), B(.5, .54, .44, .55, .42, .18, KL.roxo), B(2.2, .54, .44, .55, .42, .18, KL.roxoC)] },
+      { x: 3.1, z: 18.5, bl: [B(0, .36, 0, 1.8, .06, 1.9, KL.marm), B(.08, 0, .08, .06, .36, .06, KL.ouro), B(1.66, 0, .08, .06, .36, .06, KL.ouro), B(.08, 0, 1.76, .06, .36, .06, KL.ouro), B(1.66, 0, 1.76, .06, .36, .06, KL.ouro), B(.6, .42, .7, .5, .12, .4, KL.ouro), B(.2, .42, .3, .35, .06, .5, KL.roxo)] },
+      /* o piano de cauda branco, a banqueta e a partitura */
+      { x: 7.6, z: 24, bl: [B(0, .7, 0, 2.4, .32, 1.5, KL.branco), B(0, 1.02, 0, 2.4, .04, 1.5, '#EDE8E0'), B(.1, 0, .1, .14, .7, .14, KL.branco), B(2.16, 0, .1, .14, .7, .14, KL.branco), B(1.1, 0, 1.25, .14, .7, .14, KL.branco), B(.1, .9, 1.5, 2.2, .06, .3, PAPEL),
+        ...Array.from({ length: 11 }, (_, i) => B(.2 + i * .19, .96, 1.5, .08, .03, .17, INK)), B(.7, 1.06, 1.35, 1, .4, .04, KL.branco), B(.8, 1.12, 1.33, .8, .3, .01, PAPEL), B(.7, 0, 2.05, 1, .5, .4, KL.branco), B(.7, .5, 2.05, 1, .06, .4, KL.roxo)] },
+      /* o toca-discos no móvel de nogueira, entre as duas caixas de som (toca os discos da casa) */
+      { x: 1.3, z: 11.2, acao: 'discos', topo: .9, bl: [B(0, 0, 0, 2.6, .62, .5, KL.noz), B(.04, .1, .48, 2.52, .42, .02, KL.nozC), B(.3, .62, .05, .55, .05, .42, '#16171B'), B(.35, .67, .1, .45, .01, .32, '#0E0F12'), B(.52, .675, .21, .1, .005, .1, ROSA),
+        B(.92, .67, .32, .3, .03, .04, KL.ouro), B(1.4, .62, .05, .8, .16, .4, KL.inox), B(1.5, .7, .45, .1, .05, .01, KL.ouro), B(1.75, .7, .45, .1, .05, .01, KL.ouro), B(-.6, 0, .05, .45, 1.3, .4, '#1A1B20'), B(-.55, .4, .45, .35, .6, .01, KL.ouroE), B(2.75, 0, .05, .45, 1.3, .4, '#1A1B20'), B(2.8, .4, .45, .35, .6, .01, KL.ouroE)] },
+      { x: 6.7, z: 15.9, bl: [B(0, 0, 0, .5, .05, .5, KL.negro), B(.22, .05, .22, .06, 2.2, .06, KL.ouro), B(.22, 2.2, .22, 1.4, .06, .06, KL.ouro), luzB(B(1.4, 1.95, .08, .4, .3, .35, '#FFE9B0'))] },
+      { x: .5, z: 12, bl: orquidea() }, { x: .5, z: 26.9, bl: orquidea() }, { x: 10.8, z: 26.9, bl: orquidea() },
+      /* ---- a cozinha e o jantar ---- */
+      { x: 24.15, z: 11.15, bl: [B(0, 0, 0, 5.7, .88, .65, KL.branco), B(-.02, .88, -.02, 5.74, .05, .69, KL.marm), B(0, .93, 0, 5.7, .72, .03, KL.marm), B(0, 1.65, 0, 5.7, .9, .38, KL.branco),
+        ...Array.from({ length: 9 }, (_, i) => B(.25 + i * .62, .7, .64, .3, .03, .02, KL.ouro)), ...Array.from({ length: 9 }, (_, i) => B(.25 + i * .62, 1.7, .37, .3, .03, .02, KL.ouro)), B(.6, .93, .1, .45, .42, .38, KL.inox), B(.7, 1.12, .48, .12, .1, .01, INK)] },
+      { x: 31.7, z: 11.15, bl: [B(0, 0, 0, 3.3, .88, .65, KL.branco), B(-.02, .88, -.02, 3.34, .05, .69, KL.marm), B(0, .93, 0, 3.3, .72, .03, KL.marm), B(0, 1.65, 0, 3.3, .9, .38, KL.branco),
+        ...Array.from({ length: 5 }, (_, i) => B(.25 + i * .62, .7, .64, .3, .03, .02, KL.ouro)), ...Array.from({ length: 5 }, (_, i) => B(.25 + i * .62, 1.7, .37, .3, .03, .02, KL.ouro))] },
+      /* na parede da direita: a geladeira dupla de inox, a torre do forno duplo, o fogão e a coifa de ouro */
+      { x: 35.2, z: 11.2, bl: [B(0, 0, 0, .65, 2.5, 1.9, KL.inox), B(-.01, .05, .94, .01, 2.4, .02, '#7F868F'), B(-.05, .9, .7, .04, .9, .05, KL.ouro), B(-.05, .9, 1.15, .04, .9, .05, KL.ouro), B(0, 2.5, 0, .65, .4, 1.9, KL.branco),
+        B(0, 0, 1.95, .65, 2.9, .9, KL.branco), B(-.01, .55, 2.05, .01, .6, .7, '#141519'), B(-.01, 1.25, 2.05, .01, .6, .7, '#141519'), B(-.03, 1.1, 2.15, .03, .03, .5, KL.ouro), B(-.03, 1.8, 2.15, .03, .03, .5, KL.ouro),
+        B(0, 0, 2.9, .65, .88, 4.7, KL.branco), B(-.02, .88, 2.88, .69, .05, 4.74, KL.marm), B(.05, .93, 4, .55, .01, 1.5, '#141519'), ...[[.15, 4.15], [.15, 4.95], [.4, 4.15], [.4, 4.95]].map(([x, z]) => B(x, .94, z, .18, .005, .18, '#3A3D44')),
+        B(-.1, 1.85, 3.9, .75, .45, 1.7, KL.ouro), B(.05, 2.3, 4.3, .5, 2, .9, KL.ouro), B(-.11, 1.85, 3.9, .02, .06, 1.7, KL.ouroE), B(0, 1.65, 5.95, .38, .9, 1.6, KL.branco), B(-.02, 1.7, 6.3, .02, .03, .3, KL.ouro), B(-.02, 1.7, 7, .02, .03, .3, KL.ouro)] },
+      /* a ilha de mármore em cascata: a pia, a torneira de ouro, a fruteira; as banquetas e os três pendentes */
+      { x: 28.6, z: 15.2, bl: [B(0, 0, 0, 4.8, .92, 1.4, KL.marm), B(-.04, .92, -.04, 4.88, .06, 1.48, '#F7F3EE'), B(.5, .06, 1.4, .02, .8, .005, 'rgba(150,138,120,.5)'), B(2.6, .2, 1.4, .02, .6, .005, 'rgba(150,138,120,.5)'),
+        B(1.1, .98, .3, .8, .015, .5, KL.inox), B(1.45, .98, .14, .06, .42, .06, KL.ouro), B(1.45, 1.36, .14, .06, .04, .32, KL.ouro), B(3.3, .98, .45, .6, .1, .5, KL.ouro), esferaB(3.38, 1.06, .52, .18, LARANJA), esferaB(3.62, 1.06, .62, .18, '#B4152E'), esferaB(3.5, 1.1, .76, .17, LARANJA)] },
+      ...[29, 30.2, 31.4, 32.6].map(x => ({ x, z: 16.75, bl: banqueta('z-') })),
+      { x: 0, z: 0, bl: [29.6, 31, 32.4].flatMap(x => [B(x - .015, 3.2, 15.88, .03, 3.8, .03, INK), esferaB(x - .2, 2.85, 15.7, .4, KL.ouro), luzB(B(x - .1, 2.78, 15.8, .2, .08, .2, '#FFE9B0'))]) },
+      { x: 27.4, z: 21.6, bl: [B(0, .72, 0, 5.2, .06, 1.4, KL.negro), B(-.02, .7, -.02, 5.24, .02, 1.44, KL.ouro), B(.8, 0, .45, .5, .72, .5, KL.ouro), B(3.9, 0, .45, .5, .72, .5, KL.ouro),
+        B(2.3, .78, .5, .6, .3, .4, KL.ouro), ...[[2.36, .5], [2.6, .58], [2.78, .52], [2.48, .74]].map(([x, z], i) => B(x, 1.08, z, .09, .09 + (i % 2) * .05, .07, i % 2 ? '#FFD6E7' : KL.branco)), luzB(B(1.3, .78, .65, .06, .3, .06, '#FFF1C8')), luzB(B(3.8, .78, .65, .06, .3, .06, '#FFF1C8'))] },
+      ...[27.6, 28.6, 29.6, 30.6, 31.6].flatMap(x => [{ x, z: 20.75, bl: cadeiraP(KL.roxo, 'z+') }, { x, z: 22.85, bl: cadeiraP(KL.roxo, 'z-') }]),
+      { x: 26.45, z: 21.85, bl: cadeiraP(KL.roxo, 'x+') }, { x: 32.65, z: 21.85, bl: cadeiraP(KL.roxo, 'x-') },
+      { x: 0, z: 0, bl: lustre(30, 7, 22.3, .95, 2) },
+      { x: 35.3, z: 27.1, bl: orquidea() },
+      /* ---- a piscina e o spa ---- */
+      { x: 11.2, z: 2.4, bl: [B(-.9, 0, -.9, 1.8, .55, 1.8, '#CDBFA6'), Object.assign(B(-.9, 0, -.9, 1.8, .55, 1.8, '#CDBFA6'), { yaw: Math.PI / 4 }), Object.assign(B(-.75, .5, -.75, 1.5, .07, 1.5, KL.aguaC), { yaw: Math.PI / 4 }), B(-.75, .5, -.75, 1.5, .07, 1.5, KL.aguaC),
+        B(-.92, .55, -.92, 1.84, .03, .06, KL.ouro), ...[[-.3, .2], [.25, -.3], [.1, .35], [-.4, -.25]].map(([x, z]) => luzB(B(x, .575, z, .08, .01, .08, PAPEL)))] },
+      { x: 2.4, z: 8.9, bl: espreguicadeira() }, { x: 4, z: 8.9, bl: espreguicadeira() }, { x: 5.6, z: 8.9, bl: espreguicadeira() },
+      { x: 6.7, z: 9.6, bl: [B(0, 0, 0, .5, .5, .5, KL.ouro), B(.1, .5, .1, .3, .32, .3, KL.inox), B(.2, .62, .2, .08, .45, .08, '#1C1C20'), B(.21, 1.05, .21, .06, .1, .06, KL.ouro), B(.05, .5, .3, .06, .2, .06, '#F4F8FF')] },
+      { x: .4, z: .5, bl: orquidea() }, { x: 12.1, z: 9.9, bl: orquidea() },
+      /* ---- o cinema ---- */
+      { x: 13.8, z: .1, parede: true, bl: [B(0, .45, 0, 6.4, 2.85, .08, INK)] },
+      { x: 13.2, z: .15, bl: [...Array.from({ length: 5 }, (_, i) => B(i * .14, 0, 0, .14, 3.45, .4 + (i % 2) * .08, i % 2 ? KL.roxoE : KL.roxo)), ...Array.from({ length: 5 }, (_, i) => B(6.9 + i * .14, 0, 0, .14, 3.45, .4 + (i % 2) * .08, i % 2 ? KL.roxoE : KL.roxo)), B(0, 3.3, 0, 7.6, .15, .5, KL.ouro)] },
+      { x: 13.3, z: .9, bl: [B(0, 0, 0, .45, 1.5, .45, '#1A1B20'), B(.44, .3, .1, .01, .9, .25, KL.ouroE)] }, { x: 20.25, z: .9, bl: [B(0, 0, 0, .45, 1.5, .45, '#1A1B20'), B(-.01, .3, .1, .01, .9, .25, KL.ouroE)] },
+      { x: 15.1, z: 5.3, bl: [B(0, 0, 0, 5.4, .3, 2.1, '#3A1748'), luzB(B(0, .26, 0, 5.4, .02, .03, '#FFD9A0'))] }, { x: 15.1, z: 7.4, bl: [B(0, 0, 0, 5.4, .6, 2.2, '#3A1748'), luzB(B(0, .56, 0, 5.4, .02, .03, '#FFD9A0'))] },
+      ...[0, 1, 2].flatMap(r => [0, 1, 2, 3, 4].map(i => ({ x: 15.3 + i * .97, z: 3.3 + r * 2.12, bl: poltronaL(r * .3) }))),
+      { x: 13.17, z: 1.2, parede: true, bl: [B(0, .3, 0, .06, 3, 8.6, '#3A1748'), ...[0, 2.15, 4.3, 6.45, 8.55].map(z => B(.06, .3, z, .02, 3, .05, KL.ouro))] },
+      { x: 20.77, z: 1.2, parede: true, bl: [B(0, .3, 0, .06, 3, 8.6, '#3A1748'), ...[0, 2.15, 4.3, 6.45, 8.55].map(z => B(-.02, .3, z, .02, 3, .05, KL.ouro))] },
+      { x: 20, z: 9.7, bl: [B(0, 0, 0, .7, .8, .5, '#B4152E'), B(.05, .8, .05, .6, .55, .4, '#FFF6D8'), B(.1, .82, .1, .5, .3, .3, '#F6E7B0'), B(0, 1.35, 0, .7, .1, .5, '#B4152E'), B(.3, 1.45, .2, .1, .15, .1, KL.ouro), B(.03, .8, .03, .04, .55, .04, KL.ouro), B(.63, .8, .03, .04, .55, .04, KL.ouro)] },
+      /* ---- a adega ---- */
+      { x: 21.2, z: .15, bl: [B(0, 0, 0, 3.6, 3.3, .45, KL.noz), ...Array.from({ length: 7 }, (_, r) => luzB(B(0, .25 + r * .44, .45, 3.6, .015, .01, '#FFE2A8'))),
+        ...Array.from({ length: 56 }, (_, n) => { const r = Math.floor(n / 8), c = n % 8; return B(.14 + c * .43, .3 + r * .44, .45, .26, .2, .03, [KL.vinho, '#3A0F14', '#1C1C20', '#7A2A1E', KL.vinho, '#2A0A10'][(c + r * 2) % 6]); })] },
+      { x: 21.15, z: 1.3, bl: [B(0, 0, 0, .45, 3.3, 8.4, KL.noz), ...Array.from({ length: 48 }, (_, n) => { const r = Math.floor(n / 8), c = n % 8; return B(.45, .35 + r * .5, .25 + c * 1.02, .03, .22, .5, [KL.vinho, '#1C1C20', '#7A2A1E', '#3A0F14'][(c + r) % 4]); }), ...Array.from({ length: 6 }, (_, r) => luzB(B(.45, .3 + r * .5, 0, .01, .015, 8.4, '#FFE2A8')))] },
+      ...[[24, 1], [24, 8.8]].map(([x, z]) => ({ x, z, bl: [B(0, 0, 0, .8, .95, .8, '#7A4A2A'), Object.assign(B(0, 0, 0, .8, .95, .8, '#7A4A2A'), { yaw: Math.PI / 4 }), B(-.02, .2, -.02, .84, .05, .84, INK), B(-.02, .7, -.02, .84, .05, .84, INK), B(.3, .95, .3, .2, .01, .2, '#5A3A22')] })),
+      { x: 23, z: 5.5, bl: [B(-.35, 0, -.25, .7, .04, .5, KL.ouro), B(-.1, 0, -.1, .2, 1.05, .2, KL.ouro), B(-.6, 1.05, -.4, 1.2, .06, .8, KL.marm), B(-.1, 1.11, -.1, .2, .2, .2, '#7A1C2A'), B(-.04, 1.31, -.04, .08, .14, .08, '#7A1C2A'),
+        luzB(B(.3, 1.11, .1, .06, .16, .06, '#E8F2FF')), B(.3, 1.13, .1, .06, .05, .06, '#7A1C2A'), luzB(B(-.4, 1.11, .15, .06, .16, .06, '#E8F2FF'))] },
+      { x: 22.2, z: 6.3, bl: banqueta('z-') }, { x: 23.1, z: 6.3, bl: banqueta('z-') },
+      /* ---- a garagem dos esportivos ---- */
+      { x: 31, z: 5.6, bl: gira(esportivo(KL.roxoC, KL.ouro), .6, 0, 0) },
+      { x: 27.2, z: 3.4, bl: esportivo(KL.branco, KL.ouro) }, { x: 34.6, z: 3.4, bl: esportivo('#1A1B20', KL.ouro) },
+      { x: 26.8, z: 8.2, bl: motoG(KL.roxo) },
+      { x: 35.75, z: 2, parede: true, bl: [B(0, 0, 0, .08, 3.1, 7, '#2A2C33'), ...Array.from({ length: 8 }, (_, i) => B(-.02, .2 + i * .37, 0, .02, .04, 7, KL.ouroE)), B(-.03, 1.2, 3.3, .02, .1, .4, KL.ouro)] },
+      { x: 34.7, z: 9.7, bl: [0, .28, .56].flatMap(y => [B(0, y, 0, .8, .26, .8, '#141519'), B(.25, y + .02, .25, .3, .24, .3, KL.ouro)]) },
+      /* ---- no mezanino: as divisórias de nogueira (com o friso de ouro) entre a suíte, o gabinete e o closet ---- */
+      { x: 12.9, z: 0, y: 3.6, bl: [B(0, 0, 0, .22, 3.3, 8, KL.noz), B(-.01, 3.2, 0, .24, .1, 8, KL.ouro), B(-.01, 0, 7.95, .24, 3.3, .05, KL.ouro)] },
+      { x: 24.95, z: 0, y: 3.6, bl: [B(0, 0, 0, .22, 3.3, 8, KL.noz), B(-.01, 3.2, 0, .24, .1, 8, KL.ouro), B(-.01, 0, 7.95, .24, 3.3, .05, KL.ouro)] },
+      /* ---- a suíte master ---- */
+      { x: 4.4, z: .15, y: 3.6, bl: [B(0, 0, 0, 4.6, 3.25, .22, KL.roxo), B(-.08, 0, 0, .08, 3.3, .26, KL.ouro), B(4.6, 0, 0, .08, 3.3, .26, KL.ouro), B(-.08, 3.25, 0, 4.76, .08, .26, KL.ouro),
+        ...Array.from({ length: 28 }, (_, n) => { const r = Math.floor(n / 4), c = n % 4; return B(.5 + c * 1.1 + (r % 2) * .55, .35 + r * .42, .22, .06, .06, .02, KL.ouro); })] },
+      { x: 4.9, z: .37, y: 3.6, bl: [B(0, 0, 0, 3.6, .42, 2.6, KL.roxo), B(.05, .42, .05, 3.5, .22, 2.5, KL.branco), B(.05, .64, 1.55, 3.5, .05, .98, KL.roxoC), B(.05, .69, 1.55, 3.5, .01, .05, KL.ouro),
+        B(.25, .64, .12, 1.4, .22, .45, KL.branco), B(1.95, .64, .12, 1.4, .22, .45, KL.branco), B(.5, .64, .58, .9, .2, .28, KL.roxo), B(2.2, .64, .58, .9, .2, .28, KL.roxo), B(1.5, .64, .64, .6, .18, .24, KL.ouro), B(0, .4, 2.6, 3.6, .03, .01, KL.ouro)] },
+      { x: 5.4, z: 3.25, y: 3.6, bl: [B(0, .1, 0, 2.6, .35, .5, KL.roxoC), B(.05, 0, .05, .06, .1, .06, KL.ouro), B(2.49, 0, .05, .06, .1, .06, KL.ouro), B(.05, 0, .39, .06, .1, .06, KL.ouro), B(2.49, 0, .39, .06, .1, .06, KL.ouro)] },
+      ...[3.85, 8.75].map(x => ({ x, z: .37, y: 3.6, bl: [B(0, 0, 0, .5, .55, .45, KL.espelho), B(-.01, .55, -.01, .52, .03, .47, KL.ouro), B(.2, .58, .15, .1, .4, .1, KL.ouro), luzB(B(.1, .98, .07, .3, .26, .3, '#FFE9B0'))] })),
+      { x: 3.2, z: 2.2, y: 3.6, piso: true, bl: [B(0, 0, 0, 7.2, .02, 4.4, KL.creme), B(.2, .02, .2, 6.8, .004, 4, '#E9DFF0'), B(.35, .025, .35, 6.5, .003, 3.7, KL.creme)] },
+      { x: .3, z: .2, y: 3.6, bl: [B(0, 0, 0, 2.6, .85, .6, KL.branco), B(-.02, .85, -.02, 2.64, .06, .64, KL.marm), B(.4, .91, .15, .5, .02, .3, KL.inox), B(1.7, .91, .15, .5, .02, .3, KL.inox), B(.62, .91, .05, .05, .3, .05, KL.ouro), B(1.92, .91, .05, .05, .3, .05, KL.ouro), B(.2, 1.2, -.02, 2.2, 1.4, .03, KL.ouro), B(.28, 1.28, .01, 2.04, 1.24, .01, KL.espelho)] },
+      { x: .6, z: 6.4, y: 3.6, bl: [B(0, .1, 0, 1.9, .55, .95, KL.branco), B(.08, .6, .08, 1.74, .06, .79, KL.aguaC), ...[[.1, .1], [1.72, .1], [.1, .77], [1.72, .77]].map(([x, z]) => B(x, 0, z, .08, .12, .08, KL.ouro)), B(1.88, .65, .4, .06, .4, .06, KL.ouro), B(1.7, 1.02, .4, .24, .04, .06, KL.ouro)] },
+      { x: 12.55, z: 2.6, y: 3.6, parede: true, bl: [B(0, .4, 0, .3, 1, 3, KL.negro), B(-.02, .58, .32, .04, .04, 2.36, '#2A2C33'), ...chamas(-.03, .62, .36, [.16, .24, .2, .3, .22, .27, .18, .25, .21, .29, .19, .23, .17, .26], .165, -1), B(.15, 1.75, .4, .1, 1.1, 2.2, '#101318'), B(.13, 1.72, .38, .02, 1.16, 2.24, KL.ouro)] },
+      { x: 1.6, z: 9.1, y: 3.6, bl: [B(0, 0, 0, 1.8, .4, .7, KL.roxo), B(0, .4, 0, .4, .45, .7, KL.roxo), B(.05, 0, .05, .06, .1, .06, KL.ouro), B(1.7, 0, .05, .06, .1, .06, KL.ouro)] },
+      { x: 0, z: 0, y: 3.6, bl: lustre(6.6, 3.4, 1.7, .55, 1) },
+      /* ---- o gabinete: os discos de ouro na parede, o tapete e o canto de olhar o hall ---- */
+      { x: 17.4, z: .14, y: 3.6, parede: true, bl: [0, 1, 2, 3].flatMap(i => [B(i * 1.6, 2.45, 0, 1.1, .7, .04, INK), esferaB(i * 1.6 + .3, 2.55, .02, .5, KL.ouro), B(i * 1.6 + .5, 2.75, .05, .1, .1, .01, INK)]) },
+      { x: 14.8, z: 2.8, y: 3.6, piso: true, bl: [B(0, 0, 0, 8.6, .02, 5.2, KL.roxoE), B(.2, .02, .2, 8.2, .004, 4.8, KL.roxo), B(.35, .025, .35, 7.9, .003, 4.5, '#5A2470')] },
+      ...[20.9, 22.7].map(x => ({ x, z: 9, y: 3.6, bl: [B(0, 0, 0, .85, .42, .8, KL.creme), B(0, .42, 0, .85, .55, .2, KL.creme), B(-.06, .2, 0, .1, .45, .8, KL.creme), B(.81, .2, 0, .1, .45, .8, KL.creme)] })),
+      { x: 21.95, z: 9.3, y: 3.6, bl: [B(0, .45, 0, .6, .04, .5, KL.marm), B(.27, 0, .2, .06, .45, .06, KL.ouro), B(.2, .49, .15, .14, .18, .14, KL.ouro)] },
+      /* ---- o closet-boutique ---- */
+      { x: 25.5, z: .15, y: 3.6, bl: [B(0, 0, 0, 3.7, .06, .6, KL.branco), B(0, 0, 0, 3.7, 3.1, .05, KL.branco), B(0, 2.9, 0, 3.7, .2, .6, KL.branco), B(0, 0, 0, .06, 3.1, .6, KL.branco), B(3.64, 0, 0, .06, 3.1, .6, KL.branco), B(.06, 2.4, .3, 3.58, .03, .03, KL.ouro), luzB(B(.06, 2.86, .05, 3.58, .02, .5, '#FFF1C8')),
+        ...[INK, KL.branco, KL.roxo, '#B4152E', KL.ouro, '#1E2A4A', ROSA, KL.negroC, '#E9DFD0'].map((c, i) => B(.16 + i * .38, 1.18, .12, .3, 1.2, .4, c)), ...[KL.branco, INK, ROSA, KL.ouro, AZUL, KL.branco].map((c, i) => B(.2 + i * .56, .08, .2, .4, .14, .3, c))] },
+      { x: 29.4, z: .15, y: 3.6, acao: 'roupa', bl: [B(0, 0, 0, 2.6, 3.1, .6, KL.branco), B(.08, .1, .6, 1.17, 2.9, .02, KL.espelho), B(1.35, .1, .6, 1.17, 2.9, .02, KL.espelho), B(1.24, .1, .6, .12, 2.9, .03, KL.ouro), B(1.1, 1.3, .62, .05, .6, .04, KL.ouro), B(1.45, 1.3, .62, .05, .6, .04, KL.ouro), B(.9, 2.6, .62, .8, .25, .02, KL.ouro)] },
+      { x: 32.2, z: .15, y: 3.6, bl: [B(0, 0, 0, 3.6, 3.1, .05, KL.branco), B(0, 0, 0, .06, 3.1, .55, KL.branco), B(3.54, 0, 0, .06, 3.1, .55, KL.branco), ...[.75, 1.5, 2.25, 2.95].map(y => B(0, y, 0, 3.6, .05, .55, KL.branco)), ...[.7, 1.45, 2.2].map(y => luzB(B(.06, y, .05, 3.48, .02, .45, '#FFF1C8'))),
+        ...Array.from({ length: 15 }, (_, n) => { const r = Math.floor(n / 5), c = n % 5; return B(.2 + c * .68, .8 + r * .75, .12, .42, .32 + (c % 2) * .06, .26, [KL.roxo, ROSA, KL.negro, '#E9DFD0', '#B4152E', KL.ouro, LILAS][(c + r * 2) % 7]); }),
+        ...Array.from({ length: 5 }, (_, c) => B(.24 + c * .68, 1.12 + (c % 2) * .06, .38, .34, .03, .02, KL.ouro)), ...Array.from({ length: 6 }, (_, i) => B(.15 + i * .56, .06, .18, .4, .14, .3, [INK, KL.branco, '#B4152E', KL.ouro, ROSA, AZUL][i]))] },
+      { x: 35.25, z: 1.2, y: 3.6, bl: [B(.55, 0, 0, .05, 3.1, 7.6, KL.branco), ...[0, .5, 1, 1.5, 2, 2.5].map(y => B(0, y + .06, 0, .6, .04, 7.6, KL.branco)), ...[0, .5, 1, 1.5, 2, 2.5].map(y => luzB(B(.05, y + .44, 0, .5, .015, 7.6, '#FFF1C8'))),
+        ...Array.from({ length: 48 }, (_, n) => { const r = Math.floor(n / 8), c = n % 8; return B(.1, .1 + r * .5, .2 + c * .92, .4, .14, .5, [PAPEL, ROSA, AZUL, INK, LARANJA, LILAS, '#B4152E', KL.ouro][(c + r * 3) % 8]); })] },
+      { x: 28.4, z: 4.6, y: 3.6, bl: [B(0, 0, 0, 4.2, .9, 1.6, KL.branco), ...[.45, .9, 1.35, 2.85, 3.3, 3.75].map(x => B(x - .15, .55, 1.6, .3, .03, .02, KL.ouro)), B(-.02, .9, -.02, 4.24, .05, 1.64, KL.marm), B(.2, .95, .2, 3.8, .02, 1.2, KL.roxo),
+        ...[[.5, .5, KL.ouro], [1, .5, KL.inox], [1.5, .5, KL.ouro], [2, .5, KL.ouroC], [2.5, .5, KL.inox], [3, .5, KL.ouro]].map(([x, z, c]) => B(x, .97, z, .22, .04, .22, c)), B(.6, .97, 1, .5, .04, .14, INK), B(1.4, .97, 1, .5, .04, .14, KL.negroC), B(2.4, .97, 1, .12, .04, .12, KL.ouroC), B(2.8, .97, 1, .12, .04, .12, '#FFD6E7')] },
+      { x: 30.5, z: 8.2, y: 3.6, bl: [B(-.45, 0, -.45, .9, .42, .9, KL.roxo), Object.assign(B(-.45, 0, -.45, .9, .42, .9, KL.roxo), { yaw: Math.PI / 4 }), B(-.05, .42, -.05, .1, .02, .1, KL.ouro)] },
+      { x: 25.17, z: 2.8, y: 3.6, parede: true, bl: [B(0, 0, 0, .05, 2.3, 1.3, KL.ouro), B(.05, .08, .08, .02, 2.14, 1.14, KL.espelho)] },
+      { x: 0, z: 0, y: 3.6, bl: lustre(30.5, 3.4, 5.4, .5, 1) }
+    ]
+  };
   const LUGARES = {
     horus: { titulo: 'Casa do Hórus', planta: PLANTA_HORUS, ola: 'Casa do Hórus. O radar é o altar do meio: chega e toca.',
       estacoes: () => [{ id: 'radar', liga: 'horus', titulo: 'Radar do Hórus', rota: '#/horus', cor: INK, x: 5.6, z: 5, w: 2.8, d: 2.8, bl: RADAR, tag: [1.4, 1.75, 1.4], y: 0 }] },
@@ -2913,22 +3237,24 @@
     const out = [], m = PL.mezanino, e = PL.escada; if(!m && !e) return out;
     const fraco = S.eu && nivelDe(S.eu.y) === 0 && m && noMezanino(S.eu.x, S.eu.z) ? { alpha: .16, semTraco: true } : {};
     if(m){
-      const esp = .22, piso = (COMODOS.find(c => c.n === 1) || {}).piso || MAD;
+      /* v3.86: o corrimão e os pilares podem vir na cor da planta (o ouro da mansão do @playboy) */
+      const esp = .22, piso = (COMODOS.find(c => c.n === 1) || {}).piso || MAD, COR = m.corrimao || MAD, PIL = m.pilar || INK;
       for(let x = m.x0; x < m.x1; x += 2) for(let z = m.z0; z < m.z1; z += 2) out.push(solido({ x, y: m.y - esp, z, w: Math.min(2, m.x1 - x), h: esp, d: Math.min(2, m.z1 - z), c: piso }, null, piso, 'piso1', Object.assign({ traco: 'rgba(60,30,10,.25)' }, fraco)));
       (m.grade || []).forEach(([x0, z0, x1, z1]) => {
         const L = Math.hypot(x1 - x0, z1 - z0), dx = (x1 - x0) / L, dz = (z1 - z0) / L;
-        for(let t = 0; t <= L; t += 1.5){ const px = x0 + dx * t, pz = z0 + dz * t; out.push(solido({ x: px - .04, y: m.y, z: pz - .04, w: .08, h: .95, d: .08, c: INK }, null, INK, null, Object.assign({ semTraco: true }, fraco))); }
-        out.push(solido({ x: Math.min(x0, x1) - .05, y: m.y + .9, z: Math.min(z0, z1) - .05, w: Math.abs(x1 - x0) + .1 || .1, h: .07, d: Math.abs(z1 - z0) + .1 || .1, c: MAD }, null, MAD, null, fraco));
-        out.push(solido({ x: Math.min(x0, x1) - .03, y: m.y + .45, z: Math.min(z0, z1) - .03, w: Math.abs(x1 - x0) + .06 || .06, h: .05, d: Math.abs(z1 - z0) + .06 || .06, c: INK }, null, INK, null, Object.assign({ semTraco: true }, fraco)));
+        for(let t = 0; t <= L; t += 1.5){ const px = x0 + dx * t, pz = z0 + dz * t; out.push(solido({ x: px - .04, y: m.y, z: pz - .04, w: .08, h: .95, d: .08, c: PIL }, null, PIL, null, Object.assign({ semTraco: true }, fraco))); }
+        out.push(solido({ x: Math.min(x0, x1) - .05, y: m.y + .9, z: Math.min(z0, z1) - .05, w: Math.abs(x1 - x0) + .1 || .1, h: .07, d: Math.abs(z1 - z0) + .1 || .1, c: COR }, null, COR, null, fraco));
+        out.push(solido({ x: Math.min(x0, x1) - .03, y: m.y + .45, z: Math.min(z0, z1) - .03, w: Math.abs(x1 - x0) + .06 || .06, h: .05, d: Math.abs(z1 - z0) + .06 || .06, c: PIL }, null, PIL, null, Object.assign({ semTraco: true }, fraco)));
       });
     }
     if(e){
-      const n = Math.round(e.z1 - e.z0), passo = (e.z1 - e.z0) / n;
+      /* v3.86: a escada também pode vir na cor da planta (o mármore da mansão do @playboy) */
+      const n = Math.round(e.z1 - e.z0), passo = (e.z1 - e.z0) / n, CE = e.cor || '#4A4E56', CD = e.degrau || MAD, CP = e.pilar || INK;
       for(let i = 0; i < n; i++){
         const h = e.topo * (i + 1) / n, z1 = e.z1 - i * passo, z0 = z1 - passo;
-        out.push(solido({ x: e.x0, y: 0, z: z0, w: e.x1 - e.x0, h: h - .06, d: passo, c: '#4A4E56' }, null, '#4A4E56', 'escada'));
-        out.push(solido({ x: e.x0 - .02, y: h - .06, z: z0 - .03, w: e.x1 - e.x0 + .04, h: .06, d: passo + .03, c: MAD }, null, MAD, 'escada'));
-        out.push(solido({ x: e.x0 - .14, y: h, z: z0 + passo / 2 - .04, w: .08, h: .9, d: .08, c: INK }, null, INK, null, { semTraco: true }));
+        out.push(solido({ x: e.x0, y: 0, z: z0, w: e.x1 - e.x0, h: h - .06, d: passo, c: CE }, null, CE, 'escada'));
+        out.push(solido({ x: e.x0 - .02, y: h - .06, z: z0 - .03, w: e.x1 - e.x0 + .04, h: .06, d: passo + .03, c: CD }, null, CD, 'escada'));
+        out.push(solido({ x: e.x0 - .14, y: h, z: z0 + passo / 2 - .04, w: .08, h: .9, d: .08, c: CP }, null, CP, null, { semTraco: true }));
       }
     }
     return out;
