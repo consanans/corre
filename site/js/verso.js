@@ -916,6 +916,7 @@
       if(topo === 'gorro'){ px(-4, hy - 2, 8, 4, ROSA); px(-4, hy + 1, 8, 1, sombra(ROSA, .78)); px(3, hy - 2, 1, 3, sombra(ROSA, .85)); }
       if(topo === 'fone'){ px(-3, hy - 1, 6, 1, INK); px(-5, hy + 3, 2, 3, AMARELO); px(3, hy + 3, 2, 3, sombra(AMARELO, .85)); }
       if(topo === 'bandana'){ px(-4, hy + 1, 8, 1, ROSA); px(4, hy + 1, 1, 2, sombra(ROSA, .8)); }
+      if(av.lenco && !capacete) lencoDe(px, hy, av.lenco, costas ? 'costas' : 'frente');
       if(!(PO && PO.dentro)) extras();
     }else{
       /* de lado (olhando pra direita; pra esquerda é o espelho) */
@@ -946,6 +947,7 @@
       if(topo === 'gorro') px(-4, hy - 2, 8, 4, ROSA);
       if(topo === 'fone'){ px(-2, hy - 1, 4, 1, INK); px(-2, hy + 3, 2, 3, AMARELO); }
       if(topo === 'bandana'){ px(-4, hy + 1, 8, 1, ROSA); px(-5, hy + 1, 1, 2, ROSA); }
+      if(av.lenco && !capacete) lencoDe(px, hy, av.lenco, 'lado');
       /* o braço balança na frente do tronco (na bike, no patinete e na moto, quem desenha o braço na manopla é o veículo) */
       if(!PO || PO.braco) for(let r = 0; r < 8; r++){ const c = r === 7 ? MAO : roupa === 'regata' ? P : roupa === 'camiseta' && r >= 3 ? P : R; px(-1 + (r > 3 ? fase : 0), -15 + r, 3, 1, c); }
       if(!(PO && PO.dentro)) extras();
@@ -964,6 +966,17 @@
     px(-4, hy + 2, 8, 3, vis); px(-3, hy + 2, 2, 1, 'rgba(255,255,255,.3)'); px(-5, hy + 6, 10, 1, ce);
   }
 
+  /* v4.10 · o lenço amarrado na cabeça (a Dona Maria): cobre o alto do cabelo, deixa o grisalho aparecer embaixo e dos
+     lados, tem bolinhas da segunda cor e o laço (em cima de frente, atrás de lado, caindo na nuca de costas) */
+  function lencoDe(px, hy, cores, vista){
+    const c = cores[0], b = cores[1], cd = sombra(c, .76);
+    px(-5, hy - 4, 10, 5, c); px(-5, hy, 10, 1, cd);
+    px(-3, hy - 3, 1, 1, b); px(1, hy - 3, 1, 1, b); px(-1, hy - 1, 1, 1, b); px(3, hy - 1, 1, 1, b); px(-4, hy - 1, 1, 1, b);
+    if(vista === 'lado'){ px(-7, hy - 3, 2, 3, c); px(-8, hy, 2, 2, cd); return; }
+    px(4, hy - 4, 1, 5, cd);
+    if(vista === 'costas'){ px(-2, hy + 1, 4, 3, c); px(-1, hy + 4, 2, 2, cd); px(0, hy + 2, 1, 1, b); }
+    else { px(-1, hy - 6, 3, 2, c); px(-2, hy - 5, 1, 1, cd); px(2, hy - 5, 1, 1, cd); }
+  }
   function rrect(ctx, x, y, w, h, r){ ctx.beginPath(); if(ctx.roundRect) ctx.roundRect(x, y, w, h, r); else ctx.rect(x, y, w, h); }
   /* contorno de no mínimo 1 pixel de verdade */
   function forma(ctx, cor, lw){ ctx.fillStyle = cor; ctx.fill(); ctx.lineWidth = Math.max(lw || 2, 1.05 / escala(ctx)); ctx.strokeStyle = INK; ctx.stroke(); }
@@ -5489,7 +5502,26 @@
         'São 85 hectares de Mata Atlântica a seis quilômetros do Centro.', 'Não dá comida pros macacos, viu? Eles aprendem a pedir. E depois a pegar.', 'Macaco-prego quebra coquinho com pedra. Pra abrir tua sacola, só a cara de pau.', 'A jaula tá vazia: os macacos daqui são livres. Quem entra nela é gente.',
         'As ilhinhas do lago são assoreamento: terra e lixo que a chuva arrasta pra dentro.', 'Arthur Thomas era escocês, de Edimburgo. Nasceu em 1889.', 'Na Trilha do Tatu tem peroba-rosa centenária. Tatu mesmo eu nunca vi.'] },
     { nome: 'Rafa do Pix', onde: 'Sebo', voz: 230, av: { pele: 3, cabelo: 'curto', corCabelo: 0, skin: 'motoboy' },
-      frases: ['Aceito pix, débito, crédito e elogio. Elogio não volta troco.', 'Tô devendo pra mim mesmo. Já negociei os juros.', 'Entrego em quinze minutos. Ou em quinze minutos e meia hora.'] }
+      frases: ['Aceito pix, débito, crédito e elogio. Elogio não volta troco.', 'Tô devendo pra mim mesmo. Já negociei os juros.', 'Entrego em quinze minutos. Ou em quinze minutos e meia hora.'] },
+    /* v4.10 · a Dona Maria (o Thales: "do lado do Seu Pedro faz a Dona Maria, negra"). Pescadora de quarenta anos de
+       Tibagi, a que pesca de verdade enquanto o Seu Pedro conta história: anda com a piapara na mão e o lenço amarrado
+       na cabeça (laranja com bolinha amarela, desenhado no skin(); o avLimpo não guarda: vai depois dele, como a listra
+       do Marcão). Mora do lado dele (junto: a casa dela é a 42 px da dele) e, quando os dois se cruzam, o papo é quase
+       sempre o deles (PAPOS_PORTO). Fica no fim da lista de propósito: entrar no meio mudava o sorteio do resto */
+    { nome: 'Dona Maria', onde: 'Porto do Tibagi', junto: 'Seu Pedro', voz: 250, item: 'piapara', lenco: [LARANJA, AMARELO],
+      av: { pele: 5, cabelo: 'curto', corCabelo: 4, roupa: 'camiseta', corRoupa: 3, corCalca: 3, tenis: 0 },
+      frases: ['Quarenta anos de Tibagi. O rio me conhece pelo nome.', 'O Pedro diz que viu a de 4,850. Viu nada: tava cochilando no barco.', 'Pescador conta história. Pescadora conta peixe.',
+        'Isca boa é minhoca da terra roxa. O resto é conversa.', 'Piapara frita, farinha de milho e limão. Chegou na hora, sobra pra você.', 'Quando a garça vai embora, é hora de recolher a linha.',
+        'Rio cheio, peixe esperto. Rio baixo, pescador esperto.', 'Corredeira é onde a piapara engorda. E onde o Pedro perde anzol.', 'Fala baixo perto da água. Peixe não gosta de fofoca.'] }
+  ];
+  /* v4.10: os papos do porto (sempre o Seu Pedro abre, a Dona Maria fecha) */
+  const PAPOS_PORTO = [
+    ['Pegou alguma coisa hoje, Maria?', 'Três piaparas. E você, Pedro?', 'Uma bota. Mas era de couro.'],
+    ['A de 4,850 eu vi, viu?', 'Viu dormindo, Pedro. Eu ouvi você roncar.'],
+    ['Joga perto das pedras, Maria.', 'Quem te ensinou isso fui eu, Pedro.'],
+    ['Hoje o rio tá calmo.', 'O rio tá calmo. Os peixes é que tão rindo de você.'],
+    ['Hoje eu pego a maior.', 'Fala isso desde 1987.', 'Um dia eu acerto.', 'Acerta a isca primeiro.'],
+    ['Me empresta tua minhoca?', 'Minhoca minha não tem empréstimo. Tem aluguel.']
   ];
   /* as que qualquer morador pode soltar (entram de vez em quando no meio das dele) */
   const FRASES_TODOS = ['Tô no corre desde as seis. Do sofá pro celular, mas é corre.', 'Cliente pediu pra ontem. Entreguei anteontem que vem.', 'Meu chefe é exigente. Sou eu.', 'Mandei orçamento faz três dias. Visualizou e foi ver o mar.',
@@ -5525,7 +5557,7 @@
   const embaralha = L => { const a = L.slice(); for(let i = a.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
   function criaMoradores(){
     const c = V.cid, L = lugares(), calcadao = L.find(l => l.nome === 'Calçadão') || { x: c.praca.cx, y: c.praca.cy };
-    return MORADORES.map((d, i) => {
+    const L2 = MORADORES.map((d, i) => {
       const o = L.find(l => l.nome === d.onde) || calcadao, p = pertoLivre(o.x + (i % 3 - 1) * 40, o.y + 30) || { x: o.x, y: o.y + 30 };
       const m = { sid: 'mor-' + i, bot: true, npc: true, morador: true, nome: d.nome, d, av: avLimpo(d.av, 'morador' + i), x: p.x, y: p.y, dir: 'baixo', passo: 0, mov: false, sit: false, mic: false,
         casa: { x: p.x, y: p.y }, esp: 1 + Math.random() * 4, alvo: null, papo: null, papoT: 0, falouEu: 0, fila: [], vel: 58 + Math.random() * 18 };
@@ -5533,9 +5565,15 @@
       /* v4.04: o que o morador leva na mão e a cor da listra (o avLimpo não guarda a listra: vai depois dele) */
       if(d.item) m.item = d.item;
       if(d.listra) m.av.listra = d.listra;
+      if(d.lenco) m.av.lenco = d.lenco;
       if(d.grita) m.gritoT = Date.now() + 3000 + Math.random() * 3000;
       return m;
     });
+    /* v4.10: quem mora junto de outro (a Dona Maria do lado do Seu Pedro) fica a 42 px da casa dele */
+    L2.forEach(m => { const par = m.d.junto && L2.find(x => x.nome === m.d.junto); if(!par) return;
+      const p = pertoLivre(par.casa.x + 42, par.casa.y) || { x: par.casa.x + 42, y: par.casa.y };
+      m.x = m.casa.x = m.porta.x = p.x; m.y = m.casa.y = m.porta.y = p.y; m.par = par; par.par = m; });
+    return L2;
   }
   /* a próxima frase do morador: as dele, embaralhadas, com duas das de todo mundo no meio */
   function proximaFrase(m){ if(!m.fila.length) m.fila = embaralha(m.d.frases.concat(embaralha(FRASES_TODOS).slice(0, 2), natal() ? embaralha(FRASES_NATAL).slice(0, 2) : [], noite() ? embaralha(FRASES_NOITE).slice(0, 2) : [], chovendo() ? embaralha(FRASES_CHUVA).slice(0, 2) : [])); return m.fila.pop(); }
@@ -5588,7 +5626,11 @@
       /* cruzou com outro morador: às vezes param e conversam */
       if(agora - m.papoT > 35000){
         const o = L.find(x => x !== m && !x.papo && agora - x.papoT > 35000 && Math.hypot(x.x - m.x, x.y - m.y) < 46);
-        if(o && Math.random() < dt * 1.5){ const d = sorteio(natal() ? PAPOS.concat(PAPOS_NATAL) : PAPOS); comecaPapo([m, o], d.map((t, k) => [k % 2 ? o : m, t])); continue; }
+        if(o && Math.random() < dt * 1.5){
+          /* v4.10: o Seu Pedro e a Dona Maria quase sempre falam do deles (e ele sempre abre) */
+          if(m.par === o && Math.random() < .8){ const a = m.d.junto ? o : m, b = a === m ? o : m; comecaPapo([a, b], sorteio(PAPOS_PORTO).map((t, k) => [k % 2 ? b : a, t])); continue; }
+          const d = sorteio(natal() ? PAPOS.concat(PAPOS_NATAL) : PAPOS); comecaPapo([m, o], d.map((t, k) => [k % 2 ? o : m, t])); continue;
+        }
       }
       /* o passeio: banco, encontrar alguém ou um canto perto de casa */
       m.esp -= dt;
