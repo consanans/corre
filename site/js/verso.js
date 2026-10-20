@@ -8016,8 +8016,18 @@
      As 18 skins da loja (SKINS_LOJA) se compram com correal e são da pessoa pra sempre. Quem diz o que ela tem e quanto
      custa é o banco (corre_skins_minhas e corre_skin_compra, delta-v366.sql); o banco também tira a skin paga de quem
      salvar o avatar sem ter comprado. Sem o delta, a loja mostra tudo e diz que abre em breve. v3.91: mais as 8 de
-     Halloween (delta-v391.sql), que só se compram de 1º/10 até Finados. */
-  const LJ = { uid: '', minhas: new Set(), precos: {}, ok: null, carregando: null };
+     Halloween (delta-v391.sql), que só se compram de 1º/10 até Finados. v4.13: essas 8 saem do correal e passam a ser
+     vendidas em real (delta-v413.sql e a função "pagamento"): pagamento único, no Pix ou no cartão, pelo Asaas. */
+  const LJ = { uid: '', minhas: new Set(), precos: {}, reais: {}, pedidos: [], realOk: false, ok: null, carregando: null };
+  /* v4.13 · o preço em real: o que vale é o do banco (corre_skins_minhas → reais, o mesmo que a função cobra); este é
+     só a reserva pra mostrar antes de ele responder (e os Termos de uso dizem o mesmo) */
+  const SKIN_REAL = { abobora: 14.90, saci: 14.90, bruxa: 9.90, esqueleto: 9.90, lobisomem: 9.90, lencol: 5.90, mortovivo: 5.90, gatopreto: 5.90 };
+  const ehReal = k => !!SKIN_REAL[k] || Number(LJ.reais[k]) > 0;
+  const precoReal = k => Number(LJ.reais[k]) > 0 ? Number(LJ.reais[k]) : SKIN_REAL[k] || 0;
+  /* preço de loja: sempre à vista (o "esconder valores" do Corre é pra grana da pessoa, não pra etiqueta) */
+  const reais = v => 'R$ ' + Number(v).toFixed(2).replace('.', ',');
+  const pedidoAberto = k => LJ.pedidos.find(p => p.skin === k && p.status === 'pendente') || null;
+  const ddmm = d => d ? String(d).slice(8, 10) + '/' + String(d).slice(5, 7) : '';
   const precoSkin = k => { const v = Number(LJ.precos[k]); return v > 0 ? v : (LOJA[k] ? LOJA[k][2] : 0); };
   const tenhoSkin = k => !k || !LOJA[k] || LJ.minhas.has(k);
   /* v3.91: o banco respondeu e não tem o preço dela (a coleção nova chegou no site antes do delta do banco) */
@@ -8028,6 +8038,8 @@
     return LJ.carregando || (LJ.carregando = C.api.rpc('corre_skins_minhas', {}).then(r => {
       if(LJ.uid !== u) return LJ;
       LJ.minhas = new Set(Array.isArray(r && r.minhas) ? r.minhas.map(String) : []); LJ.precos = (r && r.precos && typeof r.precos === 'object') ? r.precos : {}; LJ.ok = true;
+      /* v4.13: sem os preços em real o banco ainda não tem o delta-v413.sql: as 8 ficam "em breve" (não vendem por correal) */
+      LJ.reais = (r && r.reais && typeof r.reais === 'object') ? r.reais : {}; LJ.realOk = !!(r && r.reais); LJ.pedidos = Array.isArray(r && r.pedidos) ? r.pedidos : [];
       if(r && r.saldo != null) C.correalSet(r.saldo);
       return LJ;
     }).catch(() => { LJ.ok = false; return LJ; }).finally(() => { LJ.carregando = null; }));
@@ -8051,6 +8063,8 @@
     /* v3.91: a de Halloween só na época; e a que o banco ainda não tem preço (o delta novo não rodou) espera */
     if(foraDeEpoca(k)){ C.toast(`${x[1]} é da coleção de Halloween: volta pra vitrine em outubro.`, 4200); return false; }
     if(semPreco(k)){ C.toast(`${x[1]} chega no Ateliê já, já.`, 3600); return false; }
+    /* v4.13: a de real abre a folha de pagar (o correal não compra) */
+    if(ehReal(k)){ if(LJ.realOk) skinRealSheet(k); else C.toast(`${x[1]} chega no Ateliê já, já.`, 3600); return false; }
     const preco = precoSkin(k), saldo = Number(C.correal.saldo) || 0;
     if(!C.correalCobre(saldo, preco)){ C.toast(`${x[1]} sai por ${C.correalTxt(preco)} e você tem ${C.correalFmt(saldo)}. Faz uns trampos no Correverso (até ${C.correalFmt(C.correal.teto)} por dia) e volta.`, 5200); return false; }
     const sim = await C.confirma({ ico: 'correal', titulo: 'Comprar ' + x[1], texto: `Sai por <b>${C.correalTxt(preco)}</b>. Você tem <b>${C.correalFmt(saldo)}</b>. Comprou, é tua pra sempre.`, sim: `Comprar por ${C.correalFmt(preco)}`, nao: 'Agora não' });
@@ -8068,8 +8082,15 @@
     if(LJ.ok === false && !tenhoSkin(k)) return `<span class="lj-preco">${ico('correal')} ${C.correalFmt(precoSkin(k))}</span><span class="lj-msg">em breve</span>`;
     if(!tenhoSkin(k) && foraDeEpoca(k)) return '<span class="lj-msg">volta em outubro</span>';
     if(!tenhoSkin(k) && semPreco(k)) return `<span class="lj-preco">${ico('correal')} ${C.correalFmt(precoSkin(k))}</span><span class="lj-msg">em breve</span>`;
-    if(tenhoSkin(k)) return vestindo ? `<span class="lj-tua">${ico('check')} Vestindo</span><button type="button" class="btn sm" data-act="cvr-lj-tira">Tirar</button>`
-      : `<span class="lj-tua">${ico('check')} É tua</span><button type="button" class="btn sm pri" data-act="cvr-lj-veste" data-k="${k}">Vestir</button>`;
+    /* v4.13: a de real: o preço em real, a fatura que espera pagamento, e (comprou há menos de 7 dias) o desistir */
+    if(!tenhoSkin(k) && ehReal(k)){
+      if(!LJ.realOk) return `<span class="lj-preco lj-real">${reais(precoReal(k))}</span><span class="lj-msg">em breve</span>`;
+      if(pedidoAberto(k)) return `<span class="lj-msg">Esperando o pagamento</span><button type="button" class="btn sm pri" data-act="cvr-lj-real" data-k="${k}">Pagar</button>`;
+      return `<button type="button" class="btn sm pri lj-compra lj-real" data-act="cvr-lj-real" data-k="${k}" aria-label="Comprar ${esc(LOJA[k][1])} por ${reais(precoReal(k))}">${reais(precoReal(k))}</button>`;
+    }
+    const pg = LJ.pedidos.find(p => p.skin === k && p.status === 'paga' && p.desiste), desiste = pg ? `<button type="button" class="lnk lj-desiste" data-act="cvr-lj-desiste" data-p="${esc(pg.id)}" data-k="${k}">Desistir até ${ddmm(pg.desiste)}</button>` : '';
+    if(tenhoSkin(k)) return (vestindo ? `<span class="lj-tua">${ico('check')} Vestindo</span><button type="button" class="btn sm" data-act="cvr-lj-tira">Tirar</button>`
+      : `<span class="lj-tua">${ico('check')} É tua</span><button type="button" class="btn sm pri" data-act="cvr-lj-veste" data-k="${k}">Vestir</button>`) + desiste;
     return `<button type="button" class="btn sm pri lj-compra" data-act="cvr-lj-compra" data-k="${k}" aria-label="Comprar ${esc(LOJA[k][1])} por ${C.correalTxt(precoSkin(k))}">${ico('correal')} ${C.correalFmt(precoSkin(k))}</button>`;
   }
   const pintaLoja = () => document.querySelectorAll('.lj-acao[data-k]').forEach(el => { el.innerHTML = acaoLoja(el.dataset.k); el.closest('.lj-card').classList.toggle('tua', tenhoSkin(el.dataset.k)); });
@@ -8079,11 +8100,11 @@
     const card = x => `<li class="lj-card lj-${x[3]}"><canvas class="lj-cv" width="32" height="34" data-k="${x[0]}" aria-hidden="true"></canvas><div class="lj-tx"><span class="lj-rar">${RARIDADE[x[3]]}</span><b>${esc(x[1])}</b><small>${esc(x[4])}</small></div><div class="lj-acao" data-k="${x[0]}"></div></li>`;
     const grupo = (r, t, so) => { const L = SKINS_LOJA.filter(x => x[3] === r && (!so || so(x[0]))); return L.length ? `<h3 class="lj-g lj-g-${r}">${t}</h3><ul class="lj-l">${L.map(card).join('')}</ul>` : ''; };
     /* v3.91: na época, a coleção de Halloween vem primeiro; fora dela, só aparecem as que a pessoa já tem */
-    const hall = halloween() ? grupo('halloween', `${ico('star')} Halloween · só até Finados (2/11)`) : grupo('halloween', 'Halloween · da tua coleção', tenhoLoja);
+    const hall = halloween() ? grupo('halloween', `${ico('star')} Halloween · em real, só até Finados (2/11)`) : grupo('halloween', 'Halloween · da tua coleção', tenhoLoja);
     C.sheet(`<div class="form lj"><div class="sheet-head"><h2>${ico('star')} Ateliê do Corre</h2><button type="button" class="cbtn plain" data-close aria-label="Fechar">${ico('x')}</button></div>
-      <p class="lj-topo">Skins pra vestir na cidade e dentro das casas, desenhadas aqui. Paga uma vez em correal e é tua pra sempre. Você tem <b class="num" data-correal-saldo>${C.correal.saldo == null ? '…' : C.correalFmt(C.correal.saldo)}</b> <span data-correal-unid>${C.correalUnid(C.correal.saldo || 0)}</span>.</p>
+      <p class="lj-topo">Skins pra vestir na cidade e dentro das casas, desenhadas aqui. Paga uma vez e é tua pra sempre${halloween() ? ': as de Halloween em real (Pix ou cartão), as outras em correal' : ''}. Você tem <b class="num" data-correal-saldo>${C.correal.saldo == null ? '…' : C.correalFmt(C.correal.saldo)}</b> <span data-correal-unid>${C.correalUnid(C.correal.saldo || 0)}</span>.</p>
       ${halloween() ? hall : ''}${grupo('lendaria', 'Lendárias · com brilho')}${grupo('rara', 'Raras')}${grupo('estilo', 'Estilo')}${halloween() ? '' : hall}
-      <p class="fine">Correal não é dinheiro: se ganha fazendo trampo no Correverso (até ${C.correalFmt(C.correal.teto)} por dia). O Ateliê sempre pergunta antes de descontar. Os 14 uniformes de antes seguem de graça, no teu avatar.</p></div>`, 'wide lj-sheet');
+      <p class="fine">Correal não é dinheiro: se ganha fazendo trampo no Correverso (até ${C.correalFmt(C.correal.teto)} por dia). O Ateliê sempre pergunta antes de descontar. Os 14 uniformes de antes seguem de graça, no teu avatar.${halloween() ? ' As de Halloween são pagas em real pelo Asaas, pagamento único: desistindo em até 7 dias, volta tudo. Veja os <a href="termos.html#skins" target="_blank" rel="noopener">Termos de uso</a>.' : ''}</p></div>`, 'wide lj-sheet');
     pintaLoja();
     carregaLoja().then(pintaLoja); C.correalCarrega().catch(() => {});
     /* o provador: cada skin no teu boneco, girando devagar */
@@ -8099,19 +8120,135 @@
     };
     requestAnimationFrame(roda);
   }
+  /* ---------- v4.13 · comprar em real ----------
+     A folha de uma skin de real: a prévia no teu boneco, o preço, o nome e CPF/CNPJ (só na primeira compra no Corre,
+     vão só pro Asaas), o "Li e aceito" e os dois jeitos: Pix ou cartão. A fatura abre numa aba nova ainda no toque
+     (depois de esperar a resposta, o navegador bloqueia a aba); a folha fica "esperando o pagamento" e confere sozinha
+     (de 8 em 8 s e quando a pessoa volta pra aba do Corre), e o "Já paguei" confere na hora. Pagou, a skin chega. */
+  const abaNova = () => { if(C.DEMO) return null; try{ return window.open('', '_blank'); }catch(e){ return null; } };
+  const leva = (w, link) => { if(!w) return false; if(!link){ try{ w.close(); }catch(e){} return false; } try{ w.opener = null; w.location.href = link; return true; }catch(e){ return false; } };
+  const ERRO_REAL = { termos: 'Marca que leu e aceita os Termos de uso pra comprar.', nome: 'Escreve teu nome completo (ou a razão social).', doc: 'Esse CPF ou CNPJ não confere.',
+    epoca: 'A coleção de Halloween saiu da vitrine: volta em outubro.', forma: 'Escolhe Pix ou cartão.', skin: 'Essa skin não tá à venda em real.',
+    config: 'O pagamento das skins ainda não tá ligado. Tenta daqui a pouco.', banco: 'O pagamento das skins ainda não tá ligado. Tenta daqui a pouco.', nofn: 'O pagamento das skins ainda não tá ligado. Tenta daqui a pouco.' };
+  const erroReal = e => (e && e.code === 'asaas' && e.detalhe) ? 'O Asaas recusou: ' + e.detalhe : (e && (ERRO_REAL[e.code] || (e.status === 404 && ERRO_REAL.nofn))) || C.errMsg(e, 'Não deu pra falar com o pagamento agora.');
+  const ESP = { k: '', t: 0, ate: 0 };
+  /* a prévia: a skin no teu boneco, girando */
+  function giraPrevia(cv, k){
+    const me = C.st.me; if(!cv || !me) return; const base = avLimpo(me.verso, me.id), dirs = ['baixo', 'dir', 'cima', 'esq']; let ult = 0, f = 0;
+    const roda = ts => { if(!cv.isConnected) return; if(ts - ult > 120){ ult = ts; f++; miniAvatar(cv, Object.assign({}, base, { personagem: '', skin: k }), dirs[Math.floor(f / 12) % 4], f * .8); } requestAnimationFrame(roda); };
+    requestAnimationFrame(roda);
+  }
+  async function skinRealSheet(k){
+    const x = LOJA[k], me = C.st.me; if(!x || !me) return;
+    if(tenhoSkin(k)){ C.toast(`A skin ${x[1]} já é tua.`); return; }
+    if(foraDeEpoca(k)){ C.toast(ERRO_REAL.epoca, 4200); return; }
+    if(C.acessoCarrega && !C.acesso) await C.acessoCarrega().catch(() => {});
+    const A = C.acesso || {}, pend = pedidoAberto(k), v = precoReal(k);
+    C.sheet(`<form class="form lj-pg" id="lj-pg" data-k="${k}"><div class="sheet-head"><h2>${ico('star')} ${esc(x[1])}</h2><button type="button" class="cbtn plain" data-close aria-label="Fechar">${ico('x')}</button></div>
+      <div class="lj-pg-topo"><canvas class="lj-pg-cv" width="32" height="34" aria-hidden="true"></canvas><div><p class="lj-pg-preco"><b>${reais(v)}</b> <span>pagamento único</span></p><p class="note">${esc(x[4])}</p>
+        <p class="fine">Comprou, é tua pra sempre: veste na cidade e dentro das casas, o ano inteiro. Na vitrine ela fica só até Finados (2/11).</p></div></div>
+      ${pend ? `<div class="lj-pg-aberta"><p><b>Tem uma fatura esperando pagamento</b> (${pend.forma === 'cartao' ? 'cartão' : 'Pix'}, ${reais(pend.valor || v)}).</p><div class="acts">${pend.link ? `<a class="btn sm pri" href="${esc(pend.link)}" target="_blank" rel="noopener">${ico('ext')} Abrir a fatura</a>` : ''}<button type="button" class="btn sm" data-act="cvr-lj-confere" data-k="${k}">Já paguei</button></div><p class="fine">Ou paga de outro jeito aqui embaixo (a fatura de antes é cancelada).</p></div>` : ''}
+      ${A.cliente ? '' : `<div class="fld"><label for="lj-nome">Nome completo ou razão social</label><input class="inp" id="lj-nome" maxlength="100" autocomplete="name" required value="${esc(me.nome || '')}"></div>
+      <div class="fld"><label for="lj-doc">CPF ou CNPJ</label><input class="inp" id="lj-doc" inputmode="numeric" maxlength="18" autocomplete="off" required aria-describedby="lj-doc-h"><span class="hint" id="lj-doc-h">Vai só pro Asaas, que emite a cobrança. O Corre não guarda.</span></div>`}
+      <label class="pl-aceite"><input type="checkbox" id="lj-termos" required><span>Li e aceito os <a href="termos.html#skins" target="_blank" rel="noopener">Termos de uso</a>. Pagamento único, não renova; desistindo em até 7 dias do pagamento, recebo tudo de volta e a skin sai.</span></label>
+      <p class="fine" id="lj-erro" role="alert" hidden></p>
+      <div class="acts lj-pg-bts"><button type="button" class="btn pri" data-forma="pix">${ico('raio')} Pagar no Pix</button><button type="button" class="btn" data-forma="cartao">${ico('cartao')} Pagar no cartão</button></div>
+      <p class="fine">O pagamento é pelo Asaas, numa aba nova. Pagou, a skin chega sozinha. <button type="button" class="lnk" data-act="cvr-loja">Voltar pro Ateliê</button></p>
+    </form>`);
+    giraPrevia(document.querySelector('.lj-pg-cv'), k);
+    const f = C.$('lj-pg'); if(!f) return;
+    f.addEventListener('submit', ev => ev.preventDefault());
+    f.querySelectorAll('[data-forma]').forEach(b => b.addEventListener('click', () => pagaReal(k, b.dataset.forma)));
+  }
+  async function pagaReal(k, forma){
+    const f = C.$('lj-pg'); if(!f || f.dataset.indo) return;
+    const er = C.$('lj-erro'), mostra = t => { if(er){ er.textContent = t; er.hidden = false; } else C.toast(t); };
+    /* o navegador não segura o "required" num botão comum: confere aqui */
+    const tm = C.$('lj-termos'); if(tm && !tm.checked){ mostra(ERRO_REAL.termos); tm.focus(); return; }
+    const body = { acao: 'skin-comprar', skin: k, forma, termos: C.TERMOS_V || '2026-10-20' }, nm = C.$('lj-nome'), dc = C.$('lj-doc');
+    if(nm){ body.nome = nm.value.replace(/\s+/g, ' ').trim(); if(body.nome.length < 3){ mostra(ERRO_REAL.nome); nm.focus(); return; } }
+    if(dc){ body.doc = C.docOk(dc.value); if(!body.doc){ mostra(ERRO_REAL.doc); dc.focus(); return; } }
+    f.dataset.indo = '1'; f.querySelectorAll('[data-forma]').forEach(b => { b.disabled = true; });
+    const w = abaNova();
+    try{
+      const r = await C.api.fn('pagamento', body) || {};
+      if(C.acessoCarrega) C.acessoCarrega().catch(() => {});
+      await carregaLoja();
+      if(r.ja || tenhoSkin(k)){ leva(w, ''); pagou(k, !!r.demo); return; }
+      const abriu = leva(w, r.link);
+      esperando(k, r.link, abriu, forma);
+    }catch(e){
+      leva(w, ''); delete f.dataset.indo; f.querySelectorAll('[data-forma]').forEach(b => { b.disabled = false; });
+      /* o cadastro do Asaas sumiu (troca do sandbox pra conta de verdade): pede nome e CPF de novo */
+      if(e && (e.code === 'nome' || e.code === 'doc') && !C.$('lj-nome') && C.acesso){ C.acesso.cliente = false; await skinRealSheet(k); const e2 = C.$('lj-erro'); if(e2){ e2.textContent = 'Confirma teu nome e CPF ou CNPJ pra comprar.'; e2.hidden = false; } const t2 = C.$('lj-termos'); if(t2) t2.checked = true; return; }
+      mostra(erroReal(e));
+    }
+  }
+  /* esperando o pagamento: a folha diz o que fazer e confere sozinha */
+  function esperando(k, link, abriu, forma){
+    const x = LOJA[k], f = C.$('lj-pg'); if(!f) return;
+    f.innerHTML = `<div class="sheet-head"><h2>Falta pagar</h2><button type="button" class="cbtn plain" data-close aria-label="Fechar">${ico('x')}</button></div>
+      <div class="lj-pg-topo"><canvas class="lj-pg-cv" width="32" height="34" aria-hidden="true"></canvas><div><p class="lj-pg-preco"><b>${reais(precoReal(k))}</b> <span>${esc(x[1])}</span></p>
+        <p class="note">${abriu ? `A fatura abriu numa aba nova. Paga ${forma === 'cartao' ? 'no cartão' : 'no Pix'} por lá: a skin ${esc(x[1])} chega sozinha aqui.` : `Abre a fatura pra pagar ${forma === 'cartao' ? 'no cartão' : 'no Pix'}: a skin ${esc(x[1])} chega sozinha aqui.`}</p></div></div>
+      <p class="lj-pg-st" id="lj-pg-st" role="status">${ico('clock')} Esperando o pagamento…</p>
+      <div class="acts">${link ? `<a class="btn${abriu ? '' : ' pri'}" href="${esc(link)}" target="_blank" rel="noopener">${ico('ext')} ${abriu ? 'Abrir a fatura de novo' : 'Abrir a fatura'}</a>` : ''}<button type="button" class="btn${abriu ? ' pri' : ''}" data-act="cvr-lj-confere" data-k="${k}">Já paguei</button></div>
+      <p class="fine">A fatura também vai pro teu e-mail. Pode fechar aqui: pagou, a skin aparece no Ateliê e no teu avatar. <button type="button" class="lnk" data-act="cvr-loja">Voltar pro Ateliê</button></p>`;
+    giraPrevia(f.querySelector('.lj-pg-cv'), k);
+    ESP.k = k; ESP.ate = Date.now() + 15 * 60000; clearTimeout(ESP.t); ESP.t = setTimeout(() => confereReal(false), 8000);
+  }
+  /* confere no Asaas (pela função) e no banco; manual = o "Já paguei" */
+  async function confereReal(manual){
+    const k = ESP.k; clearTimeout(ESP.t); if(!k) return;
+    const f = C.$('lj-pg'), st = C.$('lj-pg-st');
+    if(manual && st) st.textContent = 'Conferindo…';
+    await C.api.fn('pagamento', { acao: 'skin-confere' }).catch(() => null);
+    await carregaLoja();
+    if(tenhoSkin(k)){ ESP.k = ''; pagou(k, false); return; }
+    if(manual && st) st.innerHTML = `${ico('clock')} Ainda não caiu. No Pix costuma levar segundos; no cartão, assim que aprovar.`;
+    /* segue conferindo sozinho enquanto a folha tá aberta (até 15 min) */
+    if(f && f.isConnected && Date.now() < ESP.ate) ESP.t = setTimeout(() => confereReal(false), document.hidden ? 15000 : 8000);
+  }
+  addEventListener('focus', () => { if(ESP.k && C.$('lj-pg')) confereReal(false); });
+  /* chegou: comemora e oferece vestir */
+  function pagou(k, demo){
+    const x = LOJA[k]; if(C.versoSom && C.versoSom.moeda) C.versoSom.moeda();
+    pintaLoja();
+    const f = C.$('lj-pg');
+    if(f){ f.innerHTML = `<div class="sheet-head"><h2>${ico('check')} É tua!</h2><button type="button" class="cbtn plain" data-close aria-label="Fechar">${ico('x')}</button></div>
+      <div class="lj-pg-topo"><canvas class="lj-pg-cv" width="32" height="34" aria-hidden="true"></canvas><div><p class="lj-pg-preco"><b>${esc(x[1])}</b></p><p class="note">Pagamento confirmado${demo ? ' (demonstração: nada foi cobrado)' : ''}. Ela fica no teu armário pra sempre.</p></div></div>
+      <div class="acts"><button type="button" class="btn pri" data-act="cvr-lj-veste-fecha" data-k="${k}">${ico('star')} Vestir agora</button><button type="button" class="btn" data-act="cvr-loja">Voltar pro Ateliê</button></div>`;
+      giraPrevia(f.querySelector('.lj-pg-cv'), k); }
+    C.toast(`Pagamento confirmado: a skin ${x[1]} é tua.`, 3600);
+  }
+  /* desistir em até 7 dias: pergunta, o dinheiro volta e a skin sai */
+  async function desisteReal(id, k){
+    const x = LOJA[k]; if(!x) return;
+    let v = null; try{ v = await C.api.fn('pagamento', { acao: 'skin-desistir', pedido: id, ver: true }); }catch(e){ C.toast(erroReal(e)); return; }
+    if(!v || !v.pode){ C.toast(v && v.motivo === 'prazo' ? 'Passou dos 7 dias do pagamento: a skin fica contigo.' : v && v.motivo === 'devolvido' ? 'Esse pagamento já foi devolvido.' : v && v.motivo === 'ja' ? 'A desistência dessa compra já foi pedida.' : 'Não achei o pagamento dessa compra.', 4200); await carregaLoja(); pintaLoja(); return; }
+    const sim = await C.confirma({ ico: 'x', titulo: 'Desistir da skin ' + x[1], texto: `Volta <b>${reais(v.valor)}</b> pro teu ${'Pix ou cartão'} e a skin ${esc(x[1])} sai do teu armário. Dá até ${ddmm(v.ate)}.`, sim: 'Desistir e receber de volta', nao: 'Ficar com ela' });
+    if(!sim) return;
+    try{
+      const r = await C.api.fn('pagamento', { acao: 'skin-desistir', pedido: id }) || {};
+      if(!r.ok || r.pode === false){ C.toast('Não deu pra desistir agora. Escreve pro contato@houzirecords.com.br.', 4800); return; }
+      /* o banco já tirou do avatar; aqui tira do boneco na hora */
+      const me = C.st.me; if(me && me.verso && me.verso.skin === k){ me.verso = Object.assign({}, me.verso, { skin: '' }); if(V.eu){ V.eu.av = avLimpo(me.verso, me.id); anunciar(); } }
+      await carregaLoja(); pintaLoja();
+      C.toast(`Pronto: ${reais(r.devolvido || v.valor)} volta pra você (no cartão, aparece na fatura). A skin ${x[1]} saiu do armário.`, 5200);
+    }catch(e){ C.toast(erroReal(e), 4800); }
+  }
   /* v3.81: "armario" é o guarda-roupa da casa: o mesmo avatar, com outro nome (é ali que se troca a skin) */
   function avatarSheet(primeira, deOnde){
     const me = C.st.me; let av = avLimpo(me.verso, me.id); const armario = deOnde === 'armario';
     const sw = (k, L) => `<div class="cvr-sw" role="radiogroup">${L.map((c, i) => `<button type="button" role="radio" data-k="${k}" data-v="${i}" aria-checked="${av[k] === i}" style="--c:${c}" aria-label="${k} ${i + 1}"></button>`).join('')}</div>`;
     const ch = (k, L) => `<div class="cvr-ch" role="radiogroup">${L.map(([v, n]) => `<button type="button" role="radio" data-k="${k}" data-s="${v}" aria-checked="${av[k] === v}">${n}</button>`).join('')}</div>`;
     /* v3.66: as skins do Ateliê, com o cadeado e o preço de quem ainda não tem */
-    const chLoja = () => `<div class="cvr-ch cvr-ch-loja" role="radiogroup">${SKINS_LOJA.filter(x => !foraDeEpoca(x[0]) || LJ.minhas.has(x[0]) || av.skin === x[0]).map(x => `<button type="button" role="radio" data-k="skin" data-s="${x[0]}" data-loja="${x[0]}" aria-checked="${av.skin === x[0]}">${tenhoSkin(x[0]) ? '' : ico('lock')}${esc(x[1])}${tenhoSkin(x[0]) ? '' : `<i>${C.correalFmt(precoSkin(x[0]))}</i>`}</button>`).join('')}</div>`;
+    const chLoja = () => `<div class="cvr-ch cvr-ch-loja" role="radiogroup">${SKINS_LOJA.filter(x => !foraDeEpoca(x[0]) || LJ.minhas.has(x[0]) || av.skin === x[0]).map(x => `<button type="button" role="radio" data-k="skin" data-s="${x[0]}" data-loja="${x[0]}" aria-checked="${av.skin === x[0]}">${tenhoSkin(x[0]) ? '' : ico('lock')}${esc(x[1])}${tenhoSkin(x[0]) ? '' : `<i>${ehReal(x[0]) ? reais(precoReal(x[0])) : C.correalFmt(precoSkin(x[0]))}</i>`}</button>`).join('')}</div>`;
     C.sheet(`<div class="form cvr-av"><div class="sheet-head"><h2>${primeira ? 'Monta teu avatar' : armario ? 'O armário' : 'Teu avatar'}</h2><button type="button" class="cbtn plain" data-close aria-label="Fechar">${ico('x')}</button></div>
       <div class="cvr-av-cols"><div class="cvr-av-prev"><canvas id="cvr-prev" width="32" height="34" aria-label="Prévia do avatar"></canvas><div class="acts"><button type="button" class="btn sm" id="cvr-gira">Girar</button><button type="button" class="btn sm" id="cvr-sorte">Sortear</button></div></div>
       <div class="cvr-av-f">
         <div class="fld"><span class="lbl-s">Personagem</span>${ch('personagem', PERSONAGENS)}<small class="fine">Escolhe um e anda pela cidade como ele. "Você mesmo" usa o boneco montado aqui embaixo.</small></div>
         <div class="fld"><span class="lbl-s">Uniforme</span>${ch('skin', SKINS)}<small class="fine">Vai por cima do teu boneco (pele, cabelo e barba ficam). Na cidade e dentro das casas.</small></div>
-        <div class="fld cvr-av-loja"><span class="lbl-s">${ico('star')} Do Ateliê</span>${chLoja()}<small class="fine">Toca pra provar. A que tem cadeado se compra com correal na hora de salvar. <button type="button" class="lnk" data-act="cvr-loja">Abrir o Ateliê</button></small></div>
+        <div class="fld cvr-av-loja"><span class="lbl-s">${ico('star')} Do Ateliê</span>${chLoja()}<small class="fine">Toca pra provar. A que tem cadeado se compra na hora de salvar (as de Halloween em real, as outras em correal). <button type="button" class="lnk" data-act="cvr-loja">Abrir o Ateliê</button></small></div>
         <div class="fld"><span class="lbl-s">Pele</span>${sw('pele', PELES)}</div>
         <div class="fld"><span class="lbl-s">Cabelo</span>${ch('cabelo', CABELOS)}${sw('corCabelo', CAB_CORES)}</div>
         <div class="fld"><span class="lbl-s">Barba</span>${ch('barba', BARBAS)}</div>
@@ -8131,7 +8268,7 @@
     C.$('cvr-gira').addEventListener('click', () => { di = (di + 1) % 4; });
     C.$('cvr-sorte').addEventListener('click', () => { av = avPadrao(Math.random()); marca(); });
     /* a fileira do Ateliê pinta o cadeado de novo quando o banco responde o que a pessoa tem */
-    carregaLoja().then(() => document.querySelectorAll('.cvr-av [data-loja]').forEach(b => { const k = b.dataset.loja, x = LOJA[k]; b.innerHTML = `${tenhoSkin(k) ? '' : ico('lock')}${esc(x[1])}${tenhoSkin(k) ? '' : `<i>${C.correalFmt(precoSkin(k))}</i>`}`; }));
+    carregaLoja().then(() => document.querySelectorAll('.cvr-av [data-loja]').forEach(b => { const k = b.dataset.loja, x = LOJA[k]; b.innerHTML = `${tenhoSkin(k) ? '' : ico('lock')}${esc(x[1])}${tenhoSkin(k) ? '' : `<i>${ehReal(k) ? reais(precoReal(k)) : C.correalFmt(precoSkin(k))}</i>`}`; }));
     C.$('cvr-av-ok').addEventListener('click', async ev => {
       const bt = ev.currentTarget; if(bt.disabled) return; bt.disabled = true;
       /* v3.66: provou uma skin do Ateliê que não é tua: compra antes (o banco tiraria ela do avatar) */
@@ -8182,6 +8319,11 @@
     'cvr-lj-compra': async el => { const k = el.dataset.k; el.disabled = true; try{ if(await compraSkin(k)){ await vesteSkin(k); C.toast(`${LOJA[k][1]} é tua e já tá vestindo.`, 3600); } }catch(e){ C.toast(C.errMsg(e, 'Não deu pra vestir agora.')); }finally{ pintaLoja(); } },
     'cvr-lj-veste': async el => { el.disabled = true; try{ await vesteSkin(el.dataset.k); }catch(e){ C.toast(C.errMsg(e, 'Não deu pra vestir agora.')); } pintaLoja(); },
     'cvr-lj-tira': async el => { el.disabled = true; try{ await vesteSkin(''); }catch(e){ C.toast(C.errMsg(e, 'Não deu agora.')); } pintaLoja(); },
+    /* v4.13: as de real (comprar, conferir o pagamento, vestir depois de pagar, desistir em 7 dias) */
+    'cvr-lj-real': el => skinRealSheet(el.dataset.k),
+    'cvr-lj-confere': el => { if(el.dataset.k) ESP.k = el.dataset.k; ESP.ate = Date.now() + 15 * 60000; confereReal(true); },
+    'cvr-lj-veste-fecha': async el => { el.disabled = true; try{ await vesteSkin(el.dataset.k); C.closeSheet(); C.toast(`Vestindo a skin ${LOJA[el.dataset.k][1]}.`); }catch(e){ el.disabled = false; C.toast(C.errMsg(e, 'Não deu pra vestir agora.')); } },
+    'cvr-lj-desiste': el => desisteReal(el.dataset.p, el.dataset.k),
     /* v3.55: "Pra casa" levanta do banco e larga a vara (antes chegava sentado, pescando na porta) */
     'cvr-casa': () => { if(!V.eu || !V.casa || !podeViajar()) return; saiDoBarco(); V.alvo = null; V.eu.sit = false; V.eu.pesca = null; V.eu.x = V.casa.x; V.eu.y = V.casa.y; V.entrando = .55; anunciar(); portaUI(); },
     'cvr-gente': () => genteSheet(),

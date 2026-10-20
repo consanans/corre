@@ -3838,3 +3838,20 @@ body.em-bio{padding-top:0}
   .cs-casa:not(.toque) .cs-briga{bottom:calc(126px + 58px + env(safe-area-inset-bottom,0px))}
 }
 .cs-tag.mais,.cs-tag.mais.perto{background:none;border:0;box-shadow:none;padding:0;font-family:"Silkscreen",var(--font-mono);font-size:15px;color:var(--yellow);text-shadow:2px 2px 0 var(--ink),-1px -1px 0 var(--ink),1px -1px 0 var(--ink),-1px 1px 0 var(--ink);pointer-events:none;opacity:1}
+
+/* v4.13 · as skins de Halloween em real: o preço em real no cartão da vitrine, o "desistir" pequeno embaixo, e a folha
+   de pagar (a prévia grande no teu boneco, o preço, a fatura que espera, os dois jeitos lado a lado) */
+.lj-real{font-variant-numeric:tabular-nums}
+.btn.lj-real{background:#FF8A3D;border-color:var(--ink);color:var(--ink)}
+.lj-desiste{flex-basis:100%;font-size:12px;color:var(--muted);text-align:left;text-decoration:underline;background:none;border:0;padding:0;cursor:pointer}
+.lj-pg-topo{display:grid;grid-template-columns:96px 1fr;gap:14px;align-items:center}
+.lj-pg-cv{width:96px;height:auto;aspect-ratio:32/34;image-rendering:pixelated;border:2px solid var(--ink);border-radius:14px;background:linear-gradient(#FFF1DD,#FFD9B3)}
+.lj-pg-preco{display:flex;align-items:baseline;flex-wrap:wrap;gap:8px;margin:0}
+.lj-pg-preco b{font-size:26px;font-weight:800;font-variant-numeric:tabular-nums}
+.lj-pg-preco span{color:var(--muted);font-size:13px}
+.lj-pg-aberta{padding:12px;border:2px dashed var(--ink);border-radius:14px;background:#FFF8D6;display:flex;flex-direction:column;gap:8px}
+.lj-pg-aberta p{margin:0}
+.lj-pg-bts .btn{flex:1 1 150px;justify-content:center}
+.lj-pg-st{display:flex;align-items:center;gap:8px;font-weight:700;margin:0}
+.lj-pg-st .ic{width:18px;height:18px;flex:none}
+@media (max-width:420px){ .lj-pg-topo{grid-template-columns:72px 1fr} .lj-pg-cv{width:72px} }

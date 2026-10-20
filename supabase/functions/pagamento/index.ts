@@ -21,6 +21,7 @@
 //     art. 5º). Até 7 dias depois do primeiro pagamento de uma assinatura, devolve tudo e o plano para na hora. Com
 //     "ver", só diz se pode e quanto volta. Pix e cartão o Asaas devolve sozinho; boleto, ele dá um link pra pessoa dizer
 //     a conta onde recebe. Pelo app, uma vez por plano (corre_assinaturas.desistiu_em); depois, pelo e-mail.
+//  7. v4.13: as 8 skins de Halloween em real (acao "skin-comprar", "skin-confere" e "skin-desistir"; ver o bloco das skins).
 //
 // Segredos (Supabase > Edge Functions > Secrets):
 //   ASAAS_API_KEY        a chave da API do Asaas (Asaas > Integrações > Chave de API). É o único obrigatório.
@@ -127,6 +128,21 @@ async function confere(admin: any, a: any) {
   return !error;
 }
 
+/* o cliente da pessoa no Asaas: o que já existe, ou um novo (a primeira vez, com nome e CPF/CNPJ; o documento vai só pro
+   Asaas). Devolve o id, ou a resposta de erro pronta. v4.13: as skins usam o mesmo */
+async function clienteDe(admin: any, user: any, body: any): Promise<string | Response> {
+  const { data: cl } = await admin.from('corre_asaas_clientes').select('cliente').eq('dono', user.id).maybeSingle();
+  if (cl?.cliente) return String(cl.cliente);
+  const nome = String(body?.nome || '').replace(/\s+/g, ' ').trim().slice(0, 100), doc = docOk(body?.doc);
+  if (nome.length < 3) return json({ erro: 'nome' }, 400);
+  if (!doc) return json({ erro: 'doc' }, 400);
+  const c = await asaas('/customers', 'POST', { name: nome, cpfCnpj: doc, email: user.email || undefined, externalReference: user.id, notificationDisabled: false });
+  const cliente = String(c.id || '');
+  if (!cliente) return json({ erro: 'asaas', detalhe: 'O Asaas não devolveu o cliente.' }, 502);
+  await admin.from('corre_asaas_clientes').upsert({ dono: user.id, cliente });
+  return cliente;
+}
+
 /* v3.72: anota o aceite dos Termos (a versão, o plano, o valor e a hora: a prova do combinado). Sem o delta-v372.sql a
    tabela não existe: avisa no log e a assinatura segue */
 async function anotaAceite(admin: any, dono: string, versao: string, produto: string, nivel: number, valor: number, acao: string) {
@@ -147,6 +163,14 @@ async function aviso(req: Request, admin: any) {
   const { data: ja } = await admin.from('corre_asaas_eventos').select('id').eq('id', id).maybeSingle();
   if (ja) return json({ ok: true, repetido: true });
   const pg = ev.payment || null, subId = String(pg?.subscription || ev.subscription?.id || '');
+  /* v4.13: a cobrança avulsa de uma skin (externalReference "skin:dono:skin"): pagou, libera; o dinheiro voltou, tira;
+     venceu sem pagar, cancela. Erro no banco devolve 500 pro Asaas mandar de novo */
+  if (pg?.id && !subId && /^skin:/.test(String(pg.externalReference || ''))) {
+    const f: [string, Record<string, unknown>] | null = tipo === 'PAYMENT_CONFIRMED' || tipo === 'PAYMENT_RECEIVED' ? ['corre_skin_paga', { p_cobranca: String(pg.id), p_valor: Number(pg.value) || 0 }]
+      : ['PAYMENT_REFUNDED', 'PAYMENT_CHARGEBACK_REQUESTED', 'PAYMENT_CHARGEBACK_DISPUTE'].includes(tipo) ? ['corre_skin_volta', { p_cobranca: String(pg.id), p_desistiu: false }]
+      : tipo === 'PAYMENT_OVERDUE' || tipo === 'PAYMENT_DELETED' ? ['corre_skin_cai', { p_cobranca: String(pg.id) }] : null;
+    if (f) { const { error } = await admin.rpc(f[0], f[1]); if (error) { console.error('aviso/skin:', error.message); return json({ erro: 'banco' }, 500); } }
+  }
   /* aviso de cobrança avulsa ou de assinatura que não é do Corre: anota e segue (o Asaas não pode travar a fila) */
   const { data: a } = subId ? await admin.from('corre_assinaturas').select('*').eq('asaas_assinatura', subId).maybeSingle() : { data: null };
   if (a) {
@@ -195,6 +219,7 @@ Deno.serve(async (req) => {
   try { body = await req.json(); } catch (_) { return json({ erro: 'corpo' }, 400); }
   const acao = String(body?.acao || ''), produto = String(body?.produto || '');
   if (acao === 'asaas') return await ligaAsaas(user, SB_URL);
+  if (acao.startsWith('skin-')) { if (!env('ASAAS_API_KEY')) return json({ erro: 'config' }, 503); return await skin(acao, body, user, admin); }
   if (!PRODUTOS[produto]) return json({ erro: 'produto' }, 400);
   if (!env('ASAAS_API_KEY')) return json({ erro: 'config' }, 503);
   const { data: a } = await admin.from('corre_assinaturas').select('*').eq('dono', user.id).eq('produto', produto).maybeSingle();
@@ -276,18 +301,8 @@ Deno.serve(async (req) => {
     }
 
     /* o cliente no Asaas (a primeira vez: nome e CPF/CNPJ) */
-    let cliente = '';
-    const { data: cl } = await admin.from('corre_asaas_clientes').select('cliente').eq('dono', user.id).maybeSingle();
-    if (cl?.cliente) cliente = cl.cliente;
-    else {
-      const nome = String(body?.nome || '').replace(/\s+/g, ' ').trim().slice(0, 100), doc = docOk(body?.doc);
-      if (nome.length < 3) return json({ erro: 'nome' }, 400);
-      if (!doc) return json({ erro: 'doc' }, 400);
-      const c = await asaas('/customers', 'POST', { name: nome, cpfCnpj: doc, email: user.email || undefined, externalReference: user.id, notificationDisabled: false });
-      cliente = String(c.id || '');
-      if (!cliente) return json({ erro: 'asaas', detalhe: 'O Asaas não devolveu o cliente.' }, 502);
-      await admin.from('corre_asaas_clientes').upsert({ dono: user.id, cliente });
-    }
+    const cliente = await clienteDe(admin, user, body);
+    if (cliente instanceof Response) return cliente;
 
     /* a assinatura: no teste grátis, a primeira cobrança vence no último dia do teste */
     const noTeste = !!(a?.teste_ate && Date.parse(a.teste_ate) > Date.now());
@@ -316,6 +331,107 @@ Deno.serve(async (req) => {
     console.error('pagamento:', e?.message || e); return json({ erro: 'rede' }, 502);
   }
 });
+
+/* ---------- v4.13 · as skins de Halloween em real ----------
+   O Thales: "quero que você adicione valor de real de verdade nas novas skins de Halloween". As 8 da coleção saem do
+   correal e passam a ser vendidas só em real, pagamento único (não renova), no Pix ou no cartão (boleto fica de fora:
+   leva dias pra cair, e a devolução dele pede a conta da pessoa). O preço mora no banco (corre_skin_real,
+   delta-v413.sql); aqui só o nome que vai na fatura. O correal continua não sendo dinheiro: real nunca vira correal.
+     acao "skin-comprar" { skin, forma: pix|cartao, termos, nome?, doc? }: na época (1º/10 até Finados), cria a cobrança
+       avulsa e devolve o link da fatura. Já tem a skin: não cobra. Tem uma esperando pagamento na mesma forma: devolve a
+       mesma fatura; noutra forma, apaga a de antes no Asaas (e se ela já foi paga, libera em vez de cobrar de novo).
+     acao "skin-confere": olha no Asaas as que esperam pagamento (se o aviso não chegou, a skin chega assim).
+     acao "skin-desistir" { pedido, ver? }: até 7 dias do pagamento (CDC, art. 49), devolve o dinheiro e a skin sai. Uma
+       vez por compra; com "ver", só diz se pode e quanto volta.
+   O aviso do Asaas (?asaas=aviso) libera quando paga e tira quando o dinheiro volta (externalReference "skin:"). */
+const SKIN_NOME: Record<string, string> = { abobora: 'Cabeça de Abóbora', saci: 'Saci', bruxa: 'Bruxa do Caldeirão', esqueleto: 'Esqueleto',
+  lobisomem: 'Lobisomem do Tibagi', lencol: 'Fantasma de Lençol', mortovivo: 'Morto-Vivo', gatopreto: 'Gato Preto' };
+/* a coleção de Halloween só vende na época dela: de 1º/10 até Finados (2/11), no dia de Brasília */
+const epocaHalloween = () => { const md = hojeBR().slice(5); return md >= '10-01' && md <= '11-02'; };
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+/* chama uma função do banco (as do delta-v413.sql, só do servidor); erro vira { banco } */
+async function rpc(admin: any, f: string, a: Record<string, unknown>) {
+  const { data, error } = await admin.rpc(f, a);
+  if (error) throw { banco: error.message };
+  return data;
+}
+async function skin(acao: string, body: any, user: any, admin: any) {
+  try {
+    if (acao === 'skin-confere') {
+      const L = (await rpc(admin, 'corre_skin_abertos', { p_dono: user.id })) || [], pagas: string[] = [];
+      for (const p of L) {
+        const c = await asaas(`/payments/${encodeURIComponent(p.cobranca)}`).catch(() => null);
+        if (!c) continue;
+        if (PAGO.includes(c.status)) { const r = await rpc(admin, 'corre_skin_paga', { p_cobranca: p.cobranca, p_valor: Number(c.value) || 0 }); if (r?.ok && !r.ja) pagas.push(p.skin); }
+        else if (DEVOLVIDO.includes(c.status)) await rpc(admin, 'corre_skin_volta', { p_cobranca: p.cobranca, p_desistiu: false });
+        else if (c.deleted) await rpc(admin, 'corre_skin_cai', { p_cobranca: p.cobranca });
+      }
+      return json({ ok: true, pagas });
+    }
+
+    if (acao === 'skin-desistir') {
+      const nao = (motivo: string) => json({ ok: true, pode: false, motivo });
+      const id = String(body?.pedido || '');
+      if (!UUID.test(id)) return json({ erro: 'pedido' }, 400);
+      const p = await rpc(admin, 'corre_skin_pedido_ver', { p_dono: user.id, p_id: id });
+      if (!p || p.status !== 'paga') return nao(p?.status === 'estornada' ? 'devolvido' : 'sem_pagamento');
+      if (p.desistiu_em) return nao('ja');
+      const c = await asaas(`/payments/${encodeURIComponent(p.asaas_cobranca)}`);
+      if (DEVOLVIDO.includes(c?.status)) return nao('devolvido');
+      if (!PAGO.includes(c?.status)) return nao('sem_pagamento');
+      const dia = diaPago(c), ate = maisDias(dia, PRAZO_DESISTE), valor = Number(c.value) || Number(p.valor) || 0;
+      if (hojeBR() > ate) return nao('prazo');
+      if (body?.ver) return json({ ok: true, pode: true, valor, pago_em: dia, ate });
+      /* primeiro o dinheiro (se o Asaas recusar, nada muda); depois a skin sai. O aviso do estorno chega depois e não
+         muda mais nada */
+      await asaas(`/payments/${encodeURIComponent(p.asaas_cobranca)}/refund`, 'POST', { description: 'Desistência em 7 dias (CDC, art. 49)' });
+      const { error } = await admin.rpc('corre_skin_volta', { p_cobranca: p.asaas_cobranca, p_desistiu: true });
+      if (error) console.error('skin-desistir/banco:', error.message);
+      return json({ ok: true, devolvido: valor, skin: p.skin });
+    }
+
+    if (acao !== 'skin-comprar') return json({ erro: 'acao' }, 400);
+    const termos = String(body?.termos || '');
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(termos)) return json({ erro: 'termos' }, 400);
+    const k = String(body?.skin || ''), forma = String(body?.forma || '');
+    if (!SKIN_NOME[k]) return json({ erro: 'skin' }, 400);
+    if (forma !== 'pix' && forma !== 'cartao') return json({ erro: 'forma' }, 400);
+    if (!epocaHalloween()) return json({ erro: 'epoca' }, 409);
+    const pode = await rpc(admin, 'corre_skin_pode', { p_dono: user.id, p_skin: k });
+    const valor = Number(pode?.real) || 0;
+    if (!(valor > 0)) return json({ erro: 'skin' }, 400);
+    if (pode.ja) return json({ ok: true, ja: true });
+    /* uma fatura em aberto por skin: a mesma forma devolve a mesma fatura; outra forma apaga a de antes */
+    const pend = pode.pendente;
+    if (pend?.cobranca) {
+      const c = await asaas(`/payments/${encodeURIComponent(pend.cobranca)}`).catch(() => null);
+      if (c && PAGO.includes(c.status)) { await rpc(admin, 'corre_skin_paga', { p_cobranca: pend.cobranca, p_valor: Number(c.value) || 0 }); return json({ ok: true, ja: true, pagou: true }); }
+      if (c && !c.deleted && c.status === 'PENDING' && pend.forma === forma && pend.link) return json({ ok: true, link: pend.link, pedido: pend.id, valor, mesma: true });
+      if (c && !c.deleted && ['PENDING', 'OVERDUE'].includes(c.status)) await asaas(`/payments/${encodeURIComponent(pend.cobranca)}`, 'DELETE').catch((e: any) => { if (e?.status !== 404) throw e; });
+    }
+    const cliente = await clienteDe(admin, user, body);
+    if (cliente instanceof Response) return cliente;
+    const pg = await asaas('/payments', 'POST', {
+      customer: cliente, billingType: forma === 'pix' ? 'PIX' : 'CREDIT_CARD', value: valor, dueDate: maisDias(hojeBR(), 1),
+      description: `Corre · Skin ${SKIN_NOME[k]} do Correverso. Pagamento único.`, externalReference: `skin:${user.id}:${k}`,
+    });
+    const cob = String(pg?.id || '');
+    if (!cob) return json({ erro: 'asaas', detalhe: 'O Asaas não devolveu a cobrança.' }, 502);
+    const link = String(pg.invoiceUrl || '');
+    const { data: r, error } = await admin.rpc('corre_skin_pedido_novo', { p_dono: user.id, p_skin: k, p_forma: forma, p_cobranca: cob, p_link: link, p_termos: termos });
+    if (error || !r?.ok) {
+      /* o banco não guardou: a cobrança que acabou de nascer sai do Asaas, senão ela ficaria sem dono no Corre */
+      console.error('skin/banco:', error?.message || r?.motivo);
+      await asaas(`/payments/${encodeURIComponent(cob)}`, 'DELETE').catch(() => null);
+      return json({ erro: 'banco' }, 500);
+    }
+    return json({ ok: true, link, pedido: r.id, valor });
+  } catch (e: any) {
+    if (e && e.banco) { console.error('skin/banco:', e.banco); return json({ erro: 'banco' }, 503); }
+    if (e && e.msg) { console.error('asaas/skin:', e.status, e.msg); return json({ erro: 'asaas', detalhe: e.msg }, 502); }
+    console.error('skin:', e?.message || e); return json({ erro: 'rede' }, 502);
+  }
+}
 
 /* ---------- o fundador liga o Asaas: confere a chave e deixa o webhook cadastrado, com o token certo ---------- */
 async function ligaAsaas(user: any, SB_URL: string) {

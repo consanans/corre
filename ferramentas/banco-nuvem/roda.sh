@@ -104,6 +104,10 @@ testa teste411.sql 8
 delta delta-v412.sql 'delta v4.12 ok'
 delta delta-v412.sql 'delta v4.12 ok'
 testa teste412.sql 9
+# v4.13: as 8 de Halloween em real (o pedido, o pagamento que libera, o estorno que tira, a fatura vencida)
+delta delta-v413.sql 'delta v4.13 ok'
+delta delta-v413.sql 'delta v4.13 ok'
+testa teste413.sql 17
 . "$AQUI/virada343.sh"
 if grep -q 'FALHOU\|ERROR' $D/saida; then echo "deu FALHOU ou erro (acima)"; exit 1; fi
 echo "tudo ok: $(grep -c '^ok:' $D/saida) checagens"

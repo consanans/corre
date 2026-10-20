@@ -468,8 +468,8 @@
   const HOUZI_EX = {"spec":{"v":1,"territorio":"editorial","amostra":1,"nome":"Grão Torto","tagline":"café de esquina","nicho":"cafe","cidade":"Londrina, PR","desde":"2021","pers":[0.35,0.55,0.55,0.35,0.2],"modo":"branding","campos":["cafe","rua"],"logo":{"arranjo":"wordmark","caixa":"titulo","track":0.005,"efeito":"","gesto":"troca","tagline":true,"corTexto":"texto","trocaPor":"ideia"},"simbolo":{"tipo":"ideia","icone":"xicara","ideia":"grao","estilo":"linha","seed":84829},"tipo":{"display":"lora-bolditalic","texto":"lora-regular"},"cores":{"p":"#2B2B2E","s":"#D8D4CB","a":"#B8913A","ink":"#161618","paper":"#F6F2EA","fundo":"paper","esquema":"receita","receita":"Grafite e Ouro"},"textura":"papel","aplic":["revista","sacola","cartao","instagram","copo","fachada"],"seed":273184829,"descr":"Café de bairro, torra própria"},"voz":{"conceito":"Grão Torto é o café que trata cada detalhe como página de revista.","manifesto":"Grão Torto acredita que pressa é inimiga do bom. Por isso cada café é pensado como uma página de revista: com respiro, com ritmo, com intenção. É pra quem acorda cedo que repara. Que lê a legenda inteira. Que volta pela segunda vez.","taglines":["Grão Torto. Pra ler devagar.","A pausa boa do dia, com tempo.","O detalhe é a história.","Feito com atenção em Londrina.","Menos, e melhor."],"e":["calma","precisa","elegante"],"nao_e":["barulhenta","apressada","exagerada"],"fala":["Pensado com calma, feito pra durar.","Nem tudo precisa ser pra ontem.","A pausa boa do dia, no detalhe."],"nao_fala":["IMPERDÍVEL!!!","Só hoje, corre!","O melhor do Brasil."],"bio":"café de esquina · Café em Londrina. Chama no direct.","wa":"Olá, que bom ter você aqui. Aqui é o Grão Torto. Me conta o que procura e eu te ajudo com calma.","ia":false}};
   function demoApi(){
     const KEY = 'corre-demo-v2', mem = {};
-    const T = ['corre_perfis', 'corre_portfolio', 'corre_destaques', 'corre_stories', 'corre_insta', 'corre_contas', 'corre_lancamentos', 'corre_rolo_salvos', 'corre_leads', 'corre_posts', 'corre_feed', 'corre_curtidas', 'corre_comentarios', 'corre_seguindo', 'corre_story_curtidas', 'corre_visitas', 'corre_estilo', 'corre_produtos', 'corre_mural', 'corre_mural_propostas', 'corre_vendas', 'corre_refs', 'corre_lead_fotos', 'corre_mural_chat', 'corre_verso_bloq', 'corre_votos', 'corre_salvos', 'corre_recomendacoes', 'corre_feed_vistas', 'corre_avisos_lidos', 'corre_conversas', 'corre_conversa_membros', 'corre_mensagens', 'corre_push', 'corre_push_pref', 'corre_grupos', 'corre_grupo_membros', 'corre_houzi_marcas', 'corre_correal', 'corre_correal_log', 'corre_tarefa_vez', 'corre_ig_contas', 'corre_houzi_privado', 'corre_assinaturas', 'corre_asaas_clientes', 'corre_skins', 'corre_bio_conta', 'corre_convites', 'corre_ativo_dia'];
-    const PRIV = ['corre_contas', 'corre_lancamentos', 'corre_rolo_salvos', 'corre_leads', 'corre_posts', 'corre_visitas', 'corre_estilo', 'corre_produtos', 'corre_mural', 'corre_mural_propostas', 'corre_vendas', 'corre_refs', 'corre_lead_fotos', 'corre_verso_bloq', 'corre_votos', 'corre_salvos', 'corre_feed_vistas', 'corre_avisos_lidos', 'corre_push', 'corre_push_pref', 'corre_correal', 'corre_correal_log', 'corre_tarefa_vez', 'corre_ig_contas', 'corre_houzi_privado', 'corre_assinaturas', 'corre_asaas_clientes', 'corre_skins', 'corre_bio_conta', 'corre_convites', 'corre_ativo_dia'];
+    const T = ['corre_perfis', 'corre_portfolio', 'corre_destaques', 'corre_stories', 'corre_insta', 'corre_contas', 'corre_lancamentos', 'corre_rolo_salvos', 'corre_leads', 'corre_posts', 'corre_feed', 'corre_curtidas', 'corre_comentarios', 'corre_seguindo', 'corre_story_curtidas', 'corre_visitas', 'corre_estilo', 'corre_produtos', 'corre_mural', 'corre_mural_propostas', 'corre_vendas', 'corre_refs', 'corre_lead_fotos', 'corre_mural_chat', 'corre_verso_bloq', 'corre_votos', 'corre_salvos', 'corre_recomendacoes', 'corre_feed_vistas', 'corre_avisos_lidos', 'corre_conversas', 'corre_conversa_membros', 'corre_mensagens', 'corre_push', 'corre_push_pref', 'corre_grupos', 'corre_grupo_membros', 'corre_houzi_marcas', 'corre_correal', 'corre_correal_log', 'corre_tarefa_vez', 'corre_ig_contas', 'corre_houzi_privado', 'corre_assinaturas', 'corre_asaas_clientes', 'corre_skins', 'corre_bio_conta', 'corre_convites', 'corre_ativo_dia', 'corre_skin_pedidos'];
+    const PRIV = ['corre_contas', 'corre_lancamentos', 'corre_rolo_salvos', 'corre_leads', 'corre_posts', 'corre_visitas', 'corre_estilo', 'corre_produtos', 'corre_mural', 'corre_mural_propostas', 'corre_vendas', 'corre_refs', 'corre_lead_fotos', 'corre_verso_bloq', 'corre_votos', 'corre_salvos', 'corre_feed_vistas', 'corre_avisos_lidos', 'corre_push', 'corre_push_pref', 'corre_correal', 'corre_correal_log', 'corre_tarefa_vez', 'corre_ig_contas', 'corre_houzi_privado', 'corre_assinaturas', 'corre_asaas_clientes', 'corre_skins', 'corre_bio_conta', 'corre_convites', 'corre_ativo_dia', 'corre_skin_pedidos'];
     const now = () => new Date().toISOString();
     const inH = h => new Date(Date.now() + h * 36e5).toISOString();
     /* o mesmo do corre_tarefa_valor (delta-v338 + delta-v3391: 3 tarefas por uniforme) */
@@ -654,6 +654,8 @@
     };
     /* v3.66 · o preço de uma skin da loja no demo, em centavos (0 = não é da loja). A vitrine mora no verso.js */
     const skinPrecoDemo = k => { const x = ((C.verso && C.verso.SKINS_LOJA) || []).find(s => s[0] === k); return x ? centDe(x[2]) : 0; };
+    /* v4.13: os preços em real das 8 de Halloween (o mesmo do corre_skins_reais) */
+    const skinReaisDemo = () => ({ abobora: 14.90, saci: 14.90, bruxa: 9.90, esqueleto: 9.90, lobisomem: 9.90, lencol: 5.90, mortovivo: 5.90, gatopreto: 5.90 });
     const plTrava = (d, u, prod) => { plGarante(d, u, prod); if(!plAcesso(d, u, prod)) throw { message: 'o teste grátis acabou', hint: prod + '_assinatura', code: 'P0001' }; };
     /* v4.02 · a Lojinha no demo: as mesmas contas do corre_lojinha (delta-v402.sql), em cima das tabelas de mentira.
        Só os donos abrem (v4.04: o @consanans, o @jeydiaz e o @simonini.lucas0); o @consanans e o @corre ficam fora da
@@ -1388,10 +1390,15 @@
           d.t.corre_skins = d.t.corre_skins || [];
           const precos = {}; ((C.verso && C.verso.SKINS_LOJA) || []).forEach(x => { precos[x[0]] = x[2]; });
           const w = d.t.corre_correal.find(x => x.dono === eu), saldoC = () => centDe(w ? w.saldo : 0), minhas = () => d.t.corre_skins.filter(x => x.dono === eu).map(x => x.skin);
-          if(n === 'corre_skins_minhas') return { minhas: minhas(), precos, saldo: saldoC() / 100 };
+          /* v4.13 (delta-v413.sql): as 8 de Halloween em real; as compras em real dos últimos 40 dias */
+          d.t.corre_skin_pedidos = d.t.corre_skin_pedidos || [];
+          const ped = () => d.t.corre_skin_pedidos.filter(x => x.dono === eu && Date.now() - Date.parse(x.criado) < 40 * 864e5).sort((x, y) => y.criado.localeCompare(x.criado))
+            .map(x => Object.assign({}, x, { link: x.status === 'pendente' ? x.link : '', desiste: x.status === 'paga' && !x.desistiu_em && hojeBR() <= plMais(hojeBR(new Date(Date.parse(x.pago_em))), 7) ? plMais(hojeBR(new Date(Date.parse(x.pago_em))), 7) : null }));
+          if(n === 'corre_skins_minhas') return { minhas: minhas(), precos, reais: skinReaisDemo(), pedidos: ped(), saldo: saldoC() / 100 };
           const k = String(a.p_skin || ''), p = skinPrecoDemo(k);
           if(!p) return { ok: false, saldo: 0, preco: null };
           if(minhas().includes(k)) return { ok: true, ja: true, saldo: saldoC() / 100, preco: p / 100 };
+          if(skinReaisDemo()[k]) return { ok: false, motivo: 'real', real: skinReaisDemo()[k], saldo: saldoC() / 100, preco: null };
           if(saldoC() < p) return { ok: false, saldo: saldoC() / 100, preco: p / 100 };
           w.saldo = (saldoC() - p) / 100; w.gasto = (centDe(w.gasto) + p) / 100; w.updated_at = now();
           d.t.corre_correal_log.push({ id: rid(), dono: eu, valor: -p / 100, motivo: 'skin:' + k, created_at: now() });
@@ -1722,6 +1729,38 @@
         const d = read(), u = uidOf(d), B = b || {}, prod = String(B.produto || '');
         if(!u) throw { code: 'login', status: 401 };
         if(B.acao === 'asaas'){ if(!plFund(d, u)) throw { code: 'fundador', status: 403 }; return { ok: true, ambiente: 'demo', webhook: 'criado' }; }
+        /* v4.13: as skins em real, como a função (sem Asaas: a compra da demonstração já sai paga, sem cobrar) */
+        if(String(B.acao || '').startsWith('skin-')){
+          d.t.corre_skin_pedidos = d.t.corre_skin_pedidos || []; d.t.corre_skins = d.t.corre_skins || [];
+          const R = skinReaisDemo();
+          if(B.acao === 'skin-confere') return { ok: true, pagas: [], demo: true };
+          if(B.acao === 'skin-desistir'){
+            const nao = motivo => ({ ok: true, pode: false, motivo, demo: true }), p = d.t.corre_skin_pedidos.find(x => x.id === B.pedido && x.dono === u);
+            if(!p || p.status !== 'paga') return nao(p && p.status === 'estornada' ? 'devolvido' : 'sem_pagamento');
+            if(p.desistiu_em) return nao('ja');
+            const dia = hojeBR(new Date(Date.parse(p.pago_em))), ate = plMais(dia, 7);
+            if(hojeBR() > ate) return nao('prazo');
+            if(B.ver) return { ok: true, pode: true, valor: p.valor, pago_em: dia, ate, demo: true };
+            Object.assign(p, { status: 'estornada', desistiu_em: now() }); d.t.corre_skins = d.t.corre_skins.filter(x => !(x.dono === u && x.skin === p.skin && x.pedido === p.id));
+            const me = d.t.corre_perfis.find(x => x.id === u); if(me && me.verso && me.verso.skin === p.skin) me.verso = Object.assign({}, me.verso, { skin: '' });
+            write(d); return { ok: true, devolvido: p.valor, skin: p.skin, demo: true };
+          }
+          if(B.acao !== 'skin-comprar') throw { code: 'acao', status: 400 };
+          if(!/^\d{4}-\d{2}-\d{2}$/.test(String(B.termos || ''))) throw { code: 'termos', status: 400 };
+          const k = String(B.skin || ''); if(!R[k]) throw { code: 'skin', status: 400 };
+          if(B.forma !== 'pix' && B.forma !== 'cartao') throw { code: 'forma', status: 400 };
+          if(C.verso && C.verso.halloween && !C.verso.halloween()) throw { code: 'epoca', status: 409 };
+          if(d.t.corre_skins.some(x => x.dono === u && x.skin === k)) return { ok: true, ja: true, demo: true };
+          if(!d.t.corre_asaas_clientes.some(c => c.dono === u)){
+            if(String(B.nome || '').replace(/\s+/g, ' ').trim().length < 3) throw { code: 'nome', status: 400 };
+            if(!C.docOk(B.doc)) throw { code: 'doc', status: 400 };
+            d.t.corre_asaas_clientes.push({ dono: u, cliente: 'cus_demo_' + rid().slice(0, 8), created_at: now() });
+          }
+          d.t.corre_skin_pedidos.filter(x => x.dono === u && x.skin === k && x.status === 'pendente').forEach(x => { x.status = 'cancelada'; x.link = ''; });
+          const p = { id: rid(), dono: u, skin: k, valor: R[k], forma: B.forma, status: 'paga', asaas_cobranca: 'pay_demo_' + rid().slice(0, 8), link: '', termos: B.termos, criado: now(), pago_em: now(), desistiu_em: null };
+          d.t.corre_skin_pedidos.push(p); d.t.corre_skins.push({ dono: u, skin: k, preco: 0, pago_real: R[k], pedido: p.id, created_at: now() });
+          write(d); return { ok: true, ja: true, pedido: p.id, valor: R[k], link: '', demo: true };
+        }
         if(!['studio', 'houzi', 'horus'].includes(prod)) throw { code: 'produto', status: 400 };
         let a = d.t.corre_assinaturas.find(x => x.dono === u && x.produto === prod);
         if(B.acao === 'link'){ if(!a || !a.asaas_assinatura) throw { code: 'sem_assinatura', status: 404 }; return { ok: true, link: '', vence: '', demo: true }; }
