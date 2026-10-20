@@ -96,6 +96,10 @@ $P -f "$AQUI/semente406.sql"
 delta delta-v406.sql 'delta v4.06 ok'
 delta delta-v406.sql 'delta v4.06 ok'
 testa teste406.sql 19
+# v4.11: o trampo vira GTA (a missão paga mais e pede o tempo mínimo dela; o bico paga 0,03)
+delta delta-v411.sql 'delta v4.11 ok'
+delta delta-v411.sql 'delta v4.11 ok'
+testa teste411.sql 8
 . "$AQUI/virada343.sh"
 if grep -q 'FALHOU\|ERROR' $D/saida; then echo "deu FALHOU ou erro (acima)"; exit 1; fi
 echo "tudo ok: $(grep -c '^ok:' $D/saida) checagens"

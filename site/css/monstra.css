@@ -3803,3 +3803,25 @@ body.em-bio{padding-top:0}
   .lo-chegou a.lo-wa{margin:0 0 8px 52px}
 }
 @media (max-width:420px){.psh-ex{margin-left:26px}}
+
+/* v4.11 · o Trampo GTA: as estrelas de procurado (no alto, só quando a polícia tá atrás; a barrinha rosa é a algema
+   enchendo), o botão de empurrar (acima do amarelo; no celular, do lado do controle) e as missões no Trampo */
+.cvr-proc{display:inline-flex;align-items:center;gap:1px;position:relative;padding:4px 8px 6px;background:var(--ink);border:3px solid var(--ink);box-shadow:3px 3px 0 rgba(15,18,24,.35);pointer-events:none}
+.cvr-proc i{font-style:normal;font-size:15px;line-height:1;color:#4A4E56}
+.cvr-proc i.on{color:var(--yellow)}
+.cvr-proc.perto i.on{animation:cvr-proc-pisca .5s steps(2,jump-none) infinite}
+.cvr-proc-al{position:absolute;left:0;bottom:0;height:3px;background:var(--pink)}
+@keyframes cvr-proc-pisca{to{color:#FF5A5A}}
+@media (prefers-reduced-motion:reduce){ .cvr-proc.perto i.on{animation:none} }
+.cvr-briga{position:absolute;left:50%;bottom:132px;transform:translateX(-50%);display:inline-flex;align-items:center;gap:7px;min-height:40px;padding:0 14px;border:3px solid var(--ink);background:var(--ink);color:var(--yellow);font-family:"Silkscreen",var(--font-mono);font-size:13px;font-weight:700;cursor:pointer;box-shadow:4px 4px 0 var(--pink);white-space:nowrap;max-width:calc(100% - 24px);overflow:hidden;text-overflow:ellipsis}
+.cvr-briga .ic{width:16px;height:16px;flex:none}
+.cvr-stage.toque .cvr-briga{left:auto;right:10px;transform:none;bottom:calc(72px + 112px + 60px + env(safe-area-inset-bottom,0px));max-width:calc(100% - 156px)}
+.cvr-tarefa.missao{background:var(--ink);color:var(--yellow)}
+.cvr-tarefa.missao span{color:#fff}
+.cvr-ms-w{margin:4px 0 12px}
+.cvr-ms-h{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin:14px 0 2px;font-size:15px}
+.cvr-ms-h small{font-weight:400;font-size:12px;color:var(--ink-2)}
+.cvr-tf.cvr-ms{background:#FFF8D6}
+.cvr-tf.cvr-ms.on{background:var(--yellow)}
+.cvr-tf .cvr-ms-t{background:var(--ink);color:var(--yellow);margin-right:4px}
+.cvr-tf .cvr-ms-v{margin-left:4px}

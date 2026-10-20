@@ -473,9 +473,13 @@
     const now = () => new Date().toISOString();
     const inH = h => new Date(Date.now() + h * 36e5).toISOString();
     /* o mesmo do corre_tarefa_valor (delta-v338 + delta-v3391: 3 tarefas por uniforme) */
-    const CORREAL_TAREFA = { policial: { ronda: 3, ladrao: 5, transito: 2 }, bombeiro: { fogo: 5, gato: 3, treino: 2 }, medico: { socorro: 5, vacina: 3, plantao: 2 }, chef: { pastel: 3, smash: 3, churros: 3 }, motoboy: { entrega: 4, acai: 4, envelope: 3 }, craque: { gols: 4, peneira: 4, embaixadinha: 3 },
-      ladrao: { pipoca: 3, churros: 4, despista: 3 }, detetive: { pistas: 4, testemunha: 3, rastro: 4 }, cientista: { amostra: 4, ipe: 3, clima: 4 }, pirata: { tesouro: 4, bandeira: 3, mapa: 4 }, astronauta: { contagem: 3, treino: 3, estrelas: 4 },
-      ninja: { pergaminho: 4, telhados: 4, meditar: 3 }, super: { patrulha: 5, resgate: 4, pipa: 3 }, rei: { fita: 3, discurso: 3, visita: 4 } };
+    /* v4.11: como o banco (delta-v411.sql): os 42 bicos valem 1 ponto e as 8 missões de 6 a 8, cada uma com o seu tempo mínimo */
+    const CORREAL_TAREFA = {}, CORREAL_MIN = {};
+    Object.entries({ policial: 'ronda ladrao transito', bombeiro: 'fogo gato treino', medico: 'socorro vacina plantao', chef: 'pastel smash churros', motoboy: 'entrega acai envelope', craque: 'gols peneira embaixadinha',
+      ladrao: 'pipoca churros despista', detetive: 'pistas testemunha rastro', cientista: 'amostra ipe clima', pirata: 'tesouro bandeira mapa', astronauta: 'contagem treino estrelas',
+      ninja: 'pergaminho telhados meditar', super: 'patrulha resgate pipa', rei: 'fita discurso visita' }).forEach(([u, ks]) => { CORREAL_TAREFA[u] = {}; ks.split(' ').forEach(k => { CORREAL_TAREFA[u][k] = 1; }); });
+    [['motoboy', 'rush', 6, 50], ['policial', 'perseguicao', 8, 50], ['bombeiro', 'incendio', 8, 60], ['medico', 'ambulancia', 7, 40], ['ladrao', 'desmanche', 8, 50], ['detetive', 'nacola', 7, 60], ['pirata', 'contrabando', 7, 50], ['craque', 'racha', 6, 40]]
+      .forEach(([u, k, v, m]) => { CORREAL_TAREFA[u][k] = v; CORREAL_MIN[u + ':' + k] = m; });
     function seed(){
       const P = (id, handle, nome, cidade, bio, extra) => Object.assign({ id, handle, nome, cidade, bio, instagram: '', avatar_url: '', visibilidade: 'publico', grana_mostra: 'nada', plano: 'gratis', rolo_temas: [], banca_temas: [], banca_assuntos: [], ex: true, created_at: now() }, extra || {});
       const d = { user: null, t: {} }; T.forEach(t => d.t[t] = []);
@@ -1411,7 +1415,7 @@
           if(n === 'corre_tarefa_termina'){
             const t = d.t.corre_tarefa_vez.find(x => x.id === a.p_id && x.dono === eu); if(!t) return { ok: false, motivo: 'sem_tarefa' };
             const seg = (Date.now() - Date.parse(t.comecou)) / 1000;
-            if(seg < 20) return { ok: false, motivo: 'rapido', falta: Math.ceil(20 - seg) };
+            const mn = CORREAL_MIN[t.u + ':' + t.k] || 20; if(seg < mn) return { ok: false, motivo: 'rapido', falta: Math.ceil(mn - seg) };
             d.t.corre_tarefa_vez = d.t.corre_tarefa_vez.filter(x => x !== t);
             if(seg > 1800){ write(d); return { ok: false, motivo: 'velha' }; }
             const pts = CORREAL_TAREFA[t.u][t.k], v = pts * PONTO, hoje = hojeC(), ganhou = Math.max(0, Math.min(v, TETO - hoje)), w = cart();

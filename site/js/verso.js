@@ -1212,7 +1212,8 @@
 
   function meta(){
     const me = C.st.me || {}, pub = me.visibilidade === 'publico';
-    const m = { sid, av: V.eu ? V.eu.av : avLimpo(me.verso, me.id), mic: V.mic, x: V.eu ? Math.round(V.eu.x) : 0, y: V.eu ? Math.round(V.eu.y) : 0 };
+    /* v4.11: na missão, quem passa te vê no veículo emprestado */
+    const vm = V.eu && veicMissao(), m = { sid, av: V.eu ? (vm ? Object.assign({}, V.eu.av, { veiculo: vm.veic, vcor: vm.vcor }) : V.eu.av) : avLimpo(me.verso, me.id), mic: V.mic, x: V.eu ? Math.round(V.eu.x) : 0, y: V.eu ? Math.round(V.eu.y) : 0 };
     const pt = minhaPatente(); if(pt) m.pt = pt;
     /* v3.75: de barco no Tibagi, e a maior piapara do dia (centésimos de kg) */
     if(V.eu && V.eu.barco){ m.bc = 1; m.bl = V.eu.barco.lado < 0 ? -1 : 1; }
@@ -4832,7 +4833,7 @@
     /* v4.0: o show da Concha (o MC e a plateia) e a luz dos fogos */
     showNaFila(L, ctx, t, vis); fogosLuz(t);
     if(V.eu && V.sk && V.sk.grind) L.push({ y: V.eu.y + 2, f: () => faiscas(ctx, V.eu.x, V.eu.y, t) });
-    desenhaTarefa(L, ctx, t, vis);
+    desenhaTarefa(L, ctx, t, vis); desenhaGta(L, ctx, t, vis);
     /* v3.87: o Natal (o festão de poste em poste, a guirlanda nas portas e o Papai Noel do Igapó) */
     if(natal()){
       fiosDe(c).forEach(f => { if(vis((f.a.x + f.b.x) / 2, f.a.y, 240)) L.push({ y: f.a.y - .5, f: () => festao(ctx, f) }); });
@@ -4858,7 +4859,9 @@
   const noelLugar = () => { const n = V.cid.lago && V.cid.lago.noel; return n && n.placa && natal() ? [{ nome: 'Papai Noel do Igapó', x: n.placa.x, y: n.placa.y + 24 }] : []; };
   const lugares = () => (V.casa ? [{ nome: 'Tua casa', x: V.casa.x, y: V.casa.y }] : []).concat(V.cid.lugares, noelLugar());
   function pertoLivre(x, y){ for(let r = 0; r < 300; r += 14){ for(let a = 0; a < 16; a++){ const px = x + Math.cos(a / 8 * Math.PI) * r, py = y + Math.sin(a / 8 * Math.PI) * r; if(!bate(px, py)) return { x: px, y: py }; if(!r) break; } } return null; }
-  function teleporta(x, y){ if(!V.eu) return; saiDoBarco(); V.alvo = null; V.eu.sit = false; V.eu.mov = false; V.eu.x = x; V.eu.y = y; V.cam.x = x; V.cam.y = y - 40; anunciar(); portaUI(); C.closeSheet(); }
+  /* v4.11: procurado não viaja (a polícia te pega na chegada, diria o GTA); em missão, viajar larga ela */
+  function podeViajar(){ if(V.proc && V.proc.n > 0){ C.toast('Com a polícia na cola não dá pra viajar. Despista primeiro.', 2600); return false; } if(V.tarefa && V.tarefa.def.missao){ const nome = V.tarefa.def.nome; largaTarefa(true); C.toast(`Viajou: a missão ${nome} ficou pra trás.`, 2600); } return true; }
+  function teleporta(x, y, forca){ if(!V.eu) return; if(!forca && !podeViajar()) return; saiDoBarco(); V.alvo = null; V.eu.sit = false; V.eu.mov = false; V.eu.x = x; V.eu.y = y; V.cam.x = x; V.cam.y = y - 40; anunciar(); portaUI(); C.closeSheet(); }
   function desenhaMapa(cv, S){
     const c = V.cid, ctx = cv.getContext('2d'), oy = TOPO - RUA, X = x => Math.round(x / S), Y = y => Math.round((y - oy) / S), meu = C.st.me && C.st.me.id;
     ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = '#2B2F38'; ctx.fillRect(0, 0, cv.width, cv.height);
@@ -4932,14 +4935,16 @@
     if(falando(o, eu)){ ctx.save(); naBase(ctx); ctx.fillStyle = ROSA; const w = 9 + (Math.sin(t * 14) > 0 ? 1 : 0); ctx.fillRect(ix - w, iy + 1, w * 2, 1); ctx.fillRect(ix - w, iy - 1, 1, 2); ctx.fillRect(ix + w - 1, iy - 1, 1, 2); ctx.restore(); }
     const item = o.item && (eu ? o.item.ate > Date.now() && o.item.k : o.item) || null;
     if(o.barco){ barquinho(ctx, o, t, eu, item); return; }
-    skin(ctx, o.av, ix, iy, o.sit ? 'baixo' : o.dir, o.mov && !o.sit ? o.passo : null, 1, o.sit ? 'sentado' : '', { item, pesca: !!(o.pesca && o.sit), vc: o.sit ? '' : veiculoDe(o), vcor: o.av && o.av.vcor, pulo: alturaPulo(o) * PULO_PX });
+    skin(ctx, o.av, ix, iy, o.sit ? 'baixo' : o.dir, o.mov && !o.sit ? o.passo : null, 1, o.sit ? 'sentado' : '', { item, pesca: !!(o.pesca && o.sit), vc: o.sit ? '' : veiculoDe(o), vcor: o === V.eu && veicMissao() ? V.tarefa.vcor : o.av && o.av.vcor, pulo: alturaPulo(o) * PULO_PX });
   }
   /* ---------- v3.40 · o pulo, o veículo de cada um ---------- */
   const PULO_MS = 480, PULO_PX = 11;
   /* a altura do pulo agora (0 a 1, uma parábola) */
   const alturaPulo = o => { const t0 = o && o.puT; if(!t0) return 0; const f = (performance.now() - t0) / (o.puMs || PULO_MS); return f > 0 && f < 1 ? 4 * f * (1 - f) * (o.puH || 1) : 0; };
   /* o veículo de alguém: o da garagem (ou o skate de antes da garagem) */
-  const veiculoDe = o => { const av = o && o.av; if(!av) return ''; if(!o.barco && !o.sit && naPistaSkate(o.x, o.y)) return 'skate'; return av.veiculo && C.veiculos && C.veiculos.porK(av.veiculo) ? av.veiculo : av.skate ? 'skate' : ''; };
+  const veiculoDe = o => { const av = o && o.av; if(!av) return ''; if(!o.barco && !o.sit && naPistaSkate(o.x, o.y)) return 'skate';
+    /* v4.11: na missão, o veículo emprestado (a viatura, a moto do rush...) */
+    if(o === V.eu && !o.barco && !o.sit){ const T = veicMissao(); if(T) return T.veic; } return av.veiculo && C.veiculos && C.veiculos.porK(av.veiculo) ? av.veiculo : av.skate ? 'skate' : ''; };
   const veiculoInfo = o => { const k = veiculoDe(o); return k && C.veiculos ? C.veiculos.porK(k) : null; };
   const MIC_B = ['01110', '01110', '01110', '10001', '01110', '00100', '01110'];
   /* v3.76 · o balão de fala comprida (os moradores): quebra em linhas de até 24 letras (no máximo 4), numa caixa só,
@@ -4994,6 +4999,8 @@
   const ritmo = e => { const vi = veiculoInfo(e); return Math.min(2.8, (vi ? vi.vel : 1) * (e.turboAte && e.turboAte > Date.now() ? 1.3 : 1)); };
   /* o teu boneco num passo (de até 50 ms); fator = quanto o direcional da tela tá empurrado (1 = tudo) */
   function andaEu(e, kx, ky, dt, fator){
+    /* v4.11: levou um empurrão ou bateu: escorrega um tiquinho e fica uns instantes sem andar */
+    if(e.tonto && e.tonto > Date.now()){ const s = e.empurrao; if(s && Date.now() - s.t0 < 260) mover(e, s.vx * dt, s.vy * dt); e.mov = false; e.travou = false; return; }
     let dx = kx, dy = ky;
     if(e.sit) dx = dy = 0;
     if(V.entrando > 0){ V.entrando -= dt; dy = 1; dx = 0; }
@@ -5003,6 +5010,8 @@
     if(e.mov){
       dx /= n; dy /= n; const f = fator || 1, rt = ritmo(e), v = VEL * (V.entrando > 0 ? .6 : 1) * rt * f * dt, ox = e.x, oy = e.y;
       mover(e, dx * v, dy * v); e.passo += dt * 11 * (veiculoInfo(e) ? clamp(rt * f * .8, .6, 1.7) : f);
+      /* v4.11: empurrou e quase não saiu do lugar (pra saber quando o carro raspou na parede) */
+      e.travou = Math.hypot(e.x - ox, e.y - oy) < v * .35;
       e.dir = Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 'esq' : 'dir') : (dy < 0 ? 'cima' : 'baixo');
       if(V.alvo && Math.hypot(e.x - ox, e.y - oy) < .2) V.alvo = null;
     }
@@ -5024,7 +5033,7 @@
     if(e.pesca && e.sit && Date.now() > e.pesca.ate){ const agora = Date.now(), r = Math.random(); if(r < .6){ e.item = { k: 'peixe', ate: agora + 8000 }; falaAuto(1); } else if(r < .7){ e.item = { k: 'bota', ate: agora + 8000 }; falaAuto(3); } else falaAuto(2); e.pesca = { ate: agora + 6000 + Math.random() * 5000 }; enviaPos(true); }
     /* quadro lento (celular fraco): o boneco anda em passos de até 50 ms, pra a velocidade não depender do quadro */
     /* v3.58: no minijogo parado o boneco não anda (as setas são do jogo) */
-    if(V.tarefa && V.tarefa.fase === 'jogando'){ kx = ky = 0; V.alvo = null; }
+    if(V.tarefa && (V.tarefa.fase === 'jogando' || V.tarefa.fase === 'largada')){ kx = ky = 0; V.alvo = null; }
     const np = Math.max(1, Math.ceil(dtReal / .05 - 1e-9));
     if(V.voo) passoVoo(dtReal);
     else if(e.barco) for(let i = 0; i < np; i++) andaBarco(e, kx, ky, dtReal / np, fator);
@@ -5041,7 +5050,7 @@
     }
     if(e.mov || V.voo) V.paradoT = 0; else if(!V.paradoT) V.paradoT = Date.now();
     skatePasso(dtReal);
-    bots(dt); passoMoradores(dt); passoTorcidas(dt); carros(dt); bolas(dt); passoNpcs(dt); passoTarefa(dt); mjUI(); rioPasso(dt); rioUI(); passoArthur(dt);
+    bots(dt); passoMoradores(dt); passoTorcidas(dt); carros(dt); bolas(dt); passoNpcs(dt); passoTarefa(dt); passoGta(Math.min(.1, dtReal)); mjUI(); rioPasso(dt); rioUI(); passoArthur(dt);
     if(V.tarefa && (!V.tarefaUiT || t - V.tarefaUiT > .25)){ V.tarefaUiT = t; tarefaUI(); }
     if(V.anEu) V.nivelEu = V.anEu();
     const z = V.z, cw = V.cssW, ch = V.cssH;
@@ -5275,12 +5284,15 @@
        conhece (o delta novo não rodou) vale patente, mas não paga: avisa uma vez */
     const T0 = V.tarefa; C.api.rpc('corre_tarefa_comeca', { p_u: u, p_k: k }).then(id => { if(id) T0.vez = id; }).catch(e => { if(e && (e.hint === 'tarefa' || e.message === 'tarefa')){ T0.semCorreal = true; C.toast('Essa tarefa é nova: conta pra patente, mas ainda não paga correal.', 4200); } });
     etapas.forEach(e => { if(e.npc) montaNpc(e); });
+    /* v4.11: a missão empresta o veículo e põe os pilotos dela na rua */
+    if(def.missao) comecaMissao(V.tarefa);
     C.closeSheet(); tarefaUI(); portaUI();
-    C.toast(`${vestiu ? `Vestiu ${nomeUni(u).toLowerCase()}. ` : ''}${def.nome}: vai até ${etapas[0].rotulo}. Segue a seta rosa.`, 3400);
+    C.toast(def.missao ? `Missão: ${def.nome}, ${def.como}. Vai até ${etapas[0].rotulo}${V.tarefa.ate ? ` (${Math.round((V.tarefa.ate - Date.now()) / 1000)} s)` : ''}. Segue a seta rosa.` : `${vestiu ? `Vestiu ${nomeUni(u).toLowerCase()}. ` : ''}${def.nome}: vai até ${etapas[0].rotulo}. Segue a seta rosa.`, 3400);
     return true;
   }
   function largaTarefa(quieto){
     const T = V.tarefa; if(!T) return;
+    fimMissao(T);
     T.etapas.forEach(e => { if(e.sid) tiraNpc(e.sid); });
     if(T.mj && T.mj.P) T.mj.P.forEach(p => { if(p.sid) tiraNpc(p.sid); });
     V.tarefa = null; V.portaT = null; if(V.eu && V.eu.item && V.eu.item.tarefa) V.eu.item = null;
@@ -5304,6 +5316,8 @@
     const T = V.tarefa, e = V.eu; if(!e) return;
     for(const r of V.remotos.values()){
       if(!r.npc) continue;
+      /* v4.11: o figurante empurrado fica no chão uns segundos (moradores e torcida cuidam dos deles) */
+      if(/^npc-/.test(r.sid) && caido(r, dt)) continue;
       if(r.foge){
         /* o ladrão foge de você, com uns picos de velocidade; perto de parede, muda de ideia */
         const dx = r.x - e.x, dy = r.y - e.y, d = Math.hypot(dx, dy) || 1;
@@ -5318,6 +5332,487 @@
         mover(r, dx / d * 80 * dt, dy / d * 80 * dt); r.mov = true; r.passo += dt * 9; r.dir = Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 'esq' : 'dir') : (dy < 0 ? 'cima' : 'baixo');
       }
     }
+  }
+  /* ---------- v4.11 · o Trampo GTA ----------
+     O Thales: "próximo passo: agredir NPC igual GTA" e "o trampo precisa parecer mais GTA também: os trabalhos bem mais
+     complexos, usando carros, NPCs, motos, patinetes, barcos". Tudo daqui é do aparelho de cada um (como os moradores e
+     o trânsito): a polícia, os pilotos e as missões não vão pra rede; quem passa só te vê no veículo da missão.
+       as ruas    as esquinas e os trechos de asfalto livres (dentro dos lugares grandes não tem rua) e o caminho mais
+                  curto entre duas esquinas. É por elas que anda quem dirige sozinho
+       os pilotos gente de carro, moto, patinete ou barco que dirige sozinha, na mão certa: a viatura que caça, o carro
+                  que foge, o suspeito que vai pra um encontro, os rivais do racha, o barco do fiscal
+       a polícia  as estrelas de procurado (até 5). Cada estrela põe uma viatura atrás de você (até 3); encostou em
+                  você devagar, perdeu: vai pra Delegacia e a missão acaba. Longe de todas uns segundos, cai uma estrela.
+                  Procurado não viaja pelo Mapa nem volta pra casa no botão
+       o empurrão perto de um morador, de alguém da torcida ou de um figurante das tarefas, o botão "Empurrar" (ou F):
+                  ele cai sentado, tonto, levanta bravo e vem uma estrela. A torcida revida. Gente de verdade nunca (nem
+                  os bonecos da demonstração, que fazem papel de gente). De carro ou de moto, atropelar dá estrela
+     As 8 missões (uma pra cada uniforme que dirige) pagam de 0,18 a 0,24 (o bico de antes agora paga 0,03: delta-v411.sql)
+     e emprestam o veículo enquanto duram: a viatura, a moto do rush, a picape dos bombeiros, a ambulância, o patinete. */
+
+  /* as ruas: cada esquina (i = a rua em pé, s = a rua deitada) e os trechos livres entre elas */
+  const MAO_RUA = 18;
+  function grafo(){
+    const c = V.cid; if(c.grafo) return c.grafo;
+    const NC = COLS + 1, NR = c.rows + 1, N = [], viz = [];
+    for(let s = 0; s < NR; s++) for(let i = 0; i < NC; i++){ N.push({ id: s * NC + i, i, s, x: ruaX(i), y: ruaY(s) }); viz.push([]); }
+    const g = (r, cc) => r >= 0 && r < c.rows && cc >= 0 && cc < COLS ? c.grade[r][cc] : null;
+    /* dois quarteirões do mesmo lugar grande (ou os dois do fundador) não têm rua no meio */
+    const junto = (a, b) => !!a && !!b && ((a.t === 'reg' && b.t === 'reg' && a.R === b.R) || (a.t === 'dois' && b.t === 'dois'));
+    /* e o trecho tem que estar livre de verdade (cerca, árvore e prédio de lugar grande às vezes encostam na rua) */
+    const livreSeg = (a, b) => { const n = Math.ceil(Math.hypot(b.x - a.x, b.y - a.y) / 24); for(let k = 1; k < n; k++) if(bate(a.x + (b.x - a.x) * k / n, a.y + (b.y - a.y) * k / n)) return false; return true; };
+    const liga = (a, b) => { if(livreSeg(N[a], N[b])){ viz[a].push(b); viz[b].push(a); } };
+    for(let s = 0; s < NR; s++) for(let i = 0; i < NC; i++){
+      const id = s * NC + i;
+      if(i < COLS && !junto(g(s - 1, i), g(s, i))) liga(id, id + 1);
+      if(s < c.rows && !junto(g(s, i - 1), g(s, i))) liga(id, id + NC);
+    }
+    return (c.grafo = { N, viz, NC });
+  }
+  /* o caminho mais curto entre duas esquinas (Dijkstra; são umas 200 esquinas, então a conta simples basta) */
+  function caminhoNos(a, b){
+    const G = grafo(), n = G.N.length, d = new Float64Array(n).fill(Infinity), de = new Int32Array(n).fill(-1), ok = new Uint8Array(n);
+    if(a < 0 || b < 0) return null; d[a] = 0;
+    for(;;){
+      let u = -1, m = Infinity; for(let k = 0; k < n; k++) if(!ok[k] && d[k] < m){ m = d[k]; u = k; }
+      if(u < 0 || u === b) break; ok[u] = 1;
+      for(const v of G.viz[u]){ const w = m + Math.hypot(G.N[u].x - G.N[v].x, G.N[u].y - G.N[v].y); if(w < d[v]){ d[v] = w; de[v] = u; } }
+    }
+    if(!isFinite(d[b])) return null; const L = []; for(let u = b; u >= 0; u = de[u]) L.unshift(u); return L;
+  }
+  /* a esquina mais perto (só as que têm rua saindo) e uma esquina a uma distância de tal a tal */
+  function esquina(x, y){ const G = grafo(); let best = -1, md = Infinity; for(const q of G.N){ if(!G.viz[q.id].length) continue; const d = Math.hypot(q.x - x, q.y - y); if(d < md){ md = d; best = q.id; } } return best; }
+  function esquinaLonge(x, y, d0, d1){
+    const G = grafo(), L = G.N.filter(q => G.viz[q.id].length && Math.hypot(q.x - x, q.y - y) >= d0 && Math.hypot(q.x - x, q.y - y) <= d1);
+    if(L.length) return sorteio(L);
+    let best = null, md = -1; for(const q of G.N){ if(!G.viz[q.id].length) continue; const d = Math.hypot(q.x - x, q.y - y); if(d <= d1 * 1.6 && d > md){ md = d; best = q; } } return best;
+  }
+  /* os pontos de um caminho na mão certa (pra direita de quem dirige: na tela, (-dy, dx)) */
+  function naMao(ids){
+    const G = grafo(), P = [];
+    for(let j = 0; j < ids.length; j++){
+      const B = G.N[ids[j]], A = j ? G.N[ids[j - 1]] : B, C2 = G.N[ids[Math.min(ids.length - 1, j + 1)]];
+      const ux = j ? B.x - A.x : C2.x - B.x, uy = j ? B.y - A.y : C2.y - B.y, n = Math.hypot(ux, uy) || 1;
+      P.push({ x: B.x - uy / n * MAO_RUA, y: B.y + ux / n * MAO_RUA });
+    }
+    return P;
+  }
+  /* o canto de um lugar grande que dá pra rua (o meio da rua de baixo dele) */
+  const cantoDe = k => { const R = V.cid.regs.find(g => g.k === k); return R ? grafo().N[esquina(R.x + R.w / 2, R.y + R.h + RUA / 2)] : null; };
+
+  /* os pilotos: entram no V.remotos (o boneco desenha a pessoa no veículo, como os outros), com npc */
+  function criaPiloto(o){
+    const sid = 'pil-' + Math.random().toString(36).slice(2, 8);
+    const av = avLimpo(o.av || { pele: pele6(), cabelo: sorteio(['curto', 'raspado', 'coque', 'black']), roupa: sorteio(['jaqueta', 'camiseta', 'moletom']), corRoupa: Math.floor(Math.random() * 8) }, sid);
+    if(o.veic){ av.veiculo = o.veic; av.vcor = o.vcor == null ? Math.floor(Math.random() * 11) : o.vcor; }
+    const P = Object.assign({ sid, bot: true, npc: true, piloto: true, nome: o.nome || '', av, x: o.x, y: o.y, dir: 'dir', passo: 0, mov: false, sit: false, mic: false,
+      vel: o.vel || 300, modo: o.modo || 'parado', cam: null, ci: 0, recalc: 0 }, o.extra || {});
+    V.remotos.set(sid, P); (V.pilotos || (V.pilotos = [])).push(P); return P;
+  }
+  function tiraPiloto(P){ if(!P) return; V.remotos.delete(P.sid); if(V.pilotos) V.pilotos = V.pilotos.filter(x => x !== P); }
+  /* pelas ruas até o ponto (a última perna é reta até ele) */
+  function rotaPra(P, x, y){
+    const ids = caminhoNos(esquina(P.x, P.y), esquina(x, y));
+    P.cam = (ids ? naMao(ids) : []).concat([{ x, y, fim: true }]); P.ci = 0;
+    /* a primeira esquina ficou pra trás? (ele já tava no meio do quarteirão, indo pra segunda) */
+    if(P.cam.length > 2){ const a = P.cam[0], b = P.cam[1]; if(Math.hypot(b.x - P.x, b.y - P.y) < Math.hypot(b.x - a.x, b.y - a.y)) P.ci = 1; }
+  }
+  const olha = (o, dx, dy) => { if(Math.abs(dx) + Math.abs(dy) > .3) o.dir = Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 'esq' : 'dir') : (dy < 0 ? 'cima' : 'baixo'); };
+  function passoPilotos(dt){
+    const L = V.pilotos; if(!L || !L.length) return;
+    const e = V.eu, agora = Date.now();
+    for(const P of L.slice()){
+      if(P.pensa) P.pensa(P, dt, agora);
+      if(P.modo === 'parado'){ P.mov = false; continue; }
+      const v = P.vel * (P.fator || 1) * dt;
+      /* a viatura perto: vai reto em você, batendo nas coisas; travou, volta pras ruas um tempo */
+      if(P.direto && e){
+        const dx = e.x - P.x, dy = e.y - P.y, d = Math.hypot(dx, dy);
+        if(d > 24){ const ox = P.x, oy = P.y; mover(P, dx / d * v, dy / d * v); if(Math.hypot(P.x - ox, P.y - oy) < v * .3){ P.direto = false; P.trava = agora + 1500; P.cam = null; } }
+        P.mov = d > 24; if(P.mov){ P.passo += dt * 11; olha(P, dx, dy); } continue;
+      }
+      const alvo = P.cam && P.cam[P.ci]; if(!alvo){ P.mov = false; continue; }
+      const dx = alvo.x - P.x, dy = alvo.y - P.y, d = Math.hypot(dx, dy);
+      if(d <= v){ P.x = alvo.x; P.y = alvo.y; P.ci++; if(alvo.fim && P.chegou) P.chegou(P); }
+      else { P.x += dx / d * v; P.y += dy / d * v; }
+      P.mov = true; P.passo += dt * 11; olha(P, dx, dy);
+    }
+  }
+  /* quem foge: uma esquina longe de você e não muito longe dele; de tempo em tempo muda de ideia */
+  function pensaFoge(P, dt, agora){
+    const e = V.eu; if(!e || P.modo === 'parado') return;
+    if(P.cam && P.ci < P.cam.length && agora < P.recalc) return;
+    const G = grafo(); let best = null, bv = -Infinity;
+    for(let k = 0; k < 18; k++){ const q = G.N[Math.floor(Math.random() * G.N.length)]; if(!G.viz[q.id].length) continue; const dp = Math.hypot(q.x - P.x, q.y - P.y); if(dp < 500 || dp > 1900) continue; const val = Math.hypot(q.x - e.x, q.y - e.y) - dp * .4; if(val > bv){ bv = val; best = q; } }
+    if(best){ rotaPra(P, best.x, best.y); P.recalc = agora + 5000 + Math.random() * 2000; }
+  }
+  /* a viatura: pelas ruas até você; perto (e você em terra), reto em você */
+  function pensaViatura(P, dt, agora){
+    const e = V.eu; if(!e || P.modo === 'parado') return;
+    if(P.embora){ if(!P.cam || P.ci >= P.cam.length || Math.hypot(P.x - e.x, P.y - e.y) > 1400 || agora > P.embora) tiraViatura(P); return; }
+    const d = Math.hypot(e.x - P.x, e.y - P.y);
+    P.fator = d > 900 ? 1.35 : 1;
+    if(d < 250 && !e.barco && agora > (P.trava || 0)){ P.direto = true; return; }
+    P.direto = false;
+    if(!P.cam || P.ci >= P.cam.length || agora > P.recalc){ P.recalc = agora + 1100 + Math.random() * 400; rotaPra(P, e.x, e.y); }
+  }
+
+  /* ---------- a polícia ---------- */
+  const COR_VTR = 2;   // branca (a faixa azul e o giroflex vêm por cima, no desenhaGta)
+  function procura(n, porque){
+    const P = V.proc; if(!P || !V.eu) return;
+    const antes = P.n; P.n = clamp(P.n + n, 0, 5); P.fora = 0;
+    if(P.n > antes){ if(C.versoSom && C.versoSom.gta) C.versoSom.gta('estrela'); C.toast(`${'★'.repeat(P.n)} Procurado${porque ? ': ' + porque : ''}. ${antes ? 'Mais viatura na rua.' : 'A polícia vem aí.'}`, 2600); }
+    procUI();
+  }
+  function tiraViatura(P){ tiraPiloto(P); if(V.proc) V.proc.vtr = V.proc.vtr.filter(x => x !== P); }
+  function poeViatura(){
+    const e = V.eu, s = esquinaLonge(e.x, e.y, 650, 1100); if(!s) return;
+    const P = criaPiloto({ nome: 'Polícia', veic: 'suv', vcor: COR_VTR, x: s.x, y: s.y, vel: 320 + V.proc.n * 10, modo: 'anda',
+      av: { pele: pele6(), cabelo: 'raspado', skin: 'policial' }, extra: { vtr: true, sirene: true } });
+    P.pensa = pensaViatura; V.proc.vtr.push(P);
+  }
+  function passoProc(dt){
+    const P = V.proc, e = V.eu; if(!P || !e) return;
+    const agora = Date.now();
+    /* dentro de casa, de um lugar 3D, de um jogo ou no balcão a cidade espera: a polícia também */
+    if((C.casa && C.casa.aberta()) || V.jogo || BC.aberto || V.voo) return;
+    const quer = P.n <= 0 ? 0 : Math.min(3, P.n);
+    if(P.vtr.filter(v => !v.embora).length < quer && agora > (P.nasceT || 0)){ P.nasceT = agora + 1800; poeViatura(); }
+    /* estrela que caiu: a viatura que sobrou vai embora */
+    let ativas = P.vtr.filter(v => !v.embora); while(ativas.length > quer){ const v = ativas.pop(); v.embora = agora + 9000; const s = esquinaLonge(v.x, v.y, 900, 1600); if(s) rotaPra(v, s.x, s.y); v.direto = false; }
+    ativas = P.vtr.filter(v => !v.embora);
+    let perto = Infinity; for(const v of ativas) perto = Math.min(perto, Math.hypot(v.x - e.x, v.y - e.y));
+    P.perto = perto;
+    /* encostou e ficou: perdeu. Passando voando do lado dela não conta (a algema é pra quem tá devagar) */
+    if(perto < 48 && !e.barco && (e.vAgora || 0) < 150) P.algema += dt; else P.algema = Math.max(0, P.algema - dt * .7);
+    if(P.algema >= 1.6){ preso(); return; }
+    if(P.n > 0){
+      if(perto > 650) P.fora += dt; else P.fora = 0;
+      if(P.fora > 7){ P.fora = 0; P.n--; procUI(); C.toast(P.n ? `${'★'.repeat(P.n)} Despistou uma viatura.` : 'Despistou a polícia. Tá limpo.', 2200); }
+      if(perto < 620 && agora > (P.sirT || 0) && C.versoSom && C.versoSom.gta){ P.sirT = agora + 1450; C.versoSom.gta('sirene', 1 - perto / 700); }
+    }
+    if(agora > (P.uiT || 0)){ P.uiT = agora + 300; procUI(); }
+  }
+  function preso(){
+    const P = V.proc; P.n = 0; P.algema = 0; P.fora = 0; P.vtr.slice().forEach(tiraViatura); procUI();
+    if(C.versoSom && C.versoSom.gta) C.versoSom.gta('perdeu');
+    const T = V.tarefa, missao = T && T.def.missao;
+    if(T) largaTarefa(true);
+    const d = portaCivica('delegacia'), p = d && pertoLivre(d.x, d.y + 26);
+    if(p) teleporta(p.x, p.y, true);
+    C.toast(`Perdeu! A polícia te levou pra Delegacia. ${missao ? 'A missão ficou pelo caminho.' : 'Liberado, mas fica esperto.'}`, 4200);
+  }
+  function procUI(){
+    const el = C.$('cvr-proc'); if(!el) return; const P = V.proc, n = P ? P.n : 0;
+    el.hidden = !n; if(!n){ el.innerHTML = ''; return; }
+    el.setAttribute('aria-label', `Procurado: ${n} de 5 estrelas`);
+    el.innerHTML = [0, 1, 2, 3, 4].map(i => `<i class="${i < n ? 'on' : ''}" aria-hidden="true">★</i>`).join('') + (P.algema > .2 ? `<b class="cvr-proc-al" style="width:${Math.round(Math.min(1, P.algema / 1.6) * 100)}%" aria-hidden="true"></b>` : '');
+    el.classList.toggle('perto', P.perto < 650);
+  }
+
+  /* ---------- o empurrão ---------- */
+  const BRAVO = ['Ô! Sem educação!', 'Tá maluco, rapaz?', 'Vou chamar a polícia!', 'Que isso, criatura?', 'Respeita quem tá quieto!', 'Sai pra lá!', 'Na frente de todo mundo?'];
+  const REVIDE = ['Mexeu com um, mexeu com todos!', 'Aqui é torcida, não é bagunça!', 'Vai empurrar outro!', 'Respeita a arquibancada!'];
+  const empurravel = r => !!r && r.npc && !r.piloto && !r.palco && (r.morador || r.torcida || /^npc-/.test(r.sid)) && !(r.caiu && r.caiu.ate > Date.now());
+  function quemEmpurro(){
+    const e = V.eu, vi = e && veiculoInfo(e); if(!e || e.barco || V.voo || e.sit || (vi && (vi.tipo === 'carro' || vi.capacete)) || (e.tonto && e.tonto > Date.now())) return null;
+    let best = null, md = 36; for(const r of V.remotos.values()){ if(!empurravel(r)) continue; const d = Math.hypot(r.x - e.x, r.y - e.y); if(d < md){ md = d; best = r; } }
+    return best;
+  }
+  /* derruba: escorrega uns palmos, gira, fica sentado tonto e levanta bravo */
+  function derruba(r, fx, fy, forca){
+    const agora = Date.now(), dx = r.x - fx, dy = r.y - fy, d = Math.hypot(dx, dy) || 1;
+    if(r.papo) fimPapo(r.papo, agora);
+    r.caiu = { ate: agora + 2400, vx: dx / d * 240 * forca, vy: dy / d * 160 * forca, t0: agora }; r.alvo = null; r.mov = false; r.fala = null;
+  }
+  /* um quadro de quem tá no chão (os moradores, a torcida e os figurantes chamam no começo do passo deles) */
+  function caido(r, dt){
+    const c = r.caiu; if(!c) return false;
+    const agora = Date.now();
+    if(agora >= c.ate){
+      r.caiu = null; r.sit = false; r.bravo = agora + 30000;
+      const t = r.torcida ? sorteio(REVIDE) : r.sid === 'mor-' + MORADORES.findIndex(m => m.nome === 'Marcão Bandeira') ? 'Respeita a bandeira, rapaz!' : sorteio(BRAVO);
+      r.fala = { t, ate: agora + 3200 }; if(C.versoSom && C.versoSom.papo && V.eu && Math.hypot(r.x - V.eu.x, r.y - V.eu.y) < 320) C.versoSom.papo(t.length, (r.d && r.d.voz) || 200);
+      return false;
+    }
+    if(agora - c.t0 < 280){ mover(r, c.vx * dt, c.vy * dt); r.dir = ['baixo', 'esq', 'cima', 'dir'][Math.floor((agora - c.t0) / 70) % 4]; r.sit = false; }
+    else { r.sit = true; r.dir = 'baixo'; }
+    r.mov = false; return true;
+  }
+  function empurra(){
+    const r = quemEmpurro(), e = V.eu; if(!r || !e) return;
+    const agora = Date.now(); if(agora - (V.empT || 0) < 450) return; V.empT = agora;
+    olha(e, r.x - e.x, r.y - e.y); e.empurrou = agora;
+    derruba(r, e.x, e.y, 1);
+    if(C.versoSom && C.versoSom.gta) C.versoSom.gta('empurra');
+    procura(1, `empurrou ${r.torcida ? 'alguém da torcida' : r.nome || 'alguém'}`);
+    /* a torcida revida: o mais perto de você te empurra de volta */
+    if(r.torcida){ const o = r.torcida.gente.filter(m => m !== r && !m.caiu).sort((a, b) => Math.hypot(a.x - e.x, a.y - e.y) - Math.hypot(b.x - e.x, b.y - e.y))[0];
+      if(o) setTimeout(() => { if(!V.vivo || !V.eu) return; o.fala = { t: sorteio(REVIDE), ate: Date.now() + 2600 }; derrubaEu(o.x, o.y, 1); }, 380); }
+    brigaUI();
+  }
+  /* você levando um empurrão (ou batendo): escorrega e fica uns instantes sem andar */
+  function derrubaEu(fx, fy, forca){
+    const e = V.eu, dx = e.x - fx, dy = e.y - fy, d = Math.hypot(dx, dy) || 1, agora = Date.now();
+    e.tonto = agora + 900 * forca; e.empurrao = { vx: dx / d * 220 * forca, vy: dy / d * 150 * forca, t0: agora }; V.alvo = null;
+    if(C.versoSom && C.versoSom.gta) C.versoSom.gta('empurra');
+  }
+  function brigaUI(){
+    const b = C.$('cvr-briga'); if(!b) return;
+    const r = quemEmpurro(); b.hidden = !r; if(r) b.innerHTML = `${ico('raio')} Empurrar${r.torcida ? '' : ' ' + esc(String(r.nome || '').slice(0, 18))}`;
+    V.brigaOn = !!r;
+  }
+
+  /* um quadro do GTA: a velocidade de verdade, o atropelo, a batida no trânsito, os pilotos e a polícia */
+  function passoGta(dt){
+    const e = V.eu; if(!e || !V.proc) return;
+    const agora = Date.now();
+    if(e.ux != null && dt > 0){ const v = Math.hypot(e.x - e.ux, e.y - e.uy) / dt; e.vAgora = e.vAgora == null ? v : e.vAgora * .75 + v * .25; }
+    e.ux = e.x; e.uy = e.y;
+    const vi = veiculoInfo(e), forte = !!vi && (vi.tipo === 'carro' || vi.capacete);
+    if(forte && e.mov && !e.barco && !V.voo && (e.vAgora || 0) > 120){
+      for(const r of V.remotos.values()){ if(!empurravel(r) || Math.hypot(r.x - e.x, r.y - e.y) > 20) continue; derruba(r, e.x, e.y, 1.3); if(C.versoSom && C.versoSom.gta) C.versoSom.gta('batida', .6); if(agora > (V.atrT || 0)){ V.atrT = agora + 2500; procura(1, 'atropelou ' + (r.torcida ? 'alguém da torcida' : r.nome || 'alguém')); } }
+      if(agora > (e.batT || 0)) for(const c of V.carros || []){ if(Math.abs(c.x - e.x) < 30 && Math.abs(c.y - e.y) < 15){ e.batT = agora + 1300; bateu('carro', c.x, c.y); break; } }
+    }
+    /* raspou na parede: de carro, empurrando e quase sem sair do lugar */
+    if(vi && vi.tipo === 'carro' && e.mov && e.travou){ e.raspaT = (e.raspaT || 0) + dt; if(e.raspaT > .2 && agora > (e.batT || 0)){ e.batT = agora + 1300; e.raspaT = 0; bateu('parede', e.x - (e.dir === 'dir' ? -20 : e.dir === 'esq' ? 20 : 0), e.y - (e.dir === 'baixo' ? -20 : e.dir === 'cima' ? 20 : 0)); } }
+    else e.raspaT = 0;
+    passoPilotos(dt); passoProc(dt);
+    if(!!quemEmpurro() !== !!V.brigaOn || (V.brigaOn && agora > (V.brigaT || 0))){ V.brigaT = agora + 250; brigaUI(); }
+  }
+  function bateu(k, fx, fy){
+    if(C.versoSom && C.versoSom.gta) C.versoSom.gta('batida', k === 'parede' ? .5 : 1);
+    if(k === 'carro') derrubaEu(fx, fy, .55);
+    const T = V.tarefa; if(T && T.def.missao && T.def.bateu) T.def.bateu(T, k);
+  }
+
+  /* o giroflex das viaturas (e da tua, na missão), a tontura de quem caiu, as caixas no rio e o placar de cima */
+  function desenhaGta(L, ctx, t, vis){
+    const T = V.tarefa, agora = Date.now();
+    const giro = (o, cores) => { if(!vis(o.x, o.y, 60)) return; const vk = veiculoDe(o), sobe = vk && C.veiculos ? C.veiculos.pose(vk, 'frente').sobe : 0, a = Math.floor(t * 6) % 2;
+      L.push({ y: o.y + .5, f: () => { const [ix, iy] = ptBase(ctx, o.x, o.y); ctx.save(); naBase(ctx); const y = iy - 26 - sobe; ctx.fillStyle = INK; ctx.fillRect(ix - 8, y - 1, 16, 5); ctx.fillStyle = a ? cores[0] : sombra(cores[0], .45); ctx.fillRect(ix - 7, y, 7, 3); ctx.fillStyle = a ? sombra(cores[1], .45) : cores[1]; ctx.fillRect(ix, y, 7, 3); ctx.restore(); } }); };
+    if(V.pilotos) for(const P of V.pilotos) if(P.sirene) giro(P, ['#E2412E', AZUL]);
+    if(T && T.sirene && V.eu && !V.eu.barco) giro(V.eu, T.sirene);
+    for(const r of V.remotos.values()){
+      if(!(r.caiu && r.sit) || !vis(r.x, r.y, 40)) continue;
+      L.push({ y: 9e6, f: () => { const [ix, iy] = ptBase(ctx, r.x, r.y); ctx.save(); naBase(ctx); for(let i = 0; i < 3; i++){ const a = t * 5 + i * 2.1; ctx.fillStyle = i % 2 ? AMARELO : PAPEL; ctx.fillRect(Math.round(ix + Math.cos(a) * 7) - 1, Math.round(iy - 30 + Math.sin(a) * 2) - 1, 2, 2); } ctx.restore(); } });
+    }
+    if(V.eu && V.eu.tonto > agora){ const e = V.eu; L.push({ y: 9e6, f: () => { const [ix, iy] = ptBase(ctx, e.x, e.y); ctx.save(); naBase(ctx); for(let i = 0; i < 3; i++){ const a = t * 6 + i * 2.1; ctx.fillStyle = i % 2 ? AMARELO : PAPEL; ctx.fillRect(Math.round(ix + Math.cos(a) * 7) - 1, Math.round(iy - 36 + Math.sin(a) * 2) - 1, 2, 2); } ctx.restore(); } }); }
+    if(T && T.def.missao) T.etapas.forEach((et, i) => {
+      if(!et.caixa || i < T.i || !vis(et.x, et.y, 30)) return;
+      L.push({ y: et.y, f: () => { const b = Math.round(Math.sin(t * 2.6 + i) * 1.5), u = Math.max(1, 1.05 / V.k); ctx.fillStyle = 'rgba(15,18,24,.25)'; ctx.fillRect(et.x - 9, et.y + 2, 18, 3); bloco(ctx, et.x - 8, et.y - 10 + b, 16, 12, '#8E5B2E'); ctx.fillStyle = '#5E3A1C'; ctx.fillRect(et.x - 8, et.y - 5 + b, 16, 2 * u); ctx.fillRect(et.x - 1, et.y - 10 + b, 2 * u, 12); } });
+    });
+  }
+
+  /* ---------- as missões ----------
+     Cada uma é uma tarefa do Trampo (o banco conta igual) com missao: o veículo emprestado (veic, vcor, a sirene), os
+     ganchos (comeca, passo, bateu, fim) e etapas de tipos novos, além dos de sempre (ir, ação, pegar):
+       persegue  encostar no carro que foge (precisa de N segundos perto; longe demais, perdeu de vista)
+       segue     seguir o suspeito sem ser visto: nem perto demais (ele desconfia), nem longe demais (some)
+       largada   a contagem do racha (o boneco espera); cp, os pontos do caminho (os rivais vão pelos mesmos)
+       barco     pegar um barquinho; agua, chegar de barco num ponto do rio (as caixas da muamba, o píer)
+       semPolicia não entrega com viatura por perto
+       carona    quem sobe no veículo (some do chão e vai junto, no placar)
+       prazo     o relógio de cada etapa (o rush: cada entrega tem o seu)
+     O que dá ruim chama falhaMissao: a missão acaba (o correal não vem) e o Trampo segue aberto pra tentar de novo. */
+  const veicMissao = () => { const T = V.tarefa; return T && T.def.missao && T.veic ? T : null; };
+  /* os lugares onde se entrega coisa: as casas, as portas das lojas, as entradas dos prédios */
+  function destinos(){
+    const c = V.cid, L = c.casas.map(h => ({ x: h.portaX, y: h.base + 14, rotulo: 'a casa de @' + h.handle }));
+    c.enche.forEach(f => { if(f.t === 'loja' && f.lojas) f.lojas.forEach((l, i) => L.push({ x: portaLoja(f, i), y: f.base + 22, rotulo: 'a ' + String(l.nome || 'loja').toLowerCase().replace('acai', 'açaí').replace('atelie', 'Ateliê') })); else if(f.t === 'predio' && f.px != null) L.push({ x: f.px + f.pw / 2, y: f.base + 16, rotulo: 'o prédio do ' + bairro(f.c, f.r) }); });
+    return L.map(p => Object.assign(livre(p) || p, { rotulo: p.rotulo })).filter(p => !bate(p.x, p.y));
+  }
+  const longeDe = (L, p, d0, d1) => L.filter(q => { const d = Math.hypot(q.x - p.x, q.y - p.y); return d >= d0 && d <= d1; });
+  /* um carro parado na mão certa, no meio de um quarteirão perto da esquina s */
+  function vagaNaRua(s){
+    const G = grafo(), v = sorteio(G.viz[s.id]), B = G.N[v], ux = B.x - s.x, uy = B.y - s.y, n = Math.hypot(ux, uy) || 1;
+    return { x: s.x + ux * .45 - uy / n * MAO_RUA, y: s.y + uy * .45 + ux / n * MAO_RUA };
+  }
+  const NOMES_RACHA = ['Rato', 'Tchelo', 'Biel', 'Duda', 'Pézão'];
+  const MISSOES = [
+    { u: 'motoboy', def: { k: 'rush', missao: true, como: 'de moto', nome: 'Rush do almoço', veic: 'moto', vcor: 6, pontos: 6, desc: 'De moto: pega três pedidos no truck do smash e entrega um atrás do outro. Cada entrega tem o seu relógio; bater em carro derruba o pedido e custa tempo.',
+      monta: () => {
+        const tr = livre(truckDe('SMASH')) || livre(lugarNome('Feira do Corre')); if(!tr) return null;
+        const D = destinos(), esc = [];
+        for(const p of embaralha(longeDe(D, tr, 700, 2600))){ if(esc.every(q => Math.hypot(q.x - p.x, q.y - p.y) > 600)) esc.push(p); if(esc.length === 3) break; }
+        if(esc.length < 3) return null;
+        let ant = tr; const ent = esc.map((p, i) => { const prazo = Math.round(16 + Math.hypot(p.x - ant.x, p.y - ant.y) / 150); ant = p; return Object.assign(p, { acao: 'Entregar', dur: 1, prazo, tira: i === 2, efeito: 'brilho' }); });
+        return [Object.assign(tr, { rotulo: 'o truck do smash', acao: 'Pegar os 3 pedidos', dur: 1.5, item: 'caixa', prazo: 30 })].concat(ent);
+      },
+      comeca(T){ const e = V.eu, et = T.etapas[0]; et.prazo = Math.round(18 + Math.hypot(et.x - e.x, et.y - e.y) / 150); T.ate = Date.now() + et.prazo * 1000; },
+      bateu(T, k){ if(k !== 'carro') return; T.ate -= 6000; C.toast('O pedido voou da garupa! −6 s', 1800); } } },
+    { u: 'policial', def: { k: 'perseguicao', missao: true, como: 'de viatura', nome: 'Perseguição', veic: 'suv', vcor: COR_VTR, sirene: ['#E2412E', AZUL], pontos: 8, desc: 'De viatura: um carro preto passou o sinal e fugiu. Encosta nele uns segundos até ele parar, pega o motorista no pé e leva pra Delegacia.',
+      monta: () => {
+        const e = V.eu, s = esquinaLonge(e.x, e.y, 450, 800); if(!s) return null;
+        return [{ x: s.x, y: s.y, rotulo: 'o carro preto', persegue: { perto: 130, precisa: 4 }, nasce: s },
+          { x: s.x, y: s.y, rotulo: 'o motorista', pegar: 28 },
+          Object.assign(livre(portaCivica('delegacia')), { rotulo: 'a Delegacia', acao: 'Entregar o suspeito', dur: 1.5 })];
+      },
+      comeca(T){ const et = T.etapas[0], P = criaPiloto({ nome: 'Suspeito', veic: 'hatch', vcor: 3, x: et.nasce.x, y: et.nasce.y, vel: 305, modo: 'anda' }); P.pensa = pensaFoge; et.pil = P; T.pil.push(P); },
+      feito(T, et, i){
+        if(i === 0){ const P = et.pil; P.modo = 'parado'; P.pensa = null; const n = T.etapas[1]; n.x = P.x; n.y = P.y + 24; n.npc = 'ladrao'; montaNpc(n); C.toast('Parou! O motorista largou o carro e saiu correndo: pega ele!', 2800); return true; }
+        if(i === 1){ if(et.sid) tiraNpc(et.sid); T.carona = 'o suspeito'; }
+      } } },
+    { u: 'bombeiro', def: { k: 'incendio', missao: true, como: 'de picape', nome: 'Incêndio na Gleba', veic: 'picape', vcor: 0, sirene: ['#E2412E', '#FF8A3D'], pontos: 8, tempo: 240, desc: 'De picape: fogo numa torre da Gleba Palhano. Apaga os três focos, resgata a moradora que ficou na portaria e leva pro Hospital.',
+      monta: () => {
+        const t = sorteio(V.cid.glebaR.torres), x = t.x + t.w / 2, porta = livre({ x, y: t.base + 18 }), vit = livre({ x: x + 70, y: t.base + 34 }); if(!porta || !vit) return null;
+        return [Object.assign(porta, { rotulo: 'a torre em chamas', acao: 'Ligar a mangueira', efeito: 'fogo', fx: x, fy: t.base - 90, jogo: { t: 'focos', dica: 'Três focos na fachada: chega em cada um e segura o botão (a mangueira). Largou, o fogo cresce.' } }),
+          Object.assign(vit, { rotulo: 'a Dona Lurdes, na portaria', acao: 'Resgatar a Dona Lurdes', dur: 2, npc: 'vitima', fx: vit.x, fy: vit.y, carona: 'a Dona Lurdes' }),
+          Object.assign(livre(portaCivica('hospital')), { rotulo: 'o Hospital', acao: 'Entregar no Hospital', dur: 1.5 })];
+      },
+      feito(T, et){ if(et.carona){ if(et.sid) tiraNpc(et.sid); T.carona = et.carona; C.toast(`${et.carona.replace(/^a /, 'A ')} subiu na picape. Pro Hospital!`, 2400); return true; } } } },
+    { u: 'medico', def: { k: 'ambulancia', missao: true, como: 'de ambulância', nome: 'Ambulância', veic: 'suv', vcor: 2, sirene: ['#E2412E', PAPEL], pontos: 7, desc: 'De ambulância: alguém se machucou do outro lado da cidade. Primeiros socorros, maca, e pro Hospital antes do paciente piorar. Cada batida pesa.',
+      monta: () => {
+        const e = V.eu, L = longeDe(destinos(), e, 1100, 2600), p = L.length ? sorteio(L) : null; if(!p) return null;
+        return [Object.assign({ x: p.x, y: p.y }, { rotulo: 'o paciente (' + p.rotulo + ')', acao: 'Pôr na maca', npc: 'ferido', fx: p.x + 22, fy: p.y + 2, carona: 'o paciente', jogo: { t: 'seq', n: 1, tam: 4, dica: 'Os primeiros socorros: as setas na ordem, rápido.' } }),
+          Object.assign(livre(portaCivica('hospital')), { rotulo: 'o Hospital', acao: 'Levar pra emergência', dur: 1.5 })];
+      },
+      feito(T, et, i){ if(i === 0){ if(et.sid) tiraNpc(et.sid); T.carona = 'o paciente'; T.saude = 100; C.toast('Paciente na maca. Dirige com cuidado: cada batida piora ele.', 2600); return true; } },
+      passo(T, dt){ if(T.saude == null) return; T.saude -= dt * 1.0; T.hud = `paciente ${Math.max(0, Math.ceil(T.saude))}%`; if(T.saude <= 0) falhaMissao('Demorou demais: o resgate aéreo levou o paciente.'); },
+      bateu(T, k){ if(T.saude == null) return; T.saude -= k === 'parede' ? 6 : 12; C.toast(`Cuidado com o paciente! −${k === 'parede' ? 6 : 12}%`, 1500); } } },
+    { u: 'ladrao', def: { k: 'desmanche', missao: true, como: 'a pé, depois de carro', nome: 'Desmanche', pontos: 8, desc: 'A pé: o Seu Jairo deixou o carro na rua. Abre a porta, sai dirigindo e leva pro desmanche. Ele chama a polícia: só entrega com as viaturas longe.',
+      monta: () => {
+        const e = V.eu, s = esquinaLonge(e.x, e.y, 500, 950); if(!s) return null;
+        const v = vagaNaRua(s), vz = V.cid.vazios.map(q => ({ x: q.x + LW / 2, y: q.y + LH - 60 })), des = longeDe(vz, v, 1200, 9e9)[0] || esquinaLonge(v.x, v.y, 1400, 2600);
+        return [{ x: v.x, y: v.y + 4, rotulo: 'o carro do Seu Jairo', acao: 'Abrir a porta', vaga: v, jogo: { t: 'seq', n: 2, tam: 4, dica: 'Abre a porta antes do dono voltar: as setas na ordem.' } },
+          Object.assign(livre(des) || des, { rotulo: 'o desmanche', acao: 'Entregar o carro', dur: 2, semPolicia: 550 })];
+      },
+      comeca(T){ const et = T.etapas[0], P = criaPiloto({ nome: 'Seu Jairo', veic: 'hatch', vcor: sorteio([0, 1, 5, 7, 8, 9]), x: et.vaga.x, y: et.vaga.y, modo: 'parado', av: { pele: pele6(), cabelo: 'curto', barba: 'barba', roupa: 'camiseta', corRoupa: 3, corCabelo: 4 } }); et.pil = P; T.pil.push(P); },
+      feito(T, et, i){
+        if(i !== 0) return;
+        const P = et.pil, x = P.x, y = P.y; T.veic = 'hatch'; T.vcor = P.av.vcor; tiraPiloto(P);
+        const j = { npc: 'jairo', x: x - 30, y: y + 6, fx: x - 30, fy: y + 6 }; montaNpc(j); const r = V.remotos.get(j.sid);
+        if(r){ r.sit = false; r.fala = { t: 'Ô! Meu carro! Polícia!', ate: Date.now() + 3500 }; r.vai = { x: x - 260, y: y + 40, ate: Date.now() + 9000 }; }
+        anunciar(); padRotulo(); procura(2, 'roubo de carro');
+        C.toast('Tá com o carro! O Seu Jairo chamou a polícia: leva pro desmanche, mas despista as viaturas antes.', 3600); return true;
+      } } },
+    { u: 'detetive', def: { k: 'nacola', missao: true, como: 'de patinete', nome: 'Na cola', veic: 'patinete', pontos: 7, desc: 'De patinete: segue o carro do suspeito até o encontro sem ser visto. Perto demais ele desconfia; longe demais ele some. Lá, a foto.',
+      monta: () => {
+        const e = V.eu, s = esquinaLonge(e.x, e.y, 400, 700); if(!s) return null;
+        const dest = esquinaLonge(s.x, s.y, 2200, 3600); if(!dest) return null;
+        const v = vagaNaRua(dest);
+        return [{ x: s.x, y: s.y, rotulo: 'o carro do suspeito', segue: { min: 80, max: 420 }, nasce: s, dest: v },
+          { x: v.x + 30, y: v.y + 30, rotulo: 'o encontro', acao: 'Fotografar o encontro', efeito: 'brilho', jogo: { t: 'tempo', n: 3, e: 3, per: .8, faixa: .22, verbo: 'Foto!', dica: 'Bate a foto quando os dois passarem na faixa rosa.' } }];
+      },
+      comeca(T){ const et = T.etapas[0], P = criaPiloto({ nome: 'Suspeito', veic: 'suv', vcor: 9, x: et.nasce.x, y: et.nasce.y, vel: 200, modo: 'parado' }); et.pil = P; T.pil.push(P); },
+      feito(T, et, i){ if(i === 0){ const n = T.etapas[1]; n.x = et.pil.x + 28; n.y = et.pil.y + 34; const c = { npc: 'comparsa', fx: et.pil.x - 26, fy: et.pil.y + 10, x: et.pil.x - 26, y: et.pil.y + 10 }; montaNpc(c); n.sidC = c.sid; } },
+      fim(T){ T.etapas.forEach(et => { if(et.sidC) tiraNpc(et.sidC); }); } } },
+    { u: 'pirata', def: { k: 'contrabando', missao: true, como: 'de barco', nome: 'Muamba no Tibagi', pontos: 7, tempo: 300, desc: 'De barco: três caixas boiando no Tibagi. Pega todas e leva pro píer da Prainha sem o barco do fiscal te encostar.',
+      monta: () => {
+        const R = V.cid.rio; if(!R || !R.piers.length) return null;
+        const porto = R.piers.find(p => p.k !== 'prainha') || R.piers[0], prainha = R.piers.find(p => p.k === 'prainha') || R.piers[R.piers.length - 1];
+        const cx = []; for(let k = 0; k < 60 && cx.length < 3; k++){ const x = R.W * (.06 + Math.random() * .88), y = R.cyF(x) + (Math.random() - .5) * R.hwF(x) * .7;
+          if(!naRio(x, y) || R.piers.some(p => Math.abs(p.xp - x) < 220) || cx.some(q => Math.abs(q.x - x) < 550)) continue; cx.push({ x, y }); }
+        if(cx.length < 3) return null;
+        return [{ x: porto.ponta.x, y: porto.ponta.y, rotulo: 'um barquinho no Porto do Tibagi', barco: true }]
+          .concat(cx.map((c, i) => ({ x: c.x, y: c.y, rotulo: `a caixa ${i + 1} de 3`, agua: 44, caixa: true })))
+          .concat([{ x: prainha.ponta.x, y: prainha.ponta.y + 8, rotulo: 'o píer da Prainha', agua: 70 }]);
+      },
+      passo(T, dt){
+        const e = V.eu; if(T.i < 1 || !e) return;
+        let F = T.fiscal; const R = V.cid.rio;
+        if(!F){ const x0 = e.x + (e.x < R.W / 2 ? 900 : -900), x = clamp(x0, 80, R.W - 80); F = T.fiscal = { sid: 'fis-' + Math.random().toString(36).slice(2, 7), bot: true, npc: true, nome: 'Fiscal', barco: true, bl: 1, av: avLimpo({ pele: pele6(), cabelo: 'curto', topo: 'bone', roupa: 'jaqueta', corRoupa: 3 }, 'fiscal'), x, y: R.cyF(x), dir: 'baixo', passo: 0, mov: true, sit: true, mic: false, ida: 1 }; V.remotos.set(F.sid, F); }
+        const d = Math.hypot(e.x - F.x, e.y - F.y), caca = e.barco && d < 340, v = (caca ? 132 : 70) * dt;
+        let tx = caca ? e.x : F.x + F.ida * 200, ty = caca ? e.y : R.cyF(F.x + F.ida * 40);
+        if(!caca && (F.x < 120 || F.x > R.W - 120)) F.ida = F.x < 120 ? 1 : -1;
+        const dx = tx - F.x, dy = ty - F.y, n = Math.hypot(dx, dy) || 1, nx = F.x + dx / n * v, ny = F.y + dy / n * v;
+        if(naRio(nx, F.y)) F.x = nx; if(naRio(F.x, ny)) F.y = ny; F.mov = true; F.bl = dx < 0 ? -1 : 1;
+        if(caca && d < 62) T.flagra = (T.flagra || 0) + dt; else T.flagra = Math.max(0, (T.flagra || 0) - dt);
+        if(T.flagra > 1.2){ falhaMissao('O fiscal encostou e levou a muamba.'); return; }
+        T.hud = caca ? `o fiscal tá na tua cola (${Math.round(d / 10)} m)` : `fiscal a ${Math.round(d / 10)} m`;
+      },
+      fim(T){ if(T.fiscal) V.remotos.delete(T.fiscal.sid); } } },
+    { u: 'craque', def: { k: 'racha', missao: true, como: 'de patinete', nome: 'Racha até o Estádio', veic: 'patinete', pontos: 6, desc: 'De patinete: racha com dois do time, do Zerão até o Estádio do Café passando pela ACEL e pelo Aeroporto. Quem chega por último paga o açaí.',
+      monta: () => {
+        const z = cantoDe('zerao'), pts = ['acel', 'aeroporto', 'estadio'].map(cantoDe); if(!z || pts.some(p => !p)) return null;
+        let ids = [z.id]; for(const p of pts){ const r = caminhoNos(ids[ids.length - 1], p.id); if(!r) return null; ids = ids.concat(r.slice(1)); }
+        const G = grafo(), cps = []; for(let j = 2; j < ids.length - 1; j += 3) cps.push(G.N[ids[j]]); cps.push(G.N[ids[ids.length - 1]]);
+        return [{ x: z.x, y: z.y, rotulo: 'a largada no Zerão', largada: true }].concat(cps.map((q, i) => ({ x: q.x, y: q.y, rotulo: i === cps.length - 1 ? 'a chegada no Estádio' : `o ponto ${i + 1} de ${cps.length}`, cp: true })));
+      },
+      comeca(T){ const z = T.etapas[0]; embaralha(NOMES_RACHA).slice(0, 2).forEach((nome, i) => { const P = criaPiloto({ nome, veic: 'patinete', x: z.x + (i ? 26 : -26), y: z.y + 30, vel: 226 + i * 9, modo: 'parado' }); P.cpi = 0; P.chegou = Q => { Q.cpi++; const cps = T.etapas.filter(x => x.cp); if(Q.cpi >= cps.length){ Q.modo = 'parado'; if(V.tarefa === T) falhaMissao(`Perdeu o racha pro ${Q.nome}. O açaí é por tua conta.`); return; } rotaPra(Q, cps[Q.cpi].x, cps[Q.cpi].y); }; T.pil.push(P); }); },
+      passo(T, dt){
+        const e = V.eu; if(!e || T.fase === 'largada' || T.i < 1) return;
+        const cps = T.etapas.filter(x => x.cp), meu = T.i - 1, dn = Math.hypot(T.etapas[T.i].x - e.x, T.etapas[T.i].y - e.y);
+        let pos = 1; for(const P of T.pil){ const dp = cps[P.cpi] ? Math.hypot(cps[P.cpi].x - P.x, cps[P.cpi].y - P.y) : 0; if(P.cpi > meu || (P.cpi === meu && dp < dn)) pos++;
+          /* o elástico: quem ficou muito pra trás acelera um tanto; quem disparou, segura */
+          P.fator = P.cpi < meu || (P.cpi === meu && dp > dn + 420) ? 1.14 : P.cpi > meu || dp < dn - 520 ? .9 : 1; }
+        T.hud = `${pos}º lugar`;
+      } } }
+  ];
+  MISSOES.forEach(m => { if(TAREFAS[m.u]) TAREFAS[m.u].unshift(m.def); });
+  /* v4.11: o bico (as 42 de antes) vale 1 ponto: o banco paga 0,03 (o mesmo número do delta-v411.sql) */
+  Object.keys(TAREFAS).forEach(u => TAREFAS[u].forEach(t => { if(!t.missao) t.pontos = 1; }));
+  /* os figurantes novos das missões */
+  Object.assign(NPCS, {
+    vitima: { nome: 'Dona Lurdes', av: () => ({ pele: pele6(), cabelo: 'coque', corCabelo: 4, roupa: 'moletom', corRoupa: 2 }), fala: 'socorro! aqui embaixo!', depois: 'Deus te pague, bombeiro!' },
+    ferido: { nome: 'Seu Toninho', av: () => ({ pele: pele6(), cabelo: 'curto', corCabelo: 4, roupa: 'camiseta', corRoupa: 1 }), fala: 'ai, minha perna…', depois: 'valeu, doutor!' },
+    jairo: { nome: 'Seu Jairo', av: () => ({ pele: pele6(), cabelo: 'curto', barba: 'barba', roupa: 'camiseta', corRoupa: 3, corCabelo: 4 }), fala: 'ô!', depois: 'ô!' },
+    comparsa: { nome: 'Comparsa', av: () => ({ pele: pele6(), cabelo: 'raspado', oculos: 'escuro', roupa: 'jaqueta', corRoupa: 0 }), fala: 'trouxe?', depois: 'opa' }
+  });
+  /* começou: empresta o veículo, liga o gancho e anuncia (quem passa te vê no veículo da missão) */
+  function comecaMissao(T){
+    const def = T.def; T.pil = []; T.veic = def.veic || null; T.vcor = def.vcor; T.sirene = def.sirene || null; T.cola = 0; T.viu = 0; T.longe = 0;
+    if(V.eu){ V.eu.sit = false; V.eu.pesca = null; }
+    if(def.comeca) def.comeca(T);
+    const p0 = T.etapas[0]; if(p0 && p0.prazo && !T.ate) T.ate = Date.now() + p0.prazo * 1000;
+    if(T.veic){ padRotulo(); anunciar(); }
+    if(C.versoSom && C.versoSom.gta) C.versoSom.gta('largada');
+  }
+  /* acabou (bem ou mal): tira os pilotos e os figurantes dela, devolve o veículo */
+  function fimMissao(T){
+    if(!T || !T.def.missao || T.fechou) return; T.fechou = true;
+    (T.pil || []).forEach(tiraPiloto); if(T.def.fim) T.def.fim(T);
+    const tinha = !!T.veic; T.veic = null; T.sirene = null;
+    if(tinha){ padRotulo(); anunciar(); }
+  }
+  function falhaMissao(msg){
+    const T = V.tarefa; if(!T) return;
+    largaTarefa(true);
+    if(C.versoSom && C.versoSom.gta) C.versoSom.gta('falhou');
+    C.toast(`Missão perdida: ${msg} Pega de novo no Trampo.`, 4200);
+  }
+  /* as etapas de tipo novo (devolve true quando cuidou do quadro; senão o passoTarefa segue com as de sempre) */
+  function missaoPasso(T, et, dt){
+    const e = V.eu, agora = Date.now();
+    if(T.def.passo){ T.def.passo(T, dt); if(V.tarefa !== T) return true; }
+    if(et.barco){ if(e.barco) etapaFeita(); else if(V.portaT){ V.portaT = null; portaUI(); } return true; }
+    if(et.agua){ if(e.barco && Math.hypot(et.x - e.x, et.y - e.y) < et.agua) etapaFeita(); return true; }
+    if(et.persegue){
+      const P = et.pil, d = Math.hypot(P.x - e.x, P.y - e.y); et.x = P.x; et.y = P.y;
+      if(d < et.persegue.perto) T.cola += dt; else T.cola = Math.max(0, T.cola - dt * .35);
+      T.hud = `encostado ${T.cola.toFixed(1).replace('.', ',')} de ${et.persegue.precisa} s`;
+      if(d > 1600){ falhaMissao('O carro preto sumiu de vista.'); return true; }
+      if(T.cola >= et.persegue.precisa){ T.hud = ''; etapaFeita(); }
+      return true;
+    }
+    if(et.segue){
+      const P = et.pil, d = Math.hypot(P.x - e.x, P.y - e.y); et.x = P.x; et.y = P.y;
+      if(P.modo === 'parado' && !et.saiu){ if(d < 380){ et.saiu = true; P.modo = 'anda'; rotaPra(P, et.dest.x, et.dest.y); P.chegou = Q => { Q.modo = 'parado'; et.chegou = true; }; C.toast('Ele saiu. Segue sem colar.', 2000); } T.hud = ''; return true; }
+      if(et.chegou){ T.hud = ''; etapaFeita(); return true; }
+      if(d < et.segue.min) T.viu += dt; else T.viu = Math.max(0, T.viu - dt * .4);
+      if(d > et.segue.max) T.longe += dt; else T.longe = Math.max(0, T.longe - dt * .5);
+      T.hud = T.viu > .3 ? `ele tá desconfiando ${'▮'.repeat(Math.ceil(T.viu))}${'▯'.repeat(Math.max(0, 3 - Math.ceil(T.viu)))}` : T.longe > .3 ? `tá perdendo ele (${Math.round(d / 10)} m)` : `na cola, ${Math.round(d / 10)} m`;
+      if(T.viu >= 3){ falhaMissao('Ele te viu e cancelou o encontro.'); return true; }
+      if(T.longe >= 6){ falhaMissao('Perdeu o suspeito de vista.'); return true; }
+      return true;
+    }
+    if(et.largada){
+      if(T.fase === 'largada'){
+        const falta = Math.ceil((T.larga - agora) / 1000); if(falta !== T.lgN){ T.lgN = falta; if(falta > 0){ T.hud = `${falta}…`; if(C.versoSom && C.versoSom.gta) C.versoSom.gta('largada'); } }
+        if(agora >= T.larga){ T.fase = 'ir'; T.hud = 'VAI!'; if(C.versoSom && C.versoSom.gta) C.versoSom.gta('vai'); const cp = T.etapas[1]; T.pil.forEach(P => { P.modo = 'anda'; rotaPra(P, cp.x, cp.y); }); etapaFeita(); }
+        return true;
+      }
+      if(Math.hypot(et.x - e.x, et.y - e.y) < 60){ T.fase = 'largada'; T.larga = agora + 3000; T.lgN = 0; V.alvo = null; T.pil.forEach((P, i) => { P.x = e.x + (i ? 28 : -28); P.y = e.y; P.dir = e.dir; }); C.toast('Três segundos…', 1600); }
+      return true;
+    }
+    if(et.cp){ if(Math.hypot(et.x - e.x, et.y - e.y) < 64) etapaFeita(); V.portaT = null; return true; }
+    if(et.semPolicia && Math.hypot(et.x - e.x, et.y - e.y) < RAIO_T + 30){
+      const P = V.proc, perto = P && P.vtr.some(v => !v.embora && Math.hypot(v.x - et.x, v.y - et.y) < et.semPolicia);
+      if(perto){ T.hud = 'despista a polícia antes de entrar'; if(V.portaT){ V.portaT = null; portaUI(); } return true; }
+      T.hud = '';
+    }
+    return false;
   }
   /* ---------- v3.76 · a pista de skate do Zerão ----------
      Concreto com junta, o bowl, a rampa (quarter), o caixote com rampa dos dois lados, o corrimão e a borda, tudo baixo:
@@ -5586,6 +6081,8 @@
   function trocaIdeia(m){
     if(!m || (m.papo && !m.papo.eu)) return;
     const agora = Date.now(); if(agora - (m.botaoT || 0) < 1000) return; m.botaoT = agora;
+    /* v4.11: quem você empurrou fica de cara feia por meio minuto */
+    if(m.bravo > agora){ comecaPapo([m], [[m, sorteio(['Me empurrou e ainda quer papo?', 'Fala comigo não.', 'Tô de mal.'])]], true); return; }
     comecaPapo([m], [[m, proximaFrase(m)]], true);
   }
   function passoMoradores(dt){
@@ -5595,6 +6092,7 @@
     let puxa = null; if(parado && !L.some(x => x.papo && x.papo.eu)){ let dm = 70; for(const m of L){ const d = Math.hypot(e.x - m.x, e.y - m.y); if(!m.papo && agora - m.falouEu > 40000 && d < dm){ dm = d; puxa = m; } } }
     for(const m of L){
       m.porta.x = m.x; m.porta.y = m.y;
+      if(caido(m, dt)) continue;
       if(m.pulos && m.pulos.length && performance.now() >= m.pulos[0]) m.puT = m.pulos.shift();
       const p = m.papo;
       if(p){
@@ -5749,6 +6247,7 @@
       if(e && agora > T.gritoT && agora > T.para && Math.hypot(lider.x - e.x, lider.y - e.y) < 520){ T.gritoT = agora + 9000 + Math.random() * 6000; cantaTorcida(T, false); }
       const cy = T.cy();
       for(const m of T.gente){
+        if(caido(m, dt)) continue;
         if(m.pulos && m.pulos.length && pn >= m.pulos[0]) m.puT = m.pulos.shift();
         const L2 = lugarT(m.i), tx = T.x - T.lado * L2.ox + Math.sin(agora / 900 + m.fase) * 2.5, ty = cy + L2.oy + Math.cos(agora / 1100 + m.fase) * 1.5;
         const dx = tx - m.x, dy = ty - m.y, d = Math.hypot(dx, dy);
@@ -5763,10 +6262,12 @@
   function passoTarefa(dt){
     const T = V.tarefa, e = V.eu; if(!T || !e) return;
     const agora = Date.now();
-    if(T.ate && agora > T.ate){ const nome = T.def.nome; largaTarefa(true); C.toast(`Não deu tempo: ${nome}. Pega de novo quando quiser.`, 3600); return; }
+    if(T.ate && agora > T.ate){ if(T.def.missao){ falhaMissao('o relógio acabou.'); return; } const nome = T.def.nome; largaTarefa(true); C.toast(`Não deu tempo: ${nome}. Pega de novo quando quiser.`, 3600); return; }
     const et = T.etapas[T.i]; if(!et){ concluiTarefa(); return; }
     /* v3.58: o minijogo parado (o boneco fica no lugar até acabar ou largar) */
     if(T.fase === 'jogando'){ mjPasso(T, et, dt); return; }
+    /* v4.11: as etapas de missão (perseguir, seguir, largada, barco, rio, sem polícia) */
+    if(T.def.missao && missaoPasso(T, et, dt)) return;
     const d = Math.hypot(et.x - e.x, et.y - e.y);
     /* v3.58: a entrega que muda de endereço quando você chega perto (uma vez só, e o relógio ganha 35 s) */
     if(et.troca && !et.trocou && T.fase === 'ir' && d < 170){ et.trocou = true; const n = trocaEndereco(et); if(n){ Object.assign(et, n); if(T.ate) T.ate += 35000; V.portaT = null; C.toast(`${n.aviso} +35 s no relógio.`, 3800); tarefaUI(); portaUI(); return; } }
@@ -5812,9 +6313,14 @@
     if(et.tira && e.item && e.item.tarefa){ e.item = null; enviaPos(true); }
     if(et.sid){ const r = V.remotos.get(et.sid); if(r){ r.foge = false; r.sit = false; r.fala = { t: (NPCS[et.npc] || NPCS.paciente).depois, ate: Date.now() + 3500 }; const dest = et.npc === 'ladrao' ? portaCivica('delegacia') : null; r.vai = { x: dest ? dest.x : r.x + (Math.random() - .5) * 600, y: dest ? dest.y : r.y + 300, ate: Date.now() + 25000 }; } }
     T.feita = { x: et.x, y: et.y, ate: Date.now() + 1500, efeito: et.efeito };
+    /* v4.11: o gancho da missão (o carro que para, quem sobe na picape, o carro roubado...) */
+    const quieto = !!(T.def.missao && T.def.feito && T.def.feito(T, et, T.i) === true);
+    if(V.tarefa !== T) return;
     T.i++; T.fase = 'ir'; T.agir0 = 0; V.portaT = null;
     if(T.i >= T.etapas.length){ concluiTarefa(); return; }
-    tarefaUI(); portaUI(); C.toast(`Feito. Agora: ${T.etapas[T.i].rotulo}.`, 2400);
+    /* v4.11: a etapa com relógio próprio (cada entrega do rush) */
+    const nx = T.etapas[T.i]; if(T.def.missao && nx.prazo) T.ate = Date.now() + nx.prazo * 1000;
+    tarefaUI(); portaUI(); if(!quieto && (!nx.cp || nx === T.etapas[1])) C.toast(`Feito. Agora: ${nx.rotulo}${nx.prazo ? ` (${nx.prazo} s)` : ''}.`, 2400);
   }
   /* ---------- v3.58 · os minijogos das tarefas ----------
      O Thales: "melhorar as missões na cidade pra que elas se tornem minimamente mais complexas do que ficar parado em
@@ -6033,6 +6539,7 @@
   }
   async function concluiTarefa(){
     const T = V.tarefa; if(!T) return; V.tarefa = null; V.portaT = null;
+    fimMissao(T); if(T.def.missao && C.versoSom && C.versoSom.gta) C.versoSom.gta('missao');
     if(V.eu && V.eu.item && V.eu.item.tarefa){ V.eu.item = null; }
     V.festa = { x: V.eu.x, y: V.eu.y, ate: Date.now() + 1800 };
     T.etapas.forEach(e => { if(e.sid){ const r = V.remotos.get(e.sid); if(r && !r.vai) tiraNpc(e.sid); } });
@@ -6041,7 +6548,7 @@
     const me = C.st.me, uAgora = meuUniforme(), verso = Object.assign({}, me && me.verso && typeof me.verso === 'object' ? me.verso : {}, uAgora ? { skin: uAgora, personagem: '' } : {}, { tarefas: feitas, pontos: ((me && me.verso && me.verso.pontos) || 0) + T.def.pontos });
     tarefaUI(); portaUI(); mjUI(true); falaAuto(6);
     const prox = naOrdem(T.u).find(t => t.k !== T.k);
-    C.toast(`Tarefa feita: ${T.def.nome}${depois !== antes ? ` · subiu pra ${depois}!` : '.'}${prox ? ` Próxima no Trampo: ${prox.nome}.` : ''}`, 3800);
+    C.toast(T.def.missao ? `MISSÃO CUMPRIDA: ${T.def.nome}${depois !== antes ? ` · subiu pra ${depois}!` : '!'}` : `Tarefa feita: ${T.def.nome}${depois !== antes ? ` · subiu pra ${depois}!` : '.'}${prox ? ` Próxima no Trampo: ${prox.nome}.` : ''}`, 3800);
     try{ await C.saveMe({ verso }); if(V.eu) anunciar(); }catch(e){ C.toast(C.errMsg(e, 'Não deu pra guardar a tarefa na carteira.')); }
     pagaTarefa(T, 0);
   }
@@ -6064,12 +6571,13 @@
   const bateuTeto = () => C.correal.saldo != null && C.correalCent(C.correal.hoje) >= C.correalCent(C.correal.teto);
   /* o jeito de ganhar, em 2 linhas sem jargão (a carteira). As contas saem do próprio Trampo, pra não mentir se o banco
      mudar o ponto ou o teto: a tarefa mais barata e a mais cara, e "umas 10 tarefas" é o teto dividido pela média */
+  /* v4.11: a missão paga bem mais que o bico; "umas 5 missões" é o teto dividido pela média das missões */
   const comoGanha = () => {
-    const L = Object.keys(TAREFAS).reduce((a, k) => a.concat((TAREFAS[k] || []).map(t => Number(t.pontos) || 0)), []).filter(Boolean);
-    const min = L.length ? Math.min.apply(null, L) : 2, max = L.length ? Math.max.apply(null, L) : 5, media = L.length ? L.reduce((a, b) => a + b, 0) / L.length : 3.5;
+    const L = MISSOES.map(m => Number(m.def.pontos) || 0).filter(Boolean);
+    const min = L.length ? Math.min.apply(null, L) : 6, max = L.length ? Math.max.apply(null, L) : 8, media = L.length ? L.reduce((a, b) => a + b, 0) / L.length : 7;
     const F = C.correalFmt, n = Math.max(1, Math.round((Number(C.correal.teto) || 1) / ((Number(C.correal.ponto) || 0.03) * media)));
-    return [`Cada tarefa paga de ${F(valorTarefa(min))} a ${F(valorTarefa(max))} de correal: a mais difícil paga mais.`,
-      `Umas ${n} tarefas fecham o dia em ${C.correalTxt(C.correal.teto)}, o teto; amanhã começa de novo.`];
+    return [`Missão paga de ${F(valorTarefa(min))} a ${F(valorTarefa(max))}; bico, ${F(valorTarefa(1))}.`,
+      `Umas ${n} missões fecham o dia em ${C.correalTxt(C.correal.teto)}, o teto; amanhã começa de novo.`];
   };
   /* a moedinha no alto da cidade */
   function correalUI(pula){
@@ -6099,13 +6607,13 @@
       <div class="cart-topo"><div class="cart-saldo"><b class="num" data-correal-saldo>${F(w.saldo || 0)}</b><span data-correal-unid>${C.correalUnid(w.saldo || 0)}</span></div>
         <div class="cart-hoje"><span>Hoje, em tarefa: <b class="num">${F(Math.min(C.correalCent(w.hoje || 0), C.correalCent(w.teto)) / 100)}</b> de ${F(w.teto)}</span><i aria-hidden="true"><i style="width:${Math.min(100, Math.round(C.correalCent(w.hoje) / Math.max(1, C.correalCent(w.teto)) * 100))}%"></i></i></div></div>
       <h3 class="cart-h">Como ganha</h3>
-      <p class="cart-p">Fazendo tarefa no Correverso: abre o Trampo, escolhe o uniforme (o boneco troca na hora) e pega uma tarefa.</p>
+      <p class="cart-p">Trabalhando no Correverso: abre o Trampo e pega uma missão (de carro, moto, patinete ou barco) ou um bico do teu uniforme.</p>
       <p class="cart-p cart-conta">${esc(cm[0])}<br>${esc(cm[1])}</p>
       <h3 class="cart-h">Onde usa</h3>
       <ul class="cart-precos">${preco('Imagem com IA (Studio)', P.imagem)}${preco('Legenda ou pauta com IA', P.legenda)}${preco('Mensagem ou leitura do Hórus', P.abordagem)}${preco('Textos e nomes do Studio Houzi', P.marca)}${P.voo ? preco('Voo no Aeroporto (Correverso)', P.voo) : ''}</ul>
       <p class="fine">Correal é a moeda do Correverso, não é dinheiro: não compra, não vende e não passa pra ninguém. Na IA, só entra depois que o grátis do dia acaba; o voo cobra sempre. O Corre pergunta antes de gastar, e se a IA falhar, o correal volta.</p>
       ${L.length ? `<h3 class="cart-h">Extrato</h3><ul class="cart-ext">${L.map(l => `<li><span>${esc(rotuloCorreal(l.motivo))}</span><small>${esc(C.rel(l.created_at))}</small><b class="num${l.valor > 0 ? ' mais' : ''}">${l.valor > 0 ? '+' : ''}${F(l.valor)}</b></li>`).join('')}</ul>` : ''}
-      <div class="acts">${naCidade ? `<button type="button" class="btn pri" data-act="cvr-trampo">${ico('raio')} Pegar tarefa</button>` : `<a class="btn pri" href="#/verso">${ico('verso')} Ir pro Correverso</a>`}</div></div>`);
+      <div class="acts">${naCidade ? `<button type="button" class="btn pri" data-act="cvr-trampo">${ico('raio')} Pegar missão</button>` : `<a class="btn pri" href="#/verso">${ico('verso')} Ir pro Correverso</a>`}</div></div>`);
   }
   C.acts.carteira = () => carteiraSheet();
   /* a patente de quem tá na cidade vai na presença (pt), só quando a pessoa tá de uniforme */
@@ -6119,7 +6627,8 @@
     const resto = T.ate ? Math.max(0, Math.ceil((T.ate - Date.now()) / 1000)) : 0;
     const prog = T.fase === 'agindo' ? Math.min(1, (Date.now() - T.agir0) / (et.dur * 1000)) : 0;
     const txt = T.mj ? `${T.mj.t === 'caca' ? 'procurando ' + et.rotulo : T.mj.t === 'focos' ? 'apagando o fogo' : T.mj.t === 'pontos' ? et.rotulo : et.acao} · ${mjResumo(T.mj, V.eu)}` : T.fase === 'agindo' ? `${et.acao}… ${Math.round(prog * 100)}%` : et.gols != null ? `${et.rotulo} · gols ${Math.min(et.gols, (V.gols || 0) - T.gols0)}/${et.gols}` : `${et.rotulo} · ${seta} ${m} m`;
-    el.innerHTML = `<b>${esc(T.def.nome)}</b><span>${esc(txt)}${T.etapas.length > 1 ? ` · ${T.i + 1}/${T.etapas.length}` : ''}${resto ? ` · ${Math.floor(resto / 60)}:${String(resto % 60).padStart(2, '0')}` : ''}</span>`;
+    el.innerHTML = `<b>${T.def.missao ? 'MISSÃO · ' : ''}${esc(T.def.nome)}</b><span>${esc(txt)}${T.etapas.length > 1 ? ` · ${T.i + 1}/${T.etapas.length}` : ''}${resto ? ` · ${Math.floor(resto / 60)}:${String(resto % 60).padStart(2, '0')}` : ''}${T.carona ? ` · levando ${esc(T.carona)}` : ''}${T.hud ? ` · ${esc(T.hud)}` : ''}</span>`;
+    el.classList.toggle('missao', !!T.def.missao);
   }
   /* o alvo no mapa (seta rosa), os efeitos (fogo, gato, pista, fita, contagem, água na hora de apagar) e a festa */
   function desenhaTarefa(L, ctx, t, vis){
@@ -6192,21 +6701,27 @@
     const u = meuUniforme(), feitas = tarefasFeitas(), T = V.tarefa, c = civ ? CIVICOS[civ] : null, souPers = !!(V.eu && V.eu.av && V.eu.av.personagem);
     const foco = c ? c.u : u, nomeU = foco ? nomeUni(foco) : '';
     const pat = foco ? patenteDe(foco, feitas[foco]) : '', prox = foco ? NIVEIS.find(n => n > feitas[foco]) : null;
-    const lista = foco ? naOrdem(foco) : [], R = foco ? ultDe(foco) : [], ultima = R[R.length - 1];
+    /* v4.11: as missões ficam num bloco à parte, em cima; aqui embaixo, só os bicos do uniforme */
+    const lista = foco ? naOrdem(foco).filter(t => !t.missao) : [], R = foco ? ultDe(foco) : [], ultima = R[R.length - 1];
     const avDe = k => esc(JSON.stringify(avLimpo(Object.assign({}, me.verso, { skin: k, personagem: '' }), me.id)));
     const unis = SKINS.map(([k, n]) => { const on = !souPers && k === u, f = !on && k && k === foco;
       return `<button type="button" class="cvr-uni${on ? ' on' : ''}${f ? ' foco' : ''}" data-act="cvr-uni" data-u="${esc(k)}" aria-pressed="${on}" title="${esc(k ? 'Vestir: ' + n : 'Tirar o uniforme (a tua roupa)')}"><canvas class="cvr-mini" data-av="${avDe(k)}" width="18" height="28" aria-hidden="true"></canvas><b>${esc(k ? n : 'Minha roupa')}</b><small>${k ? (feitas[k] ? esc(patenteDe(k, feitas[k])) : `${(TAREFAS[k] || []).length} tarefas`) : 'sem uniforme'}</small></button>`; }).join('');
     const tarefa = (t, i) => { const ativa = T && T.u === foco && T.k === t.k;
       return `<li class="cvr-tf${ativa ? ' on' : ''}"><div><b>${esc(t.nome)}</b><small>${esc(t.desc)}</small><span class="tag">+${C.correalTxt(valorTarefa(t.pontos))}${t.tempo ? ` · ${t.tempo} s` : ''}</span>${mjDe(foco, t.k) ? `<span class="tag cvr-tf-mj">${MJ_ROTULO[mjDe(foco, t.k).t]}</span>` : foco === 'motoboy' && (t.k === 'entrega' || t.k === 'acai') ? '<span class="tag cvr-tf-mj">pode mudar o endereço</span>' : ''}${!ativa && lista.length > 1 && t.k === ultima ? '<span class="tag cvr-tf-ult">a última que você pegou</span>' : ''}</div>${ativa ? `<button type="button" class="btn sm ghost" data-act="cvr-larga-tarefa">Largar</button>` : `<button type="button" class="btn sm${i === 0 ? ' pri' : ''}" data-act="cvr-pega-tarefa" data-u="${esc(foco)}" data-k="${esc(t.k)}">${u === foco ? 'Pegar' : 'Vestir e pegar'}</button>`}</li>`; };
     const carteira = Object.keys(PATENTES).filter(k => feitas[k] > 0).map(k => `<span class="tag">${esc(nomeUni(k))}: ${feitas[k]} · ${esc(patenteDe(k, feitas[k]))}</span>`).join('');
+    /* v4.11: as missões (as do uniforme que tá na mão primeiro) */
+    const mLi = m => { const t = m.def, ativa = T && T.u === m.u && T.k === t.k;
+      return `<li class="cvr-tf cvr-ms${ativa ? ' on' : ''}"><div><b>${esc(t.nome)}</b><small>${esc(t.desc)}</small><span class="tag cvr-ms-t">MISSÃO</span><span class="tag">${esc(nomeUni(m.u))} · ${esc(t.como)}</span><span class="tag cvr-ms-v">+${C.correalTxt(valorTarefa(t.pontos))}</span></div>${ativa ? `<button type="button" class="btn sm ghost" data-act="cvr-larga-tarefa">Largar</button>` : `<button type="button" class="btn sm pri" data-act="cvr-pega-tarefa" data-u="${esc(m.u)}" data-k="${esc(t.k)}">${u === m.u ? 'Bora' : 'Vestir e ir'}</button>`}</li>`; };
+    const missoes = MISSOES.slice().sort((a, b) => (b.u === foco) - (a.u === foco));
     C.sheet(`<div class="form cvr-trampo"><div class="sheet-head"><h2>${ico('raio')} ${c ? esc(c.nome) : 'Trampo'}</h2><button type="button" class="cbtn plain" data-close aria-label="Fechar">${ico('x')}</button></div>
+      <div class="cvr-ms-w"><h3 class="cvr-ms-h">Missões <small>pagam bem mais: carro, moto, patinete, barco e polícia na cola</small></h3><ul class="cvr-tfs cvr-mss">${missoes.map(mLi).join('')}</ul></div>
       <div class="cvr-unis-w"><span class="lbl-s">Uniforme: toca e o boneco troca na hora</span><div class="cvr-unis" role="group" aria-label="Uniforme">${unis}</div></div>
       ${foco ? `<div class="cvr-casa-h"><canvas class="cvr-mini" data-av="${avDe(foco)}" width="18" height="28" aria-hidden="true"></canvas><div><b>${esc(nomeU)}${u === foco ? ' · você' : ''}</b><small>${esc(pat)} · ${feitas[foco]} ${feitas[foco] === 1 ? 'tarefa feita' : 'tarefas feitas'}${prox != null ? ` · faltam ${prox - feitas[foco]} pra subir` : ' · patente máxima'}</small></div></div>` : ''}
       ${!foco ? `<p class="note">Escolhe um uniforme aqui em cima: o boneco veste na hora e as tarefas dele aparecem. Policial na Delegacia, bombeiro no quartel, médico no Hospital; chef nos trucks, motoboy nas entregas, craque no Zerão e no Estádio, cientista no lago e no Bosque, detetive nos museus…</p>` : c && u !== foco ? `<p class="note">Aqui é lugar de ${esc(nomeU.toLowerCase())}. Você tá de ${esc(u ? nomeUni(u).toLowerCase() : 'roupa normal')}: o Vestir e pegar já troca o uniforme.</p>` : ''}
       ${c && u !== c.u ? `<div class="acts"><button type="button" class="btn" data-act="cvr-veste" data-u="${esc(c.u)}">${ico('eu')} ${esc(c.veste)}</button></div>` : ''}
-      ${lista.length ? `<ul class="cvr-tfs">${lista.map(tarefa).join('')}</ul>` : ''}
+      ${lista.length ? `<h3 class="cvr-ms-h">Bicos de ${esc(nomeU.toLowerCase())} <small>rapidinhos, ${C.correalTxt(valorTarefa(1))} cada</small></h3><ul class="cvr-tfs">${lista.map(tarefa).join('')}</ul>` : ''}
       ${T && (!foco || T.u !== foco) ? `<p class="note">Em andamento: ${esc(T.def.nome)} (${esc(nomeUni(T.u))}). <button type="button" class="btn sm ghost" data-act="cvr-larga-tarefa">Largar</button></p>` : ''}
-      <p class="fine">Patentes: ${carteira || 'nenhuma tarefa feita ainda'}. Uma tarefa por vez; a seta rosa mostra o alvo, e a que você pegou vai pro fim da fila, pra variar. A patente aparece na tua plaquinha pra quem passa. Cada tarefa paga centavos de correal, até ${C.correalFmt(C.correal.teto)} por dia${bateuTeto() ? ' (hoje já bateu: as tarefas seguem valendo patente)' : ''}: <button type="button" class="lnk" data-act="carteira">ver a carteira (${C.correal.saldo == null ? '…' : C.correalFmt(C.correal.saldo)})</button>.</p></div>`);
+      <p class="fine">Patentes: ${carteira || 'nenhuma tarefa feita ainda'}. Uma tarefa por vez; a seta rosa mostra o alvo, e a que você pegou vai pro fim da fila, pra variar. A patente aparece na tua plaquinha pra quem passa. Missão e bico pagam centavos de correal, até ${C.correalFmt(C.correal.teto)} por dia${bateuTeto() ? ' (hoje já bateu: seguem valendo patente)' : ''}; empurrar gente da cidade chama a polícia: <button type="button" class="lnk" data-act="carteira">ver a carteira (${C.correal.saldo == null ? '…' : C.correalFmt(C.correal.saldo)})</button>.</p></div>`);
     document.querySelectorAll('.cvr-trampo .cvr-mini').forEach(cv => { try{ miniAvatar(cv, avLimpo(JSON.parse(cv.dataset.av))); }catch(e){} });
     const sel = document.querySelector('.cvr-unis .cvr-uni.foco') || document.querySelector('.cvr-unis .cvr-uni.on'), fila = sel && sel.parentElement;
     if(sel && fila) fila.scrollLeft = Math.max(0, sel.offsetLeft - (fila.clientWidth - sel.offsetWidth) / 2);
@@ -6432,10 +6947,11 @@
     V.cid = montaCidade(lista); V.sol = solidos(); V.portas = portas(); V.carros = montaCarros(V.cid); V.bolas = novasBolas(V.cid);
     const st = C.$('cvr-stage');
     st.innerHTML = `<canvas id="cvr-cv" aria-label="A cidade do Correverso. Anda com as setas ou W A S D, ou toca onde quer ir."></canvas>
-      <div class="cvr-top"><button type="button" class="cvr-sair" data-act="cvr-sai-cidade" aria-label="Sair do Correverso">${ico('prev')}<span class="cvr-sair-l">Sair do Correverso</span><span class="cvr-sair-c" aria-hidden="true">Sair</span></button><span class="cvr-sair-dica" id="cvr-sair-dica" role="status" hidden></span><span class="cvr-tt">${ico('verso')} Correverso</span><span class="cvr-on" id="cvr-on"></span><button type="button" class="cvr-live" id="cvr-live" data-act="cvr-gente" hidden></button><span class="cvr-zona" id="cvr-zona" hidden></span><button type="button" class="cvr-evento" id="cvr-evento" data-act="cvr-evento" hidden></button><button type="button" class="cvr-tarefa" id="cvr-tarefa" data-act="cvr-trampo" hidden></button><button type="button" class="cvr-correal" id="cvr-correal" data-act="carteira" title="Carteira de correal" aria-label="Carteira de correal">${ico('correal')}<b class="num" data-correal-saldo>${C.correal.saldo == null ? '…' : C.correalFmt(C.correal.saldo)}</b></button><button type="button" class="cvr-som" id="cvr-som" data-act="cvr-som" aria-pressed="false" hidden></button><button type="button" class="cvr-som cvr-tela" id="cvr-tela" data-act="cvr-tela" aria-pressed="false"></button></div>
+      <div class="cvr-top"><button type="button" class="cvr-sair" data-act="cvr-sai-cidade" aria-label="Sair do Correverso">${ico('prev')}<span class="cvr-sair-l">Sair do Correverso</span><span class="cvr-sair-c" aria-hidden="true">Sair</span></button><span class="cvr-sair-dica" id="cvr-sair-dica" role="status" hidden></span><span class="cvr-tt">${ico('verso')} Correverso</span><span class="cvr-on" id="cvr-on"></span><button type="button" class="cvr-live" id="cvr-live" data-act="cvr-gente" hidden></button><span class="cvr-zona" id="cvr-zona" hidden></span><button type="button" class="cvr-evento" id="cvr-evento" data-act="cvr-evento" hidden></button><button type="button" class="cvr-tarefa" id="cvr-tarefa" data-act="cvr-trampo" hidden></button><span class="cvr-proc" id="cvr-proc" role="status" hidden></span><button type="button" class="cvr-correal" id="cvr-correal" data-act="carteira" title="Carteira de correal" aria-label="Carteira de correal">${ico('correal')}<b class="num" data-correal-saldo>${C.correal.saldo == null ? '…' : C.correalFmt(C.correal.saldo)}</b></button><button type="button" class="cvr-som" id="cvr-som" data-act="cvr-som" aria-pressed="false" hidden></button><button type="button" class="cvr-som cvr-tela" id="cvr-tela" data-act="cvr-tela" aria-pressed="false"></button></div>
       <p class="cvr-hint" id="cvr-hint" hidden></p>
       <button type="button" class="cvr-mapinha" id="cvr-mapinha" data-act="cvr-mapa" title="Mapa" aria-label="Minimapa: onde você tá na cidade. Toca pra abrir o mapa grande e viajar"><canvas id="cvr-mapinha-cv" width="140" height="104" aria-hidden="true"></canvas></button>
       <div class="cvr-mj" id="cvr-mj" hidden></div><div class="cvr-mj cvr-rio" id="cvr-rio" hidden></div><div class="cvr-mj cvr-sk" id="cvr-sk" hidden></div>
+      <button type="button" class="cvr-briga" id="cvr-briga" data-act="cvr-briga" hidden></button>
       <button type="button" class="cvr-porta" id="cvr-porta" data-act="cvr-porta" hidden></button>
       <div class="cvr-bar"><button type="button" class="cvr-b mic" id="cvr-mic" data-act="cvr-mic" aria-pressed="false"></button><button type="button" class="cvr-b" data-act="cvr-avatar" title="Avatar" aria-label="Avatar">${ico('eu')}<span>Avatar</span></button><button type="button" class="cvr-b" data-act="cvr-garagem" title="Garagem: como você anda pela cidade" aria-label="Garagem">${ico('carro')}<span>Garagem</span></button><button type="button" class="cvr-b" data-act="cvr-casa" title="Voltar pra casa" aria-label="Voltar pra casa">${ico('home')}<span>Pra casa</span></button><button type="button" class="cvr-b" data-act="cvr-mapa" title="Mapa" aria-label="Mapa">${ico('mapa')}<span>Mapa</span></button><button type="button" class="cvr-b" data-act="cvr-falar" title="Falar uma frase" aria-label="Falar uma frase" aria-expanded="false">${ico('chat')}<span>Falar</span></button><button type="button" class="cvr-b" data-act="cvr-gente" title="Quem tá na cidade" aria-label="Quem tá na cidade">${ico('gente')}<span>Gente</span></button><button type="button" class="cvr-b" data-act="cvr-trampo" title="Trampo: as tarefas do teu uniforme" aria-label="Trampo">${ico('raio')}<span>Trampo</span></button></div>
       <div class="cvr-falas" id="cvr-falas" hidden>${FALAS.map((f, i) => `<button type="button" data-act="cvr-fala" data-i="${i}">${esc(f)}</button>`).join('')}</div>`;
@@ -6453,6 +6969,8 @@
     V.eu = { sid, x: ini.x, y: ini.y, dir: 'baixo', passo: 0, mov: false, av: avLimpo(me.verso, me.id) };
     V.cam.x = ini.x; V.cam.y = ini.y - 40; V.entrando = lv && !vt.porta ? 0 : .55; V.alvo = null; V.remotos = new Map(); V.peers = new Map(); V.espera = new Map(); V.mudos = new Set();
     V.vivo = true; V.online = null; V.tarefa = null; V.portaT = null; V.festa = null; V.gols = 0; V.rio = null; V.rastro = []; V.sk = null;
+    /* v4.11: os pilotos e a polícia (do aparelho de cada um) */
+    V.pilotos = []; V.proc = { n: 0, vtr: [], algema: 0, fora: 0, perto: Infinity }; V.brigaOn = false;
     V.bots = [];
     /* v3.76: os moradores (do aparelho de cada um, como os bots da demonstração: entram no V.remotos com npc) */
     V.moradores = criaMoradores(); V.moradores.forEach(m => V.remotos.set(m.sid, m)); V.paradoT = 0;
@@ -6661,6 +7179,8 @@
     /* v3.40: espaço pula (de moto e de carro, buzina); B buzina (ou toca a campainha da bike) */
     else if(k === ' '){ e.preventDefault(); if(e.type === 'keydown' && !e.repeat) pula(); }
     else if(e.type === 'keydown' && k === 'b' && !e.repeat){ buzina(); }
+    /* v4.11: F empurra (só aparece com alguém empurrável do lado) */
+    else if(e.type === 'keydown' && k === 'f' && !e.repeat && V.brigaOn){ e.preventDefault(); empurra(); }
     else if(e.type === 'keydown' && (k === 'Enter' || k === 'e') && V.porta){ e.preventDefault(); abrePorta(); }
   }
   /* ---------- v3.40 · pular e buzinar ---------- */
@@ -7575,11 +8095,12 @@
     'cvr-lj-veste': async el => { el.disabled = true; try{ await vesteSkin(el.dataset.k); }catch(e){ C.toast(C.errMsg(e, 'Não deu pra vestir agora.')); } pintaLoja(); },
     'cvr-lj-tira': async el => { el.disabled = true; try{ await vesteSkin(''); }catch(e){ C.toast(C.errMsg(e, 'Não deu agora.')); } pintaLoja(); },
     /* v3.55: "Pra casa" levanta do banco e larga a vara (antes chegava sentado, pescando na porta) */
-    'cvr-casa': () => { if(!V.eu || !V.casa) return; saiDoBarco(); V.alvo = null; V.eu.sit = false; V.eu.pesca = null; V.eu.x = V.casa.x; V.eu.y = V.casa.y; V.entrando = .55; anunciar(); portaUI(); },
+    'cvr-casa': () => { if(!V.eu || !V.casa || !podeViajar()) return; saiDoBarco(); V.alvo = null; V.eu.sit = false; V.eu.pesca = null; V.eu.x = V.casa.x; V.eu.y = V.casa.y; V.entrando = .55; anunciar(); portaUI(); },
     'cvr-gente': () => genteSheet(),
     'cvr-mapa': () => { if(V.cid) mapaSheet(); },
     'cvr-ir-lugar': el => { const l = lugares()[Number(el.dataset.i)]; if(!l) return; const p = pertoLivre(l.x, l.y); if(p){ teleporta(p.x, p.y); if(l.nome === 'Papai Noel do Igapó') olhaNoel(7000); } },
     'cvr-porta': () => abrePorta(),
+    'cvr-briga': () => empurra(),
     'cvr-mj-seta': el => mjSeta(el.dataset.d),
     'cvr-mj-larga': () => mjLarga(),
     'cvr-falar': el => { const m = C.$('cvr-falas'); if(!m) return; m.hidden = !m.hidden; el.setAttribute('aria-expanded', String(!m.hidden)); },
@@ -7605,7 +8126,11 @@
 
   C.verso = { miniVeiculo, trocaVeiculo, veiculoDe, alturaPulo, PULO_MS, SKINS_LOJA,
     /* v4.03 · o Lambe-Lambe do Noel (pros testes) */
-    torcida: TORCIDA, canto: CANTO, torcidas: () => (V.torcidas || []).map(T => ({ k: T.k, x: T.x, x0: T.x0, x1: T.x1, cy: T.cy(), yRua: T.yRua, lado: T.lado, gente: T.gente.map(m => ({ sid: m.sid, x: m.x, y: m.y, item: m.item || '', fala: m.fala && m.fala.ate > Date.now() ? m.fala.t : '', pulando: alturaPulo(m) > 0, cor: m.av.corR })) })),
+    /* v4.11 · pros testes: o GTA (as ruas, a polícia, o empurrão e as missões) */
+    grafo: () => { const G = grafo(); return { nos: G.N.length, ligados: G.N.filter(q => G.viz[q.id].length).length, arestas: G.viz.reduce((a, v) => a + v.length, 0) / 2, N: G.N.map(q => ({ id: q.id, x: q.x, y: q.y, viz: G.viz[q.id].slice() })) }; },
+    caminho: (a, b) => caminhoNos(a, b), procura: (n, porque) => procura(n, porque), empurra: () => empurra(), quemEmpurro: () => { const r = quemEmpurro(); return r ? r.sid : ''; },
+    missoes: () => MISSOES.map(m => ({ u: m.u, k: m.def.k, nome: m.def.nome, pontos: m.def.pontos, como: m.def.como })), etapaFeita: () => etapaFeita(),
+        torcida: TORCIDA, canto: CANTO, torcidas: () => (V.torcidas || []).map(T => ({ k: T.k, x: T.x, x0: T.x0, x1: T.x1, cy: T.cy(), yRua: T.yRua, lado: T.lado, gente: T.gente.map(m => ({ sid: m.sid, x: m.x, y: m.y, item: m.item || '', fala: m.fala && m.fala.ate > Date.now() ? m.fala.t : '', pulando: alturaPulo(m) > 0, cor: m.av.corR })) })),
     fotoNoel, tiraPola, fechaPola, retratoNoel, pola:() => ({ on: PO.on, aces: PO.aces, leg: PO.leg, gente: PO.gente.map(p => p.h), foto: !!PO.foto, card: PO.card ? [PO.card.width, PO.card.height] : null }), noelFoto: () => (V.cid && V.cid.lago && V.cid.lago.noel && V.cid.lago.noel.foto) || null,
     /* v4.0 · o céu e os eventos (pros testes: hora(21.5), clima('chuva'), null volta pro relógio e pro sorteio) */
     hora: v => { if(v !== undefined){ horaForca = v; V.ceu = null; } return horaBR(); }, clima: v => { if(v !== undefined){ climaForca = v; V.ceu = null; } return climaDe(); },

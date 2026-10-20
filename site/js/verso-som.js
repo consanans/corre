@@ -489,6 +489,21 @@
   function taco(forca){ if(!fxOk()) return; const t = ac.currentTime + .004, f = Math.max(.3, Math.min(1, forca || 1)); estalo(t, 2400, 1.2, .05, .16 * f); estalo(t, 900, .9, .09, .1 * f); tom(t, 1150, 600, .06, .07 * f, 'triangle'); }
   function luva(){ if(!fxOk()) return; const t = ac.currentTime + .004; estalo(t, 520, .8, .07, .12, 'lowpass'); tom(t, 140, 90, .06, .08); }
   function taiko(n){ if(!fxOk()) return; const t = ac.currentTime + .02; for(let i = 0; i < (n || 1); i++){ const ti = t + i * .32; tom(ti, 110, 52, .5, .2); estalo(ti, 180, .7, .16, .12, 'lowpass'); } }
+  /* v4.11 · o Trampo GTA: a sirene (o "uóo-uóo" de duas notas, mais fraca longe), a batida, o empurrão, a estrela de
+     procurado que sobe, o "perdeu" (a polícia te levou), a missão cumprida e a que falhou. vol de 0 a 1 */
+  function gta(k, vol){
+    if(!fxOk()) return;
+    const t = ac.currentTime + .005, v = vol == null ? 1 : Math.max(.05, Math.min(1, vol));
+    if(k === 'sirene'){ for(let i = 0; i < 4; i++){ const hi = i % 2 === 0; tom(t + i * .34, hi ? 960 : 720, hi ? 940 : 700, .33, .045 * v, 'triangle'); tom(t + i * .34, hi ? 1920 : 1440, hi ? 1880 : 1400, .33, .012 * v, 'square'); } }
+    else if(k === 'batida'){ estalo(t, 300, .5, .26, .24 * v, 'lowpass'); estalo(t, 2600, 1.4, .14, .09 * v); tom(t, 95, 40, .22, .12 * v); tom(t + .03, 1300, 900, .16, .02 * v, 'square'); }
+    else if(k === 'empurra'){ estalo(t, 520, .8, .09, .15 * v, 'lowpass'); tom(t, 170, 90, .1, .1 * v, 'triangle'); estalo(t + .05, 1500, 1, .06, .05 * v); }
+    else if(k === 'estrela'){ tom(t, 880, 880, .07, .05 * v, 'square'); tom(t + .09, 660, 660, .14, .05 * v, 'square'); }
+    else if(k === 'perdeu'){ [392, 370, 349, 294].forEach((f, i) => tom(t + i * .22, f, f * .98, i === 3 ? .6 : .2, .06 * v, 'triangle')); }
+    else if(k === 'missao'){ ['C5', 'E5', 'G5', 'C6', 'E6'].forEach((n, i) => brilho(t + i * .085, midi(n), i === 4 ? .5 : .12, .06 * v, fx)); }
+    else if(k === 'falhou'){ tom(t, 330, 160, .45, .07 * v, 'triangle'); estalo(t, 300, .8, .1, .05 * v, 'lowpass'); }
+    else if(k === 'largada'){ tom(t, 660, 660, .14, .05 * v, 'square'); }
+    else if(k === 'vai'){ tom(t, 1320, 1320, .4, .06 * v, 'square'); }
+  }
   /* v3.58 · o minijogo das tarefas: o plim curto do acerto e o tum do erro */
   function acerto(){ if(!fxOk()) return; const t = ac.currentTime + .005; brilho(t, midi('A5'), .1, .045, fx); }
   function erro(){ if(!fxOk()) return; const t = ac.currentTime + .005; tom(t, 190, 110, .16, .06, 'triangle'); estalo(t, 300, .8, .08, .05, 'lowpass'); }
@@ -953,7 +968,7 @@
     /* mais um botão de som (o da casa) */
     botao(b){ if(b && !botoes.includes(b)){ botoes.push(b); pinta(); } },
     sai, alterna, modo: () => modoAtual, tocando: () => musicaOn && modoAtual === 'tudo', ativo: () => ativo,
-    passo, pulo, cai, buzina, carroPassa, motor, ambiente, aviao, moeda, porta, taco, luva, taiko, acerto, erro, rio, papo, grind, macaco, transe, foto,
+    passo, pulo, cai, buzina, carroPassa, motor, ambiente, aviao, moeda, porta, taco, luva, taiko, acerto, erro, rio, papo, grind, macaco, transe, foto, gta,
     /* v3.79 · as corridas: corrida(estado) a cada quadro (null para), corridaFx(golpe) e a música */
     corrida, corridaFx, corridaMusica, corridaLog: () => CR.log.slice(), corridaEstado: () => ({ musica: CM.on, motor: !!CR.n, veic: CR.n ? CR.n.veic : null, marcha: CR.marcha, lado: +CR.lado.toFixed(2) }),
     amostra, amostraFx, amostraCorrida, amostraMotor, amostraGolpes, faixas: () => prontas().map(f => f.nome), faixa: () => prontas()[fi].nome,
