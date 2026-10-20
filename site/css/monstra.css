@@ -3771,3 +3771,19 @@ body.em-bio{padding-top:0}
 .pola-acts .btn{color:var(--ink)}
 .pola-acts .btn.ghost{color:#fff;border-color:rgba(255,255,255,.6);background:transparent}
 @media (prefers-reduced-motion:reduce){.pola-card,.pola-foto img,.pola-veu{transition:none}.pola-conta.pula{animation:none}}
+
+/* v4.05 · "vira o celular de lado": na entrada da cidade, no celular em pé. O cartão no meio, por cima do controle,
+   com o celular desenhado que deita e levanta (com "reduzir movimento", fica parado deitado) */
+.cvr-vire{position:absolute;inset:0;z-index:12;display:flex;align-items:center;justify-content:center;padding:16px;background:rgb(12 10 15 / 62%);animation:cvr-vire-in .22s ease-out}
+.cvr-vire.some{opacity:0;transition:opacity .24s ease}
+.cvr-vire-c{width:min(340px,100%);padding:20px 18px 16px;background:var(--paper);color:var(--ink);border:3px solid var(--ink);box-shadow:5px 5px 0 var(--ink);text-align:center}
+.cvr-vire-cel{position:relative;width:44px;height:74px;margin:6px auto 16px;border:4px solid var(--ink);border-radius:10px;background:var(--yellow);box-shadow:3px 3px 0 var(--pink);animation:cvr-vire-vira 2.6s ease-in-out infinite}
+.cvr-vire-cel i{position:absolute;left:50%;bottom:4px;width:10px;height:4px;margin-left:-5px;border-radius:2px;background:var(--ink)}
+.cvr-vire-c h2{margin:0 0 6px;font-family:var(--font-mono);font-size:19px;line-height:1.2;text-transform:uppercase;letter-spacing:.02em}
+.cvr-vire-c p{margin:0 0 8px;font-size:14.5px;line-height:1.4}
+.cvr-vire-c .cvr-vire-p{font-size:12.5px;color:var(--muted)}
+.cvr-vire-b{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+.cvr-vire-b .btn{justify-content:center;width:100%;min-height:44px}
+@keyframes cvr-vire-in{from{opacity:0}to{opacity:1}}
+@keyframes cvr-vire-vira{0%,22%{transform:rotate(0)}42%,78%{transform:rotate(-90deg)}100%{transform:rotate(0)}}
+@media (prefers-reduced-motion:reduce){ .cvr-vire{animation:none} .cvr-vire-cel{animation:none;transform:rotate(-90deg)} }

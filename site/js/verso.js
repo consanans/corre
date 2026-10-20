@@ -6265,7 +6265,8 @@
     if(C.pad && C.pad.toque()){ V.pad = C.pad.cria(st, { pula: () => { if(!mjAperta() && !rioAperta()) pula(); }, soltou: () => { mjHold(false); rioSolta(); } }); st.classList.add('toque'); padRotulo(); }
     if(C.versoSom) C.versoSom.entra(C.$('cvr-som'), () => ({ voz: [...V.peers.values()].some(p => p.estado === 'aovivo'), pausa: !!V.jogo, casa: !!(C.casa && C.casa.aberta()), balcao: !!BC.aberto }));
     /* v3.90: o Correverso é tela cheia do começo ao fim (a do navegador já foi pedida no C.views.verso, ainda no toque) */
-    cidadeCheia(true); sairDica(); dicaIphone();
+    /* v4.05: no celular em pé, primeiro o "vira o celular de lado"; o balão do Sair vem depois */
+    cidadeCheia(true); if(!giraDica()) sairDica(); dicaIphone();
     st.addEventListener('pointerdown', telaToque, true); st.addEventListener('pointerup', telaToque, true);
   }
   function aoSairDaRota(){ if(!/^#\/verso/.test(location.hash)) sair(); }
@@ -6279,6 +6280,8 @@
      Os cantinhos tiram a tela cheia até sair da cidade (o menu do Corre volta a aparecer do lado) */
   function cidadeCheia(on){
     document.body.classList.toggle('cvr-cheia', !!on);
+    /* v4.05: a tela virada pelo "Virar a tela" solta junto (o navegador já solta saindo da tela cheia; aqui é garantia) */
+    if(!on && V.giraTrava){ V.giraTrava = false; try{ screen.orientation.unlock(); }catch(e){} }
     if(C.tela){ C.tela.fica = on ? 'cidade' : null; if(on) C.tela.poe('cidade'); else C.tela.tira('cidade'); }
     const b = C.$('cvr-tela'); if(b){ b.setAttribute('aria-pressed', on ? 'true' : 'false'); b.title = on ? 'Sair da tela cheia (fica na cidade, com o menu do Corre)' : 'Tela cheia: a cidade na tela toda'; b.setAttribute('aria-label', b.title); b.innerHTML = ico(on ? 'janela' : 'cheia'); }
     if(V.vivo) tamanhoTela();
@@ -6324,6 +6327,65 @@
     let n = 0; try{ n = +localStorage.getItem('corre-ios-cheia') || 0; if(n >= 3) return; localStorage.setItem('corre-ios-cheia', String(n + 1)); }catch(e){ return; }
     clearTimeout(V.iosT); V.iosT = setTimeout(() => { if(/^#\/verso/.test(location.hash)) C.toast('No iPhone, a tela cheia de verdade é com o Corre na Tela de Início: toca em Compartilhar e depois em Adicionar à Tela de Início.', 9000); }, 7600);
   }
+  /* ---------- v4.05 · "vira o celular de lado" ----------
+     O Thales: "adicionar uma mensagem, pra quem entrar no Correverso, falando pra virar o celular na horizontal".
+     Deitado, a cidade fica maior e o controle cabe nas duas mãos (o direcional na esquerda, o Pular na direita). Aparece
+     na entrada da cidade, só no celular (com o controle de toque) e só em pé; espera a folha do avatar fechar e some
+     sozinha quando a pessoa vira. "Jogar em pé" fecha; depois de três vezes, não pergunta mais (corre-cidade-gira).
+     Onde o navegador deixa travar a orientação (o Android com a cidade em tela cheia), o "Virar a tela" gira por ela,
+     até sair da cidade. O balão do Sair espera ela fechar (senão os dois brigam no alto). O &nomanual dos testes pula
+     (como pula o manual e o convite de instalar); &gira=1 força */
+  const GIRA_K = 'corre-cidade-gira';
+  const emPe = () => { try{ return matchMedia('(orientation: portrait)').matches; }catch(e){ return innerHeight > innerWidth; } };
+  const celularToque = () => !!V.pad && Math.min(innerWidth, innerHeight) < 600;
+  /* devolve se vai mostrar (aí o balão do Sair vem depois dela) */
+  function giraDica(){
+    clearTimeout(V.giraT); let n = 0; try{ n = +localStorage.getItem(GIRA_K) || 0; }catch(e){}
+    if(/[?&]nomanual\b/.test(location.search) && !/[?&]gira=1\b/.test(location.search)) return false;
+    if(n >= 3 || !celularToque() || !emPe()) return false;
+    const gen = V.gen, t0 = Date.now();
+    const tenta = () => {
+      if(gen !== V.gen || !V.vivo || !/^#\/verso/.test(location.hash)) return;
+      if(!emPe()){ sairDica(); return; }
+      const sh = C.$('sheet'), ocupado = (sh && !sh.hidden) || (C.casa && C.casa.aberta()) || V.jogo || PO.on || BC.aberto;
+      if(ocupado){ if(Date.now() - t0 < 90000) V.giraT = setTimeout(tenta, 600); return; }
+      giraMostra();
+    };
+    V.giraT = setTimeout(tenta, 900);
+    return true;
+  }
+  function giraMostra(){
+    const st = C.$('cvr-stage'); if(!st || C.$('cvr-vire')) return;
+    const trava = !!(screen.orientation && typeof screen.orientation.lock === 'function' && C.tela && C.tela.el());
+    const d = document.createElement('div'); d.id = 'cvr-vire'; d.className = 'cvr-vire';
+    d.innerHTML = `<div class="cvr-vire-c" role="dialog" aria-modal="true" aria-labelledby="cvr-vire-t" aria-describedby="cvr-vire-d">
+      <div class="cvr-vire-cel" aria-hidden="true"><i></i></div>
+      <h2 id="cvr-vire-t">Vira o celular de lado</h2>
+      <p id="cvr-vire-d">Deitado, a cidade fica maior e o controle cabe nas duas mãos: andar na esquerda, pular na direita.</p>
+      <p class="cvr-vire-p">Não girou? Desliga o bloqueio de rotação do celular.</p>
+      <div class="cvr-vire-b">${trava ? `<button type="button" class="btn pri" data-act="cvr-vire-vira">${ico('troca')} Virar a tela</button>` : ''}<button type="button" class="btn${trava ? ' ghost' : ' pri'}" data-act="cvr-vire-pe">Jogar em pé</button></div></div>`;
+    /* tocar fora do cartão fecha (sem contar como "em pé") */
+    d.addEventListener('click', ev => { if(ev.target === d) giraFecha(false); });
+    st.appendChild(d);
+    V.giraOuve = () => { if(!emPe()) giraFecha(false); };
+    try{ V.giraMq = matchMedia('(orientation: portrait)'); V.giraMq.addEventListener('change', V.giraOuve); }catch(e){ V.giraMq = null; }
+    addEventListener('resize', V.giraOuve);
+    const b = d.querySelector('button'); if(b) try{ b.focus({ preventScroll: true }); }catch(e){}
+  }
+  /* pe: tocou em "Jogar em pé" (conta); false: virou ou tocou fora; null: saiu da cidade (só limpa) */
+  function giraFecha(pe){
+    clearTimeout(V.giraT);
+    if(V.giraOuve){ try{ if(V.giraMq) V.giraMq.removeEventListener('change', V.giraOuve); }catch(e){} removeEventListener('resize', V.giraOuve); V.giraOuve = null; V.giraMq = null; }
+    const d = C.$('cvr-vire'); if(!d) return;
+    if(pe){ try{ localStorage.setItem(GIRA_K, String((+localStorage.getItem(GIRA_K) || 0) + 1)); }catch(e){} }
+    if(pe === null){ d.remove(); return; }
+    d.classList.add('some'); setTimeout(() => d.remove(), 260);
+    if(V.vivo) setTimeout(() => { if(V.vivo) sairDica(); }, 300);
+  }
+  async function giraVira(){
+    try{ await screen.orientation.lock('landscape'); V.giraTrava = true; giraFecha(false); }
+    catch(e){ C.toast('Não deu pra girar por aqui: vira o celular com a mão.', 3200); }
+  }
   /* sair da cidade nunca pode travar no meio: cada passo da limpeza é independente
      (antes, um erro aqui deixava a rede e os ouvintes pendurados e a cidade não abria de novo) */
   function sair(){
@@ -6334,6 +6396,7 @@
     const tenta = f => { try{ f(); }catch(e){} };
     tenta(() => fechaJogo(true));
     tenta(() => fechaPola());
+    tenta(() => giraFecha(null));
     tenta(() => { if(V.pad){ V.pad.destroi(); V.pad = null; } });
     tenta(() => { if(C.versoSom) C.versoSom.sai(); });
     /* saiu no meio do voo: chega no destino (o voo tava pago) */
@@ -6355,6 +6418,8 @@
     if(V.jogo){ V.teclas.clear(); return; }
     /* v4.03: com a polaroid na tela a cidade não anda; o Esc fecha ela */
     if(PO.on){ V.teclas.clear(); if(e.type === 'keydown' && e.key === 'Escape'){ e.preventDefault(); fechaPola(); } return; }
+    /* v4.05: o "vira o celular" na tela: o Esc fecha (como tocar fora) */
+    if(C.$('cvr-vire')){ V.teclas.clear(); if(e.type === 'keydown' && e.key === 'Escape'){ e.preventDefault(); giraFecha(false); } return; }
     if(BC.aberto){ V.teclas.clear(); if(e.type === 'keydown' && e.key === 'Escape'){ e.preventDefault(); fechaBalcao(); } return; }
     if(C.casa && C.casa.aberta()){ V.teclas.clear(); return; }
     const alvo = e.target, digitando = alvo && (alvo.tagName === 'INPUT' || alvo.tagName === 'TEXTAREA' || alvo.tagName === 'SELECT' || alvo.isContentEditable);
@@ -7273,6 +7338,9 @@
     /* v3.89: a tela cheia da cidade (o jogo todo) */
     'cvr-tela': () => cidadeCheia(!document.body.classList.contains('cvr-cheia')),
     'cvr-sai-cidade': () => { location.hash = V.de || '#/'; },
+    /* v4.05: o "vira o celular de lado" */
+    'cvr-vire-pe': () => giraFecha(true),
+    'cvr-vire-vira': () => giraVira(),
     'cvr-trampo': () => { if(V.vivo) trampoSheet(null); },
     'cvr-pega-tarefa': el => pegaTarefa(el.dataset.u, el.dataset.k),
     'cvr-larga-tarefa': () => { largaTarefa(false); C.closeSheet(); },
