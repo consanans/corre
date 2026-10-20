@@ -6,13 +6,14 @@
   'use strict';
   const C = window.Corre, { esc, ico } = C;
   /* sobe esse número a cada atualização: quem já viu recebe de novo, abrindo nas novidades */
-  const VERSAO = '4.08';
+  const VERSAO = '4.09';
   const K = 'corre-manual-visto';
 
   /* O que tem de novo: só o que é super relevante pra galera (o Thales, v3.67). No máximo 8, o mais novo em cima, uma ou
      duas frases cada, no jeito de quem conta pro amigo. Conserto, acabamento e detalhe técnico não entram aqui (moram no
      CLAUDE.md); novidade grande que chega empurra a mais velha pra fora */
   const NOVIDADES = [
+    ['gente', 'Torcida na rua', 'No Correverso, a torcida do Brasil desce a rua da Gleba de verde e amarelo e a de vermelho toma a rua do Centro, cantando e pulando no bumbo. Chega perto e toca em Cantar com a torcida pra pular junto.'],
     ['play', 'Gude no parquinho do Zerão', 'Do lado do parquinho do Zerão tem um círculo riscado na terra: puxa a tua bolinha pra trás, solta e tira as outras do círculo. Sozinho, limpa um círculo atrás do outro; em dois, cada um escolhe um bicho e quem tirar mais leva.'],
     ['play', 'De Boa, o jogo da capivara', 'Na Prainha do Tibagi tem jogo novo: empilha os bichos nas costas da capivara, um toque solta o que tá balançando. Escolhe o teu bicho (cada um tem o seu recorde), joga sozinho ou em dois no mesmo celular e posta a tua torre mais alta no story.'],
     ['bell', 'O Corre te chama quando tem novidade', 'Liga os avisos no celular e, no fim da tarde, o Corre te conta quando teu link na bio teve visita, quando aparece pedido no Mural pro teu corre ou quando falta pouco pro teu perfil ficar pronto. No máximo um por dia, só com novidade. Liga em Perfil › Avisos no celular.'],
@@ -20,7 +21,6 @@
     ['link', 'Link na bio', 'Teu link pra bio do Instagram: app.corresocial.com/@teunome. Vitrine com preço, orçamento, WhatsApp, Pix e os teus links, com a cara da tua marca do Studio Houzi. Monta em Perfil › Link na bio, e lá você vê quantos passaram e onde tocaram.'],
     ['lua', 'O Correverso de dia e de noite', 'A cidade segue o relógio de Londrina: amanhece, o sol se põe laranja e de noite os postes e as casas acendem. Às vezes garoa, às vezes cai um temporal. E todo dia tem Som na Concha às 12h30 e às 20h, e Fogos no Igapó às 21h: a faixa AO VIVO no alto leva até lá.'],
     ['presente', 'Chama a galera', 'Quem entra no Corre pelo teu link e cria o perfil ganha 0,50 de correal, e você também (até 10 convites). Tá no menu, em Perfil › Chamar a galera.'],
-    ['star', 'Halloween no Correverso', 'O Ateliê ganhou a coleção de Halloween: Cabeça de Abóbora, Saci (31 de outubro também é o Dia do Saci), Bruxa, Esqueleto, Lobisomem do Tibagi, Fantasma de Lençol, Morto-Vivo e Gato Preto. Só se compra até Finados (2/11); comprou, é tua pra sempre. E tem casa na cidade enfeitada com abóbora acesa, teia, morcego e caldeirão.'],
   ];
   /* cada página: o que é, pra que serve no teu dia, e o botão que leva lá */
   const PAGINAS = [

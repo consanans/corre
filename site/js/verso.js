@@ -794,7 +794,15 @@
     /* v4.04: a bandeira do Marcão: o mastro sobe da mão e o pano é meio rubro-negro (perto do mastro) e meio azul e branco
        (na ponta). Nenhum escudo: só as cores. O pano fica do lado da cabeça (mais alto, a plaquinha do nome cobria) */
     bandeira: (px, x, y) => { px(x + 1, y - 12, 1, 14, '#8C5A2E'); px(x + 1, y - 13, 1, 1, '#E2B04A');
-      for(let r = 0; r < 5; r++){ px(x + 2, y - 12 + r, 4, 1, r % 2 ? '#141216' : '#B4152E'); px(x + 6, y - 12 + r, 4, 1, r === 2 ? '#F4F3EF' : '#4BA3E3'); } }
+      for(let r = 0; r < 5; r++){ px(x + 2, y - 12 + r, 4, 1, r % 2 ? '#141216' : '#B4152E'); px(x + 6, y - 12 + r, 4, 1, r === 2 ? '#F4F3EF' : '#4BA3E3'); } },
+    /* v4.09: as torcidas. A do Brasil (a única coisa verde do Corre, pedido do Thales): o pano verde com o losango amarelo e
+       o círculo azul; a de vermelho: o pano vermelho com a barra branca embaixo. E a corneta de cada uma */
+    bandeiraBR: (px, x, y) => { px(x + 1, y - 12, 1, 14, '#8C5A2E'); px(x + 1, y - 13, 1, 1, '#E2B04A');
+      for(let r = 0; r < 6; r++) for(let c = 0; c < 9; c++){ const dc = Math.abs(c - 4), dr = Math.abs(r - 2.5), lo = dc / 4.6 + dr / 3.1; px(x + 2 + c, y - 12 + r, 1, 1, dc <= 1 && dr <= 1 ? '#1F3E8F' : lo <= 1 ? '#FFD321' : '#119A48'); } },
+    bandeiraVM: (px, x, y) => { px(x + 1, y - 12, 1, 14, '#8C5A2E'); px(x + 1, y - 13, 1, 1, '#E2B04A');
+      for(let r = 0; r < 6; r++) px(x + 2, y - 12 + r, 9, 1, r === 4 ? '#F4F3EF' : r === 5 ? '#8E1520' : '#D7262E'); },
+    cornetaBR: (px, x, y) => { px(x, y, 2, 1, '#FFD321'); px(x + 1, y - 1, 2, 1, '#FFD321'); px(x + 2, y - 3, 2, 2, '#FFD321'); px(x + 3, y - 5, 3, 2, '#FFD321'); px(x + 4, y - 7, 4, 2, '#119A48'); px(x + 5, y - 7, 2, 1, '#0B5E2C'); },
+    cornetaVM: (px, x, y) => { px(x, y, 2, 1, '#F4F3EF'); px(x + 1, y - 1, 2, 1, '#D7262E'); px(x + 2, y - 3, 2, 2, '#D7262E'); px(x + 3, y - 5, 3, 2, '#D7262E'); px(x + 4, y - 7, 4, 2, '#F4F3EF'); px(x + 5, y - 7, 2, 1, '#8E1520'); }
   };
   /* v3.55: sem protótipo: um vizinho mandando item "__proto__" ou "valueOf" achava uma "função" aqui e travava a cidade de todo mundo */
   Object.setPrototypeOf(ITEM_MAO, null);
@@ -813,7 +821,8 @@
     const P = PELES[av.pele], Pd = sombra(P, .82), Pb = sombra(P, .6), H = CAB_CORES[av.corCabelo], Hd = sombra(H, .72);
     /* o uniforme manda na roupa, na calça, no tênis e no que vai na cabeça (o personagem ganha dele) */
     const SK = !av.personagem && av.skin && SKIN[av.skin] ? SKIN[av.skin] : null;
-    const R = SK ? SK.R : ROUPA_CORES[av.corRoupa], Rd = sombra(R, .78), L = SK ? SK.L : CALCA_CORES[av.corCalca], T = SK ? SK.T : TENIS_CORES[av.tenis];
+    /* v4.09: a cor da camisa e da bermuda das torcidas (corR, corL; como a listra, só vem de NPC: o avLimpo não guarda) */
+    const R = SK ? SK.R : av.corR || ROUPA_CORES[av.corRoupa], Rd = sombra(R, .78), L = SK ? SK.L : av.corL || CALCA_CORES[av.corCalca], T = SK ? SK.T : TENIS_CORES[av.tenis];
     const roupa = SK ? (SK.manga === 'curta' ? 'camiseta' : 'uniforme') : av.roupa, pernaAv = SK && SK.perna ? SK.perna : av.perna, estampa = SK ? 'nada' : av.estampa, corrente = SK ? 'nada' : av.corrente, topo = capacete || (SK && SK.cabeca) ? 'nada' : av.topo, MAO = SK && SK.luva ? SK.luva : P, cobre = !!(SK && SK.cobre) || capacete;
     const CAP = R === PAPEL ? ROSA : R, OLHO = '#2B1A12', BR = '#F4F3EF';
     const st = passo == null ? 0 : Math.sin(passo), fase = (PO && !PO.pedala) ? 0 : st > .35 ? 1 : st < -.35 ? -1 : 0, bob = skate ? (passo != null && Math.sin(passo * .5) > .6 ? 1 : 0) : PO ? 0 : passo != null && Math.abs(Math.cos(passo)) > .75 ? 1 : 0;
@@ -840,13 +849,13 @@
     const item = ex.item && ITEM_MAO[ex.item] ? ITEM_MAO[ex.item] : null;
     const extras = () => {
       /* (a bandeira passa da cabeça: de costas ela aparece também) */
-      if(item && (dir !== 'cima' || ex.item === 'bandeira')) item(px, lado ? 3 : 5, -11);
+      if(item && (dir !== 'cima' || /^bandeira/.test(ex.item))) item(px, lado ? 3 : 5, -11);
       /* a vara de pescar: sobe pra direita, a linha desce até a água com a boia rosa */
       if((ex.pesca || ex.vara) && sentado){ for(let i = 0; i < 8; i++) px(5 + (i >> 1), -8 - i, 1, 1, '#8C5A2E'); px(9, -15, 1, 1, '#8C5A2E'); if(!ex.vara){ for(let i = 0; i < 9; i++) px(10, -14 + i, 1, 1, 'rgba(15,18,24,.45)'); px(10, -5, 1, 1, '#FF4F9A'); } }
     };
     /* v4.04: o morador pode ter a cor da listra (a camisa rubro-negra do Marcão); o avatar de gente nunca traz essa
        chave, porque o avLimpo refaz o objeto só com o que conhece */
-    const contraste = av.listra || (lum(R) > .55 ? INK : BR), acento = R === AMARELO ? ROSA : AMARELO;
+    const contraste = av.listra || (lum(R) > .55 ? INK : BR), acento = av.acento || (R === AMARELO ? ROSA : AMARELO);
     const hy = -23, o = { lado, costas, esp, hy, fase, sentado };
     if(SK && SK.atras) SK.atras(px, o);
     if(!lado){
@@ -3475,7 +3484,8 @@
   function carros(dt){
     const gente = [V.eu, ...V.remotos.values()].filter(r => r && (r === V.eu || !bloqueado(r))), W = V.cid.W;
     for(const car of V.carros){
-      const para = gente.some(o => { const d = (o.x - car.x) * car.dir; return d > -12 && d < 78 && Math.abs(o.y - car.y) < 30; });
+      /* v4.09: pela torcida, só para quem tá na faixa dele (o bloco anda na faixa do sentido dele; o do outro passa) */
+      const para = gente.some(o => { const d = (o.x - car.x) * car.dir; return d > -12 && d < 78 && Math.abs(o.y - car.y) < (o.torcida ? 18 : 30); });
       if(!para){ car.x += car.dir * car.v * dt; if(car.x > W + 90) car.x = -90; else if(car.x < -90) car.x = W + 90; }
       /* v3.40: o carro que vem vindo e passa do teu lado faz barulho (vento e motor, cruzando de um lado pro outro) */
       if(V.eu && !para && !V.voo && C.versoSom){ const dx = car.x - V.eu.x, dy = Math.abs(car.y - V.eu.y); if(dy < 100 && dx * car.dir < 0 && Math.abs(dx) < 175 && Math.abs(dx) > 115 && (!car.som || Date.now() - car.som > 5000)){ car.som = Date.now(); C.versoSom.carroPassa(car.dir, 1 - dy / 120); } }
@@ -4823,7 +4833,7 @@
     noiteDesenha(ctx, k, ox, oy); estrelas(ctx, t, vx, vy, vw); palcoLuzes(ctx, t); fogosDesenha(ctx, t); chuvaDesenha(ctx, t);
     if(V.rio && V.rio.fase === 'salto') saltoPeixe(ctx, t);
     if(V.alvo){ ctx.strokeStyle = ROSA; ctx.lineWidth = Math.max(2, 1.05 / k0); ctx.beginPath(); ctx.ellipse(V.alvo.x, V.alvo.y, 10 + Math.sin(t * 6) * 2, 4, 0, 0, Math.PI * 2); ctx.stroke(); }
-    if(V.porta && !(V.eu && V.eu.sit)){ const p = V.porta; ctx.save(); ctx.translate(p.x, p.y - (p.tipo === 'banco' ? 34 : p.tipo === 'morador' ? 48 / V.k : 4) + Math.round(Math.sin(t * 4) * 2)); ctx.beginPath(); ctx.moveTo(-8, -12); ctx.lineTo(8, -12); ctx.lineTo(0, 0); ctx.closePath(); forma(ctx, AMARELO, 2); ctx.restore(); }
+    if(V.porta && !(V.eu && V.eu.sit)){ const p = V.porta; ctx.save(); ctx.translate(p.x, p.y - (p.tipo === 'banco' ? 34 : p.tipo === 'morador' || p.tipo === 'torcida' ? 48 / V.k : 4) + Math.round(Math.sin(t * 4) * 2)); ctx.beginPath(); ctx.moveTo(-8, -12); ctx.lineTo(8, -12); ctx.lineTo(0, 0); ctx.closePath(); forma(ctx, AMARELO, 2); ctx.restore(); }
     desenhaVoos(ctx, t, gente);
     /* nomes e balões por cima de tudo */
     gente.forEach(r => nomeDe(ctx, r, false, agora)); if(V.eu) nomeDe(ctx, V.eu, true, agora);
@@ -4940,6 +4950,8 @@
     if(o.morador && o.papo && !o.papo.eu && !(o.fala && o.fala.ate > (agora || Date.now()))) return;
     const vk = o.sit || o.barco ? '' : veiculoDe(o), sobe = vk && C.veiculos ? C.veiculos.pose(vk, 'frente').sobe : 0;
     const nm = eu ? 'voce' : o.eu ? 'voce · outro aparelho' : o.handle ? '@' + o.handle : (o.nome || 'visitante'), y = o.y - ((o.sit || o.barco ? 28 : 31) + sobe + alturaPulo(o) * PULO_PX + (emParaquedas(o) ? 22 : 0)) / V.k - altVoo(o);
+    /* v4.09: a torcida não leva nome (nove plaquinhas juntas viravam um muro): só o balão de quem puxa o canto */
+    if(o.semNome){ if(o.fala && o.fala.ate > (agora || Date.now())){ if(txtN(o.fala.t).length > 24) (V.baloes || (V.baloes = [])).push([o.fala.t, o.x, y]); else { const b = pixPlaca(ctx, o.fala.t, o.x, y, { fundo: PAPEL, max: 24 }); ctx.save(); naBase(ctx); ctx.fillStyle = INK; const tx = b.ix + Math.floor(b.w / 2); ctx.fillRect(tx - 1, b.iy + b.h, 3, 1); ctx.fillRect(tx, b.iy + b.h + 1, 1, 1); ctx.restore(); } } return; }
     let yb = y - 13 / V.k;
     if(!eu && o.tr){ pixPlaca(ctx, 'TRAMPANDO', o.x, yb, { fundo: AMARELO }); yb -= 13 / V.k; }
     else if(!eu && o.ec){ pixPlaca(ctx, 'EM CASA', o.x, yb, { fundo: LILAS }); yb -= 13 / V.k; }
@@ -5016,7 +5028,7 @@
     }
     if(e.mov || V.voo) V.paradoT = 0; else if(!V.paradoT) V.paradoT = Date.now();
     skatePasso(dtReal);
-    bots(dt); passoMoradores(dt); carros(dt); bolas(dt); passoNpcs(dt); passoTarefa(dt); mjUI(); rioPasso(dt); rioUI(); passoArthur(dt);
+    bots(dt); passoMoradores(dt); passoTorcidas(dt); carros(dt); bolas(dt); passoNpcs(dt); passoTarefa(dt); mjUI(); rioPasso(dt); rioUI(); passoArthur(dt);
     if(V.tarefa && (!V.tarefaUiT || t - V.tarefaUiT > .25)){ V.tarefaUiT = t; tarefaUI(); }
     if(V.anEu) V.nivelEu = V.anEu();
     const z = V.z, cw = V.cssW, ch = V.cssH;
@@ -5038,6 +5050,8 @@
        você: o Rafa do Pix mora na porta do Sebo e tomava o botão de entrar. Só o banco (sentar) cede pra quem conversa */
     const firme = melhor && melhor.tipo !== 'banco' && md < 40;
     if(!e.barco && !V.voo && V.moradores && !firme){ let fala = null, df = 80; for(const m of V.moradores){ const d = Math.hypot(m.x - e.x, m.y - e.y); if(m.papo && m.papo.eu && d < df){ df = d; fala = m; } else if(!fala && d < Math.min(md, 56)){ md = d; melhor = m.porta; } } if(fala) melhor = fala.porta; }
+    /* v4.09: perto de alguém da torcida (e de nada mais perto), o botão é "Cantar com a torcida" */
+    if(!e.barco && !V.voo && V.torcidas && !firme && !(melhor && melhor.tipo === 'morador' && melhor.m.papo)) for(const T of V.torcidas) for(const m of T.gente){ const d = Math.hypot(m.x - e.x, m.y - e.y); if(d < Math.min(md, 52)){ md = d; melhor = T.porta; } }
     if(V.portaT && !V.voo && !e.barco) melhor = V.portaT;
     if(melhor !== V.porta){ V.porta = melhor; portaUI(); }
     const zn = zonaDe(e.x, e.y); if(zn !== V.zona){ V.zona = zn; const zb = C.$('cvr-zona'); if(zb){ zb.hidden = !zn; zb.innerHTML = zn ? `${ico('pin')} ${esc(zn)}` : ''; } }
@@ -5435,7 +5449,7 @@
     'Semáforo do kart? Vermelho, amarelo e vai. Verde aqui não entra nem pra largar.', 'Coxa? Respeito o adversário. Só não pinto nada de verde.',
     'A Falange Azul também é escola de samba. Tá no nome, pode procurar.', 'Mosaico 3D na Baixada é coisa da Fanáticos. Aqui o 3D é no Calçadão mesmo.',
     'Torcida boa é bandeira, bumbo e garganta. Briga não: briga é de quem não sabe cantar.', 'Dia de jogo no Café eu saio daqui cantando e chego lá rouco.',
-    'Furacão sopra, Tubarão morde. E o verde ficou do lado de fora.'];
+    'Furacão sopra, Tubarão morde. E o verde ficou do lado de fora.', 'Verde no Corre? Só na torcida do Brasil, lá na Gleba. Ordem do chefe.'];
   const MORADORES = [
     { nome: 'Seu Nenê', onde: 'Feira do Corre', voz: 150, av: { pele: 3, cabelo: 'raspado', corCabelo: 4, barba: 'barba', skin: 'chef' },
       frases: ['Pastel de vento não tem aqui. Aqui o vento é de graça.', 'Caldo de cana com limão cura tudo. Menos boleto.', 'Pastel de queijo, de carne e de queijo com mais queijo.', 'Na feira é freguês. No Insta é seguidor. A fome é a mesma.', 'Trinta anos de feira e ainda não sei fechar pastel calado.'] },
@@ -5600,6 +5614,110 @@
   }
   /* só solta quem ainda tá neste papo (quem já entrou noutro segue nele) */
   function fimPapo(p, agora){ p.quem.forEach(m => { if(m.papo !== p) return; m.papo = null; m.papoT = agora; m.esp = 1.2 + Math.random() * 2.5; }); }
+
+  /* ---------- v4.09 · as torcidas na rua ----------
+     O Thales: "na Gleba faça um pessoal andando na rua de verde e amarelo e no Centro de vermelho, como se fosse grupos
+     de pessoas torcendo por seleções". Duas torcidas que descem a rua juntas, em bloco de três por fileira, de ponta a
+     ponta da região, cantando: a do Brasil na rua da frente das torres da Gleba, a de vermelho na rua da frente do Centro
+     (a seleção de vermelho não tem nome de propósito: é a torcida, não um país). Cada uma anda na faixa do sentido
+     dela, então o carro de trás espera (como espera você) e o do outro sentido passa por trás (pra torcida, o carro só
+     para por quem tá na faixa dele: carros()). De tempo em tempo uma
+     puxa o canto e o bloco inteiro pula no bumbo; perto delas o botão é "Cantar com a torcida" (você pula junto).
+     O verde: a regra da casa é nada de verde, e o Thales pediu verde e amarelo pra torcida do Brasil. É a única
+     exceção, e fica só nela (camisa, bermuda, bandeira e corneta). Do aparelho de cada um, como os moradores: entram
+     no V.remotos com npc (não contam como gente, não aparecem no Mapa nem na lista) e sem plaquinha de nome. */
+  const BR_VERDE = '#119A48', BR_AMARELO = '#FFD321', BR_AZUL = '#1F3E8F', VM = '#D7262E', VM_ESC = '#8E1520';
+  const TORCIDAS = [
+    { k: 'brasil', nome: 'a torcida do Brasil', rua: 11, regiao: 'gleba', n: 9, cor: BR_AMARELO, vel: 46,
+      cantos: ['Eu sou brasileiro, com muito orgulho, com muito amor!', 'Rumo ao hexa!', 'Vai, Brasil! Olê, olê, olê!', 'Pula, Gleba! Quem não pula é do outro time!',
+        'Verde e amarelo hoje pode, viu? Só hoje.', 'Joga bonito, Brasil!', 'Hexa vem! Hexa vem!'] },
+    { k: 'vermelho', nome: 'a torcida de vermelho', rua: 4, centro: [4, 9], n: 8, cor: VM, vel: 48,
+      cantos: ['Olé, olé, olé, olá!', 'Vamos, vermelho! Vamos ganhar!', 'De vermelho até a alma!', 'O Centro é nosso hoje!', 'Bumbo, bandeira e garganta!',
+        'Ninguém cala essa torcida!', 'Vermelho no peito e na cara!'] }
+  ];
+  /* a roupa de cada um: o avLimpo dá o resto (pele, cabelo...) e a cor vem depois dele, como a listra do Marcão */
+  function avTorcida(d, i){
+    const r = rng(hash('torcida-' + d.k + i)), av = avLimpo({ roupa: r() < .2 ? 'regata' : 'camiseta', perna: r() < .75 ? 'bermuda' : 'calca', oculos: r() < .15 ? 'escuro' : 'nada',
+      topo: ['nada', 'bone', 'bandana', 'bonetras', 'nada'][Math.floor(r() * 5)], barba: r() < .25 ? 'cavanhaque' : 'nada', estampa: 'nada' }, 'torcida-' + d.k + i);
+    if(d.k === 'brasil'){
+      const verde = i % 4 === 2;
+      av.corR = verde ? BR_VERDE : BR_AMARELO; av.corL = verde || r() < .3 ? BR_AMARELO : r() < .5 ? BR_VERDE : BR_AZUL;
+      if(verde){ av.estampa = 'estrela'; av.acento = BR_AMARELO; } else if(i % 3 === 1){ av.estampa = 'listras'; av.listra = BR_VERDE; }
+      av.tenis = 0;
+    } else {
+      av.corR = i % 3 === 1 ? '#F4F3EF' : VM; av.corL = r() < .5 ? '#F4F3EF' : INK;
+      if(i % 3 === 1){ av.estampa = 'listras'; av.listra = VM; } else if(i % 4 === 2){ av.estampa = 'listras'; av.listra = '#F4F3EF'; }
+      av.tenis = r() < .5 ? 0 : 1;
+    }
+    return av;
+  }
+  /* o bloco: 3 por fileira, a primeira fileira na frente, o do meio um passo atrás (senão um tampava o outro); oy é a
+     posição na largura da faixa (10 px entre um e outro: o asfalto da metade da rua tem uns 32 px, o resto é calçada) */
+  const lugarT = i => ({ ox: Math.floor(i / 3) * 22 + (i % 3 === 1 ? 8 : 0), oy: (i % 3 - 1) * 10 });
+  function criaTorcidas(){
+    const c = V.cid; if(!c) return [];
+    return TORCIDAS.map(d => {
+      let x0, x1;
+      if(d.regiao){ const R = c.regs.find(g => g.k === d.regiao); if(!R) return null; x0 = R.x + 60; x1 = R.x + R.w - 60; }
+      else { x0 = ruaX(d.centro[0]) + 70; x1 = ruaX(d.centro[1] + 1) - 70; }
+      if(d.rua > c.rows) return null;
+      const q = rng(hash('torcida-' + d.k)), T = { d, k: d.k, x0, x1, yRua: ruaY(d.rua), lado: q() < .5 ? 1 : -1, x: x0 + (x1 - x0) * (.2 + q() * .6), para: 0, gritoT: Date.now() + 4000 + q() * 4000, cantaT: 0, fila: [], gente: [] };
+      T.cy = () => T.yRua + T.lado * 18;
+      T.gente = Array.from({ length: d.n }, (_, i) => {
+        const L = lugarT(i), av = avTorcida(d, i);
+        const m = { sid: 'tor-' + d.k + '-' + i, bot: true, npc: true, torcida: T, semNome: true, nome: d.nome, i, av, x: T.x - T.lado * L.ox, y: T.cy() + L.oy, dir: T.lado > 0 ? 'dir' : 'esq', passo: Math.random() * 6, mov: false, sit: false, mic: false, fase: Math.random() * 6, d: { voz: 150 + Math.floor(q() * 190) } };
+        /* a bandeira e a corneta: duas bandeiras (o primeiro e o do meio de trás) e uma corneta */
+        if(i === 0 || i === 7) m.item = d.k === 'brasil' ? 'bandeiraBR' : 'bandeiraVM';
+        else if(i === 4) m.item = d.k === 'brasil' ? 'cornetaBR' : 'cornetaVM';
+        return m;
+      });
+      T.porta = { tipo: 'torcida', T, x: T.x, y: T.cy() };
+      return T;
+    }).filter(Boolean);
+  }
+  /* o canto: um puxa (o balão), outro responde, e o bloco inteiro pula três vezes no bumbo (cada um com um tiquinho de
+     atraso, que torcida não pula toda junta). comigo: foi você que puxou (o botão), então você pula também */
+  function cantaTorcida(T, comigo){
+    const e = V.eu, agora = Date.now(); if(!T || agora - T.cantaT < 2200) return;
+    T.cantaT = agora; T.para = agora + (comigo ? 3600 : 2000);
+    if(!T.fila.length) T.fila = embaralha(T.d.cantos);
+    const t = T.fila.pop(), puxa = T.gente[Math.floor(Math.random() * Math.min(3, T.gente.length))], resp = T.gente[3 + Math.floor(Math.random() * (T.gente.length - 3))];
+    puxa.fala = { t, ate: agora + 1800 + t.length * 55 };
+    if(comigo && resp){ const t2 = T.d.k === 'brasil' ? 'Chega mais, canta junto!' : 'Isso! Mais alto!'; setTimeout(() => { if(V.vivo) resp.fala = { t: t2, ate: Date.now() + 2200 }; }, 900); }
+    const t0 = performance.now();
+    T.gente.forEach(m => { const atraso = Math.random() * 120; m.pulos = [t0 + atraso, t0 + 430 + atraso, t0 + 860 + atraso]; m.puMs = 360; m.puH = .8; });
+    const perto = e && T.gente.some(m => Math.hypot(m.x - e.x, m.y - e.y) < 360);
+    if(perto && C.versoSom){ if(C.versoSom.taiko) C.versoSom.taiko(comigo ? 4 : 3); if(C.versoSom.papo) C.versoSom.papo(Math.min(30, t.length), puxa.d.voz); }
+    if(comigo && e){ pula(); [430, 860].forEach(ms => setTimeout(() => { if(V.vivo && V.eu === e && !e.sit && alturaPulo(e) === 0){ e.puT = performance.now(); e.puN = ((e.puN || 0) % 999) + 1; enviaPos(true); } }, ms)); }
+  }
+  function passoTorcidas(dt){
+    const L = V.torcidas, e = V.eu; if(!L || !L.length) return;
+    const agora = Date.now(), pn = performance.now();
+    for(const T of L){
+      const lider = T.gente[0];
+      /* você parado na frente do bloco: ele espera (como o carro) */
+      const naFrente = e && !e.barco && (e.x - T.x) * T.lado > -4 && (e.x - T.x) * T.lado < 40 && Math.abs(e.y - T.cy()) < 34;
+      const parado = agora < T.para || naFrente;
+      if(!parado){
+        T.x += T.lado * T.d.vel * dt;
+        /* chegou na ponta: canta e volta pela outra metade da rua (a do outro sentido) */
+        if((T.lado > 0 && T.x >= T.x1) || (T.lado < 0 && T.x <= T.x0)){ T.x = clamp(T.x, T.x0, T.x1); T.lado = -T.lado; cantaTorcida(T, false); }
+      }
+      /* de tempo em tempo, com você por perto, puxam o canto andando */
+      if(e && agora > T.gritoT && agora > T.para && Math.hypot(lider.x - e.x, lider.y - e.y) < 520){ T.gritoT = agora + 9000 + Math.random() * 6000; cantaTorcida(T, false); }
+      const cy = T.cy();
+      for(const m of T.gente){
+        if(m.pulos && m.pulos.length && pn >= m.pulos[0]) m.puT = m.pulos.shift();
+        const L2 = lugarT(m.i), tx = T.x - T.lado * L2.ox + Math.sin(agora / 900 + m.fase) * 2.5, ty = cy + L2.oy + Math.cos(agora / 1100 + m.fase) * 1.5;
+        const dx = tx - m.x, dy = ty - m.y, d = Math.hypot(dx, dy);
+        if(d > .6){ const v = Math.min(d, (T.d.vel * 1.6 + d * 2) * dt); m.x += dx / d * v; m.y += dy / d * v; }
+        m.mov = !parado || d > 3; if(m.mov) m.passo += dt * 9;
+        /* parados no canto, olham pra rua (pra baixo); andando, pra onde o bloco vai (atravessando, pro lado de lá) */
+        m.dir = parado && d <= 3 ? 'baixo' : Math.abs(dy) > Math.abs(dx) * 1.5 && d > 3 ? (dy < 0 ? 'cima' : 'baixo') : T.lado > 0 ? 'dir' : 'esq';
+      }
+      T.porta.x = T.x - T.lado * 22; T.porta.y = cy;
+    }
+  }
   function passoTarefa(dt){
     const T = V.tarefa, e = V.eu; if(!T || !e) return;
     const agora = Date.now();
@@ -6092,7 +6210,7 @@
       if(j && T.fase === 'jogando'){ b.disabled = j.t === 'seq'; b.innerHTML = `${ico('raio')} ${esc(j.t === 'tempo' ? j.verbo : j.t === 'segura' ? 'Segura: ' + j.verbo.toLowerCase() : 'Usa as setas')}`; return; }
       b.innerHTML = `${ico('raio')} ${esc(p.et.acao)}${ag ? '…' : ''}`; b.disabled = !!ag; return; }
     b.disabled = false;
-    b.innerHTML = p.tipo === 'morador' ? `${ico('chat')} Trocar ideia com ${esc(p.m.nome)}` : p.tipo === 'barco' ? `${ico('peixe')} Pegar um barquinho` : p.tipo === 'aeroporto' ? `${ico('aviao')} Voar (${C.correalTxt(precoVoo())})` : p.tipo === 'sebo' ? `${ico('musica')} Entrar no Sebo` : p.tipo === 'calcadao' ? `${ico('gente')} Entrar no Calçadão 3D` : p.tipo === 'atelie' ? `${ico('star')} Ateliê: skins` : p.tipo === 'torneio' ? `${ico('peixe')} Torneio de Pesca` : p.tipo === 'beisebol' ? `${ico('raio')} Jogar beisebol na ACEL` : p.tipo === 'quadra' ? `${ico('raio')} ${p.k === 'quadra-futsal' ? 'Desafio de pênalti' : 'Desafio de arremesso'}` : p.tipo === 'publi' ? `${ico('ext')} ${esc((PUBLI[p.k] || {}).nome || '')}: baixar o app` : p.tipo === 'pista' ? `${ico('raio')} ${p.k === 'moto' ? 'Autódromo do Café' : 'Corrida de patinete'}` : p.tipo === 'civico' ? `${ico('raio')} ${esc(CIVICOS[p.k].entra)}` : p.tipo === 'barraca' ? (aberta(p.b) ? `${ico(p.b.ico)} ${esc(p.b.botao)}` : `${ico('eye')} Hórus desligado: ligar`) : p.tipo === 'comida' ? `${ico('banca')} ${esc(COMIDAS[p.k][0])}` : p.tipo === 'aquario' || p.tipo === 'jogo' ? `${ico('play')} Jogar ${esc(JOGOS[p.jogo].titulo)}` : p.tipo === 'placa' ? `${ico('eye')} Ler: ${esc(p.titulo)}` : p.tipo === 'polaroid' ? `${ico('camera')} Tirar foto com o Papai Noel` : p.tipo === 'banco' ? (p.pesca ? `${ico('gente')} Pescar no ${p.b.lugar.startsWith('Deck') ? 'deck' : 'píer'}` : `${ico('gente')} Sentar ${p.b.degrau ? 'na Concha' : 'no banco'}`) : p.tipo === 'mural' ? `${ico('tacha')} Abrir o Mural` : p.tipo === 'banca' ? `${ico('banca')} Banca do dia` : p.tipo === 'lote' ? `${ico('plus')} Lote livre` : meu ? `${ico('home')} Tua casa` : `${ico('home')} Bater na porta de @${esc(p.c.handle)}`;
+    b.innerHTML = p.tipo === 'morador' ? `${ico('chat')} Trocar ideia com ${esc(p.m.nome)}` : p.tipo === 'torcida' ? `${ico('musica')} Cantar com ${esc(p.T.d.nome)}` : p.tipo === 'barco' ? `${ico('peixe')} Pegar um barquinho` : p.tipo === 'aeroporto' ? `${ico('aviao')} Voar (${C.correalTxt(precoVoo())})` : p.tipo === 'sebo' ? `${ico('musica')} Entrar no Sebo` : p.tipo === 'calcadao' ? `${ico('gente')} Entrar no Calçadão 3D` : p.tipo === 'atelie' ? `${ico('star')} Ateliê: skins` : p.tipo === 'torneio' ? `${ico('peixe')} Torneio de Pesca` : p.tipo === 'beisebol' ? `${ico('raio')} Jogar beisebol na ACEL` : p.tipo === 'quadra' ? `${ico('raio')} ${p.k === 'quadra-futsal' ? 'Desafio de pênalti' : 'Desafio de arremesso'}` : p.tipo === 'publi' ? `${ico('ext')} ${esc((PUBLI[p.k] || {}).nome || '')}: baixar o app` : p.tipo === 'pista' ? `${ico('raio')} ${p.k === 'moto' ? 'Autódromo do Café' : 'Corrida de patinete'}` : p.tipo === 'civico' ? `${ico('raio')} ${esc(CIVICOS[p.k].entra)}` : p.tipo === 'barraca' ? (aberta(p.b) ? `${ico(p.b.ico)} ${esc(p.b.botao)}` : `${ico('eye')} Hórus desligado: ligar`) : p.tipo === 'comida' ? `${ico('banca')} ${esc(COMIDAS[p.k][0])}` : p.tipo === 'aquario' || p.tipo === 'jogo' ? `${ico('play')} Jogar ${esc(JOGOS[p.jogo].titulo)}` : p.tipo === 'placa' ? `${ico('eye')} Ler: ${esc(p.titulo)}` : p.tipo === 'polaroid' ? `${ico('camera')} Tirar foto com o Papai Noel` : p.tipo === 'banco' ? (p.pesca ? `${ico('gente')} Pescar no ${p.b.lugar.startsWith('Deck') ? 'deck' : 'píer'}` : `${ico('gente')} Sentar ${p.b.degrau ? 'na Concha' : 'no banco'}`) : p.tipo === 'mural' ? `${ico('tacha')} Abrir o Mural` : p.tipo === 'banca' ? `${ico('banca')} Banca do dia` : p.tipo === 'lote' ? `${ico('plus')} Lote livre` : meu ? `${ico('home')} Tua casa` : `${ico('home')} Bater na porta de @${esc(p.c.handle)}`;
   }
   function tamanhoTela(){
     const st = C.$('cvr-stage'); if(!st || !V.cv) return;
@@ -6296,6 +6414,8 @@
     V.bots = [];
     /* v3.76: os moradores (do aparelho de cada um, como os bots da demonstração: entram no V.remotos com npc) */
     V.moradores = criaMoradores(); V.moradores.forEach(m => V.remotos.set(m.sid, m)); V.paradoT = 0;
+    /* v4.09: as torcidas (do aparelho de cada um, como os moradores) */
+    V.torcidas = criaTorcidas(); V.torcidas.forEach(T => T.gente.forEach(m => V.remotos.set(m.sid, m)));
     if(C.DEMO){
       V.cid.casas.filter(c => c.p.ex || /^ex\d/.test(c.id)).slice(0, 3).forEach((c, i) => {
         const b = { sid: 'bot-' + c.id, bot: true, uid: c.id, handle: c.handle, nome: c.nome, av: avLimpo(c.p.verso, c.id), mic: i === 0, x: c.portaX, y: c.base + 40, dir: 'baixo', passo: 0, mov: false, esp: 1 + i, casa: { x: c.portaX, y: c.base } };
@@ -6465,7 +6585,7 @@
     V.peers = new Map();
     const r = V.rede; V.rede = null; if(r) tenta(() => r.sair());
     tenta(() => { removeEventListener('keydown', tecla); removeEventListener('keyup', tecla); removeEventListener('blur', soltar); removeEventListener('resize', tamanhoTela); removeEventListener('hashchange', aoSairDaRota); removeEventListener('pagehide', sair); });
-    V.teclas.clear(); V.remotos = new Map(); V.bots = []; V.moradores = []; V.carros = []; V.bolas = []; V.tarefa = null; V.portaT = null; V.porta = null;
+    V.teclas.clear(); V.remotos = new Map(); V.bots = []; V.moradores = []; V.torcidas = []; V.carros = []; V.bolas = []; V.tarefa = null; V.portaT = null; V.porta = null;
     tenta(desmontaBalcao);
   }
   const TECLAS = new Set(['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'a', 'd', 'w', 's']);
@@ -7193,6 +7313,7 @@
     if(p.tipo === 'atelie'){ if(C.versoSom) C.versoSom.porta(); lojaSheet(); return; }
     if(p.tipo === 'barco'){ embarca(p.pier); return; }
     if(p.tipo === 'morador'){ trocaIdeia(p.m); return; }
+    if(p.tipo === 'torcida'){ cantaTorcida(p.T, true); return; }
     if(p.tipo === 'sebo'){ if(C.casa && C.casa.LUGARES && C.casa.LUGARES.sebo){ if(C.versoSom) C.versoSom.porta(); C.casa.abrir({ lugar: 'sebo' }); } return; }
     if(p.tipo === 'calcadao'){ if(C.casa && C.casa.LUGARES && C.casa.LUGARES.calcadao){ if(C.versoSom) C.versoSom.porta(); C.casa.abrir({ lugar: 'calcadao' }); } return; }
     if(p.tipo === 'mural'){ abreBalcao(BC_MURAL); return; }
@@ -7442,7 +7563,7 @@
 
   C.verso = { miniVeiculo, trocaVeiculo, veiculoDe, alturaPulo, PULO_MS, SKINS_LOJA,
     /* v4.03 · o Lambe-Lambe do Noel (pros testes) */
-    torcida: TORCIDA, canto: CANTO,
+    torcida: TORCIDA, canto: CANTO, torcidas: () => (V.torcidas || []).map(T => ({ k: T.k, x: T.x, x0: T.x0, x1: T.x1, cy: T.cy(), yRua: T.yRua, lado: T.lado, gente: T.gente.map(m => ({ sid: m.sid, x: m.x, y: m.y, item: m.item || '', fala: m.fala && m.fala.ate > Date.now() ? m.fala.t : '', pulando: alturaPulo(m) > 0, cor: m.av.corR })) })),
     fotoNoel, tiraPola, fechaPola, retratoNoel, pola:() => ({ on: PO.on, aces: PO.aces, leg: PO.leg, gente: PO.gente.map(p => p.h), foto: !!PO.foto, card: PO.card ? [PO.card.width, PO.card.height] : null }), noelFoto: () => (V.cid && V.cid.lago && V.cid.lago.noel && V.cid.lago.noel.foto) || null,
     /* v4.0 · o céu e os eventos (pros testes: hora(21.5), clima('chuva'), null volta pro relógio e pro sorteio) */
     hora: v => { if(v !== undefined){ horaForca = v; V.ceu = null; } return horaBR(); }, clima: v => { if(v !== undefined){ climaForca = v; V.ceu = null; } return climaDe(); },
