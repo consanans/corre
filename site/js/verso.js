@@ -1596,7 +1596,9 @@
   /* v3.82: o Elo Perdido (o jogo que o Thales mandou) roda na Jaula dos Macacos do Parque Arthur Thomas; onde, sair e carrega
      dizem de onde é a moldura (sem eles, é a do Aquário) */
   const JOGOS = { killer: { id: 'killer', titulo: 'Killer Ocean', sub: 'por Lorenzo Malassise', src: 'jogos/killer-ocean.html' },
-    elo: { id: 'elo', titulo: 'Elo Perdido', sub: 'simulador de primata quase humano', src: 'jogos/elo-perdido.html', onde: 'Jaula dos Macacos', sair: 'Sair da jaula', carrega: 'Abrindo o portão…' } };
+    elo: { id: 'elo', titulo: 'Elo Perdido', sub: 'simulador de primata quase humano', src: 'jogos/elo-perdido.html', onde: 'Jaula dos Macacos', sair: 'Sair da jaula', carrega: 'Abrindo o portão…' },
+    /* v4.05: o De Boa, na Prainha do Tibagi (empilhar os bichos nas costas da capivara) */
+    deboa: { id: 'deboa', titulo: 'De Boa', sub: 'empilha os bichos na capivara', src: 'jogos/de-boa.html', onde: 'Prainha do Tibagi', sair: 'Sair pra prainha', carrega: 'A capivara tá se ajeitando…' } };
   /* v3.83 (o Thales, com o mapa de Londrina: "coloque as coisas da cidade mais ou menos onde elas estão em Londrina mesmo"):
      o Centro no meio, em cima; o Estádio do Café (e o Autódromo, na porta dele) na zona norte; o Bosque colado no Centro;
      o Zerão do lado do Moringão, na Higienópolis, entre o Centro e o começo do Igapó; o Igapó descendo pro sudeste até o
@@ -2126,6 +2128,9 @@
     /* a prainha: areia em volta do segundo píer, guarda-sol e duas cadeiras de frente pro rio */
     R.prainha = { x0: P2.xp - 300, x1: P2.xp + 210 };
     [[-230, ROSA], [-130, AMARELO], [130, AZUL]].forEach(([dx, cor]) => { const x = P2.xp + dx, c = colEm(x); K.decor.push({ tipo: 'guardasol', x, y: c.t - 22, cor }); K.sol.push({ x: x - 3, y: c.t - 26, w: 6, h: 6 }); K.bancos.push({ x: x + 24, y: c.t - 14, lugar: 'Prainha do Tibagi' }); });
+    /* v4.05: o De Boa: a capivara deitada na areia com os bichos nas costas, a placa do lado e a porta do jogo na frente
+       (entre o píer e o guarda-sol azul) */
+    { const x = P2.xp + 74, y = colEm(x).t - 26; R.deboa = { x, y }; K.decor.push({ tipo: 'deboa', x, y }); K.sol.push({ x: x - 40, y: y - 10, w: 68, h: 10 }); K.lugares.push({ nome: 'De Boa', x, y: y + 18 }); }
     const perto = (x, m) => R.piers.some(p => Math.abs(x - p.xp) < m) || (x > R.prainha.x0 - 30 && x < R.prainha.x1 + 30) || Math.abs(x - R.barracao.x) < 80;
     /* bancos de frente pra água ao longo da trilha, poste na calçada e ipê entre a calçada e a trilha */
     for(let x = 150; x < W - 100; x += 380){ if(perto(x, 120)) continue; K.bancos.push({ x, y: colEm(x).t - 18, lugar: 'Rio Tibagi' }); }
@@ -2187,6 +2192,8 @@
     if(c.centro.praca) P.push({ x: c.centro.praca.x + LW / 2, y: c.centro.praca.y + LH / 2 + 46, tipo: 'calcadao' });
     /* v3.75: na ponta de cada píer do Tibagi, o barquinho */
     if(c.rio) c.rio.piers.forEach(pr => P.push({ x: pr.ponta.x, y: pr.ponta.y, tipo: 'barco', k: pr.k, pier: pr }));
+    /* v4.05: na prainha, o De Boa */
+    if(c.rio && c.rio.deboa) P.push({ x: c.rio.deboa.x, y: c.rio.deboa.y + 12, tipo: 'jogo', jogo: 'deboa' });
     /* o aquário: na porta, o jogo */
     if(c.centro.aquario) P.push({ x: c.centro.aquario.x + LW / 2, y: c.centro.aquario.base + 8, tipo: 'aquario', jogo: 'killer' });
     /* v3.40: o embarque do aeroporto */
@@ -3409,6 +3416,26 @@
       case 'guardasol': { ctx.fillStyle = 'rgba(15,18,24,.2)'; ctx.fillRect(d.x - 24, d.y - 3, 48, 6); ctx.fillStyle = '#EEEBE4'; ctx.fillRect(d.x - 1, d.y - 40, 3, 40);
         [[-24, -44, 48, 4], [-19, -48, 38, 4], [-11, -51, 22, 3]].forEach(([x, y, w, h]) => { ctx.fillStyle = d.cor; ctx.fillRect(d.x + x, d.y + y, w, h); ctx.fillStyle = PAPEL; for(let k = x + 6; k < x + w - 4; k += 12) ctx.fillRect(d.x + k, d.y + y, 6, h); });
         ctx.fillStyle = 'rgba(15,18,24,.25)'; ctx.fillRect(d.x - 24, d.y - 41, 48, 1); break; }
+      /* v4.05: o De Boa na prainha: a capivara de olho fechado na areia, com o filhote, o quati e o tatu empilhados nas
+         costas (o de cima balança um tiquinho), e a placa do jogo do lado. As cores são as do jogo */
+      case 'deboa': {
+        const x = d.x, y = d.y, CAP = '#8E5D3D', ESC = '#6A4329';
+        ctx.fillStyle = 'rgba(15,18,24,.22)'; ctx.fillRect(x - 26, y - 2, 56, 5);
+        ctx.fillStyle = ESC; [-17, -9, 8, 15].forEach(dx => ctx.fillRect(x + dx, y - 6, 4, 6));
+        ctx.beginPath(); ctx.rect(x - 22, y - 18, 40, 13); forma(ctx, CAP, 1.4);
+        ctx.beginPath(); ctx.rect(x + 14, y - 15, 14, 11); forma(ctx, CAP, 1.4);
+        ctx.fillStyle = ESC; ctx.fillRect(x + 23, y - 13, 5, 8); ctx.fillRect(x + 15, y - 17, 3, 2);
+        ctx.fillStyle = INK; ctx.fillRect(x + 18, y - 12, 3, 1);
+        ctx.beginPath(); ctx.rect(x - 15, y - 26, 20, 8); forma(ctx, '#A86F48', 1.2);
+        ctx.fillStyle = INK; ctx.fillRect(x + 1, y - 24, 1.4, 1.4);
+        ctx.beginPath(); ctx.rect(x - 13, y - 32, 17, 6); forma(ctx, '#8C6C5A', 1.2);
+        ctx.fillStyle = '#5A4436'; for(let i = 0; i < 3; i++) ctx.fillRect(x - 17 - i * 2, y - 31 - i * 3, 3, 2);
+        ctx.save(); ctx.translate(x - 5, y - 32); ctx.rotate(Math.sin(t * 2.2) * .07);
+        ctx.beginPath(); ctx.arc(0, 0, 7.5, Math.PI, 0); ctx.closePath(); forma(ctx, '#A38D77', 1.2); ctx.restore();
+        ctx.fillStyle = INK; ctx.fillRect(x - 32, y - 40, 3, 40);
+        pixPlaca(ctx, 'DE BOA', x - 31, y - 44, { fundo: AMARELO, cor: INK });
+        luz(x, y - 16, 70, .55);
+        break; }
     }
   }
   /* carro passando nas ruas que cortam a cidade inteira (para quando tem gente na frente) */
@@ -5392,7 +5419,7 @@
       frases: ['Bolo de pote de ninho com morango. Aceito pix e elogio.', 'Já vendi bolo pro prédio inteiro. O porteiro virou meu gerente.', 'A dieta começa segunda. Faz quinze anos que é segunda.', 'Bolo no pote é bolo que não aceita bagunça.'] },
     /* v3.85: era o Seu Massao; o Thales pediu o Seu Pedro no lugar */
     { nome: 'Seu Pedro', onde: 'Porto do Tibagi', voz: 160, av: { pele: 0, cabelo: 'curto', corCabelo: 4, topo: 'bone', roupa: 'jaqueta', corRoupa: 3, corCalca: 3 },
-      frases: ['Piapara grande gosta de corredeira. Joga perto das pedras.', 'A melhor isca é paciência. A segunda é massa de pão.', 'Quem puxa na beliscada volta com história, não com peixe.', 'No Tibagi o peixe te observa. Fala baixo.', 'Pescador não mente. Só arredonda o peso pra cima.', 'A mais pesada desse rio deu 4,850 na balança. Eu vi. Quase.'] },
+      frases: ['Piapara grande gosta de corredeira. Joga perto das pedras.', 'A melhor isca é paciência. A segunda é massa de pão.', 'Quem puxa na beliscada volta com história, não com peixe.', 'No Tibagi o peixe te observa. Fala baixo.', 'Pescador não mente. Só arredonda o peso pra cima.', 'A mais pesada desse rio deu 4,850 na balança. Eu vi. Quase.', 'Tem uma capivara na prainha que aguenta bicho nas costas o dia inteiro. Nunca reclamou.'] },
     { nome: 'Lari', onde: 'Museu de Arte', voz: 300, av: { pele: 2, cabelo: 'longo', corCabelo: 5, oculos: 'grau', roupa: 'moletom', corRoupa: 0, corCalca: 0, tenis: 2 },
       frases: ['Fiz o logo em cinco minutos. Levei dez anos pra fazer em cinco.', 'Cliente pediu pra deixar mais clean. Tirei ele do projeto.', 'Minha paleta não tem verde. Questão de princípio.', 'Cobrei por hora, achou caro. Cobrei por projeto, achou demorado.', 'Aumenta o logo? Aumento. O preço junto.'] },
     { nome: 'Juninho Coach', onde: 'Calçadão', voz: 210, av: { pele: 1, cabelo: 'moicano', corCabelo: 3, oculos: 'escuro', roupa: 'jaqueta', corRoupa: 6, corrente: 'ouro', corCalca: 0, tenis: 0 },
@@ -6500,7 +6527,7 @@
     if(!el){ el = document.createElement('div'); el.id = 'cvr-jogo'; el.className = 'cvr-jogo'; document.body.appendChild(el); }
     const sai = j.sair || 'Sair do aquário';
     el.innerHTML = `<div class="cvr-jogo-top"><button type="button" class="cvr-bc-b cvr-jogo-x" data-act="cvr-jogo-sair" aria-label="${esc(sai)}">${ico('prev')}<span class="cvr-jogo-xl">${esc(sai)}</span><span class="cvr-jogo-xc" aria-hidden="true">Sair</span></button><span class="cvr-jogo-t"><b>${esc(j.titulo)}</b><small>${esc(j.onde || NOME_C.aquario)} · ${esc(j.sub)}</small></span><button type="button" class="cvr-bc-b cvr-jogo-tela" id="cvr-jogo-tela" data-act="cvr-jogo-tela" aria-pressed="false" hidden></button><span class="cvr-jogo-dica" id="cvr-jogo-dica" role="status" hidden></span></div>
-      <div class="cvr-jogo-corpo"><div class="cvr-jogo-load" id="cvr-jogo-load">${esc(j.carrega || 'Enchendo o tanque…')}</div><iframe id="cvr-jogo-fr" src="${esc(j.src)}" title="${esc(j.titulo)}" allow="autoplay; fullscreen"></iframe></div>`;
+      <div class="cvr-jogo-corpo"><div class="cvr-jogo-load" id="cvr-jogo-load">${esc(j.carrega || 'Enchendo o tanque…')}</div><iframe id="cvr-jogo-fr" src="${esc(j.src)}" title="${esc(j.titulo)}" allow="autoplay; fullscreen; web-share"></iframe></div>`;
     el.hidden = false; jogoTela();
     const fr = el.querySelector('iframe'); fr.addEventListener('load', () => { const l = document.getElementById('cvr-jogo-load'); if(l) l.hidden = true; try{ fr.contentWindow.focus(); }catch(e){} });
     V.jogo = { id, hist: false, ignora: 0 }; V.teclas.clear();

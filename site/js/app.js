@@ -567,6 +567,8 @@
     ['Lago Igapó', 'verso', 'O lago da cidade', 'lago agua'],
     ['Porto do Tibagi', 'peixe', 'Barquinho e pesca da piapara no rio', 'rio tibagi barco barquinho pesca pescar piapara peixe porto'],
     ['Prainha do Tibagi', 'verso', 'Areia, guarda-sol e o outro píer do rio', 'prainha praia areia rio tibagi'],
+    /* v4.05 */
+    ['De Boa', 'play', 'O jogo da capivara, na Prainha do Tibagi', 'de boa jogo capivara empilhar bichos torre prainha tibagi'],
     ['ACEL · Beisebol', 'verso', 'Desafio de rebatida do Red Sharks', 'beisebol baseball red sharks rebatida'],
     ['Sebo', 'musica', 'Discos pro teu toca-discos', 'discos disco vinil musica'],
     ['Ateliê', 'star', 'A loja de skins', 'skin skins loja roupa fantasia uniforme atelie'],
