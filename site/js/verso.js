@@ -1598,7 +1598,9 @@
   const JOGOS = { killer: { id: 'killer', titulo: 'Killer Ocean', sub: 'por Lorenzo Malassise', src: 'jogos/killer-ocean.html' },
     elo: { id: 'elo', titulo: 'Elo Perdido', sub: 'simulador de primata quase humano', src: 'jogos/elo-perdido.html', onde: 'Jaula dos Macacos', sair: 'Sair da jaula', carrega: 'Abrindo o portão…' },
     /* v4.05: o De Boa, na Prainha do Tibagi (empilhar os bichos nas costas da capivara) */
-    deboa: { id: 'deboa', titulo: 'De Boa', sub: 'empilha os bichos na capivara', src: 'jogos/de-boa.html', onde: 'Prainha do Tibagi', sair: 'Sair pra prainha', carrega: 'A capivara tá se ajeitando…' } };
+    deboa: { id: 'deboa', titulo: 'De Boa', sub: 'empilha os bichos na capivara', src: 'jogos/de-boa.html', onde: 'Prainha do Tibagi', sair: 'Sair pra prainha', carrega: 'A capivara tá se ajeitando…' },
+    /* v4.08: o Gude, no parquinho do Zerão (bolinha de gude no peteleco) */
+    gude: { id: 'gude', titulo: 'GUDE', sub: 'bolinha de gude no peteleco', src: 'jogos/gude.html', onde: 'Parquinho do Zerão', sair: 'Sair pro parquinho', carrega: 'Riscando o círculo…' } };
   /* v3.83 (o Thales, com o mapa de Londrina: "coloque as coisas da cidade mais ou menos onde elas estão em Londrina mesmo"):
      o Centro no meio, em cima; o Estádio do Café (e o Autódromo, na porta dele) na zona norte; o Bosque colado no Centro;
      o Zerão do lado do Moringão, na Higienópolis, entre o Centro e o começo do Igapó; o Igapó descendo pro sudeste até o
@@ -1864,6 +1866,10 @@
     const qb = z.quadras[1];
     K.decor.push({ tipo: 'tabela', x: qb.x + 10, y: qb.y + qb.h / 2 + 8, lado: 1 }, { tipo: 'tabela', x: qb.x + qb.w - 10, y: qb.y + qb.h / 2 + 8, lado: -1 });
     K.decor.push({ tipo: 'escorrega', x: z.areia.x + 40, y: z.areia.y + 62 }, { tipo: 'balanco', x: z.areia.x + 110, y: z.areia.y + 64 });
+    /* v4.08: o Gude, do lado direito do parquinho: o círculo riscado na terra com as bolinhas dentro (o jogo abre na porta,
+       embaixo dele). Fica no chão: ninguém tromba */
+    z.gude = { x: z.areia.x + z.areia.w + 40, y: z.areia.y + 50 };
+    K.decor.push({ tipo: 'gude', x: z.gude.x, y: z.gude.y }); K.lugares.push({ nome: 'Gude', x: z.gude.x, y: z.gude.y + 30 });
     /* v3.76: a pista de skate no quarto de baixo à direita (as barras da academia foram pra baixo do parquinho, e a árvore
        e o banco que ficavam ali saíram). Bowl, rampa (quarter), caixote com rampa dos dois lados, corrimão e borda */
     const sk = z.skate = { x0: z.cx - 20, y0: z.cy + 80, x1: z.cx + 240, y1: z.cy + 290, erx: z.rx - 46, ery: z.ry - 46 };
@@ -2194,6 +2200,8 @@
     if(c.rio) c.rio.piers.forEach(pr => P.push({ x: pr.ponta.x, y: pr.ponta.y, tipo: 'barco', k: pr.k, pier: pr }));
     /* v4.05: na prainha, o De Boa */
     if(c.rio && c.rio.deboa) P.push({ x: c.rio.deboa.x, y: c.rio.deboa.y + 12, tipo: 'jogo', jogo: 'deboa' });
+    /* v4.08: no parquinho do Zerão, o Gude (a porta é na risca, embaixo do círculo) */
+    if(c.zerao && c.zerao.gude) P.push({ x: c.zerao.gude.x, y: c.zerao.gude.y + 20, tipo: 'jogo', jogo: 'gude' });
     /* o aquário: na porta, o jogo */
     if(c.centro.aquario) P.push({ x: c.centro.aquario.x + LW / 2, y: c.centro.aquario.base + 8, tipo: 'aquario', jogo: 'killer' });
     /* v3.40: o embarque do aeroporto */
@@ -3435,6 +3443,26 @@
         ctx.fillStyle = INK; ctx.fillRect(x - 32, y - 40, 3, 40);
         pixPlaca(ctx, 'DE BOA', x - 31, y - 44, { fundo: AMARELO, cor: INK });
         luz(x, y - 16, 70, .55);
+        break; }
+      /* v4.08: o Gude no chão do Zerão: a mancha de terra roxa, o círculo riscado com graveto, as bolinhas de vidro
+         dentro (brilham de vez em quando), a atiradora na risca, o saquinho de bolinhas e a placa. As cores são as do jogo */
+      case 'gude': {
+        const x = d.x, y = d.y;
+        ctx.fillStyle = '#9A4A2C'; ctx.beginPath(); ctx.ellipse(x, y, 34, 22, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = 'rgba(52,14,6,.25)'; for(let i = 0; i < 14; i++) ctx.fillRect(x - 28 + (i * 37) % 56, y - 16 + (i * 23) % 32, u * 1.5, u * 1.5);
+        ctx.strokeStyle = '#4A1A0F'; ctx.lineWidth = Math.max(1.4, 1.2 / V.k); ctx.beginPath(); ctx.ellipse(x, y - 2, 22, 13, 0, 0, Math.PI * 2); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(x - 14, y + 16); ctx.lineTo(x + 14, y + 16); ctx.stroke();
+        [[-8, -4, '#3E7BD8'], [0, -6, '#F2A93B'], [7, -2, '#E2508C'], [-2, 2, '#8A5BD6'], [9, -8, '#F4EEE4']].forEach(([dx, dy, c], i) => {
+          ctx.fillStyle = 'rgba(25,6,2,.35)'; ctx.beginPath(); ctx.arc(x + dx + 1, y + dy + 1, 2.4, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = c; ctx.beginPath(); ctx.arc(x + dx, y + dy, 2.3, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = PAPEL; ctx.fillRect(x + dx - 1.2, y + dy - 1.4, u * 1.2, u * 1.2);
+          if(Math.sin(t * 2.3 + i * 1.7) > .93){ ctx.fillRect(x + dx - 3, y + dy - .5, 6, u); ctx.fillRect(x + dx - .5, y + dy - 3, u, 6); }
+        });
+        ctx.fillStyle = '#D8452F'; ctx.beginPath(); ctx.arc(x + 2, y + 16, 3, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = PAPEL; ctx.fillRect(x + .8, y + 14.6, u * 1.3, u * 1.3);
+        ctx.beginPath(); ctx.rect(x + 22, y + 6, 9, 9); forma(ctx, '#C9A15A', 1); ctx.fillStyle = '#8A5A2E'; ctx.fillRect(x + 24, y + 4, 5, 2);
+        ctx.fillStyle = INK; ctx.fillRect(x - 31, y - 30, 3, 30);
+        pixPlaca(ctx, 'GUDE', x - 30, y - 34, { fundo: LARANJA, cor: INK });
+        luz(x, y, 60, .45);
         break; }
     }
   }
@@ -5438,7 +5466,7 @@
     { nome: 'Prof. Ataíde', onde: 'Bosque dos Ipês', voz: 175, av: { pele: 4, cabelo: 'curto', corCabelo: 4, barba: 'barba', oculos: 'grau', roupa: 'jaqueta', corRoupa: 7, corCalca: 3 },
       frases: ['Londrina quer dizer pequena Londres. Quem fundou foi uma companhia inglesa.', 'Terra roxa é vermelha. Os italianos diziam terra rossa, e rossa virou roxa.', 'O Igapó é lago feito: represaram o ribeirão Cambé no fim dos anos 50.', 'Capivara é o maior roedor do mundo. E o mais calmo do Igapó.', 'O ipê floresce sem folha. Primeiro a festa, depois a roupa.'] },
     { nome: 'Gabi', onde: 'Zerão', voz: 310, av: { pele: 4, cabelo: 'trancas', corCabelo: 0, topo: 'fone', roupa: 'regata', corRoupa: 4, perna: 'bermuda', corCalca: 0, tenis: 3 },
-      frases: ['Três voltas no Zerão: duas correndo, uma procurando o fone.', 'Meu relógio disse que eu dormi mal. Concordei com ele.', 'Corro pra pagar os pecados do pastel de domingo.'] },
+      frases: ['Três voltas no Zerão: duas correndo, uma procurando o fone.', 'Meu relógio disse que eu dormi mal. Concordei com ele.', 'Corro pra pagar os pecados do pastel de domingo.', 'Do lado do parquinho tem um círculo riscado. Tirei três bolinhas de uma vez e ninguém viu.'] },
     { nome: 'Tonhão do Som', onde: 'Concha Acústica', voz: 120, av: { pele: 5, cabelo: 'black', corCabelo: 0, topo: 'fone', roupa: 'regata', corRoupa: 0, corrente: 'ouro', corCalca: 0, tenis: 3 },
       frases: ['Meio-dia e meia e oito da noite tem som aqui. Chega cedo.', 'Esse som aqui toca até pensamento.', 'A cidade tocou Bach hoje. Eu dancei arrocha mesmo.', 'Grave bom é o que faz a pipoca pular do saco.'] },
     /* v3.82: a bióloga do Arthur Thomas. Os fatos são do guia "Descobrindo o Parque" da Prefeitura (2026); as piadas são piada */
