@@ -91,16 +91,21 @@
     const me = st.me; if(!el || !me) return;
     let x = null; try{ x = JSON.parse(localStorage.getItem('corre-passos-x:' + me.id) || 'null'); }catch(e){}
     if(x) { el.innerHTML = ''; return; }
-    const [post, vit, conv] = await Promise.all([
+    const [post, vit, conv, avs] = await Promise.all([
       api.q('corre_feed', { eq: { dono: me.id }, limit: 1 }).then(r => (r || []).length > 0).catch(() => true),
       api.rpc('corre_vitrine', { p: me.id }).then(r => !!(r && r.itens && r.itens.length)).catch(() => true),
-      api.rpc('corre_convites_meus', {}).then(r => r ? (r.n || 0) > 0 : null).catch(() => null)
+      api.rpc('corre_convites_meus', {}).then(r => r ? (r.n || 0) > 0 : null).catch(() => null),
+      /* v4.06: algum aparelho com os avisos ligados (null: o banco ainda não tem os avisos, o passo não aparece) */
+      C.push && C.push.temAparelho && !C.EMBED ? C.push.temAparelho().catch(() => null) : null
     ]);
     if(!$('h-passos') || st.me !== me) return;
     /* v4.02: o gatilho do banco grava {"links": []} em todo perfil novo; montou = tem link ou mexeu em outra coisa da página */
     const b = me.bio_link, bio = !!b && typeof b === 'object' && (Object.keys(b).some(k => k !== 'links') || (Array.isArray(b.links) && b.links.length > 0));
     /* v4.01: no celular, o primeiro é pôr o Corre na tela (feito: aberto pelo ícone, ou disse que já pôs) */
-    const L = (celular() && !C.EMBED ? [['tela', noApp() || !!inLe().ja, 'Põe o Corre na tela do celular', 'Vira app: tela inteira, sem a barra do navegador, e os avisos chegam.', '', 'instala']] : []).concat([
+    const L = (celular() && !C.EMBED ? [['tela', noApp() || !!inLe().ja, 'Põe o Corre na tela do celular', 'Vira app: tela inteira, sem a barra do navegador, e os avisos chegam.', '', 'instala']] : [])
+      /* v4.06: os avisos (é por eles que o Corre te chama de volta: visita no link, pedido no Mural, mensagem) */
+      .concat(avs === null ? [] : [['avisos', avs, 'Liga os avisos no celular', celular() ? 'Visita no teu link na bio, pedido no Mural pro teu corre e mensagem chegam na hora, com o Corre fechado.'
+        : 'Visita no teu link na bio, pedido no Mural e mensagem chegam na hora. No celular é melhor: abre o Corre lá e liga.', '', 'push-ajustes']]).concat([
       ['foto', !!me.avatar_url, 'Põe tua foto', 'Gente confia em quem mostra a cara.', '#/editar'],
       ['faz', !!me.faz, 'Diz o que você vende', 'Numa frase. O Corre monta teu Hórus, teu Mural e tua vitrine por ela.', '#/editar'],
       ['whats', !!me.whats_publico, 'Põe o WhatsApp pra clientes', 'Vira o botão "Chamar no WhatsApp" do perfil e do link na bio.', '#/editar'],
@@ -240,6 +245,6 @@
     'es-sobe': () => { const c = $('entrar'); if(c){ c.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'center' }); const g = $('btn-google'); if(g) setTimeout(() => g.focus({ preventScroll: true }), 400); } },
     'es-desce': () => { const v = $('o-que-tem'); if(v) v.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' }); }
   });
-  C.estreia = { vitrineLogin, monta, aceita, passos, conviteSheet, MONTA };
+  C.estreia = { vitrineLogin, monta, aceita, passos, conviteSheet, MONTA, refaz: () => refazPassos() };
   C.instala = { talvez: instalaTalvez, abrir: instalaSheet, falta, noApp };
 })();

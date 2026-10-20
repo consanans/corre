@@ -5,12 +5,15 @@
    dinheiro, os clientes e as conversas de cada um seguem só de cada um. Ele e o @corre ficam fora da conta de gente.
    O alto da página é a leitura (o que os números dizem, em frase); embaixo, os números pra quem quer olhar.
    Também mora aqui a marca do dia (C.marcaDia): o app avisa o banco uma vez por dia por aparelho que a pessoa abriu o
-   Corre, pra "ativo" contar também quem só abriu e olhou. */
+   Corre, pra "ativo" contar também quem só abriu e olhou.
+   v4.06: os lembretes no celular (corre_lembretes_numeros, delta-v406.sql): quanta gente ligou os avisos, quantos
+   lembretes saíram e quantos voltaram; e, em quem chegou por último, o botão de dar as boas-vindas no WhatsApp (o
+   número que a pessoa deixou público no perfil; a mensagem sai pronta e quem manda é o dono, no WhatsApp dele). */
 (function(){
   'use strict';
   const C = window.Corre, { $, esc, ico } = C, api = C.api, st = C.st;
   const PERIODOS = [7, 30, 90];
-  const L = { dias: 30, r: null, em: 0, erro: null };
+  const L = { dias: 30, r: null, em: 0, erro: null, lm: null, wa: {} };
   try{ const v = Number(localStorage.getItem('corre-lojinha-dias')); if(PERIODOS.includes(v)) L.dias = v; }catch(e){}
 
   /* ---------- a marca do dia (todo mundo, uma vez por dia por aparelho) ---------- */
@@ -36,6 +39,7 @@
     studio: 'Programou post no Studio', houzi: 'Fez marca no Studio Houzi', horus: 'Caçou cliente no Hórus', vendas: 'Fez orçamento em Vendas', grana: 'Lançou na Grana',
     catalogo: 'Pôs item no catálogo', tarefas: 'Fez tarefa no Correverso', atelie: 'Comprou skin no Ateliê', ia: 'Usou a IA', instagram: 'Conectou o Instagram',
     avisos: 'Ligou os avisos no celular', linkbio: 'Teve visita no link na bio' };
+  const LEMBRA = { bio: 'Visita no link na bio', mural: 'Pedido novo no Mural', passos: 'O que falta no perfil', feed: 'Post de quem a pessoa segue', concha: 'O show da Concha' };
   const IA = { legenda: 'Legendas (Studio)', imagem: 'Imagens (Studio)', abordagem: 'Abordagens (Hórus)', marca: 'Marcas (Studio Houzi)', nomes: 'Nomes (Studio Houzi)',
     direcao: 'Direção criativa (Studio Houzi)', maquina: 'Plataforma de marca (Studio Houzi)' };
   /* o caminho de quem chega, na ordem dos Primeiros passos: [chave, o que fez, o que falta (pra frase da leitura)] */
@@ -45,12 +49,15 @@
 
   /* ---------- a leitura: o que os números dizem, em frase (no máximo 4) ---------- */
   function leitura(r){
-    const g = r.gente || {}, f = r.funil || {}, p = r.planos, out = [];
+    const g = r.gente || {}, f = r.funil || {}, p = r.planos, out = [], lm = L.lm;
     const P = Number(f.perfil) || 0;
     if(P >= 3){
       const pior = FUNIL.filter(x => x[2] && f[x[0]] !== undefined && f[x[0]] !== null).map(x => [x, Number(f[x[0]]) || 0]).sort((a, b) => a[1] - b[1])[0];
       if(pior && pior[1] < P) out.push(['alvo', `O gargalo: só ${num(pior[1])} de ${num(P)} ${pior[0][2]}.`]);
     }
+    /* v4.06: sem os avisos ligados, o lembrete não chega: é o primeiro número a mexer pra trazer gente de volta */
+    if(lm && !lm.falta && Number(g.perfis) >= 3 && Number(lm.avisos) < Number(g.perfis) / 2)
+      out.push(['bell', `Só ${num(lm.avisos)} de ${num(g.perfis)} ligaram os avisos no celular, e os lembretes só chegam pra quem ligou.`]);
     if(Number(g.sem_perfil) > 0) out.push(['eu', `${num(g.sem_perfil)} ${Number(g.sem_perfil) === 1 ? 'entrou' : 'entraram'} com o Google e ${Number(g.sem_perfil) === 1 ? 'parou' : 'pararam'} antes de criar o perfil.`]);
     if(Number(g.voltaram_base) >= 3) out.push(['raio', `Dos que entraram há mais de uma semana, ${pct(g.voltaram, g.voltaram_base)}% voltaram nos últimos 7 dias (${num(g.voltaram)} de ${num(g.voltaram_base)}).`]);
     if(g.novos7 !== undefined) out.push(['gente', `Essa semana ${Number(g.novos7) === 1 ? 'entrou 1 pessoa' : `entraram ${num(g.novos7)} pessoas`}; na anterior, ${num(g.novos7_antes)}.`]);
@@ -83,6 +90,26 @@
   }
   const tile = (rot, v, sub, cls) => `<div class="lo-tile${cls ? ' ' + cls : ''}"><span class="lo-tile-r">${rot}</span><b class="lo-tile-v">${v}</b>${sub ? `<span class="lo-tile-s">${sub}</span>` : ''}</div>`;
   const gente = L2 => L2 && L2.length ? `<ul class="lo-gente">${L2.map(p => `<li><a href="#/@${esc(p.handle || '')}">${C.avatar(p, 's')}<span class="lo-g-q"><b>${esc(p.nome || '@' + p.handle)}</b><small>@${esc(p.handle || '')}</small></span><b class="num lo-g-n">${num(p.n)}</b></a></li>`).join('')}</ul>` : '';
+
+  /* v4.06: os lembretes no celular (o que saiu, de que tipo, e quem voltou no mesmo dia ou no seguinte) */
+  function lembraHTML(lm, g, per){
+    if(!lm) return '';
+    const cab = `<section class="card lo-lembra" aria-labelledby="lo-lm"><h2 class="ch" id="lo-lm">Lembretes no celular <small>(${per})</small></h2>`;
+    if(lm.falta) return cab + '<p class="fine">Os lembretes ligam quando o delta-v406.sql rodar no banco.</p></section>';
+    const tipos = Object.entries(lm.tipos || {}).map(([k, v]) => ({ t: LEMBRA[k] || k, v: Number(v) || 0 })).sort((a, b) => b.v - a.v);
+    return cab + `<div class="lo-tiles">${tile('Com os avisos ligados', num(lm.avisos), `de ${pessoas(g.perfis)} · ${num(lm.aparelhos)} ${Number(lm.aparelhos) === 1 ? 'aparelho' : 'aparelhos'}`)}
+        ${tile('Lembretes enviados', num(lm.enviados), Number(lm.enviados) ? `pra ${pessoas(lm.pessoas)}` : 'nenhum no período')}
+        ${tile('Voltaram', Number(lm.enviados) ? `${pct(lm.voltaram, lm.enviados)}%` : '–', Number(lm.enviados) ? `${num(lm.voltaram)} abriram o Corre no dia ou no seguinte` : '')}</div>
+      ${tipos.length ? `<h3 class="lo-h3">O que saiu</h3>${barras(tipos, 'var(--blue)')}` : ''}
+      <p class="fine">Saem das 17h às 21h pra quem não abriu o Corre no dia, só com novidade pra pessoa, no máximo um por dia e três por semana.${Number(lm.desligaram) ? ` ${pessoas(lm.desligaram)} ${Number(lm.desligaram) === 1 ? 'desligou' : 'desligaram'} os lembretes.` : ''}</p></section>`;
+  }
+  /* o botão das boas-vindas: o WhatsApp público da pessoa, com a mensagem pronta (quem manda é o dono, no WhatsApp dele) */
+  function boasVindas(p){
+    const w = L.wa[p.id]; if(!w || !/^\d{10,11}$/.test(w)) return '';
+    const eu = C.firstName(st.me && st.me.nome), ela = C.firstName(p.nome || p.handle);
+    const txt = `Oi, ${ela}! Aqui é o ${eu}, do Corre. Vi que você chegou agora, que bom ter você lá. Se precisar de uma mão pra montar teu perfil ou teu link na bio, me chama aqui.`;
+    return `<a class="btn sm lo-wa" href="https://wa.me/55${w}?text=${encodeURIComponent(txt)}" target="_blank" rel="noopener" aria-label="${esc(`Dar as boas-vindas a ${p.nome || '@' + p.handle} no WhatsApp`)}">${ico('wa')}<span>Boas-vindas</span></a>`;
+  }
 
   /* ---------- a página ---------- */
   function pinta(app){
@@ -138,6 +165,7 @@
         ${bio ? `<section class="card" aria-labelledby="lo-b"><h2 class="ch" id="lo-b">Link na bio <small>(${per})</small></h2>
           <div class="lo-tiles dois">${tile('Visitas', num(bio.visitas))}${tile('Toques nos botões', num(bio.toques))}</div>
           ${bio.top && bio.top.length ? `<h3 class="lo-h3">As páginas mais vistas</h3>${gente(bio.top)}` : '<p class="fine">Nenhuma visita no período ainda.</p>'}</section>` : ''}
+        ${lembraHTML(L.lm, g, per)}
         ${cv ? `<section class="card" aria-labelledby="lo-c"><h2 class="ch" id="lo-c">Convites</h2>
           <div class="lo-tiles dois">${tile('Entraram por convite', num(cv.total), `${num(cv.periodo)} em ${per}`)}${tile('Renderam correal', num(cv.pagos))}</div>
           ${cv.top && cv.top.length ? `<h3 class="lo-h3">Quem mais chamou</h3>${gente(cv.top)}` : '<p class="fine">Ninguém entrou por convite ainda.</p>'}</section>` : ''}
@@ -151,10 +179,10 @@
           ${iaL.length ? barras(iaL, 'var(--ink-2)') : '<p class="fine">Nenhuma no período.</p>'}</section>` : ''}
       </div>
       ${(r.chegaram || []).length ? `<section class="card lo-chegou" aria-labelledby="lo-n"><h2 class="ch" id="lo-n">Quem chegou por último</h2>
-        <p class="fine">Pra dar as boas-vindas na mão. Os passos são foto, o que vende, WhatsApp, link na bio e Correverso.</p>
-        <ul>${r.chegaram.map(p => `<li><a href="#/@${esc(p.handle || '')}">${C.avatar(p, 's')}<span class="lo-n-q"><b>${esc(p.nome || '@' + p.handle)}</b><small>@${esc(p.handle || '')}${p.categoria && C.meuCorre && C.meuCorre.catNome(p.categoria) ? ` · ${esc(C.meuCorre.catNome(p.categoria))}` : ''}</small></span>
+        <p class="fine">Pra dar as boas-vindas na mão (quem pôs o WhatsApp no perfil ganha o botão, com a mensagem pronta). Os passos são foto, o que vende, WhatsApp, link na bio e Correverso.</p>
+        <ul>${r.chegaram.map(p => `<li><a class="lo-n-a" href="#/@${esc(p.handle || '')}">${C.avatar(p, 's')}<span class="lo-n-q"><b>${esc(p.nome || '@' + p.handle)}</b><small>@${esc(p.handle || '')}${p.categoria && C.meuCorre && C.meuCorre.catNome(p.categoria) ? ` · ${esc(C.meuCorre.catNome(p.categoria))}` : ''}</small></span>
           <span class="lo-n-d"><small>entrou ${esc(haQuanto(p.criado))}</small><small>${esc(ultimoTxt(p.ultimo, hoje))}</small></span>
-          <span class="lo-n-p" role="img" aria-label="${num(p.passos)} de 5 passos">${[0, 1, 2, 3, 4].map(i => `<i${i < (Number(p.passos) || 0) ? ' class="on"' : ''}></i>`).join('')}<small class="num">${num(p.passos)}/5</small></span></a></li>`).join('')}</ul></section>` : ''}
+          <span class="lo-n-p" role="img" aria-label="${num(p.passos)} de 5 passos">${[0, 1, 2, 3, 4].map(i => `<i${i < (Number(p.passos) || 0) ? ' class="on"' : ''}></i>`).join('')}<small class="num">${num(p.passos)}/5</small></span></a>${boasVindas(p)}</li>`).join('')}</ul></section>` : ''}
       <p class="fine lo-pe">Ativo = fez alguma coisa no dia (post, mensagem, curtida, lead, venda, tarefa na cidade...), entrou com o Google ou abriu o Corre (esse último conta da 4.02 em diante). O dia é o de Brasília.</p>
       <div class="lo-tip" id="lo-tip" role="tooltip" hidden></div>
     </main>`;
@@ -176,7 +204,15 @@
   async function carrega(app){
     const rota = C.rota;
     if(L.r) document.querySelector('.lo') && document.querySelector('.lo').classList.add('lendo');
-    try{ L.r = await api.rpc('corre_lojinha', { p_dias: L.dias }); L.em = Date.now(); L.erro = null; }
+    const semFn = e => !!e && (e.code === 'PGRST202' || e.code === '42883' || /Could not find the function|does not exist/i.test(e.message || ''));
+    try{
+      const [r, lm] = await Promise.all([api.rpc('corre_lojinha', { p_dias: L.dias }),
+        api.rpc('corre_lembretes_numeros', { p_dias: L.dias }).catch(e => semFn(e) ? { falta: true } : null)]);
+      L.r = r; L.lm = lm; L.em = Date.now(); L.erro = null;
+      /* o WhatsApp de quem chegou (o número que a pessoa deixou público) */
+      const ids = ((r && r.chegaram) || []).map(p => p.id).filter(Boolean);
+      if(ids.length){ try{ const ps = await api.q('corre_perfis', { select: 'id,whats_publico', in: { id: ids } }); L.wa = {}; (ps || []).forEach(p => { if(p.whats_publico) L.wa[p.id] = String(p.whats_publico).replace(/\D/g, ''); }); }catch(e){ L.wa = {}; } }
+    }
     catch(e){ L.erro = e; }
     if(rota !== C.rota) return;
     if(L.erro || !L.r){

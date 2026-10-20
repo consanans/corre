@@ -1,4 +1,4 @@
-// CORRE · função "push" (v3.72): manda os avisos no celular (Web Push), criptografados.
+// CORRE · função "push" (v3.72; os lembretes, v4.06): manda os avisos no celular (Web Push), criptografados.
 //
 // O app chama depois de cada ação (C.push.avisa em push.js): mensagem, resposta, post com menção ou citação, seguiu,
 // curtiu, story, pedido pra entrar em grupo e aceito no grupo. Quem recebe e o que diz é o BANCO que decide
@@ -8,6 +8,10 @@
 //   acao "chave": a chave pública do Corre (o navegador inscreve o aparelho com ela).
 //   acao "teste" { endpoint? }: um aviso de teste pros aparelhos da pessoa (um por minuto).
 //   { tipo, id }: o aviso da ação.
+//   acao "lembretes" (v4.06, SEM login): o relógio do banco (pg_cron, todo dia às 18h07 de Brasília) chama e a função
+//     entrega o que o corre_lembretes_alvos devolve. Quem decide é o banco: só das 17h às 20h59, um por dia e três por
+//     semana por pessoa, gravado antes de sair; chamar de novo ou fora da hora não manda nada pra ninguém.
+//   acao "lembrete-teste" (v4.06): o "Mandar um lembrete de exemplo" do app, só pros aparelhos de quem pediu (um por minuto).
 // Aparelho que o serviço diz que sumiu (404/410) sai do banco (corre_push_mortos).
 //
 // A cifra é a do padrão (RFC 8291, aes128gcm) e a assinatura do Corre é a VAPID (RFC 8292), tudo com o WebCrypto do
@@ -147,12 +151,40 @@ async function manda(admin: any, v: Vapid, lista: [Aparelho, Uint8Array, string]
   return { ok, mortos: mortos.length };
 }
 
+/* o que o banco devolve ([{ payload, subs }]) vira a lista de entrega: cada aparelho da pessoa com o aviso dela */
+function lista(L: any[], urg: string) {
+  const P: [Aparelho, Uint8Array, string][] = [];
+  for (const x of L) {
+    if (!x || typeof x.payload !== 'object' || !Array.isArray(x.subs)) continue;
+    const texto = textoDo(x.payload);
+    for (const a of x.subs.slice(0, POR_PESSOA)) P.push([a, texto, urg]);
+  }
+  return P;
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   if (req.method !== 'POST') return json({ erro: 'metodo' }, 405);
   const SB_URL = env('SUPABASE_URL'), SB_ANON = env('SUPABASE_ANON_KEY'), SB_SERV = env('SUPABASE_SERVICE_ROLE_KEY');
   if (!SB_URL || !SB_SERV) return json({ erro: 'config' }, 503);
   const admin = createClient(SB_URL, SB_SERV, { auth: { persistSession: false, autoRefreshToken: false } });
+
+  let body: any = null;
+  try { body = await req.json(); } catch (_) { body = null; }
+  const acao = String(body?.acao || '');
+
+  /* v4.06: os lembretes do dia, sem login (o pg_cron não tem login). Não dá pra abusar: o banco só solta no horário,
+     grava cada um antes de devolver e não devolve de novo */
+  if (acao === 'lembretes') {
+    const v = await vapid();
+    if (!v) { console.warn('[push] sem_chave', MOTIVO); return json({ erro: 'sem_chave' }, 503); }
+    const { data: alvos, error } = await admin.rpc('corre_lembretes_alvos', {});
+    if (error) { console.warn('[push] lembretes', error.message); return json({ erro: 'banco' }, 503); }
+    const L = Array.isArray(alvos) ? alvos : [];
+    const r = await manda(admin, v, lista(L, 'normal'));
+    console.log('[push] lembretes', JSON.stringify({ pessoas: L.length, entregues: r.ok, saiu: r.mortos }));
+    return json({ ok: true, pessoas: L.length, entregues: r.ok, saiu: r.mortos });
+  }
 
   /* o login de quem chama (é quem "fez a ação": o banco confere que a ação é mesmo dessa pessoa) */
   const auth = req.headers.get('Authorization') || '';
@@ -162,11 +194,9 @@ Deno.serve(async (req) => {
   const { data: u } = await sb.auth.getUser(token);
   const user = u && u.user;
   if (!user) return json({ erro: 'login' }, 401);
-  let body: any = null;
-  try { body = await req.json(); } catch (_) { return json({ erro: 'corpo' }, 400); }
+  if (!body) return json({ erro: 'corpo' }, 400);
   const v = await vapid();
   if (!v) { console.warn('[push] sem_chave', MOTIVO); return json({ erro: 'sem_chave', motivo: MOTIVO }, 503); }
-  const acao = String(body?.acao || '');
 
   if (acao === 'chave') return json({ chave: v.pub });
 
@@ -185,6 +215,19 @@ Deno.serve(async (req) => {
     return json({ ok: r.ok > 0, aparelhos: L.length, entregues: r.ok, saiu: r.mortos });
   }
 
+  /* v4.06: um lembrete de exemplo pra quem pediu (o que ele receberia agora, ou um texto de exemplo), um por minuto */
+  if (acao === 'lembrete-teste') {
+    const { data: livre, error: e1 } = await admin.rpc('corre_push_marca', { p_chave: `lembra-teste:${user.id}:${Math.floor(Date.now() / 60e3)}`, p_quem: user.id });
+    if (e1) return json({ erro: 'banco' }, 503);
+    if (livre === false) return json({ erro: 'devagar' }, 429);
+    const { data: alvos, error } = await admin.rpc('corre_lembretes_alvos', { p_dono: user.id, p_teste: true });
+    if (error) { console.warn('[push] lembrete-teste', error.message); return json({ erro: 'banco' }, 503); }
+    const L = Array.isArray(alvos) ? alvos : [];
+    if (!L.length) return json({ erro: 'sem_aparelho' }, 404);
+    const r = await manda(admin, v, lista(L, 'high'));
+    return json({ ok: r.ok > 0, tipo: String(L[0]?.tipo || ''), entregues: r.ok, saiu: r.mortos });
+  }
+
   const tipo = String(body?.tipo || ''), id = String(body?.id || '');
   if (!TIPOS.includes(tipo)) return json({ erro: 'tipo' }, 400);
   if (!UUID.test(id)) return json({ erro: 'id' }, 400);
@@ -193,13 +236,8 @@ Deno.serve(async (req) => {
   const L = Array.isArray(alvos) ? alvos : [];
   /* mensagem chega na hora; o resto pode esperar o celular acordar */
   const urg = tipo === 'msg' || tipo === 'grupo-aceito' ? 'high' : 'normal';
-  const lista: [Aparelho, Uint8Array, string][] = [];
-  for (const x of L) {
-    if (!x || typeof x.payload !== 'object' || !Array.isArray(x.subs)) continue;
-    const texto = textoDo(x.payload);
-    for (const a of x.subs.slice(0, POR_PESSOA)) lista.push([a, texto, urg]);
-  }
-  if (!lista.length) return json({ ok: true, pessoas: 0, entregues: 0 });
-  const r = await manda(admin, v, lista);
+  const P = lista(L, urg);
+  if (!P.length) return json({ ok: true, pessoas: 0, entregues: 0 });
+  const r = await manda(admin, v, P);
   return json({ ok: true, pessoas: L.length, entregues: r.ok, saiu: r.mortos });
 });

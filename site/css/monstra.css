@@ -3787,3 +3787,19 @@ body.em-bio{padding-top:0}
 @keyframes cvr-vire-in{from{opacity:0}to{opacity:1}}
 @keyframes cvr-vire-vira{0%,22%{transform:rotate(0)}42%,78%{transform:rotate(-90deg)}100%{transform:rotate(0)}}
 @media (prefers-reduced-motion:reduce){ .cvr-vire{animation:none} .cvr-vire-cel{animation:none;transform:rotate(-90deg)} }
+/* v4.06 · os lembretes: o exemplo embaixo do interruptor nos Avisos no celular, e na Lojinha o botão das boas-vindas no
+   WhatsApp ao lado de quem chegou (a linha da pessoa continua levando pro perfil) */
+.psh-ex{justify-self:start;margin:-4px 0 0 52px;font-size:13.5px}
+.psh-ex[hidden]{display:none}
+.lb-nums .psh-faixa{margin:6px 0 12px}
+.lo-chegou li{display:flex;align-items:center;gap:6px}
+.lo-chegou li>.lo-n-a{flex:1;min-width:0}
+.lo-chegou a.lo-wa{display:inline-flex;align-items:center;gap:6px;padding:7px 11px;border-radius:999px;flex:none;white-space:nowrap}
+.lo-chegou a.lo-wa:hover,.lo-chegou a.lo-wa:focus-visible{background:var(--paper-2)}
+.lo-chegou a.lo-wa svg{width:16px;height:16px}
+@media (max-width:760px){
+  .lo-chegou li{flex-wrap:wrap;gap:0}
+  .lo-chegou li>.lo-n-a{flex-basis:100%}
+  .lo-chegou a.lo-wa{margin:0 0 8px 52px}
+}
+@media (max-width:420px){.psh-ex{margin-left:26px}}

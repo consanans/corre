@@ -2,7 +2,10 @@
    na tela de bloqueio, com o Corre fechado. Quem liga é a pessoa, em cada aparelho (o navegador pergunta antes).
    No iPhone só funciona com o Corre na Tela de Início (iOS 16.4 ou mais novo): o ajuste ensina o caminho.
    Depois de cada ação (mandar mensagem, responder, seguir, curtir), o site chama a função "push"; o banco decide quem
-   recebe (supabase/delta-v335.sql) e a função manda criptografado. O service worker (sw.js) mostra e abre no lugar certo. */
+   recebe (supabase/delta-v335.sql) e a função manda criptografado. O service worker (sw.js) mostra e abre no lugar certo.
+   v4.06: os lembretes. No fim da tarde, no máximo um por dia e só com novidade pra pessoa (visita no link na bio, pedido
+   no Mural pro corre dela, o que falta no perfil, post de quem ela segue), o Corre chama de volta quem não abriu no dia
+   (supabase/delta-v406.sql). Liga e desliga aqui ("Lembretes do Corre"), com um exemplo pra ver como chega. */
 (function(){
   'use strict';
   const C = window.Corre, { esc, ico } = C;
@@ -86,7 +89,7 @@
     const u = C.uid(); if(!u || !C.st.me || P.ocupado) return;
     if(!real()){
       P.ocupado = true;
-      try{ P.ajustes = await C.api.rpc('corre_push_salvar', { p_endpoint: 'https://fcm.googleapis.com/fcm/send/demo-' + u, p_p256dh: 'B' + 'x'.repeat(86), p_auth: 'y'.repeat(22), p_ua: 'demonstração' }); marcaAqui(u, true); C.toast('Avisos ligados. Na demonstração não chega aviso de verdade; no Corre, chega no celular.', 4200); }
+      try{ P.ajustes = await C.api.rpc('corre_push_salvar', { p_endpoint: 'https://fcm.googleapis.com/fcm/send/demo-' + u, p_p256dh: 'B' + 'x'.repeat(86), p_auth: 'y'.repeat(22), p_ua: 'demonstração' }); marcaAqui(u, true); C.toast('Avisos ligados. Na demonstração não chega aviso de verdade; no Corre, chega no celular.', 4200); refazPassos(); }
       catch(e){ C.toast(C.errMsg(e)); }
       finally{ P.ocupado = false; pinta(); }
       return;
@@ -102,11 +105,13 @@
       await inscreve(false);
       marcaAqui(u, true);
       C.toast('Avisos ligados neste aparelho.', 3000);
+      refazPassos();
     }catch(e){
       console.warn('[corre] avisos', e);
       C.toast(erroTxt(e), 4600);
     }finally{ P.ocupado = false; pinta(); }
   }
+  const refazPassos = () => { if(C.estreia && C.estreia.refaz) C.estreia.refaz(); document.querySelectorAll('.psh-faixa').forEach(f => { if(estado() === 'ligado') f.remove(); }); };
   function erroTxt(e){
     const c = e && (e.code || e.name);
     if(semBanco(e) || c === 'nofn' || (e && e.status === 404)) return 'Os avisos no celular ainda tão chegando no Corre. Tenta de novo mais tarde.';
@@ -128,6 +133,7 @@
       if(sub) try{ await sub.unsubscribe(); }catch(e){}
       marcaAqui(u, false);
       C.toast('Avisos desligados neste aparelho.');
+      refazPassos();
       P.ajustes = null; carregaAjustes();
     }catch(e){ C.toast(C.errMsg(e)); }
     finally{ P.ocupado = false; pinta(); }
@@ -180,7 +186,9 @@
 
   /* ---------- o ajuste (folha) ---------- */
   const TIPOS = [['msg', 'Mensagens e pedidos', 'Quem te chama, na hora (e o papo dos teus grupos).'], ['resp', 'Respostas e menções', 'Respondeu, citou ou te marcou.'],
-    ['seg', 'Seguidor novo e grupos', 'Seguidor junta num aviso só no dia. Pedido pra entrar no teu grupo e quando te aceitam.'], ['curt', 'Curtidas', 'Curtiu ou fortaleceu teu post, curtiu teu story.']];
+    ['seg', 'Seguidor novo e grupos', 'Seguidor junta num aviso só no dia. Pedido pra entrar no teu grupo e quando te aceitam.'], ['curt', 'Curtidas', 'Curtiu ou fortaleceu teu post, curtiu teu story.'],
+    /* v4.06: só aparece com o banco novo (o ajuste traz "lembra") */
+    ['lembra', 'Lembretes do Corre', 'No fim da tarde, no máximo um por dia e só quando tem novidade pra você: visita no teu link na bio, pedido no Mural pro teu corre, o que falta no teu perfil.']];
   /* o botão Compartilhar do Safari (quadrado com a seta pra cima), desenhado aqui pra pessoa reconhecer */
   const COMPARTILHAR = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v11.5M8 7l4-4 4 4"/><path d="M8.5 10.5H6v10h12v-10h-2.5"/></svg>';
   function passosIOS(){
@@ -211,7 +219,7 @@
       : e === 'iab' ? `<button type="button" class="btn pri" data-act="iab-copia">Copiar o link</button>`
       : e === 'bloqueado' ? `<button type="button" class="btn" data-act="push-confere">Já liberei</button>` : '';
     const tipos = P.semBanco ? '' : `<fieldset class="psh-tipos"${a.msg === undefined ? ' disabled' : ''}><legend>O que chega</legend>
-      ${TIPOS.map(([k, t, s]) => `<label class="switch sm"><input type="checkbox" data-chg="push-tipo" data-k="${k}"${a[k] !== false ? ' checked' : ''}><span class="sw" aria-hidden="true"></span><span><b>${t}</b><small>${s}</small></span></label>${k === 'msg' ? `<label class="switch sm psh-sub"><input type="checkbox" data-chg="push-tipo" data-k="texto"${a.texto !== false ? ' checked' : ''}><span class="sw" aria-hidden="true"></span><span><b>Mostrar o texto da mensagem</b><small>Desligado, chega só "mandou uma mensagem".</small></span></label>` : ''}`).join('')}
+      ${TIPOS.filter(([k]) => k !== 'lembra' || a.lembra !== undefined).map(([k, t, s]) => `<label class="switch sm"><input type="checkbox" data-chg="push-tipo" data-k="${k}"${a[k] !== false ? ' checked' : ''}><span class="sw" aria-hidden="true"></span><span><b>${t}</b><small>${s}</small></span></label>${k === 'msg' ? `<label class="switch sm psh-sub"><input type="checkbox" data-chg="push-tipo" data-k="texto"${a.texto !== false ? ' checked' : ''}><span class="sw" aria-hidden="true"></span><span><b>Mostrar o texto da mensagem</b><small>Desligado, chega só "mandou uma mensagem".</small></span></label>` : ''}${k === 'lembra' && liga ? `<button type="button" class="lnk psh-ex" data-act="push-lembra-teste"${a.lembra === false ? ' hidden' : ''}>Mandar um lembrete de exemplo</button>` : ''}`).join('')}
       <p class="fine">Vale pra todos os teus aparelhos. Quem você bloqueou não te avisa de nada.</p></fieldset>`;
     return `<div class="form psh"><div class="sheet-head"><h2>${ico('bell')} Avisos no celular</h2><button type="button" class="cbtn plain" data-close aria-label="Fechar">${ico('x')}</button></div>
       ${statusHTML(e)}${e === 'ios-instalar' ? passosIOS() : ''}
@@ -250,7 +258,9 @@
     if(!C.uid() || !C.st.me || (e !== 'desligado' && e !== 'ios-instalar')) return '';
     let fx = 0; try{ fx = Number(ls.get(K_FX + onde)) || 0; }catch(er){}
     if(Date.now() - fx < 21 * 864e5) return '';
-    const txt = onde === 'msg' ? 'Liga os avisos e fica sabendo na hora quando chegar mensagem.' : 'Curtida, resposta e seguidor novo no celular, com o Corre fechado.';
+    const txt = onde === 'msg' ? 'Liga os avisos e fica sabendo na hora quando chegar mensagem.'
+      : onde === 'bio' ? 'Liga os avisos e o Corre te conta no celular quando teu link na bio tiver visita.'
+      : 'Curtida, resposta e seguidor novo no celular, com o Corre fechado.';
     return `<div class="psh-faixa" data-onde="${esc(onde)}"><span class="psh-fx-ic" aria-hidden="true">${ico('bell')}</span><p>${txt}</p>
       <button type="button" class="btn sm pri" data-act="push-ajustes">${e === 'ios-instalar' ? 'Como ligar' : 'Ligar'}</button>
       <button type="button" class="cbtn plain psh-fx-x" data-act="push-faixa-x" data-onde="${esc(onde)}" aria-label="Agora não">${ico('x')}</button></div>`;
@@ -290,13 +300,31 @@
       }catch(e){ C.toast(e && e.code === 'devagar' ? 'Um teste por minuto. Espera um pouquinho.' : e && e.code === 'sem_aparelho' ? 'Este aparelho não tá ligado. Desliga e liga de novo.' : erroTxt(e), 4200); }
       finally{ el.disabled = false; }
     },
+    /* v4.06: o lembrete que a pessoa receberia agora (ou um de exemplo, se não tem novidade), só nos aparelhos dela */
+    'push-lembra-teste': async el => {
+      if(!real()){ C.toast('Na demonstração o lembrete fica aqui: "5 visitas no teu link na bio. Nos últimos 7 dias. Toca pra ver."', 4600); return; }
+      el.disabled = true;
+      try{
+        const r = await C.api.fn('push', { acao: 'lembrete-teste' }, true);
+        C.toast(r && r.ok ? 'Mandado. O lembrete chega em alguns segundos.' : 'O serviço de avisos não aceitou. Desliga e liga de novo.', 3800);
+      }catch(e){ C.toast(e && e.code === 'devagar' ? 'Um exemplo por minuto. Espera um pouquinho.' : e && e.code === 'sem_aparelho' ? 'Nenhum aparelho teu tá ligado. Desliga e liga de novo.' : e && e.code === 'banco' ? 'Os lembretes ainda tão chegando no Corre.' : erroTxt(e), 4200); }
+      finally{ el.disabled = false; }
+    },
     'push-tipo': async el => {
       const k = el.dataset.k, v = !!el.checked;
       try{ P.ajustes = Object.assign({}, P.ajustes, await C.api.rpc('corre_push_ajusta', { p_campo: k, p_valor: v })); }
-      catch(e){ el.checked = !v; C.toast(semBanco(e) ? 'Os avisos no celular ainda tão chegando no Corre.' : C.errMsg(e)); }
+      catch(e){ el.checked = !v; C.toast(semBanco(e) || (k === 'lembra' && e && e.hint === 'campo') ? 'Os avisos no celular ainda tão chegando no Corre.' : C.errMsg(e)); }
+      if(k === 'lembra'){ const ex = document.querySelector('#sheet .psh-ex'); if(ex) ex.hidden = !el.checked; }
     },
     'push-faixa-x': el => { ls.set(K_FX + (el.dataset.onde || ''), String(Date.now())); const f = el.closest('.psh-faixa'); if(f) f.remove(); }
   });
 
-  C.push = { estado, abrir, ligar, desligar, sair, sync, avisa, badge, faixa, log: () => P.log.slice(), instalado, IOS };
+  /* v4.06: tem aparelho ligado (este ou outro)? null = o banco ainda não tem os avisos */
+  async function temAparelho(){
+    const u = C.uid(); if(!u) return null;
+    if(ligadoAqui(u)) return true;
+    try{ const a = await C.api.rpc('corre_push_ajustes', { p_endpoint: null }); return a ? (Number(a.aparelhos) || 0) > 0 : null; }catch(e){ return null; }
+  }
+
+  C.push = { estado, abrir, ligar, desligar, sair, sync, avisa, badge, faixa, temAparelho, log: () => P.log.slice(), instalado, IOS };
 })();

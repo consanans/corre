@@ -6,13 +6,14 @@
   'use strict';
   const C = window.Corre, { esc, ico } = C;
   /* sobe esse número a cada atualização: quem já viu recebe de novo, abrindo nas novidades */
-  const VERSAO = '4.03';
+  const VERSAO = '4.06';
   const K = 'corre-manual-visto';
 
   /* O que tem de novo: só o que é super relevante pra galera (o Thales, v3.67). No máximo 8, o mais novo em cima, uma ou
      duas frases cada, no jeito de quem conta pro amigo. Conserto, acabamento e detalhe técnico não entram aqui (moram no
      CLAUDE.md); novidade grande que chega empurra a mais velha pra fora */
   const NOVIDADES = [
+    ['bell', 'O Corre te chama quando tem novidade', 'Liga os avisos no celular e, no fim da tarde, o Corre te conta quando teu link na bio teve visita, quando aparece pedido no Mural pro teu corre ou quando falta pouco pro teu perfil ficar pronto. No máximo um por dia, só com novidade. Liga em Perfil › Avisos no celular.'],
     ['camera', 'Foto com o Papai Noel', 'Na orla do Igapó, de frente pro maior Papai Noel do mundo, tem a barraquinha do Lambe-Lambe: escolhe gorro ou chifre de rena, olha o passarinho e a polaroid sai revelando na hora, com quem tiver do teu lado. Um toque e ela vai pro teu Insta.'],
     ['link', 'Link na bio', 'Teu link pra bio do Instagram: app.corresocial.com/@teunome. Vitrine com preço, orçamento, WhatsApp, Pix e os teus links, com a cara da tua marca do Studio Houzi. Monta em Perfil › Link na bio, e lá você vê quantos passaram e onde tocaram.'],
     ['lua', 'O Correverso de dia e de noite', 'A cidade segue o relógio de Londrina: amanhece, o sol se põe laranja e de noite os postes e as casas acendem. Às vezes garoa, às vezes cai um temporal. E todo dia tem Som na Concha às 12h30 e às 20h, e Fogos no Igapó às 21h: a faixa AO VIVO no alto leva até lá.'],
@@ -20,7 +21,6 @@
     ['star', 'Halloween no Correverso', 'O Ateliê ganhou a coleção de Halloween: Cabeça de Abóbora, Saci (31 de outubro também é o Dia do Saci), Bruxa, Esqueleto, Lobisomem do Tibagi, Fantasma de Lençol, Morto-Vivo e Gato Preto. Só se compra até Finados (2/11); comprou, é tua pra sempre. E tem casa na cidade enfeitada com abóbora acesa, teia, morcego e caldeirão.'],
     ['star', 'Natal no Correverso', 'A cidade se enfeitou: pisca-pisca de poste em poste, árvore de Natal dourada nas pracinhas, estrela no ipê do Bosque e guirlanda nas portas. No Igapó tá o maior Papai Noel do mundo, 27 metros em pé no lago, com fogos (lê a placa da orla). Fica até o Dia de Reis.'],
     ['magia', 'Direção criativa no Studio Houzi', 'O Studio pensa 6 conceitos de marca inteiros: o nome com as camadas dele, a ideia que manda em tudo, a assinatura, o inimigo e 9 cores com nome e história, cada um já com o logo. Marca o que te pegou e pede mais 6: a rodada seguinte continua daí, sem repetir.'],
-    ['mapa', 'A cidade no mapa de Londrina', 'O Correverso foi pro lugar de verdade: o Estádio do Café no norte, o Zerão do lado do Igapó, o lago descendo até o Arthur Thomas, a Gleba do outro lado e o Aeroporto lá em cima. As casas mudaram de quarteirão; no Mapa, "Tua casa" leva direto.'],
   ];
   /* cada página: o que é, pra que serve no teu dia, e o botão que leva lá */
   const PAGINAS = [

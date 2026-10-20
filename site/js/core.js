@@ -1622,6 +1622,15 @@
           return null;
         }
         if(n === 'corre_lojinha') return lojinhaDemo(d, uidOf(d), a && a.p_dias);
+        /* v4.06: os números dos lembretes (como o corre_lembretes_numeros; no demo nenhum lembrete sai) */
+        if(n === 'corre_lembretes_numeros'){
+          const eu = uidOf(d); if(!eu || !plDono(d, eu)) throw { message: 'A Lojinha é só do dono do Corre.', code: '42501', hint: 'so_fundador' };
+          const fora = new Set(d.t.corre_perfis.filter(p => p.handle === 'consanans' || p.handle === 'corre').map(p => p.id));
+          const ap = (d.t.corre_push || []).filter(x => !fora.has(x.dono)), L2 = (d.t.corre_lembretes || []).filter(x => !fora.has(x.dono));
+          const tipos = {}; L2.forEach(x => { tipos[x.tipo] = (tipos[x.tipo] || 0) + 1; });
+          return { enviados: L2.length, pessoas: new Set(L2.map(x => x.dono)).size, voltaram: 0, tipos, avisos: new Set(ap.map(x => x.dono)).size, aparelhos: ap.length,
+            desligaram: (d.t.corre_push_pref || []).filter(x => x.lembra === false && !fora.has(x.dono)).length, dias_periodo: Math.max(7, Math.min(+(a && a.p_dias) || 30, 120)) };
+        }
         if(n === 'corre_meu_acesso') return plMeu(d, uidOf(d));
         if(n === 'corre_teste_comeca'){ if(!uidOf(d)) throw { message: 'login', hint: 'login' }; plGarante(d, uidOf(d), a && a.p_produto); write(d); return plMeu(d, uidOf(d)); }
         if(/^corre_mural_/.test(n)){ const r = muralRpc(n, a || {}, d, uidOf(d)); write(d); return r; }
@@ -1647,7 +1656,7 @@
         /* ---- v3.35: avisos no celular (mesmas regras do delta-v335.sql; a demonstração não manda aviso de verdade) ---- */
         if(/^corre_push_/.test(n)){
           if(!uidR || !d.t.corre_perfis.some(p => p.id === uidR)) throw { message: 'sem perfil', hint: 'perfil' };
-          const A = a || {}, PADRAO = { msg: true, resp: true, seg: true, curt: true, texto: true };
+          const A = a || {}, PADRAO = { msg: true, resp: true, seg: true, curt: true, texto: true, lembra: true };
           const pref = () => Object.assign({}, PADRAO, d.t.corre_push_pref.find(x => x.dono === uidR) || {});
           const ajustes = ep => { const p = pref(); delete p.dono; delete p.updated_at; return Object.assign(p, { aparelhos: d.t.corre_push.filter(x => x.dono === uidR).length, este: !!ep && d.t.corre_push.some(x => x.dono === uidR && x.endpoint === ep) }); };
           if(n === 'corre_push_ajustes') return ajustes(A.p_endpoint || null);
@@ -1664,7 +1673,7 @@
           }
           if(n === 'corre_push_tirar'){ const antes = d.t.corre_push.length; d.t.corre_push = d.t.corre_push.filter(x => !(x.endpoint === A.p_endpoint && x.dono === uidR)); write(d); return d.t.corre_push.length < antes; }
           if(n === 'corre_push_ajusta'){
-            if(!['msg', 'resp', 'seg', 'curt', 'texto'].includes(A.p_campo) || typeof A.p_valor !== 'boolean') throw { message: 'campo', hint: 'campo' };
+            if(!['msg', 'resp', 'seg', 'curt', 'texto', 'lembra'].includes(A.p_campo) || typeof A.p_valor !== 'boolean') throw { message: 'campo', hint: 'campo' };
             let p = d.t.corre_push_pref.find(x => x.dono === uidR); if(!p){ p = Object.assign({ dono: uidR }, PADRAO); d.t.corre_push_pref.push(p); }
             p[A.p_campo] = A.p_valor; p.updated_at = now(); write(d); return ajustes(null);
           }

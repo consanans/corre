@@ -285,12 +285,14 @@
   };
   function pintaNums(n){
     const el = $('lb-nums'); if(!el) return;
-    if(!n){ el.innerHTML = `<h2 class="ch">Quem passou</h2><p class="fine">Os números aparecem aqui depois que o Corre for atualizado (falta rodar o delta da 4.0 no banco).</p>`; return; }
+    /* v4.06: com os avisos ligados, o Corre conta no celular quando o link tem visita (o lembrete do fim da tarde) */
+    const fx = C.push && C.push.faixa ? C.push.faixa('bio') : '';
+    if(!n){ el.innerHTML = `<h2 class="ch">Quem passou</h2>${fx}<p class="fine">Os números aparecem aqui depois que o Corre for atualizado (falta rodar o delta da 4.0 no banco).</p>`; return; }
     const dias = n.porDia || [], max = Math.max(1, ...dias.map(x => +x.n || 0)), hoje = Date.now();
     const barras = Array.from({ length: 30 }, (_, i) => { const dia = new Date(hoje - (29 - i) * 864e5 - 3 * 3600e3).toISOString().slice(0, 10), x = dias.find(y => String(y.dia).slice(0, 10) === dia); const v = x ? +x.n : 0; return `<i style="height:${Math.round(4 + 56 * v / max)}px" title="${C.ddmm ? C.ddmm(dia) : dia}: ${v}"></i>`; }).join('');
     const nome = k => k.startsWith('l') && /^l\d+$/.test(k) ? `Link: ${(E.cfg.links[+k.slice(1)] || {}).t || 'tirado'}` : k.startsWith('it:') ? `Vitrine: ${((E.d.itens || []).find(i => i.id === k.slice(3)) || {}).nome || 'item'}` : ({ orc: 'Pedir orçamento', w: 'WhatsApp', ig: 'Instagram', pix: 'Copiou o Pix', perfil: 'Perfil no Corre', bb: 'Brandbook', corre: 'Foi fazer o dele no Corre', share: 'Mandou o teu link' })[k] || k;
     const t = Object.entries(n.toques || {}).sort((a, b) => b[1] - a[1]);
-    el.innerHTML = `<h2 class="ch">Quem passou <small>(30 dias)</small></h2>
+    el.innerHTML = `<h2 class="ch">Quem passou <small>(30 dias)</small></h2>${fx}
       <p class="lb-n-g"><b class="num">${n.visitas || 0}</b> ${(n.visitas || 0) === 1 ? 'visita' : 'visitas'} <span>· ${t.reduce((s, x) => s + x[1], 0)} toques nos botões</span></p>
       <div class="lb-barras" role="img" aria-label="Visitas por dia nos últimos 30 dias">${barras}</div>
       ${t.length ? `<ul class="lb-toques">${t.slice(0, 10).map(([k, v]) => `<li><span>${esc(nome(k))}</span><b class="num">${v}</b></li>`).join('')}</ul>` : '<p class="fine">Ninguém tocou em nada ainda. Põe o link na bio e manda pra galera.</p>'}
