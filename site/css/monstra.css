@@ -3825,3 +3825,16 @@ body.em-bio{padding-top:0}
 .cvr-tf.cvr-ms.on{background:var(--yellow)}
 .cvr-tf .cvr-ms-t{background:var(--ink);color:var(--yellow);margin-right:4px}
 .cvr-tf .cvr-ms-v{margin-left:4px}
+
+/* v4.12 · o empurrão no Calçadão 3D e as moedas da rua: o botão preto de empurrar logo acima do amarelo (no celular, na
+   coluna da direita, em cima dele) e o "+0,01" que sobe de onde você pegou a moeda */
+.cs-briga{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(84px + 58px + env(safe-area-inset-bottom,0px));display:inline-flex;align-items:center;gap:7px;min-height:40px;padding:0 14px;border:3px solid var(--ink);background:var(--ink);color:var(--yellow);font-family:"Silkscreen",var(--font-mono);font-size:13px;font-weight:700;cursor:pointer;box-shadow:4px 4px 0 var(--pink);white-space:nowrap;max-width:calc(100% - 24px);overflow:hidden;text-overflow:ellipsis;z-index:4}
+.cs-briga[hidden]{display:none}
+.cs-briga .ic{width:16px;height:16px;flex:none}
+.cs-briga:active{transform:translate(calc(-50% + 2px),2px);box-shadow:2px 2px 0 var(--pink)}
+.cs-casa.toque .cs-briga{left:auto;right:10px;transform:none;bottom:calc(72px + 112px + 58px + env(safe-area-inset-bottom,0px));max-width:min(176px,calc(100% - 156px));padding:0 11px;font-size:12px}
+.cs-casa.toque .cs-briga:active{transform:translate(2px,2px)}
+@media (max-width:640px){
+  .cs-casa:not(.toque) .cs-briga{bottom:calc(126px + 58px + env(safe-area-inset-bottom,0px))}
+}
+.cs-tag.mais,.cs-tag.mais.perto{background:none;border:0;box-shadow:none;padding:0;font-family:"Silkscreen",var(--font-mono);font-size:15px;color:var(--yellow);text-shadow:2px 2px 0 var(--ink),-1px -1px 0 var(--ink),1px -1px 0 var(--ink),-1px 1px 0 var(--ink);pointer-events:none;opacity:1}

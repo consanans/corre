@@ -5544,7 +5544,7 @@
     const r = quemEmpurro(), e = V.eu; if(!r || !e) return;
     const agora = Date.now(); if(agora - (V.empT || 0) < 450) return; V.empT = agora;
     olha(e, r.x - e.x, r.y - e.y); e.empurrou = agora;
-    derruba(r, e.x, e.y, 1);
+    derruba(r, e.x, e.y, 1); derrubou(r);
     if(C.versoSom && C.versoSom.gta) C.versoSom.gta('empurra');
     procura(1, `empurrou ${r.torcida ? 'alguém da torcida' : r.nome || 'alguém'}`);
     /* a torcida revida: o mais perto de você te empurra de volta */
@@ -5564,6 +5564,89 @@
     V.brigaOn = !!r;
   }
 
+  /* ---------- v4.12 · o correal que cai na rua ----------
+     O Thales: "se empurrar demais cai correal da pessoa no chão". Quem leva três empurrões seus (ou atropelos) em um
+     minuto deixa cair de 1 a 3 moedas, que pulam, quicam e espalham; você pega passando por cima (somem em 45 s). Depois
+     a pessoa fica lisa por 5 minutos: empurrar de novo só dá estrela. Quem paga é o banco (corre_correal_achado,
+     delta-v412.sql: 0,01 a moeda, até 3 por vez, 8 s entre uma vez e outra, 0,15 por dia, dentro do 1,00 do dia). A gente
+     da cidade é do aparelho de cada um: a moeda não sai da carteira de ninguém. A cidade e o Calçadão 3D usam a mesma
+     fila (C.verso.achado) */
+  const ACHA = { moeda: 0.01, teto: 0.15, vezes: 3, janela: 60000, liso: 300000, some: 45000 };
+  const PERDEU_MOEDA = ['Minhas moedas!', 'Ô! Meu troco!', 'Era o dinheiro do pastel!', 'Devolve o meu correal!', 'Socorro, meu cofrinho!'];
+  const LISO = ['Já levou tudo, rapaz!', 'Não tenho mais nada!', 'Tô liso, me deixa!'];
+  /* levou mais um: conta; o terceiro no minuto devolve quantas moedas caem (0 se ainda não, ou se a pessoa tá lisa) */
+  function apanhou(r){
+    const agora = Date.now(); if(!r) return 0;
+    r.levou = (r.levou || []).filter(t => agora - t < ACHA.janela); r.levou.push(agora);
+    if(r.levou.length < ACHA.vezes) return 0;
+    if(agora < (r.liso || 0)) return -1;
+    r.levou = []; r.liso = agora + ACHA.liso;
+    return 1 + Math.floor(Math.random() * 3);
+  }
+  /* as moedas saem de quem caiu, cada uma num arco pra um lado (a altura e o pulo são em pontos da tela) */
+  function soltaMoedas(r, n){
+    const agora = Date.now(); V.moedas = V.moedas || [];
+    for(let i = 0; i < n; i++){ const a = Math.random() * Math.PI * 2, v = 40 + Math.random() * 35;
+      V.moedas.push({ x: r.x, y: r.y + 2, vx: Math.cos(a) * v, vy: Math.sin(a) * v * .6, h: 14, vh: 70 + Math.random() * 30, quica: 0, t0: agora + i * 60, ate: agora + ACHA.some, fase: Math.random() * 6 }); }
+    if(C.versoSom && C.versoSom.gta) C.versoSom.gta('moedas');
+    let dica = 0; try{ dica = +localStorage.getItem('corre-rua-dica') || 0; }catch(e){}
+    if(dica < 3){ try{ localStorage.setItem('corre-rua-dica', String(dica + 1)); }catch(e){} setTimeout(() => { if(V.vivo) C.toast('Caiu moeda no chão: passa por cima pra pegar. Cuidado com a polícia.', 3200); }, 1300); }
+  }
+  /* derrubou alguém (empurrão ou atropelo): conta, e o terceiro solta as moedas */
+  function derrubou(r){
+    const n = apanhou(r);
+    if(n > 0){ soltaMoedas(r, n); r.fala = { t: sorteio(PERDEU_MOEDA), ate: Date.now() + 2200 }; }
+    else if(n < 0) r.fala = { t: sorteio(LISO), ate: Date.now() + 2200 };
+  }
+  function passoMoedas(dt){
+    const L = V.moedas, e = V.eu; if(!L || !L.length || !e) return;
+    const agora = Date.now(); let pegou = 0;
+    for(let i = L.length - 1; i >= 0; i--){
+      const m = L[i]; if(agora < m.t0) continue;
+      if(agora > m.ate){ L.splice(i, 1); continue; }
+      if(m.h > 0 || m.vh > 0){
+        mover(m, m.vx * dt, m.vy * dt); m.vh -= 260 * dt; m.h += m.vh * dt;
+        if(m.h <= 0){ m.h = 0; if(m.quica < 2 && m.vh < -25){ m.vh = -m.vh * .38; m.vx *= .5; m.vy *= .5; m.quica++; } else { m.vh = 0; m.vx = m.vy = 0; } }
+        continue;
+      }
+      /* no chão: passou por cima (a pé, de skate, de bike, de carro…), pegou */
+      if(Math.hypot(m.x - e.x, m.y - e.y) < 22 && !e.barco && !V.voo){ L.splice(i, 1); pegou++; (V.flutua || (V.flutua = [])).push({ x: m.x, y: m.y, t0: agora }); }
+    }
+    if(pegou){ if(C.versoSom && C.versoSom.gta) C.versoSom.gta('moeda'); achado(pegou); }
+  }
+  /* a fila do banco: junta o que pegou e manda (até 3 por vez, respeitando os 8 s do banco) */
+  const ACH = { n: 0, t: 0, indo: false, avisou: false };
+  function achado(n){ ACH.n += Math.max(0, n | 0); clearTimeout(ACH.t); ACH.t = setTimeout(pagaAchado, 900); }
+  async function pagaAchado(){
+    if(ACH.indo || ACH.n <= 0) return;
+    const n = Math.min(3, ACH.n); ACH.indo = true;
+    let r = null; try{ r = await C.api.rpc('corre_correal_achado', { p_n: n }); }catch(e){ r = null; }
+    ACH.indo = false;
+    if(!r || (!r.ok && !r.motivo)){ ACH.n = 0; if(!ACH.avisou){ ACH.avisou = true; C.toast('Pegou a moeda, mas a rua ainda não paga: falta atualizar o banco.', 3600); } return; }
+    if(r.motivo === 'devagar'){ ACH.t = setTimeout(pagaAchado, Math.max(1, r.falta || 3) * 1000 + 300); return; }
+    if(r.motivo === 'login'){ ACH.n = 0; return; }
+    if(!r.ok){ ACH.n = 0; C.toast(`A rua já deu o que tinha hoje (${C.correalTxt(r.teto_rua || ACHA.teto)}). Amanhã tem mais.`, 3400); return; }
+    ACH.n -= n; C.correalLe({ saldo: r.saldo, hoje: r.hoje, teto: r.teto }); correalUI(true);
+    C.toast(`+${C.correalTxt(r.ganhou)} achado na rua · hoje a rua deu ${C.correalFmt(r.rua)} de ${C.correalFmt(r.teto_rua)}`, 3200);
+    if(ACH.n > 0) ACH.t = setTimeout(pagaAchado, 8300);
+  }
+  /* a moedinha: 7 pontos que giram (largura 7, 5, 3, 1, 3, 5), com a sombra no chão; pisca nos últimos 5 s */
+  function moedasNaFila(L, ctx, t, vis){
+    const agora = Date.now();
+    (V.moedas || []).forEach(m => { if(agora < m.t0 || !vis(m.x, m.y, 30) || (m.ate - agora < 5000 && Math.floor(agora / 150) % 2)) return;
+      L.push({ y: m.y, f: () => { const [ix, iy] = ptBase(ctx, m.x, m.y); ctx.save(); naBase(ctx);
+        ctx.fillStyle = 'rgba(15,18,24,.28)'; ctx.fillRect(ix - 3, iy, 7, 1);
+        const w = [7, 5, 3, 1, 3, 5][Math.floor(t * 10 + m.fase) % 6], x0 = ix - Math.floor(w / 2), y = iy - 9 - Math.round(m.h) - (m.h > 0 ? 0 : Math.round(Math.sin(t * 4 + m.fase)));
+        ctx.fillStyle = INK; ctx.fillRect(x0 - 1, y - 1, w + 2, 9); ctx.fillStyle = '#F2C230'; ctx.fillRect(x0, y, w, 7);
+        if(w > 1){ ctx.fillStyle = '#FFF1A8'; ctx.fillRect(x0, y, 1, 3); ctx.fillStyle = '#C98A1B'; ctx.fillRect(x0 + w - 1, y + 3, 1, 4); }
+        if(w >= 5){ ctx.fillStyle = '#C98A1B'; ctx.fillRect(ix, y + 2, 1, 3); }
+        ctx.restore(); } }); });
+    /* o "+0,01" que sobe de onde pegou */
+    V.flutua = (V.flutua || []).filter(f => agora - f.t0 < 900);
+    V.flutua.forEach(f => L.push({ y: 9e6, f: () => { const p = (agora - f.t0) / 900, k = V.k || 1, y = f.y - (34 + p * 22) / k, txt = '+' + C.correalFmt(ACHA.moeda);
+      ctx.save(); ctx.globalAlpha = 1 - p * p; pixTxt(ctx, txt, f.x + 1 / k, y + 1 / k, 1, INK, 'c'); pixTxt(ctx, txt, f.x, y, 1, AMARELO, 'c'); ctx.restore(); } }));
+  }
+
   /* um quadro do GTA: a velocidade de verdade, o atropelo, a batida no trânsito, os pilotos e a polícia */
   function passoGta(dt){
     const e = V.eu; if(!e || !V.proc) return;
@@ -5572,13 +5655,13 @@
     e.ux = e.x; e.uy = e.y;
     const vi = veiculoInfo(e), forte = !!vi && (vi.tipo === 'carro' || vi.capacete);
     if(forte && e.mov && !e.barco && !V.voo && (e.vAgora || 0) > 120){
-      for(const r of V.remotos.values()){ if(!empurravel(r) || Math.hypot(r.x - e.x, r.y - e.y) > 20) continue; derruba(r, e.x, e.y, 1.3); if(C.versoSom && C.versoSom.gta) C.versoSom.gta('batida', .6); if(agora > (V.atrT || 0)){ V.atrT = agora + 2500; procura(1, 'atropelou ' + (r.torcida ? 'alguém da torcida' : r.nome || 'alguém')); } }
+      for(const r of V.remotos.values()){ if(!empurravel(r) || Math.hypot(r.x - e.x, r.y - e.y) > 20) continue; derruba(r, e.x, e.y, 1.3); derrubou(r); if(C.versoSom && C.versoSom.gta) C.versoSom.gta('batida', .6); if(agora > (V.atrT || 0)){ V.atrT = agora + 2500; procura(1, 'atropelou ' + (r.torcida ? 'alguém da torcida' : r.nome || 'alguém')); } }
       if(agora > (e.batT || 0)) for(const c of V.carros || []){ if(Math.abs(c.x - e.x) < 30 && Math.abs(c.y - e.y) < 15){ e.batT = agora + 1300; bateu('carro', c.x, c.y); break; } }
     }
     /* raspou na parede: de carro, empurrando e quase sem sair do lugar */
     if(vi && vi.tipo === 'carro' && e.mov && e.travou){ e.raspaT = (e.raspaT || 0) + dt; if(e.raspaT > .2 && agora > (e.batT || 0)){ e.batT = agora + 1300; e.raspaT = 0; bateu('parede', e.x - (e.dir === 'dir' ? -20 : e.dir === 'esq' ? 20 : 0), e.y - (e.dir === 'baixo' ? -20 : e.dir === 'cima' ? 20 : 0)); } }
     else e.raspaT = 0;
-    passoPilotos(dt); passoProc(dt);
+    passoPilotos(dt); passoProc(dt); passoMoedas(dt);
     if(!!quemEmpurro() !== !!V.brigaOn || (V.brigaOn && agora > (V.brigaT || 0))){ V.brigaT = agora + 250; brigaUI(); }
   }
   function bateu(k, fx, fy){
@@ -5590,6 +5673,7 @@
   /* o giroflex das viaturas (e da tua, na missão), a tontura de quem caiu, as caixas no rio e o placar de cima */
   function desenhaGta(L, ctx, t, vis){
     const T = V.tarefa, agora = Date.now();
+    moedasNaFila(L, ctx, t, vis);
     const giro = (o, cores) => { if(!vis(o.x, o.y, 60)) return; const vk = veiculoDe(o), sobe = vk && C.veiculos ? C.veiculos.pose(vk, 'frente').sobe : 0, a = Math.floor(t * 6) % 2;
       L.push({ y: o.y + .5, f: () => { const [ix, iy] = ptBase(ctx, o.x, o.y); ctx.save(); naBase(ctx); const y = iy - 26 - sobe; ctx.fillStyle = INK; ctx.fillRect(ix - 8, y - 1, 16, 5); ctx.fillStyle = a ? cores[0] : sombra(cores[0], .45); ctx.fillRect(ix - 7, y, 7, 3); ctx.fillStyle = a ? sombra(cores[1], .45) : cores[1]; ctx.fillRect(ix, y, 7, 3); ctx.restore(); } }); };
     if(V.pilotos) for(const P of V.pilotos) if(P.sirene) giro(P, ['#E2412E', AZUL]);
@@ -6591,6 +6675,9 @@
     if(tipo === 'tarefa'){ const t = (TAREFAS[a] || []).find(x => x.k === b); return t ? t.nome : 'Tarefa'; }
     /* v3.74: a compra no Ateliê aparecia como "IA" no extrato (o "skin:farao" caía no rótulo da IA) */
     if(tipo === 'skin'){ const sk = LOJA[a]; return sk ? `Ateliê: ${sk[1]}` : 'Ateliê'; }
+    /* v4.12: a moeda que caiu na rua; e o convite da 4.0, que também caía no "IA" */
+    if(tipo === 'achado') return 'Achado na rua';
+    if(tipo === 'convite') return a === 'trouxe' ? 'Convite: chamou alguém' : 'Convite: chegou pelo link';
     const ia = { imagem: 'Imagem com IA', legenda: 'Legenda ou pauta com IA', abordagem: 'Hórus com IA', marca: 'Studio Houzi com IA', voo: 'Voo no Aeroporto' }[a] || 'IA';
     if(a === 'voo') return tipo === 'volta' ? 'Voo no Aeroporto: devolvido' : ia;
     return tipo === 'volta' ? `${ia}: devolvido (a IA falhou)` : ia;
@@ -6605,10 +6692,11 @@
     const preco = (t, v) => `<li><span>${t}</span><b class="num">${F(v)}</b><small>${C.correalUnid(v)}</small></li>`;
     C.sheet(`<div class="form cvr-cart"><div class="sheet-head"><h2>${ico('correal')} Carteira</h2><button type="button" class="cbtn plain" data-close aria-label="Fechar">${ico('x')}</button></div>
       <div class="cart-topo"><div class="cart-saldo"><b class="num" data-correal-saldo>${F(w.saldo || 0)}</b><span data-correal-unid>${C.correalUnid(w.saldo || 0)}</span></div>
-        <div class="cart-hoje"><span>Hoje, em tarefa: <b class="num">${F(Math.min(C.correalCent(w.hoje || 0), C.correalCent(w.teto)) / 100)}</b> de ${F(w.teto)}</span><i aria-hidden="true"><i style="width:${Math.min(100, Math.round(C.correalCent(w.hoje) / Math.max(1, C.correalCent(w.teto)) * 100))}%"></i></i></div></div>
+        <div class="cart-hoje"><span>Hoje, na cidade: <b class="num">${F(Math.min(C.correalCent(w.hoje || 0), C.correalCent(w.teto)) / 100)}</b> de ${F(w.teto)}</span><i aria-hidden="true"><i style="width:${Math.min(100, Math.round(C.correalCent(w.hoje) / Math.max(1, C.correalCent(w.teto)) * 100))}%"></i></i></div></div>
       <h3 class="cart-h">Como ganha</h3>
       <p class="cart-p">Trabalhando no Correverso: abre o Trampo e pega uma missão (de carro, moto, patinete ou barco) ou um bico do teu uniforme.</p>
       <p class="cart-p cart-conta">${esc(cm[0])}<br>${esc(cm[1])}</p>
+      <p class="cart-p">Na rua, quem leva empurrão demais deixa cair moeda: ${esc(F(ACHA.moeda))} cada, até ${esc(F(ACHA.teto))} por dia. Mas a polícia vem atrás.</p>
       <h3 class="cart-h">Onde usa</h3>
       <ul class="cart-precos">${preco('Imagem com IA (Studio)', P.imagem)}${preco('Legenda ou pauta com IA', P.legenda)}${preco('Mensagem ou leitura do Hórus', P.abordagem)}${preco('Textos e nomes do Studio Houzi', P.marca)}${P.voo ? preco('Voo no Aeroporto (Correverso)', P.voo) : ''}</ul>
       <p class="fine">Correal é a moeda do Correverso, não é dinheiro: não compra, não vende e não passa pra ninguém. Na IA, só entra depois que o grátis do dia acaba; o voo cobra sempre. O Corre pergunta antes de gastar, e se a IA falhar, o correal volta.</p>
@@ -6970,7 +7058,7 @@
     V.cam.x = ini.x; V.cam.y = ini.y - 40; V.entrando = lv && !vt.porta ? 0 : .55; V.alvo = null; V.remotos = new Map(); V.peers = new Map(); V.espera = new Map(); V.mudos = new Set();
     V.vivo = true; V.online = null; V.tarefa = null; V.portaT = null; V.festa = null; V.gols = 0; V.rio = null; V.rastro = []; V.sk = null;
     /* v4.11: os pilotos e a polícia (do aparelho de cada um) */
-    V.pilotos = []; V.proc = { n: 0, vtr: [], algema: 0, fora: 0, perto: Infinity }; V.brigaOn = false;
+    V.pilotos = []; V.proc = { n: 0, vtr: [], algema: 0, fora: 0, perto: Infinity }; V.brigaOn = false; V.moedas = []; V.flutua = [];
     V.bots = [];
     /* v3.76: os moradores (do aparelho de cada um, como os bots da demonstração: entram no V.remotos com npc) */
     V.moradores = criaMoradores(); V.moradores.forEach(m => V.remotos.set(m.sid, m)); V.paradoT = 0;
@@ -8130,6 +8218,8 @@
     grafo: () => { const G = grafo(); return { nos: G.N.length, ligados: G.N.filter(q => G.viz[q.id].length).length, arestas: G.viz.reduce((a, v) => a + v.length, 0) / 2, N: G.N.map(q => ({ id: q.id, x: q.x, y: q.y, viz: G.viz[q.id].slice() })) }; },
     caminho: (a, b) => caminhoNos(a, b), procura: (n, porque) => procura(n, porque), empurra: () => empurra(), quemEmpurro: () => { const r = quemEmpurro(); return r ? r.sid : ''; },
     missoes: () => MISSOES.map(m => ({ u: m.u, k: m.def.k, nome: m.def.nome, pontos: m.def.pontos, como: m.def.como })), etapaFeita: () => etapaFeita(),
+    /* v4.12 · o correal que cai na rua: a fila do banco (o Calçadão 3D usa a mesma), a regra e, pros testes, as moedas no chão */
+    achado: n => achado(n), ACHA, apanhou: r => apanhou(r), moedas: () => (V.moedas || []).map(m => ({ x: m.x, y: m.y, h: m.h, noChao: !m.h && !m.vh })),
         torcida: TORCIDA, canto: CANTO, torcidas: () => (V.torcidas || []).map(T => ({ k: T.k, x: T.x, x0: T.x0, x1: T.x1, cy: T.cy(), yRua: T.yRua, lado: T.lado, gente: T.gente.map(m => ({ sid: m.sid, x: m.x, y: m.y, item: m.item || '', fala: m.fala && m.fala.ate > Date.now() ? m.fala.t : '', pulando: alturaPulo(m) > 0, cor: m.av.corR })) })),
     fotoNoel, tiraPola, fechaPola, retratoNoel, pola:() => ({ on: PO.on, aces: PO.aces, leg: PO.leg, gente: PO.gente.map(p => p.h), foto: !!PO.foto, card: PO.card ? [PO.card.width, PO.card.height] : null }), noelFoto: () => (V.cid && V.cid.lago && V.cid.lago.noel && V.cid.lago.noel.foto) || null,
     /* v4.0 · o céu e os eventos (pros testes: hora(21.5), clima('chuva'), null volta pro relógio e pro sorteio) */

@@ -1412,6 +1412,8 @@
   /* trocar ideia: quem é de vender, vende; quem tá sentado ou em roda fala com você */
   function trocaIdeia(n){
     const agora = Date.now(); if(!n || agora - (n.botaoT || 0) < 900) return; n.botaoT = agora;
+    /* v4.12: levou empurrão, fica de mal meio minuto */
+    if((n.bravo || 0) > agora){ diz(n, 'Fala comigo não.', true); return; }
     if(!n.sit && !n.senta && n.papel !== 'anda' && S.eu) n.olha = agora + 6000;
     /* v4.04: o torcedor para de andar pra falar com você */
     if(n.grita && n.papel === 'anda') n.paraAte = agora + 6500;
@@ -1449,13 +1451,15 @@
     for(const g of K.grupos){
       const p = g.papo;
       if(p){ if(agora >= p.prox){ if(p.i < p.linhas.length){ const [n, t] = p.linhas[p.i++]; diz(n, t); p.prox = agora + 2100 + t.length * 58; } else { g.papo = null; g.prox = agora + 3500 + Math.random() * 7000; } } continue; }
-      if(g.quem.length < 2 || agora < g.prox || perto(g.quem[0]) > 20) continue;
+      if(g.quem.length < 2 || agora < g.prox || perto(g.quem[0]) > 20 || g.quem.some(q => q.caiu || q.volta)) continue;
       const pool = PAPOS_CALC[g.tipo] || PAPOS_CALC.geral; let k = Math.floor(Math.random() * pool.length); if(pool.length > 1 && k === g.ult) k = (k + 1) % pool.length; g.ult = k;
       g.papo = { linhas: pool[k].map((t, j) => [g.quem[j % g.quem.length], t]), i: 0, prox: agora };
     }
     /* sentado: de tempo em tempo, quem tá do lado puxa você pro papo */
     if(e.sit && agora > K.vozT){ const L = K.gente.filter(n => n.papel !== 'anda' && perto(n) < 3.2 && !(n.fala && n.fala.ate > agora)); if(L.length){ diz(sorteia(L), sorteia(FALA_VOCE), true); K.vozT = agora + 8000 + Math.random() * 5000; } else K.vozT = agora + 2000; }
     for(const n of K.gente){
+      /* v4.12: quem tá no chão (ou voltando pro lugar dele, bravo) não faz o resto */
+      if(caidoCalc(n, dt) || voltaCalc(n, dt)) continue;
       if(n.papel === 'grita'){ if(agora > n.prox && perto(n) < 20){ diz(n, proxFala(n)); n.prox = agora + 8000 + Math.random() * 8000; } if(n.mao === 'violao'){ n.passo += dt * 11; n.andando = true; } }
       /* v4.04: o torcedor solta uma das dele andando (se você tá a até 20 m) e para pra quem chega perto (olhando) */
       if(n.papel === 'anda' && n.grita){
@@ -1499,6 +1503,7 @@
       cr.v += ((para ? 0 : 7) - cr.v) * Math.min(1, dt * (para ? 5 : 1.2)); cr.x += cr.dir * cr.v * dt;
       if(cr.dir > 0 ? cr.x > 68 : cr.x < -20){ cr.on = false; cr.prox = agora + 7000 + Math.random() * 12000; }
     }
+    passoMoedasCalc(dt);
   }
   /* o que fica na mão: o microfone (locutor e pregador), a sacola de loja e o violão */
   function maoCalc(n, giro, dono){
@@ -1523,10 +1528,12 @@
     const out = [], cx = S.cam.tx, cz = S.cam.tz;
     const lista = K.gente.map(n => [Math.hypot(n.x - cx, n.z - cz), n]).filter(p => p[0] < 26).sort((a, b) => a[0] - b[0]).slice(0, 18);
     for(const [, n] of lista){
-      const dono = 'npc:' + n.i, giro = { yaw: n.yaw, piv: [n.x, 0, n.z] }, sentado = !!(n.sit || n.senta);
+      /* v4.12: quem caiu senta no chão (o boneco sentado, 38 cm mais baixo) e larga o que tava na mão */
+      const chao = !!(n.caiu && n.caiu.sentou), dono = 'npc:' + n.i, giro = { yaw: n.yaw, piv: [n.x, 0, n.z] }, sentado = chao || (!n.caiu && !n.volta && !!(n.sit || n.senta));
       const corpo = boneco(n.av, n.x, n.z, n.yaw, n.passo, n.andando, sentado).map(b => { b.dono = dono; return b; });
-      out.push(...sobe(corpo.concat(maoCalc(n, giro, dono)), n.y));
+      out.push(...sobe(n.caiu ? corpo : corpo.concat(maoCalc(n, giro, dono)), chao ? -.38 : n.y));
     }
+    out.push(...moedasSolidos(t, cx, cz));
     /* os pombos: corpo cinza, o pescoço que brilha, a cabeça que bica (e as asas batendo no voo) */
     for(const p of K.pombos){ if(Math.hypot(p.x - cx, p.z - cz) > 20) continue;
       const g = { yaw: p.yaw, piv: [p.x, 0, p.z] }, b = p.voa ? 0 : Math.max(0, Math.sin(p.bica)) * .07, add = bb => out.push(solido(bb, [g], bb.c, null));
@@ -1548,6 +1555,7 @@
   function calcManchas(t){
     const K = S.calc; if(!K) return []; const out = [], cx = S.cam.tx, cz = S.cam.tz;
     K.gente.forEach(n => { if(Math.hypot(n.x - cx, n.z - cz) < 22) out.push({ mancha: [n.x, .004, n.z, .34, .28, .26, n.yaw] }); });
+    (K.moedas || []).forEach(m => { if(m.parada && Math.hypot(m.x - cx, m.z - cz) < 20) out.push({ mancha: [m.x, .004, m.z, .13, .09, .22, 0] }); });
     if(Math.hypot(18 - cx, 14 - cz) < 30){ const c = FONTE_COR[Math.floor(t / 3.5) % FONTE_COR.length], r = parseInt(c.slice(1, 3), 16), g = parseInt(c.slice(3, 5), 16), b = parseInt(c.slice(5, 7), 16); out.push({ mancha: [18, .004, 14, 3.6, 3.6, .22, 0, `${r},${g},${b}`] }); }
     return out;
   }
@@ -1556,7 +1564,119 @@
     const K = S.calc, e = S.eu; if(!K || !e) return;
     const agora = Date.now();
     K.gente.filter(n => n.fala && n.fala.ate > agora && Math.hypot(n.x - e.x, n.z - e.z) < 15).map(n => [Math.hypot(n.x - e.x, n.z - e.z) - (n.fala.voce ? 100 : 0), n]).sort((a, b) => a[0] - b[0]).slice(0, 4)
-      .forEach(([, n]) => poe('fala:' + n.i, [n.x, (n.sit || n.senta ? 1.5 : 2.02) + n.y, n.z], n.fala.t, 'fala' + (n.fala.voce ? ' voce' : '') + (n.papel === 'grita' || n.grita ? ' grito' : '')));
+      .forEach(([, n]) => poe('fala:' + n.i, [n.x, (n.caiu ? 1.2 : n.sit || n.senta ? 1.5 : 2.02) + n.y, n.z], n.fala.t, 'fala' + (n.fala.voce ? ' voce' : '') + (n.papel === 'grita' || n.grita ? ' grito' : '')));
+    /* v4.12: o "+0,01" que sobe de onde você pegou a moeda */
+    const mo = '+' + C.correalFmt((C.verso.ACHA && C.verso.ACHA.moeda) || .01);
+    K.flutua = (K.flutua || []).filter(f => agora - f.t0 < 900); K.flutua.forEach(f => poe('mais:' + f.id, [f.x, .9 + (agora - f.t0) / 900 * .8, f.z], mo, 'mais'));
+  }
+  /* ---------- v4.12 · o empurrão no Calçadão (e o correal que cai na rua) ----------
+     O Thales: "quero empurrar no 3D também, e se empurrar demais cai correal da pessoa no chão". O mesmo da cidade: perto
+     de alguém, o botão preto "Empurrar" (ou F). A pessoa escorrega, cai sentada no chão (quem tava no banco cai do banco,
+     o Irmão Ivo cai do caixote), fica tonta com as estrelinhas, levanta brava, fica de mal meio minuto e volta pro lugar
+     dela. Quem tá na roda ou no banco do lado às vezes revida. Cada empurrão é uma estrela de procurado na cidade (a
+     polícia espera você sair). O terceiro empurrão no mesmo minuto derruba as moedas (C.verso.apanhou decide, como na
+     cidade): elas pulam, quicam e ficam girando no chão; passou por cima, pegou, e o banco paga pela fila da cidade
+     (C.verso.achado). Tudo do aparelho de cada um, como a gente daqui */
+  const BRAVO_CALC = ['Ô! Sem educação!', 'Tá maluco, rapaz?', 'Vou chamar a polícia!', 'Que isso, criatura?', 'Respeita quem tá quieto!', 'Sai pra lá!', 'Na frente de todo mundo?'];
+  const REVIDE_CALC = ['Ei! Respeita!', 'Mexeu com um, mexeu com a roda!', 'Sai daqui, folgado!', 'Vai empurrar outro!'];
+  const PERDEU_CALC = ['Minhas moedas!', 'Ô! Meu troco!', 'Era o dinheiro do pastel!', 'Devolve o meu correal!'];
+  const LISO_CALC = ['Já levou tudo, rapaz!', 'Não tenho mais nada!', 'Tô liso, me deixa!'];
+  /* quem dá pra empurrar: o mais perto a até 1,3 m, em pé ou sentado, que não tá no chão */
+  function quemEmpurroCalc(){
+    const K = S.calc, e = S.eu; if(!K || !e || e.sit || S.modo !== 'andar' || S.corrida || S.desafio || S.pesca || nivelDe(e.y) !== 0 || (e.tonto || 0) > Date.now()) return null;
+    let best = null, md = 1.3; for(const n of K.gente){ if(n.caiu) continue; const d = Math.hypot(n.x - e.x, n.z - e.z); if(d < md){ md = d; best = n; } }
+    return best;
+  }
+  function empurraCalc(){
+    const n = quemEmpurroCalc(), e = S.eu; if(!n || !e) return;
+    const agora = Date.now(); if(agora - (S.empT || 0) < 450) return; S.empT = agora;
+    e.yaw = Math.atan2(n.x - e.x, n.z - e.z);
+    const base = PL.gente[n.i] || {};
+    /* de onde ela volta depois (o banco, o caixote, o lugar da roda ou da barraca); quem passa segue o caminho */
+    const volta = n.sit ? { x: n.sit.x, z: n.sit.z, yaw: n.sit.yaw, sit: n.sit } : n.papel !== 'anda' ? { x: base.x, z: base.z, yaw: base.yaw || 0, y: base.y || 0 } : null;
+    if(n.sit){ const a = n.sit, p = livrePerto(a.x + Math.sin(a.yaw) * .8, a.z + Math.cos(a.yaw) * .8, 0); n.sit = null; n.x = p[0]; n.z = p[1]; }
+    const dx = n.x - e.x, dz = n.z - e.z, d = Math.hypot(dx, dz) || 1;
+    n.caiu = { t0: agora, ate: agora + 2400, vx: dx / d * 2.2, vz: dz / d * 2.2, volta }; n.y = 0; n.fala = null; n.olha = 0; n.paraAte = 0; n.cantaAte = 0; n.volta = null;
+    if(n.grupo && n.grupo.papo) n.grupo.papo = null;
+    if(C.versoSom && C.versoSom.gta) C.versoSom.gta('empurra');
+    if(C.verso.procura) C.verso.procura(1, 'empurrou ' + n.nome);
+    /* empurrou demais: as moedas */
+    const q = C.verso.apanhou ? C.verso.apanhou(n) : 0;
+    if(q > 0){ soltaMoedasCalc(n, q); diz(n, sorteia(PERDEU_CALC)); } else if(q < 0) diz(n, sorteia(LISO_CALC));
+    /* quem tá na roda ou no banco do lado às vezes revida */
+    const o = n.grupo && n.grupo.quem.filter(m => m !== n && !m.caiu && Math.hypot(m.x - e.x, m.z - e.z) < 3.2)[0];
+    if(o && Math.random() < .5) setTimeout(() => { if(!S.aberta || !S.calc || o.caiu) return; diz(o, sorteia(REVIDE_CALC)); o.olha = Date.now() + 3000; derrubaEuCalc(o.x, o.z); }, 380);
+    brigaCalcUI();
+  }
+  /* você levando um empurrão: escorrega uns palmos e fica uns instantes sem andar */
+  function derrubaEuCalc(fx, fz){
+    const e = S.eu; if(!e) return; if(e.sit) levanta();
+    const dx = e.x - fx, dz = e.z - fz, d = Math.hypot(dx, dz) || 1;
+    e.tonto = Date.now() + 900; e.empurrao = { vx: dx / d * 2, vz: dz / d * 2, t0: Date.now() }; S.alvo = null; S.acao = null; S.rota = [];
+    if(C.versoSom && C.versoSom.gta) C.versoSom.gta('empurra');
+  }
+  /* um quadro de quem tá no chão: escorrega 0,3 s girando, senta e fica tonto; levantou, fica bravo e volta pro lugar */
+  function caidoCalc(n, dt){
+    const c = n.caiu; if(!c) return false;
+    const agora = Date.now();
+    if(agora >= c.ate){
+      n.caiu = null; n.bravo = agora + 30000; n.andando = false;
+      diz(n, n.grita && n.papel === 'anda' ? 'Respeita a bandeira, rapaz!' : sorteia(BRAVO_CALC));
+      if(S.eu) n.yaw = Math.atan2(S.eu.x - n.x, S.eu.z - n.z);
+      if(c.volta){ n.volta = c.volta; n.voltaT = agora + 2600; }
+      return false;
+    }
+    if(agora - c.t0 < 300){ const nx = n.x + c.vx * dt, nz = n.z + c.vz * dt; if(!bate(nx, n.z, 0)) n.x = nx; if(!bate(n.x, nz, 0)) n.z = nz; n.yaw += dt * 16; }
+    else c.sentou = true;
+    n.andando = false; return true;
+  }
+  /* depois do bravo: anda de volta pro lugar (e senta de novo, se era do banco) */
+  function voltaCalc(n, dt){
+    const v = n.volta, agora = Date.now(); if(!v) return false;
+    if(agora < n.voltaT){ n.andando = false; return true; }
+    const dx = v.x - n.x, dz = v.z - n.z, d = Math.hypot(dx, dz);
+    if(d < .08){ n.x = v.x; n.z = v.z; n.yaw = v.yaw; n.y = v.y || 0; n.andando = false; if(v.sit && (!v.sit.quem || v.sit.quem === n)){ v.sit.quem = n; n.sit = v.sit; } n.volta = null; return false; }
+    const s = Math.min(d, 1.15 * dt); n.x += dx / d * s; n.z += dz / d * s; n.yaw = Math.atan2(dx, dz); n.passo += dt * 8.5; n.andando = true; return true;
+  }
+  function soltaMoedasCalc(n, q){
+    const K = S.calc, agora = Date.now(); if(!K) return; K.moedas = K.moedas || [];
+    for(let i = 0; i < q; i++){ const a = Math.random() * Math.PI * 2, v = 1.1 + Math.random() * 1.1; K.moedaN = (K.moedaN || 0) + 1;
+      K.moedas.push({ id: K.moedaN, x: n.x, z: n.z, y: .75, vx: Math.cos(a) * v, vz: Math.sin(a) * v, vy: 3.1 + Math.random() * 1.2, t0: agora + i * 70, ate: agora + 45000, quica: 0, fase: Math.random() * 6 }); }
+    if(C.versoSom && C.versoSom.gta) C.versoSom.gta('moedas');
+  }
+  /* as moedas: voam, quicam (batem e voltam do que for sólido), param girando; passou por cima, pegou */
+  function passoMoedasCalc(dt){
+    const K = S.calc, e = S.eu; if(!K || !K.moedas || !K.moedas.length || !e) return;
+    const agora = Date.now(); let pegou = 0;
+    for(let i = K.moedas.length - 1; i >= 0; i--){
+      const m = K.moedas[i]; if(agora < m.t0) continue;
+      if(agora > m.ate){ K.moedas.splice(i, 1); continue; }
+      if(!m.parada){
+        const nx = m.x + m.vx * dt, nz = m.z + m.vz * dt;
+        if(!bate(nx, m.z, 0)) m.x = nx; else m.vx = -m.vx * .4; if(!bate(m.x, nz, 0)) m.z = nz; else m.vz = -m.vz * .4;
+        m.vy -= 9.8 * dt; m.y += m.vy * dt;
+        if(m.y <= .14){ m.y = .14; if(m.quica < 2 && m.vy < -1.2){ m.vy = -m.vy * .35; m.vx *= .5; m.vz *= .5; m.quica++; } else { m.parada = true; m.vy = 0; } }
+        continue;
+      }
+      if(!e.sit && Math.hypot(m.x - e.x, m.z - e.z) < .6){ K.moedas.splice(i, 1); pegou++; (K.flutua || (K.flutua = [])).push({ id: m.id, x: m.x, z: m.z, t0: agora }); }
+    }
+    if(pegou){ if(C.versoSom && C.versoSom.gta) C.versoSom.gta('moeda'); if(C.verso.achado) C.verso.achado(pegou); }
+  }
+  /* o que desenha: as moedas girando (pisca nos últimos 5 s) e as estrelinhas em volta da cabeça de quem caiu */
+  function moedasSolidos(t, cx, cz){
+    const K = S.calc, out = [], agora = Date.now();
+    (K.moedas || []).forEach(m => { if(agora < m.t0 || Math.hypot(m.x - cx, m.z - cz) > 20 || (m.ate - agora < 5000 && Math.floor(agora / 150) % 2)) return;
+      const y = m.parada ? .16 + Math.sin(t * 3 + m.fase) * .03 : m.y, g = { yaw: t * 5 + m.fase, piv: [m.x, 0, m.z] };
+      out.push(solido(B(m.x - .13, y - .13, m.z - .022, .26, .26, .044, '#F2C230'), [g], '#F2C230', null)); });
+    K.gente.forEach(n => { if(!(n.caiu && n.caiu.sentou) || Math.hypot(n.x - cx, n.z - cz) > 20) return;
+      for(let i = 0; i < 3; i++){ const a = t * 5 + i * 2.1; out.push(esfera(n.x + Math.cos(a) * .3, 1.18, n.z + Math.sin(a) * .3, .055, i % 2 ? AMARELO : PAPEL, null)); } });
+    return out;
+  }
+  /* o botão preto: "Empurrar Fulano" quando tem alguém perto */
+  function brigaCalcUI(){
+    const b = C.$('cs-briga'); if(!b) return;
+    const n = quemEmpurroCalc(), txt = n ? 'Empurrar ' + n.nome : '';
+    if(b.dataset.txt !== txt){ b.dataset.txt = txt; b.hidden = !n; if(n) b.innerHTML = `${ico('raio')}<span>${esc(txt)}</span>`; }
   }
   /* as imagens das fachadas, das placas e do Relojão (uma por face) */
   /* v3.80: imagem com "n" (a pintura numa parede de fora) some quando a câmera tá do outro lado (a parede vira mureta) */
@@ -4809,7 +4929,7 @@
          (e sem atravessar parede num passo grande) */
       if(!parado){ const np = Math.max(1, Math.ceil(dt / .05 - 1e-9)); for(let i = 0; i < np && S.aberta && S.eu; i++) passo(dt / np); }
       andamGente(dt); if(S.calc) calcPasso(dt); sincronizaDisco();
-      if(!S.portaT || t - S.portaT > .2){ S.portaT = t; portaCasa(); }
+      if(!S.portaT || t - S.portaT > .2){ S.portaT = t; portaCasa(); if(S.calc) brigaCalcUI(); else { const bg = C.$('cs-briga'); if(bg && !bg.hidden){ bg.hidden = true; bg.dataset.txt = ''; } } }
       if(C.verso.enviaPos) C.verso.enviaPos(false);
       if(!bc && !(C.verso.jogo && C.verso.jogo())){ const t0 = performance.now(); quadro(t); S.msQuadro = (S.msQuadro || 0) * .9 + (performance.now() - t0) * .1; if(!parado) ajustaRes(dt, t0); }
     }catch(e){
@@ -4825,6 +4945,9 @@
     /* v3.77: sentado no banco: só levanta quando você mexe (tecla de andar, o direcional ou um toque no chão) */
     if(e.sit){ const pv1 = S.pad && S.modo === 'andar' ? S.pad.vetor() : null, anda = ['w', 'a', 's', 'd', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].some(k => S.teclas.has(k));
       if(anda || S.alvo || (pv1 && pv1.m)){ levanta(); portaCasa(); } else { e.andando = false; const c = S.cam, f = Math.min(1, dt * 6); c.tx += (e.x - c.tx) * f; c.tz += (e.z - c.tz) * f; c.ty += (e.y + 1.1 - c.ty) * f; return; } }
+    /* v4.12: levou um empurrão: escorrega uns palmos e fica uns instantes sem andar */
+    if((e.tonto || 0) > Date.now()){ const em = e.empurrao; if(em && Date.now() - em.t0 < 260) mover(e, em.vx * dt, em.vz * dt); e.andando = false; S.alvo = null; S.acao = null; S.rota = [];
+      const c = S.cam, f = Math.min(1, dt * 6); c.tx += (e.x - c.tx) * f; c.tz += (e.z - c.tz) * f; c.ty += (e.y + 1.1 - c.ty) * f; return; }
     let dx = 0, dz = 0;
     const k = S.teclas, th = S.cam.th;
     /* W = pra longe da câmera; as setas acompanham o giro da câmera */
@@ -4882,7 +5005,7 @@
     acoes().forEach(a => { if(!acaoPraMim(a) || (a.y > 1.5 ? 1 : 0) !== n) return; ve(Math.hypot(e.x - a.x - a.w / 2, e.z - a.z - a.d / 2) - Math.max(a.w, a.d) / 2, { t: 'acao', a, nome: rotuloAcao(a) }); });
     if(PL.escada){ const es = PL.escada, cx = (es.x0 + es.x1) / 2; ve(n === 1 ? Math.hypot(e.x - cx, e.z - (es.z0 - .7)) - .4 : Math.hypot(e.x - cx, e.z - (es.z1 + .9)) - .4, { t: 'escada', nome: n === 1 ? 'Descer a escada' : 'Subir a escada' }); }
     /* v3.77: perto de alguém do Calçadão (menos quem tá passando), o botão é trocar ideia */
-    if(S.calc && n === 0) S.calc.gente.forEach(g => { if(g.papel !== 'anda' || g.grita) ve(Math.hypot(e.x - g.x, e.z - g.z) - .5, { t: 'npc', n: g, nome: 'Trocar ideia com ' + g.nome }); });
+    if(S.calc && n === 0) S.calc.gente.forEach(g => { if(!g.caiu && (g.papel !== 'anda' || g.grita)) ve(Math.hypot(e.x - g.x, e.z - g.z) - .5, { t: 'npc', n: g, nome: 'Trocar ideia com ' + g.nome }); });
     if(n === 0) ve(Math.hypot(e.x - ENTRADA.x, e.z - (ENTRADA.z - .4)) - .3, { t: 'saida', nome: S.meu ? 'Sair pra rua' : S.lugar ? LUGARES[S.lugar].sai || 'Sair pra Feira' : 'Sair' });
     return melhor;
   }
@@ -5097,6 +5220,8 @@
     if(TECLAS.has(k)){ e.preventDefault(); if(e.type === 'keydown') S.teclas.add(k); else S.teclas.delete(k); return; }
     if(k === ' '){ e.preventDefault(); if(S.corrida && S.corrida.kart){ if(!e.repeat) pulaKart(e.type === 'keydown'); return; } if(e.type === 'keydown' && !e.repeat){ if(S.pesca) puxa(); else if(S.desafio) dispara(); else if(!S.corrida) pulaCasa(); } return; }
     if(k === 'f' && S.corrida && S.corrida.kart){ e.preventDefault(); if(e.type === 'keydown' && !e.repeat) usaItem(); return; }
+    /* v4.12: F empurra no Calçadão (como na cidade) */
+    if(k === 'f' && S.calc){ e.preventDefault(); if(e.type === 'keydown' && !e.repeat) empurraCalc(); return; }
     if(e.type !== 'keydown') return;
     if(k === 'q'){ S.cam.th += Math.PI / 4; S.arrastou = Date.now(); } else if(k === 'e'){ S.cam.th -= Math.PI / 4; S.arrastou = Date.now(); }
     else if(k === 'r' && S.ghost){ giraGhost(); }
@@ -5293,7 +5418,7 @@
       <div class="cs-top"><span class="cs-top-l"><button type="button" class="cvr-bc-b cs-sair" data-act="cs-sair">${ico('prev')}<span class="cs-sair-l" id="cs-sair-t">Sair pra rua</span><span class="cs-sair-c" aria-hidden="true">Sair</span></button><span class="cs-titulo"><b id="cs-titulo"></b><small id="cs-onde"></small></span><span class="cs-dica" id="cs-dica" role="status" hidden></span></span><span class="cs-top-r"><b class="cs-live" id="cs-live" hidden></b><button type="button" class="cvr-bc-b cs-disco-b" id="cs-disco-b" data-act="cs-disco-b" hidden></button><button type="button" class="cvr-bc-b cvr-som cs-som" id="cs-som" data-act="cvr-som" aria-pressed="false" hidden></button><button type="button" class="cvr-bc-b cs-mic" id="cs-mic" data-act="cs-mic" aria-pressed="false">${ico('micoff')}<span>Mic desligado</span></button><button type="button" class="cvr-bc-b cs-tela" id="cs-tela" data-act="cs-tela" aria-pressed="false" hidden></button></span></div>
       <div class="cs-cam"><button type="button" data-act="cs-cam" data-k="esq" title="Girar (Q)" aria-label="Girar a câmera pra esquerda">${ico('prev')}</button><button type="button" data-act="cs-cam" data-k="dir" title="Girar (E)" aria-label="Girar a câmera pra direita">${ico('next')}</button><button type="button" data-act="cs-cam" data-k="perto" aria-label="Aproximar">${ico('plus')}</button><button type="button" data-act="cs-cam" data-k="longe" aria-label="Afastar">${ico('down')}</button></div>
       <div class="cs-bar" id="cs-bar"></div>
-      <button type="button" class="cs-porta" id="cs-porta" data-act="cs-porta" hidden></button><div class="cs-pesca" id="cs-pesca" aria-live="polite" hidden></div>`;
+      <button type="button" class="cs-porta" id="cs-porta" data-act="cs-porta" hidden></button><button type="button" class="cs-briga" id="cs-briga" data-act="cs-briga" hidden></button><div class="cs-pesca" id="cs-pesca" aria-live="polite" hidden></div>`;
     document.body.appendChild(el); S.el = el; S.cv = C.$('cs-cv'); S.ctx = S.cv.getContext('2d');
     /* v3.40: no celular, o controle de videogame (direcional + pular); o botão de som é o mesmo da cidade */
     if(C.pad && C.pad.toque()){ S.pad = C.pad.cria(el, { pula: () => (S.pesca ? puxa() : S.desafio ? dispara() : S.corrida ? (S.corrida.kart ? pulaKart(true) : null) : pulaCasa()), soltou: () => { if(S.corrida && S.corrida.kart) pulaKart(false); } }); el.classList.add('toque'); }
@@ -5363,7 +5488,7 @@
     S.eu = { x: nasce[0], z: nasce[1], y: 0, yaw: Math.PI, passo: 0, andando: false, av };
     S.calc = L && L.calc ? calcCria() : null;
     if(!S.el || !S.el.isConnected) monta(); else { S.el.hidden = false; C.$('cs-tags').innerHTML = ''; tamanho(); if(C.versoSom && C.versoSom.botao) C.versoSom.botao(C.$('cs-som')); }
-    const pc = C.$('cs-porta'); if(pc){ pc.hidden = true; pc.dataset.txt = ''; }
+    const pc = C.$('cs-porta'); if(pc){ pc.hidden = true; pc.dataset.txt = ''; } const pb = C.$('cs-briga'); if(pb){ pb.hidden = true; pb.dataset.txt = ''; }
     const nomeC = L ? L.titulo : meu ? 'Tua casa' : 'Casa de @' + (dono.handle || '');
     C.$('cs-titulo').textContent = nomeC;
     const st = C.$('cs-sair-t'); if(st) st.textContent = L ? L.sai || 'Sair pra Feira' : 'Sair pra rua';
@@ -5409,6 +5534,7 @@
     'cs-tela': () => T.alterna('3d'),
     'cs-enigma-outro': () => enigmaSheet(),
     'cs-porta': () => acaoPerto(),
+    'cs-briga': () => empurraCalc(),
     'cs-ia-quero': async el => { el.disabled = true; try{ const f = Object.assign({}, (C.st.me && C.st.me.ferramentas) || {}, { ia: 'lista' }); await C.saveMe({ ferramentas: f }); C.toast('Tá na lista do Computador IA. A gente te chama.', 3600); iaSheet(); }catch(e){ el.disabled = false; C.toast(C.errMsg(e)); } },
     'cs-mic': () => { if(C.acts['cvr-mic']) C.acts['cvr-mic'](); },
     'cs-publi': el => { if(C.verso && C.verso.publiSheet) C.verso.publiSheet(el.dataset.k); },

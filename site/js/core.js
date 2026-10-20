@@ -480,6 +480,8 @@
       ninja: 'pergaminho telhados meditar', super: 'patrulha resgate pipa', rei: 'fita discurso visita' }).forEach(([u, ks]) => { CORREAL_TAREFA[u] = {}; ks.split(' ').forEach(k => { CORREAL_TAREFA[u][k] = 1; }); });
     [['motoboy', 'rush', 6, 50], ['policial', 'perseguicao', 8, 50], ['bombeiro', 'incendio', 8, 60], ['medico', 'ambulancia', 7, 40], ['ladrao', 'desmanche', 8, 50], ['detetive', 'nacola', 7, 60], ['pirata', 'contrabando', 7, 50], ['craque', 'racha', 6, 40]]
       .forEach(([u, k, v, m]) => { CORREAL_TAREFA[u][k] = v; CORREAL_MIN[u + ':' + k] = m; });
+    /* v4.12: a rua (delta-v412.sql), em centavos: a moeda e o máximo do dia */
+    const CORREAL_MOEDA = 1, CORREAL_RUA = 15;
     function seed(){
       const P = (id, handle, nome, cidade, bio, extra) => Object.assign({ id, handle, nome, cidade, bio, instagram: '', avatar_url: '', visibilidade: 'publico', grana_mostra: 'nada', plano: 'gratis', rolo_temas: [], banca_temas: [], banca_assuntos: [], ex: true, created_at: now() }, extra || {});
       const d = { user: null, t: {} }; T.forEach(t => d.t[t] = []);
@@ -1403,7 +1405,8 @@
         if(/^corre_(correal|tarefa)_/.test(n)){
           const eu = uidOf(d); if(!eu) throw { message: 'login', code: '42501' };
           const real = c => c / 100, PONTO = centDe(CORREAL_PONTO), TETO = centDe(CORREAL_TETO);
-          const ini = Date.parse(hojeBR() + 'T03:00:00Z'), hojeC = () => d.t.corre_correal_log.filter(l => l.dono === eu && l.valor > 0 && /^tarefa:/.test(l.motivo) && Date.parse(l.created_at) >= ini).reduce((x, l) => x + centDe(l.valor), 0);
+          /* v4.12: o "hoje" conta a tarefa e a rua (as moedas que caem de quem leva empurrão demais), como o delta-v412.sql */
+          const ini = Date.parse(hojeBR() + 'T03:00:00Z'), hojeC = (re = /^(tarefa|achado):/) => d.t.corre_correal_log.filter(l => l.dono === eu && l.valor > 0 && re.test(l.motivo) && Date.parse(l.created_at) >= ini).reduce((x, l) => x + centDe(l.valor), 0);
           const cart = () => { let w = d.t.corre_correal.find(x => x.dono === eu); if(!w){ w = { dono: eu, saldo: 0, ganho: 0, gasto: 0, updated_at: now() }; d.t.corre_correal.push(w); } return w; };
           const meu = () => ({ saldo: real(centDe(cart().saldo)), hoje: real(hojeC()), teto: real(TETO), ponto: real(PONTO), precos: Object.assign({}, CORREAL_PRECO) });
           if(n === 'corre_correal_meu') return meu();
@@ -1421,6 +1424,18 @@
             const pts = CORREAL_TAREFA[t.u][t.k], v = pts * PONTO, hoje = hojeC(), ganhou = Math.max(0, Math.min(v, TETO - hoje)), w = cart();
             if(ganhou){ d.t.corre_correal_log.push({ id: rid(), dono: eu, valor: real(ganhou), motivo: `tarefa:${t.u}:${t.k}`, created_at: now() }); w.saldo = real(centDe(w.saldo) + ganhou); w.ganho = real(centDe(w.ganho) + ganhou); w.updated_at = now(); }
             write(d); return { ok: true, ganhou: real(ganhou), valia: real(v), pontos: pts, saldo: real(centDe(w.saldo)), hoje: real(hoje + ganhou), teto: real(TETO) };
+          }
+          /* v4.12: a rua paga (0,01 a moeda, até 3 por vez, 8 s entre uma vez e outra, 0,15 por dia, dentro do 1,00) */
+          if(n === 'corre_correal_achado'){
+            const m = Math.min(3, Math.max(1, Math.round(Number(a.p_n) || 1))), mine = d.t.corre_correal_log.filter(l => l.dono === eu && /^achado:/.test(l.motivo));
+            const ult = mine.reduce((x, l) => Math.max(x, Date.parse(l.created_at)), 0), passou = (Date.now() - ult) / 1000;
+            if(ult && passou < 8) return { ok: false, motivo: 'devagar', falta: Math.max(1, Math.ceil(8 - passou)) };
+            const rua = hojeC(/^achado:/), hoje = hojeC(), w = cart(), ganhou = Math.max(0, Math.min(m * CORREAL_MOEDA, CORREAL_RUA - rua, TETO - hoje));
+            const fim = { ganhou: real(ganhou), saldo: real(centDe(w.saldo) + ganhou), rua: real(rua + ganhou), teto_rua: real(CORREAL_RUA), hoje: real(hoje + ganhou), teto: real(TETO) };
+            if(!ganhou){ write(d); return Object.assign(fim, { ok: false, motivo: 'teto' }); }
+            d.t.corre_correal_log.push({ id: rid(), dono: eu, valor: real(ganhou), motivo: 'achado:rua', created_at: now() });
+            w.saldo = fim.saldo; w.ganho = real(centDe(w.ganho) + ganhou); w.updated_at = now(); write(d);
+            return Object.assign(fim, { ok: true });
           }
           if(n === 'corre_correal_gasta'){
             /* tipo que o banco não conhece não tem preço: não mexe em nada (e o saldo volta 0, como lá) */

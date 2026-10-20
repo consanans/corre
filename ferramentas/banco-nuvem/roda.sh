@@ -100,6 +100,10 @@ testa teste406.sql 19
 delta delta-v411.sql 'delta v4.11 ok'
 delta delta-v411.sql 'delta v4.11 ok'
 testa teste411.sql 8
+# v4.12: o correal que cai na rua (0,01 a moeda, até 3 por vez, 8 s entre uma e outra, 0,15 por dia, dentro do 1,00)
+delta delta-v412.sql 'delta v4.12 ok'
+delta delta-v412.sql 'delta v4.12 ok'
+testa teste412.sql 9
 . "$AQUI/virada343.sh"
 if grep -q 'FALHOU\|ERROR' $D/saida; then echo "deu FALHOU ou erro (acima)"; exit 1; fi
 echo "tudo ok: $(grep -c '^ok:' $D/saida) checagens"

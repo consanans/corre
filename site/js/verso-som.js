@@ -503,6 +503,9 @@
     else if(k === 'falhou'){ tom(t, 330, 160, .45, .07 * v, 'triangle'); estalo(t, 300, .8, .1, .05 * v, 'lowpass'); }
     else if(k === 'largada'){ tom(t, 660, 660, .14, .05 * v, 'square'); }
     else if(k === 'vai'){ tom(t, 1320, 1320, .4, .06 * v, 'square'); }
+    /* v4.12 · as moedas: o tilintar de quando caem no chão (uns tins de metal, cada vez mais baixos) e o plim de pegar */
+    else if(k === 'moedas'){ for(let i = 0; i < 7; i++){ const f = 2300 + Math.random() * 1500, a = 1 - i / 8; tom(t + i * .075 + Math.random() * .03, f, f * .97, .06, .028 * a * v, 'square'); estalo(t + i * .075, 5200, 4, .015, .02 * a * v); } }
+    else if(k === 'moeda'){ tom(t, 1175, 1175, .07, .04 * v, 'square'); tom(t + .07, 1760, 1760, .2, .04 * v, 'square'); }
   }
   /* v3.58 · o minijogo das tarefas: o plim curto do acerto e o tum do erro */
   function acerto(){ if(!fxOk()) return; const t = ac.currentTime + .005; brilho(t, midi('A5'), .1, .045, fx); }
