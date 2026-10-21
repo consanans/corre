@@ -5745,8 +5745,8 @@
   const COR_VTR = 2;   // branca (a faixa azul e o giroflex vêm por cima, no desenhaGta)
   function procura(n, porque){
     const P = V.proc; if(!P || !V.eu) return;
-    const antes = P.n; P.n = clamp(P.n + n, 0, 5); P.fora = 0;
-    if(P.n > antes){ if(C.versoSom && C.versoSom.gta) C.versoSom.gta('estrela'); C.toast(`${'★'.repeat(P.n)} Procurado${porque ? ': ' + porque : ''}. ${antes ? 'Mais viatura na rua.' : 'A polícia vem aí.'}`, 2600); }
+    const antes = P.n; P.n = clamp(P.n + n, 0, 5); P.fora = 0; P.fimUI = null;
+    if(P.n > antes){ P.subiu = Date.now() + 700; if(C.versoSom && C.versoSom.gta) C.versoSom.gta('estrela'); C.toast(`${'★'.repeat(P.n)} Procurado${porque ? ': ' + porque : ''}. ${antes ? 'Mais viatura na rua.' : 'A polícia vem aí.'}`, 2600); }
     procUI();
   }
   function tiraViatura(P){ tiraPiloto(P); if(V.proc) V.proc.vtr = V.proc.vtr.filter(x => x !== P); }
@@ -5773,13 +5773,15 @@
     if(P.algema >= 1.6){ preso(); return; }
     if(P.n > 0){
       if(perto > 650) P.fora += dt; else P.fora = 0;
-      if(P.fora > 7){ P.fora = 0; P.n--; procUI(); C.toast(P.n ? `${'★'.repeat(P.n)} Despistou uma viatura.` : 'Despistou a polícia. Tá limpo.', 2200); }
+      if(P.fora > 7){ P.fora = 0; P.n--; P.caiu = agora + 700; if(!P.n) P.fimUI = { txt: 'DESPISTOU', ate: agora + 2400 }; procUI(); C.toast(P.n ? `${'★'.repeat(P.n)} Despistou uma viatura.` : 'Despistou a polícia. Tá limpo.', 2200); }
       if(perto < 620 && agora > (P.sirT || 0) && C.versoSom && C.versoSom.gta){ P.sirT = agora + 1450; C.versoSom.gta('sirene', 1 - perto / 700); }
     }
-    if(agora > (P.uiT || 0)){ P.uiT = agora + 300; procUI(); }
+    if(agora > (P.uiT || 0)){ P.uiT = agora + 150; procUI(); }
   }
   function preso(){
-    const P = V.proc; P.n = 0; P.algema = 0; P.fora = 0; P.vtr.slice().forEach(tiraViatura); procUI();
+    const P = V.proc, tinha = P.n; P.n = 0; P.algema = 0; P.fora = 0; P.vtr.slice().forEach(tiraViatura); P.fimUI = { txt: 'PRESO', ate: Date.now() + 2800, tinha }; procUI();
+    /* v4.15: o carimbo no meio da tela, como o "busted" do GTA */
+    { const el = C.$('cvr-preso'); if(el){ el.innerHTML = `<b>PRESO!</b><span>${'★'.repeat(Math.max(1, tinha))} · pra Delegacia</span>`; el.hidden = false; el.classList.remove('on'); void el.offsetWidth; el.classList.add('on'); clearTimeout(V.presoT); V.presoT = setTimeout(() => { el.hidden = true; el.classList.remove('on'); }, 2800); } }
     if(C.versoSom && C.versoSom.gta) C.versoSom.gta('perdeu');
     const T = V.tarefa, missao = T && T.def.missao;
     if(T) largaTarefa(true);
@@ -5787,12 +5789,22 @@
     if(p) teleporta(p.x, p.y, true);
     C.toast(`Perdeu! A polícia te levou pra Delegacia. ${missao ? 'A missão ficou pelo caminho.' : 'Liberado, mas fica esperto.'}`, 4200);
   }
+  /* v4.15 (o Thales: "quero que fica aparecendo na tela as 5 estrelas quando bate muito nos NPC; até ser preso, as
+     estrelas vão diminuindo"): as 5 estrelas ficam no canto de cima à direita, grandes, do primeiro empurrão até ser
+     preso ou despistar. As acesas são as do teu nível; a viatura perto, elas piscam de sirene; longe dela, a de cima
+     pisca e a barrinha amarela mostra quanto falta pra ela cair (7 s longe); a viatura encostando, a barra rosa da
+     algema enche. Preso: PRESO! no meio da tela; despistou: DESPISTOU, e o painel some */
   function procUI(){
-    const el = C.$('cvr-proc'); if(!el) return; const P = V.proc, n = P ? P.n : 0;
-    el.hidden = !n; if(!n){ el.innerHTML = ''; return; }
-    el.setAttribute('aria-label', `Procurado: ${n} de 5 estrelas`);
-    el.innerHTML = [0, 1, 2, 3, 4].map(i => `<i class="${i < n ? 'on' : ''}" aria-hidden="true">★</i>`).join('') + (P.algema > .2 ? `<b class="cvr-proc-al" style="width:${Math.round(Math.min(1, P.algema / 1.6) * 100)}%" aria-hidden="true"></b>` : '');
-    el.classList.toggle('perto', P.perto < 650);
+    const el = C.$('cvr-proc'); if(!el) return; const P = V.proc, n = P ? P.n : 0, agora = Date.now(), fim = P && !n && P.fimUI && P.fimUI.ate > agora ? P.fimUI : null;
+    el.hidden = !n && !fim; if(el.hidden){ el.innerHTML = ''; el.className = 'cvr-proc'; return; }
+    const perto = n > 0 && P.perto < 650, caindo = n > 0 && !perto && P.fora > .25, algema = n > 0 && P.algema > .2;
+    const rot = fim ? fim.txt : algema ? 'ALGEMANDO' : perto ? 'POLICIA PERTO' : caindo ? 'DESPISTANDO' : 'PROCURADO';
+    el.setAttribute('aria-label', fim ? (fim.txt === 'PRESO' ? 'Preso: a polícia te levou pra Delegacia' : 'Despistou a polícia') : `Procurado: ${n} de 5 estrelas`);
+    const est = [0, 1, 2, 3, 4].map(i => `<i class="${i < n ? 'on' : ''}${caindo && i === n - 1 ? ' cai' : ''}${i === n - 1 && P.subiu > agora ? ' nova' : ''}${i === n && P.caiu > agora ? ' foi' : ''}" aria-hidden="true">★</i>`).join('');
+    const barra = algema ? `<span class="cvr-proc-b al" aria-hidden="true"><b style="width:${Math.round(Math.min(1, P.algema / 1.6) * 100)}%"></b></span>`
+      : caindo ? `<span class="cvr-proc-b" aria-hidden="true"><b style="width:${Math.round(Math.max(0, 1 - P.fora / 7) * 100)}%"></b></span>` : '';
+    el.innerHTML = `<span class="cvr-proc-e">${est}</span><span class="cvr-proc-l" aria-hidden="true">${rot}</span>${barra}`;
+    el.className = 'cvr-proc' + (perto ? ' perto' : '') + (algema ? ' algema' : '') + (fim ? ' fim ' + (fim.txt === 'PRESO' ? 'preso' : 'limpo') : '');
   }
 
   /* ---------- o empurrão ---------- */
@@ -5801,6 +5813,9 @@
   const empurravel = r => !!r && r.npc && !r.piloto && !r.palco && (r.morador || r.torcida || /^npc-/.test(r.sid)) && !(r.caiu && r.caiu.ate > Date.now());
   function quemEmpurro(){
     const e = V.eu, vi = e && veiculoInfo(e); if(!e || e.barco || V.voo || e.sit || (vi && (vi.tipo === 'carro' || vi.capacete)) || (e.tonto && e.tonto > Date.now())) return null;
+    /* v4.15: o Empurrar fica em cima do "Trocar ideia", então é a mesma pessoa quando dá (a do botão amarelo, até 56 px) */
+    const pm = V.porta && V.porta.tipo === 'morador' && V.porta.m;
+    if(empurravel(pm) && Math.hypot(pm.x - e.x, pm.y - e.y) < 56) return pm;
     let best = null, md = 36; for(const r of V.remotos.values()){ if(!empurravel(r)) continue; const d = Math.hypot(r.x - e.x, r.y - e.y); if(d < md){ md = d; best = r; } }
     return best;
   }
@@ -5845,7 +5860,7 @@
   function brigaUI(){
     const b = C.$('cvr-briga'); if(!b) return;
     const r = quemEmpurro(); b.hidden = !r; if(r) b.innerHTML = `${ico('raio')} Empurrar${r.torcida ? '' : ' ' + esc(String(r.nome || '').slice(0, 18))}`;
-    V.brigaOn = !!r;
+    V.brigaOn = !!r; V.brigaSid = r ? r.sid : ''; pilhaUI();
   }
 
   /* ---------- v4.12 · o correal que cai na rua ----------
@@ -7120,7 +7135,20 @@
       hint.hidden = !msg; hint.innerHTML = msg;
     }
   }
-  function portaUI(){
+  function portaUI(){ portaTexto(); pilhaUI(); }
+  /* v4.15 · o Thales: "o botão de bater você deixa em cima do de conversar". O Empurrar fica colado em cima do botão
+     amarelo, na mesma largura e no mesmo alinhamento (no meio no computador, na direita no celular). A altura vem da
+     posição de verdade do amarelo (no celular o texto pode quebrar em duas linhas); sem o amarelo, o Empurrar fica no
+     lugar dele */
+  function pilhaUI(){
+    const b = C.$('cvr-briga'), p = C.$('cvr-porta'), st = C.$('cvr-stage'); if(!b || !p || !st) return;
+    if(b.hidden){ b.style.bottom = b.style.minWidth = ''; return; }
+    if(p.hidden){ b.style.minWidth = ''; b.style.bottom = getComputedStyle(p).bottom; return; }
+    const rp = p.getBoundingClientRect(), rs = st.getBoundingClientRect();
+    if(!rp.height) return;
+    b.style.bottom = Math.round(rs.bottom - rp.top + 8) + 'px'; b.style.minWidth = rp.width.toFixed(1) + 'px';
+  }
+  function portaTexto(){
     const b = C.$('cvr-porta'); if(!b) return;
     b.classList.remove('rio-ja');
     /* v3.75: no barco, o botão é da pesca (e de descer quando tá perto do píer) */
@@ -7319,9 +7347,10 @@
     V.cid = montaCidade(lista); V.sol = solidos(); V.solG = gradeSol(V.sol); V.portas = portas(); V.carros = montaCarros(V.cid); V.bolas = novasBolas(V.cid);
     const st = C.$('cvr-stage');
     st.innerHTML = `<canvas id="cvr-cv" aria-label="A cidade do Correverso. Anda com as setas ou W A S D, ou toca onde quer ir."></canvas>
-      <div class="cvr-top"><button type="button" class="cvr-sair" data-act="cvr-sai-cidade" aria-label="Sair do Correverso">${ico('prev')}<span class="cvr-sair-l">Sair do Correverso</span><span class="cvr-sair-c" aria-hidden="true">Sair</span></button><span class="cvr-sair-dica" id="cvr-sair-dica" role="status" hidden></span><span class="cvr-tt">${ico('verso')} Correverso</span><span class="cvr-on" id="cvr-on"></span><button type="button" class="cvr-live" id="cvr-live" data-act="cvr-gente" hidden></button><span class="cvr-zona" id="cvr-zona" hidden></span><button type="button" class="cvr-evento" id="cvr-evento" data-act="cvr-evento" hidden></button><button type="button" class="cvr-tarefa" id="cvr-tarefa" data-act="cvr-trampo" hidden></button><span class="cvr-proc" id="cvr-proc" role="status" hidden></span><button type="button" class="cvr-correal" id="cvr-correal" data-act="carteira" title="Carteira de correal" aria-label="Carteira de correal">${ico('correal')}<b class="num" data-correal-saldo>${C.correal.saldo == null ? '…' : C.correalFmt(C.correal.saldo)}</b></button><button type="button" class="cvr-som" id="cvr-som" data-act="cvr-som" aria-pressed="false" hidden></button><button type="button" class="cvr-som cvr-tela" id="cvr-tela" data-act="cvr-tela" aria-pressed="false"></button></div>
+      <div class="cvr-top"><button type="button" class="cvr-sair" data-act="cvr-sai-cidade" aria-label="Sair do Correverso">${ico('prev')}<span class="cvr-sair-l">Sair do Correverso</span><span class="cvr-sair-c" aria-hidden="true">Sair</span></button><span class="cvr-sair-dica" id="cvr-sair-dica" role="status" hidden></span><span class="cvr-tt">${ico('verso')} Correverso</span><span class="cvr-on" id="cvr-on"></span><button type="button" class="cvr-live" id="cvr-live" data-act="cvr-gente" hidden></button><span class="cvr-zona" id="cvr-zona" hidden></span><button type="button" class="cvr-evento" id="cvr-evento" data-act="cvr-evento" hidden></button><button type="button" class="cvr-tarefa" id="cvr-tarefa" data-act="cvr-trampo" hidden></button><button type="button" class="cvr-correal" id="cvr-correal" data-act="carteira" title="Carteira de correal" aria-label="Carteira de correal">${ico('correal')}<b class="num" data-correal-saldo>${C.correal.saldo == null ? '…' : C.correalFmt(C.correal.saldo)}</b></button><button type="button" class="cvr-som" id="cvr-som" data-act="cvr-som" aria-pressed="false" hidden></button><button type="button" class="cvr-som cvr-tela" id="cvr-tela" data-act="cvr-tela" aria-pressed="false"></button></div>
       <p class="cvr-hint" id="cvr-hint" hidden></p>
       <button type="button" class="cvr-mapinha" id="cvr-mapinha" data-act="cvr-mapa" title="Mapa" aria-label="Minimapa: onde você tá na cidade. Toca pra abrir o mapa grande e viajar"><canvas id="cvr-mapinha-cv" width="140" height="104" aria-hidden="true"></canvas></button>
+      <div class="cvr-proc" id="cvr-proc" role="status" hidden></div><div class="cvr-preso" id="cvr-preso" aria-hidden="true" hidden></div>
       <div class="cvr-mj" id="cvr-mj" hidden></div><div class="cvr-mj cvr-rio" id="cvr-rio" hidden></div><div class="cvr-mj cvr-sk" id="cvr-sk" hidden></div>
       <button type="button" class="cvr-briga" id="cvr-briga" data-act="cvr-briga" hidden></button>
       <button type="button" class="cvr-porta" id="cvr-porta" data-act="cvr-porta" hidden></button>
@@ -8413,8 +8442,16 @@
   const leva = (w, link) => { if(!w) return false; if(!link){ try{ w.close(); }catch(e){} return false; } try{ w.opener = null; w.location.href = link; return true; }catch(e){ return false; } };
   const ERRO_REAL = { termos: 'Marca que leu e aceita os Termos de uso pra comprar.', nome: 'Escreve teu nome completo (ou a razão social).', doc: 'Esse CPF ou CNPJ não confere.',
     epoca: 'A coleção de Halloween saiu da vitrine: volta em outubro.', forma: 'Escolhe Pix ou cartão.', skin: 'Essa skin não tá à venda em real.',
-    config: 'O pagamento das skins ainda não tá ligado. Tenta daqui a pouco.', banco: 'O pagamento das skins ainda não tá ligado. Tenta daqui a pouco.', nofn: 'O pagamento das skins ainda não tá ligado. Tenta daqui a pouco.' };
-  const erroReal = e => (e && e.code === 'asaas' && e.detalhe) ? 'O Asaas recusou: ' + e.detalhe : (e && (ERRO_REAL[e.code] || (e.status === 404 && ERRO_REAL.nofn))) || C.errMsg(e, 'Não deu pra falar com o pagamento agora.');
+    config: 'O pagamento das skins ainda não tá ligado. Tenta daqui a pouco.', banco: 'O pagamento das skins ainda não tá ligado. Tenta daqui a pouco.', nofn: 'O pagamento das skins ainda não tá ligado. Tenta daqui a pouco.',
+    pix: 'O Pix ainda não tá liberado: a conta do Corre no Asaas tá em aprovação. Por enquanto, paga no cartão.' };
+  /* v4.15: o Asaas recusou o Pix ("o Pix não está disponível... sua conta precisa estar aprovada"): o botão do Pix apaga e
+     o cartão vira o principal. Fica guardado no aparelho por 6 horas e depois tenta de novo (aprovou, ele volta sozinho) */
+  const PIX_OFF = 'corre-pix-off';
+  const pixOff = () => { try{ return Date.now() - Number(localStorage.getItem(PIX_OFF) || 0) < 6 * 3600e3; }catch(e){ return false; } };
+  const pixRecusado = e => !!(e && e.code === 'asaas' && /\bpix\b/i.test(String(e.detalhe || '')));
+  const botoesPix = () => pixOff() ? `<button type="button" class="btn" data-forma="pix" disabled title="${esc(ERRO_REAL.pix)}">${ico('raio')} Pix em breve</button><button type="button" class="btn pri" data-forma="cartao">${ico('cartao')} Pagar no cartão</button>`
+    : `<button type="button" class="btn pri" data-forma="pix">${ico('raio')} Pagar no Pix</button><button type="button" class="btn" data-forma="cartao">${ico('cartao')} Pagar no cartão</button>`;
+  const erroReal = e => pixRecusado(e) ? ERRO_REAL.pix : (e && e.code === 'asaas' && e.detalhe) ? 'O Asaas recusou: ' + e.detalhe : (e && (ERRO_REAL[e.code] || (e.status === 404 && ERRO_REAL.nofn))) || C.errMsg(e, 'Não deu pra falar com o pagamento agora.');
   const ESP = { k: '', t: 0, ate: 0 };
   /* a prévia: a skin no teu boneco, girando */
   function giraPrevia(cv, k){
@@ -8436,7 +8473,7 @@
       <div class="fld"><label for="lj-doc">CPF ou CNPJ</label><input class="inp" id="lj-doc" inputmode="numeric" maxlength="18" autocomplete="off" required aria-describedby="lj-doc-h"><span class="hint" id="lj-doc-h">Vai só pro Asaas, que emite a cobrança. O Corre não guarda.</span></div>`}
       <label class="pl-aceite"><input type="checkbox" id="lj-termos" required><span>Li e aceito os <a href="termos.html#skins" target="_blank" rel="noopener">Termos de uso</a>. Pagamento único, não renova; desistindo em até 7 dias do pagamento, recebo tudo de volta e a skin sai.</span></label>
       <p class="fine" id="lj-erro" role="alert" hidden></p>
-      <div class="acts lj-pg-bts"><button type="button" class="btn pri" data-forma="pix">${ico('raio')} Pagar no Pix</button><button type="button" class="btn" data-forma="cartao">${ico('cartao')} Pagar no cartão</button></div>
+      <div class="acts lj-pg-bts">${botoesPix()}</div>${pixOff() ? `<p class="fine">${esc(ERRO_REAL.pix)}</p>` : ''}
       <p class="fine">O pagamento é pelo Asaas, numa aba nova. Pagou, a skin chega sozinha. <button type="button" class="lnk" data-act="cvr-loja">Voltar pro Ateliê</button></p>
     </form>`);
     giraPrevia(document.querySelector('.lj-pg-cv'), k);
@@ -8463,6 +8500,8 @@
       esperando(k, r.link, abriu, forma);
     }catch(e){
       leva(w, ''); delete f.dataset.indo; f.querySelectorAll('[data-forma]').forEach(b => { b.disabled = false; });
+      /* o Asaas recusou o Pix: apaga o botão dele e o cartão vira o principal */
+      if(pixRecusado(e)){ try{ localStorage.setItem(PIX_OFF, String(Date.now())); }catch(_){} const bts = f.querySelector('.lj-pg-bts'); if(bts){ bts.innerHTML = botoesPix(); bts.querySelectorAll('[data-forma]').forEach(b => b.addEventListener('click', () => pagaReal(k, b.dataset.forma))); } }
       /* o cadastro do Asaas sumiu (troca do sandbox pra conta de verdade): pede nome e CPF de novo */
       if(e && (e.code === 'nome' || e.code === 'doc') && !C.$('lj-nome') && C.acesso){ C.acesso.cliente = false; await skinRealSheet(k); const e2 = C.$('lj-erro'); if(e2){ e2.textContent = 'Confirma teu nome e CPF ou CNPJ pra comprar.'; e2.hidden = false; } const t2 = C.$('lj-termos'); if(t2) t2.checked = true; return; }
       mostra(erroReal(e));

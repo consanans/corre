@@ -1677,6 +1677,15 @@
     const b = C.$('cs-briga'); if(!b) return;
     const n = quemEmpurroCalc(), txt = n ? 'Empurrar ' + n.nome : '';
     if(b.dataset.txt !== txt){ b.dataset.txt = txt; b.hidden = !n; if(n) b.innerHTML = `${ico('raio')}<span>${esc(txt)}</span>`; }
+    pilhaCalc(b);
+  }
+  /* v4.15 · o Empurrar colado em cima do botão amarelo ("Trocar ideia"), na mesma largura; a altura vem da posição de
+     verdade do amarelo (no celular o texto quebra em duas linhas). Sem o amarelo, fica onde a CSS põe */
+  function pilhaCalc(b){
+    const p = C.$('cs-porta'), st = p && p.offsetParent; if(!p || !st) { b.style.bottom = b.style.minWidth = ''; return; }
+    if(b.hidden || p.hidden){ b.style.bottom = b.style.minWidth = ''; return; }
+    const rp = p.getBoundingClientRect(), rs = st.getBoundingClientRect(); if(!rp.height) return;
+    b.style.bottom = Math.round(rs.bottom - rp.top + 8) + 'px'; b.style.minWidth = rp.width.toFixed(1) + 'px';
   }
   /* as imagens das fachadas, das placas e do Relojão (uma por face) */
   /* v3.80: imagem com "n" (a pintura numa parede de fora) some quando a câmera tá do outro lado (a parede vira mureta) */

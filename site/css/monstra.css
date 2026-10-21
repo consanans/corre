@@ -3855,3 +3855,39 @@ body.em-bio{padding-top:0}
 .lj-pg-st{display:flex;align-items:center;gap:8px;font-weight:700;margin:0}
 .lj-pg-st .ic{width:18px;height:18px;flex:none}
 @media (max-width:420px){ .lj-pg-topo{grid-template-columns:72px 1fr} .lj-pg-cv{width:72px} }
+
+/* v4.15 · as 5 estrelas de procurado na tela, estilo GTA: saíram da faixa de cima e viraram um painel no canto de cima à
+   direita (embaixo da faixa, na mesma altura do minimapa), grandes, as 5 sempre à vista enquanto a polícia tá atrás. A
+   acesa é amarela; com a viatura perto, piscam de sirene; despistando, a de cima pisca e a barrinha amarela vai
+   esvaziando; a algema enche a rosa. Preso: o carimbo PRESO! no meio da tela */
+.cvr-proc{position:absolute;top:var(--mini-t,58px);right:10px;z-index:6;display:flex;flex-direction:column;align-items:flex-end;gap:3px;padding:0;background:none;border:0;box-shadow:none;pointer-events:none}
+.cvr-proc-e{display:flex;gap:1px}
+.cvr-proc i{font-style:normal;font-size:34px;line-height:1;color:rgba(255,255,255,.22);-webkit-text-stroke:2px var(--ink);paint-order:stroke fill;text-shadow:2px 2px 0 rgba(15,18,24,.45)}
+.cvr-proc i.on{color:var(--yellow)}
+.cvr-proc.perto i.on{animation:cvr-proc-sirene .5s steps(2,jump-none) infinite}
+.cvr-proc i.cai{animation:cvr-proc-cai .7s steps(2,jump-none) infinite}
+.cvr-proc i.nova{animation:cvr-proc-nova .45s ease-out}
+.cvr-proc i.foi{animation:cvr-proc-foi .7s ease-in}
+.cvr-proc-l{font-family:"Silkscreen",var(--font-mono);font-size:11px;line-height:1;letter-spacing:.04em;color:#fff;background:var(--ink);padding:3px 6px}
+.cvr-proc.perto .cvr-proc-l{color:var(--yellow)}
+.cvr-proc.algema .cvr-proc-l{color:var(--pink)}
+.cvr-proc-b{display:block;width:100%;max-width:178px;height:6px;background:rgba(15,18,24,.7);border:2px solid var(--ink)}
+.cvr-proc-b b{display:block;height:100%;background:var(--yellow);transition:width .15s linear}
+.cvr-proc-b.al b{background:var(--pink)}
+.cvr-proc.fim i{color:rgba(255,255,255,.22)}
+.cvr-proc.fim.preso .cvr-proc-l{background:var(--pink);color:var(--ink)}
+.cvr-proc.fim.limpo .cvr-proc-l{background:var(--yellow);color:var(--ink)}
+.cvr-proc-al{display:none}
+@keyframes cvr-proc-sirene{to{color:#FF5A5A}}
+@keyframes cvr-proc-cai{to{color:rgba(255,255,255,.22)}}
+@keyframes cvr-proc-nova{0%{transform:scale(1.9) rotate(-20deg)}70%{transform:scale(.9)}100%{transform:none}}
+@keyframes cvr-proc-foi{0%{color:var(--yellow);transform:none}100%{color:rgba(255,255,255,.22);transform:translateY(10px) scale(.6)}}
+.cvr-preso{position:absolute;inset:0;z-index:9;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;pointer-events:none;background:rgba(15,18,24,.38)}
+.cvr-preso[hidden]{display:none}
+.cvr-preso b{font-family:"Silkscreen",var(--font-mono);font-size:min(17vw,104px);line-height:1;color:var(--pink);-webkit-text-stroke:4px var(--ink);paint-order:stroke fill;text-shadow:6px 6px 0 var(--ink);transform:rotate(-6deg)}
+.cvr-preso span{font-family:"Silkscreen",var(--font-mono);font-size:14px;color:#fff;background:var(--ink);padding:5px 10px}
+.cvr-preso.on b{animation:cvr-preso .5s cubic-bezier(.2,1.4,.4,1)}
+@keyframes cvr-preso{0%{transform:rotate(-6deg) scale(2.6);opacity:0}100%{transform:rotate(-6deg) scale(1);opacity:1}}
+.cvr-stage.toque .cvr-proc{top:var(--mini-t,108px)}
+@media (max-width:600px){ .cvr-proc i{font-size:26px;-webkit-text-stroke:1.5px var(--ink)} .cvr-proc-l{font-size:10px} .cvr-proc-b{max-width:136px} }
+@media (prefers-reduced-motion:reduce){ .cvr-proc.perto i.on,.cvr-proc i.cai,.cvr-proc i.nova,.cvr-proc i.foi,.cvr-preso.on b{animation:none} }
