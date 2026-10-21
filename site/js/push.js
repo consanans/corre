@@ -260,6 +260,7 @@
     if(Date.now() - fx < 21 * 864e5) return '';
     const txt = onde === 'msg' ? 'Liga os avisos e fica sabendo na hora quando chegar mensagem.'
       : onde === 'bio' ? 'Liga os avisos e o Corre te conta no celular quando teu link na bio tiver visita.'
+      : onde === 'horus' ? 'Liga os avisos e o celular apita na hora que chegar pedido de orçamento.'
       : 'Curtida, resposta e seguidor novo no celular, com o Corre fechado.';
     return `<div class="psh-faixa" data-onde="${esc(onde)}"><span class="psh-fx-ic" aria-hidden="true">${ico('bell')}</span><p>${txt}</p>
       <button type="button" class="btn sm pri" data-act="push-ajustes">${e === 'ios-instalar' ? 'Como ligar' : 'Ligar'}</button>
@@ -279,6 +280,8 @@
           if(location.hash === h) C.refresh(); else location.hash = h;
         }else if(d.corre === 'push'){
           if(d.t === 'msg'){ if(C.msg) C.msg.sync(true); }
+          /* v4.16: chegou pedido com o Corre aberto: o Hórus relê (a Entrada e o número da aba) */
+          else if(d.t === 'pedido'){ if(C.horusFunil) C.horusFunil.chegou(); }
           else if(C.avisos) C.avisos.sync(true);
         }else if(d.corre === 'push-sync') sync(true);
       });

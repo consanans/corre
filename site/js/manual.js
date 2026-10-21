@@ -6,13 +6,14 @@
   'use strict';
   const C = window.Corre, { esc, ico } = C;
   /* sobe esse número a cada atualização: quem já viu recebe de novo, abrindo nas novidades */
-  const VERSAO = '4.14';
+  const VERSAO = '4.16';
   const K = 'corre-manual-visto';
 
   /* O que tem de novo: só o que é super relevante pra galera (o Thales, v3.67). No máximo 8, o mais novo em cima, uma ou
      duas frases cada, no jeito de quem conta pro amigo. Conserto, acabamento e detalhe técnico não entram aqui (moram no
      CLAUDE.md); novidade grande que chega empurra a mais velha pra fora */
   const NOVIDADES = [
+    ['grafico', 'Hórus virou CRM: funil e Entrada', 'No Hórus, teus clientes viram negócio: arrasta cada um de Contatado até Fechou, põe quanto vale e vê o que tá na mesa e a previsão do mês. Quem pede orçamento pelo teu link cai na Entrada e o teu celular avisa na hora. Conversou com alguém no Corre que quer comprar? Na conversa, Pôr no Hórus.'],
     ['mapa', 'Correverso no mapa de Londrina', 'A cidade agora tem o formato de Londrina e cada coisa no lado certo: o Centro no meio, o Estádio do Café ao norte, o Igapó em diagonal (do 3 ao 1, com a Av. Higienópolis por cima), a Gleba na margem, o Aeroporto, a ACEL e o Arthur Thomas pro sudeste, e roça em volta. O Mapa mostra os bairros.'],
     ['star', 'Skins de Halloween no Ateliê', 'A coleção de Halloween do Correverso (Abóbora, Saci, Bruxa, Lobisomem e mais) agora sai em real, no Pix ou no cartão: R$ 14,90, R$ 9,90 ou R$ 5,90, pagamento único, e é tua pra sempre. Só até Finados.'],
     ['raio', 'Trampo virou GTA: missões', 'No Correverso, o Trampo ganhou 8 missões: perseguição de viatura, rush de moto, incêndio na Gleba, ambulância, desmanche, racha de patinete, seguir o suspeito e muamba de barco no Tibagi. Pagam bem mais que os bicos. Empurrar gente chama a polícia (agora no Calçadão 3D também), e quem leva empurrão demais deixa cair moeda de correal no chão.'],
@@ -20,7 +21,6 @@
     ['play', 'Gude no parquinho do Zerão', 'Do lado do parquinho do Zerão tem um círculo riscado na terra: puxa a tua bolinha pra trás, solta e tira as outras do círculo. Sozinho, limpa um círculo atrás do outro; em dois, cada um escolhe um bicho e quem tirar mais leva.'],
     ['play', 'De Boa, o jogo da capivara', 'Na Prainha do Tibagi tem jogo novo: empilha os bichos nas costas da capivara, um toque solta o que tá balançando. Escolhe o teu bicho (cada um tem o seu recorde), joga sozinho ou em dois no mesmo celular e posta a tua torre mais alta no story.'],
     ['bell', 'O Corre te chama quando tem novidade', 'Liga os avisos no celular e, no fim da tarde, o Corre te conta quando teu link na bio teve visita, quando aparece pedido no Mural pro teu corre ou quando falta pouco pro teu perfil ficar pronto. No máximo um por dia, só com novidade. Liga em Perfil › Avisos no celular.'],
-    ['camera', 'Foto com o Papai Noel', 'Na orla do Igapó, de frente pro maior Papai Noel do mundo, tem a barraquinha do Lambe-Lambe: escolhe gorro ou chifre de rena, olha o passarinho e a polaroid sai revelando na hora, com quem tiver do teu lado. Um toque e ela vai pro teu Insta.'],
   ];
   /* cada página: o que é, pra que serve no teu dia, e o botão que leva lá */
   const PAGINAS = [
@@ -31,8 +31,8 @@
       itens: ['Posta até 500 letras (ou um fio), com foto ou enquete. Fortalece, cita, responde, salva pra depois e fixa o teu melhor no perfil.', 'Pra você mostra o que tá rendendo perto do teu corre; Seguindo é só quem você segue.', 'Stories de quem você segue, em alta no Corre e quem seguir do teu nicho.', 'Os cards do lado: corre do mês, visitas marcadas, vendas a receber, a Banca do dia e o Do teu nicho.', 'No topo, os atalhos das tuas ferramentas, na ordem do menu: Studio, Studio Houzi, Vendas e Grana, Banca do dia, Do teu nicho, Rolo 360 e Hórus (se ligado).'] },
     { k: 'studio', ico: 'magia', t: 'Studio', sub: 'Programa o mês das tuas marcas. O Corre posta. Fica no Laboratório, no menu.', h: '#/studio', ir: 'Entrar no Studio',
       itens: ['O calendário (mês, semana e lista) mostra cada post na cor da marca: programado, publicado, atrasado ou rascunho, com a miniatura da arte.', 'Mês com IA: quantos posts, os dias e a hora. A IA monta a pauta (você mexe no que quiser), desenha as artes com as referências da marca e escreve as legendas. Tudo entra programado.', 'Subir artes: as artes que você já tem entram na agenda na ordem; a IA escreve as legendas olhando cada uma.', 'Postar em: cada post diz em qual conta do Instagram sai. Conecta as contas com o login de cada uma (no próprio Instagram); o post sai sozinho, no dia e na hora, na conta escolhida. Sem conta, vira lembrete: na hora, toca em Postar, a legenda vai copiada e a arte vai pro Instagram (no celular, pelo compartilhar).', 'Acabou o grátis de IA do dia? Dá pra continuar com correal, a moeda do Correverso.'] },
-    { k: 'horus', ico: 'eye', t: 'Hórus', sub: 'Teu radar de clientes. Liga e desliga no perfil, em Ferramentas.', h: '#/horus', ir: 'Abrir o Hórus',
-      itens: ['Acha empresa por região e nicho e guarda como lead.', 'Ficha de cada um: histórico, WhatsApp, próximo passo e fotos de referência.', 'Marca visita (entra na Agenda dos Avisos e no Início) e manda orçamento pelo link.', 'Pedido que chega pelo teu perfil ou pelo Mural já cai aqui.'] },
+    { k: 'horus', ico: 'eye', t: 'Hórus', sub: 'Teus clientes, do primeiro oi ao fechou. Liga e desliga no perfil, em Ferramentas.', h: '#/horus', ir: 'Abrir o Hórus',
+      itens: ['Radar: acha empresa por região e nicho, monta os alvos do dia e a fila de mensagens no WhatsApp.', 'Funil: cada cliente é um cartão. Arrasta de Contatado até Fechou (no celular, segura o cartão), põe quanto vale e vê o que tá na mesa, a previsão do mês e onde teu funil trava.', 'Entrada: quem pede orçamento pelo teu link, te escolhe no Mural ou vira cliente numa conversa do Corre cai aqui. Com os avisos ligados, o celular apita na hora.', 'Ficha de cada um: a linha do tempo (anota o que aconteceu), o WhatsApp, o próximo passo e as fotos de referência. Perdeu? Diz o porquê; fechou, lança a venda.'] },
     { k: 'mural', ico: 'tacha', t: 'Mural', sub: 'Onde quem precisa encontra quem faz.', h: '#/mural', ir: 'Abrir o Mural',
       itens: ['Pergunta aberta: alguém pergunta "quem faz X em Y?" e a IA indica gente do Corre.', 'Liga "Aparecer no Mural" no teu perfil pra ser indicado.', 'Pedidos fixados: manda proposta, e quando te escolhem vira lead no Hórus.'] },
     { k: 'grupos', ico: 'gente', t: 'Grupos', sub: 'Gente do mesmo corre num lugar só. Tema livre.', h: '#/grupos', ir: 'Ver os grupos',

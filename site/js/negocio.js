@@ -346,7 +346,7 @@
     const ok = C.$('ng-ok');
     if(ok) ok.addEventListener('click', async () => {
       ok.disabled = true;
-      try{ await C.api.rpc('corre_orcamento_aprovar', { p_codigo: o.codigo }); C.toast(`Aprovado! ${nome} já sabe.`, 3500); C.views.orcamentoVenda(app, o.codigo); }
+      try{ await C.api.rpc('corre_orcamento_aprovar', { p_codigo: o.codigo }); C.avisaPedido(); C.toast(`Aprovado! ${nome} já sabe.`, 3500); C.views.orcamentoVenda(app, o.codigo); }
       catch(err){ C.toast(/vencido/.test((err && (err.hint || err.message)) || '') ? 'A validade passou. Fala com quem te mandou.' : 'Não deu pra aprovar agora. Tenta de novo.'); ok.disabled = false; }
     });
   };

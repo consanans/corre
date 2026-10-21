@@ -108,6 +108,12 @@ testa teste412.sql 9
 delta delta-v413.sql 'delta v4.13 ok'
 delta delta-v413.sql 'delta v4.13 ok'
 testa teste413.sql 17
+# v4.16: o Hórus vira CRM (o valor do negócio e o aviso do pedido que acabou de chegar); a semente põe no corre_leads
+# as colunas da produção que a semente da v3.60 não tinha
+$P -f "$AQUI/semente416.sql"
+delta delta-v416.sql 'delta v4.16 ok'
+delta delta-v416.sql 'delta v4.16 ok'
+testa teste416.sql 13
 . "$AQUI/virada343.sh"
 if grep -q 'FALHOU\|ERROR' $D/saida; then echo "deu FALHOU ou erro (acima)"; exit 1; fi
 echo "tudo ok: $(grep -c '^ok:' $D/saida) checagens"

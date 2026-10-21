@@ -12,6 +12,9 @@
 //     entrega o que o corre_lembretes_alvos devolve. Quem decide é o banco: só das 17h às 20h59, um por dia e três por
 //     semana por pessoa, gravado antes de sair; chamar de novo ou fora da hora não manda nada pra ninguém.
 //   acao "lembrete-teste" (v4.06): o "Mandar um lembrete de exemplo" do app, só pros aparelhos de quem pediu (um por minuto).
+//   acao "pedidos" (v4.16, SEM login): a página do pedido de orçamento, a do Mural e a do orçamento aprovado chamam logo
+//     depois que o cliente manda; a função entrega o que o corre_pedidos_alvos devolve (os últimos 10 minutos, um aviso
+//     por pedido, gravado antes de sair).
 // Aparelho que o serviço diz que sumiu (404/410) sai do banco (corre_push_mortos).
 //
 // A cifra é a do padrão (RFC 8291, aes128gcm) e a assinatura do Corre é a VAPID (RFC 8292), tudo com o WebCrypto do
@@ -183,6 +186,21 @@ Deno.serve(async (req) => {
     const L = Array.isArray(alvos) ? alvos : [];
     const r = await manda(admin, v, lista(L, 'normal'));
     console.log('[push] lembretes', JSON.stringify({ pessoas: L.length, entregues: r.ok, saiu: r.mortos }));
+    return json({ ok: true, pessoas: L.length, entregues: r.ok, saiu: r.mortos });
+  }
+
+  /* v4.16: o que o cliente acabou de fazer (pediu orçamento, escolheu a proposta no Mural, aprovou o orçamento), sem
+     login: quem pede orçamento não tem conta. A página do pedido chama logo depois de mandar. Não dá pra abusar: o banco
+     só devolve o que mudou nos últimos 10 minutos e marca cada um antes de sair, então chamar de novo não manda nada */
+  if (acao === 'pedidos') {
+    const v = await vapid();
+    if (!v) { console.warn('[push] sem_chave', MOTIVO); return json({ erro: 'sem_chave' }, 503); }
+    const { data: alvos, error } = await admin.rpc('corre_pedidos_alvos', {});
+    if (error) { console.warn('[push] pedidos', error.message); return json({ erro: 'banco' }, 503); }
+    const L = Array.isArray(alvos) ? alvos : [];
+    if (!L.length) return json({ ok: true, pessoas: 0, entregues: 0 });
+    const r = await manda(admin, v, lista(L, 'high'));
+    console.log('[push] pedidos', JSON.stringify({ pessoas: L.length, entregues: r.ok, saiu: r.mortos }));
     return json({ ok: true, pessoas: L.length, entregues: r.ok, saiu: r.mortos });
   }
 

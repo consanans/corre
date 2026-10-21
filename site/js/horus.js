@@ -472,6 +472,13 @@
     const rows = N.map(([nome, nicho, bairro, pot], i) => ({ nome, nicho, bairro, potencial: pot, cidade: pr.cidade, uf: UFN[pr.uf] ? pr.uf : '', wa: '4390000' + String(1000 + i), tel: '', st: sts[i], fonte: 'exemplo', ref: 'ex-' + i,
       prox: sts[i] === 'contato' ? addDays(i % 2 ? -1 : 0) : sts[i] === 'interesse' ? today() : null, cad: sts[i] === 'contato' ? { ini: addDays(-2), step: 1 } : null,
       hist: sts[i] === 'novo' ? [] : [{ t: new Date(t - (i + 1) * 36e5).toISOString(), k: 'toque', v: 'WhatsApp · D0 · Abordagem' }].concat(sts[i] === 'interesse' ? [{ t: new Date(t - 30 * 36e5).toISOString(), k: 'res', v: 'Respondeu com interesse' }] : []) }));
+    /* v4.16: o funil de exemplo tem valor nos negócios, um pedido que chegou pelo link e um fechado no mês */
+    rows[0].valor = 1800; rows[3].valor = 3500;
+    const ha = d => new Date(t - d * 864e5).toISOString();
+    rows.push({ nome: 'Doceria Açúcar (exemplo)', nicho: 'cafe', bairro: 'Centro', potencial: 1, cidade: pr.cidade, uf: UFN[pr.uf] ? pr.uf : '', wa: '43900001990', tel: '', st: 'interesse', fonte: 'link', ref: 'ex-link', prox: today(), cad: null,
+      obs: 'Pedido pelo link (Marina): Quero identidade visual pra doceria, abro em dezembro.', hist: [{ t: new Date(t - 40 * 6e4).toISOString(), k: 'res', v: 'Pediu orçamento pelo link: Quero identidade visual pra doceria, abro em dezembro.' }] },
+      { nome: 'Hamburgueria Pista (exemplo)', nicho: 'comida', bairro: 'Gleba Palhano', potencial: 2, cidade: pr.cidade, uf: UFN[pr.uf] ? pr.uf : '', wa: '43900001991', tel: '', st: 'fechado', fonte: 'caca', ref: 'ex-fech', prox: null, cad: null, valor: 2400,
+        hist: [{ t: ha(2), k: 'st', v: 'Etapa: Fechado' }, { t: ha(6), k: 'st', v: 'Etapa: Proposta' }, { t: ha(9), k: 'res', v: 'Respondeu' }, { t: ha(10), k: 'toque', v: 'WhatsApp · D0 · Abordagem' }] });
     try{ await C.api.ins('corre_leads', rows); }catch(e){}
   }
 
@@ -482,6 +489,9 @@
   }
   function paint(){
     if(!C.$('hz-root')) return;
+    /* v4.16: o Hórus tem abas (Radar, Funil, Entrada); fora do Radar quem pinta é o horus-funil.js */
+    if(C.horusFunil){ C.horusFunil.badges(); if(H.aba && H.aba !== 'radar'){ C.horusFunil.pinta(); return; } }
+    if(!C.$('hz-scope-head')) return;
     const c = cfg(), sc = scored();
     const pcs = pracasNoRadar(), on = C.$('hz-onde');
     if(on) on.textContent = `radar de clientes · ${c.oferta || 'teu corre'} · ${pcs.length > 1 ? `${pcs.length} cidades no radar` : `em ${lugarTxt(c.praca.cidade, c.praca.uf) || c.cidade}`}`;
@@ -578,17 +588,26 @@
     const qi = C.$('hz-q'); if(qi) qi.oninput = () => { H.q = qi.value; clearTimeout(H.qt); H.qt = setTimeout(() => { const pos = qi.selectionStart; paintBase(); const n = C.$('hz-q'); if(n){ n.focus(); try{ n.setSelectionRange(pos, pos); }catch(e){} } }, 250); };
   }
 
-  C.views.horus = async function(app){
+  C.views.horus = async function(app, sub){
     /* v3.60: o plano do Hórus (a faixa do teste grátis) vem junto */
     await Promise.all([privCarrega(), C.acessoCarrega ? C.acessoCarrega() : null]);
     const c = cfg();
+    /* v4.16: a aba do endereço (#/horus/funil, #/horus/entrada) ou a última que a pessoa usou */
+    if(C.horusFunil) C.horusFunil.abaDe(sub);
     app.innerHTML = C.header('horus') + `<main class="wrap wide"><section class="hz" id="hz-root" aria-label="Hórus">
       <header class="hz-top"><div class="hz-mark"><span class="hz-eye">${EYE}</span><div><h1>Hórus</h1><p id="hz-onde">radar de clientes · ${esc(c.oferta || 'teu corre')}</p></div></div>
         <div class="hz-tools"><button type="button" class="hz-btn pri" data-act="hz-novo">${ico('plus')} Lead</button>${C.horusMax ? C.horusMax.botoes() : ''}<button type="button" class="hz-btn" data-act="hz-import">${ico('up')} Importar</button><button type="button" class="hz-btn" data-act="hz-cfg">${ico('edit')} Ajustar</button></div></header>
-      ${C.planoFaixa ? C.planoFaixa('horus') : ''}<div id="hz-body"><p class="hz-muted">Ligando o radar…</p></div>
+      ${C.planoFaixa ? C.planoFaixa('horus') : ''}${C.horusFunil ? C.horusFunil.abas() : ''}<div id="hz-body"${C.horusFunil ? ' role="tabpanel"' : ''}><p class="hz-muted">Ligando o radar…</p></div>
     </section></main>`;
     try{ await load(); }catch(e){ C.$('hz-body').innerHTML = `<p class="hz-muted">${esc(C.errMsg(e, 'Não deu pra abrir o Hórus agora.'))}</p>`; return; }
     if(!C.$('hz-body')) return;
+    if(C.horusFunil && H.aba !== 'radar'){ C.horusFunil.pinta(); return; }
+    corpoRadar();
+  };
+  /* o corpo do Radar (a caça, o radar, os alvos, a fila, o mapa e a base) */
+  function corpoRadar(){
+    if(!C.$('hz-body')) return;
+    if(C.horusFunil) C.horusFunil.badges();
     if(!H.leads.length){
       C.$('hz-body').innerHTML = `<div class="hz-empty"><h2>O radar tá vazio. Bora caçar.</h2><p>O Hórus encontra, aquece e lembra. Coloca empresas aqui e ele monta teus alvos do dia, a fila de mensagens e o placar.</p>
         <div class="hz-row-acts">${C.horusMax ? `<button type="button" class="hz-btn pri" data-act="mx-montar">${ico('star')} Me diz o que você vende</button>` : ''}<button type="button" class="hz-btn${C.horusMax ? '' : ' pri'}" data-act="hz-ir-caca">Caçar empresas</button><button type="button" class="hz-btn" data-act="hz-import">Importar lista ou backup do Hórus</button><button type="button" class="hz-btn" data-act="hz-cfg">Dizer o que eu vendo</button></div></div>
@@ -600,20 +619,24 @@
         <div class="hz-col"><section class="hz-card" id="hz-alvos"></section><section class="hz-card" id="hz-placar"></section></div>
       </div>
       <section class="hz-card" id="hz-fila"></section>
-      ${C.horusMax ? '<section class="hz-card" id="hz-orc"></section>' : ''}
+      ${C.horusMax && !C.horusFunil ? '<section class="hz-card" id="hz-orc"></section>' : ''}
       ${T() ? '<section class="hz-card" id="hz-mapa"></section>' : ''}
       <section class="hz-card" id="hz-caca"></section>
       ${T() ? '<section class="hz-card" id="hz-vende"></section>' : ''}
       <section class="hz-card" id="hz-base"></section>`;
     paint();
-  };
+  }
 
   /* ---------- folha do lead ---------- */
+  const HF = () => C.horusFunil;
+  /* v4.16: cada registro da linha do tempo com o ícone dele */
+  const HIST_IC = { toque: 'send', res: 'chat', st: 'troca', nota: 'edit', visita: 'pin', cria: 'plus' };
   function leadSheet(id){
     const l = H.by[id]; if(!l) return;
     const c = cfg(), h = heat(l), m = nextMsg(l) || { k: defaultMsg(l), n: TN[defaultMsg(l)] };
     const panel = C.sheet(`<div class="form hz-lead"><div class="sheet-head"><h2>${esc(shortName(l.nome))}</h2><button type="button" class="cbtn plain" data-close aria-label="Fechar">${ico('x')}</button></div>
       <div class="hz-lead-top"><span class="hz-sc ${h ? tempOf(h) : 'off'}">${h || '·'}</span><span>${h ? `${TEMP[tempOf(h)]} · ${reasons(l).map(esc).join(' · ') || 'sem sinal ainda'}` : esc(SN[l.st])}</span></div>
+      ${HF() ? (o => o ? `<p class="hl-or"><span class="mono">Origem</span> ${esc(o)}${l.created_at ? ` · entrou ${ddmm(localDay(l.created_at))}` : ''}</p>` : '')(HF().origem(l)) : ''}
       ${sinaisDe(l).length ? `<div class="hz-faro" aria-label="Sinais da empresa"><span class="mono">Faro</span>${sinaisDe(l).map(k => `<span class="hz-sinal${c.faro.includes(k) ? ' on' : ''}">${esc(SINAIS[k].n)}</span>`).join('')}</div>` : ''}
       <div class="hz-fotos" id="hl-fotos" hidden></div>
       <div class="hz-stages" role="group" aria-label="Etapa">${STAGES.map(([k, n]) => `<button type="button" class="hz-chip light" data-act="hz-st" data-id="${l.id}" data-k="${k}" aria-pressed="${l.st === k}">${n}</button>`).join('')}</div>
@@ -633,15 +656,18 @@
         <div class="fld"><label for="hl-px">Próximo contato</label><input class="inp" id="hl-px" type="date" value="${esc(l.prox || '')}"></div>
         <div class="fld"><label for="hl-pt">Potencial</label><select class="inp" id="hl-pt">${['Normal', 'Bom', 'Alto', 'Baleia'].map((n, i) => `<option value="${i}"${(+l.potencial || 0) === i ? ' selected' : ''}>${n}</option>`).join('')}</select></div>
       </div>
+      ${HF() && HF().temValor() ? (vd => `<div class="fld"><label for="hl-val">Valor do negócio (R$)</label><input class="inp" id="hl-val" inputmode="decimal" autocomplete="off" placeholder="0,00" value="${Number(l.valor) > 0 ? esc(Number(l.valor).toFixed(2).replace('.', ',')) : ''}">${!(Number(l.valor) > 0) && vd.de === 'venda' ? `<span class="hint">Sem valor aqui, vale o orçamento nas Vendas: ${esc(C.money(vd.v))}.</span>` : '<span class="hint">Entra no funil, na previsão do mês e no ticket médio.</span>'}</div>`)(HF().valorDe(l)) : ''}
       <div class="fld"><label for="hl-ob">Anotações</label><textarea class="inp" id="hl-ob" maxlength="1000" placeholder="Quem decide, o que doeu, o que prometeu…">${esc(l.obs || '')}</textarea></div>
-      <div class="acts"><button type="button" class="btn sm pri" data-act="hz-salvar" data-id="${l.id}">Salvar dados</button>${C.negocio ? `<button type="button" class="btn sm" data-act="ng-novo" data-lead="${l.id}">${ico('recibo')} Orçamento</button>` : ''}${l.bairro || l.endereco ? `<a class="btn sm" href="https://www.google.com/maps/search/${encodeURIComponent([l.nome, l.endereco, l.bairro, l.cidade || c.praca.cidade || c.cidade, l.uf].filter(Boolean).join(', '))}" target="_blank" rel="noopener">${ico('ext')} Mapa</a>` : ''}${T() ? T().leadBtns(l) : ''}${l.insta ? `<a class="btn sm" href="https://www.instagram.com/${encodeURIComponent(l.insta)}/" target="_blank" rel="noopener">${ico('ig')} Instagram</a>` : ''}${l.fixo || l.wa ? `<a class="btn sm" href="tel:+55${esc(l.fixo || l.wa)}">Ligar</a>` : ''}</div>
+      <div class="acts"><button type="button" class="btn sm pri" data-act="hz-salvar" data-id="${l.id}">Salvar dados</button>${C.negocio ? `<button type="button" class="btn sm" data-act="ng-novo" data-lead="${l.id}">${ico('recibo')} Orçamento</button>` : ''}${l.bairro || l.endereco ? `<a class="btn sm" href="https://www.google.com/maps/search/${encodeURIComponent([l.nome, l.endereco, l.bairro, l.cidade || c.praca.cidade || c.cidade, l.uf].filter(Boolean).join(', '))}" target="_blank" rel="noopener">${ico('ext')} Mapa</a>` : ''}${T() ? T().leadBtns(l) : ''}${l.insta ? `<a class="btn sm" href="https://www.instagram.com/${encodeURIComponent(l.insta)}/" target="_blank" rel="noopener">${ico('ig')} Instagram</a>` : ''}${l.fixo || l.wa ? `<a class="btn sm" href="tel:+55${esc(l.fixo || l.wa)}">Ligar</a>` : ''}${HF() && HF().handle(l) ? `<a class="btn sm" href="#/msg/@${esc(HF().handle(l))}">${ico('chat')} Conversa no Corre</a>` : ''}</div>
       <div class="hz-msg"><div class="ch-row"><b>Mensagem</b>${T() ? `<button type="button" class="btn sm" id="hl-ia">${ico('star')} Escrever com IA</button>` : ''}<select class="inp sm" id="hl-tpl" aria-label="Qual mensagem">${TPL.map(([k, n]) => `<option value="${k}"${k === m.k ? ' selected' : ''}>${n}${k === m.k && nextMsg(l) ? ' (a vez dele)' : ''}</option>`).join('')}</select></div>
         <textarea class="inp" id="hl-txt" rows="7">${esc(compose(l, m.k))}</textarea>${T() ? '<p class="hint" id="hl-ia-st" aria-live="polite"></p>' : ''}
         <div class="acts"><a class="btn pri" id="hl-send" href="${esc(waUrl(l, compose(l, m.k)))}" target="_blank" rel="noopener" data-act="hz-fire" data-id="${l.id}">${ico('wa')} Enviar no WhatsApp</a><button type="button" class="btn" data-act="hz-copiar" data-id="${l.id}">Copiar e marcar enviado</button></div>
         ${l.wa ? '' : `<p class="hint">${l.fixo ? `Sem celular: o botão abre o WhatsApp do fixo ${esc(fmtTel(l.fixo))} (muita empresa usa WhatsApp Business nele). Se não for WhatsApp, o próprio WhatsApp avisa.` : 'Sem número: o WhatsApp abre pra você escolher o contato.'}</p>`}</div>
       <div class="hz-res"><b>Resultado</b><div class="acts"><button type="button" class="btn sm" data-act="hz-res" data-id="${l.id}" data-k="sim">Respondeu</button><button type="button" class="btn sm" data-act="hz-res" data-id="${l.id}" data-k="nao">Sem resposta</button><button type="button" class="btn sm pri" data-act="hz-st" data-id="${l.id}" data-k="fechado">Fechou</button></div></div>
       ${T() ? T().respHTML(l) : ''}
-      ${(l.hist || []).length ? `<div class="hz-hist"><b>Histórico</b><ul>${l.hist.slice(0, 14).map(x => `<li><span>${x.t ? ddmm(localDay(x.t)) : ''}</span>${esc(x.v || x.k)}</li>`).join('')}</ul></div>` : ''}
+      <div class="hz-hist"><b>Linha do tempo</b>
+        <div class="seguir-row hl-nota"><input class="inp" id="hl-nota" maxlength="280" autocomplete="off" placeholder="Anotar: ligou, pediu desconto, decide sexta…" aria-label="Anotar na linha do tempo"><button type="button" class="btn sm" data-act="hz-nota" data-id="${l.id}">Anotar</button></div>
+        ${(l.hist || []).length ? `<ul>${l.hist.slice(0, 40).map(x => `<li class="k-${esc(x.k || '')}"><span>${x.t ? ddmm(localDay(x.t)) : ''}</span>${ico(HIST_IC[x.k] || 'dots')}<em>${esc(x.v || x.k)}</em></li>`).join('')}</ul>` : ''}</div>
       <div class="acts"><button type="button" class="btn sm ghost" data-act="hz-del" data-id="${l.id}">${ico('trash')} Tirar do radar</button></div>
     </div>`);
     const tpl = C.$('hl-tpl'), txt = C.$('hl-txt'), send = C.$('hl-send');
@@ -650,6 +676,7 @@
     txt.addEventListener('input', sync);
     if(T()) T().onLead(l, panel);
     fotosDoLead(l);
+    const nt = C.$('hl-nota'); if(nt) nt.addEventListener('keydown', e => { if(e.key === 'Enter'){ e.preventDefault(); const b = panel.querySelector('[data-act="hz-nota"]'); if(b) b.click(); } });
     return panel;
   }
   /* as fotos de referência que o cliente mandou no pedido de orçamento (só a dona vê) */
@@ -674,9 +701,13 @@
     l.insta = String(C.$('hl-ig').value || '').trim().replace(/^@/, '').replace(/^https?:\/\/(www\.)?instagram\.com\//i, '').replace(/[/?#].*$/, '').slice(0, 30);
     l.nicho = C.$('hl-ni').value; l.prox = C.$('hl-px').value || null; l.potencial = +C.$('hl-pt').value || 0; l.obs = C.$('hl-ob').value.slice(0, 1000);
     if(!/^[A-Za-z0-9_.]{0,30}$/.test(l.insta)) l.insta = '';
+    const vv = C.$('hl-val');
+    if(vv){ const b = String(vv.value || '').trim(), v = !b ? 0 : C.catalogo && C.catalogo.parseReais ? C.catalogo.parseReais(b) : Number(b.replace(/\./g, '').replace(',', '.')); l.valor = v > 0 && v <= 99999999.99 ? Math.round(v * 100) / 100 : null; }
   }
   async function setStage(l, st){
     if(l.st === st) return;
+    /* v4.16: quem muda de etapa pelo funil (perdeu pergunta o porquê, fechou pergunta quanto) */
+    if(C.horusFunil){ C.closeSheet(); if(await C.horusFunil.mover(l, st) && st !== 'fechado') leadSheet(l.id); return; }
     l.st = st; logH(l, 'st', `Etapa: ${SN[st]}`);
     if(DONE.includes(st)) l.prox = null;
     if(st === 'interesse' && !l.prox) l.prox = addDays(1);
@@ -685,8 +716,9 @@
       paint();
     }
   }
-  /* fechou: a marca entra no portfólio e a grana dela passa a contar na Grana */
+  /* fechou: a marca entra no portfólio e a grana dela passa a contar na Grana (com o funil, a folha dele pergunta o valor) */
   function fechou(l){
+    if(C.horusFunil){ C.horusFunil.fechou(l); return; }
     const nome = shortName(l.nome);
     C.sheet(`<div class="form hz-won"><div class="sheet-head"><h2>Fechou com ${esc(nome)}!</h2><button type="button" class="cbtn plain" data-close aria-label="Fechar">${ico('x')}</button></div>
       <p>Lança a venda: ela entra em "A receber" com a data do pagamento, e quando o dinheiro cair vira entrada na Grana e conta na tua meta.</p>
@@ -841,7 +873,14 @@
       else { logH(l, 'res', 'Sem resposta'); C.toast('Anotado. A cadência segue.'); }
       if(await save(l, ['st', 'prox', 'hist'])){ leadSheet(l.id); paint(); }
     },
-    'hz-salvar': async el => { const l = H.by[el.dataset.id]; if(!l) return; readSheet(l); if(await save(l, ['wa', 'fixo', 'insta', 'nicho', 'prox', 'potencial', 'obs', 'cidade', 'uf', 'bairro'])){ C.toast('Lead salvo.'); leadSheet(l.id); paint(); } },
+    'hz-salvar': async el => { const l = H.by[el.dataset.id]; if(!l) return; const comValor = !!C.$('hl-val'); readSheet(l); if(await save(l, ['wa', 'fixo', 'insta', 'nicho', 'prox', 'potencial', 'obs', 'cidade', 'uf', 'bairro'].concat(comValor ? ['valor'] : []))){ C.toast('Lead salvo.'); leadSheet(l.id); paint(); } },
+    /* v4.16: anotar na linha do tempo (o que aconteceu, com a data; as Anotações de cima ficam pro que é fixo) */
+    'hz-nota': async el => {
+      const l = H.by[el.dataset.id], i = C.$('hl-nota'); if(!l || !i) return;
+      const t = String(i.value || '').replace(/\s+/g, ' ').trim().slice(0, 280); if(!t){ C.toast('Escreve o que aconteceu.'); i.focus(); return; }
+      el.disabled = true; logH(l, 'nota', t);
+      if(await save(l, ['hist'])){ C.toast('Anotado.'); leadSheet(l.id); paint(); } else el.disabled = false;
+    },
     'hz-del': async el => {
       if(el.dataset.armed !== '1'){ el.dataset.armed = '1'; el.classList.add('armed'); el.textContent = 'Toca de novo pra tirar'; return; }
       try{ await C.api.del('corre_leads', { id: el.dataset.id }); H.leads = H.leads.filter(l => l.id !== el.dataset.id); delete H.by[el.dataset.id]; C.closeSheet(); C.toast('Saiu do radar.'); paint(); }catch(e){ C.toast(C.errMsg(e)); }
@@ -899,5 +938,5 @@
     /* o que o horus-turbo.js usa por dentro */
     _: { H, cfg, saveCfg, save, logH, paint, paintCaca, load, shortName, nichoOf, tempOf, heat, digits, waUrl, fmtTel, phoneOf, STAGES, SN, DONE, OPEN, TN, TEMP, guessNicho, normName, addRows, today, addDays, localDay, leadSheet, scored, nextMsg, compose, isDue, responded, reasons, placar,
       SINAIS, sinaisDe, faroDe, faroPadrao, pediuLink, escolheuMural, fila, municipios, ondeTxt, cadStep,
-      UFS, UFN, tzDe, horaEm, oiEm, lugarTxt, lugarDe, parseLugar, pracasNoRadar, variasPracas, naPraca, setPraca, dddDe } };
+      UFS, UFN, tzDe, horaEm, oiEm, lugarTxt, lugarDe, parseLugar, pracasNoRadar, variasPracas, naPraca, setPraca, dddDe, corpoRadar, waDe } };
 })();

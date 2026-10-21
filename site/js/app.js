@@ -102,9 +102,12 @@
       if(atras) v.studio = { txt: plural(atras, 'atrasado', 'atrasados'), n: atras, nivel: 'alerta', diz: atras === 1 ? '1 post atrasou' : `${atras} posts atrasaram` };
       else if(hoje) v.studio = { txt: `${hoje} hoje`, n: hoje, nivel: 'hoje', diz: hoje === 1 ? '1 post sai hoje' : `${hoje} posts saem hoje` };
     }).catch(() => {});
-    const horus = !C.ferr('horus') ? null : api.q('corre_leads', { select: 'id,st,prox', eq: { dono: uid }, lte: { prox: hj }, limit: 3000 }).then(L => {
+    const horus = !C.ferr('horus') ? null : api.q('corre_leads', { select: 'id,st,prox,fonte,hist', eq: { dono: uid }, lte: { prox: hj }, limit: 3000 }).then(L => {
       const ab = (L || []).filter(l => l.prox && !LEAD_FIM.includes(l.st)); if(!ab.length) return;
-      v.horus = { txt: String(ab.length), n: ab.length, nivel: ab.some(l => l.prox < hj) ? 'alerta' : 'hoje', diz: ab.length === 1 ? '1 cliente pra retornar' : `${ab.length} clientes pra retornar` };
+      /* v4.16: pedido de orçamento (ou Mural) que ninguém respondeu vem antes de tudo e leva pra Entrada do Hórus */
+      const ped = ab.filter(l => C.horusFunil ? C.horusFunil.esperando(l) : false).length;
+      if(ped) v.horus = { txt: plural(ped, 'pedido', 'pedidos'), n: ped, nivel: 'alerta', ir: '#/horus/entrada', diz: ped === 1 ? '1 pedido de orçamento esperando resposta' : `${ped} pedidos de orçamento esperando resposta` };
+      else v.horus = { txt: String(ab.length), n: ab.length, nivel: ab.some(l => l.prox < hj) ? 'alerta' : 'hoje', diz: ab.length === 1 ? '1 cliente pra retornar' : `${ab.length} clientes pra retornar` };
     }).catch(() => {});
     const vendas = api.q('corre_vendas', { select: 'id,st,vence', eq: { dono: uid, st: 'fechado' }, lte: { vence: hj }, limit: 1000 }).then(L => {
       const venc = (L || []).filter(x => x.vence && x.vence < hj).length, hoje = (L || []).filter(x => x.vence === hj).length;
@@ -183,6 +186,8 @@
   }
   const maisUsados = (n, fora) => { const o = usoLe(); if(!o) return []; return Object.keys(o.c).filter(k => o.c[k] >= 1.5 && tem(k) && !(fora || []).includes(k)).sort((a, b) => o.c[b] - o.c[a]).slice(0, n); };
   document.addEventListener('visibilitychange', () => { if(!C.EMBED && document.visibilityState === 'visible' && st.me && Date.now() - SN.at > 6e4) sinaisCarrega(true).then(pintaSinais); });
+  /* v4.16: quem resolveu um pedido (o Hórus) refaz os sinais na hora, sem esperar os 2 minutos */
+  C.sinaisAtualiza = () => { if(!C.EMBED && st.me) sinaisCarrega(true).then(pintaSinais).catch(() => {}); };
   /* um item sem enfeite (o Mais e a gaveta). O da página aberta ganha aria-current; a carteira avisa que abre por cima */
   const itemSimples = ([k, h, l, i], cls, ativo) => h ? `<a${cls ? ` class="${cls}-${k}"` : ''} href="${esc(h)}"${cls ? ' role="menuitem"' : ''}${ativo ? ' aria-current="page"' : ''}>${ico(i)}${l}${sinalHTML(k)}</a>`
     : `<button type="button"${cls ? ` class="${cls}-${k}" role="menuitem"` : ''} data-act="${k === 'avisos' ? 'sino' : k}"${k === 'carteira' ? ' aria-haspopup="dialog"' : ''}>${ico(i)}${l}${sinalHTML(k)}</button>`;
@@ -263,7 +268,7 @@
     if(!SN.pronto) return `<div class="cm" aria-busy="true">${cab}<p class="cm-carrega">conferindo a fila…</p></div>`;
     const L = praHoje(), n = L.length;
     return `<div class="cm${n ? '' : ' cm-ok'}" role="group" aria-label="Comanda de hoje: ${n ? (n === 1 ? '1 pedido na fila' : `${n} pedidos na fila`) : 'tudo em dia'}">${cab}
-      ${n ? `<div class="cm-ls">${L.map((k, i) => `<a class="cm-l ${SN.v[k].nivel}" href="${SN_IR[k][0]}" title="${esc(SN.v[k].diz)}"><i>${String(i + 1).padStart(2, '0')}</i><span>${esc(SN.v[k].diz)}</span>${ico('next', 'cm-seta')}</a>`).join('')}</div>
+      ${n ? `<div class="cm-ls">${L.map((k, i) => `<a class="cm-l ${SN.v[k].nivel}" href="${SN.v[k].ir || SN_IR[k][0]}" title="${esc(SN.v[k].diz)}"><i>${String(i + 1).padStart(2, '0')}</i><span>${esc(SN.v[k].diz)}</span>${ico('next', 'cm-seta')}</a>`).join('')}</div>
         ${n > 3 ? `<button type="button" class="cm-mais" data-act="cm-mais">+ ${n - 3} na fila</button>` : ''}<p class="cm-t"><span>na fila</span><b>${n}</b></p>` : '<p class="cm-carimbo"><span>Tudo em dia</span></p>'}
       ${SN.prox ? `<p class="cm-prox">${ico('clock')}<span>Próximo post: ${esc(SN.prox)}</span></p>` : ''}</div>`;
   }
@@ -524,7 +529,7 @@
       ['avisos', 'Notificações e a agenda do dia', 'notificacao notificacoes sino agenda alerta lembrete'],
       ['studio', 'Programa e posta no Instagram', 'instagram post programar agendar calendario conteudo redes sociais legenda reels'],
       ['houzi', 'Marca, logo e brandbook', 'branding logo logotipo logomarca marca identidade visual brandbook paleta'],
-      ['horus', 'Caça de clientes no mapa', 'clientes leads prospeccao prospectar abordagem radar empresas'],
+      ['horus', 'Caça, funil e pedidos de clientes', 'clientes leads prospeccao prospectar abordagem radar empresas crm funil pipeline negociacao rd station'],
       ['marcas', 'Teus trabalhos e a vitrine do que você vende', 'portfolio catalogo vitrine trabalhos produtos loja'],
       ['verso', 'A cidade do Corre', 'cidade jogo game mapa pixel'],
       ['mural', 'Pedidos de serviço: quem faz o quê', 'pedido pedidos servico freela trabalho quem faz contratar'],
@@ -544,6 +549,9 @@
       { k: 'story', a: 'st-novo', t: 'Postar story', i: 'plus', d: 'Some em 24 horas', kw: 'story stories' },
       { k: 'msg-nova', a: 'msg-nova', t: 'Nova mensagem', i: 'send', d: 'Chamar alguém pra conversar', kw: 'mandar mensagem conversar chamar' },
       { k: 'gr-novo', a: 'gr-novo', t: 'Criar grupo', i: 'gente', d: 'Juntar a tua turma', kw: 'novo grupo comunidade' },
+      /* v4.16: as abas do Hórus (o funil de vendas e quem chegou sozinho) */
+      ...(C.ferr('horus') ? [{ k: 'hz-funil', h: '#/horus/funil', t: 'Funil de vendas', i: 'grafico', d: 'Hórus: arrasta o cliente até o fechou', kw: 'funil crm pipeline negociacao negocios vendas previsao etapa proposta fechou kanban rd station' },
+        { k: 'hz-entrada', h: '#/horus/entrada', t: 'Pedidos que chegaram', i: 'chat', d: 'Hórus: orçamento, Mural e mensagem que viraram cliente', kw: 'entrada pedido pedidos orcamento leads chegou cliente novo inbound caixa' }] : []),
       { k: 'mural-novo', h: '#/mural/novo', t: 'Fixar um pedido no Mural', i: 'tacha', d: 'Quem faz te manda proposta', kw: 'pedir servico orcamento' },
       { k: 'push', a: 'push-ajustes', t: 'Avisos no celular', i: 'bell', d: 'Liga e desliga as notificações', kw: 'notificacao notificacoes push celular' },
       ...(C.instala && C.instala.falta() ? [{ k: 'instala', a: 'instala', t: 'Pôr o Corre na tela do celular', i: 'cel', d: 'Vira app: tela inteira e os avisos', kw: 'instalar app aplicativo tela inicio inicial icone atalho celular iphone android cheia full screen' }] : []),
@@ -636,7 +644,7 @@
     P.lista = []; const rec = recentes(), F = FERR(), por = k => F.find(f => f.key === 'f:' + k);
     /* v3.69: os atalhos começam pelo que a pessoa mais usa e completam com os de sempre; e o "Pra hoje" vem em cima */
     const atalhos = [...new Set(maisUsados(8, ['inicio']).concat(['studio', 'houzi', 'horus', 'corre', 'verso', 'mural', 'grupos', 'planos']))].map(por).filter(Boolean).slice(0, 8);
-    const hoje = praHoje().map(k => ({ tipo: 'h', key: 'h:' + k, t: SN.v[k].diz, s: '', i: SN_IR[k][1], h: SN_IR[k][0], nivel: SN.v[k].nivel }));
+    const hoje = praHoje().map(k => ({ tipo: 'h', key: 'h:' + k, t: SN.v[k].diz, s: '', i: SN_IR[k][1], h: SN.v[k].ir || SN_IR[k][0], nivel: SN.v[k].nivel }));
     res.innerHTML = secao('hoje', 'Pra hoje', hoje, '') + secao('rec', 'Recentes', rec, '', `<button type="button" class="pq-limpa" data-pq-limpa>limpar</button>`)
       + `<div class="pq-sec" role="group" aria-labelledby="pq-s-at"><p class="pq-k" id="pq-s-at"><span>Atalhos</span></p><div class="pq-chips">${atalhos.map(o => { const n = P.lista.push(o) - 1; return o.h ? `<a class="pq-chip" href="${esc(o.h)}" data-pq="${n}" tabindex="-1">${ico(o.i)}<span>${esc(o.t)}</span></a>` : `<button type="button" class="pq-chip" data-pq="${n}" tabindex="-1">${ico(o.i)}<span>${esc(o.t)}</span></button>`; }).join('')}</div></div>
       <div class="pq-sec pq-alta" id="pq-alta" hidden></div>
@@ -1330,7 +1338,9 @@
     /* o aviso no celular de "seguidores novos" abre o sino por cima do Início */
     if(h === 'avisos'){ try{ history.replaceState(null, '', location.pathname + location.search + '#/'); }catch(e){} await viewHome(); if(C.avisos) C.avisos.abrir(); return; }
     /* o Rolo 360 é só do @consanans; o Hórus só abre ligado (Perfil › Ferramentas) */
-    if(h === 'horus' && !C.ferr('horus')) return viewHorusDesligado();
+    if((h === 'horus' || h.startsWith('horus/')) && !C.ferr('horus')) return viewHorusDesligado();
+    /* v4.16: as abas do Hórus têm endereço (#/horus/funil, #/horus/entrada; o aviso do pedido abre a Entrada) */
+    if((h === 'horus' || h.startsWith('horus/')) && C.views.horus) return C.views.horus(app, h.slice(6));
     if(h.startsWith('marca/') && C.views.marca) return C.views.marca(app, h.slice(6));
     if((h === 'studio' || h.startsWith('studio/')) && C.views.studio) return C.views.studio(app, h.slice(7));
     if(h.startsWith('houzi/') && C.views.houzi) return C.views.houzi(app, h.slice(6));

@@ -577,10 +577,19 @@
       const o = c.outro;
       C.sheet(`<div class="form fd-fsheet"><div class="sheet-head"><h2>@${esc(o.handle)}</h2><button type="button" class="cbtn plain" data-close aria-label="Fechar">${ico('x')}</button></div>
         <div class="fd-mops"><a class="btn" href="#/@${esc(o.handle)}" data-close>${ico('eu')} Ver perfil</a>
+          ${C.horusFunil && C.ferr && C.ferr('horus') ? `<button type="button" class="btn" data-act="msg-horus">${ico('eye')} Pôr no Hórus</button>` : ''}
           ${c.eu.estado === 'aceita' ? `<button type="button" class="btn" data-act="msg-estado" data-a="${c.eu.silenciada ? 'dessilenciar' : 'silenciar'}">${ico(c.eu.silenciada ? 'bell' : 'micoff')} ${c.eu.silenciada ? 'Voltar a avisar' : 'Silenciar'}</button>` : ''}
           <button type="button" class="btn" data-act="msg-apaga-conv">${ico('trash')} Apagar conversa</button>
           <button type="button" class="btn ghost" data-act="msg-bloq"${c.bloqueei ? ' data-on="1"' : ''}>${ico('lock')} ${c.bloqueei ? 'Desbloquear' : 'Bloquear'} @${esc(o.handle)}</button></div>
         <p class="fine">Apagar tira a conversa da tua caixa (a outra pessoa continua com ela). Bloquear vale pro Corre todo: mensagem e cidade.</p></div>`);
+    },
+    /* v4.16: quem conversa e quer comprar vira cliente no Hórus (Interessado, com o WhatsApp público e a conversa à mão) */
+    'msg-horus': async el => {
+      const c = M.conv; if(!c || ehG(c) || el.disabled || !C.horusFunil) return;
+      el.disabled = true;
+      let p = null; try{ p = await C.api.one('corre_perfis', { eq: { id: c.outro.id } }); }catch(e){ p = null; }
+      C.closeSheet();
+      await C.horusFunil.daConversa(p || c.outro);
     },
     'msg-estado': async el => {
       const c = M.conv, a = el.dataset.a; if(!c || el.disabled) return;

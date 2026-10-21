@@ -819,6 +819,8 @@
       if(t === 'corre_rolo_salvos' && mine.some(x => x.frame_id === r.frame_id)) throw { code: '23505' };
       if(t === 'corre_leads' && r.ref && mine.some(x => x.ref === r.ref && x.id !== r.id)) throw { code: '23505' };
       if(t === 'corre_leads' && isNew) plTrava(d, uid, 'horus');
+      /* v4.16: o valor do negócio (o banco confere igual: de 0 a 99.999.999,99) */
+      if(t === 'corre_leads' && r.valor != null && !(Number(r.valor) >= 0 && Number(r.valor) <= 99999999.99)) throw { code: '23514', message: 'corre_leads_valor_check' };
       if(t === 'corre_perfis' && d.t.corre_perfis.some(x => x.handle === r.handle && x.id !== r.id)) throw { code: '23505' };
       /* v3.66: a trava do avatar (gatilho corre_perfis_skin): skin da loja que a pessoa não comprou sai, o resto salva */
       if(t === 'corre_perfis' && r.verso && typeof r.verso === 'object' && skinPrecoDemo(r.verso.skin) && !(d.t.corre_skins || []).some(x => x.dono === r.id && x.skin === r.verso.skin)) r.verso = Object.assign({}, r.verso, { skin: '' });
@@ -1815,6 +1817,10 @@
   const decURI = s => { try{ return decodeURIComponent(s); }catch(e){ return String(s); } };
   Object.assign(C, { $, esc, decURI, umaVez, norm, rid, hash, rng, shuffle, money, MESES, MESES_L, hojeBR, ddmm, rel, toast, copy, initials, avatar, firstName, profileUrl, ico, shrink, pickFile, sheet, closeSheet, errMsg });
   C.uid = () => C.st.user && C.st.user.id;
+  /* v4.16: o cliente acabou de pedir orçamento, escolher a proposta no Mural ou aprovar o orçamento: a função dos avisos
+     entrega o aviso no celular de quem recebe, na hora. Sem login (o cliente não tem conta): quem decide o que avisar é o
+     banco (os últimos 10 minutos, uma vez cada). Sem a função nova no ar, nada acontece. */
+  C.avisaPedido = () => { try{ if(!C.DEMO && C.api && C.api.fn) C.api.fn('push', { acao: 'pedidos' }, true).catch(() => {}); }catch(e){} };
 
   /* ---------- v3.38 · CORREAL: a moeda do Correverso ----------
      Ganha fazendo tarefa na cidade (o banco confere o tempo e paga). A IA do Corre (Studio, Studio Houzi, Hórus) tem

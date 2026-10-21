@@ -254,12 +254,14 @@
     const me = C.st.me || {}, c = Z.cfg(), on = (me.horus || {}).orcamento === 'on', url = linkOrc(me.handle || '');
     const pedidos = H.leads.filter(l => l.fonte === 'link').sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));
     const semana = pedidos.filter(l => l.created_at && (Date.now() - Date.parse(l.created_at)) < 7 * 864e5).length;
-    return `<div class="hz-h"><h2>Lead que vem até você</h2><span>${on ? `${semana} ${semana === 1 ? 'pedido' : 'pedidos'} na semana` : 'teu link de orçamento'}</span></div>
+    /* v4.16: na Entrada do Hórus o card é só o link (a lista de quem pediu é a própria Entrada) */
+    const naEntrada = !!C.horusFunil;
+    return `<div class="hz-h"><h2>${naEntrada ? 'Teu link de orçamento' : 'Lead que vem até você'}</h2><span>${on ? `${semana} ${semana === 1 ? 'pedido' : 'pedidos'} na semana` : naEntrada ? 'desligado' : 'teu link de orçamento'}</span></div>
       ${on ? `${me.visibilidade === 'mocado' ? '<p class="hz-help warn">Teu perfil tá mocado: o link só funciona com o perfil na vitrine (Editar perfil).</p>' : ''}
         <div class="hz-orc-link"><code>${esc(url.replace(/^https?:\/\//, ''))}</code></div>
         <div class="hz-row-acts"><button type="button" class="hz-btn pri" data-act="mx-orc-copiar">${ico('copy')} Copiar o link</button><a class="hz-btn" href="https://wa.me/?text=${encodeURIComponent(`Pede teu orçamento por aqui, rapidinho: ${url}`)}" target="_blank" rel="noopener">${ico('wa')} Mandar no WhatsApp</a><a class="hz-btn" href="${esc(url)}" target="_blank" rel="noopener">${ico('ext')} Ver a página</a><button type="button" class="hz-btn ghost" data-act="mx-orc" data-k="off">Desligar</button></div>
-        ${pedidos.length ? `<ol class="hz-list">${pedidos.slice(0, 4).map(l => `<li class="hz-row"><button type="button" class="hz-name" data-act="hz-open" data-id="${l.id}"><b>${esc(Z.shortName(l.nome))}</b><span>${esc(String(l.obs || '').replace(/^Pedido pelo link \([^)]*\):\s*/, '').split('\n')[0].slice(0, 90))}</span><span class="hz-why">${esc(Z.SN[l.st] || l.st)}${l.created_at ? ' · ' + C.rel(l.created_at) : ''}</span></button></li>`).join('')}</ol>` : '<p class="hz-muted">Quem pedir orçamento pelo link entra aqui como Interessado, no topo dos teus alvos. Põe na bio do Instagram, no status e na assinatura do WhatsApp.</p>'}`
-      : `<p class="hz-help">Um link pra pôr na bio, no status e na assinatura do WhatsApp. Quem pede orçamento cai direto no Hórus como <b>Interessado</b>, no topo dos teus alvos do dia, com o pedido anotado.</p>
+        ${naEntrada ? '' : pedidos.length ? `<ol class="hz-list">${pedidos.slice(0, 4).map(l => `<li class="hz-row"><button type="button" class="hz-name" data-act="hz-open" data-id="${l.id}"><b>${esc(Z.shortName(l.nome))}</b><span>${esc(String(l.obs || '').replace(/^Pedido pelo link \([^)]*\):\s*/, '').split('\n')[0].slice(0, 90))}</span><span class="hz-why">${esc(Z.SN[l.st] || l.st)}${l.created_at ? ' · ' + C.rel(l.created_at) : ''}</span></button></li>`).join('')}</ol>` : '<p class="hz-muted">Quem pedir orçamento pelo link entra aqui como Interessado, no topo dos teus alvos. Põe na bio do Instagram, no status e na assinatura do WhatsApp.</p>'}`
+      : `<p class="hz-help">Um link pra pôr na bio, no status e na assinatura do WhatsApp. Quem pede orçamento cai direto no Hórus como <b>Interessado</b>, ${naEntrada ? 'aqui na Entrada, com o pedido anotado, e o teu celular avisa na hora' : 'no topo dos teus alvos do dia, com o pedido anotado'}.</p>
         <div class="hz-row-acts"><button type="button" class="hz-btn pri" data-act="mx-orc" data-k="on">${ico('plus')} Ligar meu link de orçamento</button></div>`}`;
   }
   /* fotos de referência no pedido: o texto muda com o corre de quem recebe */
@@ -332,7 +334,7 @@
       const escolhidos = itens.filter(i => quer.has(i.id)).map(i => i.nome), msg = (escolhidos.length ? 'Quero: ' + escolhidos.join(', ') + '. ' : '') + v('orc-m');
       const args = { h, nome: v('orc-n'), empresa: v('orc-e'), whats: d, cidade: v('orc-c'), uf: C.$('orc-u').value, msg: msg.slice(0, 600) };
       if(fotos.length) args.fotos = fotos.slice(0, FOTO_MAX);
-      try{ await C.api.rpc('corre_pedir_orcamento', args); feito(); }
+      try{ await C.api.rpc('corre_pedir_orcamento', args); feito(); C.avisaPedido(); }
       catch(err){ const hnt = (err && (err.hint || err.message)) || ''; C.toast(/limite/.test(hnt) ? 'Muitos pedidos hoje. Tenta amanhã.' : /desligado/.test(hnt) ? 'Esse link foi desligado.' : 'Não deu pra enviar agora. Tenta de novo.'); b.disabled = false; b.textContent = 'Pedir orçamento'; }
     });
     function feito(){ app.innerHTML = `<main class="wrap orc"><section class="card orc-card orc-ok"><span class="mono">Pedido enviado</span><h1>Pronto! ${esc(nome)} vai te chamar no WhatsApp.</h1><p class="note">Se precisar mudar alguma coisa, é só mandar o pedido de novo com o mesmo número.</p></section></main>`; }

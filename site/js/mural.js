@@ -670,7 +670,7 @@
     },
     'mu-escolhe-ok': async el => {
       el.disabled = true;
-      try{ await C.api.rpc('corre_mural_escolher', { p_chave: M.dono.chave, p_proposta: el.dataset.id }); C.closeSheet(); C.toast('Escolhida. Agora é conversar.', 3200); viewDono(C.$('app'), M.dono.chave); }
+      try{ await C.api.rpc('corre_mural_escolher', { p_chave: M.dono.chave, p_proposta: el.dataset.id }); C.avisaPedido(); C.closeSheet(); C.toast('Escolhida. Agora é conversar.', 3200); viewDono(C.$('app'), M.dono.chave); }
       catch(err){ const h = (err && (err.hint || err.message)) || ''; C.toast(/tres/.test(h) ? 'Você já escolheu 3. Resolve com elas primeiro.' : C.errMsg(err)); el.disabled = false; }
     },
     'mu-dispensa': async el => { try{ await C.api.rpc('corre_mural_recusar', { p_chave: M.dono.chave, p_proposta: el.dataset.id }); C.toast('Dispensada. A vaga abriu pra outra proposta.'); viewDono(C.$('app'), M.dono.chave); }catch(e){ C.toast(C.errMsg(e)); } },

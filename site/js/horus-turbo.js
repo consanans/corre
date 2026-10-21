@@ -587,7 +587,7 @@
     const interesse = L.filter(l => l.st === 'interesse').length, proposta = L.filter(l => l.st === 'link').length;
     return { N: Object.values(N).filter(o => o.toc || o.leads >= 3).sort((a, b) => b.fech - a.fech || pct(b.resp, b.toc) - pct(a.resp, a.toc) || b.leads - a.leads),
       CI: Object.values(CI).sort((a, b) => b.fech - a.fech || pct(b.resp, b.toc) - pct(a.resp, a.toc) || b.leads - a.leads),
-      M: Object.values(Mm).sort((a, b) => b.env - a.env), HR, DW, toques, fechTot, chegouInt, intFech, fechMes: fechMes.size, interesse, proposta };
+      M: Object.values(Mm).sort((a, b) => b.env - a.env), HR, DW, toques, fechTot, chegouInt, intFech, fechMes: fechMes.size, fechMesIds: fechMes, interesse, proposta };
   }
   const barra = (v, max) => `<span class="hz-vbar"><i style="width:${max ? Math.round(v / max * 100) : 0}%"></i></span>`;
   function pintaVende(){
@@ -595,7 +595,11 @@
     const c = Z.cfg(), n = numeros(), valor = +c.valorFech || 0, metaF = +c.metaFech || 0;
     const taxaInt = n.chegouInt >= 5 ? n.intFech / n.chegouInt : null;
     const pInt = taxaInt != null ? taxaInt : .25, pLink = taxaInt != null ? Math.min(.9, taxaInt * 2) : .5;
-    const garantido = n.fechMes * valor, mesa = (n.interesse * pInt + n.proposta * pLink) * valor;
+    /* v4.16: cada negócio com o valor dele (o do cartão no funil ou o orçamento nas Vendas); sem valor, o ganho por fechamento */
+    const VL = l => C.horusFunil ? C.horusFunil.valorDe(l, true).v : valor;
+    const garantido = H.leads.filter(l => n.fechMesIds.has(l.id)).reduce((s, l) => s + VL(l), 0);
+    const mesa = H.leads.reduce((s, l) => s + (l.st === 'interesse' ? VL(l) * pInt : l.st === 'link' ? VL(l) * pLink : 0), 0);
+    const comValor = valor || H.leads.some(l => Number(l.valor) > 0);
     const porFech = n.fechTot ? n.toques / n.fechTot : null, falta = Math.max(0, metaF - n.fechMes);
     const melhorN = n.N.filter(o => o.toc >= 3).sort((a, b) => pct(b.fech, b.toc) - pct(a.fech, a.toc) || pct(b.resp, b.toc) - pct(a.resp, a.toc))[0];
     const HRn = { manha: 'Manhã', tarde: 'Tarde', noite: 'Noite' }, hrs = Object.entries(n.HR).map(([k, [e, r]]) => ({ k, e, r, t: pct(r, e) }));
@@ -608,7 +612,7 @@
       ${n.toques < 10 ? `<p class="hz-help">Com ${n.toques} ${n.toques === 1 ? 'toque' : 'toques'} registrados o placar ainda tá esquentando. Cada mensagem enviada pelo Hórus e cada "Respondeu" deixam ele mais afiado.</p>` : ''}
       <div class="hz-vgrid">
         <section class="hz-vcard money"><h3>O mês em grana</h3>
-          ${valor ? `<div class="hz-vnum"><div><b class="num">${C.money(garantido)}</b><small>garantido · ${n.fechMes} ${n.fechMes === 1 ? 'fechado' : 'fechados'} no mês</small></div><div><b class="num">${C.money(mesa)}</b><small>na mesa · ${n.interesse} interessados e ${n.proposta} com proposta</small></div><div><b class="num">${C.money(garantido + mesa)}</b><small>previsão do mês</small></div></div>
+          ${comValor ? `<div class="hz-vnum"><div><b class="num">${C.money(garantido)}</b><small>garantido · ${n.fechMes} ${n.fechMes === 1 ? 'fechado' : 'fechados'} no mês</small></div><div><b class="num">${C.money(mesa)}</b><small>na mesa · ${n.interesse} interessados e ${n.proposta} com proposta</small></div><div><b class="num">${C.money(garantido + mesa)}</b><small>previsão do mês</small></div></div>
             ${metaF ? `<div class="hz-bar" role="img" aria-label="${n.fechMes} de ${metaF} fechamentos"><i style="width:${Math.min(100, pct(n.fechMes, metaF))}%"></i></div><p class="hz-wk">${n.fechMes} de ${metaF} fechamentos na meta${falta ? ` · faltam ${falta}${porFech ? `, uns ${Math.ceil(falta * porFech)} toques no teu ritmo (1 fechamento a cada ${Math.round(porFech)})` : ''}` : ' · meta batida'}</p>` : ''}
             <p class="hz-help">A mesa conta ${taxaInt != null ? `a tua taxa: ${pct(n.intFech, n.chegouInt)}% de quem se interessou fechou` : 'um chute: 1 em 4 interessados e 1 em 2 propostas fecham'}.</p>`
           : '<p class="hz-help">Diz quanto você ganha por fechamento e a meta do mês, e o Hórus mostra o garantido, o que tá na mesa e a previsão.</p>'}
