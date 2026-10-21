@@ -287,11 +287,24 @@ Deno.serve(async (req) => {
     /* 1. o código (vale 1 hora, uma vez só) vira o token curto */
     let curto = '', uid = '', perms = '';
     try {
-      const r = await fetch('https://api.instagram.com/oauth/access_token', { method: 'POST', body: new URLSearchParams({ client_id: APP_ID, client_secret: APP_SECRET, grant_type: 'authorization_code', redirect_uri: redirect, code }) });
-      const o: any = await r.json().catch(() => null);
-      const d = Array.isArray(o?.data) ? o.data[0] : o;
+      const troca = async (uri: string) => {
+        const r = await fetch('https://api.instagram.com/oauth/access_token', { method: 'POST', body: new URLSearchParams({ client_id: APP_ID, client_secret: APP_SECRET, grant_type: 'authorization_code', redirect_uri: uri, code }) });
+        const o: any = await r.json().catch(() => null);
+        return { r, o, d: Array.isArray(o?.data) ? o.data[0] : o };
+      };
+      let { r, o, d } = await troca(redirect);
+      /* v4.15: a Meta avisa que o painel dela pode pôr uma barra no fim do endereço de volta sozinho, e aí o código vem
+         preso ao endereço com a barra (o Thales, em 21/10: "Error validating verification code... redirect_uri"). Com
+         esse erro, tenta uma vez o mesmo endereço com e sem a barra no fim; código que não existe dá outro erro e não repete */
+      if (!d?.access_token && /redirect_uri/i.test(String(o?.error_message || ''))) {
+        const outro = redirect.endsWith('/') ? redirect.slice(0, -1) : redirect + '/';
+        const t = await troca(outro);
+        console.warn('conectar/barra:', outro, t.d?.access_token ? 'deu certo' : String(t.o?.error_message || t.r.status));
+        if (t.d?.access_token) ({ r, o, d } = t);
+      }
       if (!r.ok || !d?.access_token) {
         console.error('conectar/code:', r.status, o?.error_type, o?.error_message);
+        if (/redirect_uri/i.test(String(o?.error_message || ''))) return json({ erro: 'redirect_meta', detalhe: `A Meta recusou o endereço de volta. No painel da Meta (Instagram › Configuração da API com login do Instagram › Configurações do login empresarial › URIs de redirecionamento do OAuth), deixa só ${REDIRECT} e salva. Depois conecta de novo.` }, 400);
         return json({ erro: 'login_meta', detalhe: String(o?.error_message || 'O Instagram não aceitou o login. Tenta de novo.').slice(0, 200) }, 400);
       }
       curto = String(d.access_token); uid = String(d.user_id || '');
