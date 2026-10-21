@@ -98,6 +98,20 @@ const erroMeta = (e: any) => {
   if (e?.code === 4 || e?.code === 17 || e?.code === 32 || e?.code === 613 || e?.code === 9) return 'ocupado';
   return 'provedor';
 };
+/* v4.18 · o erro da troca do código vem em dois formatos: o do login ({ error_type, error_message }) e o do Graph
+   ({ error: { message, type, code } }). Lê os dois */
+const msgMeta = (o: any) =>
+  String(o?.error_message || o?.error?.message || o?.error_description || (typeof o?.error === 'string' ? o.error : '') || '').slice(0, 300);
+/* o que a pessoa lê no app: os motivos que já apareceram, em português; o resto vai como a Meta mandou */
+function traduzMeta(m: string) {
+  if (!m) return 'O Instagram não aceitou o login. Tenta de novo.';
+  if (/developer role|not.*tester|testador/i.test(m)) return 'Essa conta do Instagram ainda não é testador aceito do app do Corre. Entra no instagram.com com ela, abre instagram.com/accounts/manage_access › Convites de testador › Aceitar, e conecta de novo.';
+  if (/(has been|already) used|matching code/i.test(m)) return 'Esse login do Instagram já foi usado. Conecta de novo (o Instagram dá um novo).';
+  if (/expired|expirou/i.test(m)) return 'O login do Instagram venceu antes de chegar. Conecta de novo.';
+  if (/request limit|too many|rate limit|limit reached/i.test(m)) return 'A Meta pediu um tempo: muitas tentativas seguidas. Espera uns 15 minutos e conecta de novo.';
+  if (/invalid platform app|client_secret|client secret|invalid client/i.test(m)) return 'A Meta não reconheceu o app do Corre (o IG_APP_ID ou o IG_APP_SECRET da função não batem com o painel da Meta).';
+  return `O Instagram não aceitou o login: ${m}`;
+}
 /* as contas do Gerenciador que o token de usuário do sistema enxerga (só pras referências) */
 async function contasGerenciador(TOKEN: string) {
   const o = await graph('me/accounts?fields=instagram_business_account{id}&limit=25', TOKEN);
@@ -388,23 +402,26 @@ Deno.serve(async (req) => {
     try {
       const troca = async (uri: string) => {
         const r = await fetch('https://api.instagram.com/oauth/access_token', { method: 'POST', body: new URLSearchParams({ client_id: APP_ID, client_secret: APP_SECRET, grant_type: 'authorization_code', redirect_uri: uri, code }) });
-        const o: any = await r.json().catch(() => null);
-        return { r, o, d: Array.isArray(o?.data) ? o.data[0] : o };
+        const tx = await r.text().catch(() => '');
+        let o: any = null; try { o = JSON.parse(tx); } catch (_) { /* a Meta às vezes responde HTML */ }
+        return { r, o, tx, d: Array.isArray(o?.data) ? o.data[0] : o };
       };
-      let { r, o, d } = await troca(redirect);
+      let { r, o, tx, d } = await troca(redirect);
       /* v4.15: a Meta avisa que o painel dela pode pôr uma barra no fim do endereço de volta sozinho, e aí o código vem
          preso ao endereço com a barra (o Thales, em 21/10: "Error validating verification code... redirect_uri"). Com
          esse erro, tenta uma vez o mesmo endereço com e sem a barra no fim; código que não existe dá outro erro e não repete */
-      if (!d?.access_token && /redirect_uri/i.test(String(o?.error_message || ''))) {
+      if (!d?.access_token && /redirect_uri/i.test(msgMeta(o))) {
         const outro = redirect.endsWith('/') ? redirect.slice(0, -1) : redirect + '/';
         const t = await troca(outro);
-        console.warn('conectar/barra:', outro, t.d?.access_token ? 'deu certo' : String(t.o?.error_message || t.r.status));
-        if (t.d?.access_token) ({ r, o, d } = t);
+        console.warn('conectar/barra:', outro, t.d?.access_token ? 'deu certo' : (msgMeta(t.o) || String(t.r.status)));
+        if (t.d?.access_token) ({ r, o, tx, d } = t);
       }
       if (!r.ok || !d?.access_token) {
-        console.error('conectar/code:', r.status, o?.error_type, o?.error_message);
-        if (/redirect_uri/i.test(String(o?.error_message || ''))) return json({ erro: 'redirect_meta', detalhe: `A Meta recusou o endereço de volta. No painel da Meta (Instagram › Configuração da API com login do Instagram › Configurações do login empresarial › URIs de redirecionamento do OAuth), deixa só ${REDIRECT} e salva. Depois conecta de novo.` }, 400);
-        return json({ erro: 'login_meta', detalhe: String(o?.error_message || 'O Instagram não aceitou o login. Tenta de novo.').slice(0, 200) }, 400);
+        /* v4.18: o corpo inteiro do erro vai pro registro (a Meta não devolve o segredo nem token no erro). Em 21/10 o
+           erro veio fora do formato do login e o registro só disse "400 undefined undefined" */
+        console.error('conectar/code:', r.status, o?.error_type || o?.error?.type || '', msgMeta(o) || String(tx).slice(0, 300));
+        if (/redirect_uri/i.test(msgMeta(o))) return json({ erro: 'redirect_meta', detalhe: `A Meta recusou o endereço de volta. No painel da Meta (Instagram › Configuração da API com login do Instagram › Configurações do login empresarial › URIs de redirecionamento do OAuth), deixa só ${REDIRECT} e salva. Depois conecta de novo.` }, 400);
+        return json({ erro: 'login_meta', detalhe: traduzMeta(msgMeta(o)) }, 400);
       }
       curto = String(d.access_token); uid = String(d.user_id || '');
       perms = Array.isArray(d.permissions) ? d.permissions.join(',') : String(d.permissions || '');
