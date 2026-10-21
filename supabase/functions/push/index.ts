@@ -16,6 +16,10 @@
 //     depois que o cliente manda; a função entrega o que o corre_pedidos_alvos devolve (os últimos 10 minutos, um aviso
 //     por pedido, gravado antes de sair). Desde a v4.17, também o cliente que terminou de responder o link de aprovação
 //     do Studio (corre_aprov_alvos, do mesmo jeito).
+//   acao "postar" (v4.18, SEM login): o relógio do banco olha de minuto em minuto e, só quando tem post na hora, chama;
+//     a função entrega o que o corre_postar_alvos devolve: "Hora de postar" (o post programado que não sai sozinho, sem
+//     conta conectada) e "Não saiu no Instagram" (o que o Instagram recusou). Cada post avisa uma vez por horário,
+//     marcado antes de sair; chamar de novo não manda nada.
 // Aparelho que o serviço diz que sumiu (404/410) sai do banco (corre_push_mortos).
 //
 // A cifra é a do padrão (RFC 8291, aes128gcm) e a assinatura do Corre é a VAPID (RFC 8292), tudo com o WebCrypto do
@@ -207,6 +211,21 @@ Deno.serve(async (req) => {
     const r = await manda(admin, v, lista(L, 'high'));
     console.log('[push] pedidos', JSON.stringify({ pessoas: L.length, entregues: r.ok, saiu: r.mortos }));
     return json({ ok: true, pessoas: L.length, entregues: r.ok, saiu: r.mortos });
+  }
+
+  /* v4.18: a hora de postar, sem login (quem chama é o relógio do banco). Não dá pra abusar: o banco só devolve o post
+     que venceu nos últimos 30 minutos e ainda não avisou, e marca antes de sair. Chega na hora (é o horário que a pessoa
+     marcou pra postar) */
+  if (acao === 'postar') {
+    const v = await vapid();
+    if (!v) { console.warn('[push] sem_chave', MOTIVO); return json({ erro: 'sem_chave' }, 503); }
+    const { data: alvos, error } = await admin.rpc('corre_postar_alvos', {});
+    if (error) { console.warn('[push] postar', error.message); return json({ erro: 'banco' }, 503); }
+    const L = Array.isArray(alvos) ? alvos : [];
+    if (!L.length) return json({ ok: true, avisos: 0, entregues: 0 });
+    const r = await manda(admin, v, lista(L, 'high'));
+    console.log('[push] postar', JSON.stringify({ avisos: L.length, entregues: r.ok, saiu: r.mortos }));
+    return json({ ok: true, avisos: L.length, entregues: r.ok, saiu: r.mortos });
   }
 
   /* o login de quem chama (é quem "fez a ação": o banco confere que a ação é mesmo dessa pessoa) */

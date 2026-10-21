@@ -89,17 +89,18 @@
     /* (v3.70: olha também as duas semanas da frente, pro "Próximo post" do pé da Comanda) */
     const studio = api.q('corre_posts', { select: 'id,data,hora,status,ig_status,midia_url', eq: { dono: uid }, gte: { data: diaMenos(hj, 7) }, lte: { data: diaMenos(hj, -14) }, limit: 500 }).then(ps => {
       /* o mesmo jeito do Studio: publicado e rascunho não contam; com erro ou 15 min depois da hora é atrasado */
-      let hoje = 0, atras = 0;
+      let hoje = 0, atras = 0, um = '';
       (ps || []).forEach(p => {
         if(p.ig_status === 'publicado' || p.status === 'postado') return;
-        if(p.ig_status === 'erro'){ if(p.data <= hj) atras++; return; }
+        if(p.ig_status === 'erro'){ if(p.data <= hj){ atras++; um = p.id; } return; }
         if(!p.data || !p.hora || !p.midia_url || p.status === 'ideia') return;
         const t = Date.parse(`${p.data}T${String(p.hora).slice(0, 5)}:00-03:00`);
         if(t > Date.now()){ if(!prox || t < prox) prox = t; }
         if(p.data > hj) return;
-        if(t < Date.now() - 15 * 6e4) atras++; else if(p.data === hj) hoje++;
+        if(t < Date.now() - 15 * 6e4){ atras++; um = p.id; } else if(p.data === hj) hoje++;
       });
-      if(atras) v.studio = { txt: plural(atras, 'atrasado', 'atrasados'), n: atras, nivel: 'alerta', diz: atras === 1 ? '1 post atrasou' : `${atras} posts atrasaram` };
+      /* v4.18: um atrasado só: a Comanda leva direto pro post, com o Postar na mão (como o aviso da hora de postar) */
+      if(atras) v.studio = { txt: plural(atras, 'atrasado', 'atrasados'), n: atras, nivel: 'alerta', ir: atras === 1 && um ? '#/studio/postar/' + um : '', diz: atras === 1 ? '1 post atrasou' : `${atras} posts atrasaram` };
       else if(hoje) v.studio = { txt: `${hoje} hoje`, n: hoje, nivel: 'hoje', diz: hoje === 1 ? '1 post sai hoje' : `${hoje} posts saem hoje` };
     }).catch(() => {});
     const horus = !C.ferr('horus') ? null : api.q('corre_leads', { select: 'id,st,prox,fonte,hist', eq: { dono: uid }, lte: { prox: hj }, limit: 3000 }).then(L => {

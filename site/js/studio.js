@@ -121,7 +121,7 @@
 
   /* ---------- a tela ---------- */
   function mount(el, o){
-    ST.el = el; ST.com = o.com || []; ST.sem = o.sem || []; ST.aberto = ''; ST.migrou = false;
+    ST.el = el; ST.com = o.com || []; ST.sem = o.sem || []; ST.aberto = ''; ST.migrou = false; ST.hora = '';
     let guardada = ''; try{ guardada = localStorage.getItem(SEL_K) || ''; ST.vista = localStorage.getItem(VISTA_K) || 'mes'; }catch(e){}
     if(!['mes', 'semana', 'lista'].includes(ST.vista)) ST.vista = 'mes';
     const id = o.id || '';
@@ -136,10 +136,25 @@
     C.$('sd-corpo').innerHTML = '<p class="note">Abrindo a agenda…</p>';
     carregar().then(async () => {
       corpo();
+      if(o.post) abreDoAviso(o.post);
       if(await fila()){ try{ await carregar(); }catch(e){} corpo(); }
       relogio();
     }).catch(e => { const c = C.$('sd-corpo'); if(c) c.innerHTML = `<p class="note">${esc(C.errMsg(e, 'Não deu pra abrir os posts.'))}</p>`; });
     if(C.lote) C.lote.barra();
+  }
+  /* v4.18: veio do aviso "Hora de postar" (ou "Não saiu no Instagram"): a agenda vai pro mês e pra marca do post e o
+     painel abre com a faixa da hora e o Postar aceso. O Postar é um toque da pessoa: o compartilhar do celular só sai
+     no toque, então o aviso não posta sozinho */
+  function abreDoAviso(id){
+    const p = ST.posts.find(x => x.id === id);
+    if(!p){ C.toast('Esse post não tá mais na agenda (foi apagado ou é de outra conta).', 4200); return; }
+    if(ST.sel !== 'todas' && p.marca_id !== ST.sel && ST.com.some(m => m.id === p.marca_id)){
+      ST.sel = p.marca_id; try{ localStorage.setItem(SEL_K, ST.sel); }catch(e){}
+      topo(); corpo(); if(C.lote) C.lote.barra();
+    }
+    if(p.data){ ST.mes = p.data.slice(0, 7); ST.semana = weekOf(p.data); corpo(); }
+    ST.hora = id;
+    painel(id);
   }
   function topo(){
     const m = ST.com.find(x => x.id === ST.sel);
@@ -155,7 +170,7 @@
           ${ST.sem.map(x => `<button type="button" class="st-mk off" data-act="mk-edit" data-id="${x.id}" title="Liga o Instagram dessa marca pra trampar nela no Studio">${C.marcaLogo(x, 's')}<span><b>${esc(x.marca)}</b><small>ligar o Insta</small></span></button>`).join('')}
           <button type="button" class="st-mk add" data-act="mk-nova">${ico('plus')}<span><b>Nova marca</b><small>pra trampar</small></span></button>
         </div>` : ''}
-        <p class="sd-ig sd-auto" id="sd-ig">${autoLinha()}</p>${ST.com.length ? `<div class="lt-barra" id="lt-barra" hidden></div>` : ''}
+        <p class="sd-ig sd-auto" id="sd-ig">${autoLinha()}</p>${ST.com.length && C.push ? C.push.faixa('studio') : ''}${ST.com.length ? `<div class="lt-barra" id="lt-barra" hidden></div>` : ''}
       </section>
       ${ST.com.length ? `<section class="card sd-cal" aria-label="Agenda">
         <div class="sd-bar">
@@ -270,6 +285,7 @@
       <div class="sd-pp-cols">
         <figure class="sd-pp-art f-${fmtDe(p)}">${(ES().midiaHTML && ES().midiaHTML(p, 'sd')) || (p.midia_url ? `<img src="${esc(p.midia_url)}" alt="${esc(p.alt || p.titulo || '')}">` : `<span class="sd-noart">${ico('img')}<b>Sem arte ainda</b></span>`)}</figure>
         <div class="sd-pp-tx">
+          ${ST.hora === id && !fim ? horaFaixa(p, s) : ''}
           <div class="sd-pp-q">${pill(s)}<b class="num">${esc(longo(p))}</b>${fim && foi ? C.ig.chip(foi) : ''}${tags(p)}</div>
           ${p.aprov === 'ajuste' ? `<p class="apr-nota"><b>${esc(p.aprov_quem || 'O cliente')} pediu ajuste:</b> ${esc(p.aprov_nota || '')}</p>` : p.aprov === 'aprovado' ? `<p class="apr-nota ok"><b>Aprovado</b>${p.aprov_quem ? ` por ${esc(p.aprov_quem)}` : ''}${p.aprov_em ? ` em ${esc(curto(String(p.aprov_em).slice(0, 10)))}` : ''}.</p>` : p.aprov_nota ? `<p class="apr-nota velha"><b>Ajuste pedido antes:</b> ${esc(p.aprov_nota)}</p>` : ''}
           <p class="fine">${linhaEstado(p, s, m, conta)}</p>
@@ -308,9 +324,20 @@
       try{ await C.api.upd('corre_posts', { id: p.id }, { ig_conta: v }); await depois(p.id, c ? `Agora sai em @${c.username}.` : 'Sem conta: vira lembrete pra postar à mão.'); }
       catch(e){ sel.disabled = false; C.toast(C.errMsg(e, 'Não deu pra trocar a conta agora.')); }
     });
+    /* v4.18: aberto pelo aviso, o Postar acende e já fica no foco */
+    const bp = ST.hora === id && !fim && document.querySelector('#sd-pp-acts [data-act="sd-manual"]');
+    /* (o foco vem depois do da folha, que vai pro primeiro botão 30 ms depois de abrir) */
+    if(bp && !bp.disabled){ bp.classList.add('pulsa'); setTimeout(() => { if(bp.isConnected) bp.focus({ preventScroll: true }); }, 120); }
     /* a arte já desce aqui: no celular, o "Postar" manda ela pelo compartilhar sem esperar */
     ST.arq = null;
     if(p.midia_url) fetch(p.midia_url).then(r => r.ok ? r.blob() : null).then(b => { if(b && ST.aberto === id) ST.arq = { id, file: new File([b], nomeArte(p), { type: b.type || 'image/jpeg' }) }; }).catch(() => {});
+  }
+  /* a faixa de quem chegou pelo aviso: o que fazer agora, em uma linha */
+  function horaFaixa(p, s){
+    const f = fmtDe(p), vai = f === 'feed' ? 'a legenda vai copiada e a arte vai pro Instagram' : f === 'story' ? 'o story vai pro compartilhar do celular' : 'os arquivos vão pro compartilhar e a legenda vai copiada';
+    return s === 'erro'
+      ? `<p class="sd-hora erro">${ico('ig')}<span><b>O Instagram recusou esse post.</b> Posta à mão: toca em Postar (${vai}).</span></p>`
+      : `<p class="sd-hora">${ico('clock')}<span><b>Hora de postar.</b> Toca em Postar: ${vai}. Depois, Já postei.</span></p>`;
   }
   const nomeArte = p => { const m = marcaDe(p); return `${C.norm(m ? m.marca : 'post').replace(/[^a-z0-9]+/g, '-')}-${p.data || 'post'}.jpg`; };
   async function depois(id, msg){

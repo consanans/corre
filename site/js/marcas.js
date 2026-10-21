@@ -133,6 +133,11 @@
   C.views.studio = async function(app, id){
     document.title = 'Studio · Corre';
     id = String(id || '').replace(/^\/+/, '');
+    /* v4.18: o aviso "Hora de postar" chega em #/studio/postar/ID: entra no Studio e abre esse post com o Postar na mão
+       (o endereço volta pra #/studio, pra recarregar a página não abrir o post de novo) */
+    let post = '';
+    const mp = /^postar\/([0-9a-f-]{36})$/i.exec(id);
+    if(mp){ post = mp[1]; id = 'entrar'; history.replaceState(null, '', '#/studio'); }
     if(!id && dentro()) id = 'entrar';
     if(!id) return porta(app);
     marcaDentro(true);
@@ -142,7 +147,7 @@
     if(!C.$('sd')) return;
     const mk = M.list.find(x => x.id === id);
     if(mk && foraDoPlano(mk)){ C.$('sd').outerHTML = foraHTML(mk); return; }
-    if(C.studio) C.studio.mount(C.$('sd'), { com: noPlano(), sem: M.list.filter(m => !m.rede), id: id === 'entrar' ? '' : id });
+    if(C.studio) C.studio.mount(C.$('sd'), { com: noPlano(), sem: M.list.filter(m => !m.rede), id: id === 'entrar' ? '' : id, post });
   };
   async function porta(app){
     app.innerHTML = C.header('studio') + '<main class="wrap st-porta-w"><section class="card"><p>Abrindo a porta do Studio…</p></section></main>';

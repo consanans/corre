@@ -4126,3 +4126,11 @@ body.fn-arrastando .fn-board{scroll-snap-type:none}
 }
 /* a bio do perfil era "bio" e pegava o visual da página do Link na bio (v4.0: fundo preto da altura da tela); agora é pf-bio */
 .prof .pf-bio{grid-column:1 / -1;font-size:16.5px;overflow-wrap:anywhere;white-space:pre-line}
+
+/* v4.18 · a hora de postar: quem chega pelo aviso vê no painel do post o que fazer agora (faixa amarela; o recusado pelo
+   Instagram em rosa), e com o Corre aberto o aviso de cima ganha o "Abrir" */
+.sd-hora{display:flex;gap:10px;align-items:flex-start;margin:0 0 10px;padding:10px 12px;border-radius:12px;background:var(--yellow);color:var(--ink);font-size:14.5px;line-height:1.4;box-shadow:3px 3px 0 var(--ink)}
+.sd-hora .ic{flex:none;width:20px;height:20px;margin-top:1px}
+.sd-hora.erro{background:#FFE3EE;box-shadow:3px 3px 0 var(--pink)}
+.toast-ir{flex:none;align-self:center;margin-left:4px;padding:4px 10px;border-radius:999px;background:var(--yellow);color:var(--ink);font-size:13px}
+.toast:has(.toast-ir){cursor:pointer}

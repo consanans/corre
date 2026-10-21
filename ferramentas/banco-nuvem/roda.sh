@@ -120,6 +120,10 @@ $P -f "$AQUI/semente417.sql"
 delta delta-v417.sql 'delta v4.17 ok'
 delta delta-v417.sql 'delta v4.17 ok'
 testa teste417.sql 24
+# v4.18: a hora de postar (o aviso no celular do post programado que não sai sozinho, ou que o Instagram recusou)
+delta delta-v418.sql 'delta v4.18 ok'
+delta delta-v418.sql 'delta v4.18 ok'
+testa teste418.sql 14
 . "$AQUI/virada343.sh"
 if grep -q 'FALHOU\|ERROR' $D/saida; then echo "deu FALHOU ou erro (acima)"; exit 1; fi
 echo "tudo ok: $(grep -c '^ok:' $D/saida) checagens"

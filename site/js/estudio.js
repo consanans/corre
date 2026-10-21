@@ -965,13 +965,23 @@
           if(row.data && at(row) > Date.now() + 6e4) row.ig_quando = `${row.data}T${row.hora || '12:00'}:00-03:00`;
           else row.ig_status = '';
         }
-        if(p) await C.api.upd('corre_posts', { id: p.id }, row); else { const r = await C.api.ins('corre_posts', row); p = r[0]; }
+        const grava = r => p ? C.api.upd('corre_posts', { id: p.id }, r) : C.api.ins('corre_posts', r).then(x => { p = x[0]; });
+        try{ await grava(row); }
+        catch(e){
+          /* v4.18: o site da 4.17 subiu antes do delta-v417 e o editor parou de salvar até post de feed (o banco não
+             conhecia as colunas novas). Post de feed salva sem elas; carrossel, story e reels esperam o banco */
+          const semColuna = e && (e.code === 'PGRST204' || /column/i.test(e.message || '')) && /formato|midias/.test(e.message || '');
+          if(!semColuna) throw e;
+          if(fmt !== 'feed'){ const x = new Error('O Studio tá terminando de atualizar: carrossel, story e reels voltam logo. Post de feed salva normal.'); x.corre = true; throw x; }
+          const velho = Object.assign({}, row); delete velho.formato; delete velho.midias;
+          await grava(velho);
+        }
         soltar.forEach(u => C.api.unlink(u));
         await load(); S.sel = p.id; if(p.data){ S.week = weekOf(p.data); S.mes = p.data.slice(0, 7); } lista(); dirty = false;
         if(S.onSave) try{ S.onSave(p); }catch(e){}
         btn.disabled = false; btn.innerHTML = rot;
         return true;
-      }catch(e){ C.toast(C.errMsg(e, 'Não deu pra salvar o post.')); btn.disabled = false; btn.innerHTML = rot; return false; }
+      }catch(e){ C.toast(e && e.corre ? e.message : C.errMsg(e, 'Não deu pra salvar o post.'), e && e.corre ? 5200 : 0); btn.disabled = false; btn.innerHTML = rot; return false; }
     }
     C.$('es-ok').addEventListener('click', async () => {
       const a = C.$('es-auto');

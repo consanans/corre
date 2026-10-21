@@ -27,7 +27,7 @@ async function mostra(d){
     try{ if(d.n > 0) await self.navigator.setAppBadge(Math.min(d.n, 999)); else await self.navigator.clearAppBadge(); }catch(e){}
   }
   const abertas = await janelas();
-  fala(abertas, { corre: 'push', t: String(d.t || ''), url });
+  fala(abertas, { corre: 'push', t: String(d.t || ''), url, titulo });
   const naFrente = abertas.some(c => c.focused && c.visibilityState === 'visible');
   if(naFrente && !APPLE && d.t !== 'teste') return;
   const op = {

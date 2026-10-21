@@ -43,14 +43,16 @@
   /* v3.63: o aviso de cima entra deslizando, mostra o tempo que falta numa linha embaixo e some com um toque
      (o Thales: "acabamento horrível"; antes era uma pílula que, com texto comprido, virava um oval). "♪ " na frente
      ganha o ícone da música */
-  function toast(msg, ms){
+  /* v4.18: com "ir" (um #/endereço), tocar no aviso leva até lá (a hora de postar com o Corre aberto na frente) */
+  function toast(msg, ms, ir){
     const t = $('toast'); if(!t) return;
     ms = ms || 2800;
     let txt = String(msg == null ? '' : msg), ic = '';
     if(/^♪\s*/.test(txt)){ txt = txt.replace(/^♪\s*/, ''); ic = 'musica'; }
-    t.innerHTML = `${ic ? `<span class="toast-i">${ico(ic)}</span>` : ''}<span class="toast-tx"></span><i class="toast-t" style="animation-duration:${ms}ms" aria-hidden="true"></i>`;
+    t.innerHTML = `${ic ? `<span class="toast-i">${ico(ic)}</span>` : ''}<span class="toast-tx"></span>${ir ? '<b class="toast-ir">Abrir</b>' : ''}<i class="toast-t" style="animation-duration:${ms}ms" aria-hidden="true"></i>`;
     t.querySelector('.toast-tx').textContent = txt;
-    if(!t.dataset.toque){ t.dataset.toque = '1'; t.addEventListener('click', fechaToast); }
+    t.dataset.ir = typeof ir === 'string' && /^#\/[^\s<>"]*$/.test(ir) ? ir : '';
+    if(!t.dataset.toque){ t.dataset.toque = '1'; t.addEventListener('click', () => { const vai = t.dataset.ir; fechaToast(); if(vai) location.hash = vai; }); }
     t.classList.remove('on'); t.hidden = false; void t.offsetWidth; t.classList.add('on');
     clearTimeout(toastT); toastT = setTimeout(fechaToast, ms);
   }
@@ -1738,7 +1740,7 @@
         /* ---- v3.35: avisos no celular (mesmas regras do delta-v335.sql; a demonstração não manda aviso de verdade) ---- */
         if(/^corre_push_/.test(n)){
           if(!uidR || !d.t.corre_perfis.some(p => p.id === uidR)) throw { message: 'sem perfil', hint: 'perfil' };
-          const A = a || {}, PADRAO = { msg: true, resp: true, seg: true, curt: true, texto: true, lembra: true };
+          const A = a || {}, PADRAO = { msg: true, resp: true, seg: true, curt: true, texto: true, lembra: true, postar: true };
           const pref = () => Object.assign({}, PADRAO, d.t.corre_push_pref.find(x => x.dono === uidR) || {});
           const ajustes = ep => { const p = pref(); delete p.dono; delete p.updated_at; return Object.assign(p, { aparelhos: d.t.corre_push.filter(x => x.dono === uidR).length, este: !!ep && d.t.corre_push.some(x => x.dono === uidR && x.endpoint === ep) }); };
           if(n === 'corre_push_ajustes') return ajustes(A.p_endpoint || null);
@@ -1755,7 +1757,7 @@
           }
           if(n === 'corre_push_tirar'){ const antes = d.t.corre_push.length; d.t.corre_push = d.t.corre_push.filter(x => !(x.endpoint === A.p_endpoint && x.dono === uidR)); write(d); return d.t.corre_push.length < antes; }
           if(n === 'corre_push_ajusta'){
-            if(!['msg', 'resp', 'seg', 'curt', 'texto', 'lembra'].includes(A.p_campo) || typeof A.p_valor !== 'boolean') throw { message: 'campo', hint: 'campo' };
+            if(!['msg', 'resp', 'seg', 'curt', 'texto', 'lembra', 'postar'].includes(A.p_campo) || typeof A.p_valor !== 'boolean') throw { message: 'campo', hint: 'campo' };
             let p = d.t.corre_push_pref.find(x => x.dono === uidR); if(!p){ p = Object.assign({ dono: uidR }, PADRAO); d.t.corre_push_pref.push(p); }
             p[A.p_campo] = A.p_valor; p.updated_at = now(); write(d); return ajustes(null);
           }

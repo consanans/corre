@@ -188,7 +188,9 @@
   const TIPOS = [['msg', 'Mensagens e pedidos', 'Quem te chama, na hora (e o papo dos teus grupos).'], ['resp', 'Respostas e menções', 'Respondeu, citou ou te marcou.'],
     ['seg', 'Seguidor novo e grupos', 'Seguidor junta num aviso só no dia. Pedido pra entrar no teu grupo e quando te aceitam.'], ['curt', 'Curtidas', 'Curtiu ou fortaleceu teu post, curtiu teu story.'],
     /* v4.06: só aparece com o banco novo (o ajuste traz "lembra") */
-    ['lembra', 'Lembretes do Corre', 'No fim da tarde, no máximo um por dia e só quando tem novidade pra você: visita no teu link na bio, pedido no Mural pro teu corre, o que falta no teu perfil.']];
+    ['lembra', 'Lembretes do Corre', 'No fim da tarde, no máximo um por dia e só quando tem novidade pra você: visita no teu link na bio, pedido no Mural pro teu corre, o que falta no teu perfil.'],
+    /* v4.18: só aparece com o banco novo (o ajuste traz "postar") */
+    ['postar', 'Hora de postar (Studio)', 'Na hora do post programado que não sai sozinho no Instagram, e quando o Instagram recusa um post. Toca e o post abre com o Postar na mão.']];
   /* o botão Compartilhar do Safari (quadrado com a seta pra cima), desenhado aqui pra pessoa reconhecer */
   const COMPARTILHAR = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v11.5M8 7l4-4 4 4"/><path d="M8.5 10.5H6v10h12v-10h-2.5"/></svg>';
   function passosIOS(){
@@ -219,7 +221,7 @@
       : e === 'iab' ? `<button type="button" class="btn pri" data-act="iab-copia">Copiar o link</button>`
       : e === 'bloqueado' ? `<button type="button" class="btn" data-act="push-confere">Já liberei</button>` : '';
     const tipos = P.semBanco ? '' : `<fieldset class="psh-tipos"${a.msg === undefined ? ' disabled' : ''}><legend>O que chega</legend>
-      ${TIPOS.filter(([k]) => k !== 'lembra' || a.lembra !== undefined).map(([k, t, s]) => `<label class="switch sm"><input type="checkbox" data-chg="push-tipo" data-k="${k}"${a[k] !== false ? ' checked' : ''}><span class="sw" aria-hidden="true"></span><span><b>${t}</b><small>${s}</small></span></label>${k === 'msg' ? `<label class="switch sm psh-sub"><input type="checkbox" data-chg="push-tipo" data-k="texto"${a.texto !== false ? ' checked' : ''}><span class="sw" aria-hidden="true"></span><span><b>Mostrar o texto da mensagem</b><small>Desligado, chega só "mandou uma mensagem".</small></span></label>` : ''}${k === 'lembra' && liga ? `<button type="button" class="lnk psh-ex" data-act="push-lembra-teste"${a.lembra === false ? ' hidden' : ''}>Mandar um lembrete de exemplo</button>` : ''}`).join('')}
+      ${TIPOS.filter(([k]) => (k !== 'lembra' && k !== 'postar') || a[k] !== undefined).map(([k, t, s]) => `<label class="switch sm"><input type="checkbox" data-chg="push-tipo" data-k="${k}"${a[k] !== false ? ' checked' : ''}><span class="sw" aria-hidden="true"></span><span><b>${t}</b><small>${s}</small></span></label>${k === 'msg' ? `<label class="switch sm psh-sub"><input type="checkbox" data-chg="push-tipo" data-k="texto"${a.texto !== false ? ' checked' : ''}><span class="sw" aria-hidden="true"></span><span><b>Mostrar o texto da mensagem</b><small>Desligado, chega só "mandou uma mensagem".</small></span></label>` : ''}${k === 'lembra' && liga ? `<button type="button" class="lnk psh-ex" data-act="push-lembra-teste"${a.lembra === false ? ' hidden' : ''}>Mandar um lembrete de exemplo</button>` : ''}`).join('')}
       <p class="fine">Vale pra todos os teus aparelhos. Quem você bloqueou não te avisa de nada.</p></fieldset>`;
     return `<div class="form psh"><div class="sheet-head"><h2>${ico('bell')} Avisos no celular</h2><button type="button" class="cbtn plain" data-close aria-label="Fechar">${ico('x')}</button></div>
       ${statusHTML(e)}${e === 'ios-instalar' ? passosIOS() : ''}
@@ -261,6 +263,7 @@
     const txt = onde === 'msg' ? 'Liga os avisos e fica sabendo na hora quando chegar mensagem.'
       : onde === 'bio' ? 'Liga os avisos e o Corre te conta no celular quando teu link na bio tiver visita.'
       : onde === 'horus' ? 'Liga os avisos e o celular apita na hora que chegar pedido de orçamento.'
+      : onde === 'studio' ? 'Liga os avisos e o celular te chama na hora de postar (e quando o cliente responde a aprovação).'
       : 'Curtida, resposta e seguidor novo no celular, com o Corre fechado.';
     return `<div class="psh-faixa" data-onde="${esc(onde)}"><span class="psh-fx-ic" aria-hidden="true">${ico('bell')}</span><p>${txt}</p>
       <button type="button" class="btn sm pri" data-act="push-ajustes">${e === 'ios-instalar' ? 'Como ligar' : 'Ligar'}</button>
@@ -282,6 +285,12 @@
           if(d.t === 'msg'){ if(C.msg) C.msg.sync(true); }
           /* v4.16: chegou pedido com o Corre aberto: o Hórus relê (a Entrada e o número da aba) */
           else if(d.t === 'pedido'){ if(C.horusFunil) C.horusFunil.chegou(); }
+          /* v4.18: a hora de postar com o Corre aberto na frente (no computador o service worker não mostra o aviso):
+             vira um aviso de cima que leva até o post */
+          else if(d.t === 'postar' && typeof d.url === 'string'){
+            const h = (/#\/[^\s<>"]*$/.exec(d.url) || [''])[0];
+            C.toast(`${typeof d.titulo === 'string' && d.titulo ? d.titulo.slice(0, 120) : 'Hora de postar'}. Toca aqui pra abrir o post.`, 12000, h || '#/studio');
+          }
           else if(C.avisos) C.avisos.sync(true);
         }else if(d.corre === 'push-sync') sync(true);
       });
