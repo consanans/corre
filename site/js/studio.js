@@ -61,6 +61,7 @@
     sem_permissao: 'A conta não deu a permissão de publicar. Conecta de novo e deixa "publicar" marcado.',
     ocupado: 'O Instagram pediu um tempo. Tenta daqui a pouco.', publicando: 'Esse post já tá indo pro Instagram.',
     sem_arte: 'Esse post não tem arte salva. Abre no editor e salva.', sem_rede: 'A marca não tem o @ do Instagram.',
+    formato: 'O post tá incompleto pro formato (carrossel com 2 ou mais, reels com vídeo). Abre no Editar e completa.',
     login: 'Entra de novo pra publicar.', sem_funcao: 'A função do Instagram ainda não foi atualizada no Supabase.', fn: 'A função do Instagram ainda não foi atualizada no Supabase.'
   };
   const pubMsg = e => (e && (PUB_ERRO[e.code] || (e.status === 404 && PUB_ERRO.sem_funcao) || e.detalhe)) || 'Não deu pra publicar agora.';
@@ -147,7 +148,7 @@
       <section class="card st-top">
         <div class="st-h"><div><span class="mono">${ico('magia')} Studio</span><h1>${m ? `O mês da <span class="hl">${esc(m.marca)}</span>` : ST.com.length ? 'Programa o mês. <span class="hl">O Corre posta.</span>' : 'Escolhe a marca e programa o mês'}</h1>
           <p class="note">Sobe as artes ou manda a IA fazer, escolhe os dias e pronto: ${C.ig && !C.ig.aberto() && !(C.ig.conectadas() || []).length ? 'cada post entra na agenda, e na hora o Corre te lembra de postar (a postagem automática no Instagram chega em breve).' : 'cada post sai sozinho no Instagram, no dia e na hora.'}</p></div>
-          ${ST.com.length ? `<div class="st-ctas"><button type="button" class="btn pri st-novo" data-act="lt-mes">${ico('magia')} Mês com IA</button><button type="button" class="btn st-sub" data-act="lt-subir">${ico('up')} Subir artes</button><button type="button" class="btn ghost st-um" data-act="sd-novo">${ico('plus')} Um post</button></div>` : ''}</div>
+          ${ST.com.length ? `<div class="st-ctas"><button type="button" class="btn pri st-novo" data-act="lt-mes">${ico('magia')} Mês com IA</button><button type="button" class="btn st-sub" data-act="lt-subir">${ico('up')} Subir artes</button><button type="button" class="btn ghost st-um" data-act="sd-novo">${ico('plus')} Um post</button>${C.aprova ? `<button type="button" class="btn ghost st-apr" data-act="ap-link"${m ? ` data-marca="${m.id}"` : ''}>${ico('check')} Link de aprovação</button>` : ''}</div>` : ''}</div>
         ${ST.com.length || ST.sem.length ? `<div class="st-marcas" role="tablist" aria-label="Marcas">
           ${ST.com.length > 1 ? `<button type="button" role="tab" class="st-mk todas" data-act="sd-marca" data-id="todas" aria-selected="${ST.sel === 'todas'}"><span class="sd-todas" aria-hidden="true">${ST.com.slice(0, 3).map(x => `<i style="--c:${esc(x.cor || '#FFE800')}"></i>`).join('')}</span><span><b>Todas</b><small>${ST.com.length} marcas</small></span></button>` : ''}
           ${ST.com.map(chip).join('')}
@@ -189,10 +190,14 @@
       .filter(([k, n]) => n || k === 'prog' || k === 'pub').map(([k, n, t]) => `<span class="sd-n ${k}"><b class="num">${n}</b> ${t}</span>`).join('')
       + (!L.length && !rasc ? `<span class="sd-n-dica">Mês vazio: o <b>Mês com IA</b> monta e programa ele inteiro.</span>` : '');
   }
-  const thumb = p => p.midia_url ? `<img src="${esc(p.midia_url)}" alt="" loading="lazy" decoding="async">` : `<span class="sd-noart">${ico('img')}</span>`;
+  /* v4.17: o formato (carrossel, story, reels) e a resposta do cliente no link de aprovação aparecem nos cartões */
+  const ES = () => C.estudio || {};
+  const tags = p => (ES().fmtTag ? ES().fmtTag(p) : '') + (ES().aprovTag ? ES().aprovTag(p) : '');
+  const fmtDe = p => (p && p.formato) || 'feed';
+  const thumb = p => p.midia_url ? `<img src="${esc(p.midia_url)}" alt="" loading="lazy" decoding="async">${tags(p)}` : `<span class="sd-noart">${ico('img')}</span>`;
   const rot = p => { const m = marcaDe(p); return `${p.hora || 'sem hora'}${m ? ' · ' + m.marca : ''}: ${p.titulo || 'post'} (${EST[estado(p)][0]})`; };
   const mao = (p, s) => (s === 'prog' && !contaDoPost(p)) ? ' mao' : '';
-  const chipMes = p => { const m = marcaDe(p), s = estado(p); return `<button type="button" class="sd-ch ${s}${mao(p, s)}" data-act="sd-post" data-id="${p.id}" style="--c:${esc((m && m.cor) || '#FFE800')}" aria-label="${esc(rot(p))}">${p.midia_url ? `<img class="mini" src="${esc(p.midia_url)}" alt="" loading="lazy" decoding="async">` : '<i class="cor"></i>'}<span class="t num">${esc(p.hora || '··:··')}</span><span class="tt">${esc(p.titulo || (m && m.marca) || 'Post')}</span><i class="st" aria-hidden="true"></i></button>`; };
+  const chipMes = p => { const m = marcaDe(p), s = estado(p); return `<button type="button" class="sd-ch ${s}${mao(p, s)}" data-act="sd-post" data-id="${p.id}" style="--c:${esc((m && m.cor) || '#FFE800')}" aria-label="${esc(rot(p))}">${p.midia_url ? `<img class="mini" src="${esc(p.midia_url)}" alt="" loading="lazy" decoding="async">` : '<i class="cor"></i>'}${p.aprov ? `<i class="apr-pt ${p.aprov === 'aprovado' ? 'ok' : 'aj'}" title="${p.aprov === 'aprovado' ? 'Aprovado pelo cliente' : 'O cliente pediu ajuste'}"></i>` : ''}<span class="t num">${esc(p.hora || '··:··')}</span><span class="tt">${esc(p.titulo || (m && m.marca) || 'Post')}</span><i class="st" aria-hidden="true"></i></button>`; };
   function mes(){
     const [y, m] = ST.mes.split('-').map(Number), t = hoje();
     const first = new Date(Date.UTC(y, m - 1, 1)).getUTCDay(), off = (first + 6) % 7, days = new Date(Date.UTC(y, m, 0)).getUTCDate();
@@ -210,7 +215,7 @@
     const mk = ST.com.find(x => x.id === ST.sel);
     let grade = '';
     if(mk){
-      const fim = `${ST.mes}-${pad(days)}`, G = ordena(visiveis().filter(p => p.data && p.data <= fim && p.status !== 'ideia' && p.midia_url)).reverse().slice(0, 9);
+      const fim = `${ST.mes}-${pad(days)}`, G = ordena(visiveis().filter(p => p.data && p.data <= fim && p.status !== 'ideia' && p.midia_url && fmtDe(p) !== 'story')).reverse().slice(0, 9);
       grade = `<aside class="sd-grade"><h3 class="mono">Como o perfil fica</h3>${G.length ? `<div class="sd-g3">${G.map(p => `<button type="button" data-act="sd-post" data-id="${p.id}" class="${estado(p) === 'pub' ? 'pub' : ''}" aria-label="${esc(p.titulo || 'post')}"><img src="${esc(p.midia_url)}" alt="" loading="lazy" decoding="async"></button>`).join('')}</div><p class="note">@${esc(mk.rede)} no fim de ${MES[m - 1]}: o mais novo no canto de cima.</p>` : '<p class="note">Os posts com arte aparecem aqui na ordem em que entram no feed.</p>'}</aside>`;
     }
     return `<div class="sd-mes${grade ? ' com-grade' : ''}"><div class="sd-grid">${cells.join('')}</div>${grade}</div>${legenda()}`;
@@ -263,9 +268,10 @@
     const amanha = isoUTC(Date.now() - 3 * 36e5 + DAY), dDef = p.data && p.data >= hoje() ? p.data : amanha, hDef = p.hora || '18:00';
     C.sheet(`<div class="form sd-pp"><div class="sheet-head"><h2>${m ? C.marcaLogo(m, 's') : ''}<span>${esc(m ? m.marca : 'Post')}</span></h2><button type="button" class="cbtn plain" data-close aria-label="Fechar">${ico('x')}</button></div>
       <div class="sd-pp-cols">
-        <figure class="sd-pp-art">${p.midia_url ? `<img src="${esc(p.midia_url)}" alt="${esc(p.alt || p.titulo || '')}">` : `<span class="sd-noart">${ico('img')}<b>Sem arte ainda</b></span>`}</figure>
+        <figure class="sd-pp-art f-${fmtDe(p)}">${(ES().midiaHTML && ES().midiaHTML(p, 'sd')) || (p.midia_url ? `<img src="${esc(p.midia_url)}" alt="${esc(p.alt || p.titulo || '')}">` : `<span class="sd-noart">${ico('img')}<b>Sem arte ainda</b></span>`)}</figure>
         <div class="sd-pp-tx">
-          <div class="sd-pp-q">${pill(s)}<b class="num">${esc(longo(p))}</b>${fim && foi ? C.ig.chip(foi) : ''}</div>
+          <div class="sd-pp-q">${pill(s)}<b class="num">${esc(longo(p))}</b>${fim && foi ? C.ig.chip(foi) : ''}${tags(p)}</div>
+          ${p.aprov === 'ajuste' ? `<p class="apr-nota"><b>${esc(p.aprov_quem || 'O cliente')} pediu ajuste:</b> ${esc(p.aprov_nota || '')}</p>` : p.aprov === 'aprovado' ? `<p class="apr-nota ok"><b>Aprovado</b>${p.aprov_quem ? ` por ${esc(p.aprov_quem)}` : ''}${p.aprov_em ? ` em ${esc(curto(String(p.aprov_em).slice(0, 10)))}` : ''}.</p>` : p.aprov_nota ? `<p class="apr-nota velha"><b>Ajuste pedido antes:</b> ${esc(p.aprov_nota)}</p>` : ''}
           <p class="fine">${linhaEstado(p, s, m, conta)}</p>
           ${!fim && C.ig ? `<div class="sd-pp-conta">${C.ig.seletor('sd-pc', p.ig_conta || '', m)}</div>` : ''}
           ${s === 'erro' && p.ig_erro ? `<p class="sd-pp-erro">${esc(p.ig_erro)}</p>` : ''}
@@ -286,7 +292,7 @@
             </div>
             <div class="sd-pp-mais">
               <button type="button" class="btn sm" data-act="sd-copiar" data-id="${p.id}"${p.legenda ? '' : ' disabled'}>${ico('copy')} Copiar legenda</button>
-              <button type="button" class="btn sm" data-act="sd-baixar" data-id="${p.id}"${p.midia_url ? '' : ' disabled'}>${ico('down')} Baixar arte</button>
+              <button type="button" class="btn sm" data-act="sd-baixar" data-id="${p.id}"${p.midia_url ? '' : ' disabled'}>${ico('down')} ${fmtDe(p) === 'feed' ? 'Baixar arte' : 'Baixar'}</button>
               ${s !== 'indo' ? `<button type="button" class="btn sm${s === 'pub' && p.status === 'postado' ? ' on' : ''}" data-act="sd-feito" data-id="${p.id}" aria-pressed="${s === 'pub'}"${s === 'pub' && p.ig_status === 'publicado' ? ' hidden' : ''}>${ico('check')} ${s === 'pub' ? 'Publicado à mão' : 'Já postei'}</button>` : ''}
               ${s === 'prog' || s === 'atras' ? `<button type="button" class="btn sm ghost" data-act="sd-cancelar" data-id="${p.id}">Tirar da agenda</button>` : ''}
             </div>
@@ -326,6 +332,7 @@
   /* "Postar": a legenda vai copiada e a arte vai pro Instagram. No celular, pelo compartilhar (escolhe o Instagram);
      no computador, a arte baixa e o Instagram abre numa aba (+ Criar, escolhe a arte e cola a legenda) */
   async function postar(p){
+    if(fmtDe(p) !== 'feed' && ES().entregar){ const m = marcaDe(p); return ES().entregar(p, { marca: m && m.marca, depois: () => depois(p.id) }); }
     const leg = p.legenda || '';
     try{ if(leg && navigator.clipboard) navigator.clipboard.writeText(leg).catch(() => {}); }catch(e){}
     /* com a postagem automática ligada, quem posta à mão tira o post da fila (senão ele sai duas vezes). O banco é
@@ -389,7 +396,7 @@
     'sd-post': el => painel(el.dataset.id),
     'sd-editar': el => { const p = ST.posts.find(x => x.id === el.dataset.id), m = p && marcaDe(p); if(p && m) abrirEditor(m, p); },
     'sd-copiar': el => { const p = ST.posts.find(x => x.id === el.dataset.id); if(p && p.legenda) C.copy(p.legenda, 'Legenda copiada.'); },
-    'sd-baixar': async el => { const p = ST.posts.find(x => x.id === el.dataset.id); if(p) await baixar(p); },
+    'sd-baixar': async el => { const p = ST.posts.find(x => x.id === el.dataset.id); if(!p) return; if(fmtDe(p) !== 'feed' && ES().entregar){ const m = marcaDe(p); return ES().entregar(p, { marca: m && m.marca, depois: () => depois(p.id) }); } await baixar(p); },
     'sd-atualiza': el => depois(el.dataset.id),
     'sd-prog': () => { const f = C.$('sd-pp-prog'), a = C.$('sd-pp-acts'); if(f){ f.hidden = false; a.hidden = true; C.$('sd-ph').focus(); } },
     'sd-prog-x': () => { const f = C.$('sd-pp-prog'), a = C.$('sd-pp-acts'); if(f){ f.hidden = true; a.hidden = false; } },
@@ -423,7 +430,7 @@
         try{ await C.api.upd('corre_posts', { id: p.id }, { ig_status: 'publicado', status: 'postado', ig_erro: '', ig_link: `https://www.instagram.com/${encodeURIComponent(c.username)}/` }); }catch(e){}
         return depois(p.id, 'Na demonstração o post fica como publicado, mas não vai pro Instagram de verdade.');
       }
-      try{ const r = await C.api.fn('instagram', { acao: 'publicar', post_id: p.id }); await depois(p.id, r && r.ja ? 'Esse já tava no Instagram.' : 'Publicado no Instagram.'); }
+      try{ const r = await C.api.fn('instagram', { acao: 'publicar', post_id: p.id }); await depois(p.id, r && r.ja ? 'Esse já tava no Instagram.' : r && r.processando ? 'O Instagram tá processando o vídeo. Sai sozinho em alguns minutos.' : 'Publicado no Instagram.'); }
       catch(e){ await depois(p.id, pubMsg(e)); }
     },
     'sd-manual': async el => { const p = ST.posts.find(x => x.id === el.dataset.id); if(p) await postar(p); },

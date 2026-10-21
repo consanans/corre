@@ -1320,6 +1320,8 @@
     /* v4.0 · o Link na bio (app.corresocial.com/@nome vira #/bio/nome no começo do index.html): abre sem login */
     if(h.startsWith('bio/') && C.views.bio){ if(st.user) await loadMe(); window.scrollTo(0, 0); return C.views.bio(app, C.decURI(h.slice(4))); }
     if(!st.user && /^houzi\//.test(h)){ try{ localStorage.setItem('corre-volta', location.hash); }catch(e){} }
+    /* v4.17 · o link de aprovação do Studio: o cliente abre sem login */
+    if(h.startsWith('aprova/') && C.views.aprova){ if(st.user) await loadMe(); window.scrollTo(0, 0); return C.views.aprova(app, C.decURI(h.slice(7))); }
     /* Vendas: o orçamento que o cliente recebe abre sem login */
     if(h.startsWith('o/') && C.views.orcamentoVenda){ if(st.user) await loadMe(); window.scrollTo(0, 0); return C.views.orcamentoVenda(app, C.decURI(h.slice(2))); }
     /* Hórus 4: o link público de orçamento abre sem login */

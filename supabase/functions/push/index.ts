@@ -14,7 +14,8 @@
 //   acao "lembrete-teste" (v4.06): o "Mandar um lembrete de exemplo" do app, só pros aparelhos de quem pediu (um por minuto).
 //   acao "pedidos" (v4.16, SEM login): a página do pedido de orçamento, a do Mural e a do orçamento aprovado chamam logo
 //     depois que o cliente manda; a função entrega o que o corre_pedidos_alvos devolve (os últimos 10 minutos, um aviso
-//     por pedido, gravado antes de sair).
+//     por pedido, gravado antes de sair). Desde a v4.17, também o cliente que terminou de responder o link de aprovação
+//     do Studio (corre_aprov_alvos, do mesmo jeito).
 // Aparelho que o serviço diz que sumiu (404/410) sai do banco (corre_push_mortos).
 //
 // A cifra é a do padrão (RFC 8291, aes128gcm) e a assinatura do Corre é a VAPID (RFC 8292), tudo com o WebCrypto do
@@ -198,6 +199,10 @@ Deno.serve(async (req) => {
     const { data: alvos, error } = await admin.rpc('corre_pedidos_alvos', {});
     if (error) { console.warn('[push] pedidos', error.message); return json({ erro: 'banco' }, 503); }
     const L = Array.isArray(alvos) ? alvos : [];
+    /* v4.17: e o cliente que terminou de responder o link de aprovação do Studio (sem o delta da 4.17, só os pedidos) */
+    const { data: aprov, error: ea } = await admin.rpc('corre_aprov_alvos', {});
+    if (ea) console.warn('[push] aprovacao', ea.message);
+    else if (Array.isArray(aprov)) L.push(...aprov);
     if (!L.length) return json({ ok: true, pessoas: 0, entregues: 0 });
     const r = await manda(admin, v, lista(L, 'high'));
     console.log('[push] pedidos', JSON.stringify({ pessoas: L.length, entregues: r.ok, saiu: r.mortos }));

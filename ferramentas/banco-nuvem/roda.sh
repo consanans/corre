@@ -114,6 +114,12 @@ $P -f "$AQUI/semente416.sql"
 delta delta-v416.sql 'delta v4.16 ok'
 delta delta-v416.sql 'delta v4.16 ok'
 testa teste416.sql 13
+# v4.17: o Studio com carrossel, story e reels e o link de aprovação pro cliente; a semente põe no corre_posts as
+# colunas da produção e o gatilho do Instagram como tá lá
+$P -f "$AQUI/semente417.sql"
+delta delta-v417.sql 'delta v4.17 ok'
+delta delta-v417.sql 'delta v4.17 ok'
+testa teste417.sql 24
 . "$AQUI/virada343.sh"
 if grep -q 'FALHOU\|ERROR' $D/saida; then echo "deu FALHOU ou erro (acima)"; exit 1; fi
 echo "tudo ok: $(grep -c '^ok:' $D/saida) checagens"

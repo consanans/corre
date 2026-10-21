@@ -4,7 +4,11 @@
 (function(){
   'use strict';
   const C = window.Corre, { esc, ico } = C;
-  const W = 1080, HH = 1350, M = 80;
+  /* v4.17: o story é 1080×1920 (HH muda no render) e tem as faixas que o Instagram cobre em cima e embaixo (PT e PB) */
+  const W = 1080, M = 80;
+  let HH = 1350, PT = 0, PB = 0;
+  /* v4.17: os formatos do post (a chave, o nome, o selo e a dica do editor) */
+  const FMTS = [['feed', 'Feed', '4:5', 'Uma arte no feed, 1080×1350.'], ['carrossel', 'Carrossel', 'até 10', 'De 2 a 10 slides: arte, foto ou vídeo de até 60 s. A legenda é uma só.'], ['story', 'Story', '9:16', 'Arte 1080×1920 ou vídeo de até 60 s. Story não leva legenda: o que precisa dizer vai na arte.'], ['reels', 'Reels', 'vídeo', 'Vídeo de 3 s a 15 min, em pé. A capa é um quadro do vídeo.']];
   const MODELOS = [['capa', 'Capa'], ['imagem', 'Só imagem'], ['foto', 'Foto'], ['oferta', 'Oferta'], ['frase', 'Frase'], ['lista', 'Lista']];
   const ESTILOS = [['refs', 'Igual às referências', 'seguindo de perto o estilo visual das imagens de referência'], ['foto', 'Foto de anúncio', 'fotografia realista de publicidade, luz natural bonita, foco nítido, cores vivas'], ['riso', 'Risografia', 'ilustração em risografia com três cores chapadas, textura de impressão e granulado'], ['colagem', 'Colagem', 'colagem editorial com recortes de papel e fotografias, textura de xerox'], ['3d', '3D brinquedo', 'render 3D estilo brinquedo, cores vivas, luz de estúdio suave'], ['noite', 'Cinema noturno', 'fotografia cinematográfica noturna, luz de neon, grão de filme']];
   const IG_ERRO = { sem_chave: 'O Instagram ainda não foi ligado no Corre. Por enquanto, sobe o print do feed.', nao_comercial: 'Esse @ não é conta comercial ou de criador (ou não existe). Sobe o print do feed.', sem_posts: 'Esse perfil não tem posts com imagem.', limite: 'Hoje já deu o limite de puxadas do Instagram. Amanhã tem mais.', ocupado: 'O Instagram pediu um tempo. Tenta daqui a pouco.', usuario: 'Esse @ não parece certo.', login: 'Entra de novo pra puxar do Instagram.', provedor: 'O Instagram não respondeu. Tenta de novo.' };
@@ -46,16 +50,19 @@
   function cover(ctx, img, x, y, w, h){ const k = Math.max(w / img.naturalWidth, h / img.naturalHeight), sw = w / k, sh = h / k; ctx.drawImage(img, (img.naturalWidth - sw) / 2, (img.naturalHeight - sh) / 2, sw, sh, x, y, w, h); }
   const loadImg = src => new Promise(ok => { if(!src) return ok(null); const im = new Image(); if(!/^(data|blob):/.test(src)) im.crossOrigin = 'anonymous'; im.onload = () => ok(im); im.onerror = () => ok(null); im.src = src; });
   function footer(ctx, a, ink, logo){
-    const y = HH - M + 6; let x = M;
+    const y = HH - PB - M + 6; let x = M;
     if(logo){ ctx.save(); ctx.beginPath(); ctx.arc(x + 30, y - 22, 30, 0, 6.283); ctx.closePath(); ctx.fillStyle = '#fff'; ctx.fill(); ctx.clip(); cover(ctx, logo, x, y - 52, 60, 60); ctx.restore(); ctx.lineWidth = 4; ctx.strokeStyle = ink; ctx.beginPath(); ctx.arc(x + 30, y - 22, 30, 0, 6.283); ctx.stroke(); x += 78; }
     font(ctx, 800, 32, 'normal'); ctx.fillStyle = ink; ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left'; ctx.fillText(a.marca, x, y - 10);
     if(a.rede){ font(ctx, 600, 26, 'normal'); ctx.textAlign = 'right'; ctx.globalAlpha = .85; ctx.fillText('@' + a.rede, W - M, y - 10); ctx.globalAlpha = 1; ctx.textAlign = 'left'; }
   }
   async function render(cv, a){
     try{ await Promise.all([document.fonts.load('900 100px Archivo'), document.fonts.load('800 40px Archivo'), document.fonts.load('600 30px Archivo')]); }catch(e){}
-    const ctx = cv.getContext('2d'); cv.width = W; cv.height = HH;
+    const ctx = cv.getContext('2d');
     const bg = a.cor || '#FFE800', ink = inkOn(bg), acc = accentOn(bg);
     const [foto, logo] = await Promise.all([loadImg(a.foto), loadImg(a.logo ? a.logo_url : '')]);
+    /* daqui pra baixo o desenho não espera mais nada: o tamanho vale até o fim dele */
+    HH = a.alto === 1920 ? 1920 : 1350; PT = HH === 1920 ? 190 : 0; PB = HH === 1920 ? 250 : 0;
+    cv.width = W; cv.height = HH;
     ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left';
     const kicker = (y, color, fill) => { if(!a.kicker) return; font(ctx, 800, 30, 'normal'); const t = a.kicker.toUpperCase(), w = ctx.measureText(t).width + 44; ctx.fillStyle = fill; rr(ctx, M, y - 44, w, 60, 30); ctx.fill(); ctx.fillStyle = color; ctx.fillText(t, M + 22, y - 3); };
     const m = a.modelo || 'capa';
@@ -63,7 +70,7 @@
     if(m === 'subida'){ ctx.fillStyle = '#141216'; ctx.fillRect(0, 0, W, HH); if(foto) cover(ctx, foto, 0, 0, W, HH); return; }
     if(m === 'imagem'){
       ctx.fillStyle = bg; ctx.fillRect(0, 0, W, HH);
-      if(foto){ cover(ctx, foto, 0, 0, W, HH); const g = ctx.createLinearGradient(0, HH - 260, 0, HH); g.addColorStop(0, 'rgba(12,10,15,0)'); g.addColorStop(1, 'rgba(12,10,15,.6)'); ctx.fillStyle = g; ctx.fillRect(0, HH - 260, W, 260); footer(ctx, a, '#FFFFFF', logo); }
+      if(foto){ cover(ctx, foto, 0, 0, W, HH); const g = ctx.createLinearGradient(0, HH - PB - 260, 0, HH); g.addColorStop(0, 'rgba(12,10,15,0)'); g.addColorStop(1, 'rgba(12,10,15,.6)'); ctx.fillStyle = g; ctx.fillRect(0, HH - PB - 260, W, PB + 260); footer(ctx, a, '#FFFFFF', logo); }
       else { dots(ctx, ink, .08); font(ctx, 800, 46, 'normal'); ctx.fillStyle = ink; ctx.textAlign = 'center'; ctx.fillText('Gera com a IA ou põe uma foto', W / 2, HH / 2); ctx.textAlign = 'left'; footer(ctx, a, ink, logo); }
       return;
     }
@@ -75,19 +82,19 @@
       if(m === 'foto' && foto){
         const t = fit(ctx, a.titulo || '', W - M * 2 - 60, 300, 84, 44, 900, 'condensed', 1.0);
         const sub = a.texto ? (font(ctx, 600, 34, 'normal'), wrap(ctx, a.texto, W - M * 2 - 60).slice(0, 3)) : [];
-        const boxH = 60 + t.lines.length * t.px + (sub.length ? 20 + sub.length * 44 : 0) + 30, by = HH - M - 90 - boxH;
+        const boxH = 60 + t.lines.length * t.px + (sub.length ? 20 + sub.length * 44 : 0) + 30, by = HH - PB - M - 90 - boxH;
         ctx.fillStyle = '#FFFFFF'; rr(ctx, M, by, W - M * 2, boxH, 28); ctx.fill(); ctx.lineWidth = 6; ctx.strokeStyle = '#141216'; ctx.stroke();
         ctx.fillStyle = bg; ctx.fillRect(M + 30, by - 10, 120, 20);
         font(ctx, 900, t.px, 'condensed'); ctx.fillStyle = '#141216'; t.lines.forEach((l, i) => ctx.fillText(l.toUpperCase(), M + 30, by + 30 + t.px * (i + 0.85)));
         font(ctx, 600, 34, 'normal'); ctx.fillStyle = '#48444C'; sub.forEach((l, i) => ctx.fillText(l, M + 30, by + 50 + t.px * t.lines.length + 44 * (i + 0.8)));
-        kicker(M + 50, '#141216', bg);
+        kicker(PT + M + 50, '#141216', bg);
         footer(ctx, a, '#FFFFFF', logo);
         return;
       }
-      kicker(M + 50, foto ? '#141216' : bg, foto ? bg : ink);
+      kicker(PT + M + 50, foto ? '#141216' : bg, foto ? bg : ink);
       const sub = a.texto ? (font(ctx, 600, 40, 'normal'), wrap(ctx, a.texto, W - M * 2).slice(0, 4)) : [];
-      const subH = sub.length ? sub.length * 52 + 30 : 0, bottom = HH - M - 90 - subH;
-      const t = fit(ctx, (a.titulo || 'Título do post').toUpperCase(), W - M * 2, bottom - M - 120, 190, 70, 900, 'condensed', 0.92);
+      const subH = sub.length ? sub.length * 52 + 30 : 0, bottom = HH - PB - M - 90 - subH;
+      const t = fit(ctx, (a.titulo || 'Título do post').toUpperCase(), W - M * 2, bottom - PT - M - 120, 190, 70, 900, 'condensed', 0.92);
       font(ctx, 900, t.px, 'condensed');
       const top = bottom - t.lines.length * t.px * 0.92;
       t.lines.forEach((l, i) => { const y = top + t.px * 0.92 * (i + 1) - t.px * 0.12; if(!foto){ ctx.fillStyle = acc; ctx.fillText(l, M + 7, y + 7); } ctx.fillStyle = tc; ctx.fillText(l, M, y); });
@@ -98,7 +105,7 @@
     if(m === 'frase'){
       ctx.fillStyle = bg; ctx.fillRect(0, 0, W, HH); dots(ctx, ink, .07);
       const t = fit(ctx, a.titulo || 'Uma frase que a marca diria.', W - M * 2, HH - 700, 116, 48, 800, 'normal', 1.12);
-      const blockH = 300 + t.lines.length * t.px * 1.12 + (a.texto ? 90 : 0), y0 = Math.max(M + 40, (HH - 120 - blockH) / 2);
+      const blockH = 300 + t.lines.length * t.px * 1.12 + (a.texto ? 90 : 0), y0 = Math.max(PT + M + 40, (HH - 120 - blockH) / 2);
       font(ctx, 900, 480, 'condensed'); ctx.fillStyle = acc; ctx.fillText('“', M - 20, y0 + 330);
       font(ctx, 800, t.px, 'normal'); ctx.fillStyle = ink; t.lines.forEach((l, i) => ctx.fillText(l, M, y0 + 330 + t.px * 1.12 * (i + 0.8)));
       if(a.texto){ font(ctx, 600, 36, 'normal'); ctx.fillStyle = ink; ctx.globalAlpha = .8; ctx.fillText('— ' + a.texto.split('\n')[0], M, y0 + 380 + t.px * 1.12 * t.lines.length + 30); ctx.globalAlpha = 1; }
@@ -107,25 +114,25 @@
     if(m === 'oferta'){
       ctx.fillStyle = bg; ctx.fillRect(0, 0, W, HH);
       if(foto){ ctx.save(); ctx.globalAlpha = .28; cover(ctx, foto, 0, 0, W, HH); ctx.restore(); }
-      dots(ctx, ink, .08); kicker(M + 50, bg, ink);
+      dots(ctx, ink, .08); kicker(PT + M + 50, bg, ink);
       const n = fit(ctx, a.numero || 'R$ 29,90', W - M * 2, 360, 300, 110, 900, 'expanded', 1);
-      font(ctx, 900, n.px, 'expanded'); n.lines.forEach((l, i) => { const y = 470 + n.px * i; ctx.fillStyle = acc; ctx.fillText(l, M + 9, y + 9); ctx.fillStyle = ink; ctx.fillText(l, M, y); });
+      font(ctx, 900, n.px, 'expanded'); n.lines.forEach((l, i) => { const y = PT + 470 + n.px * i; ctx.fillStyle = acc; ctx.fillText(l, M + 9, y + 9); ctx.fillStyle = ink; ctx.fillText(l, M, y); });
       const t = fit(ctx, (a.titulo || 'Combo da semana').toUpperCase(), W - M * 2, 300, 110, 50, 900, 'condensed', 0.95);
-      font(ctx, 900, t.px, 'condensed'); ctx.fillStyle = ink; const ty = 470 + n.px * (n.lines.length - 1) + 60; t.lines.forEach((l, i) => ctx.fillText(l, M, ty + t.px * 0.95 * (i + 1)));
-      if(a.texto){ ctx.save(); ctx.translate(W / 2, HH - 300); ctx.rotate(-0.05); font(ctx, 900, 52, 'condensed'); const s = a.texto.split('\n')[0].toUpperCase(), w = Math.min(W + 40, ctx.measureText(s).width + 140);
+      font(ctx, 900, t.px, 'condensed'); ctx.fillStyle = ink; const ty = PT + 470 + n.px * (n.lines.length - 1) + 60; t.lines.forEach((l, i) => ctx.fillText(l, M, ty + t.px * 0.95 * (i + 1)));
+      if(a.texto){ ctx.save(); ctx.translate(W / 2, HH - PB - 300); ctx.rotate(-0.05); font(ctx, 900, 52, 'condensed'); const s = a.texto.split('\n')[0].toUpperCase(), w = Math.min(W + 40, ctx.measureText(s).width + 140);
         ctx.fillStyle = '#141216'; ctx.fillRect(-w / 2 + 8, -48 + 8, w, 96); ctx.fillStyle = bg.toUpperCase() === '#FFE800' ? '#FF48B0' : '#FFE800'; ctx.fillRect(-w / 2, -48, w, 96); ctx.fillStyle = '#141216'; ctx.textAlign = 'center'; ctx.fillText(s, 0, 18); ctx.restore(); ctx.textAlign = 'left'; }
       footer(ctx, a, ink, logo); return;
     }
     if(m === 'lista'){
       ctx.fillStyle = '#F4F3EF'; ctx.fillRect(0, 0, W, HH);
       const t = fit(ctx, (a.titulo || 'Três coisas que…').toUpperCase(), W - M * 2, 260, 120, 54, 900, 'condensed', 0.95);
-      const kOff = a.kicker ? 50 : 0, bandH = M + 40 + kOff + t.lines.length * t.px * 0.95 + 50;
+      const kOff = a.kicker ? 50 : 0, bandH = PT + M + 40 + kOff + t.lines.length * t.px * 0.95 + 50;
       ctx.fillStyle = bg; ctx.fillRect(0, 0, W, bandH); dots(ctx, inkOn(bg), .06);
-      kicker(M + 40, bg, inkOn(bg));
-      font(ctx, 900, t.px, 'condensed'); ctx.fillStyle = inkOn(bg); t.lines.forEach((l, i) => ctx.fillText(l, M, M + 40 + kOff + t.px * 0.95 * (i + 1)));
+      kicker(PT + M + 40, bg, inkOn(bg));
+      font(ctx, 900, t.px, 'condensed'); ctx.fillStyle = inkOn(bg); t.lines.forEach((l, i) => ctx.fillText(l, M, PT + M + 40 + kOff + t.px * 0.95 * (i + 1)));
       ctx.fillStyle = '#141216'; ctx.fillRect(0, bandH, W, 8);
       const items = String(a.texto || 'Primeiro ponto\nSegundo ponto\nTerceiro ponto').split('\n').map(s => s.trim()).filter(Boolean).slice(0, 5);
-      const avail = HH - bandH - 200, each = avail / Math.max(3, items.length);
+      const avail = HH - PB - bandH - 200, each = avail / Math.max(3, items.length);
       items.forEach((it, i) => {
         const y = bandH + 70 + each * i;
         font(ctx, 900, 96, 'expanded'); ctx.fillStyle = bg === '#F4F3EF' ? '#FF48B0' : bg; ctx.fillText(String(i + 1), M, y + 70); ctx.lineWidth = 3; ctx.strokeStyle = '#141216'; ctx.strokeText(String(i + 1), M, y + 70);
@@ -229,7 +236,7 @@
         <div class="er-sec-h"><h3 id="er-todos-h">Ver todos</h3>
           <div class="er-tools"><div class="er-seg" role="tablist" aria-label="Período"><button type="button" role="tab" data-act="er-tab" data-t="semana" aria-selected="${S.tab === 'semana'}">Semana</button><button type="button" role="tab" data-act="er-tab" data-t="mes" aria-selected="${S.tab === 'mes'}">Mês</button></div>
             <button type="button" class="btn" data-act="er-zip">${ico('down')} <span id="er-zip-l">${S.tab === 'semana' ? 'Baixar a semana' : 'Baixar o mês'}</span></button>
-            <button type="button" class="btn pri" data-act="es-novo">${ico('plus')} Post</button>${VV() ? `<button type="button" class="btn" data-act="vs-nova">${ico('pin')} Visita</button>` : ''}</div>
+            <button type="button" class="btn pri" data-act="es-novo">${ico('plus')} Post</button>${VV() ? `<button type="button" class="btn" data-act="vs-nova">${ico('pin')} Visita</button>` : ''}${C.aprova ? `<button type="button" class="btn" data-act="ap-link" data-marca="${mk.id}">${ico('check')} Aprovação</button>` : ''}</div>
         </div>
         <div id="er-pane"></div>
       </section>`;
@@ -261,19 +268,23 @@
     const L = ordenados(), p = L.find(x => x.id === S.sel); if(!p || !$r('er-shot')) return;
     const n = L.indexOf(p) + 1, s = estado(p), leg = p.legenda || '';
     const shot = $r('er-shot');
-    if(shot.dataset.id !== p.id + (p.midia_url || '')){
-      shot.dataset.id = p.id + (p.midia_url || '');
-      shot.innerHTML = p.midia_url ? `<img src="${esc(p.midia_url)}" alt="${esc(p.alt || p.titulo || '')}" decoding="async">` : `<span class="er-noart">${ico('img')}<b>Sem arte ainda</b></span>`;
+    const sigShot = p.id + (p.midia_url || '') + JSON.stringify(p.midias || []);
+    if(shot.dataset.id !== sigShot){
+      shot.dataset.id = sigShot;
+      shot.className = 'er-shot f-' + fmtDe(p);
+      shot.innerHTML = midiaHTML(p, 'er') || `<span class="er-noart">${ico('img')}<b>Sem arte ainda</b></span>`;
     }
+    const fe = document.querySelector('.er-ctrl .fmt'); if(fe) fe.textContent = { feed: 'Feed 4:5 · 1080×1350', carrossel: `Carrossel · ${midiasDe(p).length} slides`, story: 'Story 9:16 · 1080×1920', reels: 'Reels · vídeo' }[fmtDe(p)];
     $r('er-pos').textContent = `${pad(n)} / ${pad(L.length)}`;
     $r('er-cap').innerHTML = `<span class="mono">${esc(stageLabel(p, L))} · post ${pad(n)} de ${pad(L.length)}${p.tema ? ' · ' + esc(p.tema) : ''}</span>
       <h3 class="er-title">${esc(p.titulo || 'Sem título')}</h3>
-      <div class="er-when">${p.data ? `<b class="num">${esc(longo(p))}</b>` : '<b>Sem data</b>'}${pill(s)}</div>
+      <div class="er-when">${p.data ? `<b class="num">${esc(longo(p))}</b>` : '<b>Sem data</b>'}${pill(s)}${fmtTag(p)}${aprovTag(p)}</div>
+      ${p.aprov === 'ajuste' && p.aprov_nota ? `<p class="apr-nota"><b>${esc(p.aprov_quem || 'O cliente')} pediu:</b> ${esc(p.aprov_nota)}</p>` : p.aprov === '' && p.aprov_nota ? `<p class="apr-nota velha"><b>Ajuste pedido antes:</b> ${esc(p.aprov_nota)}</p>` : ''}
       <div class="er-box">${leg ? `<p class="er-legenda">${capHTML(leg)}</p>` : `<p class="note">Sem legenda ainda. No editor, a IA escreve uma olhando a arte.</p>`}</div>
       <div class="acts er-acts">
         <button type="button" class="btn pri" data-act="er-postar">${I_UP} Postar</button>
         <button type="button" class="btn" data-act="er-copy"${leg ? '' : ' disabled'}>${ico('copy')} Copiar legenda</button>
-        <button type="button" class="btn" data-act="er-dl"${p.midia_url ? '' : ' disabled'}>${ico('down')} Baixar imagem</button>
+        <button type="button" class="btn" data-act="er-dl"${p.midia_url ? '' : ' disabled'}>${ico('down')} ${fmtDe(p) === 'feed' ? 'Baixar imagem' : 'Baixar'}</button>
         <button type="button" class="btn${s === 'done' ? ' on' : ''}" data-act="er-mark" aria-pressed="${s === 'done'}">${I_OK} ${s === 'done' ? 'Postado' : 'Marcar como postado'}</button>
         <button type="button" class="btn" data-act="es-abrir" data-id="${p.id}">${ico('edit')} Editar</button>
         ${p.midia_url && C.feed ? `<button type="button" class="btn" data-act="er-feed">${ico('send')} Publicar no Corre</button>` : ''}
@@ -322,7 +333,7 @@
     while((cells.length - 7) % 7) cells.push('<span class="er-day blank" aria-hidden="true"></span>');
     const doMes = L.filter(p => p.data && p.data.startsWith(S.mes)), c = { done: 0, late: 0, queue: 0, ideia: 0 };
     doMes.forEach(p => { const s = estado(p); if(s === 'done') c.done++; else if(s === 'late') c.late++; else if(s === 'ideia') c.ideia++; else c.queue++; });
-    const fim = `${S.mes}-${pad(days)}`, grade = L.filter(p => p.data && p.data <= fim && p.status !== 'ideia').reverse().slice(0, 12), ult = grade[0];
+    const fim = `${S.mes}-${pad(days)}`, grade = L.filter(p => p.data && p.data <= fim && p.status !== 'ideia' && fmtDe(p) !== 'story').reverse().slice(0, 12), ult = grade[0];
     return `<div class="er-month"><div class="er-pane">
         <div class="er-pane-h"><h4>${MESES[m - 1][0].toUpperCase() + MESES[m - 1].slice(1)} ${y}</h4><div class="er-nav"><span class="mono">${[c.done === 1 ? '1 postado' : c.done + ' postados', c.late ? (c.late === 1 ? '1 pendente' : c.late + ' pendentes') : '', c.queue + ' na fila', c.ideia ? (c.ideia === 1 ? '1 rascunho' : c.ideia + ' rascunhos') : ''].filter(Boolean).join(' · ')}</span><button type="button" data-act="er-mes" data-d="-1" aria-label="Mês anterior">${ico('prev')}</button><button type="button" data-act="er-mes" data-d="1" aria-label="Próximo mês">${ico('next')}</button></div></div>
         <div class="er-cal">${cells.join('')}</div>
@@ -372,6 +383,74 @@
       C.toast('Pacote baixado: artes e legendas.');
     }catch(e){ C.toast('Não deu pra juntar as artes agora. Tenta de novo.'); }
   }
+  /* ---------- v4.17 · os formatos fora do editor: as mídias, os endereços e o postar à mão ---------- */
+  const fmtDe = p => (p && p.formato) || 'feed';
+  const NOME_F = { feed: 'Feed', carrossel: 'Carrossel', story: 'Story', reels: 'Reels' };
+  /* o que vai pro Instagram, na ordem (o feed é a arte) */
+  const midiasDe = p => { const M = (Array.isArray(p.midias) ? p.midias : []).filter(m => m && m.u); return fmtDe(p) === 'feed' || !M.length ? (p.midia_url ? [{ u: p.midia_url, t: 'img' }] : []) : M; };
+  /* tudo o que o post guardou no armazenamento (pra soltar o que não serve mais depois de salvar) */
+  function urlsDo(p){
+    if(!p) return [];
+    const a = p.arte || {}, L = [p.midia_url, a.foto].concat((p.midias || []).map(m => m && m.u));
+    (a.slides || []).forEach(x => { L.push(x.u, x.capa, x.art && x.art.foto); });
+    if(a.vid) L.push(a.vid.u, a.vid.capa);
+    return [...new Set(L.filter(u => typeof u === 'string' && /^https:/.test(u)))];
+  }
+  /* o selo do formato e o da aprovação do cliente (o Studio e a sala da marca usam) */
+  const fmtTag = p => { const f = fmtDe(p); if(f === 'feed') return ''; const n = f === 'carrossel' ? midiasDe(p).length : 0; return `<i class="fmt-tag f-${f}" title="${NOME_F[f]}">${ico(f === 'carrossel' ? 'img' : f === 'reels' ? 'film' : 'play')}${f === 'carrossel' && n ? `<b class="num">${n}</b>` : `<b>${NOME_F[f]}</b>`}</i>`; };
+  const aprovTag = p => p.aprov === 'aprovado' ? `<i class="apr-tag ok" title="Aprovado pelo cliente">${ico('check')}<b>aprovado</b></i>` : p.aprov === 'ajuste' ? `<i class="apr-tag aj" title="O cliente pediu ajuste">${ico('edit')}<b>ajuste</b></i>` : '';
+  /* a mídia do post pra ver: o carrossel desliza, o vídeo toca com a capa */
+  const midiaHTML = (p, k) => {
+    const f = fmtDe(p), M = midiasDe(p);
+    if(!M.length) return '';
+    if(f === 'carrossel') return `<div class="${k}-car" tabindex="0" aria-label="Carrossel com ${M.length} slides: desliza pro lado">${M.map((m, i) => m.t === 'video' ? `<video src="${esc(m.u)}" controls playsinline preload="metadata" aria-label="Slide ${i + 1}, vídeo"></video>` : `<img src="${esc(m.u)}" alt="Slide ${i + 1}${i === 0 && p.alt ? ': ' + esc(p.alt) : ''}" loading="lazy" decoding="async">`).join('')}</div><span class="${k}-car-n mono">${M.length} slides</span>`;
+    if(M[0].t === 'video') return `<video src="${esc(M[0].u)}"${p.midia_url ? ` poster="${esc(p.midia_url)}"` : ''} controls playsinline preload="metadata" aria-label="${esc(p.titulo || 'Vídeo do post')}"></video>`;
+    return `<img src="${esc(M[0].u)}" alt="${esc(p.alt || p.titulo || '')}" decoding="async">`;
+  };
+  const salvaArquivos = (files, nome) => { if(files.length === 1) salvarBlob(files[0], files[0].name); else salvarBlob(zipStore(files.map(f => ({ name: f.name, data: f.u8 }))), nome + '.zip'); };
+  /* postar à mão: os arquivos descem (no celular, pelo compartilhar; no computador, baixam) e a legenda vai copiada */
+  function entregar(p, o){
+    o = o || {};
+    const f = fmtDe(p), M = midiasDe(p), base = `${C.norm(o.marca || (E.marca && E.marca.marca) || 'post').replace(/[^a-z0-9]+/g, '-')}-${p.data || 'post'}`;
+    const leg = f === 'story' ? '' : (p.legenda || '');
+    const passos = { feed: ['No Instagram: + › Post, escolhe a arte.', leg ? 'Na legenda, cola.' : ''], carrossel: [`No Instagram: + › Post › o ícone de várias fotos, e escolhe as ${M.length} nessa ordem.`, leg ? 'Na legenda, cola.' : ''],
+      story: ['No Instagram: + › Story, escolhe da galeria.', 'Link ou enquete: pelas figurinhas.'], reels: ['No Instagram: + › Reel, escolhe o vídeo.', 'Na capa, escolhe o quadro.', leg ? 'Na legenda, cola.' : ''] }[f].filter(Boolean);
+    C.sheet(`<div class="form es-ent"><div class="sheet-head"><h2>${ico('ig')} Postar ${f === 'feed' ? 'no feed' : f === 'carrossel' ? 'o carrossel' : f === 'story' ? 'o story' : 'o reels'}</h2><button type="button" class="cbtn plain" data-close aria-label="Fechar">${ico('x')}</button></div>
+      <ol class="es-ent-th${f === 'carrossel' ? '' : ' um'}">${M.map((m, i) => `<li>${m.t === 'video' ? `<video src="${esc(m.u)}" muted playsinline preload="metadata"${p.midia_url && M.length === 1 ? ` poster="${esc(p.midia_url)}"` : ''}></video><i class="v">${ico('play')}</i>` : `<img src="${esc(m.u)}" alt="">`}${M.length > 1 ? `<i class="n num">${i + 1}</i>` : ''}</li>`).join('')}</ol>
+      <p class="fine" id="es-ent-st" aria-live="polite">${M.length ? `Preparando ${M.length === 1 ? 'o arquivo' : `os ${M.length} arquivos`}…` : 'Esse post ainda não tem o que postar.'}</p>
+      <div class="acts"><button type="button" class="btn pri" id="es-ent-ir" disabled>${ico('share')} Mandar pro celular</button><button type="button" class="btn" id="es-ent-bx" disabled>${ico('down')} ${M.length > 1 ? 'Baixar tudo' : 'Baixar'}</button>${leg ? `<button type="button" class="btn" id="es-ent-cp">${ico('copy')} Copiar legenda</button>` : ''}</div>
+      <ol class="sd-pp-guia es-ent-g">${(leg ? ['A legenda vai copiada junto.'] : []).concat(passos).map(t => `<li>${esc(t)}</li>`).join('')}</ol>
+      <div class="acts"><button type="button" class="btn" id="es-ent-ok">${ico('check')} Já postei</button></div></div>`);
+    const st = C.$('es-ent-st'); let files = [];
+    const copia = () => { if(leg){ try{ navigator.clipboard.writeText(leg).catch(() => {}); }catch(e){} } };
+    /* os arquivos descem logo que a folha abre: o compartilhar do celular só funciona ainda no toque */
+    (async () => {
+      try{
+        for(let i = 0; i < M.length; i++){
+          const m = M[i], u8 = await bytes(m.u), ext = m.t === 'video' ? (/\.mov(\?|$)/i.test(m.u) ? 'mov' : 'mp4') : 'jpg';
+          const fl = new File([u8], `${base}${M.length > 1 ? '-' + pad(i + 1) : ''}.${ext}`, { type: m.t === 'video' ? (ext === 'mov' ? 'video/quicktime' : 'video/mp4') : 'image/jpeg' }); fl.u8 = u8; files.push(fl);
+        }
+        if(!C.$('es-ent-st')) return;
+        let pode = false; try{ pode = matchMedia('(pointer:coarse)').matches && !!navigator.canShare && navigator.canShare({ files }); }catch(e){}
+        C.$('es-ent-ir').hidden = !pode; C.$('es-ent-ir').disabled = !pode; C.$('es-ent-bx').disabled = false;
+        if(!pode) C.$('es-ent-bx').classList.add('pri');
+        st.textContent = pode ? 'Pronto. No compartilhar, salva na galeria (ou escolhe o Instagram).' : `Pronto. ${M.length > 1 ? 'Baixa tudo (vem num .zip, já na ordem)' : 'Baixa o arquivo'} e posta pelo Instagram.`;
+      }catch(e){ if(st.isConnected) st.textContent = 'Não deu pra preparar os arquivos agora. Abre cada um pelo Editar e baixa de lá.'; }
+    })();
+    C.$('es-ent-ir').addEventListener('click', async () => {
+      copia();
+      try{ await navigator.share({ files: files.map(x => new File([x.u8], x.name, { type: x.type })) }); st.textContent = leg ? 'Mandado. A legenda tá copiada: no Instagram, é só colar.' : 'Mandado. Agora é com o Instagram.'; }
+      catch(e){ if(!(e && e.name === 'AbortError')) C.toast('O celular não deixou compartilhar. Toca em Baixar.'); }
+    });
+    C.$('es-ent-bx').addEventListener('click', () => { copia(); salvaArquivos(files, base); window.open('https://www.instagram.com/', '_blank', 'noopener'); C.toast(leg ? 'Baixado e a legenda copiada.' : 'Baixado.', 3600); });
+    if(C.$('es-ent-cp')) C.$('es-ent-cp').addEventListener('click', () => C.copy(leg, 'Legenda copiada.'));
+    C.$('es-ent-ok').addEventListener('click', async ev => {
+      const b = ev.currentTarget; b.disabled = true;
+      const patch = { status: 'postado' }; if(['agendado', 'erro'].includes(p.ig_status || '')) patch.ig_status = '';
+      try{ await C.api.upd('corre_posts', { id: p.id }, patch); Object.assign(p, patch); C.closeSheet(); C.toast('Marcado como postado.'); if(o.depois) o.depois(p); }
+      catch(e){ b.disabled = false; C.toast(C.errMsg(e, 'Não deu pra marcar agora.')); }
+    });
+  }
   async function marcar(p, status){
     /* marcou como postado (ou voltou pra ideia) um post que tava programado: tira da fila do Instagram, senão ele sai duas vezes */
     const patch = { status }; if(status !== 'pronto' && ['agendado', 'erro'].includes(p.ig_status || '')) patch.ig_status = '';
@@ -398,7 +477,19 @@
 
   function editor(p, dia, opts){
     const mk = E.marca, novo = !p, o = opts || {}, igFim = !!p && ['publicando', 'publicado'].includes(p.ig_status || '');
-    const art = Object.assign({ modelo: 'capa', cor: mk.cor || '#FFE800', kicker: '', titulo: '', texto: '', numero: '', foto: '', logo: !!mk.logo_url }, (p && p.arte) || {});
+    const ARTE0 = () => ({ modelo: 'capa', cor: mk.cor || '#FFE800', kicker: '', titulo: '', texto: '', numero: '', foto: '', logo: !!mk.logo_url });
+    let art = Object.assign(ARTE0(), (p && p.arte) || {});
+    delete art.slides; delete art.vid; delete art.leg;
+    /* v4.17 · os formatos: feed (uma arte 4:5), carrossel (até 10 slides: arte, foto ou vídeo), story (arte 9:16 ou
+       vídeo) e reels (vídeo com a capa escolhida num quadro). Os slides e o vídeo ficam no "arte" do post pra reabrir */
+    let fmt = p ? (p.formato || 'feed') : (FMTS.some(f => f[0] === o.formato) ? o.formato : 'feed'), si = 0;
+    let slides = (p && p.arte && Array.isArray(p.arte.slides) ? p.arte.slides : []).map(x => x.t === 'video'
+      ? { t: 'video', u: x.u || '', capa: x.capa || '', tempo: +x.tempo || 0, cs: x.cs || '' }
+      : { t: 'img', u: x.u || '', sig: x.sig || '', art: Object.assign(ARTE0(), x.art || {}) });
+    if(p && !slides.length && p.formato === 'carrossel') slides = (p.midias || []).map(m => m.t === 'video' ? { t: 'video', u: m.u, capa: '', tempo: 0, cs: '' } : { t: 'img', u: m.u, sig: '', art: Object.assign(ARTE0(), { modelo: 'subida', foto: m.u }) });
+    const vid = Object.assign({ u: '', file: null, src: '', capa: '', tempo: 0, cs: '', dur: 0 }, (p && p.arte && p.arte.vid) || {});
+    if(p && !vid.u && ['story', 'reels'].includes(p.formato) && (p.midias || [])[0] && p.midias[0].t === 'video') Object.assign(vid, { u: p.midias[0].u, capa: p.midia_url || '' });
+    if(fmt === 'carrossel' && slides[0] && slides[0].t === 'img') art = slides[0].art;
     const tagsBase = [tagify(mk.marca), mk.segmento ? tagify(mk.segmento) : '', C.st.me && C.st.me.cidade ? tagify(String(C.st.me.cidade).split(',')[0]) : ''].filter(t => t.length > 2).join(' ');
     const leg = Object.assign({ gancho: '', corpo: '', cta: '', tags: tagsBase }, (p && p.arte && p.arte.leg) || {});
     if(p && !p.arte && p.legenda) leg.corpo = p.legenda;
@@ -411,13 +502,21 @@
     let fotoFile = null, dirty = true, timer = 0;
     C.sheet(`<div class="form es-ed"><div class="sheet-head"><h2>${novo ? 'Novo post' : 'Editar post'} · ${esc(mk.marca)}</h2><button type="button" class="cbtn plain" data-close aria-label="Fechar">${ico('x')}</button></div>
       <div class="es-cols">
-        <div class="es-art"><canvas id="es-cv" width="1080" height="1350" aria-label="Prévia da arte"></canvas>
-          <div class="seg2 es-mod" role="radiogroup" aria-label="Modelo">${art.modelo === 'subida' ? '<label><input type="radio" name="es-m" value="subida" checked><span>Como subiu</span></label>' : ''}${MODELOS.map(([k, n]) => `<label><input type="radio" name="es-m" value="${k}"${art.modelo === k ? ' checked' : ''}><span>${n}</span></label>`).join('')}</div>
-          <div class="cores">${PAL.concat(mk.cor && !PAL.includes(mk.cor) ? [mk.cor] : []).map(k => `<label class="cor"><input type="radio" name="es-cor" value="${k}"${art.cor === k ? ' checked' : ''}><i style="background:${k}"></i></label>`).join('')}</div>
-          <div class="acts"><button type="button" class="btn sm" id="es-foto">${ico('camera')} ${art.foto ? 'Trocar foto' : 'Pôr foto'}</button>${art.foto ? '<button type="button" class="btn sm ghost" id="es-semfoto">Sem foto</button>' : ''}${mk.logo_url ? `<label class="switch sm"><input type="checkbox" id="es-logo"${art.logo ? ' checked' : ''}><span class="sw"></span><span><b>Logo</b></span></label>` : ''}</div>
+        <div class="es-art">
+          <div class="es-fmt" role="radiogroup" aria-label="Formato">${FMTS.map(([k, n, x]) => `<label><input type="radio" name="es-f" value="${k}"${fmt === k ? ' checked' : ''}${igFim ? ' disabled' : ''}><span><b>${n}</b><small>${x}</small></span></label>`).join('')}</div>
+          <p class="hint es-fmt-dica" id="es-fmt-dica">${esc((FMTS.find(x => x[0] === fmt) || FMTS[0])[3])}</p>
+          <div class="es-sl" id="es-sl" hidden></div>
+          <canvas id="es-cv" width="1080" height="1350" aria-label="Prévia da arte"></canvas>
+          <div class="es-vid" id="es-vid" hidden><video id="es-video" playsinline muted controls preload="metadata"></video>
+            <div class="es-vvz" id="es-vvz" hidden>${ico('film')}<b>Sem vídeo ainda</b><span class="hint">MP4 ou MOV, até 50 MB</span></div>
+            <div class="fld es-vt"><label for="es-vt">Capa: o quadro do vídeo que aparece no perfil</label><input type="range" id="es-vt" min="0" max="1" step="0.1" value="0"></div>
+            <p class="hint" id="es-vinfo" aria-live="polite"></p></div>
+          <div class="seg2 es-mod" id="es-mod" role="radiogroup" aria-label="Modelo"></div>
+          <div class="cores" id="es-cores">${PAL.concat(mk.cor && !PAL.includes(mk.cor) ? [mk.cor] : []).map(k => `<label class="cor"><input type="radio" name="es-cor" value="${k}"${art.cor === k ? ' checked' : ''}><i style="background:${k}"></i></label>`).join('')}</div>
+          <div class="acts" id="es-fa"></div>
         </div>
         <div class="es-fields">
-          <details class="es-ia" open><summary><b>${ico('star')} Gerar imagem com IA</b><span class="hint" id="es-ia-q"></span></summary>
+          <div id="es-artf"><details class="es-ia" open><summary><b>${ico('star')} Gerar imagem com IA</b><span class="hint" id="es-ia-q"></span></summary>
             <div class="fld"><span class="lbl-s">Referências da marca <small>até 9: puxa os últimos posts do Instagram, ou sobe fotos e prints do feed</small></span><div class="es-refs" id="es-refs"></div><div class="es-ig"><span class="at"><input class="inp" id="es-ig-u" maxlength="60" value="${esc(mk.rede || '')}" placeholder="perfil.da.marca" autocapitalize="none" spellcheck="false" aria-label="@ do Instagram"></span><button type="button" class="btn sm" id="es-ig-go">${ico('ig')} Puxar os últimos 9</button></div><span class="hint">Conta comercial ou de criador. Os posts mais recentes viram as referências da marca.</span></div>
             <div class="fld"><label for="es-ia-d">O que a imagem mostra</label><textarea class="inp" id="es-ia-d" rows="2" maxlength="400" placeholder="Ex.: smash burger com queijo escorrendo, na chapa, fumaça subindo">${esc(art.ia_d || '')}</textarea></div>
             <div class="fld"><label for="es-ia-e">Estilo</label><select class="inp" id="es-ia-e">${ESTILOS.map(([k, n]) => `<option value="${k}"${(art.ia_e || ((mk.refs || []).length ? 'refs' : 'foto')) === k ? ' selected' : ''}>${n}</option>`).join('')}</select></div>
@@ -426,7 +525,7 @@
           <div class="fld"><label for="es-k">Chamada pequena (em cima)</label><input class="inp" id="es-k" maxlength="40" value="${esc(art.kicker)}" placeholder="Novidade, Bastidor, Só hoje…"></div>
           <div class="fld"><label for="es-t">Título da arte</label><textarea class="inp" id="es-t" rows="2" maxlength="140" placeholder="A frase grande do post">${esc(art.titulo)}</textarea></div>
           <div class="fld" id="es-nf"${art.modelo === 'oferta' ? '' : ' hidden'}><label for="es-n">Número em destaque</label><input class="inp" id="es-n" maxlength="18" value="${esc(art.numero)}" placeholder="R$ 29,90 · -30% · 2x1"></div>
-          <div class="fld"><label for="es-x" id="es-xl">${art.modelo === 'lista' ? 'Itens da lista (um por linha)' : art.modelo === 'oferta' ? 'Faixa (ex.: Só até domingo)' : art.modelo === 'frase' ? 'Quem disse' : 'Texto de apoio'}</label><textarea class="inp" id="es-x" rows="3" maxlength="300">${esc(art.texto)}</textarea></div>
+          <div class="fld"><label for="es-x" id="es-xl">${art.modelo === 'lista' ? 'Itens da lista (um por linha)' : art.modelo === 'oferta' ? 'Faixa (ex.: Só até domingo)' : art.modelo === 'frase' ? 'Quem disse' : 'Texto de apoio'}</label><textarea class="inp" id="es-x" rows="3" maxlength="300">${esc(art.texto)}</textarea></div></div>
           <div class="es-leg-h"><h3 class="hz-sub">Legenda</h3><button type="button" class="btn sm" id="es-leg-go">${ico('star')} Escrever com IA</button><span class="hint" id="es-leg-st" aria-live="polite"></span></div>
           <div class="fld"><label for="es-g">Gancho (a primeira linha é a que aparece)</label><input class="inp" id="es-g" maxlength="150" value="${esc(leg.gancho)}" placeholder="Ninguém te contou isso sobre…"></div>
           <div class="fld"><label for="es-c">Corpo</label><textarea class="inp" id="es-c" rows="5" maxlength="1800">${esc(leg.corpo)}</textarea></div>
@@ -458,15 +557,174 @@
       C.$('es-nf').hidden = art.modelo !== 'oferta';
       C.$('es-xl').textContent = art.modelo === 'lista' ? 'Itens da lista (um por linha)' : art.modelo === 'oferta' ? 'Faixa (ex.: Só até domingo)' : art.modelo === 'frase' ? 'Quem disse' : 'Texto de apoio';
     };
-    const paint = () => { clearTimeout(timer); timer = setTimeout(() => { read(); render(cv, Object.assign({}, art, { marca: mk.marca, rede: mk.rede, logo_url: mk.logo_url })); dirty = true; }, 120); };
-    read(); paint();
+    const alto = () => fmt === 'story' ? 1920 : 1350;
+    const paint = () => { clearTimeout(timer); timer = setTimeout(async () => {
+      /* a folha já fechou (salvou ou saiu) enquanto o desenho esperava */
+      if(!cv.isConnected || !C.$('es-k')) return;
+      read(); if(qualItem() !== 'arte') return;
+      await render(cv, Object.assign({}, art, { marca: mk.marca, rede: mk.rede, logo_url: mk.logo_url, alto: alto() })); dirty = true;
+      /* a miniatura do slide que tá aberto (a lista de slides mostra) */
+      const s0 = fmt === 'carrossel' && slides[si];
+      if(s0 && s0.t === 'img' && s0.art === art){ try{ const t = document.createElement('canvas'); t.width = 108; t.height = 135; t.getContext('2d').drawImage(cv, 0, 0, 108, 135); s0.prev = t.toDataURL('image/jpeg', .7); slPinta(); }catch(e){ /* logo de outro site: fica sem miniatura */ } }
+    }, 120); };
+
+    /* ---------- v4.17 · os formatos ---------- */
+    /* o que tá aberto no editor agora: uma arte (desenhada no canvas) ou um vídeo */
+    const temVideo = () => !!(vid.u || vid.file);
+    const qualItem = () => fmt === 'reels' || (fmt === 'story' && temVideo()) || (fmt === 'carrossel' && slides[si] && slides[si].t === 'video') ? 'video' : 'arte';
+    const vObj = () => fmt === 'carrossel' ? slides[si] : vid;
+    const modHTML = () => `${art.modelo === 'subida' ? '<label><input type="radio" name="es-m" value="subida" checked><span>Como subiu</span></label>' : ''}${MODELOS.map(([k, n]) => `<label><input type="radio" name="es-m" value="${k}"${art.modelo === k ? ' checked' : ''}><span>${n}</span></label>`).join('')}`;
+    const faHTML = () => `<button type="button" class="btn sm" data-fa="foto">${ico('camera')} ${art.foto ? 'Trocar foto' : 'Pôr foto'}</button>${art.foto ? '<button type="button" class="btn sm ghost" data-fa="semfoto">Sem foto</button>' : ''}${mk.logo_url ? `<label class="switch sm"><input type="checkbox" id="es-logo"${art.logo ? ' checked' : ''}><span class="sw"></span><span><b>Logo</b></span></label>` : ''}${fmt === 'story' ? `<button type="button" class="btn sm" data-fa="video">${ico('film')} Usar vídeo</button>` : ''}`;
+    /* os campos da arte mostram a arte aberta (trocou de slide, troca tudo) */
+    function poeCampos(){
+      C.$('es-mod').innerHTML = modHTML(); C.$('es-fa').innerHTML = faHTML();
+      document.querySelectorAll('input[name="es-cor"]').forEach(r => { r.checked = r.value === art.cor; });
+      C.$('es-k').value = art.kicker || ''; C.$('es-t').value = art.titulo || ''; C.$('es-x').value = art.texto || ''; C.$('es-n').value = art.numero || '';
+      C.$('es-ia-d').value = art.ia_d || '';
+    }
+    const thumbDe = x => x.t === 'video' ? (x.prev || x.capa || '') : (x.prev || x.u || (x.art.modelo === 'subida' ? x.art.foto : '') || '');
+    function slPinta(){
+      const el = C.$('es-sl'); if(!el) return;
+      el.hidden = fmt !== 'carrossel'; if(el.hidden) return;
+      const n = slides.length;
+      el.innerHTML = `<ol class="es-sl-l" aria-label="Slides do carrossel">${slides.map((x, i) => { const t = thumbDe(x); return `<li><button type="button" class="es-sl-b${i === si ? ' on' : ''}" data-si="${i}" aria-label="Slide ${i + 1}${x.t === 'video' ? ', vídeo' : ''}" aria-current="${i === si}">${t ? `<img src="${esc(t)}" alt="">` : ''}<i class="n num">${i + 1}</i>${x.t === 'video' ? `<i class="v">${ico('play')}</i>` : ''}</button></li>`; }).join('')}</ol>
+        <div class="es-sl-a">${n < 10 ? `<button type="button" class="btn sm" data-sl="arte">${ico('plus')} Arte</button><button type="button" class="btn sm" data-sl="arq">${ico('up')} Foto ou vídeo</button>` : ''}
+          ${n > 1 ? `<button type="button" class="rnd sm" data-sl="esq" aria-label="Levar o slide ${si + 1} pra esquerda"${si === 0 ? ' disabled' : ''}>${ico('prev')}</button><button type="button" class="rnd sm" data-sl="dir" aria-label="Levar o slide ${si + 1} pra direita"${si === n - 1 ? ' disabled' : ''}>${ico('next')}</button><button type="button" class="btn sm ghost" data-sl="tira">${ico('trash')} Tirar o ${si + 1}</button>` : ''}
+          <span class="mono${n < 2 ? ' bad' : ''}">${n}/10${n < 2 ? ' · mínimo 2' : ''}</span></div>`;
+    }
+    /* mostra o canvas (arte) ou o vídeo, os slides do carrossel e os campos que valem pro que tá aberto */
+    function mostra(){
+      const v = qualItem() === 'video';
+      cv.hidden = v; C.$('es-vid').hidden = !v;
+      ['es-mod', 'es-cores', 'es-fa'].forEach(id => { C.$(id).hidden = v; });
+      C.$('es-artf').hidden = v;
+      cv.classList.toggle('alto', fmt === 'story');
+      C.$('es-vid').classList.toggle('alto', fmt !== 'carrossel');
+      slPinta();
+      if(v) poeVideo(); else { C.$('es-video').pause(); paint(); }
+      const dl = C.$('es-dl'); if(dl) dl.innerHTML = `${ico('down')} ${fmt === 'carrossel' ? 'Baixar os slides' : v ? 'Baixar o vídeo' : 'Baixar arte'}`;
+      const cp = C.$('es-cp'); if(cp) cp.hidden = fmt === 'story';
+    }
+    /* o vídeo aberto: a prévia, a capa (o quadro escolhido) e o que o Instagram aceita */
+    const LIM_V = { story: [1, 60], carrossel: [1, 60], reels: [3, 900] };
+    const seg = x => x >= 60 ? `${Math.floor(x / 60)}min${String(Math.round(x % 60)).padStart(2, '0')}` : `${Math.round(x)} s`;
+    function poeVideo(){
+      const o = vObj(), ve = C.$('es-video'), rg = C.$('es-vt'), src = o && (o.src || o.u) || '';
+      C.$('es-vvz').hidden = !!src; ve.hidden = !src; rg.closest('.fld').hidden = !src;
+      C.$('es-fa').hidden = false;
+      C.$('es-fa').innerHTML = `<button type="button" class="btn sm${src ? '' : ' pri'}" data-fa="trocavideo">${ico('film')} ${src ? 'Trocar vídeo' : 'Pôr vídeo'}</button>${fmt === 'story' ? `<button type="button" class="btn sm ghost" data-fa="arte">Usar arte em vez de vídeo</button>` : ''}`;
+      if(ve.dataset.src !== src){ ve.dataset.src = src; if(src) ve.src = src; else ve.removeAttribute('src'); }
+      infoVideo();
+    }
+    function infoVideo(){
+      const o = vObj(), el = C.$('es-vinfo'); if(!o || !el) return;
+      const [mn, mx] = LIM_V[fmt] || LIM_V.reels, d = o.dur || 0;
+      el.className = 'hint' + (d && (d < mn || d > mx) ? ' bad' : '');
+      el.textContent = !d ? (fmt === 'reels' ? 'Reels: de 3 s a 15 min, em pé (9:16) fica melhor.' : 'Até 60 s, em pé (9:16) fica melhor.')
+        : d < mn ? `O vídeo tem ${seg(d)}: o Instagram pede no mínimo ${mn} s.` : d > mx ? `O vídeo tem ${seg(d)}: ${fmt === 'reels' ? 'o reels vai até 15 min' : 'no ' + (fmt === 'story' ? 'story' : 'carrossel') + ' vai até 60 s'}. Corta antes de subir.`
+        : `${seg(d)}${o.file ? ` · ${(o.file.size / 1048576).toFixed(1).replace('.', ',')} MB` : ''} · a capa é o quadro em ${seg(o.tempo || 0)}.`;
+    }
+    const ve0 = C.$('es-video');
+    ve0.addEventListener('loadedmetadata', () => {
+      const o = vObj(); if(!o) return; o.dur = ve0.duration || 0;
+      const rg = C.$('es-vt'); rg.max = String(Math.max(0.1, Math.floor(o.dur * 10) / 10)); rg.value = String(Math.min(o.tempo || 0, o.dur || 0));
+      try{ ve0.currentTime = Math.max(0.05, o.tempo || 0); }catch(e){}
+      infoVideo();
+    });
+    /* parou num quadro: vira a miniatura do slide (só dá com o vídeo do aparelho ou de onde deixa ler) */
+    ve0.addEventListener('seeked', () => {
+      const o = vObj(); if(!o || fmt !== 'carrossel') return;
+      try{ const t = document.createElement('canvas'); t.width = 108; t.height = 135; const k = Math.max(108 / ve0.videoWidth, 135 / ve0.videoHeight), sw = 108 / k, sh = 135 / k; t.getContext('2d').drawImage(ve0, (ve0.videoWidth - sw) / 2, (ve0.videoHeight - sh) / 2, sw, sh, 0, 0, 108, 135); o.prev = t.toDataURL('image/jpeg', .7); slPinta(); }catch(e){}
+    });
+    C.$('es-vt').addEventListener('input', e => { const o = vObj(); if(!o) return; o.tempo = Math.round(+e.target.value * 10) / 10; o.cs = ''; try{ ve0.pause(); ve0.currentTime = Math.max(0.05, o.tempo); }catch(err){} infoVideo(); });
+    /* um vídeo do aparelho: confere tipo, tamanho e duração antes de aceitar */
+    const duracao = f => new Promise(ok => { const v = document.createElement('video'), u = URL.createObjectURL(f); const fim = d => { clearTimeout(t); ok({ d, u }); }; const t = setTimeout(() => fim(0), 8000); v.preload = 'metadata'; v.onloadedmetadata = () => fim(v.duration || 0); v.onerror = () => fim(0); v.src = u; });
+    async function aceitaVideo(f, onde){
+      if(!/^video\/(mp4|quicktime)$/.test(f.type) && !/\.(mp4|mov)$/i.test(f.name || '')){ C.toast('O Instagram aceita vídeo em MP4 ou MOV.'); return null; }
+      if(f.size > 50 * 1048576){ C.toast(`Esse vídeo tem ${(f.size / 1048576).toFixed(0)} MB. O limite é 50 MB: exporta mais leve (1080p) e tenta de novo.`, 5200); return null; }
+      const { d, u } = await duracao(f), [mn, mx] = LIM_V[onde] || LIM_V.reels;
+      if(d && d < mn){ URL.revokeObjectURL(u); C.toast(`Esse vídeo tem ${seg(d)}: o Instagram pede no mínimo ${mn} s.`); return null; }
+      if(d && d > mx){ URL.revokeObjectURL(u); C.toast(`Esse vídeo tem ${seg(d)}. ${onde === 'reels' ? 'O reels vai até 15 min.' : 'No ' + (onde === 'story' ? 'story' : 'carrossel') + ', até 60 s.'} Corta antes de subir.`, 5200); return null; }
+      return { file: f, src: u, dur: d, tempo: 0, cs: '', capa: '', u: '' };
+    }
+    async function pegaVideo(){
+      const f = await C.pickFile('video/mp4,video/quicktime,.mp4,.mov'); if(!f) return;
+      const r = await aceitaVideo(f, fmt); if(!r) return;
+      const o = vObj(); if(o && o.src && o.file) URL.revokeObjectURL(o.src);
+      Object.assign(o, r); delete o.prev;
+      mostra(); dirty = true;
+    }
+    C.$('es-fa').addEventListener('click', async e => {
+      const b = e.target.closest('[data-fa]'); if(!b) return;
+      const k = b.dataset.fa;
+      if(k === 'foto'){
+        const f = await C.pickFile('image/*'); if(!f) return;
+        try{ fotoFile = await C.shrink(f, 1600, .86); art.foto = URL.createObjectURL(fotoFile); C.$('es-fa').innerHTML = faHTML(); paint(); }catch(err){ C.toast('Não deu pra abrir essa imagem.'); }
+      } else if(k === 'semfoto'){ art.foto = ''; fotoFile = null; C.$('es-fa').innerHTML = faHTML(); paint(); }
+      else if(k === 'video' || k === 'trocavideo') await pegaVideo();
+      else if(k === 'arte'){ Object.assign(vid, { u: '', file: null, src: '', capa: '', cs: '', dur: 0, tempo: 0 }); C.$('es-fa').innerHTML = faHTML(); mostra(); }
+    });
+    /* trocou de formato: o carrossel nasce com a arte que tava aberta; voltar pro feed ou pro story leva a arte do slide aberto */
+    document.querySelectorAll('input[name="es-f"]').forEach(r => r.addEventListener('change', () => {
+      if(!r.checked) return;
+      read(); if(fmt === 'carrossel' && slides[si]) slides[si].fotoFile = fotoFile;
+      const de = fmt; fmt = r.value;
+      if(fmt === 'carrossel'){
+        if(!slides.length) slides = [{ t: 'img', art, u: de === 'feed' && p && p.formato !== 'carrossel' ? (p.midia_url || '') : '', sig: de === 'feed' && p && p.arte ? (p.arte.sig || '') : '', fotoFile }];
+        si = Math.min(si, slides.length - 1);
+        if(slides[si].t === 'img'){ art = slides[si].art; fotoFile = slides[si].fotoFile || null; }
+      } else if(de === 'carrossel'){
+        const s0 = slides[si] && slides[si].t === 'img' ? slides[si] : slides.find(x => x.t === 'img');
+        if(s0){ art = s0.art; fotoFile = s0.fotoFile || null; }
+      }
+      poeCampos(); mostra(); dirty = true;
+      const f = FMTS.find(x => x[0] === fmt); C.$('es-fmt-dica').textContent = f ? f[3] : '';
+    }));
+    /* os slides: abrir, pôr (arte, foto ou vídeo), mudar de lugar e tirar */
+    function vaiSlide(i){
+      read(); if(slides[si]) slides[si].fotoFile = fotoFile;
+      si = Math.max(0, Math.min(i, slides.length - 1));
+      const x = slides[si];
+      if(x && x.t === 'img'){ art = x.art; fotoFile = x.fotoFile || null; poeCampos(); }
+      mostra();
+    }
+    C.$('es-sl').addEventListener('click', async e => {
+      const b = e.target.closest('[data-si]'); if(b){ vaiSlide(+b.dataset.si); return; }
+      const a = e.target.closest('[data-sl]'); if(!a) return;
+      const k = a.dataset.sl;
+      if(k === 'arte' && slides.length < 10){
+        read(); if(slides[si]) slides[si].fotoFile = fotoFile;
+        slides.splice(si + 1, 0, { t: 'img', u: '', sig: '', art: Object.assign(ARTE0(), { cor: art.cor, modelo: art.modelo === 'subida' ? 'capa' : art.modelo, logo: art.logo }) });
+        vaiSlide(si + 1); dirty = true;
+      } else if(k === 'arq'){
+        const inp = document.createElement('input'); inp.type = 'file'; inp.multiple = true; inp.accept = 'image/*,video/mp4,video/quicktime,.mp4,.mov';
+        inp.onchange = async () => {
+          const fs = [...(inp.files || [])].slice(0, 10 - slides.length); if(!fs.length) return;
+          read(); if(slides[si]) slides[si].fotoFile = fotoFile;
+          let pos = si + 1;
+          for(const f of fs){
+            if(/^video\//.test(f.type) || /\.(mp4|mov)$/i.test(f.name || '')){ const r = await aceitaVideo(f, 'carrossel'); if(r) slides.splice(pos++, 0, Object.assign({ t: 'video' }, r)); }
+            else try{ const ff = await C.shrink(f, 1600, .88); slides.splice(pos++, 0, { t: 'img', u: '', sig: '', fotoFile: ff, art: Object.assign(ARTE0(), { modelo: 'subida', foto: URL.createObjectURL(ff), logo: false }) }); }catch(err){ C.toast('Uma imagem não abriu.'); }
+          }
+          if((inp.files || []).length > fs.length) C.toast('O carrossel vai até 10.');
+          vaiSlide(pos - 1); dirty = true;
+        };
+        inp.click();
+      } else if(k === 'esq' || k === 'dir'){
+        const j = si + (k === 'esq' ? -1 : 1); if(j < 0 || j >= slides.length) return;
+        read(); if(slides[si]) slides[si].fotoFile = fotoFile;
+        [slides[si], slides[j]] = [slides[j], slides[si]]; si = j; slPinta(); dirty = true;
+        const nb = C.$('es-sl').querySelector(`[data-sl="${k}"]`); if(nb && !nb.disabled) nb.focus(); else { const sb = C.$('es-sl').querySelector('.es-sl-b.on'); if(sb) sb.focus(); }
+      } else if(k === 'tira' && slides.length > 1){
+        const x = slides.splice(si, 1)[0]; if(x && x.src && x.file) URL.revokeObjectURL(x.src);
+        si = Math.min(si, slides.length - 1); const y = slides[si];
+        if(y.t === 'img'){ art = y.art; fotoFile = y.fotoFile || null; poeCampos(); }
+        mostra(); dirty = true; C.toast('Slide tirado.');
+      }
+    });
+    poeCampos(); read(); mostra();
     C.$('es-cv').closest('.es-ed').addEventListener('input', paint);
     C.$('es-cv').closest('.es-ed').addEventListener('change', paint);
-    C.$('es-foto').addEventListener('click', async () => {
-      const f = await C.pickFile('image/*'); if(!f) return;
-      try{ fotoFile = await C.shrink(f, 1600, .86); art.foto = URL.createObjectURL(fotoFile); paint(); }catch(e){ C.toast('Não deu pra abrir essa imagem.'); }
-    });
-    const sf = C.$('es-semfoto'); if(sf) sf.addEventListener('click', () => { art.foto = ''; fotoFile = null; sf.remove(); paint(); });
     /* ---------- IA: referências da marca + descrição + estilo ---------- */
     let refs = Array.isArray(mk.refs) ? mk.refs.slice(0, 9) : [];
     const paintRefs = () => { C.$('es-refs').innerHTML = refs.map((u, i) => `<span class="es-ref"><img src="${esc(u)}" alt="Referência ${i + 1}"><button type="button" data-ref-del="${i}" aria-label="Tirar referência ${i + 1}">${ico('x')}</button></span>`).join('') + (refs.length < 9 ? `<button type="button" class="es-ref add" id="es-ref-add" aria-label="Pôr referência">${ico('plus')}</button>` : ''); };
@@ -566,8 +824,9 @@
       anteriores: E.posts.filter(x => x.legenda && (!p || x.id !== p.id)).sort((a, b) => String(b.updated_at || b.created_at || '').localeCompare(String(a.updated_at || a.created_at || ''))).slice(0, 3).map(x => x.legenda)
     });
     async function arteB64(){
+      if(qualItem() === 'video') return '';
       try{
-        await render(cv, Object.assign({}, art, { marca: mk.marca, rede: mk.rede, logo_url: mk.logo_url }));
+        await render(cv, Object.assign({}, art, { marca: mk.marca, rede: mk.rede, logo_url: mk.logo_url, alto: alto() }));
         const b = await blob(), small = await C.shrink(new File([b], 'arte.jpg', { type: 'image/jpeg' }), 768, .8);
         return await new Promise(ok => { const fr = new FileReader(); fr.onload = () => ok(String(fr.result || '')); fr.onerror = () => ok(''); fr.readAsDataURL(small); });
       }catch(e){ return ''; }
@@ -607,6 +866,72 @@
 
     const nomeArq = () => `${C.norm(mk.marca).replace(/[^a-z0-9]+/g, '-')}-${C.$('es-d').value || 'post'}.jpg`;
     async function baixar(){ try{ const b = await blob(), u = URL.createObjectURL(b), a = document.createElement('a'); a.href = u; a.download = nomeArq(); document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(u), 4000); return true; }catch(e){ C.toast('O logo bloqueou a exportação. Desliga o logo e tenta de novo.', 4200); return false; } }
+    /* ---------- v4.17 · subir o que o formato precisa ---------- */
+    /* a assinatura da arte: igual à da última vez, a imagem que já subiu fica (e a aprovação do cliente não volta pra ele) */
+    const sigDe = (a, h) => JSON.stringify([a.modelo, a.cor, a.kicker, a.titulo, a.texto, a.numero, a.foto, !!a.logo, mk.marca, mk.rede || '', a.logo ? mk.logo_url || '' : '', h]);
+    async function sobeArte(a, u0, sig0, h, tela){
+      if(u0 && a.modelo === 'subida' && a.foto === u0 && h === 1350) return u0;
+      if(u0 && sig0 && sig0 === sigDe(a, h)) return u0;
+      await new Promise(r => setTimeout(r, 160));
+      await render(tela, Object.assign({}, a, { marca: mk.marca, rede: mk.rede, logo_url: mk.logo_url, alto: h }));
+      try{ const b = await new Promise((ok, fail) => { try{ tela.toBlob(x => x ? ok(x) : fail({ code: 'blob' }), 'image/jpeg', .9); }catch(e){ fail(e); } }); return await C.api.upload(b); }
+      catch(e){ if(e && e.name === 'SecurityError'){ C.toast('O logo bloqueou a arte. Desliga o logo pra salvar a imagem.', 4200); return u0 || ''; } throw e; }
+    }
+    /* o quadro do vídeo que vira a capa (do aparelho, ou do armazenamento do Corre, que deixa ler) */
+    function quadro(src, t, h){
+      return new Promise(ok => {
+        const v = document.createElement('video'), tela = document.createElement('canvas'); let feito = false;
+        const fim = b => { if(feito) return; feito = true; clearTimeout(to); ok(b); };
+        const to = setTimeout(() => fim(null), 9000);
+        if(!/^(blob|data):/.test(src)) v.crossOrigin = 'anonymous';
+        v.muted = true; v.playsInline = true; v.preload = 'auto';
+        v.onloadeddata = () => { try{ v.currentTime = Math.min(Math.max(0.05, t), Math.max(0.05, (v.duration || 1) - 0.05)); }catch(e){ fim(null); } };
+        v.onseeked = () => { try{ tela.width = W; tela.height = h; const x = tela.getContext('2d'), k = Math.max(W / v.videoWidth, h / v.videoHeight), sw = W / k, sh = h / k; x.fillStyle = '#141216'; x.fillRect(0, 0, W, h); x.drawImage(v, (v.videoWidth - sw) / 2, (v.videoHeight - sh) / 2, sw, sh, 0, 0, W, h); tela.toBlob(b => fim(b), 'image/jpeg', .88); }catch(e){ fim(null); } };
+        v.onerror = () => fim(null);
+        v.src = src;
+      });
+    }
+    /* o navegador não conseguiu ler o quadro (formato que ele não abre): a capa vira um cartaz com a cor da marca */
+    function capaVazia(h){
+      const tela = document.createElement('canvas'); tela.width = W; tela.height = h; const x = tela.getContext('2d'), bg = mk.cor || '#141216', ink = inkOn(bg);
+      x.fillStyle = bg; x.fillRect(0, 0, W, h);
+      x.fillStyle = ink; x.beginPath(); x.arc(W / 2, h / 2, 120, 0, 6.283); x.fill(); x.fillStyle = bg; x.beginPath(); x.moveTo(W / 2 - 40, h / 2 - 66); x.lineTo(W / 2 + 70, h / 2); x.lineTo(W / 2 - 40, h / 2 + 66); x.closePath(); x.fill();
+      font(x, 900, 64, 'condensed'); x.fillStyle = ink; x.textAlign = 'center'; x.fillText(String(mk.marca || 'VÍDEO').toUpperCase(), W / 2, h / 2 + 250);
+      return new Promise(ok => tela.toBlob(ok, 'image/jpeg', .88));
+    }
+    async function sobeVideo(o, h, btn){
+      if(o.file){ btn.textContent = 'Subindo o vídeo…'; o.u = await C.api.uploadVideo(o.file); o.file = null; o.cs = ''; btn.textContent = 'Salvando…'; }
+      const cs = `${o.u}|${o.tempo || 0}|${h}`;
+      if(!o.capa || o.cs !== cs){ const b = (await quadro(o.src || o.u, o.tempo || 0, h)) || (await capaVazia(h)); o.capa = await C.api.upload(b); o.cs = cs; }
+    }
+    /* sobe o que mudou e devolve a arte do post (midia_url), as mídias pro Instagram e o que fica guardado pra reabrir */
+    async function montaMidias(btn){
+      read();
+      if(fmt === 'carrossel'){
+        if(slides[si]) slides[si].fotoFile = fotoFile;
+        if(!slides.length) throw { message: 'O carrossel tá sem slide.' };
+        const tela = document.createElement('canvas'), out = [], meta = [];
+        for(let i = 0; i < slides.length; i++){
+          const x = slides[i]; btn.textContent = `Salvando o slide ${i + 1} de ${slides.length}…`;
+          if(x.t === 'video'){ await sobeVideo(x, 1350, btn); out.push({ u: x.u, t: 'video' }); meta.push({ t: 'video', u: x.u, capa: x.capa, tempo: x.tempo || 0, cs: x.cs }); continue; }
+          if(x.fotoFile){ x.art.foto = await C.api.upload(x.fotoFile); x.fotoFile = null; }
+          x.u = await sobeArte(x.art, x.u, x.sig, 1350, tela); x.sig = sigDe(x.art, 1350);
+          out.push({ u: x.u, t: 'img' }); meta.push({ t: 'img', u: x.u, sig: x.sig, art: Object.assign({}, x.art) });
+        }
+        fotoFile = slides[si] && slides[si].fotoFile || null;
+        return { midia: out[0].t === 'img' ? out[0].u : slides[0].capa, midias: out, extra: { slides: meta, sig: '' } };
+      }
+      if(fmt === 'reels' || (fmt === 'story' && temVideo())){
+        if(!vid.u && !vid.file) return { midia: '', midias: [], extra: { vid: null } };
+        await sobeVideo(vid, 1920, btn);
+        return { midia: vid.capa, midias: [{ u: vid.u, t: 'video' }], extra: { vid: { u: vid.u, capa: vid.capa, tempo: vid.tempo || 0, cs: vid.cs } } };
+      }
+      if(fotoFile){ art.foto = await C.api.upload(fotoFile); fotoFile = null; }
+      const h = alto(), velha = p && (!p.formato || p.formato === 'feed' || (p.formato === 'story' && !(p.arte && p.arte.vid))) ? p.midia_url || '' : '';
+      const midia = await sobeArte(art, velha, (p && p.arte && p.arte.sig) || '', h, cv);
+      art.sig = sigDe(art, h);
+      return { midia, midias: fmt === 'story' && midia ? [{ u: midia, t: 'img' }] : [], extra: { vid: null } };
+    }
     async function salvar(status){
       read();
       /* publicar sozinho: precisa de dia e de hora pra frente */
@@ -615,16 +940,18 @@
         if(!C.$('es-d').value){ C.toast(studio ? 'Pra programar, escolhe o dia.' : 'Pra publicar sozinho, escolhe o dia.'); C.$('es-d').focus(); return false; }
         if(!C.$('es-hr').value) C.$('es-hr').value = '18:00';
         if(at({ data: C.$('es-d').value, hora: C.$('es-hr').value }) < Date.now() + 6e4){ C.toast(studio ? 'Essa hora já passou. Escolhe uma mais pra frente (ou desliga o "Postar sozinho" pra salvar de rascunho).' : 'Essa hora já passou. Escolhe uma mais pra frente pra publicar sozinho.', 4600); C.$('es-hr').focus(); return false; }
+        /* v4.17: programado tem que estar completo pro formato (o banco recusa igual) */
+        const falta = fmt === 'carrossel' && slides.length < 2 ? 'O carrossel precisa de pelo menos 2 slides pra programar.' : fmt === 'reels' && !(vid.u || vid.file) ? 'O reels precisa de um vídeo pra programar.' : '';
+        if(falta){ C.toast(falta, 4200); return false; }
       }
       const btn = C.$('es-ok'), rot = btn.innerHTML; btn.disabled = true; btn.textContent = 'Salvando…';
       try{
-        if(fotoFile){ art.foto = await C.api.upload(fotoFile); fotoFile = null; }
-        /* arte subida que ninguém mexeu: fica a mesma (não redesenha nem sobe de novo) */
-        const mantem = art.modelo === 'subida' && !!p && !!p.midia_url && art.foto === p.midia_url;
-        if(!mantem){ await new Promise(r => setTimeout(r, 160)); await render(cv, Object.assign({}, art, { marca: mk.marca, rede: mk.rede, logo_url: mk.logo_url })); }
-        let midia = p && p.midia_url || '';
-        if(!mantem) try{ const b = await blob(); midia = await C.api.upload(b); if(p && p.midia_url && p.midia_url !== midia && p.midia_url !== art.foto) C.api.unlink(p.midia_url); }catch(e){ if(e && e.name === 'SecurityError') C.toast('O logo bloqueou a arte. Desliga o logo pra salvar a imagem.', 4200); else throw e; }
-        const row = { marca_id: mk.id, data: C.$('es-d').value || null, hora: C.$('es-hr').value || '', tema: C.$('es-tm').value.trim().slice(0, 40), titulo: (art.titulo || leg.gancho || '').slice(0, 140), legenda: juntar(leg).slice(0, 2200), alt: C.$('es-alt').value.trim().slice(0, 1000), midia_url: midia, status: status || (C.$('es-st') ? C.$('es-st').value : p && p.status === 'postado' ? 'postado' : auto ? 'pronto' : 'ideia'), arte: Object.assign({}, art, { leg }) };
+        const velhas = urlsDo(p);
+        const md = await montaMidias(btn);
+        const row = { marca_id: mk.id, data: C.$('es-d').value || null, hora: C.$('es-hr').value || '', tema: C.$('es-tm').value.trim().slice(0, 40), titulo: (art.titulo || leg.gancho || '').slice(0, 140), legenda: fmt === 'story' ? '' : juntar(leg).slice(0, 2200), alt: C.$('es-alt').value.trim().slice(0, 1000), midia_url: md.midia, formato: fmt, midias: md.midias, status: status || (C.$('es-st') ? C.$('es-st').value : p && p.status === 'postado' ? 'postado' : auto ? 'pronto' : 'ideia'), arte: Object.assign({}, art, { leg }, md.extra) };
+        /* o que subiu antes e não serve mais (arte refeita, slide tirado, vídeo trocado) sai do armazenamento */
+        const ficam = urlsDo(Object.assign({}, row, { arte: row.arte }));
+        const soltar = velhas.filter(u => !ficam.includes(u));
         if(studio && C.$('es-conta') && !igFim) row.ig_conta = C.$('es-conta').value || null;
         if(au && !igFim){
           if(auto) Object.assign(row, { ig_status: 'agendado', ig_quando: `${row.data}T${row.hora}:00-03:00`, status: row.status === 'ideia' ? 'pronto' : row.status });
@@ -639,6 +966,7 @@
           else row.ig_status = '';
         }
         if(p) await C.api.upd('corre_posts', { id: p.id }, row); else { const r = await C.api.ins('corre_posts', row); p = r[0]; }
+        soltar.forEach(u => C.api.unlink(u));
         await load(); S.sel = p.id; if(p.data){ S.week = weekOf(p.data); S.mes = p.data.slice(0, 7); } lista(); dirty = false;
         if(S.onSave) try{ S.onSave(p); }catch(e){}
         btn.disabled = false; btn.innerHTML = rot;
@@ -653,9 +981,32 @@
         C.toast(prog ? (studio ? `Programado: ${short(d)} às ${h}.${ct ? ` Sai sozinho no @${ct.username}.` : ' Sem conta: vira lembrete pra postar à mão.'}` : `Post salvo e programado: sai ${short(d)} às ${h} no Instagram.`) : studio ? 'Rascunho salvo.' : 'Post salvo.', 4600);
       }
     });
-    C.$('es-dl').addEventListener('click', baixar);
+    /* v4.17: no carrossel baixa todos os slides (num .zip, na ordem); no vídeo, o vídeo */
+    async function baixarFormato(){
+      read(); if(fmt === 'carrossel' && slides[si]) slides[si].fotoFile = fotoFile;
+      const nome = nomeArq().replace(/\.jpg$/, ''), files = [];
+      try{
+        const L = fmt === 'carrossel' ? slides : qualItem() === 'video' ? [Object.assign({ t: 'video' }, vid)] : null;
+        if(!L) return baixar();
+        const tela = document.createElement('canvas');
+        for(let i = 0; i < L.length; i++){
+          const x = L[i], sfx = L.length > 1 ? '-' + pad(i + 1) : '';
+          if(x.t === 'video'){ const u8 = x.file ? new Uint8Array(await x.file.arrayBuffer()) : x.u ? await bytes(x.u) : null; if(u8) files.push({ name: `${nome}${sfx}.mp4`, data: u8 }); continue; }
+          await render(tela, Object.assign({}, x.art, { marca: mk.marca, rede: mk.rede, logo_url: mk.logo_url, alto: 1350 }));
+          const b = await new Promise((ok, fail) => { try{ tela.toBlob(z => z ? ok(z) : fail({ code: 'blob' }), 'image/jpeg', .9); }catch(e){ fail(e); } });
+          files.push({ name: `${nome}${sfx}.jpg`, data: new Uint8Array(await b.arrayBuffer()) });
+        }
+        if(!files.length){ C.toast('Ainda não tem vídeo pra baixar.'); return false; }
+        if(files.length === 1) salvarBlob(new Blob([files[0].data], { type: /\.mp4$/.test(files[0].name) ? 'video/mp4' : 'image/jpeg' }), files[0].name);
+        else salvarBlob(zipStore(files), nome + '.zip');
+        return true;
+      }catch(e){ C.toast(e && e.name === 'SecurityError' ? 'O logo bloqueou a exportação. Desliga o logo e tenta de novo.' : 'Não deu pra baixar agora. Tenta de novo.', 4200); return false; }
+    }
+    C.$('es-dl').addEventListener('click', () => fmt === 'feed' ? baixar() : baixarFormato());
     C.$('es-cp').addEventListener('click', () => { read(); C.copy(juntar(leg), 'Legenda copiada.'); });
     C.$('es-post').addEventListener('click', async () => {
+      /* v4.17: carrossel, story e reels: salva e abre o postar à mão com os arquivos (vários, ou vídeo) */
+      if(fmt !== 'feed'){ if(await salvar()){ const q = E.posts.find(x => x.id === p.id) || p; C.closeSheet(); entregar(q, { marca: mk.marca, depois: () => { if(S.onSave) try{ S.onSave(q); }catch(e){} load().then(lista).catch(() => {}); } }); } return; }
       read(); C.copy(juntar(leg), 'Legenda copiada. Cola no Instagram.');
       /* v3.55: abre o Instagram ainda no toque (depois do download e do upload o iPhone bloqueia a janela nova) */
       window.open('https://www.instagram.com/', '_blank', 'noopener');
@@ -681,7 +1032,7 @@
     'er-todos': (el, ev) => { if(ev) ev.preventDefault(); const t = $r('er-todos'); if(t) t.scrollIntoView({ behavior: 'smooth', block: 'start' }); },
     'er-copy': () => { const p = atual(); if(p && p.legenda) C.copy(p.legenda, 'Legenda copiada.'); },
     'er-copy-alt': () => { const p = atual(); if(p && p.alt) C.copy(p.alt, 'Texto alternativo copiado.'); },
-    'er-dl': () => baixarUm(atual()),
+    'er-dl': () => { const p = atual(); if(p && fmtDe(p) !== 'feed') return entregar(p, { depois: () => { renderStage(); renderPane(); relogio(); } }); baixarUm(p); },
     'er-zip': () => baixarPeriodo(),
     'er-feed': async el => {
       const p = atual(); if(!p || !p.midia_url) return;
@@ -693,6 +1044,7 @@
     'er-mark': () => { const p = atual(); if(p) marcar(p, p.status === 'postado' ? 'pronto' : 'postado'); },
     'er-postar': async () => {
       const p = atual(); if(!p) return;
+      if(fmtDe(p) !== 'feed') return entregar(p, { depois: () => { renderStage(); renderPane(); relogio(); } });
       if(p.legenda) C.copy(p.legenda, 'Legenda copiada. Cola no Instagram.');
       window.open('https://www.instagram.com/', '_blank', 'noopener');
       const ok = await baixarUm(p);
@@ -700,4 +1052,6 @@
     }
   });
   C.estudioRender = render;
+  /* v4.17: o Studio (studio.js) e o link de aprovação (aprova.js) usam os formatos daqui */
+  Object.assign(C.estudio, { entregar, fmtDe, fmtTag, aprovTag, midiasDe, midiaHTML, NOME_F, FMTS });
 })();

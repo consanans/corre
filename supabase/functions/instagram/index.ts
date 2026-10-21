@@ -126,6 +126,94 @@ async function publicarIG(igId: string, imageUrl: string, caption: string, alt: 
   const l = await igapi(`${p.id}?fields=permalink`, TOKEN).catch(() => ({}));
   return { id: String(p.id), link: String((l as any).permalink || '') };
 }
+/* v4.17 · os outros formatos: carrossel (2 a 10, foto e vídeo misturados), story (uma foto ou um vídeo) e reels (um vídeo).
+   O Instagram processa o vídeo sozinho e demora (de segundos a minutos): o contêiner fica guardado no post (ig_container,
+   que só a função escreve) e a próxima volta da fila continua de onde parou, sem mandar o vídeo de novo */
+type Estado = { k: string[]; c: string; em: number };
+const ESPERA_VIDEO = 30 * 60e3;
+const lerEstado = (s: unknown): Estado | null => {
+  try {
+    const o = JSON.parse(String(s || ''));
+    if (o && Array.isArray(o.k) && typeof o.c === 'string' && Number.isFinite(o.em)) return { k: o.k.map(String), c: o.c, em: Number(o.em) };
+  } catch (_) { /* contêiner de outro formato: começa de novo */ }
+  return null;
+};
+function midiasDo(post: any): { u: string; t: string }[] {
+  const L = (Array.isArray(post.midias) ? post.midias : [])
+    .filter((m: any) => m && /^https:\/\//.test(String(m.u || '')) && (m.t === 'img' || m.t === 'video'))
+    .map((m: any) => ({ u: String(m.u), t: String(m.t) }));
+  if (post.formato === 'carrossel') return L.slice(0, 10);
+  /* story de antes das mídias: a arte do post */
+  if (!L.length && post.formato === 'story' && post.midia_url) return [{ u: String(post.midia_url), t: 'img' }];
+  return L.slice(0, 1);
+}
+/* espera os contêineres ficarem prontos até a hora "ate"; pronto devolve true, ainda processando devolve false */
+async function esperaPronto(ids: string[], TOKEN: string, ate: number, video: boolean) {
+  let falta = ids.slice();
+  for (;;) {
+    const ainda: string[] = [];
+    for (const id of falta) {
+      const s = await igapi(`${id}?fields=status_code,status`, TOKEN).catch(() => null);
+      if (s && (s.status_code === 'FINISHED' || s.status_code === 'PUBLISHED')) continue;
+      if (s && (s.status_code === 'ERROR' || s.status_code === 'EXPIRED')) {
+        console.error('contêiner:', id, s.status_code, s.status);
+        throw { code: 'midia', message: s.status_code === 'EXPIRED' ? 'O Instagram descartou o arquivo (passou de 24 horas). Programa de novo.'
+          : video ? 'O Instagram não aceitou o vídeo. Usa MP4 (H.264), de 3 a 60 segundos no story e no carrossel, até 15 minutos no reels, de preferência em pé (9:16).'
+          : 'O Instagram não aceitou a imagem. Usa JPG, em pé (4:5) ou quadrada.' };
+      }
+      ainda.push(id);
+    }
+    falta = ainda;
+    if (!falta.length) return true;
+    if (Date.now() + 3000 > ate) return false;
+    await sleep(3000);
+  }
+}
+async function publicarFormato(admin: any, igId: string, post: any, TOKEN: string, ate: number) {
+  const f = String(post.formato), M = midiasDo(post), video = M.some((m) => m.t === 'video');
+  if (f === 'carrossel' && M.length < 2) throw { code: 'formato', message: 'O carrossel precisa de 2 a 10 fotos ou vídeos.' };
+  if (!M.length) throw { code: 'sem_arte', message: f === 'reels' ? 'O reels não tem vídeo salvo.' : 'O post não tem arte salva.' };
+  if (f === 'reels' && M[0].t !== 'video') throw { code: 'formato', message: 'O reels precisa de um vídeo.' };
+  const legenda = String(post.legenda || '').slice(0, 2200);
+  const guarda = (e: Estado) => admin.from('corre_posts').update({ ig_container: JSON.stringify(e) }).eq('id', post.id);
+  let E = lerEstado(post.ig_container);
+  if (E && Date.now() - E.em > ESPERA_VIDEO) {
+    throw { code: 'midia', message: 'O Instagram não terminou de processar o vídeo em 30 minutos. Confere o arquivo (MP4, até 60 segundos no story e no carrossel) e programa de novo.' };
+  }
+  if (!E) {
+    E = { k: [], c: '', em: Date.now() };
+    if (f === 'carrossel') {
+      for (const m of M) {
+        const c = await igapi(`${igId}/media`, TOKEN, 'POST', m.t === 'video'
+          ? { media_type: 'VIDEO', video_url: m.u, is_carousel_item: 'true' }
+          : { image_url: m.u, is_carousel_item: 'true' });
+        E.k.push(String(c.id));
+      }
+    } else {
+      const m = M[0];
+      let corpo: Record<string, string>;
+      if (f === 'reels') {
+        corpo = { media_type: 'REELS', video_url: m.u, caption: legenda, share_to_feed: 'true' };
+        /* a capa do reels é a arte do post (o quadro do vídeo que a pessoa escolheu no Studio) */
+        if (/^https:\/\/.+\.(jpe?g|png)(\?|$)/i.test(String(post.midia_url || '')) && post.midia_url !== m.u) corpo.cover_url = String(post.midia_url);
+      } else corpo = m.t === 'video' ? { media_type: 'STORIES', video_url: m.u } : { media_type: 'STORIES', image_url: m.u };
+      const c = await igapi(`${igId}/media`, TOKEN, 'POST', corpo);
+      E.c = String(c.id);
+    }
+    await guarda(E);
+  }
+  /* carrossel: os itens primeiro (o vídeo demora), depois o contêiner do carrossel com a legenda */
+  if (f === 'carrossel' && !E.c) {
+    if (!(await esperaPronto(E.k, TOKEN, ate, video))) return { processando: true };
+    const c = await igapi(`${igId}/media`, TOKEN, 'POST', { media_type: 'CAROUSEL', children: E.k.join(','), caption: legenda });
+    E.c = String(c.id);
+    await guarda(E);
+  }
+  if (!(await esperaPronto([E.c], TOKEN, ate, video))) return { processando: true };
+  const p = await igapi(`${igId}/media_publish`, TOKEN, 'POST', { creation_id: E.c });
+  const l = await igapi(`${p.id}?fields=permalink`, TOKEN).catch(() => ({}));
+  return { id: String(p.id), link: String((l as any).permalink || '') };
+}
 /* a conta do post, com o token aberto (a conta tem que ser de quem é o post) */
 async function contaComToken(admin: any, contaId: string, dono: string) {
   const { data: c } = await admin.from('corre_ig_contas').select('*').eq('id', contaId).maybeSingle();
@@ -135,16 +223,24 @@ async function contaComToken(admin: any, contaId: string, dono: string) {
   if (!t) throw { code: 'sem_conta', message: `Conecta @${c.username} de novo no Studio.` };
   return { conta: c, token: await decifra(t.token) };
 }
-async function publicarPost(admin: any, post: any) {
+async function publicarPost(admin: any, post: any, ate = Date.now() + 25e3) {
   const fim = (patch: any) => admin.from('corre_posts').update(patch).eq('id', post.id);
   let conta: any = null;
+  const feed = !post.formato || post.formato === 'feed';
   try {
-    if (!post.midia_url) throw { code: 'sem_arte', message: 'O post não tem arte salva.' };
+    if (feed && !post.midia_url) throw { code: 'sem_arte', message: 'O post não tem arte salva.' };
     if (!post.ig_conta) throw { code: 'sem_conta', message: 'O post não tem conta do Instagram escolhida.' };
     const ct = await contaComToken(admin, post.ig_conta, post.dono);
     conta = ct.conta;
-    const r = await publicarIG(conta.ig_id, post.midia_url, String(post.legenda || '').slice(0, 2200), String(post.alt || ''), ct.token);
-    await fim({ ig_status: 'publicado', ig_media_id: r.id, ig_link: r.link, ig_erro: '', status: 'postado' });
+    const r: any = feed
+      ? await publicarIG(conta.ig_id, post.midia_url, String(post.legenda || '').slice(0, 2200), String(post.alt || ''), ct.token)
+      : await publicarFormato(admin, conta.ig_id, post, ct.token, ate);
+    if (r.processando) {
+      /* o vídeo ainda tá no forno: volta pra fila (agora, pra próxima volta pegar) e a tentativa não conta */
+      await fim({ ig_status: 'agendado', ig_quando: agora(), ig_tentativas: Math.max(0, (post.ig_tentativas || 1) - 1), ig_erro: '' });
+      return { ok: false, processando: true, conta: conta.username };
+    }
+    await fim({ ig_status: 'publicado', ig_media_id: r.id, ig_link: r.link, ig_erro: '', ig_container: '', status: 'postado' });
     return { ok: true, id: r.id, link: r.link, conta: conta.username };
   } catch (e: any) {
     let msg = String(e?.message || 'Não deu pra publicar.').slice(0, 280);
@@ -155,7 +251,8 @@ async function publicarPost(admin: any, post: any) {
       msg = 'A arte tá fora do formato do feed (a Meta aceita de 4:5, em pé, a 1,91:1, deitada). Usa uma arte 4:5 ou quadrada.';
     }
     console.error('publicar:', post.id, e?.code, msg);
-    await fim({ ig_status: 'erro', ig_erro: msg });
+    /* o contêiner que deu erro não serve pra próxima tentativa */
+    await fim(feed ? { ig_status: 'erro', ig_erro: msg } : { ig_status: 'erro', ig_erro: msg, ig_container: '' });
     return { ok: false, erro: typeof e?.code === 'string' ? e.code : erroMeta(e), detalhe: msg };
   }
 }
@@ -242,7 +339,9 @@ Deno.serve(async (req) => {
     const { data: posts, error } = await admin.rpc('corre_ig_fila_contas', { lim: 10 });
     if (error) return json({ erro: 'banco', detalhe: error.message }, 500);
     const out: any[] = [];
-    for (const p of posts || []) out.push({ id: p.id, ...(await publicarPost(admin, p)) });
+    /* v4.17: a volta inteira cabe em 100 s (a função tem 150); cada post espera o Instagram no máximo 25 s */
+    const ate = Date.now() + 100e3;
+    for (const p of posts || []) out.push({ id: p.id, ...(await publicarPost(admin, p, Math.min(ate, Date.now() + 25e3))) });
     let renovadas = 0;
     try { renovadas = await renova(admin); } catch (e: any) { console.error('renova:', e?.message); }
     /* v3.55: a resposta não leva o detalhe dos posts (quem chama a fila pode ser qualquer um, e o post é de outra pessoa);
@@ -361,8 +460,9 @@ Deno.serve(async (req) => {
     const { data: pego } = await admin.from('corre_posts').update({ ig_status: 'publicando', ig_tentativas: Math.min(20, (post.ig_tentativas || 0) + 1) })
       .eq('id', id).neq('ig_status', 'publicando').neq('ig_status', 'publicado').select('*').maybeSingle();
     if (!pego) return json({ erro: 'publicando' }, 409);
-    const r = await publicarPost(admin, pego);
-    return json(r, r.ok ? 200 : 502);
+    /* v4.17: quem tá no app espera até 45 s; vídeo que demora mais sai pela fila */
+    const r = await publicarPost(admin, pego, Date.now() + 45e3);
+    return json(r, r.ok ? 200 : r.processando ? 202 : 502);
   }
 
   /* ---------- referências: os últimos posts de um @ (Business Discovery, com o token do Gerenciador) ---------- */

@@ -440,7 +440,14 @@
         need(await sb.storage.from('corre').upload(path, blob, { contentType: blob.type || 'image/jpeg', upsert: false, cacheControl: '31536000' }));
         return sb.storage.from('corre').getPublicUrl(path).data.publicUrl;
       },
-      async unlink(url){ const m = /\/object\/public\/corre\/(.+)$/.exec(url || ''); if(m) try{ await sb.storage.from('corre').remove([decodeURIComponent(m[1])]); }catch(e){} limpa(); },
+      /* v4.17: o vídeo do story, do reels e do carrossel vai pra pasta própria (corre-video: até 50 MB, MP4 ou MOV) */
+      async uploadVideo(file){
+        const ext = /quicktime/.test(file.type) ? 'mov' : 'mp4';
+        const path = `${uid}/${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+        need(await sb.storage.from('corre-video').upload(path, file, { contentType: file.type || 'video/mp4', upsert: false, cacheControl: '31536000' }));
+        return sb.storage.from('corre-video').getPublicUrl(path).data.publicUrl;
+      },
+      async unlink(url){ const m = /\/object\/public\/(corre|corre-video)\/(.+)$/.exec(url || ''); if(m) try{ await sb.storage.from(m[1]).remove([decodeURIComponent(m[2])]); }catch(e){} limpa(); },
       /* CORRE_CONFIG.FUNCOES troca o endereço de uma função (ex.: { mural: 'swift-api' }, quando o painel do Supabase
          criou a função com outro nome). Se o endereço trocado não existir (404), tenta o nome de sempre.
          "fica": a função não grava nada que o app leia (os avisos no celular), então a memória não precisa sair. */
@@ -468,8 +475,8 @@
   const HOUZI_EX = {"spec":{"v":1,"territorio":"editorial","amostra":1,"nome":"Grão Torto","tagline":"café de esquina","nicho":"cafe","cidade":"Londrina, PR","desde":"2021","pers":[0.35,0.55,0.55,0.35,0.2],"modo":"branding","campos":["cafe","rua"],"logo":{"arranjo":"wordmark","caixa":"titulo","track":0.005,"efeito":"","gesto":"troca","tagline":true,"corTexto":"texto","trocaPor":"ideia"},"simbolo":{"tipo":"ideia","icone":"xicara","ideia":"grao","estilo":"linha","seed":84829},"tipo":{"display":"lora-bolditalic","texto":"lora-regular"},"cores":{"p":"#2B2B2E","s":"#D8D4CB","a":"#B8913A","ink":"#161618","paper":"#F6F2EA","fundo":"paper","esquema":"receita","receita":"Grafite e Ouro"},"textura":"papel","aplic":["revista","sacola","cartao","instagram","copo","fachada"],"seed":273184829,"descr":"Café de bairro, torra própria"},"voz":{"conceito":"Grão Torto é o café que trata cada detalhe como página de revista.","manifesto":"Grão Torto acredita que pressa é inimiga do bom. Por isso cada café é pensado como uma página de revista: com respiro, com ritmo, com intenção. É pra quem acorda cedo que repara. Que lê a legenda inteira. Que volta pela segunda vez.","taglines":["Grão Torto. Pra ler devagar.","A pausa boa do dia, com tempo.","O detalhe é a história.","Feito com atenção em Londrina.","Menos, e melhor."],"e":["calma","precisa","elegante"],"nao_e":["barulhenta","apressada","exagerada"],"fala":["Pensado com calma, feito pra durar.","Nem tudo precisa ser pra ontem.","A pausa boa do dia, no detalhe."],"nao_fala":["IMPERDÍVEL!!!","Só hoje, corre!","O melhor do Brasil."],"bio":"café de esquina · Café em Londrina. Chama no direct.","wa":"Olá, que bom ter você aqui. Aqui é o Grão Torto. Me conta o que procura e eu te ajudo com calma.","ia":false}};
   function demoApi(){
     const KEY = 'corre-demo-v2', mem = {};
-    const T = ['corre_perfis', 'corre_portfolio', 'corre_destaques', 'corre_stories', 'corre_insta', 'corre_contas', 'corre_lancamentos', 'corre_rolo_salvos', 'corre_leads', 'corre_posts', 'corre_feed', 'corre_curtidas', 'corre_comentarios', 'corre_seguindo', 'corre_story_curtidas', 'corre_visitas', 'corre_estilo', 'corre_produtos', 'corre_mural', 'corre_mural_propostas', 'corre_vendas', 'corre_refs', 'corre_lead_fotos', 'corre_mural_chat', 'corre_verso_bloq', 'corre_votos', 'corre_salvos', 'corre_recomendacoes', 'corre_feed_vistas', 'corre_avisos_lidos', 'corre_conversas', 'corre_conversa_membros', 'corre_mensagens', 'corre_push', 'corre_push_pref', 'corre_grupos', 'corre_grupo_membros', 'corre_houzi_marcas', 'corre_correal', 'corre_correal_log', 'corre_tarefa_vez', 'corre_ig_contas', 'corre_houzi_privado', 'corre_assinaturas', 'corre_asaas_clientes', 'corre_skins', 'corre_bio_conta', 'corre_convites', 'corre_ativo_dia', 'corre_skin_pedidos'];
-    const PRIV = ['corre_contas', 'corre_lancamentos', 'corre_rolo_salvos', 'corre_leads', 'corre_posts', 'corre_visitas', 'corre_estilo', 'corre_produtos', 'corre_mural', 'corre_mural_propostas', 'corre_vendas', 'corre_refs', 'corre_lead_fotos', 'corre_verso_bloq', 'corre_votos', 'corre_salvos', 'corre_feed_vistas', 'corre_avisos_lidos', 'corre_push', 'corre_push_pref', 'corre_correal', 'corre_correal_log', 'corre_tarefa_vez', 'corre_ig_contas', 'corre_houzi_privado', 'corre_assinaturas', 'corre_asaas_clientes', 'corre_skins', 'corre_bio_conta', 'corre_convites', 'corre_ativo_dia', 'corre_skin_pedidos'];
+    const T = ['corre_perfis', 'corre_portfolio', 'corre_destaques', 'corre_stories', 'corre_insta', 'corre_contas', 'corre_lancamentos', 'corre_rolo_salvos', 'corre_leads', 'corre_posts', 'corre_feed', 'corre_curtidas', 'corre_comentarios', 'corre_seguindo', 'corre_story_curtidas', 'corre_visitas', 'corre_estilo', 'corre_produtos', 'corre_mural', 'corre_mural_propostas', 'corre_vendas', 'corre_refs', 'corre_lead_fotos', 'corre_mural_chat', 'corre_verso_bloq', 'corre_votos', 'corre_salvos', 'corre_recomendacoes', 'corre_feed_vistas', 'corre_avisos_lidos', 'corre_conversas', 'corre_conversa_membros', 'corre_mensagens', 'corre_push', 'corre_push_pref', 'corre_grupos', 'corre_grupo_membros', 'corre_houzi_marcas', 'corre_correal', 'corre_correal_log', 'corre_tarefa_vez', 'corre_ig_contas', 'corre_houzi_privado', 'corre_assinaturas', 'corre_asaas_clientes', 'corre_skins', 'corre_bio_conta', 'corre_convites', 'corre_ativo_dia', 'corre_skin_pedidos', 'corre_aprovacoes'];
+    const PRIV = ['corre_contas', 'corre_lancamentos', 'corre_rolo_salvos', 'corre_leads', 'corre_posts', 'corre_visitas', 'corre_estilo', 'corre_produtos', 'corre_mural', 'corre_mural_propostas', 'corre_vendas', 'corre_refs', 'corre_lead_fotos', 'corre_verso_bloq', 'corre_votos', 'corre_salvos', 'corre_feed_vistas', 'corre_avisos_lidos', 'corre_push', 'corre_push_pref', 'corre_correal', 'corre_correal_log', 'corre_tarefa_vez', 'corre_ig_contas', 'corre_houzi_privado', 'corre_assinaturas', 'corre_asaas_clientes', 'corre_skins', 'corre_bio_conta', 'corre_convites', 'corre_ativo_dia', 'corre_skin_pedidos', 'corre_aprovacoes'];
     const now = () => new Date().toISOString();
     const inH = h => new Date(Date.now() + h * 36e5).toISOString();
     /* o mesmo do corre_tarefa_valor (delta-v338 + delta-v3391: 3 tarefas por uniforme) */
@@ -738,6 +745,17 @@
       if(t === 'corre_produtos' && r.preco != null && r.preco !== '') r.ganho = Math.max(Number(r.preco) - (Number(r.custo) || 0), 0);
       /* v3.40: o post só sai em conta do Instagram da própria dona (delta-v340.sql) */
       if(t === 'corre_posts' && r.ig_conta && !(d.t.corre_ig_contas || []).some(c => c.id === r.ig_conta && c.dono === (r.dono || uid))) throw { message: 'conta de outra pessoa', hint: 'ig_conta', code: '42501' };
+      /* v4.17: as mesmas regras do delta-v417.sql pros formatos (no demo, o vídeo é um endereço blob: do aparelho) */
+      if(t === 'corre_posts'){
+        const M = Array.isArray(r.midias) ? r.midias : [];
+        if(M.length > 10 || M.some(x => !x || !/^(https:|blob:|data:)/.test(String(x.u || '')) || !['img', 'video'].includes(x.t))) throw { message: 'midias', hint: 'midias' };
+        const f = r.formato || 'feed';
+        if(r.ig_status === 'agendado' && ((f === 'carrossel' && M.length < 2) || (['story', 'reels'].includes(f) && M.length !== 1) || (f === 'reels' && (M[0] || {}).t !== 'video'))) throw { message: 'formato', hint: 'formato' };
+      }
+      if(t === 'corre_aprovacoes'){
+        if(!(d.t.corre_portfolio || []).some(m => m.id === r.marca_id && m.dono === (r.dono || uid))) throw { message: 'marca de outra pessoa', code: '42501' };
+        if(!r.de || !r.ate || r.ate < r.de || (Date.parse(r.ate) - Date.parse(r.de)) / 864e5 > 92) throw { message: 'periodo', hint: 'periodo' };
+      }
       if(t === 'corre_vendas'){
         let tot = 0, cus = 0;
         (r.itens || []).forEach(e => { if(!e || !String(e.n || '').trim() || !(Number(e.q) > 0) || !(Number(e.v) >= 0)) throw { message: 'item', hint: 'item' }; tot += Number(e.q) * Number(e.v); cus += Number(e.q) * (Number(e.c) || 0); });
@@ -1319,6 +1337,9 @@
           else if(t !== 'corre_perfis'){ r.dono = uid; if(!['corre_rolo_salvos', 'corre_curtidas', 'corre_story_curtidas'].includes(t) && !r.id) r.id = rid(); }
           else { r.plano = 'gratis'; r.redes = 1; r.id = uid; }
           if(t === 'corre_stories'){ r.expira_em = inH(24); r.destaque_id = r.destaque_id || null; }
+          /* v4.17: como o banco: o código do link é sorteado, o post nasce sem aprovação e com formato */
+          if(t === 'corre_aprovacoes'){ r.codigo = Array.from({ length: 20 }, () => '0123456789abcdef'[Math.floor(Math.random() * 16)]).join(''); r.ativo = r.ativo !== false; r.aberto_em = null; r.respondido_em = null; r.quem = ''; r.msg = String(r.msg || '').slice(0, 600); }
+          if(t === 'corre_posts'){ r.formato = r.formato || 'feed'; r.midias = Array.isArray(r.midias) ? r.midias : []; Object.assign(r, { aprov: '', aprov_nota: '', aprov_quem: '', aprov_em: null, ig_container: '' }); }
           rules(t, r, d, true); d.t[t].push(r); out.push(Object.assign({}, r));
         });
         write(d); return out;
@@ -1349,6 +1370,13 @@
           if(t === 'corre_perfis'){ next.plano = r.plano; next.redes = r.redes; }
           if(t === 'corre_stories'){ next.expira_em = r.expira_em; next.created_at = r.created_at; }
           if(t === 'corre_houzi_marcas'){ next.updated_at = now(); next.slug = r.slug; next.numero = r.numero; if(['nome', 'spec', 'voz', 'naming'].some(k => k in patch)) plTrava(d, uid, 'houzi'); }
+          /* v4.17: a aprovação é do cliente (a dona só limpa) e mudar o que ele viu volta pra ele; o código do link não muda */
+          if(t === 'corre_posts'){
+            next.aprov_nota = r.aprov_nota || ''; next.aprov_quem = r.aprov_quem || ''; next.aprov_em = r.aprov_em || null;
+            if(next.aprov !== r.aprov && next.aprov) next.aprov = r.aprov || '';
+            if(r.aprov && ['legenda', 'midia_url', 'midias', 'formato'].some(k => k in patch && JSON.stringify(patch[k]) !== JSON.stringify(r[k]))) next.aprov = '';
+          }
+          if(t === 'corre_aprovacoes'){ next.codigo = r.codigo; next.aberto_em = r.aberto_em; next.respondido_em = r.respondido_em; next.quem = r.quem; }
           rules(t, next, d, false); Object.assign(r, next); out.push(Object.assign({}, r));
         });
         write(d); return out;
@@ -1607,6 +1635,32 @@
           if(l){ l.st = 'fechado'; l.prox = null; l.hist = [{ t: now(), k: 'res', v: 'Aprovou o orçamento pelo link.' }].concat(l.hist || []).slice(0, 40); }
           write(d); return { ok: true, st: 'fechado' };
         }
+        /* ---- v4.17: o link de aprovação do Studio (as mesmas regras do delta-v417.sql) ---- */
+        if(n === 'corre_aprov_ver' || n === 'corre_aprov_responder' || n === 'corre_aprov_fim'){
+          const L = (d.t.corre_aprovacoes || []).find(x => x.codigo === String((a && a.p_codigo) || '').trim().toLowerCase() && x.ativo);
+          if(!L) throw { message: 'link', hint: 'link' };
+          const doLink = () => d.t.corre_posts.filter(p => p.dono === L.dono && p.marca_id === L.marca_id && p.data && p.data >= L.de && p.data <= L.ate && p.midia_url)
+            .sort((x, y) => String(x.data).localeCompare(String(y.data)) || String(x.hora || '').localeCompare(String(y.hora || '')) || String(x.created_at).localeCompare(String(y.created_at)));
+          const nome = q => String(q || '').replace(/\s+/g, ' ').trim().slice(0, 60);
+          if(n === 'corre_aprov_ver'){
+            if(!L.aberto_em){ L.aberto_em = now(); write(d); }
+            const m = d.t.corre_portfolio.find(x => x.id === L.marca_id) || {}, f = d.t.corre_perfis.find(x => x.id === L.dono) || {};
+            return { marca: { nome: m.marca || '', rede: m.rede || '', cor: m.cor || '', logo: m.logo_url || '' }, de: L.de, ate: L.ate, msg: L.msg || '', respondido_em: L.respondido_em,
+              quem: { nome: f.nome || '', handle: f.handle || '', avatar: f.avatar_url || '' },
+              posts: doLink().map(p => ({ id: p.id, data: p.data, hora: p.hora || '', formato: p.formato || 'feed', titulo: p.titulo || '', legenda: p.legenda || '', alt: p.alt || '', midia: p.midia_url, midias: p.midias || [], aprov: p.aprov || '', nota: p.aprov_nota || '', quem: p.aprov_quem || '', em: p.aprov_em || null, publicado: p.ig_status === 'publicado' || p.status === 'postado' })) };
+          }
+          if(n === 'corre_aprov_responder'){
+            const v = (a && a.p_aprov) || '', nota = String((a && a.p_nota) || '').trim().slice(0, 600);
+            if(!['', 'aprovado', 'ajuste'].includes(v)) throw { message: 'aprov', hint: 'aprov' };
+            if(v === 'ajuste' && !nota) throw { message: 'nota', hint: 'nota' };
+            const p = doLink().find(x => x.id === (a && a.p_post)); if(!p) throw { message: 'post', hint: 'post' };
+            Object.assign(p, { aprov: v, aprov_nota: v ? nota : '', aprov_quem: v ? nome(a.p_quem) : '', aprov_em: v ? now() : null }); write(d);
+            return { ok: true, aprov: v };
+          }
+          L.respondido_em = now(); L.quem = nome(a && a.p_quem); write(d);
+          const ps = doLink();
+          return { ok: true, aprovados: ps.filter(p => p.aprov === 'aprovado').length, ajustes: ps.filter(p => p.aprov === 'ajuste').length, faltam: ps.filter(p => !p.aprov).length };
+        }
         /* ---- v4.0: o Link na bio e o convite (as mesmas regras do delta-v400.sql) ---- */
         if(n === 'corre_bio_marca'){
           const p = d.t.corre_perfis.find(x => x.handle === String((a && a.p_handle) || '').toLowerCase().trim()), k = String((a && a.p_chave) || '');
@@ -1721,6 +1775,8 @@
         const small = blob.size > 260000 ? await shrink(new File([blob], 'x.jpg', { type: 'image/jpeg' }), 900, .72) : blob;
         return await new Promise((ok, fail) => { const fr = new FileReader(); fr.onload = () => ok(fr.result); fr.onerror = fail; fr.readAsDataURL(small); });
       },
+      /* v4.17: no demo o vídeo fica no aparelho (um endereço blob: que vale até recarregar a página) */
+      async uploadVideo(file){ return URL.createObjectURL(file); },
       async unlink(){},
       /* v3.60: a função "pagamento" de mentira: as mesmas regras e respostas, sem Asaas e sem cobrar. Assinou fora do
          teste grátis, já conta como pago (pra dar pra ver o plano funcionando) */

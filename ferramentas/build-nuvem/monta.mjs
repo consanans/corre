@@ -15,7 +15,7 @@ import { fileURLToPath } from 'node:url';
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const JS = join(RAIZ, 'site', 'js');
 /* a ordem importa (core antes de quem usa o C.*, app por último); tirada dos marcadores do corre.min.js da v3.40 */
-const CORRE = 'scene stickers core igcontas rolo-data rolo rolo-som banca grana estilo marcas vendas visitas estudio studio lote manual stories feed insta mensagens grupos avisos push horus-presets horus horus-turbo horus-max horus-funil mural meucorre negocio refs bio estreia lojinha app'.split(' ');
+const CORRE = 'scene stickers core igcontas rolo-data rolo rolo-som banca grana estilo marcas vendas visitas estudio studio lote aprova manual stories feed insta mensagens grupos avisos push horus-presets horus horus-turbo horus-max horus-funil mural meucorre negocio refs bio estreia lojinha app'.split(' ');
 const HOUZI = 'lab-motor lab-qr lab lab-som lab-filme lab-post lab-livro'.split(' ');
 /* v4.0: o Correverso desce à parte, só quando alguém entra na cidade (C.versoCarrega no app.js). Roda depois do app.js,
    então tudo do C.* já existe quando ele chega. A ordem de dentro é a de antes. */
