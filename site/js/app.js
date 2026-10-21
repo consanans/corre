@@ -564,7 +564,9 @@
     ['Zerão', 'verso', 'Quadras com desafio: futsal e basquete', 'quadra quadras futsal basquete desafio bola'],
     ['Pista de skate', 'raio', 'Bowl, rampa, caixote e corrimão no Zerão', 'skate shape manobra ollie kickflip bowl rampa zerao pista'],
     ['Píer do Igapó', 'peixe', 'Torneio de pesca', 'pesca pescar peixe torneio'],
-    ['Lago Igapó', 'verso', 'O lago da cidade', 'lago agua'],
+    ['Lago Igapó', 'verso', 'O lago da cidade, do Igapó 3 ao 1', 'lago agua igapo aterro higienopolis'],
+    /* v4.14: a barragem do Igapó 1, onde o lago vira o ribeirão que desce até o Arthur Thomas */
+    ['Barragem do Igapó', 'verso', 'Onde o lago vira ribeirão, rumo ao Arthur Thomas', 'barragem represa ribeirao cambezinho vertedouro igapo'],
     ['Porto do Tibagi', 'peixe', 'Barquinho e pesca da piapara no rio', 'rio tibagi barco barquinho pesca pescar piapara peixe porto'],
     ['Prainha do Tibagi', 'verso', 'Areia, guarda-sol e o outro píer do rio', 'prainha praia areia rio tibagi'],
     /* v4.05 */

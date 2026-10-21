@@ -12,7 +12,8 @@
 
   /* ---------- números da cidade ---------- */
   const PX = 3;                       /* cada pixel do mundo vira um quadradinho de 3x3 na tela */
-  const LW = 300, LH = 270, RUA = 96, COLS = 13, TOPO = 360, CALC = 12;
+  /* v4.14: 17 quarteirões de largura (a planta de Londrina, PLANTA, mais embaixo) */
+  const LW = 300, LH = 270, RUA = 96, COLS = 17, TOPO = 360, CALC = 12;
   const R_ABRE = 150, R_FECHA = 230, VEL = 170, PORTA_R = 58, AV_S = 1.2;
   const ICE = [{ urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] }];
   /* quem tem dois quarteirões: quem fez o Corre */
@@ -65,7 +66,9 @@
   }
 
   /* ---------- texturas de bloco (16x16, feitas aqui mesmo, cada material com o seu ruído e as juntas) ---------- */
-  const TEXB = { concreto: '#A4A8AE', escuro: '#4A4E56', branco: '#EEEBE4', preto: '#1B1D22', corten: '#8E4B2B', madeira: '#B3793F', lote: '#E6DECD', calcada: '#C9D0D8', rua: '#2B2F38', dois: '#3A3E45', tronco: '#6B4A32', vidroOn: '#FFD37A', vidroOff: '#2A3442', praca: '#DCCFB6', gramado: '#D9C27F', terra: '#A4553A', agua: '#2F7FC1', mosaico: '#F1EDE4', tijolo: '#8C3B2E', zinco: '#9AA0A8' };
+  const TEXB = { concreto: '#A4A8AE', escuro: '#4A4E56', branco: '#EEEBE4', preto: '#1B1D22', corten: '#8E4B2B', madeira: '#B3793F', lote: '#E6DECD', calcada: '#C9D0D8', rua: '#2B2F38', dois: '#3A3E45', tronco: '#6B4A32', vidroOn: '#FFD37A', vidroOff: '#2A3442', praca: '#DCCFB6', gramado: '#D9C27F', terra: '#A4553A', agua: '#2F7FC1', mosaico: '#F1EDE4', tijolo: '#8C3B2E', zinco: '#9AA0A8',
+    /* v4.14: as lavouras da roça (sem verde: a terra roxa lavrada, o trigo, a palhada da soja colhida e o milho seco) */
+    arado: '#7B3B28', trigo: '#D6B05A', palhada: '#C6A96A', milho: '#B48F55' };
   const rgbDe = hex => { const n = parseInt(String(hex).slice(1, 7), 16) || 0; return [n >> 16 & 255, n >> 8 & 255, n & 255]; };
   const sombra = (hex, f) => { const [r, g, b] = rgbDe(hex); return `rgb(${clamp(Math.round(r * f), 0, 255)},${clamp(Math.round(g * f), 0, 255)},${clamp(Math.round(b * f), 0, 255)})`; };
   const TILES = {};
@@ -94,6 +97,10 @@
         case 'tijolo': f = 1 + n * .16; if(yy % 4 === 3 || xx === ((yy >> 2) % 2 ? 3 : 11)) f = 1.55; break;
         case 'zinco': f = 1 + n * .06; if(yy % 3 === 0) f = 1.22; else if(yy % 3 === 2) f = .76; break;
         case 'terra': f = 1 + n * .2; if(r() < .05) f *= .75; break;
+        case 'arado': f = 1 + n * .22; if(r() < .08) f *= .7; if(r() < .03) f = 1.25; break;
+        case 'trigo': f = 1 + n * .14; if(xx % 3 === 1) f *= .88; if(r() < .06) f = 1.18; break;
+        case 'palhada': f = 1 + n * .12; if(r() < .1) f = 1.2; else if(r() < .06) f *= .8; break;
+        case 'milho': f = 1 + n * .16; if(r() < .07) f *= .76; break;
         case 'agua': f = 1 + n * .07; if((yy * 3 + (xx >> 2)) % 7 === 0) f = 1.16; break;
         /* v3.77: a pedra portuguesa do Calçadão é preta e branca (a vermelha era chute; a pesquisa do 3D achou o original) */
         case 'mosaico': { const onda = Math.floor((xx + Math.round(3 * Math.sin(yy / 2.6))) / 4) % 2 === 0; const i0 = (yy * 16 + xx) * 4, [tr, tg, tb] = rgbDe('#2A2B31'), q = 1 + n * .08; d[i0] = clamp((onda ? tr : R) * q, 0, 255); d[i0 + 1] = clamp((onda ? tg : G) * q, 0, 255); d[i0 + 2] = clamp((onda ? tb : B) * q, 0, 255); d[i0 + 3] = 255; continue; }
@@ -1613,7 +1620,59 @@
   const lotXY = (c, r) => ({ x: RUA + c * (LW + RUA), y: TOPO + r * (LH + RUA) });
   const ret = (c0, r0, c1, r1) => { const a = lotXY(c0, r0); return { x: a.x, y: a.y, w: (c1 - c0 + 1) * (LW + RUA) - RUA, h: (r1 - r0 + 1) * (LH + RUA) - RUA }; };
   const ruaY = s => TOPO - RUA / 2 + s * (LH + RUA), ruaX = i => RUA / 2 + i * (LW + RUA);
-  const CENTRO = { teatro: [4, 3], concha: [5, 3], praca: [6, 3], catedral: [7, 3], museu: [8, 3], arte: [9, 3], aquario: [1, 8], delegacia: [4, 2], bombeiros: [5, 2], hospital: [8, 2] };
+  /* ---------- v4.14 · a planta de Londrina ----------
+     O Thales: "faz o mapa como Londrina mesmo, algumas coisas estão meio fora de lugar e fica difícil de achar. Sai do
+     mapa quadrado e faz um mapa mais Londrina, com as coisas proporcionalmente nos seus lugares".
+     A cidade em letras: cada letra é um quarteirão, o norte é pra cima e cada quarteirão vale uns 600 m. O meio de cada
+     lugar saiu das coordenadas de verdade (OpenStreetMap, 2026), contadas a partir da Catedral: o Estádio do Café (e o
+     Autódromo, do lado) 3 km ao norte; o Zerão 1,5 km ao sul, entre o Centro e o lago; o Igapó em diagonal, do noroeste
+     (o Igapó 3, no Champagnat) pro sudeste (o Igapó 1 e a barragem), com a Av. Higienópolis passando entre o 2 e o 1; a
+     Gleba Palhano na margem de baixo; o Aeroporto 4 km a sudeste do Centro, a ACEL no canto dele e o Parque Arthur
+     Thomas, onde o ribeirão que sai da barragem encontra o Cambé. Zerão, lagos, Gleba e Aeroporto são maiores que os de
+     verdade (senão não cabe jogo), então o que é de verdade é a direção e a distância entre os meios, não o tamanho.
+     O Bosque é o do Centro (o Thales: "o bosque é no centro"): colado embaixo da Catedral e da Concha, com o Zerão logo
+     abaixo dele, e a Feira do Corre embaixo do Calçadão.
+     Fora da cidade é roça (terra roxa, trigo, palhada, milho seco), e na roça ninguém anda. O Tibagi segue embaixo: o de
+     verdade passa uns 15 km a sudeste, pra onde o Cambé corre, mas o Thales pediu ele embaixo do mapa (3.75).
+       .  roça               #  cidade (as casas e o que sobra)
+       E  Estádio do Café    F  Feira do Corre     B  Bosque dos Ipês    Z  Zerão
+       L  Lago Igapó     l  o Igapó fino (o Aterro, entre o 3 e o 2, e o ribeirão que sai da barragem)
+       G  Gleba Palhano
+       A  Aeroporto          C  ACEL               T  Parque Arthur Thomas
+       o Centro: p Calçadão, k Catedral, c Concha, t Teatro Ouro Verde, m Museu Histórico, a Museu de Arte,
+       g Delegacia, b Bombeiros, h Hospital do Corre, q Aquário; d são os dois quarteirões do @consanans */
+  const PLANTA = [
+    '......#####......',
+    '.....##EE###.....',
+    '....###EE####....',
+    '...###########...',
+    '.#############...',
+    '.#######hmb###...',
+    '.######ddat####..',
+    '#######pkcg#####.',
+    '.#####FFBB######.',
+    '.#qLL###ZZ#######',
+    '.##LLl##ZZ##AAA##',
+    '.####lLLZZ##AAA##',
+    '.#GGGGLLL#####CC#',
+    '..######LLL#TTCC#',
+    '...######LLlTT...',
+    '....#######lTT...'
+  ];
+  /* as ruas com nome (a de verdade no mesmo lugar): a Av. Higienópolis é a rua em pé 8 (desce do Centro pela esquerda do
+     Zerão e passa por cima do lago, entre o Igapó 2 e o 1); a Leste-Oeste, a rua deitada 5 (a linha do trem de antes, na
+     porta do Museu Histórico, que era a estação); a Av. Bandeirantes, a deitada 10 (do Zerão pro lado do Aeroporto) */
+  const AV_HIGI = 8, AV_LO = 5, AV_BAND = 10;
+  const LETRA_C = { p: 'praca', k: 'catedral', c: 'concha', t: 'teatro', m: 'museu', a: 'arte', g: 'delegacia', b: 'bombeiros', h: 'hospital', q: 'aquario' };
+  const CENTRO = {}; let DOIS = null;
+  PLANTA.forEach((l, r) => [...l].forEach((ch, c) => { if(LETRA_C[ch]) CENTRO[LETRA_C[ch]] = [c, r]; else if(ch === 'd' && !DOIS) DOIS = { c, r }; }));
+  /* um lugar grande pela letra: o retângulo que ele ocupa e, no lago (que não é retângulo), os quarteirões um a um */
+  const pelaLetra = (k, nome, l, torto) => {
+    let c0 = COLS, r0 = PLANTA.length, c1 = -1, r1 = -1; const cel = new Set();
+    const fino = new Set();
+    PLANTA.forEach((s, r) => [...s].forEach((ch, c) => { if(!l.includes(ch)) return; cel.add(c + ',' + r); if(ch === 'l') fino.add(c); c0 = Math.min(c0, c); r0 = Math.min(r0, r); c1 = Math.max(c1, c); r1 = Math.max(r1, r); }));
+    return Object.assign({ k, nome, c0, r0, c1, r1 }, torto ? { cel, fino } : {});
+  };
   const NOME_C = { teatro: 'Teatro Ouro Verde', concha: 'Concha Acústica', praca: 'Calçadão', catedral: 'Catedral', museu: 'Museu Histórico', arte: 'Museu de Arte', aquario: 'Aquário do Igapó', delegacia: 'Delegacia', bombeiros: 'Corpo de Bombeiros', hospital: 'Hospital do Corre' };
   /* o jogo do aquário: o Killer Ocean (feito pelo Lorenzo), servido daqui mesmo (site/jogos/) */
   /* v3.82: o Elo Perdido (o jogo que o Thales mandou) roda na Jaula dos Macacos do Parque Arthur Thomas; onde, sair e carrega
@@ -1624,23 +1683,42 @@
     deboa: { id: 'deboa', titulo: 'De Boa', sub: 'empilha os bichos na capivara', src: 'jogos/de-boa.html', onde: 'Prainha do Tibagi', sair: 'Sair pra prainha', carrega: 'A capivara tá se ajeitando…' },
     /* v4.08: o Gude, no parquinho do Zerão (bolinha de gude no peteleco) */
     gude: { id: 'gude', titulo: 'GUDE', sub: 'bolinha de gude no peteleco', src: 'jogos/gude.html', onde: 'Parquinho do Zerão', sair: 'Sair pro parquinho', carrega: 'Riscando o círculo…' } };
-  /* v3.83 (o Thales, com o mapa de Londrina: "coloque as coisas da cidade mais ou menos onde elas estão em Londrina mesmo"):
-     o Centro no meio, em cima; o Estádio do Café (e o Autódromo, na porta dele) na zona norte; o Bosque colado no Centro;
-     o Zerão do lado do Moringão, na Higienópolis, entre o Centro e o começo do Igapó; o Igapó descendo pro sudeste até o
-     Parque Arthur Thomas (de onde vem o Ribeirão Cambé); a Gleba Palhano no sudoeste do lago; o Aeroporto a leste do
-     Centro, no canto de cima à direita; a ACEL embaixo dele. O Tibagi segue embaixo de tudo (o Thales pediu assim na 3.75) */
+  /* v4.14: os lugares grandes saem da planta (a ordem é a de antes: a zona do Zerão é achada antes da do lago) */
   const REGIOES = [
-    { k: 'bosque', nome: 'Bosque dos Ipês', c0: 2, r0: 1, c1: 3, r1: 2 },
-    { k: 'zerao', nome: 'Zerão', c0: 3, r0: 4, c1: 4, r1: 6 },
-    { k: 'lago', nome: 'Lago Igapó', c0: 2, r0: 7, c1: 10, r1: 9 },
-    { k: 'gleba', nome: 'Gleba Palhano', c0: 0, r0: 10, c1: 5, r1: 10 },
-    { k: 'estadio', nome: 'Estádio do Café', c0: 5, r0: 0, c1: 6, r1: 1 },
-    { k: 'feira', nome: 'Feira do Corre', c0: 6, r0: 4, c1: 7, r1: 4 },
-    /* o Thales: "joga o aeroporto pra cima e a ACEL pra baixo" */
-    { k: 'aeroporto', nome: 'Aeroporto de Londrina', c0: 10, r0: 0, c1: 12, r1: 1 },
-    { k: 'acel', nome: 'ACEL', c0: 11, r0: 4, c1: 12, r1: 5 },
-    { k: 'arthur', nome: 'Parque Arthur Thomas', c0: 11, r0: 7, c1: 12, r1: 9 }
+    pelaLetra('bosque', 'Bosque dos Ipês', 'B'),
+    pelaLetra('zerao', 'Zerão', 'Z'),
+    pelaLetra('lago', 'Lago Igapó', 'Ll', true),
+    pelaLetra('gleba', 'Gleba Palhano', 'G'),
+    pelaLetra('estadio', 'Estádio do Café', 'E'),
+    pelaLetra('feira', 'Feira do Corre', 'F'),
+    pelaLetra('aeroporto', 'Aeroporto de Londrina', 'A'),
+    pelaLetra('acel', 'ACEL', 'C'),
+    pelaLetra('arthur', 'Parque Arthur Thomas', 'T')
   ];
+  /* o quarteirão é desse lugar? (o lago vai quarteirão por quarteirão; os outros são retângulos) */
+  const daReg = (g, c, r) => g.cel ? g.cel.has(c + ',' + r) : c >= g.c0 && c <= g.c1 && r >= g.r0 && r <= g.r1;
+  /* uma área feita de quarteirões (a roça, o parque do lago): o ponto tá nela? Quarteirão por quarteirão, e a rua entre
+     dois quarteirões da área também é dela (no cruzamento, só se os quatro em volta forem) */
+  const PQ = LW + RUA, QQ = LH + RUA;
+  function naArea(x, y, tem){
+    const c = Math.floor((x - RUA) / PQ), r = Math.floor((y - TOPO) / QQ), gx = x - (RUA + c * PQ) >= LW, gy = y - (TOPO + r * QQ) >= LH;
+    if(!gx && !gy) return tem(c, r);
+    if(gx && !gy) return tem(c, r) && tem(c + 1, r);
+    if(!gx) return tem(c, r) && tem(c, r + 1);
+    return tem(c, r) && tem(c + 1, r) && tem(c, r + 1) && tem(c + 1, r + 1);
+  }
+  /* os retângulos que pintam uma área dessas (o quarteirão, o pedaço de rua do lado quando o vizinho também é, e o
+     cruzamento quando os quatro são), só os que aparecem entre (c0, r0) e (c1, r1) */
+  function blocosDe(tem, c0, r0, c1, r1, fn){
+    for(let r = r0; r <= r1; r++) for(let c = c0; c <= c1; c++){
+      const dir = tem(c + 1, r), bx = tem(c, r + 1), o = lotXY(c, r);
+      if(tem(c, r)){ fn(o.x, o.y, LW, LH, c, r, 'q'); if(dir) fn(o.x + LW, o.y, RUA, LH, c, r, 'v'); if(bx) fn(o.x, o.y + LH, LW, RUA, c, r, 'h'); if(dir && bx && tem(c + 1, r + 1)) fn(o.x + LW, o.y + LH, RUA, RUA, c, r, 'x'); }
+      /* a borda de cima e a da esquerda (o vizinho de fora da grade) */
+      if(c === c0 && tem(c - 1, r) && tem(c, r)){ fn(o.x - RUA, o.y, RUA, LH, c - 1, r, 'v'); if(tem(c - 1, r + 1) && bx) fn(o.x - RUA, o.y + LH, RUA, RUA, c - 1, r, 'x'); }
+      if(r === r0 && tem(c, r - 1) && tem(c, r)){ fn(o.x, o.y - RUA, LW, RUA, c, r - 1, 'h'); if(dir && tem(c + 1, r - 1)) fn(o.x + LW, o.y - RUA, RUA, RUA, c, r - 1, 'x'); }
+      if(c === c0 && r === r0 && tem(c - 1, r - 1) && tem(c - 1, r) && tem(c, r - 1) && tem(c, r)) fn(o.x - RUA, o.y - RUA, RUA, RUA, c - 1, r - 1, 'x');
+    }
+  }
   /* ---------- a Feira do Corre: o menu inteiro em barracas, logo abaixo do Calçadão ----------
      Duas fileiras, uma barraca pra cada ferramenta. Chegou perto e tocou: a ferramenta abre num balcão por cima da
      cidade (o próprio Corre, sem menu) e você continua na rua, de barraca em barraca. O Rolo 360 só aparece pro @consanans. */
@@ -1660,7 +1738,8 @@
   /* barraca que é só de alguém (o Rolo) some pros outros, inclusive a colisão; o Hórus desligado fica de porta baixada */
   const paraMim = b => b.so !== 'fundador' || !!(C.ehFundador && C.ehFundador());
   const aberta = b => b.id !== 'horus' || !C.ferr || C.ferr('horus');
-  const MEIO = { c: 6.5, r: 3 }, LIVRES = 3;
+  /* as casas entram do meio dos dois quarteirões do fundador pra fora */
+  const MEIO = { c: DOIS.c + .5, r: DOIS.r }, LIVRES = 3;
   const ENCHE = [['predio', 6], ['loja', 5], ['pracinha', 3], ['bosquinho', 3], ['quadra', 2], ['feira', 2]];
   /* ipê rosa, amarelo, roxo e branco, flamboyant e jacarandá: árvore aqui sempre floresce, e nunca de verde */
   const IPES = [ROSA, AMARELO, LILAS, '#F4F1EA', '#E8643A', '#8F86E8'];
@@ -1670,14 +1749,17 @@
   const PREDIOS = ['branco', 'concreto', 'tijolo', '#D9B48F', '#B8C4CF', '#E8D7C3'];
   const CORES_CARRO = [AZUL, AMARELO, '#EEEBE4', '#1B1D22', LARANJA, '#C9CED6', ROSA, LILAS, '#8E4B2B'];
   const pega = (L, q) => L[Math.floor(q() * L.length)];
-  /* v3.83: os bairros pelo mapa de Londrina (o Centro em cima, a Higienópolis e o Kennedy a oeste, a Vila Brasil a leste,
-     o Lago Parque entre o Centro e o Igapó, e do outro lado do lago a Gleba, a Bela Suíça, o Colonial, o Caiçaras e o
-     Inglaterra) */
+  /* v4.14: os bairros pela planta (nomes e lados do OpenStreetMap): a Zona Norte em volta do Estádio; a Vila Nova e a
+     Vila Casoni entre ela e o Centro (a linha do trem, hoje a Leste-Oeste); a oeste do Centro o Jardim Bandeirantes e o
+     Presidente, a leste a Vila Brasil; embaixo a Universidade, o Champagnat (o Igapó 3), a Higienópolis
+     (o Zerão e o Igapó 2), o Ipiranga e o Aeroporto; do outro lado do lago a Gleba, a Bela Suíça, o Petrópolis (a
+     barragem) e o Inglaterra */
   function bairro(c, r){
-    if(r <= 3) return c <= 3 ? 'Kennedy' : c <= 9 ? 'Centro' : 'Vila Brasil';
-    if(r <= 6) return c <= 4 ? 'Higienópolis' : c <= 8 ? 'Lago Parque' : c === 9 ? 'Jardim América' : 'Santos Dumont';
-    if(r <= 9) return c <= 1 ? 'Residencial do Lago' : c >= 11 ? 'Igapó' : 'Lago Igapó';
-    return c <= 5 ? 'Gleba Palhano' : c <= 7 ? 'Bela Suíça' : c <= 9 ? 'Colonial' : c === 10 ? 'Jardim Caiçaras' : 'Inglaterra';
+    if(r <= 2) return 'Zona Norte';
+    if(r <= 4) return c <= 6 ? 'Vila Nova' : 'Vila Casoni';
+    if(r <= 7) return c <= 2 ? 'Jardim Bandeirantes' : c <= 6 ? 'Presidente' : c <= 10 ? 'Centro' : 'Vila Brasil';
+    if(r <= 11) return c <= 2 ? 'Universidade' : c <= 5 ? 'Champagnat' : c <= 9 ? 'Higienópolis' : c <= 11 ? 'Ipiranga' : 'Aeroporto';
+    return c <= 5 ? 'Gleba Palhano' : c <= 8 ? 'Bela Suíça' : c <= 11 ? 'Petrópolis' : 'Inglaterra';
   }
   const arvRua = (K, o, q, p) => [0, 1].forEach(lado => { if(q() < (p || .55)) K.arv.push({ x: o.x + (lado ? LW - 18 : 18), y: o.y + LH + 6, cor: pega(IPES, q) }); });
 
@@ -1685,17 +1767,28 @@
     const esp = perfis.find(p => ESPECIAL[String(p.handle || '').toLowerCase()]);
     /* a ordem é a mesma pra todo mundo (casa maior fica mais perto do Centro); quem tá mocado entra por último, e só na tela dele */
     const resto = perfis.filter(p => p !== esp).sort((a, b) => (!!a.soEu - !!b.soEu) || nivel(b) - nivel(a) || hash(a.id) - hash(b.id));
-    const regEm = (c, r) => REGIOES.find(g => c >= g.c0 && c <= g.c1 && r >= g.r0 && r <= g.r1);
+    const regEm = (c, r) => REGIOES.find(g => daReg(g, c, r));
     const centroEm = (c, r) => Object.values(CENTRO).some(([cc, rr]) => cc === c && rr === r);
-    const reservado = (c, r) => !!regEm(c, r) || centroEm(c, r) || (!!esp && r === 2 && (c === 6 || c === 7));
-    const livresAte = n => { let q = 0; for(let r = 0; r < n; r++) for(let c = 0; c < COLS; c++) if(!reservado(c, r)) q++; return q; };
-    let rows = 12; while(livresAte(rows) < resto.length + LIVRES) rows++;
+    const reservado = (c, r) => !!regEm(c, r) || centroEm(c, r) || (!!esp && r === DOIS.r && (c === DOIS.c || c === DOIS.c + 1));
+    const dm = s => Math.hypot((s.c - MEIO.c) * (LW + RUA), (s.r - MEIO.r) * (LH + RUA));
+    /* v4.14: a cidade é a planta (o resto é roça). Chegou mais gente do que cabe, ela cresce pra roça, do quarteirão de
+       roça mais perto do Centro pra fora (e, se a roça acabar, ganha uma fileira embaixo), sempre igual pra todo mundo */
+    let rows = PLANTA.length;
+    const roca = PLANTA.map(l => [...l].map(ch => ch === '.'));
+    const livres = () => { let q = 0; for(let r = 0; r < rows; r++) for(let c = 0; c < COLS; c++) if(!roca[r][c] && !reservado(c, r)) q++; return q; };
+    const vira = []; for(let r = 0; r < rows; r++) for(let c = 0; c < COLS; c++) if(roca[r][c]) vira.push({ c, r });
+    vira.sort((a, b) => dm(a) - dm(b) || a.r - b.r || a.c - b.c);
+    for(let falta = resto.length + LIVRES - livres(), i = 0; falta > 0; falta--){
+      if(i < vira.length){ const s = vira[i++]; roca[s.r][s.c] = false; }
+      else { roca.push(Array(COLS).fill(false)); rows++; falta -= COLS - 1; }
+    }
+    const ehRoca = (c, r) => c < 0 || r < 0 || c >= COLS || r >= rows || roca[r][c];
     /* v3.75: embaixo da última rua corre o Rio Tibagi, de ponta a ponta (a cidade cresce pra baixo e ele desce junto) */
     const W = RUA + COLS * (LW + RUA), yRio = TOPO + rows * (LH + RUA), H = yRio + RIO_H;
     const grade = Array.from({ length: rows }, () => Array(COLS).fill(null));
+    for(let r = 0; r < rows; r++) for(let c = 0; c < COLS; c++) if(roca[r][c]) grade[r][c] = { t: 'roca' };
     const K = { arv: [], bancos: [], zonas: [], sol: [], lugares: [], decor: [], quiosques: [], trucks: [], barracas: [], postes: [], torneio: null };
-    const slots = []; for(let r = 0; r < rows; r++) for(let c = 0; c < COLS; c++) if(!reservado(c, r)) slots.push({ c, r });
-    const dm = s => Math.hypot((s.c - MEIO.c) * (LW + RUA), (s.r - MEIO.r) * (LH + RUA));
+    const slots = []; for(let r = 0; r < rows; r++) for(let c = 0; c < COLS; c++) if(!roca[r][c] && !reservado(c, r)) slots.push({ c, r });
     slots.sort((a, b) => dm(a) - dm(b) || a.r - b.r || a.c - b.c);
     /* as casas */
     const casas = [];
@@ -1725,7 +1818,7 @@
     enche.forEach(f => { if(f.t === 'loja') f.lojas.forEach((l, i) => { if(l.nome === 'ATELIE') K.lugares.push({ nome: 'Ateliê', x: portaLoja(f, i), y: f.base + 22 }); }); });
     /* os dois quarteirões */
     let dois = null;
-    if(esp){ const a = lotXY(6, 2), b = lotXY(7, 2); dois = { id: esp.id, p: esp, handle: esp.handle, nome: esp.nome, x: a.x, w: 2 * LW + RUA, base: a.y + LH - 34, blocos: [a, b], portaX: a.x + 154 }; grade[2][6] = grade[2][7] = { t: 'dois' }; }
+    if(esp){ const a = lotXY(DOIS.c, DOIS.r), b = lotXY(DOIS.c + 1, DOIS.r); dois = { id: esp.id, p: esp, handle: esp.handle, nome: esp.nome, x: a.x, w: 2 * LW + RUA, base: a.y + LH - 34, blocos: [a, b], portaX: a.x + 154 }; grade[DOIS.r][DOIS.c] = grade[DOIS.r][DOIS.c + 1] = { t: 'dois' }; }
     /* o Centro */
     const centro = {};
     Object.keys(CENTRO).forEach(nm => {
@@ -1739,22 +1832,44 @@
     const cc = centro.concha; [0, 1, 2].forEach(i => [-60, 0, 60].forEach(dx => K.bancos.push({ x: cc.x + LW / 2 + dx, y: cc.base + 46 + i * 30, lugar: 'Concha Acústica', degrau: true })));
     [[praca.x + 52, praca.y + 220], [praca.x + LW - 70, praca.y + 236]].forEach(([x, y]) => K.bancos.push({ x, y, lugar: 'Calçadão' }));
     /* os lugares grandes */
-    const regs = REGIOES.map(g => { const R = Object.assign(ret(g.c0, g.r0, g.c1, g.r1), g); for(let r = g.r0; r <= g.r1; r++) for(let c = g.c0; c <= g.c1; c++) grade[r][c] = { t: 'reg', R }; return R; });
+    const regs = REGIOES.map(g => { const R = Object.assign(ret(g.c0, g.r0, g.c1, g.r1), g); for(let r = g.r0; r <= g.r1; r++) for(let c = g.c0; c <= g.c1; c++) if(daReg(g, c, r)) grade[r][c] = { t: 'reg', R }; return R; });
     const RG = nm => regs.find(R => R.k === nm), sorte = rng(hash('londrina'));
-    const lago = montaLago(RG('lago'), K, sorte), zerao = montaZerao(RG('zerao'), K, sorte), bosque = montaBosque(RG('bosque'), K, sorte), glebaR = montaGleba(RG('gleba'), K, sorte), estadio = montaEstadio(RG('estadio'), K), feira = montaFeira(RG('feira'), K), aeroporto = montaAeroporto(RG('aeroporto'), K), acel = montaAcel(RG('acel'), K), arthur = montaArthur(RG('arthur'), K), rio = montaRio(W, yRio, K);
-    regs.forEach(R => K.zonas.push({ nome: R.nome, x: R.x - 10, y: R.y - 10, w: R.w + 20, h: R.h + 20 }));
-    /* postes nas esquinas e na beira dos lugares grandes */
+    /* v4.14: o lago é o único lugar torto: a área dele (o parque) é quarteirão por quarteirão */
+    { const L = RG('lago'); L.tem = (c, r) => !!L.cel && L.cel.has(c + ',' + r); }
+    const lago = montaLago(RG('lago'), K, sorte, RG('arthur')), zerao = montaZerao(RG('zerao'), K, sorte), bosque = montaBosque(RG('bosque'), K, sorte), glebaR = montaGleba(RG('gleba'), K, sorte), estadio = montaEstadio(RG('estadio'), K), feira = montaFeira(RG('feira'), K), aeroporto = montaAeroporto(RG('aeroporto'), K), acel = montaAcel(RG('acel'), K), arthur = montaArthur(RG('arthur'), K), rio = montaRio(W, yRio, K);
+    regs.forEach(R => { if(R.tem) blocosDe(R.tem, R.c0, R.r0, R.c1, R.r1, (x, y, w, h) => K.zonas.push({ nome: R.nome, x, y, w, h })); else K.zonas.push({ nome: R.nome, x: R.x - 10, y: R.y - 10, w: R.w + 20, h: R.h + 20 }); });
+    /* postes nas esquinas e na beira dos lugares grandes (na roça não tem; na rua da beira dela, sim) */
+    const naoLote = (c, r) => c < 0 || c >= COLS || !grade[r][c] || grade[r][c].t === 'reg' || grade[r][c].t === 'roca';
     for(let r = 0; r < rows; r++) for(let c = 0; c < COLS; c++){
-      const g = grade[r][c]; if(g && g.t === 'reg') continue; const o = lotXY(c, r);
+      const g = grade[r][c]; if(g && (g.t === 'reg' || g.t === 'roca')) continue; const o = lotXY(c, r);
       K.postes.push({ x: o.x - 7, y: o.y - 5 });
-      const viz = c < COLS - 1 && grade[r][c + 1]; if(c === COLS - 1 || (viz && viz.t === 'reg')) K.postes.push({ x: o.x + LW + 7, y: o.y - 5 });
+      if(naoLote(c + 1, r)) K.postes.push({ x: o.x + LW + 7, y: o.y - 5 });
     }
-    regs.forEach(R => { for(let x = R.x + 180; x < R.x + R.w - 80; x += 420) K.postes.push({ x, y: R.y - 5 }); });
-    /* ruas onde passa carro: as que atravessam a cidade inteira */
-    const ruasLivres = []; for(let s = 0; s <= rows; s++) if(!REGIOES.some(g => g.r0 <= s - 1 && g.r1 >= s)) ruasLivres.push(s);
-    return { W, H, rows, grade, casas, dois, vazios, enche, praca, centro, regs, lago, zerao, bosque, gleba: glebaR.torres, glebaR, estadio, feira, aeroporto, acel, arthur, rio, ruasLivres,
+    regs.forEach(R => { for(let x = R.x + 180; x < R.x + R.w - 80; x += 420){ const c = Math.floor((x - RUA / 2) / PQ); let r = R.r0; if(R.tem){ while(r <= R.r1 && !R.tem(c, r)) r++; if(r > R.r1) continue; } if(ehRoca(c, r - 1)) continue; K.postes.push({ x, y: lotXY(c, r).y - 5 }); } });
+    /* a roça: cada quarteirão uma lavoura (terra roxa lavrada, trigo, palhada, milho seco), e uns ipês e silos no meio */
+    const rocaI = {};
+    for(let r = 0; r < rows; r++) for(let c = 0; c < COLS; c++){
+      if(!roca[r][c]) continue; const q = rng(hash('roca' + c + ',' + r)), o = lotXY(c, r);
+      rocaI[c + ',' + r] = { t: pega(ROCA_T, q), deitado: q() < .5, sd: Math.floor(q() * 1e6) };
+      if(q() < .45) K.arv.push({ x: Math.round(o.x + 40 + q() * (LW - 80)), y: Math.round(o.y + 50 + q() * (LH - 80)), cor: pega(IPES, q), mata: true, roca: true });
+      if(q() < .14) K.decor.push({ tipo: 'silo', x: Math.round(o.x + 70 + q() * (LW - 140)), y: Math.round(o.y + 120 + q() * (LH - 150)) });
+    }
+    /* ruas onde passa carro: os trechos de rua deitada sem lugar grande nem roça dos dois lados (o carro vai até a ponta e volta) */
+    const trechos = [];
+    for(let s = 0; s <= rows; s++){
+      let ini = -1;
+      for(let i = 0; i <= COLS; i++){
+        const a = s > 0 && i < COLS ? grade[s - 1][i] : null, b = s < rows && i < COLS ? grade[s][i] : null;
+        const fecha = i === COLS || (ehRoca(i, s - 1) && ehRoca(i, s)) || (a && b && a.t === 'reg' && b.t === 'reg' && a.R === b.R) || (a && b && a.t === 'dois' && b.t === 'dois');
+        if(!fecha && ini < 0) ini = i;
+        if(fecha && ini >= 0){ if(i - ini >= 3) trechos.push({ s, x0: ruaX(ini) + 20, x1: ruaX(i) - 20, n: i - ini }); ini = -1; }
+      }
+    }
+    return { W, H, rows, grade, ehRoca, rocaI, casas, dois, vazios, enche, praca, centro, regs, lago, zerao, bosque, gleba: glebaR.torres, glebaR, estadio, feira, aeroporto, acel, arthur, rio, trechos,
       arv: K.arv, bancos: K.bancos, zonas: K.zonas, sol: K.sol, lugares: K.lugares, torneio: K.torneio, decor: K.decor, quiosques: K.quiosques, trucks: K.trucks, barracas: K.barracas, postes: K.postes };
   }
+  /* v4.14: as lavouras da roça */
+  const ROCA_T = ['arado', 'trigo', 'palhada', 'arado', 'milho', 'trigo'];
 
   /* a porta de cada loja do par (a mesma conta do desenho: 14 de margem, 140 por loja e a porta a 80% da fachada) */
   const portaLoja = (f, i) => Math.round(f.x + 14 + i * 140 + 132 * .8);
@@ -1788,91 +1903,154 @@
     }
   }
 
-  /* Lago Igapó: comprido e sinuoso, com a margem em blocos */
-  function montaLago(R, K, sorte){
-    const B = 12, x0 = R.x + 150, n = Math.floor((R.w - 300) / B), x1 = x0 + n * B, meio = R.y + R.h / 2, tMin = R.y + 140, bMax = R.y + R.h - 140;
-    /* v3.83: o lago desce pro sudeste (a ponta de cá, perto da Higienópolis, fica mais alta; a de lá, perto do Arthur Thomas, mais baixa) */
-    const cyF = x => meio + 92 * Math.sin(x / 560 + 1.7) + 30 * Math.sin(x / 240 + .6) + (x - (R.x + R.w / 2)) * .07;
-    const hwF = x => { const e = clamp(Math.min(x - x0, x1 - x) / 320, 0, 1); return Math.max(36, (172 + 68 * Math.sin(x / 410 + 2.3)) * (.3 + .7 * Math.sqrt(e))); };
+  /* ---------- o Lago Igapó (v4.14: em diagonal, como em Londrina) ----------
+     Do noroeste pro sudeste: o Igapó 3 (no Champagnat), o Aterro (o lago fino, um riacho no meio do parque), o Igapó 2
+     (o do Papai Noel), a Av. Higienópolis passando por cima, o Igapó 1 (o maior), a barragem e o ribeirão que desce até
+     o Parque Arthur Thomas (lá ele encontra o Cambé). A água é feita de colunas de 12 px (o de cima e o de baixo de cada
+     uma), como sempre. O parque em volta é quarteirão por quarteirão (a planta); onde um quarteirão passa pro outro com
+     uma fileira só em comum, a água afina devagar até o canal, que nem a passagem de um Igapó pro outro. */
+  function montaLago(R, K, sorte, AR){
+    const B = 12, tem = R.tem, lx = c => RUA + c * PQ, ly = r => TOPO + r * QQ;
+    /* a faixa de quarteirões de cada coluna (a fileira de cima e a de baixo) */
+    const faixa = {}; for(let c = R.c0; c <= R.c1; c++){ let a = -1, b = -1; for(let r = R.r0; r <= R.r1; r++) if(tem(c, r)){ if(a < 0) a = r; b = r; } if(a >= 0) faixa[c] = { a, b }; }
+    /* o parque na altura x: no quarteirão, a faixa inteira; na rua entre dois, só as fileiras que os dois têm */
+    const pk = x => { const c = Math.floor((x - RUA) / PQ), f = faixa[c]; if(x - lx(c) < LW) return f ? { t: ly(f.a), b: ly(f.b) + LH } : null;
+      const g = faixa[c + 1]; if(!f || !g) return null; const a = Math.max(f.a, g.a), b = Math.min(f.b, g.b); return a <= b ? { t: ly(a), b: ly(b) + LH } : null; };
+    const cols0 = Object.keys(faixa).map(Number).sort((a, b) => a - b), cF = cols0[0], cL = cols0[cols0.length - 1];
+    const fino = c => !!R.fino && R.fino.has(c), aterro = cols0.find(c => fino(c) && c !== cL), rib = fino(cL) ? cL : null;
+    /* onde a água começa (a ponta redonda do Igapó 3) e onde acaba (a entrada do ribeirão no Arthur Thomas) */
+    const fim = AR ? { x: AR.x + 10, y: AR.y + 900 } : null;
+    const x0 = lx(cF) + 110, x1 = fim ? fim.x : lx(cL) + LW - 60, n = Math.floor((x1 - x0) / B);
+    /* o meio da água: passa pelo meio de cada quarteirão e pelo meio do que dois vizinhos têm em comum, e no fim desce
+       até a entrada do ribeirão no parque */
+    const pts = [];
+    cols0.forEach(c => { const f = faixa[c]; pts.push([lx(c) + LW / 2, (ly(f.a) + ly(f.b) + LH) / 2]); const p = faixa[c + 1] && pk(lx(c) + LW + RUA / 2); if(p) pts.push([lx(c) + LW + RUA / 2, (p.t + p.b) / 2]); });
+    if(fim){ pts[pts.length - 1][1] = Math.min(pts[pts.length - 1][1], fim.y - 40); pts.push([lx(cL) + LW - 30, fim.y], [fim.x + 40, fim.y]); }
+    pts.unshift([x0 - 200, pts[0][1]]);
+    const cyBase = x => { let i = 0; while(i < pts.length - 2 && pts[i + 1][0] <= x) i++;
+      const p1 = pts[i], p2 = pts[i + 1], p0 = pts[i - 1] || p1, p3 = pts[i + 2] || p2, u = clamp((x - p1[0]) / (p2[0] - p1[0] || 1), 0, 1), u2 = u * u, u3 = u2 * u;
+      return .5 * (2 * p1[1] + (p2[1] - p0[1]) * u + (2 * p0[1] - 5 * p1[1] + 4 * p2[1] - p3[1]) * u2 + (3 * p1[1] - p0[1] - 3 * p2[1] + p3[1]) * u3); };
+    /* a mexida da margem só onde tem espaço (no canal, a água vai reta) */
+    const cyF = x => { const p = pk(x), solto = p ? clamp((p.b - p.t - 320) / 300, 0, 1) : 0; return cyBase(x) + solto * (34 * Math.sin(x / 260 + .6) + 14 * Math.sin(x / 120 + 2)); };
+    /* a largura: larga nos Igapós, fina no Aterro e no ribeirão (que afina ainda mais depois da barragem) */
+    const largBase = x => { if(x > lx(cL) + LW) return 15; const c = Math.floor((x - RUA) / PQ), em = x - lx(c) < LW;
+      const de = k => k == null ? 230 : k === rib ? 15 : fino(k) ? 26 : 232 + 40 * Math.sin(x / 410 + 2.3);
+      return em ? de(faixa[c] ? c : null) : Math.min(de(faixa[c] ? c : null), de(faixa[c + 1] ? c + 1 : null)); };
+    /* os limites (a orla precisa de uns 84 px de cada lado) com rampa: chegando num canal, a margem vai fechando aos poucos */
+    const M = 84, RAMPA = 2.4, lim = [];
+    for(let i = 0; i < n; i++){ const xm = x0 + i * B + B / 2, p = pk(xm); lim.push(p ? [p.t + M, p.b - M] : null); }
+    const tE = [], bE = [];
+    for(let i = 0; i < n; i++){
+      let t = -Infinity, b = Infinity;
+      for(let j = Math.max(0, i - 40); j <= Math.min(n - 1, i + 40); j++){ const L = lim[j]; if(!L) continue; const d = Math.abs(i - j) * B * RAMPA; t = Math.max(t, L[0] - d); b = Math.min(b, L[1] + d); }
+      tE.push(t); bE.push(b);
+    }
+    /* a largura também muda devagar (média de umas 15 colunas), senão o riacho do Aterro vira degrau */
+    const lb = []; for(let i = 0; i < n; i++) lb.push(largBase(x0 + i * B + B / 2));
+    const hwF = x => { const i = clamp(Math.round((x - x0 - B / 2) / B), 0, n - 1); let s = 0, k = 0; for(let j = Math.max(0, i - 7); j <= Math.min(n - 1, i + 7); j++){ s += lb[j]; k++; } const e = clamp((x - x0) / 260, 0, 1); return Math.max(14, s / k * (.3 + .7 * Math.sqrt(e))); };
     const cols = [];
     for(let i = 0; i < n; i++){
       const x = x0 + i * B, xm = x + B / 2, cy = cyF(xm), hw = hwF(xm);
-      let t = Math.round(Math.max(tMin, cy - hw) / B) * B, b = Math.round(Math.min(bMax, cy + hw) / B) * B;
-      if(b - t < B * 3){ const m = Math.round(cy / B) * B; t = m - B; b = m + 2 * B; }
+      let t = Math.round(Math.max(tE[i], cy - hw) / B) * B, b = Math.round(Math.min(bE[i], cy + hw) / B) * B;
+      if(b - t < B * 2){ const m = Math.round(clamp(cy, isFinite(tE[i]) ? tE[i] : cy, isFinite(bE[i]) ? bE[i] : cy) / B) * B; t = m - B; b = m + B; }
       cols.push({ x, t, b });
     }
     /* as faixas da orla: a margem crescida pra fora (calçada, pista de caminhada, calçada e as pedras) */
     const dil = off => { const out = [], m = Math.ceil(off / B) + 1; for(let i = -m; i < n + m; i++){ const x = x0 + i * B, xm = x + B / 2; let t = Infinity, b = -Infinity; for(let j = Math.max(0, i - m); j <= Math.min(n - 1, i + m); j++){ const cj = cols[j], dx = Math.max(0, Math.abs(cj.x + B / 2 - xm) - B / 2); if(dx > off) continue; const dy = Math.sqrt(off * off - dx * dx); if(cj.t - dy < t) t = cj.t - dy; if(cj.b + dy > b) b = cj.b + dy; } if(t < b) out.push({ x, t: Math.round(t / B) * B, b: Math.round(b / B) * B }); } return out; };
-    const L = { R, x: R.x, y: R.y, w: R.w, h: R.h, B, x0, x1, cols, cyF, hwF, secos: [], ilha: null, chafariz: null };
+    const L = { R, x: R.x, y: R.y, w: R.w, h: R.h, B, x0, x1, cols, cyF, hwF, pk, secos: [], ilha: null, chafariz: null };
     L.bandas = [['calcada', dil(72)], ['terra', dil(58)], ['calcada', dil(42)], ['concreto', dil(12)]];
     const fora = L.bandas[0][1], foraEm = x => fora.find(c => x >= c.x && x < c.x + B), colEm = x => cols[clamp(Math.floor((x - x0) / B), 0, n - 1)];
-    const busca = (f0, f1, maior) => { let bi = Math.floor(n * f0), bv = maior ? -1 : 1e9; for(let i = Math.floor(n * f0); i < Math.min(n, Math.ceil(n * f1)); i++){ const v = cols[i].b - cols[i].t; if(maior ? v > bv : v < bv){ bv = v; bi = i; } } return bi; };
-    /* duas pontes nos trechos mais estreitos */
-    [[.17, .29], [.62, .74]].forEach(([a, b]) => { const c = cols[busca(a, b, false)], xb = c.x + B / 2; L.secos.push({ tipo: 'ponte', x: xb - 24, y: c.t - 52, w: 48, h: c.b - c.t + 104 }); });
-    /* píer no meio, saindo da orla norte, e um deck saindo da orla sul */
-    { const c = cols[busca(.44, .56, true)], xp = c.x + B / 2, lp = Math.min(160, Math.round((c.b - c.t) * .42)); L.secos.push({ tipo: 'pier', x: xp - 22, y: c.t - 16, w: 44, h: lp + 16 }); K.bancos.push({ x: xp, y: c.t + lp - 16, lugar: 'Píer do Igapó' }); K.torneio = { x: xp, y: c.t + 8 }; K.zonas.push({ nome: 'Píer do Igapó', x: xp - 44, y: c.t - 24, w: 88, h: lp + 30 }); K.lugares.push({ nome: 'Píer do Igapó', x: xp, y: c.t + lp - 46 }); }
-    { const c = cols[busca(.84, .94, true)], xp = c.x + B / 2, lp = Math.min(140, Math.round((c.b - c.t) * .38)); L.secos.push({ tipo: 'pier', x: xp - 22, y: c.b - lp, w: 44, h: lp + 16 }); K.bancos.push({ x: xp, y: c.b - lp + 26, lugar: 'Deck do Igapó' }); K.zonas.push({ nome: 'Deck do Igapó', x: xp - 44, y: c.b - lp - 10, w: 88, h: lp + 30 }); }
-    /* a ilhinha com ipês e o chafariz */
-    { const c = cols[busca(.33, .43, true)], ix = c.x + B / 2, iy = (c.t + c.b) / 2, rad = Math.min(88, (c.b - c.t) / 2 - 70);
-      if(rad >= 36){ const ic = []; cols.forEach(q => { const dx = Math.abs(q.x + B / 2 - ix); if(dx < rad){ const hh = Math.sqrt(rad * rad - dx * dx) * .7, t = Math.round((iy - hh) / B) * B, b = Math.round((iy + hh) / B) * B; if(b > t) ic.push({ x: q.x, t, b }); } });
-        L.ilha = { x: ix, y: iy, rad, cols: ic }; K.arv.push({ x: Math.round(ix - rad * .3), y: Math.round(iy + 6), cor: ROSA, ilha: true, g: true }, { x: Math.round(ix + rad * .45), y: Math.round(iy + rad * .3), cor: AMARELO, ilha: true }); } }
-    { const c = cols[busca(.76, .83, true)]; L.chafariz = { x: c.x + B / 2, y: Math.round((c.t + c.b) / 2) }; }
-    L.barcos = [{ f: .1, v: .016, lado: -1, cor: AMARELO }, { f: .9, v: .012, lado: 1, cor: ROSA }, { f: 1.4, v: .014, lado: -1, cor: AZUL }, { f: .55, v: .011, lado: 1, cor: LARANJA }];
+    const iDe = x => clamp(Math.floor((x - x0) / B), 0, n - 1);
+    /* os três Igapós (os pedaços largos): o 3 antes do Aterro, o 2 até a Av. Higienópolis, o 1 até o ribeirão */
+    const largos = cols0.filter(c => !fino(c)), parte = (a, b) => { const cs = largos.filter(c => c >= a && c < b); return cs.length ? { xa: lx(cs[0]) + 40, xb: lx(cs[cs.length - 1]) + LW - 40 } : null; };
+    const I3 = parte(cF, aterro == null ? AV_HIGI : aterro), I2 = parte(aterro == null ? cF : aterro + 1, AV_HIGI), I1 = parte(AV_HIGI, rib == null ? cL + 1 : rib);
+    L.partes = { I3, I2, I1 };
+    /* o mais largo (ou o mais estreito) entre xa e xb */
+    const busca = (P, maior) => { if(!P) return -1; let bi = -1, bv = maior ? -1 : 1e9; for(let i = iDe(P.xa); i <= iDe(P.xb); i++){ const v = cols[i].b - cols[i].t; if(maior ? v > bv : v < bv){ bv = v; bi = i; } } return bi; };
+    /* as pontes: no Aterro (a de pedestre), a Av. Higienópolis (de asfalto, a rua inteira por cima do lago), a do canal
+       do Igapó 1, a barragem (a crista de concreto, onde se anda) e, no fim, a rua por cima do ribeirão antes do Arthur Thomas */
+    const ponte = (xc, w, o) => { const a = iDe(xc - w / 2), b = iDe(xc + w / 2); let t = Infinity, bb = -Infinity; for(let i = a; i <= b; i++){ t = Math.min(t, cols[i].t); bb = Math.max(bb, cols[i].b); } const p = pk(xc);
+      const y0 = o && o.rua && p ? p.t : t - 52, y1 = o && o.rua && p ? p.b : bb + 52; L.secos.push(Object.assign({ tipo: 'ponte', x: Math.round(xc - w / 2), y: Math.round(y0), w, h: Math.round(y1 - y0) }, o || {})); };
+    if(aterro != null) ponte(lx(aterro) + LW / 2, 44);
+    ponte(ruaX(AV_HIGI), RUA, { rua: true, nome: 'AV HIGIENOPOLIS' });
+    if(I1){ const c9 = largos.find(c => c > AV_HIGI && faixa[c - 1] && !fino(c - 1)); if(c9 != null && pk(lx(c9) - RUA / 2) && pk(lx(c9) - RUA / 2).b - pk(lx(c9) - RUA / 2).t < LH + 1) ponte(lx(c9) - RUA / 2, 44); }
+    if(rib != null){ ponte(lx(rib) - RUA / 2, RUA - 20, { barragem: true }); const bg = L.secos[L.secos.length - 1]; K.lugares.push({ nome: 'Barragem do Igapó', x: bg.x + bg.w / 2, y: bg.y + 40 }); ponte(lx(cL) + LW + RUA / 2, RUA, { rua: true, ribeirao: true }); }
+    /* o píer, saindo da orla de cima do Igapó 1 (com o Torneio de Pesca na entrada), e o deck na orla de baixo do Igapó 3 */
+    { const i = busca(I1, true); if(i >= 0){ const c = cols[i], xp = c.x + B / 2, lp = Math.min(160, Math.round((c.b - c.t) * .42)); L.secos.push({ tipo: 'pier', x: xp - 22, y: c.t - 16, w: 44, h: lp + 16 }); K.bancos.push({ x: xp, y: c.t + lp - 16, lugar: 'Píer do Igapó' }); K.torneio = { x: xp, y: c.t + 8 }; K.zonas.push({ nome: 'Píer do Igapó', x: xp - 44, y: c.t - 24, w: 88, h: lp + 30 }); K.lugares.push({ nome: 'Píer do Igapó', x: xp, y: c.t + lp - 46 }); } }
+    { const P = I3 && { xa: I3.xa + (I3.xb - I3.xa) * .5, xb: I3.xb }, i = busca(P, true); if(i >= 0){ const c = cols[i], xp = c.x + B / 2, lp = Math.min(140, Math.round((c.b - c.t) * .38)); L.secos.push({ tipo: 'pier', x: xp - 22, y: c.b - lp, w: 44, h: lp + 16 }); K.bancos.push({ x: xp, y: c.b - lp + 26, lugar: 'Deck do Igapó' }); K.zonas.push({ nome: 'Deck do Igapó', x: xp - 44, y: c.b - lp - 10, w: 88, h: lp + 30 }); } }
     const evita = (x, m) => L.secos.some(s => x > s.x - m && x < s.x + s.w + m);
-    /* a placa do lago, num trecho com espaço na orla norte */
-    let sx = 0; for(let x = x0 + 360; x < x1 - 300; x += 40){ const f = foraEm(x); if(f && f.t - R.y >= 130 && !evita(x, 180)){ sx = x; break; } }
+    /* a ilhinha com ipês no Igapó 3 e o chafariz no Igapó 1 */
+    { const P = I3 && { xa: I3.xa, xb: I3.xa + (I3.xb - I3.xa) * .55 }, i = busca(P, true);
+      if(i >= 0){ const c = cols[i], ix = c.x + B / 2, iy = (c.t + c.b) / 2, rad = Math.min(88, (c.b - c.t) / 2 - 70);
+        if(rad >= 36 && !evita(ix, rad + 40)){ const ic = []; cols.forEach(q => { const dx = Math.abs(q.x + B / 2 - ix); if(dx < rad){ const hh = Math.sqrt(rad * rad - dx * dx) * .7, t = Math.round((iy - hh) / B) * B, b = Math.round((iy + hh) / B) * B; if(b > t) ic.push({ x: q.x, t, b }); } });
+          L.ilha = { x: ix, y: iy, rad, cols: ic }; K.arv.push({ x: Math.round(ix - rad * .3), y: Math.round(iy + 6), cor: ROSA, ilha: true, g: true }, { x: Math.round(ix + rad * .45), y: Math.round(iy + rad * .3), cor: AMARELO, ilha: true }); } } }
+    { const P = I1 && { xa: I1.xa + (I1.xb - I1.xa) * .45, xb: I1.xb }; let bi = -1; if(P) for(let i = iDe(P.xa); i <= iDe(P.xb); i++){ const xm = cols[i].x + B / 2; if(evita(xm, 90)) continue; if(bi < 0 || cols[i].b - cols[i].t > cols[bi].b - cols[bi].t) bi = i; } if(bi >= 0){ const c = cols[bi]; L.chafariz = { x: c.x + B / 2, y: Math.round((c.t + c.b) / 2) }; } }
+    /* os pedalinhos: cada um no seu Igapó, de margem a margem */
+    L.barcos = [[I3, .1, .016, -1, AMARELO], [I2, .9, .012, 1, ROSA], [I1, 1.4, .014, -1, AZUL], [I1, .55, .011, 1, LARANJA]].filter(b => b[0]).map(([P, f, v, lado, cor]) => ({ xa: P.xa + 80, xb: P.xb - 80, f, v, lado, cor }));
+    /* a placa do lago, na orla de cima do Igapó 2 (onde tiver espaço) */
+    const espacoCima = x => { const f = foraEm(x), p = pk(x); return f && p ? f.t - p.t : 0; }, espacoBaixo = x => { const f = foraEm(x), p = pk(x); return f && p ? p.b - f.b : 0; };
+    let sx = 0; const P2 = I2 || I1; if(P2) for(let x = P2.xa + 80; x < P2.xb - 60; x += 30){ if(espacoCima(x) >= 130 && !evita(x, 180)){ sx = x; break; } }
     if(sx) K.decor.push({ tipo: 'placa', x: sx, y: foraEm(sx).t - 14, txt: 'LAGO IGAPO', s: 2, fundo: PAPEL, h: 26 });
     /* quiosques */
     const QS = [['COCO', AMARELO], ['SORVETE', ROSA], ['PASTEL', LARANJA], ['PIPOCA', '#E2412E'], ['ACAI', LILAS], ['CALDO DE CANA', AZUL]];
     let qi = 0;
-    for(let x = x0 + 300; x < x1 - 200; x += 620){
-      if(evita(x, 110) || (sx && Math.abs(x - sx) < 240)) continue; const f = foraEm(x); if(!f) continue; const [nm, cor] = QS[qi % QS.length];
-      if(f.t - R.y >= 124){ K.quiosques.push({ id: 'q' + qi, x: Math.round(x), base: f.t - 12, nome: nm, cor }); qi++; }
-      else if(R.y + R.h - f.b >= 150){ K.quiosques.push({ id: 'q' + qi, x: Math.round(x), base: f.b + 110, nome: nm, cor }); qi++; }
+    for(let x = x0 + 260; x < Math.min(x1, lx(cL)) - 200; x += 520){
+      if(evita(x, 110) || (sx && Math.abs(x - sx) < 240)) continue; const f = foraEm(x), p = pk(x); if(!f || !p) continue; const [nm, cor] = QS[qi % QS.length];
+      if(espacoCima(x) >= 124){ K.quiosques.push({ id: 'q' + qi, x: Math.round(x), base: f.t - 12, nome: nm, cor }); qi++; }
+      else if(espacoBaixo(x) >= 150){ K.quiosques.push({ id: 'q' + qi, x: Math.round(x), base: f.b + 110, nome: nm, cor }); qi++; }
     }
     K.quiosques.forEach(q => K.sol.push({ x: q.x - 34, y: q.base - 26, w: 68, h: 26 }));
-    /* bancos na orla, de frente pra água */
+    /* bancos na orla, de frente pra água (só onde o parque tem chão pra eles) */
     const topo = x => Math.min(colEm(x - 24).t, colEm(x).t, colEm(x + 24).t), fundo = x => Math.max(colEm(x - 24).b, colEm(x).b, colEm(x + 24).b);
-    for(let x = x0 + 110; x < x1 - 60; x += 172){ if(evita(x, 46)) continue; K.bancos.push({ x: Math.round(x), y: topo(x) - 24, lugar: 'Lago Igapó' }); }
-    for(let x = x0 + 196; x < x1 - 60; x += 214){ if(evita(x, 46)) continue; K.bancos.push({ x: Math.round(x), y: fundo(x) + 32, lugar: 'Lago Igapó' }); }
+    const xr = Math.min(x1, lx(cL)) - 60;
+    for(let x = x0 + 110; x < xr; x += 172){ const p = pk(x), y = topo(x) - 24; if(evita(x, 46) || !p || y - 30 < p.t) continue; K.bancos.push({ x: Math.round(x), y, lugar: 'Lago Igapó' }); }
+    for(let x = x0 + 196; x < xr; x += 214){ const p = pk(x), y = fundo(x) + 32; if(evita(x, 46) || !p || y + 20 > p.b) continue; K.bancos.push({ x: Math.round(x), y, lugar: 'Lago Igapó' }); }
     /* postes na calçada de fora */
-    for(let x = x0 + 150; x < x1 - 60; x += 330){ if(evita(x, 40)) continue; const f = foraEm(x); if(f) K.postes.push({ x: Math.round(x), y: f.t + 8, orla: true }); }
-    /* v3.87: o Papai Noel do Igapó, no trecho mais largo da água que sobra longe das pontes, do píer e da ilhinha (o
-       "Igapó 2" daqui), em pé na balsa no meio do lago. Só aparece no Natal, mas o lugar (e a placa da orla de baixo, de frente pra ele) fica
-       guardado o ano inteiro, pra cidade não mudar de cara quando ele chega */
+    for(let x = x0 + 150; x < xr; x += 330){ if(evita(x, 40)) continue; const f = foraEm(x), p = pk(x); if(f && p && f.t + 8 > p.t + 10) K.postes.push({ x: Math.round(x), y: f.t + 8, orla: true }); }
+    /* v3.87: o Papai Noel do Igapó, no Igapó 2 (é lá que fica o de verdade), no trecho mais largo da água longe das pontes
+       e do píer, em pé na balsa no meio do lago. Só aparece no Natal, mas o lugar (e a placa da orla de baixo, de frente pra
+       ele) fica guardado o ano inteiro, pra cidade não mudar de cara quando ele chega */
     { const yDe = c => Math.round(Math.min(c.b - 40, (c.t + c.b) / 2 + 36));
       /* a balsa inteira (uns 190 px pra cada lado) tem que ficar na água */
       const ok = i => { const c = cols[i], xm = c.x + B / 2, y = yDe(c); return c.b - c.t >= 150 && !evita(xm, 280) && !(L.ilha && Math.abs(xm - L.ilha.x) < L.ilha.rad + 260) && cols.every(q => Math.abs(q.x + B / 2 - xm) > 240 || (q.t < y - 36 && q.b > y + 8)); };
-      let bi = -1; for(let i = Math.floor(n * .18); i < Math.ceil(n * .75); i++) if(ok(i) && (bi < 0 || cols[i].b - cols[i].t > cols[bi].b - cols[bi].t)) bi = i;
-      if(bi >= 0){ const c = cols[bi], xn = c.x + B / 2, yn = yDe(c), sul = x => { const f = foraEm(x); return f ? f.b - 16 : null; };
-        const livreP = x => sul(x) != null && !K.bancos.some(b => Math.abs(b.x - x) < 60 && b.y > yn) && !K.postes.some(p => Math.abs(p.x - x) < 30 && p.y > yn) && !K.quiosques.some(q => Math.abs(q.x - x) < 80 && q.base > yn);
-        const px = [-90, 90, -170, 170, -250, 250].map(d => xn + d).find(livreP), lx = px == null ? null : [-260, 260, -340, 340, -420, 420].map(d => xn + d).find(x => livreP(x) && Math.abs(x - px) > 150);
+      const PN = I2 || I1; let bi = -1; if(PN) for(let i = iDe(PN.xa); i <= iDe(PN.xb); i++) if(ok(i) && (bi < 0 || cols[i].b - cols[i].t > cols[bi].b - cols[bi].t)) bi = i;
+      if(bi >= 0){ const c = cols[bi], xn = c.x + B / 2, yn = yDe(c), sul = x => { const f = foraEm(x), p = pk(x); return f && p && f.b - 16 < p.b - 30 ? f.b - 16 : null; };
+        const livreP = x => sul(x) != null && !K.bancos.some(b => Math.abs(b.x - x) < 60 && b.y > yn && b.y < yn + 400) && !K.postes.some(p => Math.abs(p.x - x) < 30 && p.y > yn && p.y < yn + 400) && !K.quiosques.some(q => Math.abs(q.x - x) < 80 && q.base > yn && q.base < yn + 400);
+        const px = [-90, 90, -170, 170, -250, 250].map(d => xn + d).find(livreP), lx2 = px == null ? null : [-260, 260, -340, 340, -420, 420].map(d => xn + d).find(x => livreP(x) && Math.abs(x - px) > 150);
         /* na água em volta: as árvores de luz, os presentes boiando e os cisnes (cada um só onde é água de verdade) */
-        const naAgua = (x, y, m) => { const q = colEm(x); return x > x0 + 40 && x < x1 - 40 && q.t + 26 + m < y && y < q.b - 14 - m && !evita(x, 60) && !(L.ilha && Math.hypot(x - L.ilha.x, y - L.ilha.y) < L.ilha.rad + 70); };
+        const naAguaL = (x, y, m) => { const q = colEm(x); return x > x0 + 40 && x < x1 - 40 && q.t + 26 + m < y && y < q.b - 14 - m && !evita(x, 60) && !(L.ilha && Math.hypot(x - L.ilha.x, y - L.ilha.y) < L.ilha.rad + 70); };
         const agua = [];
         [['palma', -330, -70], ['palma', -250, 72], ['palma', 262, 62], ['palma', 340, -60], ['palma', -470, 10], ['palma', 470, 22],
           ['presente', -196, 74], ['presente', -404, -112], ['presente', 204, 98], ['presente', 412, 92], ['presente', -560, -56], ['presente', 560, -48], ['presente', -300, 150], ['presente', 330, -150],
-          ['cisne', -390, 124], ['cisne', 430, 156]].forEach(([k, dx, dy], i) => { const x = xn + dx, y = yn + dy; if(naAgua(x, y, k === 'cisne' ? 14 : 0) && (k !== 'cisne' || (naAgua(x - 44, y, 14) && naAgua(x + 44, y, 14)))) agua.push({ k, x, y, i }); });
-        L.noel = { x: xn, y: yn, agua, placa: px != null ? { x: Math.round(px), y: Math.round(sul(px)) } : null, letreiro: lx != null ? { x: Math.round(lx), y: Math.round(sul(lx)) } : null };
+          ['cisne', -390, 124], ['cisne', 430, 156]].forEach(([k, dx, dy], i) => { const x = xn + dx, y = yn + dy; if(naAguaL(x, y, k === 'cisne' ? 14 : 0) && (k !== 'cisne' || (naAguaL(x - 44, y, 14) && naAguaL(x + 44, y, 14)))) agua.push({ k, x, y, i }); });
+        /* v4.14: o Igapó 2 é menor que o lago de antes; o que não coube vai pra perto, do lado da balsa (longe dela uns 230 px) */
+        for(const dx of [-240, 250, -300, 310, -360, 370]) for(const dy of [-100, 70, -40, 130, 10]){ if(agua.length >= 9) break; const x = xn + dx, y = yn + dy; if(naAguaL(x, y, 0) && agua.every(o => Math.hypot(o.x - x, o.y - y) > 76)) agua.push({ k: agua.filter(o => o.k === 'palma').length <= agua.filter(o => o.k === 'presente').length ? 'palma' : 'presente', x, y, i: 20 + agua.length }); }
+        L.noel = { x: xn, y: yn, agua, placa: px != null ? { x: Math.round(px), y: Math.round(sul(px)) } : null, letreiro: lx2 != null ? { x: Math.round(lx2), y: Math.round(sul(lx2)) } : null };
         if(L.noel.placa) K.decor.push({ tipo: 'placaNoel', x: L.noel.placa.x, y: L.noel.placa.y });
         /* v4.03: a barraquinha da foto com o Papai Noel, na mesma orla, o mais de frente pra ele que der (longe da placa e
            do letreiro). O lugar fica guardado o ano inteiro, como o dele; a barraquinha só monta no Natal */
-        /* (o livreP da placa olha qualquer banco abaixo do lago, até os de outro quarteirão; aqui só o que tá em volta) */
         const livreF = x => { const y = sul(x); return y != null && !K.bancos.some(b => Math.abs(b.x - x) < 58 && Math.abs(b.y - y) < 110) && !K.postes.some(q => Math.abs(q.x - x) < 34 && Math.abs(q.y - y) < 80) && !K.quiosques.some(q => Math.abs(q.x - x) < 90 && Math.abs(q.base - y) < 100); };
-        const fx = [0, 30, -30, 60, -60, 130, -130, 160, -160, 200, -200, 240, -240, 420, -420, 470, -470].map(d => xn + d).find(x => livreF(x) && (px == null || Math.abs(x - px) > 104) && (lx == null || Math.abs(x - lx) > 130));
+        const fx = [0, 30, -30, 60, -60, 130, -130, 160, -160, 200, -200, 240, -240, 420, -420, 470, -470].map(d => xn + d).find(x => livreF(x) && (px == null || Math.abs(x - px) > 104) && (lx2 == null || Math.abs(x - lx2) > 130));
         if(fx != null){ L.noel.foto = { x: Math.round(fx), y: Math.round(sul(fx)) }; K.decor.push({ tipo: 'fotoNoel', x: L.noel.foto.x, y: L.noel.foto.y }); } } }
-    /* muita árvore na beira */
+    /* muita árvore na beira (dentro do parque, fora da água, da orla e do que tem nela) */
     const np = L.noel && L.noel.placa, nl = L.noel && L.noel.letreiro, nf = L.noel && L.noel.foto;
     const ocupado = (x, y) => K.quiosques.some(q => Math.abs(q.x - x) < 64 && y > q.base - 40 && y < q.base + 44) || evita(x, 26) || (sx && Math.abs(x - sx) < 150 && y < foraEm(sx).t + 10) || (np && Math.abs(x - np.x) < 90 && Math.abs(y - np.y) < 80) || (nl && Math.abs(x - nl.x) < 100 && Math.abs(y - nl.y) < 90) || (nf && Math.abs(x - nf.x) < 90 && Math.abs(y - nf.y) < 96);
     for(let x = R.x + 30; x < R.x + R.w - 16; x += 56 + Math.floor(sorte() * 32)){
-      const f = foraEm(x);
-      if(!f){ for(let y = R.y + 70; y < R.y + R.h - 12; y += 84 + sorte() * 40) if(sorte() < .75) K.arv.push({ x: Math.round(x + (sorte() - .5) * 18), y: Math.round(y), cor: pega(IPES, sorte), g: sorte() < .3 }); continue; }
-      const nTop = f.t - 22, sTop = f.b + 40, sBot = R.y + R.h - 14;
-      if(nTop - (R.y + 50) > 8 && sorte() < .85){ const y = R.y + 50 + sorte() * (nTop - R.y - 50); if(!ocupado(x, y)) K.arv.push({ x: Math.round(x), y: Math.round(y), cor: pega(IPES, sorte), g: sorte() < .25 }); }
+      const p = pk(x); if(!p) continue; const f = foraEm(x);
+      if(!f){ for(let y = p.t + 70; y < p.b - 12; y += 84 + sorte() * 40) if(sorte() < .75) K.arv.push({ x: Math.round(x + (sorte() - .5) * 18), y: Math.round(y), cor: pega(IPES, sorte), g: sorte() < .3 }); continue; }
+      const nTop = f.t - 22, sTop = f.b + 40, sBot = p.b - 14;
+      if(nTop - (p.t + 50) > 8 && sorte() < .85){ const y = p.t + 50 + sorte() * (nTop - p.t - 50); if(!ocupado(x, y)) K.arv.push({ x: Math.round(x), y: Math.round(y), cor: pega(IPES, sorte), g: sorte() < .25 }); }
       if(sBot - sTop > 8 && sorte() < .85){ const y = sTop + sorte() * (sBot - sTop); if(!ocupado(x, y)) K.arv.push({ x: Math.round(x), y: Math.round(y), cor: pega(IPES, sorte), g: sorte() < .25 }); }
     }
-    const bn = K.bancos.filter(b => b.lugar === 'Lago Igapó'), b0 = bn[Math.floor(bn.length * .3)] || bn[0];
+    /* os nomes de cada pedaço (aparecem lá em cima quando você passa) */
+    const zona = (nome, P) => { if(!P) return; const a = pk(P.xa + 20), b = pk(P.xb - 20); if(a && b) K.zonas.push({ nome, x: P.xa - 40, y: Math.min(a.t, b.t), w: P.xb - P.xa + 80, h: Math.max(a.b, b.b) - Math.min(a.t, b.t) }); };
+    zona('Igapó 3', I3); zona('Igapó 2', I2); zona('Igapó 1', I1);
+    if(aterro != null){ const p = pk(lx(aterro) + LW / 2); K.zonas.push({ nome: 'Aterro do Igapó', x: lx(aterro) - RUA / 2, y: p.t, w: LW + RUA, h: p.b - p.t }); }
+    if(rib != null){ const p = pk(lx(rib) + LW / 2); K.zonas.push({ nome: 'Barragem do Igapó', x: lx(rib) - RUA, y: p.t, w: RUA + 120, h: p.b - p.t }, { nome: 'Ribeirão Cambezinho', x: lx(rib) + 20, y: p.t, w: LW + RUA, h: p.b - p.t }); }
+    const bn = K.bancos.filter(b => b.lugar === 'Lago Igapó' && I2 && b.x > I2.xa && b.x < I2.xb), b0 = bn[Math.floor(bn.length * .5)] || K.bancos.find(b => b.lugar === 'Lago Igapó');
     if(b0) K.lugares.push({ nome: 'Lago Igapó', x: b0.x + 34, y: b0.y + 12 });
+    /* o rótulo do Mapa, no meio do Igapó 2 */
+    { const P = I2 || I1, xm = P ? (P.xa + P.xb) / 2 : (x0 + x1) / 2, c = colEm(xm); L.rotulo = { x: xm, y: (c.t + c.b) / 2 }; }
     return L;
   }
   /* Zerão: a pista oval de terra roxa, quadras, parquinho, academia ao ar livre e food truck */
@@ -1916,7 +2094,8 @@
   }
   /* Bosque dos Ipês: trilha de terra roxa em cruz, uma roda no meio e o ipê gigante */
   function montaBosque(R, K, sorte){
-    const b = { R, cx: R.x + R.w / 2, cy: R.y + R.h / 2, anel: 130 }, px = b.cx + 96;
+    /* v4.14: o Bosque do Centro é um quarteirão de altura só: a roda encolhe pra caber */
+    const b = { R, cx: R.x + R.w / 2, cy: R.y + R.h / 2, anel: Math.min(130, Math.round(R.h / 2 - 30)) }, px = b.cx + 96;
     const livre = (x, y) => { const d = Math.hypot(x - b.cx, y - b.cy); return Math.abs(x - b.cx) < 50 || Math.abs(y - b.cy) < 50 || Math.abs(d - b.anel) < 50 || d < b.anel || (Math.abs(x - px) < 100 && y < R.y + 120); };
     for(let y = R.y + 64; y < R.y + R.h - 8; y += 76) for(let x = R.x + 34; x < R.x + R.w - 16; x += 80){ const jx = x + (sorte() - .5) * 44, jy = y + (sorte() - .5) * 36; if(livre(jx, jy) || sorte() < .1) continue; K.arv.push({ x: Math.round(jx), y: Math.round(jy), cor: pega(IPES, sorte), g: sorte() < .32 }); }
     K.decor.push({ tipo: 'ipe', x: b.cx, y: b.cy + 14 }); K.sol.push({ x: b.cx - 10, y: b.cy + 4, w: 20, h: 12 });
@@ -2007,11 +2186,12 @@
     P.lago = { x0, x1, B, cols };
     /* as ilhinhas do assoreamento (terra e lixo que a chuva traz) */
     P.ilhas = [{ x: X(330), y: Y(694), r: 22 }, { x: X(468), y: Y(708), r: 15 }, { x: X(540), y: Y(676), r: 10 }];
-    /* o Ribeirão Cambé sai da barragem pelo vertedouro, desce até o Salto e vai embora pro lado do Igapó; o Córrego
-       Piza chega no lago pela direita */
+    /* o Ribeirão Cambé sai da barragem pelo vertedouro, desce até o Salto e sai pela esquerda, onde encontra o ribeirão
+       que vem da barragem do Igapó (v4.14: a ponta dele é na altura 900, que é onde o do Igapó chega); o Córrego Piza
+       chega no lago pela direita */
     P.riachos = [
       { w: 18, pts: [pt(198, 692), pt(182, 700), pt(176, 744), pt(180, 800), pt(186, 846)] },
-      { w: 22, pts: [pt(186, 920), pt(150, 936), pt(90, 952), pt(0, 962)] },
+      { w: 22, pts: [pt(186, 920), pt(140, 930), pt(80, 918), pt(0, 900)] },
       { w: 12, pts: [pt(696, 640), pt(662, 652), pt(632, 668), pt(600, 690)] }
     ];
     P.salto = { x: X(186), y0: Y(846), y1: Y(902), x0: X(128), x1: X(236) };
@@ -2184,6 +2364,11 @@
   const amarradoXY = a => ({ x: a.p.x - 20 / V.k - 3, y: a.p.t + a.dy, lado: a.lado });
   const naRio = (x, y) => { const r = V.cid && V.cid.rio; if(!r || y < r.y0 + 20) return false; if(y <= r.colEm(x).t + 6) return false; for(const p of r.piers) if(x > p.x + 4 && x < p.x + p.w - 4 && y > p.y && y < p.y + p.h) return false; return true; };
   const zonaDe = (x, y) => { const c = V.cid, z = c.zonas.find(z => x >= z.x && x <= z.x + z.w && y >= z.y && y <= z.y + z.h); if(z) return z.nome; return bairro(clamp(Math.floor((x - RUA / 2) / (LW + RUA)), 0, COLS - 1), clamp(Math.floor((y - TOPO + RUA / 2) / (LH + RUA)), 0, c.rows - 1)); };
+  /* v4.14: na roça ninguém anda (a rua da beira, sim; a do meio de dois quarteirões de roça, não). A beira do Tibagi
+     (embaixo da última rua) não é roça */
+  const naRoca = (x, y) => { const c = V.cid; return !!c && !!c.ehRoca && y < (c.rio ? c.rio.y0 : c.H) && naArea(x, y, c.ehRoca); };
+  /* o lugar grande num ponto (pelo quarteirão; a rua em volta conta como dele) */
+  const regDe = (x, y) => { const c = V.cid, cc = clamp(Math.floor((x - RUA / 2) / PQ), 0, COLS - 1), rr = clamp(Math.floor((y - TOPO + RUA / 2) / QQ), 0, c.rows - 1), g = c.grade[rr] && c.grade[rr][cc]; return g && g.t === 'reg' ? g.R : null; };
   const naAgua = (x, y) => { const l = V.cid.lago; if(!l || x < l.x0 || x >= l.x1) return false; const c = l.cols[Math.floor((x - l.x0) / l.B)]; if(!c || y <= c.t + 6 || y >= c.b - 2) return false; for(const s of l.secos) if(x > s.x + 4 && x < s.x + s.w - 4 && y > s.y && y < s.y + s.h) return false; return true; };
 
   /* ---------- colisão e portas ---------- */
@@ -2294,7 +2479,11 @@
     ctx.restore();
     ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.strokeStyle = INK; ctx.lineWidth = Math.max(u, .8); ctx.stroke();
   }
-  const bate = (x, y) => { if(x < 14 || y < TOPO - 70 || x > V.cid.W - 14 || y > V.cid.H - 14) return true; if(naAgua(x, y) || naRio(x, y) || naParque(x, y)) return true; for(const s of V.sol) if(x > s.x - 8 && x < s.x + s.w + 8 && y > s.y && y < s.y + s.h + 4) return true; return false; };
+  /* v4.14: as coisas sólidas vão numa grade de 256 px (a cidade cresceu e olhar uma por uma a cada passo pesava) */
+  const SOL_G = 256;
+  function gradeSol(L){ const G = new Map(); L.forEach(s => { for(let gy = Math.floor(s.y / SOL_G); gy <= Math.floor((s.y + s.h + 4) / SOL_G); gy++) for(let gx = Math.floor((s.x - 8) / SOL_G); gx <= Math.floor((s.x + s.w + 8) / SOL_G); gx++){ const k = gy * 4096 + gx; let a = G.get(k); if(!a) G.set(k, a = []); a.push(s); } }); return G; }
+  const bate = (x, y) => { if(x < 14 || y < TOPO - 70 || x > V.cid.W - 14 || y > V.cid.H - 14) return true; if(naAgua(x, y) || naRio(x, y) || naParque(x, y) || naRoca(x, y)) return true;
+    const L = V.solG ? V.solG.get(Math.floor(y / SOL_G) * 4096 + Math.floor(x / SOL_G)) : V.sol; if(L) for(const s of L) if(x > s.x - 8 && x < s.x + s.w + 8 && y > s.y && y < s.y + s.h + 4) return true; return false; };
   function mover(o, dx, dy){ if(!dx && !dy) return; if(!bate(o.x + dx, o.y)) o.x += dx; if(!bate(o.x, o.y + dy)) o.y += dy; }
 
   /* ---------- desenho do chão ---------- */
@@ -2345,7 +2534,13 @@
     const c = V.cid, { W, rows } = c;
     ctx.fillStyle = pad(ctx, 'rua'); ctx.fillRect(vx, vy, vw, vh);
     if(vy < TOPO){ const g = ctx.createLinearGradient(0, TOPO - RUA - 500, 0, TOPO - RUA); g.addColorStop(0, '#5C9BC4'); g.addColorStop(1, '#A9CBE2'); ctx.fillStyle = g; ctx.fillRect(vx, Math.min(vy, 0) - 400, vw, TOPO - RUA + 400 - Math.min(vy, 0));
-      const r = rng(77), u = 1 / V.k; for(let x = 0; x < W; x += 34 + Math.floor(r() * 30)){ const h = 60 + r() * 140, w = 26 + r() * 20; if(x > vx + vw || x + w < vx){ for(let i = 0; i < 12; i++) r(); continue; } ctx.fillStyle = '#7F98B3'; ctx.fillRect(x, TOPO - RUA - h, w, h); ctx.fillStyle = 'rgba(255,255,255,.28)'; for(let yy = TOPO - RUA - h + 8; yy < TOPO - RUA - 10; yy += 12) for(let xx = x + 5; xx < x + w - 5; xx += 9) if(r() < .5) ctx.fillRect(xx, yy, 2 * u, 2 * u); }
+      /* v4.14: no horizonte, os morros da roça (a cidade é redonda: os prédios lá longe só aparecem em cima da cidade) */
+      const u = 1 / V.k, chao0 = TOPO - RUA;
+      if(!c.horizonte){ const r = rng(77), L = []; for(let x = 0; x < W; x += 34 + Math.floor(r() * 30)){ const h = 60 + r() * 140, w = 26 + r() * 20, cc = Math.floor((x + w / 2 - RUA / 2) / PQ); L.push({ x, w, h, cidade: !c.ehRoca(cc, 0), sd: Math.floor(r() * 1e6) }); } c.horizonte = L; }
+      const morro = x => chao0 - 26 - 20 * Math.sin(x / 380 + .4) - 12 * Math.sin(x / 150 + 1);
+      ctx.fillStyle = '#C9A95E'; for(let x = Math.floor(Math.max(vx, 0) / 8) * 8; x < Math.min(vx + vw, W); x += 8){ const y = morro(x); ctx.fillRect(x, y, 8, chao0 - y); }
+      ctx.fillStyle = 'rgba(123,59,40,.35)'; for(let x = Math.floor(Math.max(vx, 0) / 8) * 8; x < Math.min(vx + vw, W); x += 8){ const y = morro(x) + 10; ctx.fillRect(x, y, 8, 4 * u + 2); }
+      c.horizonte.forEach(b => { if(!b.cidade || b.x > vx + vw || b.x + b.w < vx) return; const r = rng(b.sd); ctx.fillStyle = '#7F98B3'; ctx.fillRect(b.x, chao0 - b.h, b.w, b.h); ctx.fillStyle = 'rgba(255,255,255,.28)'; for(let yy = chao0 - b.h + 8; yy < chao0 - 10; yy += 12) for(let xx = b.x + 5; xx < b.x + b.w - 5; xx += 9) if(r() < .5) ctx.fillRect(xx, yy, 2 * u, 2 * u); });
       ctx.fillStyle = pad(ctx, 'calcada'); ctx.fillRect(0, TOPO - RUA - 6, W, 10); }
     ctx.fillStyle = 'rgba(242,236,84,.85)'; const t = Math.max(3, 1.05 / V.k);
     for(let s = 0; s <= rows; s++){ const y = ruaY(s); if(y < vy - 10 || y > vy + vh + 10) continue; for(let x = Math.floor(Math.max(vx, 0) / 36) * 36; x < Math.min(vx + vw, W); x += 36) ctx.fillRect(x, y - t / 2, 18, t); }
@@ -2353,13 +2548,48 @@
     const P = LW + RUA, Q = LH + RUA;
     const c0 = clamp(Math.floor((vx - RUA) / P), 0, COLS - 1), c1 = clamp(Math.floor((vx + vw) / P), 0, COLS - 1), r0 = clamp(Math.floor((vy - TOPO) / Q) - 1, 0, rows - 1), r1 = clamp(Math.floor((vy + vh - TOPO) / Q) + 1, 0, rows - 1);
     for(let r = r0; r <= r1; r++) for(let cc = c0; cc <= c1; cc++){
-      const g = c.grade[r][cc]; if(g && g.t === 'reg') continue;
+      const g = c.grade[r][cc]; if(g && (g.t === 'reg' || g.t === 'roca')) continue;
       const o = lotXY(cc, r);
       ctx.fillStyle = pad(ctx, 'calcada'); ctx.fillRect(o.x - CALC, o.y - CALC, LW + CALC * 2, LH + CALC * 2);
       chaoLote(ctx, g, o, vx, vy, vw, vh);
     }
-    c.regs.forEach(R => { if(R.x - CALC > vx + vw || R.x + R.w + CALC < vx || R.y - CALC > vy + vh || R.y + R.h + CALC < vy) return; ctx.fillStyle = pad(ctx, 'calcada'); ctx.fillRect(R.x - CALC, R.y - CALC, R.w + CALC * 2, R.h + CALC * 2); CHAO[R.k](ctx, R, vx, vy, vw, vh); });
+    /* v4.14: a roça (por cima da rua que fica entre dois quarteirões dela) */
+    chaoRoca(ctx, c0, r0, c1, r1, vx, vy, vw, vh);
+    c.regs.forEach(R => { if(R.x - CALC > vx + vw || R.x + R.w + CALC < vx || R.y - CALC > vy + vh || R.y + R.h + CALC < vy) return; ctx.fillStyle = pad(ctx, 'calcada');
+      /* o lago é quarteirão por quarteirão (a calçada vai em volta de cada pedaço do parque) */
+      if(R.tem) blocosDe(R.tem, R.c0, R.r0, R.c1, R.r1, (x, y, w, h) => ctx.fillRect(x - CALC, y - CALC, w + CALC * 2, h + CALC * 2)); else ctx.fillRect(R.x - CALC, R.y - CALC, R.w + CALC * 2, R.h + CALC * 2);
+      CHAO[R.k](ctx, R, vx, vy, vw, vh); });
     if(c.rio) chaoRio(ctx, vx, vy, vw, vh);
+  }
+  /* ---------- v4.14 · a roça em volta da cidade ----------
+     Cada quarteirão de roça é uma lavoura (a terra roxa lavrada, o trigo, a palhada da soja colhida, o milho seco), com
+     as linhas do plantio deitadas ou em pé; a rua entre dois quarteirões de roça vira lavoura também. Onde ela encosta
+     na rua da cidade tem a cerca de arame e uma faixa de capim. Ninguém anda nela (naRoca). */
+  const ROCA_LINHA = { arado: ['rgba(60,18,8,.34)', 16, 5], trigo: ['rgba(120,82,24,.3)', 12, 3], palhada: ['rgba(110,84,40,.22)', 18, 2], milho: ['rgba(90,60,24,.36)', 20, 6] };
+  const rocaDe = (c, cc, rr) => { const k = cc + ',' + rr; if(!c.rocaI[k]){ const q = rng(hash('roca' + k)); c.rocaI[k] = { t: pega(ROCA_T, q), deitado: q() < .5 }; } return c.rocaI[k]; };
+  function chaoRoca(ctx, c0, r0, c1, r1, vx, vy, vw, vh){
+    const c = V.cid, tem = c.ehRoca, u = 1 / V.k;
+    blocosDe(tem, c0, r0, c1, r1, (x, y, w, h, cc, rr) => {
+      const ix0 = Math.max(x, vx - 4), ix1 = Math.min(x + w, vx + vw + 4), iy0 = Math.max(y, vy - 4), iy1 = Math.min(y + h, vy + vh + 4); if(ix0 >= ix1 || iy0 >= iy1) return;
+      const f = rocaDe(c, cc, rr), [cor, per, lar] = ROCA_LINHA[f.t];
+      ctx.fillStyle = pad(ctx, f.t); ctx.fillRect(ix0, iy0, ix1 - ix0, iy1 - iy0);
+      ctx.fillStyle = cor;
+      if(f.deitado) for(let yy = Math.ceil(iy0 / per) * per; yy < iy1; yy += per) ctx.fillRect(ix0, yy, ix1 - ix0, Math.min(lar, iy1 - yy));
+      else for(let xx = Math.ceil(ix0 / per) * per; xx < ix1; xx += per) ctx.fillRect(xx, iy0, Math.min(lar, ix1 - xx), iy1 - iy0);
+      /* o trigo e o milho têm as pontinhas claras; a terra lavrada, os torrões */
+      if(f.t !== 'palhada'){ const q = rng(hash('sp' + cc + ',' + rr)); ctx.fillStyle = f.t === 'arado' ? 'rgba(40,12,6,.45)' : 'rgba(255,236,170,.5)'; for(let i = 0; i < 70; i++){ const px = x + q() * w, py = y + q() * h; if(px > ix0 && px < ix1 && py > iy0 && py < iy1) ctx.fillRect(sn(px), sn(py), u * 2, u * 2); } }
+    });
+    /* a cerca de arame e o capim onde a roça encosta na rua da cidade */
+    for(let rr = r0 - 1; rr <= r1 + 1; rr++) for(let cc = c0 - 1; cc <= c1 + 1; cc++){
+      if(!tem(cc, rr) || cc < 0 || rr < 0 || cc >= COLS || rr >= c.rows) continue; const o = lotXY(cc, rr);
+      if(o.x > vx + vw + 20 || o.x + LW < vx - 20 || o.y > vy + vh + 20 || o.y + LH < vy - 20) continue;
+      const lados = [[!tem(cc, rr - 1), o.x, o.y, LW, 0], [!tem(cc, rr + 1), o.x, o.y + LH, LW, 0], [!tem(cc - 1, rr), o.x, o.y, 0, LH], [!tem(cc + 1, rr), o.x + LW, o.y, 0, LH]];
+      lados.forEach(([cerca, x, y, w, h], i) => { if(!cerca) return;
+        const dx = i === 3 ? -10 : 0, dy = i === 1 ? -10 : 0;
+        ctx.fillStyle = '#CDB070'; ctx.fillRect(x + dx, y + dy, w || 10, h || 10);
+        ctx.fillStyle = '#5A3A22'; if(w){ ctx.fillRect(x, y + (i === 1 ? -6 : 3), w, u); for(let px = x + 6; px < x + w; px += 24) ctx.fillRect(px, y + (i === 1 ? -11 : 0), 3, 9); }
+        else { ctx.fillRect(x + (i === 3 ? -6 : 4), y, u, h); for(let py = y + 6; py < y + h; py += 24) ctx.fillRect(x + (i === 3 ? -7 : 3), py, 3, 9); } });
+    }
   }
   function chaoLote(ctx, g, o, vx, vy, vw, vh){
     const t = g ? g.t : '', R = { x: o.x, y: o.y, w: LW, h: LH }, cx = o.x + LW / 2, cy = o.y + LH / 2;
@@ -2384,8 +2614,12 @@
     },
     lago(ctx, R, vx, vy, vw, vh){
       const l = V.cid.lago, B = l.B, a = vx - B, b = vx + vw + B;
+      /* v4.14: o parque é quarteirão por quarteirão; a grama e a orla ficam dentro dele (a água não: no fim, o ribeirão
+         passa debaixo da rua antes de entrar no Arthur Thomas) */
+      ctx.save(); ctx.beginPath(); blocosDe(R.tem, R.c0, R.r0, R.c1, R.r1, (x, y, w, h) => ctx.rect(x, y, w, h)); ctx.clip();
       ctx.fillStyle = pad(ctx, 'gramado'); ctx.fillRect(R.x, R.y, R.w, R.h); capim(ctx, R, vx, vy, vw, vh);
       l.bandas.forEach(([m, cols]) => { ctx.fillStyle = pad(ctx, m); cols.forEach(c => { if(c.x > a && c.x < b) ctx.fillRect(c.x, c.t, B, c.b - c.t); }); });
+      ctx.restore();
       ctx.fillStyle = pad(ctx, 'agua'); l.cols.forEach(c => { if(c.x > a && c.x < b) ctx.fillRect(c.x, c.t, B, c.b - c.t); });
       ctx.fillStyle = 'rgba(15,40,80,.32)'; l.cols.forEach(c => { if(c.x > a && c.x < b) ctx.fillRect(c.x, c.t, B, 8); });
       if(l.ilha){ ctx.fillStyle = pad(ctx, 'concreto'); l.ilha.cols.forEach(c => ctx.fillRect(c.x, c.t - 6, B, c.b - c.t + 10)); ctx.fillStyle = pad(ctx, 'gramado'); l.ilha.cols.forEach(c => ctx.fillRect(c.x, c.t, B, c.b - c.t)); }
@@ -2517,7 +2751,8 @@
       nn.agua.forEach(o => { if(o.k === 'cisne') return; const pal = o.k === 'palma'; for(let i = 0; i < (pal ? 6 : 3); i++){ const w = (pal ? 34 : 14) - i * (pal ? 5 : 3), dx = Math.sin(t * 2.2 + i + o.i) * 3; ctx.fillStyle = pal ? 'rgba(255,214,120,.36)' : 'rgba(255,140,100,.3)'; ctx.fillRect(sn(o.x - w / 2 + dx), sn(o.y + 4 + i * 5), w, u); } });
     }
     (l.barcos || []).forEach(b => {
-      const s = (b.f + t * b.v) % 2, p = s < 1 ? s : 2 - s, dir = s < 1 ? 1 : -1, x = l.x0 + 160 + p * (span - 320);
+      /* v4.14: cada pedalinho no seu Igapó, de margem a margem */
+      const s = (b.f + t * b.v * 2.4) % 2, p = s < 1 ? s : 2 - s, dir = s < 1 ? 1 : -1, x = b.xa + p * (b.xb - b.xa);
       if(x < vx - 60 || x > vx + vw + 60) return;
       const c = l.cols[Math.floor((x - l.x0) / l.B)]; if(!c) return;
       const y = clamp(l.cyF(x) + b.lado * l.hwF(x) * .62, c.t + 30, c.b - 18);
@@ -2544,6 +2779,17 @@
     l.secos.forEach(s => {
       if(s.x > vx + vw || s.x + s.w < vx || s.y > vy + vh || s.y + s.h < vy) return;
       ctx.fillStyle = 'rgba(15,18,24,.3)'; ctx.fillRect(s.x + 4, s.y + 6, s.w, s.h);
+      /* v4.14: a ponte de asfalto (a Av. Higienópolis e a rua por cima do ribeirão) e a barragem do Igapó 1 */
+      if(s.rua){ const L = Math.max(2, 1.05 / V.k); ctx.fillStyle = pad(ctx, 'rua'); ctx.fillRect(s.x, s.y, s.w, s.h); ctx.fillStyle = pad(ctx, 'calcada'); ctx.fillRect(s.x, s.y, CALC, s.h); ctx.fillRect(s.x + s.w - CALC, s.y, CALC, s.h);
+        ctx.fillStyle = pad(ctx, 'concreto'); ctx.fillRect(s.x - 6, s.y, 7, s.h); ctx.fillRect(s.x + s.w - 1, s.y, 7, s.h); ctx.fillStyle = '#121419'; for(let y = s.y + 8; y < s.y + s.h - 6; y += 34){ ctx.fillRect(s.x - 7, y, 9, 6); ctx.fillRect(s.x + s.w - 2, y, 9, 6); }
+        ctx.fillStyle = 'rgba(242,236,84,.85)'; for(let y = Math.ceil(s.y / 36) * 36; y < s.y + s.h - 10; y += 36) ctx.fillRect(s.x + s.w / 2 - L / 2, y, L, 18);
+        if(natal()) for(let y = s.y + 6, j = 0; y < s.y + s.h - 4; y += 11, j++){ lampada(ctx, s.x - 4, y, j); lampada(ctx, s.x + s.w + 2, y, j + 4); }
+        if(s.nome) pixPlaca(ctx, s.nome, s.x + s.w / 2, s.y + 18, { fundo: AZUL, cor: PAPEL });
+        return; }
+      if(s.barragem){ ctx.fillStyle = pad(ctx, 'concreto'); ctx.fillRect(s.x, s.y, s.w, s.h); ctx.fillStyle = 'rgba(15,18,24,.25)'; ctx.fillRect(s.x + s.w - 10, s.y, 10, s.h);
+        ctx.fillStyle = 'rgba(255,255,255,.65)'; for(let y = s.y + 30; y < s.y + s.h - 30; y += 9) ctx.fillRect(s.x + s.w + 1, y, 6 + (y / 9 % 3) * 2, 3);
+        ctx.fillStyle = '#121419'; for(let y = s.y + 6; y < s.y + s.h - 4; y += 30){ ctx.fillRect(s.x - 3, y, 5, 5); ctx.fillRect(s.x + s.w - 2, y, 5, 5); }
+        pixPlaca(ctx, 'BARRAGEM', s.x + s.w / 2, s.y + 12, { fundo: PAPEL }); return; }
       ctx.fillStyle = pad(ctx, 'madeira'); ctx.fillRect(s.x, s.y, s.w, s.h);
       if(s.tipo === 'ponte'){ ctx.fillStyle = pad(ctx, 'concreto'); ctx.fillRect(s.x - 5, s.y, 7, s.h); ctx.fillRect(s.x + s.w - 2, s.y, 7, s.h); ctx.fillStyle = '#121419'; for(let y = s.y + 10; y < s.y + s.h - 6; y += 40){ ctx.fillRect(s.x - 6, y, 9, 7); ctx.fillRect(s.x + s.w - 3, y, 9, 7); }
         /* v3.87: no Natal, o pisca-pisca no guarda-corpo das pontes */
@@ -3411,7 +3657,15 @@
   function decor(ctx, d, t){
     const u = 1 / V.k;
     switch(d.tipo){
-      case 'placa': case 'placa2': { const s = d.s || 1, h = d.h || 30; ctx.fillStyle = INK; if(d.tipo === 'placa2'){ ctx.fillRect(d.x - 44, d.y - h, 5, h); ctx.fillRect(d.x + 40, d.y - h, 5, h); } else ctx.fillRect(d.x - 2, d.y - h, 4, h); pixPlaca(ctx, d.txt, d.x, d.y - h - (5 * s + 6) / 2 * u, { fundo: d.fundo || PAPEL, s }); break; }
+      case 'placa': case 'placa2': { const s = d.s || 1, h = d.h || 30; ctx.fillStyle = INK; if(d.tipo === 'placa2'){ ctx.fillRect(d.x - 44, d.y - h, 5, h); ctx.fillRect(d.x + 40, d.y - h, 5, h); } else ctx.fillRect(d.x - 2, d.y - h, 4, h); pixPlaca(ctx, d.txt, d.x, d.y - h - (5 * s + 6) / 2 * u, { fundo: d.fundo || PAPEL, s, cor: d.cor }); break; }
+      /* v4.14 · o silo da cooperativa no meio da roça (o norte do Paraná é isso: lavoura até onde a vista alcança e o silo lá no meio) */
+      case 'silo': {
+        ctx.fillStyle = 'rgba(15,18,24,.22)'; ctx.fillRect(d.x - 40, d.y - 3, 84, 6);
+        [-30, 4].forEach(dx => { const x = d.x + dx; ctx.fillStyle = '#C9CED6'; ctx.fillRect(x, d.y - 72, 26, 72); ctx.fillStyle = '#A4A8AE'; ctx.fillRect(x + 18, d.y - 72, 8, 72); ctx.fillStyle = 'rgba(80,86,96,.35)'; for(let y = d.y - 64; y < d.y; y += 12) ctx.fillRect(x, y, 26, 2);
+          ctx.fillStyle = '#8F959D'; ctx.fillRect(x + 2, d.y - 78, 22, 6); ctx.fillRect(x + 7, d.y - 84, 12, 6); ctx.fillRect(x + 11, d.y - 88, 4, 4); });
+        ctx.fillStyle = '#7C838C'; ctx.fillRect(d.x - 4, d.y - 104, 8, 104); ctx.fillStyle = '#5E646C'; for(let y = d.y - 98; y < d.y - 4; y += 7) ctx.fillRect(d.x - 4, y, 8, 2);
+        ctx.fillStyle = '#7C838C'; ctx.fillRect(d.x - 18, d.y - 100, 14, 3); ctx.fillRect(d.x + 4, d.y - 100, 14, 3);
+        luz(d.x, d.y - 104, 30, .4); break; }
       case 'fonte': { bloco(ctx, d.x - 28, d.y - 16, 56, 16, 'concreto'); ctx.fillStyle = pad(ctx, 'agua'); ctx.fillRect(d.x - 22, d.y - 16, 44, 6); ctx.fillStyle = 'rgba(255,255,255,.9)'; ctx.fillRect(sn(d.x - u), d.y - 42, u * 2, 26); for(let i = 0; i < 10; i++){ const f = (t * 1.1 + i / 10) % 1, lado = i % 2 ? 1 : -1; ctx.fillRect(sn(d.x + lado * (3 + f * 15)), sn(d.y - 42 + f * 26 - Math.sin(f * Math.PI) * 5), u, u); } break; }
       case 'estatua': { if(natal()){ arvNatal(ctx, d.x, d.y); break; } bloco(ctx, d.x - 14, d.y - 26, 28, 26, 'concreto'); ctx.fillStyle = '#6E5B3E'; ctx.fillRect(d.x - 5, d.y - 52, 10, 26); ctx.fillRect(d.x - 4, d.y - 62, 8, 9); ctx.fillRect(d.x + 5, d.y - 56, 4, 14); ctx.fillRect(d.x + 6, d.y - 66, 3, 12); ctx.fillStyle = 'rgba(255,255,255,.18)'; ctx.fillRect(d.x - 5, d.y - 52, 3, 26); break; }
       case 'tabela': { const L = d.lado; ctx.fillStyle = '#2B2F38'; ctx.fillRect(d.x - 2, d.y - 62, 4, 62); ctx.fillRect(L > 0 ? d.x : d.x - 10, d.y - 62, 10, 3); ctx.fillStyle = '#F4F3EF'; ctx.fillRect(L > 0 ? d.x + 8 : d.x - 11, d.y - 76, 3, 24); ctx.fillStyle = LARANJA; ctx.fillRect(L > 0 ? d.x + 11 : d.x - 21, d.y - 58, 10, 2); break; }
@@ -3489,10 +3743,12 @@
         break; }
     }
   }
-  /* carro passando nas ruas que cortam a cidade inteira (para quando tem gente na frente) */
+  /* carro passando nas ruas (para quando tem gente na frente). v4.14: a cidade não é mais quadrada, então cada carro
+     anda num trecho de rua (sem roça nem lugar grande dos dois lados) e, na ponta, faz o retorno pra outra mão */
+  const maoY = (s, dir) => ruaY(s) + (dir > 0 ? 22 : -12);
   function montaCarros(c){
     const L = [], q = rng(hash('carros'));
-    c.ruasLivres.forEach(s => [1, -1].forEach(dir => L.push({ s, dir, x: q() * c.W, y: ruaY(s) + (dir > 0 ? 22 : -12), v: 70 + q() * 50, cor: pega(CORES_CARRO, q), van: q() < .25 })));
+    c.trechos.forEach(T => { const n = Math.max(1, Math.round(T.n / 6)); for(let k = 0; k < n; k++) [1, -1].forEach(dir => L.push({ s: T.s, x0: T.x0, x1: T.x1, dir, x: T.x0 + q() * (T.x1 - T.x0), y: maoY(T.s, dir), v: 70 + q() * 50, cor: pega(CORES_CARRO, q), van: q() < .25 })); });
     return L;
   }
   function carros(dt){
@@ -3500,7 +3756,7 @@
     for(const car of V.carros){
       /* v4.09: pela torcida, só para quem tá na faixa dele (o bloco anda na faixa do sentido dele; o do outro passa) */
       const para = gente.some(o => { const d = (o.x - car.x) * car.dir; return d > -12 && d < 78 && Math.abs(o.y - car.y) < (o.torcida ? 18 : 30); });
-      if(!para){ car.x += car.dir * car.v * dt; if(car.x > W + 90) car.x = -90; else if(car.x < -90) car.x = W + 90; }
+      if(!para){ car.x += car.dir * car.v * dt; if(car.x0 != null){ if(car.x > car.x1){ car.x = car.x1; car.dir = -1; car.y = maoY(car.s, -1); } else if(car.x < car.x0){ car.x = car.x0; car.dir = 1; car.y = maoY(car.s, 1); } } else if(car.x > W + 90) car.x = -90; else if(car.x < -90) car.x = W + 90; }
       /* v3.40: o carro que vem vindo e passa do teu lado faz barulho (vento e motor, cruzando de um lado pro outro) */
       if(V.eu && !para && !V.voo && C.versoSom){ const dx = car.x - V.eu.x, dy = Math.abs(car.y - V.eu.y); if(dy < 100 && dx * car.dir < 0 && Math.abs(dx) < 175 && Math.abs(dx) > 115 && (!car.som || Date.now() - car.som > 5000)){ car.som = Date.now(); C.versoSom.carroPassa(car.dir, 1 - dy / 120); } }
     }
@@ -4866,14 +5122,18 @@
     const c = V.cid, ctx = cv.getContext('2d'), oy = TOPO - RUA, X = x => Math.round(x / S), Y = y => Math.round((y - oy) / S), meu = C.st.me && C.st.me.id;
     ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = '#2B2F38'; ctx.fillRect(0, 0, cv.width, cv.height);
     const COR_E = { predio: '#A4A8AE', loja: '#F2D8A7', pracinha: '#D9C27F', bosquinho: '#C9A95E', quadra: '#3D6FB6', feira: '#FF8A3D' };
+    /* v4.14: a roça em volta (a cidade aparece no formato dela), cada lavoura na cor dela */
+    if(c.ehRoca){ const COR_R = { arado: '#7E4330', trigo: '#BE9D55', palhada: '#AE9562', milho: '#9C7D4A' };
+      blocosDe(c.ehRoca, 0, 0, COLS - 1, c.rows - 1, (x, y, w, h, cc, rr) => { ctx.fillStyle = COR_R[rocaDe(c, cc, rr).t] || '#AE9562'; ctx.fillRect(X(x), Y(y), Math.ceil(w / S), Math.ceil(h / S)); }); }
     for(let r = 0; r < c.rows; r++) for(let cc = 0; cc < COLS; cc++){
-      const g = c.grade[r][cc]; if(g && g.t === 'reg') continue; const o = lotXY(cc, r); let cor = '#E6DECD';
+      const g = c.grade[r][cc]; if(g && (g.t === 'reg' || g.t === 'roca')) continue; const o = lotXY(cc, r); let cor = '#E6DECD';
       if(g && g.t === 'casa'){ const a = (CASA[g.h.cat] || CASA.outros).a; cor = a === INK ? '#FFFFFF' : a; }
       else if(g && g.t === 'dois') cor = '#121419'; else if(g && g.t === 'centro') cor = '#F4F1EA'; else if(g && g.t === 'enche') cor = COR_E[g.f.t] || cor;
       ctx.fillStyle = cor; ctx.fillRect(X(o.x), Y(o.y), Math.round(LW / S), Math.round(LH / S));
       if(g && g.t === 'casa' && g.h.id === meu){ ctx.fillStyle = INK; ctx.fillRect(X(o.x) + 4, Y(o.y) + 4, Math.round(LW / S) - 8, Math.round(LH / S) - 8); ctx.fillStyle = AMARELO; ctx.fillRect(X(o.x) + 6, Y(o.y) + 6, Math.round(LW / S) - 12, Math.round(LH / S) - 12); }
     }
-    c.regs.forEach(R => { ctx.fillStyle = { lago: '#D9C27F', zerao: '#D9C27F', bosque: '#B8964C', gleba: '#DCCFB6', estadio: '#A4A8AE', feira: '#F2D8A7', aeroporto: '#CDBB86', acel: '#D9C27F', arthur: '#9C7E3E' }[R.k] || '#E6DECD'; ctx.fillRect(X(R.x), Y(R.y), Math.round(R.w / S), Math.round(R.h / S)); });
+    c.regs.forEach(R => { ctx.fillStyle = { lago: '#D9C27F', zerao: '#D9C27F', bosque: '#B8964C', gleba: '#DCCFB6', estadio: '#A4A8AE', feira: '#F2D8A7', aeroporto: '#CDBB86', acel: '#D9C27F', arthur: '#9C7E3E' }[R.k] || '#E6DECD';
+      if(R.tem) blocosDe(R.tem, R.c0, R.r0, R.c1, R.r1, (x, y, w, h) => ctx.fillRect(X(x), Y(y), Math.ceil(w / S), Math.ceil(h / S))); else ctx.fillRect(X(R.x), Y(R.y), Math.round(R.w / S), Math.round(R.h / S)); });
     if(c.acel){ const a = c.acel, h = a.hp; ctx.fillStyle = '#A4553A'; ctx.beginPath(); ctx.moveTo(X(h.x), Y(h.y + 6)); a.bases.forEach(b => ctx.lineTo(X(b.x) + (b.x > h.x ? 2 : b.x < h.x ? -2 : 0), Y(b.y) - (b.x === h.x ? 2 : 0))); ctx.closePath(); ctx.fill();
       ctx.strokeStyle = '#2B2F38'; ctx.lineWidth = 2; ctx.beginPath(); a.cerca.forEach((p, i) => (i ? ctx.lineTo(X(p.x), Y(p.y)) : ctx.moveTo(X(p.x), Y(p.y)))); ctx.stroke(); }
     if(c.aeroporto){ const p = c.aeroporto.pista; ctx.fillStyle = '#2B2F38'; ctx.fillRect(X(p.x), Y(p.y), Math.round(p.w / S), Math.max(2, Math.round(p.h / S))); }
@@ -4892,18 +5152,36 @@
     if(z.skate){ const s = z.skate; ctx.fillStyle = '#A4A8AE'; ctx.fillRect(X(s.x0), Y(s.y0), Math.round((s.x1 - s.x0 - 30) / S), Math.round((s.y1 - s.y0 - 50) / S)); ctx.fillStyle = '#6A7078'; ctx.fillRect(X(s.bowl.x) - 2, Y(s.bowl.y) - 1, 4, 3); }
     const e = c.estadio.campo; ctx.fillStyle = '#2E5BFF'; ctx.fillRect(X(e.x) - 4, Y(e.y) - 6, Math.round(e.w / S) + 8, Math.round(e.h / S) + 10); ctx.fillStyle = '#D9C27F'; ctx.fillRect(X(e.x), Y(e.y), Math.round(e.w / S), Math.round(e.h / S));
     ctx.fillStyle = '#7F8A96'; c.gleba.forEach(g => ctx.fillRect(X(g.x), Y(g.base - 40), Math.max(2, Math.round(g.w / S)), 3));
-    [['LAGO IGAPO', l.x + l.w / 2, l.y + l.h / 2], ['ZERAO', z.cx, z.cy], ['BOSQUE', c.bosque.cx, c.bosque.cy], ['CENTRO', c.praca.cx, c.praca.y + LH + 40], ['ESTADIO', c.estadio.campo.x + c.estadio.campo.w / 2, c.estadio.campo.y + c.estadio.campo.h / 2], ['GLEBA', c.glebaR.R.x + c.glebaR.R.w / 2, c.glebaR.R.y + LH / 2]].concat(c.feira ? [['FEIRA', c.feira.R.x + c.feira.R.w / 2, c.feira.R.y + c.feira.R.h + 30]] : []).concat(c.aeroporto ? [['AEROPORTO', c.aeroporto.R.x + c.aeroporto.R.w / 2, c.aeroporto.R.y + 120]] : []).concat(c.acel ? [['ACEL', c.acel.hp.x, c.acel.hp.y - 250]] : []).concat(c.arthur ? [['ARTHUR THOMAS', c.arthur.R.x + c.arthur.R.w / 2, c.arthur.R.y + 300]] : []).concat(rio ? [['RIO TIBAGI', c.W * .55, rio.cyF(c.W * .55)]] : []).forEach(([t, x, y]) => pixPlaca(ctx, t, X(x), Y(y), { fundo: PAPEL }));
+    /* v4.14: as pontes do lago (a Av. Higienópolis e a barragem aparecem) */
+    ctx.fillStyle = '#2B2F38'; l.secos.forEach(s => { if(s.rua || s.barragem) ctx.fillRect(X(s.x), Y(s.y), Math.max(2, Math.round(s.w / S)), Math.max(2, Math.round(s.h / S))); });
+    const rot = [['LAGO IGAPO', l.rotulo ? l.rotulo.x : l.x + l.w / 2, l.rotulo ? l.rotulo.y : l.y + l.h / 2], ['ZERAO', z.cx, z.cy], ['BOSQUE', c.bosque.cx, c.bosque.cy], ['CENTRO', c.centro.catedral.x + LW + RUA / 2, c.centro.arte.y + LH / 2], ['ESTADIO', c.estadio.campo.x + c.estadio.campo.w / 2, c.estadio.campo.y + c.estadio.campo.h / 2], ['GLEBA', c.glebaR.R.x + c.glebaR.R.w / 2, c.glebaR.R.y + LH / 2]].concat(c.feira ? [['FEIRA', c.feira.R.x + c.feira.R.w / 2, c.feira.R.y + c.feira.R.h + 30]] : []).concat(c.aeroporto ? [['AEROPORTO', c.aeroporto.R.x + c.aeroporto.R.w / 2, c.aeroporto.R.y + 120]] : []).concat(c.acel ? [['ACEL', c.acel.hp.x, c.acel.hp.y - 250]] : []).concat(c.arthur ? [['ARTHUR THOMAS', c.arthur.R.x + c.arthur.R.w / 2, c.arthur.R.y + 300]] : []).concat(rio ? [['RIO TIBAGI', c.W * .55, rio.cyF(c.W * .55)]] : []);
+    /* v4.14: os nomes dos bairros (letra escura miúda) só onde não encostam no nome de um lugar */
+    mapaBairros(ctx, c, X, Y, rot.map(([t, x, y]) => ({ x: X(x), y: Y(y), w: pixLarg(t, 1) + 8, h: 11 })).concat(c.regs.filter(R => !R.tem).map(R => ({ x: X(R.x + R.w / 2), y: Y(R.y + R.h / 2), w: R.w / S + 4, h: R.h / S + 4 }))));
+    rot.forEach(([t, x, y]) => pixPlaca(ctx, t, X(x), Y(y), { fundo: PAPEL }));
+    /* a rosa dos ventos (o norte é pra cima, como no mapa de Londrina) */
+    { const nx = cv.width - 16, ny = 18; ctx.fillStyle = 'rgba(15,18,24,.7)'; ctx.fillRect(nx - 9, ny - 13, 19, 27); ctx.fillStyle = AMARELO; ctx.fillRect(nx, ny - 9, 1, 12); ctx.fillRect(nx - 1, ny - 7, 3, 1); ctx.fillRect(nx - 2, ny - 5, 5, 1); pixTxt(ctx, 'N', nx + .5, ny + 8, 1, PAPEL, 'c'); }
     const mostra = quemAparece(); ctx.fillStyle = PAPEL; for(const r of V.remotos.values()) if(mostra.has(r.sid) && !r.npc) ctx.fillRect(X(r.x) - 1, Y(r.y) - 1, 3, 3);
     if(V.eu && Date.now() % 1000 < 650){ ctx.fillStyle = INK; ctx.fillRect(X(V.eu.x) - 3, Y(V.eu.y) - 3, 7, 7); ctx.fillStyle = ROSA; ctx.fillRect(X(V.eu.x) - 2, Y(V.eu.y) - 2, 5, 5); }
+  }
+  /* v4.14 · os nomes dos bairros no Mapa: cada um no meio dos quarteirões dele (só os de cidade), em letra miúda escura.
+     Feito uma vez por cidade */
+  function mapaBairros(ctx, c, X, Y, ocupa){
+    if(!c.bairros){ const soma = {};
+      for(let r = 0; r < c.rows; r++) for(let cc = 0; cc < COLS; cc++){ const g = c.grade[r][cc]; if(!g || g.t === 'roca' || g.t === 'reg' || g.t === 'centro' || g.t === 'dois') continue; const nm = bairro(cc, r), o = lotXY(cc, r), a = soma[nm] || (soma[nm] = { x: 0, y: 0, n: 0 }); a.x += o.x + LW / 2; a.y += o.y + LH / 2; a.n++; }
+      c.bairros = Object.keys(soma).filter(nm => soma[nm].n >= 3 && !['Centro', 'Aeroporto', 'Gleba Palhano'].includes(nm)).map(nm => ({ nm, x: soma[nm].x / soma[nm].n, y: soma[nm].y / soma[nm].n })).sort((a, b) => b.nm.length - a.nm.length); }
+    const tomados = ocupa.slice(), bate2 = (a, b) => Math.abs(a.x - b.x) * 2 < a.w + b.w && Math.abs(a.y - b.y) * 2 < a.h + b.h;
+    c.bairros.forEach(b => { const q = { x: X(b.x), y: Y(b.y), w: pixLarg(b.nm, 1) + 6, h: 9 }; if(q.x - q.w / 2 < 2 || q.x + q.w / 2 > ctx.canvas.width - 2 || tomados.some(o => bate2(o, q))) return; tomados.push(q);
+      /* um contorno claro em volta (a letra escura em cima da rua escura sumia) */
+      [[-1, 0], [1, 0], [0, -1], [0, 1]].forEach(([dx, dy]) => pixTxt(ctx, b.nm, q.x + dx, q.y + dy, 1, 'rgba(244,241,234,.75)', 'c')); pixTxt(ctx, b.nm, q.x, q.y, 1, '#2B2F38', 'c'); });
   }
   function mapaSheet(){
     const c = V.cid, S = 16, mw = Math.ceil(c.W / S), mh = Math.ceil((c.H - TOPO + RUA) / S), L = lugares();
     C.sheet(`<div class="form cvr-mapa"><div class="sheet-head"><h2>Mapa</h2><button type="button" class="cbtn plain" data-close aria-label="Fechar">${ico('x')}</button></div>
       <canvas id="cvr-mapa-cv" width="${mw}" height="${mh}" aria-label="Mapa da cidade. Toca num lugar pra ir direto pra lá."></canvas>
-      <p class="fine">Toca no mapa pra ir direto pra lá, ou escolhe um lugar. Você é o quadradinho rosa; os brancos são quem tá na cidade.</p>
+      <p class="fine">Londrina com o norte pra cima: toca no mapa pra ir direto pra lá, ou escolhe um lugar (em ordem de A a Z). Você é o quadradinho rosa; os brancos são quem tá na cidade.</p>
       <button type="button" class="btn sm cvr-ag-bt" data-act="cvr-agenda">${ico('cal')} Agenda da cidade${eventoAgora() ? ` <b class="cvr-ag-vivo">AO VIVO: ${esc(eventoAgora().e.nome)}</b>` : ''}</button>
       ${c.feira ? `<p class="lbl-s">Feira do Corre: vai direto pra barraca</p><div class="cvr-lugares cvr-fb">${c.feira.barracas.filter(paraMim).map(b => `<button type="button" class="btn sm" data-act="cvr-ir-barraca" data-id="${esc(b.id)}">${ico(b.ico)} ${esc(b.titulo)}</button>`).join('')}</div><p class="lbl-s">Lugares</p>` : ''}
-      <div class="cvr-lugares">${L.map((l, i) => `<button type="button" class="btn sm" data-act="cvr-ir-lugar" data-i="${i}">${esc(l.nome)}</button>`).join('')}</div></div>`, 'wide');
+      <div class="cvr-lugares">${L.map((l, i) => ({ l, i })).sort((a, b) => (b.l.nome === 'Tua casa') - (a.l.nome === 'Tua casa') || a.l.nome.localeCompare(b.l.nome, 'pt-BR')).map(({ l, i }) => `<button type="button" class="btn sm" data-act="cvr-ir-lugar" data-i="${i}">${esc(l.nome)}</button>`).join('')}</div></div>`, 'wide');
     const cv = C.$('cvr-mapa-cv'); if(!cv) return;
     const ajusta = () => { const box = cv.parentElement.clientWidth, alt = Math.max(220, innerHeight * .58); cv.style.width = Math.min(box, alt * mw / mh) + 'px'; }; ajusta();
     desenhaMapa(cv, S);
@@ -5082,10 +5360,13 @@
   /* ---------- v3.40 · os sons: o passo (cada chão o seu), o motor do veículo, o ambiente de cada lugar ---------- */
   function chaoDe(x, y){
     const c = V.cid, l = c.lago, rio = c.rio;
-    if(l) for(const s of l.secos) if(x > s.x && x < s.x + s.w && y > s.y && y < s.y + s.h) return 'madeira';
+    if(l) for(const s of l.secos) if(x > s.x && x < s.x + s.w && y > s.y && y < s.y + s.h) return s.rua || s.barragem ? 'pedra' : 'madeira';
+    if(c.ehRoca && naRoca(x, y)) return 'terra';
     /* v3.75: na beira do Tibagi, o píer é madeira, a prainha é areia e a trilha é terra */
     if(rio && y > rio.y0 + 14){ for(const p of rio.piers) if(x > p.x && x < p.x + p.w && y > p.y && y < p.y + p.h) return 'madeira'; if(rio.prainha && x > rio.prainha.x0 && x < rio.prainha.x1) return 'areia'; const t = rio.colEm(x).t; return y > t - 44 ? 'terra' : 'grama'; }
-    for(const R of c.regs) if(x >= R.x && x <= R.x + R.w && y >= R.y && y <= R.y + R.h){
+    /* v4.14: o lugar do ponto vem do quarteirão (o lago não é retângulo) */
+    const Rp = regDe(x, y);
+    for(const R of Rp ? [Rp] : []) if(x >= R.x && x <= R.x + R.w && y >= R.y && y <= R.y + R.h){
       if(R.k === 'bosque') return 'terra';
       /* v3.82: no Arthur Thomas, madeira nos pontilhões, na barragem e nos decks; pedra na praça; o resto é terra */
       if(R.k === 'arthur'){ const a = c.arthur; if(!a) return 'terra'; const d = a.deck; if(a.secos.some(s => x > s.x && x < s.x + s.w && y > s.y && y < s.y + s.h) || (x > d.x && x < d.x + d.w && y > d.y && y < d.y + d.h)) return 'madeira'; const pr = a.praca; return x > pr.x && x < pr.x + pr.w && y < pr.y + pr.h ? 'pedra' : 'terra'; }
@@ -5112,12 +5393,14 @@
   function ambienteDaCidade(){
     const S = C.versoSom; if(!S || !V.eu || !V.cid) return;
     const c = V.cid, x = V.eu.x, y = V.eu.y, perto = (p, r) => p ? clamp(1 - Math.hypot(x - p.x, y - p.y) / r, 0, 1) : 0;
-    const R = c.regs.find(R => x >= R.x - 80 && x <= R.x + R.w + 80 && y >= R.y - 80 && y <= R.y + R.h + 80);
+    const R = regDe(x, y);
     const g = c.grade[Math.floor((y - TOPO) / (LH + RUA))], f = g && g[Math.floor((x - RUA) / (LW + RUA))];
     /* v3.82: o rio é lido antes (o verde usava ele uma linha antes de existir: fora do verde, dava erro e o ambiente parava) */
     const lg = c.lago, rio = c.rio, ar = c.arthur;
     const verde = (R && /bosque|zerao|lago|acel|arthur/.test(R.k)) || !!(f && f.t === 'enche' && /pracinha|bosquinho/.test(f.f.t)) || (rio && y > rio.y0 - 20);
-    const beira = rio && y > rio.y0 - 60, agua = (lg && x > lg.x - 60 && x < lg.x + lg.w + 60 && y > lg.y - 60 && y < lg.y + lg.h + 60) || beira ? 1 : 0;
+    /* v4.14: perto da água do lago (o lago é torto: olha a coluna de água ali) */
+    const qa = lg && x > lg.x0 - 120 && x < lg.x1 + 120 ? lg.cols[clamp(Math.floor((x - lg.x0) / lg.B), 0, lg.cols.length - 1)] : null;
+    const beira = rio && y > rio.y0 - 60, agua = (qa && y > qa.t - 200 && y < qa.b + 200) || beira ? 1 : 0;
     const gente = Math.max(perto({ x: c.praca.cx, y: c.praca.cy }, 700), c.feira ? perto({ x: c.feira.R.x + c.feira.R.w / 2, y: c.feira.R.y + c.feira.R.h / 2 }, 600) : 0, perto(c.centro.concha ? { x: c.centro.concha.x + LW / 2, y: c.centro.concha.base + 60 } : null, 420) * .7);
     const trafego = rio && y > rio.y0 + 60 ? .2 : R ? ({ lago: .3, bosque: .4, zerao: .55, aeroporto: .45, acel: .5, arthur: .15 }[R.k] || .7) : 1;
     const aguaAr = ar ? Math.max(perto({ x: (ar.lago.x0 + ar.lago.x1) / 2, y: ar.R.y + 690 }, 330), perto({ x: ar.salto.x, y: ar.salto.y1 }, 260)) : 0;
@@ -5179,11 +5462,11 @@
     policial: [
       { k: 'ronda', nome: 'Ronda do Centro', desc: 'Passa pelo Calçadão, pela Catedral e pela Concha Acústica.', pontos: 3, monta: () => [['Calçadão'], ['Catedral'], ['Concha Acústica']].map(([n]) => { const c = V.cid.centro[{ 'Calçadão': 'praca', Catedral: 'catedral', 'Concha Acústica': 'concha' }[n]]; return Object.assign(livre({ x: c.x + LW / 2, y: c.base + 40 }), { rotulo: n }); }) },
       { k: 'ladrao', nome: 'Pegar o ladrão', desc: 'Tem um ladrão à solta perto daqui. Corre atrás e prende (chega encostado).', pontos: 5, tempo: 90, monta: () => { const e = V.eu, a = Math.random() * Math.PI * 2, p = pertoLivre(clamp(e.x + Math.cos(a) * 420, 40, V.cid.W - 40), clamp(e.y + Math.sin(a) * 300, TOPO + 20, V.cid.H - 40)) || { x: e.x + 200, y: e.y }; return [Object.assign(p, { rotulo: 'o ladrão', npc: 'ladrao', pegar: 26 })]; } },
-      { k: 'transito', nome: 'Trânsito no cruzamento', desc: 'Um semáforo pifou. Fica no cruzamento organizando o trânsito.', pontos: 2, monta: () => { const c = 1 + Math.floor(Math.random() * (COLS - 2)), r = 1 + Math.floor(Math.random() * 2), o = lotXY(c, r); return [Object.assign(livre({ x: o.x - RUA / 2, y: o.y - RUA / 2 + 10 }), { rotulo: 'o cruzamento', acao: 'Organizar o trânsito', dur: 6, efeito: 'apito' })]; } }
+      { k: 'transito', nome: 'Trânsito no cruzamento', desc: 'Um semáforo pifou. Fica no cruzamento organizando o trânsito.', pontos: 2, monta: () => { const p = V.cid.praca, q = esquinaLonge(p.cx, p.cy, 300, 1300), o = q ? { x: q.x, y: q.y + 10 } : { x: p.x - RUA / 2, y: p.y - RUA / 2 + 10 }; return [Object.assign(livre(o), { rotulo: 'o cruzamento', acao: 'Organizar o trânsito', dur: 6, efeito: 'apito' })]; } }
     ],
     bombeiro: [
       { k: 'fogo', nome: 'Fogo no prédio', desc: 'Chamou no rádio: fogo num prédio da cidade. Vai lá e apaga.', pontos: 5, tempo: 150, monta: () => { const fs = V.cid.enche.filter(f => f.t === 'predio' || f.t === 'loja'); const f = sorteio(fs.length ? fs : V.cid.enche); const x = f.t === 'predio' ? f.px + f.pw / 2 : f.x + LW / 2; return [Object.assign(livre({ x, y: f.base + 16 }), { rotulo: f.t === 'predio' ? 'o prédio' : 'a loja', acao: 'Apagar o fogo', dur: 4, efeito: 'fogo', fx: x, fy: f.base - 70 })]; } },
-      { k: 'gato', nome: 'Gato na árvore', desc: 'Um gato subiu num ipê e não desce. Resgata ele.', pontos: 3, monta: () => { const as = V.cid.arv.filter(a => !a.ilha && !a.g && a.y > TOPO + 40); const a = sorteio(as); return [Object.assign(livre({ x: a.x, y: a.y + 8 }), { rotulo: 'o ipê', acao: 'Resgatar o gato', dur: 3, efeito: 'gato', fx: a.x, fy: a.y - 44, item: 'gato' })]; } },
+      { k: 'gato', nome: 'Gato na árvore', desc: 'Um gato subiu num ipê e não desce. Resgata ele.', pontos: 3, monta: () => { const as = V.cid.arv.filter(a => !a.ilha && !a.g && !a.mata && a.y > TOPO + 40); const a = sorteio(as); return [Object.assign(livre({ x: a.x, y: a.y + 8 }), { rotulo: 'o ipê', acao: 'Resgatar o gato', dur: 3, efeito: 'gato', fx: a.x, fy: a.y - 44, item: 'gato' })]; } },
       { k: 'treino', nome: 'Treino na torre', desc: 'Sobe a escada da torre do quartel, de equipamento completo.', pontos: 2, monta: () => [Object.assign(livre(portaCivica('bombeiros')), { rotulo: 'o quartel', acao: 'Subir na escada', dur: 5, efeito: 'suor' })] }
     ],
     medico: [
@@ -5358,7 +5641,8 @@
     for(let s = 0; s < NR; s++) for(let i = 0; i < NC; i++){ N.push({ id: s * NC + i, i, s, x: ruaX(i), y: ruaY(s) }); viz.push([]); }
     const g = (r, cc) => r >= 0 && r < c.rows && cc >= 0 && cc < COLS ? c.grade[r][cc] : null;
     /* dois quarteirões do mesmo lugar grande (ou os dois do fundador) não têm rua no meio */
-    const junto = (a, b) => !!a && !!b && ((a.t === 'reg' && b.t === 'reg' && a.R === b.R) || (a.t === 'dois' && b.t === 'dois'));
+    /* v4.14: nem entre dois quarteirões de roça (fora da grade conta como roça) */
+    const junto = (a, b) => { const ra = !a || a.t === 'roca', rb = !b || b.t === 'roca'; if(ra && rb) return true; return !!a && !!b && ((a.t === 'reg' && b.t === 'reg' && a.R === b.R) || (a.t === 'dois' && b.t === 'dois')); };
     /* e o trecho tem que estar livre de verdade (cerca, árvore e prédio de lugar grande às vezes encostam na rua) */
     const livreSeg = (a, b) => { const n = Math.ceil(Math.hypot(b.x - a.x, b.y - a.y) / 24); for(let k = 1; k < n; k++) if(bate(a.x + (b.x - a.x) * k / n, a.y + (b.y - a.y) * k / n)) return false; return true; };
     const liga = (a, b) => { if(livreSeg(N[a], N[b])){ viz[a].push(b); viz[b].push(a); } };
@@ -6252,10 +6536,10 @@
      no V.remotos com npc (não contam como gente, não aparecem no Mapa nem na lista) e sem plaquinha de nome. */
   const BR_VERDE = '#119A48', BR_AMARELO = '#FFD321', BR_AZUL = '#1F3E8F', VM = '#D7262E', VM_ESC = '#8E1520';
   const TORCIDAS = [
-    { k: 'brasil', nome: 'a torcida do Brasil', rua: 11, regiao: 'gleba', n: 9, cor: BR_AMARELO, vel: 46,
+    { k: 'brasil', nome: 'a torcida do Brasil', rua: REGIOES.find(g => g.k === 'gleba').r1 + 1, regiao: 'gleba', n: 9, cor: BR_AMARELO, vel: 46,
       cantos: ['Eu sou brasileiro, com muito orgulho, com muito amor!', 'Rumo ao hexa!', 'Vai, Brasil! Olê, olê, olê!', 'Pula, Gleba! Quem não pula é do outro time!',
         'Verde e amarelo hoje pode, viu? Só hoje.', 'Joga bonito, Brasil!', 'Hexa vem! Hexa vem!'] },
-    { k: 'vermelho', nome: 'a torcida de vermelho', rua: 4, centro: [4, 9], n: 8, cor: VM, vel: 48,
+    { k: 'vermelho', nome: 'a torcida de vermelho', rua: CENTRO.praca[1] + 1, centro: [CENTRO.praca[0] - 2, CENTRO.delegacia[0] + 1], n: 8, cor: VM, vel: 48,
       cantos: ['Olé, olé, olé, olá!', 'Vamos, vermelho! Vamos ganhar!', 'De vermelho até a alma!', 'O Centro é nosso hoje!', 'Bumbo, bandeira e garganta!',
         'Ninguém cala essa torcida!', 'Vermelho no peito e na cara!'] }
   ];
@@ -6969,7 +7253,7 @@
     V.tAnt = 0; V.teclas.clear();
     if(V.vivo){ anunciar(); portaUI(); }
     /* o que mudou lá dentro (ligou o Hórus, mexeu no perfil) vale aqui fora também */
-    if(C.recarregaMe) C.recarregaMe().then(() => { if(!V.vivo || !V.cid) return; V.sol = solidos(); V.portas = portas(); V.porta = null; portaUI(); }).catch(() => {});
+    if(C.recarregaMe) C.recarregaMe().then(() => { if(!V.vivo || !V.cid) return; V.sol = solidos(); V.solG = gradeSol(V.sol); V.portas = portas(); V.porta = null; portaUI(); }).catch(() => {});
     setTimeout(() => { const b = C.$('cvr-porta'); if(b && !b.hidden) try{ b.focus({ preventScroll: true }); }catch(e){} }, 0);
   }
   /* "Página": a ferramenta na página inteira (sai da cidade, com o "Voltar pro Correverso" pra voltar na barraca) */
@@ -7032,7 +7316,7 @@
   };
   function abreCidade(lista){
     const me = C.st.me;
-    V.cid = montaCidade(lista); V.sol = solidos(); V.portas = portas(); V.carros = montaCarros(V.cid); V.bolas = novasBolas(V.cid);
+    V.cid = montaCidade(lista); V.sol = solidos(); V.solG = gradeSol(V.sol); V.portas = portas(); V.carros = montaCarros(V.cid); V.bolas = novasBolas(V.cid);
     const st = C.$('cvr-stage');
     st.innerHTML = `<canvas id="cvr-cv" aria-label="A cidade do Correverso. Anda com as setas ou W A S D, ou toca onde quer ir."></canvas>
       <div class="cvr-top"><button type="button" class="cvr-sair" data-act="cvr-sai-cidade" aria-label="Sair do Correverso">${ico('prev')}<span class="cvr-sair-l">Sair do Correverso</span><span class="cvr-sair-c" aria-hidden="true">Sair</span></button><span class="cvr-sair-dica" id="cvr-sair-dica" role="status" hidden></span><span class="cvr-tt">${ico('verso')} Correverso</span><span class="cvr-on" id="cvr-on"></span><button type="button" class="cvr-live" id="cvr-live" data-act="cvr-gente" hidden></button><span class="cvr-zona" id="cvr-zona" hidden></span><button type="button" class="cvr-evento" id="cvr-evento" data-act="cvr-evento" hidden></button><button type="button" class="cvr-tarefa" id="cvr-tarefa" data-act="cvr-trampo" hidden></button><span class="cvr-proc" id="cvr-proc" role="status" hidden></span><button type="button" class="cvr-correal" id="cvr-correal" data-act="carteira" title="Carteira de correal" aria-label="Carteira de correal">${ico('correal')}<b class="num" data-correal-saldo>${C.correal.saldo == null ? '…' : C.correalFmt(C.correal.saldo)}</b></button><button type="button" class="cvr-som" id="cvr-som" data-act="cvr-som" aria-pressed="false" hidden></button><button type="button" class="cvr-som cvr-tela" id="cvr-tela" data-act="cvr-tela" aria-pressed="false"></button></div>
