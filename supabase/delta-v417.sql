@@ -158,7 +158,8 @@ begin
     create policy "aprovacoes: so a dona" on public.corre_aprovacoes using (dono = auth.uid()) with check (dono = auth.uid());
   end if;
 end $$;
-revoke all on public.corre_aprovacoes from anon;
+-- (tabela nova no Supabase nasce com tudo pra todo mundo, TRUNCATE inclusive: tira e dá só o que o app usa)
+revoke all on public.corre_aprovacoes from anon, authenticated;
 grant select, insert, update, delete on public.corre_aprovacoes to authenticated;
 -- o código é do banco (sorteado), e o que o cliente faz (abriu, respondeu, quem) a dona não escreve
 create or replace function public.corre_aprov_ok() returns trigger

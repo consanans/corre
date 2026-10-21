@@ -4134,3 +4134,25 @@ body.fn-arrastando .fn-board{scroll-snap-type:none}
 .sd-hora.erro{background:#FFE3EE;box-shadow:3px 3px 0 var(--pink)}
 .toast-ir{flex:none;align-self:center;margin-left:4px;padding:4px 10px;border-radius:999px;background:var(--yellow);color:var(--ink);font-size:13px}
 .toast:has(.toast-ir){cursor:pointer}
+/* o Instagram de cada marca à vista (o Thales: "queria que aqui mostrasse quando tá online ou não"): a bolinha no logo
+   (azul acesa = no ar, laranja = conexão vencida, vazada = desconectada) e a palavra depois do @. Nada de verde */
+.st-mk-av{position:relative;flex:none;display:inline-flex}
+.mk-st{position:absolute;right:-3px;bottom:-3px;width:14px;height:14px;border-radius:50%;box-sizing:border-box;box-shadow:0 0 0 2.5px var(--paper)}
+.mk-st:not(.on):not(.vencida):not(.off){display:none}
+.mk-st.on{background:var(--blue);animation:mkNoAr 2.4s ease-out infinite}
+.mk-st.vencida{background:var(--orange)}
+.mk-st.off{background:var(--paper);border:2.5px solid #8B8693}
+.st-mk[aria-selected="true"] .mk-st{box-shadow:0 0 0 2.5px var(--yellow)}
+.st-porta-mk .mk-st{width:18px;height:18px;right:0;bottom:0;box-shadow:0 0 0 3px var(--night-2)}
+.st-porta-mk .mk-st.off{background:var(--night-2)}
+@keyframes mkNoAr{0%{box-shadow:0 0 0 2.5px var(--paper),0 0 0 2.5px rgb(0 103 174 / 55%)}70%,100%{box-shadow:0 0 0 2.5px var(--paper),0 0 0 9px rgb(0 103 174 / 0)}}
+.st-mk[aria-selected="true"] .mk-st.on{animation:none}
+.st-porta-mk .mk-st.on{animation:none}
+.mk-st-t{font-style:normal}
+.mk-st-t.on{color:var(--blue);font-weight:700}
+.mk-st-t.vencida{color:#A8420A;font-weight:700}
+.mk-st-t.off{color:var(--muted)}
+.st-porta-mk .mk-st-t.on{color:#7FB8F0}
+.st-porta-mk .mk-st-t.vencida{color:var(--orange)}
+.st-porta-mk .mk-st-t.off{color:var(--night-ink-2)}
+@media (prefers-reduced-motion:reduce){.mk-st.on{animation:none}}

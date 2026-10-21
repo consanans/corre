@@ -21,6 +21,7 @@
       try{ IG.lista = await C.api.q('corre_ig_contas', { eq: { dono: C.uid() }, order: ['conectada_em', true] }); }
       catch(e){ IG.lista = IG.lista || []; }
       IG.em = Date.now(); IG.carregando = null;
+      try{ selos(); }catch(e){}
       /* mudou alguma coisa (conectou em outra aba, venceu, desconectou): quem mostra as contas redesenha */
       if(antes !== null && antes !== assina(IG.lista)) setTimeout(muda, 0);
       return IG.lista;
@@ -33,10 +34,32 @@
   const porId = id => (id && contas().find(c => c.id === id)) || null;
   /* a conta conectada que tem o mesmo @ da marca (é ela que vem marcada; sem ela, a pessoa escolhe) */
   const daMarca = m => { const r = String((m && m.rede) || '').toLowerCase(); return r ? conectadas().find(c => c.username === r) || null : null; };
-  const muda = () => { IG.onMuda.slice().forEach(f => { try{ f(); }catch(e){} }); try{ linhas(); }catch(e){} };
+  const muda = () => { IG.onMuda.slice().forEach(f => { try{ f(); }catch(e){} }); try{ linhas(); }catch(e){} try{ selos(); }catch(e){} };
   /* a foto do Instagram é um link que vence: a letra fica atrás e aparece se a foto não abrir */
   const foto = (c, cls) => `<span class="ig-av${cls ? ' ' + cls : ''}" data-l="${esc((((c && c.username) || '?')[0] || '?').toUpperCase())}" aria-hidden="true">${c && c.foto ? `<img src="${esc(c.foto)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">` : ''}</span>`;
   const chip = c => c ? `<span class="ig-chip${ok(c) ? '' : ' off'}">${foto(c)}<b>@${esc(c.username)}</b></span>` : '';
+
+  /* v4.18 · o Instagram de cada marca à vista (o Thales: "queria que aqui mostrasse quando tá online ou não"). No ar: a
+     conta do @ da marca tá conectada e valendo (o post sai sozinho); conexão vencida; desconectada (o post vira lembrete).
+     A bolinha vai no logo e a palavra depois do @; enquanto as contas não chegaram, não aparece nada (pra não piscar
+     "desconectada" em quem tá no ar). Quem desenha os chips põe o selo; quando as contas chegam ou mudam, os selos se acertam */
+  const MK_T = { on: 'no ar', vencida: 'conexão vencida', off: 'desconectada' };
+  const redeDe = m => String((m && m.rede) || '').toLowerCase();
+  function naMarca(m){
+    if(IG.lista === null) return '';
+    const r = redeDe(m), c = r ? contas().find(x => x.username === r) : null;
+    return !c ? 'off' : ok(c) ? 'on' : 'vencida';
+  }
+  const selo = m => `<i class="mk-st ${naMarca(m)}" data-mk-st="${esc(redeDe(m))}" aria-hidden="true"></i>`;
+  const seloTx = m => { const e = naMarca(m); return `<em class="mk-st-t ${e}" data-mk-st-t="${esc(redeDe(m))}">${e ? ' · ' + MK_T[e] : ''}</em>`; };
+  function selos(){
+    document.querySelectorAll('[data-mk-st]').forEach(el => { el.className = 'mk-st ' + naMarca({ rede: el.dataset.mkSt }); });
+    document.querySelectorAll('[data-mk-st-t]').forEach(el => { const e = naMarca({ rede: el.dataset.mkStT }); el.className = 'mk-st-t ' + e; el.textContent = e ? ' · ' + MK_T[e] : ''; });
+    document.querySelectorAll('[data-mk-noar]').forEach(el => {
+      const L = String(el.dataset.mkNoar || '').split(',').filter(Boolean), n = L.filter(r => naMarca({ rede: r }) === 'on').length;
+      el.textContent = IG.lista === null ? '' : ` · ${n} no ar`;
+    });
+  }
 
   /* v3.42 · ENQUANTO A META NÃO LIBERA. Com o app da Meta em teste, só quem é testador conecta; o resto bate na tela da
      Meta "função de desenvolvedor insuficiente". Com IG_ABERTO: false no config.js, o Corre avisa que chega em breve e
@@ -269,5 +292,5 @@
     'ig-diag': () => diag()
   });
 
-  C.ig = { carrega, contas, conectadas, porId, daMarca, ok, foto, chip, conectar, volta, sheet, seletor, lido, msgErro, ultima, falhou, quando, quadroFalha, diagnostico, linha, linhas, aberto, onMuda: f => { if(typeof f === 'function' && !IG.onMuda.includes(f)) IG.onMuda.push(f); }, esquece: () => { IG.lista = null; IG.em = 0; } };
+  C.ig = { carrega, contas, conectadas, porId, daMarca, ok, foto, chip, naMarca, selo, seloTx, selos, conectar, volta, sheet, seletor, lido, msgErro, ultima, falhou, quando, quadroFalha, diagnostico, linha, linhas, aberto, onMuda: f => { if(typeof f === 'function' && !IG.onMuda.includes(f)) IG.onMuda.push(f); }, esquece: () => { IG.lista = null; IG.em = 0; } };
 })();

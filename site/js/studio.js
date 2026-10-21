@@ -131,7 +131,7 @@
     ST.contas = null;
     topo();
     /* v3.41: as contas carregam mesmo sem marca ligada, pra linha do Instagram dizer o estado */
-    contas().then(() => { const l = C.$('sd-ig'); if(l) l.innerHTML = autoLinha(); if(vivo()) corpo(); });
+    contas().then(() => { const l = C.$('sd-ig'); if(l) l.innerHTML = autoLinha(); if(C.ig) C.ig.selos(); if(vivo()) corpo(); });
     if(!ST.com.length) return;
     C.$('sd-corpo').innerHTML = '<p class="note">Abrindo a agenda…</p>';
     carregar().then(async () => {
@@ -150,7 +150,7 @@
     if(!p){ C.toast('Esse post não tá mais na agenda (foi apagado ou é de outra conta).', 4200); return; }
     if(ST.sel !== 'todas' && p.marca_id !== ST.sel && ST.com.some(m => m.id === p.marca_id)){
       ST.sel = p.marca_id; try{ localStorage.setItem(SEL_K, ST.sel); }catch(e){}
-      topo(); corpo(); if(C.lote) C.lote.barra();
+      topo(); corpo(); if(C.lote) C.lote.barra(); if(C.ig) C.ig.selos();
     }
     if(p.data){ ST.mes = p.data.slice(0, 7); ST.semana = weekOf(p.data); corpo(); }
     ST.hora = id;
@@ -158,14 +158,16 @@
   }
   function topo(){
     const m = ST.com.find(x => x.id === ST.sel);
-    const chip = x => `<button type="button" role="tab" class="st-mk" data-act="sd-marca" data-id="${x.id}" aria-selected="${ST.sel === x.id}">${C.marcaLogo(x, 's')}<span><b>${esc(x.marca)}</b><small>@${esc(x.rede)}</small></span></button>`;
+    /* v4.18: a bolinha no logo e o "no ar" / "desconectada" depois do @ (igcontas.js acerta quando as contas chegam) */
+    const ig = C.ig && C.ig.selo;
+    const chip = x => `<button type="button" role="tab" class="st-mk" data-act="sd-marca" data-id="${x.id}" aria-selected="${ST.sel === x.id}"><span class="st-mk-av">${C.marcaLogo(x, 's')}${ig ? C.ig.selo(x) : ''}</span><span><b>${esc(x.marca)}</b><small>@${esc(x.rede)}${ig ? C.ig.seloTx(x) : ''}</small></span></button>`;
     ST.el.innerHTML = `
       <section class="card st-top">
         <div class="st-h"><div><span class="mono">${ico('magia')} Studio</span><h1>${m ? `O mês da <span class="hl">${esc(m.marca)}</span>` : ST.com.length ? 'Programa o mês. <span class="hl">O Corre posta.</span>' : 'Escolhe a marca e programa o mês'}</h1>
           <p class="note">Sobe as artes ou manda a IA fazer, escolhe os dias e pronto: ${C.ig && !C.ig.aberto() && !(C.ig.conectadas() || []).length ? 'cada post entra na agenda, e na hora o Corre te lembra de postar (a postagem automática no Instagram chega em breve).' : 'cada post sai sozinho no Instagram, no dia e na hora.'}</p></div>
           ${ST.com.length ? `<div class="st-ctas"><button type="button" class="btn pri st-novo" data-act="lt-mes">${ico('magia')} Mês com IA</button><button type="button" class="btn st-sub" data-act="lt-subir">${ico('up')} Subir artes</button><button type="button" class="btn ghost st-um" data-act="sd-novo">${ico('plus')} Um post</button>${C.aprova ? `<button type="button" class="btn ghost st-apr" data-act="ap-link"${m ? ` data-marca="${m.id}"` : ''}>${ico('check')} Link de aprovação</button>` : ''}</div>` : ''}</div>
         ${ST.com.length || ST.sem.length ? `<div class="st-marcas" role="tablist" aria-label="Marcas">
-          ${ST.com.length > 1 ? `<button type="button" role="tab" class="st-mk todas" data-act="sd-marca" data-id="todas" aria-selected="${ST.sel === 'todas'}"><span class="sd-todas" aria-hidden="true">${ST.com.slice(0, 3).map(x => `<i style="--c:${esc(x.cor || '#FFE800')}"></i>`).join('')}</span><span><b>Todas</b><small>${ST.com.length} marcas</small></span></button>` : ''}
+          ${ST.com.length > 1 ? `<button type="button" role="tab" class="st-mk todas" data-act="sd-marca" data-id="todas" aria-selected="${ST.sel === 'todas'}"><span class="sd-todas" aria-hidden="true">${ST.com.slice(0, 3).map(x => `<i style="--c:${esc(x.cor || '#FFE800')}"></i>`).join('')}</span><span><b>Todas</b><small>${ST.com.length} marcas${ig ? `<em class="mk-st-t on" data-mk-noar="${esc(ST.com.map(m => String(m.rede || '').toLowerCase()).join(','))}"></em>` : ''}</small></span></button>` : ''}
           ${ST.com.map(chip).join('')}
           ${ST.sem.map(x => `<button type="button" class="st-mk off" data-act="mk-edit" data-id="${x.id}" title="Liga o Instagram dessa marca pra trampar nela no Studio">${C.marcaLogo(x, 's')}<span><b>${esc(x.marca)}</b><small>ligar o Insta</small></span></button>`).join('')}
           <button type="button" class="st-mk add" data-act="mk-nova">${ico('plus')}<span><b>Nova marca</b><small>pra trampar</small></span></button>
@@ -397,7 +399,7 @@
     'sd-marca': el => {
       ST.sel = el.dataset.id; try{ localStorage.setItem(SEL_K, ST.sel); }catch(e){}
       history.replaceState(null, '', ST.sel === 'todas' ? '#/studio' : '#/studio/' + ST.sel);
-      const y = scrollY; topo(); scrollTo(0, y); corpo();
+      const y = scrollY; topo(); scrollTo(0, y); corpo(); if(C.ig) C.ig.selos();
       const l = C.$('sd-ig'); if(l) l.innerHTML = autoLinha();
       if(C.lote) C.lote.barra();
     },
