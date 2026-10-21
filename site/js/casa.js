@@ -100,7 +100,32 @@
   const AGENTE = {}; AGENTES.forEach(a => { AGENTE[a.k] = a; });
   const agenteDe = dono => { const f = dono && dono.ferramentas && typeof dono.ferramentas === 'object' ? dono.ferramentas : {}; return AGENTE[f.agente] ? f.agente : 'zecaixa'; };
   /* ---------- as plantas: a padrão (todo mundo); a do @consanans (o templo, v3.81) e a do @jeydiaz (a mansão, v3.80) ficam lá embaixo ---------- */
-  const PLANTA_PADRAO = { k: 'padrao', W: 20, D: 20, ALT: 2.8, comodos: COMODOS_PADRAO, paredes: PAREDES_PADRAO, entrada: { x: 10, z: 20 }, padrao: PADRAO_PADRAO, tapete: { x: 9.3, z: 18.8, w: 1.4, d: 1 } };
+  /* v4.17 · a prateleira do Coringa (o Thales: "ao finalizar adicionar no corre dentro do quarto de todas as casas"):
+     na parede do quarto, o boneco de corda sentado (roupa roxa, cabelo verde: a exceção que o Thales pediu) do lado da caixa do jogo. É
+     decoração fixa de parede (não ocupa chão: não briga com o móvel de ninguém), com a ação "coringa", que abre o jogo
+     na moldura (JOGOS.coringa no verso.js), pro dono e pra quem visita. Os blocos são pra parede de frente pra x+;
+     eixo 'z' gira pra parede de frente pra z+ (o fundo fica a menos de .3 da parede: o jeito de chegar é o das outras
+     coisas de parede, .9 pra frente) */
+  function prateleiraCoringa(x, z, y, eixo){
+    const RX = '#7B3FC4', RXE = '#4E2386', CAB = '#3FC24A', CARA = '#F6EEE2';
+    const bl = [B(0, 1.22, 0, .28, .05, 1.2, MAD), B(0, 1.02, .12, .2, .2, .04, MAD_E), B(0, 1.02, 1.04, .2, .2, .04, MAD_E),
+      /* o boneco sentado, as pernas pra frente */
+      B(.08, 1.27, .26, .17, .06, .08, RX), B(.08, 1.27, .4, .17, .06, .08, RXE), B(.24, 1.27, .25, .04, .09, .1, INK), B(.24, 1.27, .39, .04, .09, .1, INK),
+      B(.03, 1.27, .25, .12, .17, .24, RX), B(.15, 1.31, .25, .005, .025, .24, RXE), B(.15, 1.37, .25, .005, .025, .24, RXE),
+      B(.05, 1.33, .21, .08, .1, .04, RXE), B(.05, 1.33, .49, .08, .1, .04, RXE), B(.08, 1.3, .21, .05, .04, .04, CARA), B(.08, 1.3, .49, .05, .04, .04, CARA),
+      B(0, 1.34, .35, .03, .05, .04, OURO),
+      B(.03, 1.44, .29, .12, .12, .16, CARA), B(.02, 1.47, .25, .1, .08, .04, CAB), B(.02, 1.47, .45, .1, .08, .04, CAB), B(0, 1.46, .29, .03, .1, .16, CAB),
+      B(.15, 1.5, .3, .005, .025, .14, INK), B(.152, 1.505, .33, .003, .014, .02, PAPEL), B(.152, 1.505, .41, .003, .014, .02, PAPEL),
+      B(.15, 1.475, .36, .02, .02, .02, VERM), B(.15, 1.455, .33, .004, .012, .08, VERM), B(.15, 1.462, .32, .004, .014, .014, VERM), B(.15, 1.462, .406, .004, .014, .014, VERM),
+      B(.03, 1.56, .29, .12, .02, .16, AMARELO), B(.05, 1.58, .27, .08, .08, .07, RX), B(.05, 1.58, .42, .08, .08, .07, AMARELO), B(.06, 1.62, .21, .05, .05, .05, OURO), B(.06, 1.62, .5, .05, .05, .05, OURO),
+      /* a caixa do jogo e uma carta de baralho encostada */
+      B(.04, 1.27, .64, .2, .3, .36, VERM), B(.24, 1.33, .68, .005, .18, .28, PAPEL), B(.245, 1.45, .71, .004, .03, .22, INK), B(.245, 1.37, .79, .004, .06, .06, VERM),
+      B(.06, 1.27, 1.04, .02, .2, .14, PAPEL), B(.08, 1.33, 1.08, .003, .05, .05, VERM)];
+    return { x, z, y: y || 0, parede: true, acao: 'coringa', bl: eixo === 'z' ? bl.map(b => B(b.z, b.y, b.x, b.d, b.h, b.w, b.c)) : bl };
+  }
+  const PLANTA_PADRAO = { k: 'padrao', W: 20, D: 20, ALT: 2.8, comodos: COMODOS_PADRAO, paredes: PAREDES_PADRAO, entrada: { x: 10, z: 20 }, padrao: PADRAO_PADRAO, tapete: { x: 9.3, z: 18.8, w: 1.4, d: 1 },
+    /* v4.17: a prateleira do Coringa na parede da cozinha, do lado de dentro do quarto (entre a cama e o guarda-roupa) */
+    decor: [prateleiraCoringa(7.16, 7.9)] };
   function ITEM_MESA_DJ(){ return M.blocos(ITEM.mesa_dj, 0); }
   const ehDoFundador = dono => !!dono && (dono.handle === 'consanans' || (C.fundadorId && dono.id === C.fundadorId()) || (C.ehFundador && C.ehFundador() && dono.id === (C.st.me && C.st.me.id)));
   /* v3.80: casa com planta própria pelo @ (ou pelo id, se o @ mudar): a mansão brutalista do @jeydiaz e, desde a 3.86, a do @playboy */
@@ -1858,6 +1883,7 @@
       { x: 6, z: .3, bl: [B(0, 0, 0, .8, .55, .6, KB.noz), B(.25, .55, .15, .3, .1, .3, KB.ouro), B(.37, .65, .27, .06, .4, .06, KB.ouro), luzB(B(.2, 1.05, .1, .4, .3, .4, '#FFE2B0'))] },
       { x: 2.3, z: 3.4, piso: true, bl: [B(0, 0, 0, 4, .02, 3, '#2A2F5A'), B(.25, .02, .25, 3.5, .004, 2.5, '#7A1C22')] },
       { x: 6.6, z: 8.25, acao: 'roupa', bl: [B(0, 0, 0, 3, 2.5, .6, KB.noz), B(1.48, .2, -.01, .04, 2.1, .01, INK), B(1.3, 1.1, -.03, .08, .3, .03, KB.ouro), B(1.62, 1.1, -.03, .08, .3, .03, KB.ouro), B(.1, 2.5, .05, 2.8, .1, .5, KB.nozC)] },
+      prateleiraCoringa(.16, 6.4),
       /* ---- a bânia: madeira por dentro, banco de dois degraus, a fornalha de pedras, a tina e os vênikis ---- */
       { x: 10.2, z: .16, parede: true, bl: [B(0, 0, 0, 7.6, 3.2, .05, KB.banha), ...Array.from({ length: 10 }, (_, i) => B(0, .3 + i * .3, .05, 7.6, .02, .01, KB.banhaE))] },
       { x: 10.5, z: .3, bl: [B(0, 0, 0, 7, .9, .7, KB.banhaE), B(-.02, .9, 0, 7.04, .07, .74, KB.banha), B(0, 0, .7, 7, .42, .8, KB.banhaE), B(-.02, .42, .7, 7.04, .07, .84, KB.banha)] },
@@ -2195,6 +2221,7 @@
       { x: 1.5, z: .4, bl: [B(0, 0, 0, .8, .55, .55, KT.mad), B(-.02, .55, -.02, .84, .04, .59, OURO), luzB(B(.25, .59, .13, .3, .42, .3, '#FFE9C4'))] },
       { x: 5.75, z: .4, bl: [B(0, 0, 0, .8, .55, .55, KT.mad), B(-.02, .55, -.02, .84, .04, .59, OURO), luzB(B(.25, .59, .13, .3, .42, .3, '#FFE9C4'))] },
       { x: 6.6, z: 5.6, bl: anubisBau() },
+      prateleiraCoringa(.16, 6),
       { x: 2.2, z: 3.5, piso: true, bl: [B(0, 0, 0, 3.6, .02, 2.4, '#7A1C22'), B(.15, .02, .15, 3.3, .004, 2.1, KT.lapis), B(.3, .025, .3, 3, .004, 1.8, '#7A1C22')] },
       /* ---- o estúdio: a mesa de DJ toca os discos da casa ---- */
       { x: 12.5, z: .5, acao: 'discos', topo: .72, bl: ITEM_MESA_DJ() },
@@ -2519,6 +2546,7 @@
       { x: .3, z: .2, y: 3.6, bl: [B(0, 0, 0, 2.6, .85, .6, KL.branco), B(-.02, .85, -.02, 2.64, .06, .64, KL.marm), B(.4, .91, .15, .5, .02, .3, KL.inox), B(1.7, .91, .15, .5, .02, .3, KL.inox), B(.62, .91, .05, .05, .3, .05, KL.ouro), B(1.92, .91, .05, .05, .3, .05, KL.ouro), B(.2, 1.2, -.02, 2.2, 1.4, .03, KL.ouro), B(.28, 1.28, .01, 2.04, 1.24, .01, KL.espelho)] },
       { x: .6, z: 6.4, y: 3.6, bl: [B(0, .1, 0, 1.9, .55, .95, KL.branco), B(.08, .6, .08, 1.74, .06, .79, KL.aguaC), ...[[.1, .1], [1.72, .1], [.1, .77], [1.72, .77]].map(([x, z]) => B(x, 0, z, .08, .12, .08, KL.ouro)), B(1.88, .65, .4, .06, .4, .06, KL.ouro), B(1.7, 1.02, .4, .24, .04, .06, KL.ouro)] },
       { x: 12.55, z: 2.6, y: 3.6, parede: true, bl: [B(0, .4, 0, .3, 1, 3, KL.negro), B(-.02, .58, .32, .04, .04, 2.36, '#2A2C33'), ...chamas(-.03, .62, .36, [.16, .24, .2, .3, .22, .27, .18, .25, .21, .29, .19, .23, .17, .26], .165, -1), B(.15, 1.75, .4, .1, 1.1, 2.2, '#101318'), B(.13, 1.72, .38, .02, 1.16, 2.24, KL.ouro)] },
+      prateleiraCoringa(10.25, .16, 3.6, 'z'),
       { x: 1.6, z: 9.1, y: 3.6, bl: [B(0, 0, 0, 1.8, .4, .7, KL.roxo), B(0, .4, 0, .4, .45, .7, KL.roxo), B(.05, 0, .05, .06, .1, .06, KL.ouro), B(1.7, 0, .05, .06, .1, .06, KL.ouro)] },
       { x: 0, z: 0, y: 3.6, bl: lustre(6.6, 3.4, 1.7, .55, 1) },
       /* ---- o gabinete: os discos de ouro na parede, o tapete e o canto de olhar o hall ---- */
@@ -3529,7 +3557,7 @@
   }
   /* v3.81: o armário (trocar de skin) é como o skate: só na tua casa */
   const acaoPraMim = a => a.a === 'senta' ? !!(a.e && !(S.eu && S.eu.sit) && assentoLivre(a.e)) : (a.a !== 'skate' && a.a !== 'roupa') || S.meu;
-  const rotuloAcao = a => a.a === 'senta' ? (a.e && a.e.nome) || 'Sentar' : a.a === 'relojao' ? 'A hora no Relojão' : a.a === 'desafio' ? `${(quadraAqui() || {}).nome || 'Desafio'} (${TENT})` : a.a === 'largada' ? (comBicho() ? 'Escolher bicho e largar' : autodromo() ? 'Moto ou carro: largar' : `Largar (${VOLTAS} voltas)`) : a.a === 'pesca' ? 'Pescar aqui' : a.a === 'skate' ? (C.st.me && C.st.me.verso && C.st.me.verso.skate ? 'Largar o skate' : 'Pegar o skate') : a.a === 'jogo' ? 'Jogar Killer Ocean' : a.a === 'roupa' ? 'Trocar de skin' : a.a === 'enigma' ? 'O enigma do Umbral' : (S.discoAtual ? '♪ ' + (C.beats ? C.beats.nome(S.discoAtual) : 'tocando') : '♪ Discos');
+  const rotuloAcao = a => a.a === 'senta' ? (a.e && a.e.nome) || 'Sentar' : a.a === 'relojao' ? 'A hora no Relojão' : a.a === 'desafio' ? `${(quadraAqui() || {}).nome || 'Desafio'} (${TENT})` : a.a === 'largada' ? (comBicho() ? 'Escolher bicho e largar' : autodromo() ? 'Moto ou carro: largar' : `Largar (${VOLTAS} voltas)`) : a.a === 'pesca' ? 'Pescar aqui' : a.a === 'skate' ? (C.st.me && C.st.me.verso && C.st.me.verso.skate ? 'Largar o skate' : 'Pegar o skate') : a.a === 'jogo' ? 'Jogar Killer Ocean' : a.a === 'coringa' ? 'Jogar Coringa' : a.a === 'roupa' ? 'Trocar de skin' : a.a === 'enigma' ? 'O enigma do Umbral' : (S.discoAtual ? '♪ ' + (C.beats ? C.beats.nome(S.discoAtual) : 'tocando') : '♪ Discos');
   /* vai até a frente e faz */
   function vaiNaAcao(a){
     if(!S.eu || !a || !acaoPraMim(a)) return;
@@ -3553,6 +3581,8 @@
     if(a.a === 'desafio'){ comecaDesafio(); return; }
     /* o fliperama da casa roda o Killer Ocean (o mesmo do Aquário), por cima da casa */
     if(a.a === 'jogo'){ if(C.verso && C.verso.abreJogo && C.verso.JOGOS && C.verso.JOGOS.killer) C.verso.abreJogo('killer'); else C.toast('O jogo não carregou.'); return; }
+    /* v4.17: a prateleira do quarto abre o Coringa, do mesmo jeito, por cima da casa */
+    if(a.a === 'coringa'){ if(C.verso && C.verso.abreJogo && C.verso.JOGOS && C.verso.JOGOS.coringa) C.verso.abreJogo('coringa'); else C.toast('O jogo não carregou.'); return; }
     if(a.a === 'skate'){
       if(!S.meu || !C.st.me) return;
       const pega = !(C.st.me.verso && C.st.me.verso.skate), v = Object.assign({}, C.st.me.verso && typeof C.st.me.verso === 'object' ? C.st.me.verso : {}, { skate: pega, veiculo: pega ? 'skate' : '' });
@@ -5032,7 +5062,7 @@
     if(S.modo === 'andar' && !S.alvo && !pertoDe()){ const L = corredoresVivo(); if(L.length){ const txt = S.segue != null ? `Seguindo: ${L[Math.min(L.length - 1, S.segue)].nome}` : 'Assistir a corrida'; S.perto = null; if(b.dataset.txt !== txt){ b.dataset.txt = txt; b.hidden = false; b.innerHTML = `${ico('eye')}<span>${txt}</span>`; } return; } else S.segue = null; }
     const p = S.modo === 'andar' && !S.alvo ? pertoDe() : null; S.perto = p;
     const txt = p ? p.nome : '';
-    if(b.dataset.txt !== txt){ b.dataset.txt = txt; b.hidden = !p; if(p) b.innerHTML = `${ico(p.t === 'saida' ? 'prev' : p.t === 'escada' ? 'up' : p.t === 'npc' ? 'chat' : p.t === 'est' ? 'raio' : p.a && p.a.a === 'discos' ? 'musica' : p.a && p.a.a === 'jogo' ? 'play' : p.a && p.a.a === 'pesca' ? 'peixe' : p.a && p.a.a === 'roupa' ? 'troca' : p.a && p.a.a === 'enigma' ? 'eye' : p.a && (p.a.a === 'largada' || p.a.a === 'desafio') ? 'raio' : 'eu')}<span>${esc(p.nome)}</span>`; }
+    if(b.dataset.txt !== txt){ b.dataset.txt = txt; b.hidden = !p; if(p) b.innerHTML = `${ico(p.t === 'saida' ? 'prev' : p.t === 'escada' ? 'up' : p.t === 'npc' ? 'chat' : p.t === 'est' ? 'raio' : p.a && p.a.a === 'discos' ? 'musica' : p.a && (p.a.a === 'jogo' || p.a.a === 'coringa') ? 'play' : p.a && p.a.a === 'pesca' ? 'peixe' : p.a && p.a.a === 'roupa' ? 'troca' : p.a && p.a.a === 'enigma' ? 'eye' : p.a && (p.a.a === 'largada' || p.a.a === 'desafio') ? 'raio' : 'eu')}<span>${esc(p.nome)}</span>`; }
   }
   function acaoPerto(){
     if(S.desafio){ dispara(); return; }

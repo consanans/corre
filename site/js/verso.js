@@ -1682,7 +1682,9 @@
     /* v4.05: o De Boa, na Prainha do Tibagi (empilhar os bichos nas costas da capivara) */
     deboa: { id: 'deboa', titulo: 'De Boa', sub: 'empilha os bichos na capivara', src: 'jogos/de-boa.html', onde: 'Prainha do Tibagi', sair: 'Sair pra prainha', carrega: 'A capivara tá se ajeitando…' },
     /* v4.08: o Gude, no parquinho do Zerão (bolinha de gude no peteleco) */
-    gude: { id: 'gude', titulo: 'GUDE', sub: 'bolinha de gude no peteleco', src: 'jogos/gude.html', onde: 'Parquinho do Zerão', sair: 'Sair pro parquinho', carrega: 'Riscando o círculo…' } };
+    gude: { id: 'gude', titulo: 'GUDE', sub: 'bolinha de gude no peteleco', src: 'jogos/gude.html', onde: 'Parquinho do Zerão', sair: 'Sair pro parquinho', carrega: 'Riscando o círculo…' },
+    /* v4.17: o Coringa, o boneco de corda da prateleira do quarto (abre de dentro da casa, a ação "coringa" do casa.js) */
+    coringa: { id: 'coringa', titulo: 'Coringa', sub: 'o assalto do quarto', src: 'jogos/coringa.html', onde: 'Prateleira do quarto', sair: 'Sair pro quarto', carrega: 'Dando corda no boneco…' } };
   /* v4.14: os lugares grandes saem da planta (a ordem é a de antes: a zona do Zerão é achada antes da do lago) */
   const REGIOES = [
     pelaLetra('bosque', 'Bosque dos Ipês', 'B'),
