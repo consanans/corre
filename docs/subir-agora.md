@@ -72,16 +72,14 @@ Me diz **"pode"** que eu faço os passos 1 a 4 pelo conector do Supabase. Aí s�
 
 ---
 
-## Separado: o Instagram que não conecta
+## Separado: conectar mais uma conta do Instagram
 
-Isso não depende de nada daqui de cima, e nenhum desses passos troca a chave do Instagram.
+O login do Instagram tá funcionando: hoje o @nexwin.app e o @consanans conectaram (junto com o @houzirec e o @kivotrack.com.br).
 
-Teu login do Instagram volta com erro de endereço. Do nosso lado tá tudo certo e igual a quando a @kivotrack conectou. O que muda é o painel da Meta:
+Se aparecer **"Função de desenvolvedor é insuficiente"** (em inglês, "Insufficient Developer Role"), é a Meta dizendo que aquela conta ainda não é testador **aceito** do app:
 
-1. Abre developers.facebook.com › teu app **Corre Instagram**.
-2. **Instagram** › **Configuração da API com login do Instagram**.
-3. Em **Configurações do login empresarial** › **URIs de redirecionamento do OAuth**, tem que estar só isto, sem barra no fim:
-   `https://app.corresocial.com/ig.html`
-4. Salva.
+1. No computador, entra no instagram.com **com a conta que vai conectar**.
+2. Abre instagram.com/accounts/manage_access › aba **Convites de testador** › **Aceitar**.
+3. No Corre, usa **Conectar outra conta** (ele pede o login, e aí entra a conta certa, não a que tá aberta no navegador).
 
-Pra conectar conta que não é tua, a conta tem que ser **Testador do Instagram** no app até a Meta aprovar a Análise do app (o passo a passo tá em `docs/meta/analise-do-app.md`).
+Até a Meta aprovar a Análise do app, só conecta conta que é testador aceito (o passo a passo tá em `docs/meta/analise-do-app.md`).
