@@ -1221,7 +1221,7 @@
           <div class="pf-avw">${ring ? `<button type="button" class="av-btn" data-act="pf-stories" aria-label="Ver stories de @${esc(p.handle)}">${avatar(p, 'l', true)}</button>` : avatar(p, 'l')}${mine ? `<label class="pf-av-up up-lbl" title="Trocar foto">${ico('camera')}<input type="file" accept="image/*" data-up="foto" aria-label="Trocar foto de perfil"></label>` : ''}</div>
           <div class="who"><span class="nm">${esc(p.nome)}</span><span class="hd">@${esc(p.handle)}</span></div>
           ${p.faz ? `<p class="pf-faz">${esc(p.faz)}</p>` : mine ? `<p class="fine pf-gdica">Diz o que você vende em <a href="#/editar">Editar perfil</a>: o Corre monta teu Hórus, teu Mural e tua vitrine por isso.</p>` : ''}
-          ${p.bio ? `<p class="bio">${esc(p.bio)}</p>` : ''}
+          ${p.bio ? `<p class="pf-bio">${esc(p.bio)}</p>` : ''}
           <div class="meta">${p.aberto ? '<span class="tag trampo">Aberto pra trampo</span>' : ''}${catN && p.categoria !== 'outros' ? `<span class="tag cat">${esc(catN)}</span>` : ''}${p.cidade ? `<span class="tag">${esc(p.cidade)}</span>` : ''}${vit && vit.escolhido ? `<span class="tag">escolhido ${vit.escolhido}x no Mural</span>` : ''}${p.instagram ? `<a class="tag" href="https://www.instagram.com/${encodeURIComponent(p.instagram)}/" target="_blank" rel="noopener">${ico('ig')} @${esc(p.instagram)}</a>` : ''}${gtxt ? `<span class="tag grana">${esc(gtxt)}</span>` : ''}${p.ex ? '<span class="tag">Perfil de exemplo</span>' : ''}${mine && p.visibilidade === 'mocado' ? '<span class="tag moc">Mocado: só você vê</span>' : ''}</div>
           ${cta}
           ${metaHTML}

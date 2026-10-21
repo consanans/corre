@@ -4124,3 +4124,5 @@ body.fn-arrastando .fn-board{scroll-snap-type:none}
   .ap-placar .btn{flex:1 1 100%}
   .ap-acts .btn{flex:1 1 100%}
 }
+/* a bio do perfil era "bio" e pegava o visual da página do Link na bio (v4.0: fundo preto da altura da tela); agora é pf-bio */
+.prof .pf-bio{grid-column:1 / -1;font-size:16.5px;overflow-wrap:anywhere;white-space:pre-line}
