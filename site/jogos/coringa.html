@@ -469,7 +469,7 @@ function sprite(txt, cor, fundo){
 function membro(w, h, d, m, y){ const p = new T.Group(); const b = new T.Mesh(new T.BoxGeometry(w, h, d), m); b.position.y = -h / 2; p.add(b); p.position.y = y; return p; }
 function criaCoringa(){
   const g = new T.Group(), preto = mat('#1E1A22'), branco = mat('#F6EEE2'), listra = new T.MeshLambertMaterial({ map: TX.listras }), verm = mat('#D7342B'), am = mat('#FFC531'), ouro = new T.MeshLambertMaterial({ color: '#E8B83A', emissive: '#4A3200' });
-  const roxo = mat('#7B3FC4'), roxo2 = mat('#4E2386'), cabelo = mat('#FF7A1A');
+  const roxo = mat('#7B3FC4'), roxo2 = mat('#4E2386'), cabelo = mat('#3FC24A');
   const pe = membro(2.4, 6, 2.4, roxo, 6.2); pe.position.x = -1.5; const pd = membro(2.4, 6, 2.4, roxo2, 6.2); pd.position.x = 1.5; g.add(pe, pd);
   for(const [p, x] of [[pe, -1.5], [pd, 1.5]]){ const s = new T.Mesh(new T.BoxGeometry(2.8, 1.6, 3.6), preto); s.position.set(0, -6, .5); p.add(s); }
   const corpo = new T.Mesh(new T.BoxGeometry(6.4, 5.6, 4), listra); corpo.position.y = 9; g.add(corpo);
@@ -485,7 +485,7 @@ function criaCoringa(){
     const b = new T.Mesh(new T.SphereGeometry(.36 + (1 - Math.abs(u)) * .08, 8, 6), verm); b.position.set(x, y, z); g.add(b);
   }
   const faixa = new T.Mesh(new T.CylinderGeometry(3, 3, 1, 14), am); faixa.position.y = 16.4; g.add(faixa);
-  // o cabelo laranja, armado e espetado, saindo por baixo do chapéu (a frente fica livre pra cara)
+  // o cabelo verde (a única coisa verde do Corre, o Thales liberou), armado e espetado, saindo por baixo do chapéu (a frente fica livre pra cara)
   const tufo = (a, y, r, comp, cai) => { const d = new T.Vector3(Math.sin(a), -cai, Math.cos(a)).normalize(); const t = new T.Mesh(new T.ConeGeometry(r, comp, 6), cabelo); t.quaternion.setFromUnitVectors(new T.Vector3(0, 1, 0), d); t.position.set(Math.sin(a) * 2.4, y, Math.cos(a) * 2.4).addScaledVector(d, comp / 2 - .4); g.add(t); };
   for(let k = 0; k < 11; k++){ const a = .95 + k * (2 * Math.PI - 1.9) / 10; tufo(a, 15.9, 1.35, 4.6, .15 + (k % 2) * .25); }
   for(let k = 0; k < 7; k++){ const a = 1.7 + k * (2 * Math.PI - 3.4) / 6; tufo(a, 14.1, 1.2, 3.8, .7); }

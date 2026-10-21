@@ -101,13 +101,13 @@
   const agenteDe = dono => { const f = dono && dono.ferramentas && typeof dono.ferramentas === 'object' ? dono.ferramentas : {}; return AGENTE[f.agente] ? f.agente : 'zecaixa'; };
   /* ---------- as plantas: a padrão (todo mundo); a do @consanans (o templo, v3.81) e a do @jeydiaz (a mansão, v3.80) ficam lá embaixo ---------- */
   /* v4.17 · a prateleira do Coringa (o Thales: "ao finalizar adicionar no corre dentro do quarto de todas as casas"):
-     na parede do quarto, o boneco de corda sentado (roupa roxa, cabelo laranja: verde não) do lado da caixa do jogo. É
+     na parede do quarto, o boneco de corda sentado (roupa roxa, cabelo verde: a exceção que o Thales pediu) do lado da caixa do jogo. É
      decoração fixa de parede (não ocupa chão: não briga com o móvel de ninguém), com a ação "coringa", que abre o jogo
      na moldura (JOGOS.coringa no verso.js), pro dono e pra quem visita. Os blocos são pra parede de frente pra x+;
      eixo 'z' gira pra parede de frente pra z+ (o fundo fica a menos de .3 da parede: o jeito de chegar é o das outras
      coisas de parede, .9 pra frente) */
   function prateleiraCoringa(x, z, y, eixo){
-    const RX = '#7B3FC4', RXE = '#4E2386', CAB = '#FF7A1A', CARA = '#F6EEE2';
+    const RX = '#7B3FC4', RXE = '#4E2386', CAB = '#3FC24A', CARA = '#F6EEE2';
     const bl = [B(0, 1.22, 0, .28, .05, 1.2, MAD), B(0, 1.02, .12, .2, .2, .04, MAD_E), B(0, 1.02, 1.04, .2, .2, .04, MAD_E),
       /* o boneco sentado, as pernas pra frente */
       B(.08, 1.27, .26, .17, .06, .08, RX), B(.08, 1.27, .4, .17, .06, .08, RXE), B(.24, 1.27, .25, .04, .09, .1, INK), B(.24, 1.27, .39, .04, .09, .1, INK),
