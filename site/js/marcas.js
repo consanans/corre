@@ -74,8 +74,7 @@
       <div class="fld"><label for="mk-l">Site ou link</label><input class="inp" id="mk-l" maxlength="300" value="${esc(m.link)}" placeholder="https://" inputmode="url"></div>
       <fieldset class="fld"><legend>Cor do adesivo</legend><div class="cores">${CORES.map(k => `<label class="cor"><input type="radio" name="mk-cor" value="${k}"${(m.cor || CORES[0]) === k ? ' checked' : ''}><i style="background:${k}"></i></label>`).join('')}</div></fieldset>
       <label class="switch"><input type="checkbox" id="mk-pub"${m.publico ? ' checked' : ''}><span class="sw"></span><span><b>Aparece no meu perfil</b><small>Desligado, a marca fica mocada: só você vê.</small></span></label>
-      <div class="acts"><button type="submit" class="btn pri" id="mk-ok">${novo ? 'Adicionar' : 'Salvar'}</button>${novo ? '' : `<button type="button" class="btn ghost" id="mk-del">${ico('trash')} Tirar do portfólio</button>`}</div>
-      <p class="fine" id="mk-delq" hidden>Toca de novo pra tirar. A grana dessa marca continua na Grana.</p>
+      <div class="acts"><button type="submit" class="btn pri" id="mk-ok">${novo ? 'Adicionar' : 'Salvar'}</button>${novo ? '' : `<button type="button" class="btn ghost" data-act="mk-rm" data-id="${m.id}">${ico('trash')} Remover a marca</button>`}</div>
     </form>`);
     const prev = () => { C.$('mk-prev').innerHTML = C.marcaLogo({ marca: C.$('mk-n').value || m.marca || '?', cor: (document.querySelector('input[name="mk-cor"]:checked') || {}).value, logo_url: logo }, 'l'); };
     C.$('mk-f').addEventListener('input', prev);
@@ -88,11 +87,6 @@
       finally{ b.disabled = false; }
     });
     const nl = C.$('mk-nologo'); if(nl) nl.addEventListener('click', () => { C.soltaFora(logo); logo = ''; prev(); nl.remove(); });
-    const del = C.$('mk-del');
-    if(del) del.addEventListener('click', async () => {
-      const q = C.$('mk-delq'); if(q.hidden){ q.hidden = false; del.classList.add('armed'); return; }
-      try{ await C.api.del('corre_portfolio', { id: m.id }); if(m.logo_url) C.api.unlink(m.logo_url); C.closeSheet(); C.toast('Marca fora do portfólio.'); volta(); }catch(e){ C.toast(C.errMsg(e)); }
-    });
     C.$('mk-f').addEventListener('submit', async e => {
       e.preventDefault();
       const link = C.$('mk-l').value.trim();
@@ -122,6 +116,61 @@
 
   /* depois de salvar ou tirar uma marca: volta pra onde a pessoa tava (Studio ou Portfólio) */
   const volta = () => { const h = location.hash.replace(/^#\/?/, ''); if(/^studio/.test(h) && C.views.studio) C.views.studio(C.$('app'), h.slice(7)); else C.views.marcas(C.$('app')); };
+
+  /* v4.27 · REMOVER A MARCA (o Thales, na porta do Studio: "precisa ter opção de remover marca"). Antes só dava pelo Editar,
+     com dois toques e sem dizer o que ia junto. No banco, tirar a marca leva junto (on delete cascade) os posts do Studio
+     dela, os links de aprovação, as visitas e o que ela vende; a grana fica na Grana (é pelo nome do cliente) e o que já
+     saiu no Instagram fica lá. Por isso a folha conta antes. A conexão do Instagram é pelo @, não pela marca: se nenhuma
+     outra marca usa o mesmo @, a folha oferece desconectar junto (senão a conexão fica guardada à toa). */
+  const opBtn = m => `<button type="button" class="st-porta-op" data-act="mk-op" data-id="${m.id}" aria-label="Editar ou remover a marca ${esc(m.marca)}" title="Editar ou remover">${ico('dots')}</button>`;
+  function opSheet(m){
+    if(!m) return;
+    C.sheet(`<div class="form mk-op"><div class="sheet-head"><h2>${C.marcaLogo(m, 's')} ${esc(m.marca)}</h2><button type="button" class="cbtn plain" data-close aria-label="Fechar">${ico('x')}</button></div>
+      ${m.rede ? `<p class="note">@${esc(m.rede)}${C.ig ? C.ig.seloTx(m) : ''}</p>` : ''}
+      <div class="mk-op-l">
+        <button type="button" class="mk-op-b" data-act="mk-edit" data-id="${m.id}">${ico('edit')}<span><b>Editar a marca</b><small>Nome, @ do Instagram, logo e cor</small></span></button>
+        <button type="button" class="mk-op-b rm" data-act="mk-rm" data-id="${m.id}">${ico('trash')}<span><b>Remover a marca</b><small>Tira do Studio e do Portfólio</small></span></button>
+      </div></div>`);
+  }
+  /* a conta do Instagram que só essa marca usa (outra marca com o mesmo @ segue precisando dela) */
+  const contaSo = m => { const c = m.rede && C.ig ? C.ig.contas().find(x => x.username === String(m.rede).toLowerCase()) : null; return c && !M.list.some(x => x.id !== m.id && String(x.rede || '').toLowerCase() === c.username) ? c : null; };
+  async function rmSheet(m){
+    if(!m) return;
+    if(C.ig) try{ await C.ig.carrega(); }catch(e){}
+    const c = contaSo(m);
+    C.sheet(`<div class="form mk-rm"><div class="sheet-head"><h2>Remover a ${esc(m.marca)}?</h2><button type="button" class="cbtn plain" data-close aria-label="Fechar">${ico('x')}</button></div>
+      <p>Ela sai do Studio e do Portfólio, e o Corre não posta mais nada nela.</p>
+      <ul class="mk-rm-l"><li id="mk-rm-vai">${ico('trash')}<span>Contando o que vai junto…</span></li><li>${ico('check')}<span>Ficam: o que já saiu no Instagram e a grana dela na Grana.</span></li></ul>
+      ${c ? `<label class="switch"><input type="checkbox" id="mk-rm-ig" checked><span class="sw"></span><span><b>Desconectar o @${esc(c.username)} do Instagram também</b><small>Sem a marca, a conexão fica guardada à toa. Dá pra conectar de novo quando quiser.</small></span></label>` : ''}
+      <div class="acts"><button type="button" class="btn armed" id="mk-rm-ok">${ico('trash')} Remover a ${esc(m.marca)}</button><button type="button" class="btn ghost" data-close>Agora não</button></div></div>`);
+    const uid = C.uid(), conta = (t, o) => C.api.q(t, { eq: Object.assign({ dono: uid, marca_id: m.id }, o || {}) }).catch(() => null);
+    const [posts, prods, vis] = await Promise.all([conta('corre_posts'), conta('corre_produtos'), conta('corre_visitas')]);
+    const vai = C.$('mk-rm-vai'); if(!vai) return;
+    const hoje = C.hojeBR(), porSair = (posts || []).filter(p => p.status !== 'postado' && !p.ig_media_id && String(p.data || '') >= hoje).length;
+    const n = (k, um, varios) => `<b>${k} ${k === 1 ? um : varios}</b>`;
+    const L = [posts === null ? 'os posts dela no Studio' : posts.length ? `${n(posts.length, 'post', 'posts')} do Studio${porSair ? ` (${porSair === 1 ? '1 ainda ia sair' : porSair + ' ainda iam sair'})` : ''}` : '']
+      .concat(prods && prods.length ? [`${n(prods.length, 'item', 'itens')} do que ela vende`] : [], vis && vis.length ? [n(vis.length, 'visita', 'visitas')] : [], ['os links de aprovação dela']).filter(Boolean);
+    vai.lastElementChild.innerHTML = `Vão junto: ${L.length > 1 ? L.slice(0, -1).join(', ') + ' e ' + L[L.length - 1] : L[0]}.`;
+    C.$('mk-rm-ok').addEventListener('click', async ev => {
+      const b = ev.currentTarget; b.disabled = true;
+      const ig = C.$('mk-rm-ig');
+      try{ await remove(m, posts, ig && ig.checked ? c : null); }
+      catch(e){ b.disabled = false; C.toast(C.errMsg(e, 'Não deu pra remover agora.')); }
+    });
+  }
+  async function remove(m, posts, c){
+    await C.api.del('corre_portfolio', { id: m.id });
+    M.list = M.list.filter(x => x.id !== m.id);
+    /* o logo e as artes, fotos e vídeos dos posts dela saem do armazenamento (o banco já apagou os posts) */
+    const urls = [m.logo_url].concat(C.estudio && C.estudio.urlsDo ? (posts || []).flatMap(C.estudio.urlsDo) : []);
+    [...new Set(urls.filter(Boolean))].forEach(u => { try{ const r = C.api.unlink(u); if(r && r.catch) r.catch(() => {}); }catch(e){} });
+    let foi = '';
+    if(c) try{ await C.api.del('corre_ig_contas', { id: c.id }); foi = ` e o @${c.username} desconectado`; if(C.ig) C.ig.esquece(); }catch(e){}
+    C.closeSheet(); C.toast(`${m.marca} removida${foi}.`, 3600);
+    /* tava no Studio dessa marca: volta pro Studio, não pra uma marca que não existe mais */
+    if(location.hash.includes(m.id)) history.replaceState(null, '', '#/studio');
+    volta();
+  }
 
   /* ---------- STUDIO: escolhe a marca e cria com a IA, direto (sem passar pelo Portfólio e pelo painel) ----------
      As referências seguem as da marca: as 9 últimas do Instagram dela e as que a pessoa sobe. */
@@ -158,7 +207,7 @@
       <span class="st-porta-k">${ico('magia')} Studio</span>
       <h1>Entra no Studio.</h1>
       <p>Programa o mês inteiro de uma vez: a IA faz as artes com a cara da marca e escreve as legendas (ou você sobe as tuas), e ${C.ig && !C.ig.aberto() ? 'cada post entra na agenda, no dia e na hora (a postagem automática no Instagram chega em breve)' : 'cada post sai sozinho no Instagram, no dia e na hora'}. Escolhe com qual marca vai trampar agora.</p>
-      ${com.length ? `<div class="st-porta-l">${com.length > 1 ? `<button type="button" class="st-porta-mk todas" data-act="studio-entrar" data-id="todas"><span class="sd-todas" aria-hidden="true">${com.slice(0, 3).map(x => `<i style="--c:${esc(x.cor || '#FFE800')}"></i>`).join('')}</span><b>Todas as marcas</b><small>${com.length} marcas</small></button>` : ''}${com.map(m => `<button type="button" class="st-porta-mk" data-act="studio-entrar" data-id="${m.id}"><span class="st-mk-av">${C.marcaLogo(m, 'l')}${C.ig ? C.ig.selo(m) : ''}</span><b>${esc(m.marca)}</b><small>@${esc(m.rede)}${C.ig ? C.ig.seloTx(m) : ''}</small></button>`).join('')}${fora.map(m => `<button type="button" class="st-porta-mk fora" data-act="mk-plus">${C.marcaLogo(m, 'l')}<b>${esc(m.marca)}</b><small>fora do plano</small></button>`).join('')}</div>`
+      ${com.length ? `<div class="st-porta-l">${com.length > 1 ? `<button type="button" class="st-porta-mk todas" data-act="studio-entrar" data-id="todas"><span class="sd-todas" aria-hidden="true">${com.slice(0, 3).map(x => `<i style="--c:${esc(x.cor || '#FFE800')}"></i>`).join('')}</span><b>Todas as marcas</b><small>${com.length} marcas</small></button>` : ''}${com.map(m => `<div class="st-porta-c"><button type="button" class="st-porta-mk" data-act="studio-entrar" data-id="${m.id}"><span class="st-mk-av">${C.marcaLogo(m, 'l')}${C.ig ? C.ig.selo(m) : ''}</span><b>${esc(m.marca)}</b><small>@${esc(m.rede)}${C.ig ? C.ig.seloTx(m) : ''}</small></button>${opBtn(m)}</div>`).join('')}${fora.map(m => `<div class="st-porta-c"><button type="button" class="st-porta-mk fora" data-act="mk-plus">${C.marcaLogo(m, 'l')}<b>${esc(m.marca)}</b><small>fora do plano</small></button>${opBtn(m)}</div>`).join('')}</div>`
         : `<p class="st-porta-v"><b>${sem.length ? 'Liga o Instagram de uma marca pra entrar.' : 'Põe a primeira marca que você trampa.'}</b> Com o @ da marca, o Studio puxa as últimas postagens dela como referência pra IA.</p>`}
       <div class="acts">${sem.slice(0, 3).map(m => `<button type="button" class="btn sm" data-act="mk-edit" data-id="${m.id}">${ico('ig')} Ligar o Insta da ${esc(m.marca)}</button>`).join('')}<button type="button" class="btn sm" data-act="mk-nova">${ico('plus')} Nova marca</button></div>
     </section>${C.ig ? `<p class="sd-ig sd-auto st-porta-ig" id="st-porta-ig" data-ig-linha data-rede="${esc(com.length === 1 ? com[0].rede : '')}">${C.ig.linha()}</p>` : ''}</main>`;
@@ -218,6 +267,8 @@
     },
     'mk-nova': () => form(null),
     'mk-edit': async el => { if(!M.list.length) try{ await carregar(); }catch(e){} form(M.list.find(m => m.id === el.dataset.id)); },
+    'mk-op': async el => { if(!M.list.length) try{ await carregar(); }catch(e){} opSheet(M.list.find(m => m.id === el.dataset.id)); },
+    'mk-rm': async el => { if(!M.list.length) try{ await carregar(); }catch(e){} rmSheet(M.list.find(m => m.id === el.dataset.id)); },
     'mk-sug': el => { form(null); C.$('mk-n').value = el.dataset.n; C.$('mk-n').dispatchEvent(new Event('input', { bubbles: true })); },
     'mk-plus': () => plusSheet(),
     'mk-plus-ok': async () => { try{ await C.saveMe({ quer_plus: true }); }catch(e){} C.closeSheet(); C.toast('Tá na lista do Corre+. A gente te chama.', 3600); }

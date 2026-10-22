@@ -4586,3 +4586,30 @@ body.fn-arrastando .fn-board{scroll-snap-type:none}
 /* v4.25 · o Caderninho conta a que repete: a sequência da diária ("5 dias seguidos") e a que já foi feita hoje nas Feitas */
 .cd-meta .cd-seq{color:var(--ink);font-weight:700}
 .cd-meta .cd-seq .ic{color:#FF6A2B}
+
+/* v4.27 · remover a marca: o "⋯" no canto de cada marca da porta do Studio (e do lado da marca escolhida lá dentro) abre
+   Editar ou Remover; a folha de remover conta o que vai junto antes de apagar */
+.st-porta-c{position:relative;display:grid}
+.st-porta-c > .st-porta-mk{width:100%;height:100%}
+.st-porta-op{position:absolute;top:6px;right:6px;width:34px;height:34px;display:grid;place-items:center;border:0;border-radius:50%;background:rgb(255 255 255 / 7%);color:var(--night-ink);cursor:pointer}
+.st-porta-op .ic{width:20px;height:20px}
+.st-porta-op:hover,.st-porta-op:focus-visible{background:rgb(255 255 255 / 10%);color:var(--yellow)}
+.st-porta-op:focus-visible{outline:2px solid var(--yellow);outline-offset:1px}
+.st-mk-op{flex:none;align-self:center;width:38px;height:38px;display:grid;place-items:center;margin-left:-4px;border:2px solid var(--ink);border-radius:50%;background:var(--paper);color:var(--ink);cursor:pointer;box-shadow:2px 2px 0 var(--ink)}
+.st-mk-op .ic{width:20px;height:20px}
+.st-mk-op:hover,.st-mk-op:focus-visible{background:var(--yellow)}
+.mk-op .sheet-head h2,.mk-rm .sheet-head h2{display:flex;align-items:center;gap:10px;min-width:0;overflow-wrap:anywhere}
+.mk-op .sheet-head h2 .mk-logo{flex:none}
+.mk-op-l{display:grid;gap:10px;margin-top:6px}
+.mk-op-b{display:flex;align-items:center;gap:14px;width:100%;padding:14px 16px;border:2px solid var(--ink);border-radius:16px;background:var(--paper);color:var(--ink);font:inherit;text-align:left;cursor:pointer;box-shadow:3px 3px 0 var(--ink)}
+.mk-op-b > .ic{flex:none;width:24px;height:24px}
+.mk-op-b span{display:flex;flex-direction:column;gap:2px;min-width:0}
+.mk-op-b b{font-weight:900;font-size:16px}
+.mk-op-b small{color:var(--muted);font-size:13px}
+.mk-op-b:hover,.mk-op-b:focus-visible{background:var(--yellow)}
+.mk-op-b.rm:hover,.mk-op-b.rm:focus-visible{background:var(--ink);color:var(--yellow)}
+.mk-op-b.rm:hover small,.mk-op-b.rm:focus-visible small{color:#D8D3C8}
+.mk-rm-l{list-style:none;margin:4px 0 14px;padding:0;display:grid;gap:10px}
+.mk-rm-l li{display:flex;gap:10px;align-items:flex-start;line-height:1.4}
+.mk-rm-l li > .ic{flex:none;width:20px;height:20px;margin-top:1px}
+.mk-rm .switch{margin-bottom:14px}

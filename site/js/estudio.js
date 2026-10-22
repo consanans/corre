@@ -470,6 +470,8 @@
     /* visita salva, apagada ou avisada: o calendário se refaz */
     async recarregar(){ if(!C.$('es-list') || !E.marca) return; try{ await load(); }catch(e){ return; } lista(); },
     marca: () => E.marca,
+    /* v4.27: remover a marca solta do armazenamento o que os posts dela guardavam */
+    urlsDo,
     /* o Studio (agenda de todas as marcas) abre o mesmo editor: o.auto = a marca publica direto; o.onSave avisa a agenda */
     abrir(marca, post, dia, o){ E.marca = marca; o = o || {}; S.onSave = o.onSave || null; editor(post || null, dia, o); }
   };
