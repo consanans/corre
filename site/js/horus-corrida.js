@@ -14,7 +14,8 @@
   const MOT = [['Não é o perfil', 'perdido', 'Não é o perfil'], ['Sem interesse', 'perdido', 'Sem interesse'], ['Já tem quem faz', 'perdido', 'Já tem quem faz'], ['Número não existe', 'nao_encontrado', ''], ['Fechou as portas', 'nao_encontrado', 'Fechou as portas']];
 
   function abre(){
-    const f = Z.fila(), ls = f.due.concat(f.novos).map(o => o.l.id);
+    /* v4.23: quem tem WhatsApp primeiro (a ordem de dentro de cada grupo fica) */
+    const f = Z.fila(), ls = f.due.concat(f.novos).sort((a, b) => (b.l.wa ? 1 : 0) - (a.l.wa ? 1 : 0)).map(o => o.l.id);
     if(!ls.length){ C.toast('Fila vazia: nada vencido e nenhum novo com telefone.'); return; }
     Object.assign(K, { on: true, lista: ls, i: 0, env: 0, pul: 0, desc: 0, motivos: false });
     let el = document.getElementById('hz-corrida');

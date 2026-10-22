@@ -4353,3 +4353,25 @@ body.fn-arrastando .fn-board{scroll-snap-type:none}
 .hzc-fim li b{font:900 32px/1 var(--font-display);color:#fff}
 @media (max-width:420px){.hzc-acts{grid-template-columns:1fr}}
 @media (prefers-reduced-motion:reduce){.hz-undo{transition:none}}
+
+/* v4.23 · o WhatsApp bem à vista no Hórus (o Thales: "deixa o botão de whats bem visível"): o botão grande, amarelo
+   do Hórus com o ícone (nunca verde, regra do Corre), na fila, nos alvos, em cada linha da base e no alto da ficha */
+.hz-wa{gap:8px;min-height:48px;padding:0 18px;font-size:15px;box-shadow:3px 3px 0 #000}
+.hz-wa .ic{width:20px;height:20px;flex:none}
+.hz-wa span{display:grid;line-height:1.05;text-align:left}
+.hz-wa small{font-size:11px;font-weight:700;opacity:.75;white-space:nowrap}
+.hz-wa:hover{filter:brightness(1.06);transform:translate(-1px,-1px);box-shadow:4px 4px 0 #000}
+.hz-wa-grande{display:flex;width:100%;min-height:58px;font-size:17px;justify-content:center;margin:2px 0 10px;border-radius:16px;background:#F2B526;border-color:#000;color:#1A1400}
+.hz-wa-grande .ic{width:24px;height:24px}
+.hz-base li{display:flex;align-items:center;gap:6px}
+.hz-base li>button{flex:1;min-width:0}
+.hz-wa-mini{flex:none;display:inline-grid;place-items:center;width:42px;height:42px;border-radius:50%;background:#F2B526;color:#1A1400;border:2px solid #000;box-shadow:2px 2px 0 #000}
+.hz-wa-mini .ic{width:20px;height:20px}
+.hz-wa-mini:hover,.hz-wa-mini:focus-visible{transform:translate(-1px,-1px);box-shadow:3px 3px 0 #000}
+/* nos alvos, em tela estreita o WhatsApp desce pra linha de baixo, inteiro (do lado, ele espremia o nome até sumir) */
+@media (max-width:560px){
+  .hz-row:not(.q){grid-template-columns:auto minmax(0,1fr) auto}
+  .hz-row:not(.q) .hz-x{grid-row:1;grid-column:3}
+  .hz-row:not(.q) .hz-wa{grid-row:2;grid-column:1/-1;justify-content:center}
+  .hz-row:not(.q) > .hz-btn:not(.hz-wa){grid-row:3;grid-column:1/-1}
+}

@@ -278,7 +278,7 @@
   }
   function fila(){
     const p = placar();
-    const due = H.leads.filter(l => isDue(l) && !H.skip[l.id] && digits(l) && nextMsg(l)).map(l => ({ l, h: heat(l) })).sort((a, b) => b.h - a.h);
+    const due = H.leads.filter(l => isDue(l) && !H.skip[l.id] && digits(l) && nextMsg(l)).map(l => ({ l, h: heat(l) })).sort(porWa);
     const room = Math.max(0, p.meta - p.hoje - due.length);
     const novos = room ? H.leads.filter(l => l.st === 'novo' && digits(l) && !H.skip[l.id] && !l.prox).map(l => ({ l, h: heat(l) + (l.wa ? 100 : 0) })).sort((a, b) => b.h - a.h).slice(0, room).map(o => ({ l: o.l, h: heat(o.l) })) : [];
     return { due, novos };
@@ -484,8 +484,12 @@
 
   /* ---------- telas ---------- */
   const EYE = '<svg viewBox="0 0 64 40" aria-hidden="true"><path d="M2 20C12 6 52 6 62 20C52 34 12 34 2 20Z" fill="none" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/><circle cx="32" cy="20" r="9" fill="currentColor"/><path d="M32 29v9M24 33l-4 5M40 33l4 5" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"/></svg>';
+  /* v4.23 (o Thales: "dá prioridade pra quem tem WhatsApp"): quem tem celular vem antes de quem não tem, e o calor
+     desempata. O calor em si não muda (é a temperatura do radar) */
+  const temWa = l => l.wa ? 1 : 0;
+  const porWa = (a, b) => temWa(b.l) - temWa(a.l) || b.h - a.h;
   function scored(){
-    return H.leads.filter(l => !DONE.includes(l.st)).map(l => { const h = heat(l); return { l, h, temp: tempOf(h), due: isDue(l), esf: esfriando(l) }; }).sort((a, b) => b.h - a.h);
+    return H.leads.filter(l => !DONE.includes(l.st)).map(l => { const h = heat(l); return { l, h, temp: tempOf(h), due: isDue(l), esf: esfriando(l) }; }).sort(porWa);
   }
   function paint(){
     if(!C.$('hz-root')) return;
@@ -496,11 +500,11 @@
     const pcs = pracasNoRadar(), on = C.$('hz-onde');
     if(on) on.textContent = `radar de clientes · ${c.oferta || 'teu corre'} · ${pcs.length > 1 ? `${pcs.length} cidades no radar` : `em ${lugarTxt(c.praca.cidade, c.praca.uf) || c.cidade}`}`;
     const alvos = sc.filter(o => digits(o.l) && nextMsg(o.l)).slice(0, 5); alvos.forEach((o, i) => o.rank = i + 1);
-    const vis = sc.filter(o => H.f === 'todos' || (H.f === 'hot' && o.temp === 'hot') || (H.f === 'due' && o.due) || (H.f === 'frio' && o.esf) || (H.f === 'faro' && faroDe(o.l).length));
-    const cnt = { hot: sc.filter(o => o.temp === 'hot').length, warm: sc.filter(o => o.temp === 'warm').length, cold: sc.filter(o => o.temp === 'cold').length, due: sc.filter(o => o.due).length, esf: sc.filter(o => o.esf).length, faro: sc.filter(o => faroDe(o.l).length).length };
+    const vis = sc.filter(o => H.f === 'todos' || (H.f === 'wa' && o.l.wa) || (H.f === 'hot' && o.temp === 'hot') || (H.f === 'due' && o.due) || (H.f === 'frio' && o.esf) || (H.f === 'faro' && faroDe(o.l).length));
+    const cnt = { wa: sc.filter(o => o.l.wa).length, hot: sc.filter(o => o.temp === 'hot').length, warm: sc.filter(o => o.temp === 'warm').length, cold: sc.filter(o => o.temp === 'cold').length, due: sc.filter(o => o.due).length, esf: sc.filter(o => o.esf).length, faro: sc.filter(o => faroDe(o.l).length).length };
     const geo = sc.filter(o => o.l.lat != null).length;
     if(H.mode === 'mapa' && geo < 3) H.mode = 'calor';
-    C.$('hz-scope-head').innerHTML = `<div class="hz-chips" role="group" aria-label="Filtrar o radar">${[['todos', 'Tudo', ''], ['hot', 'Quentes', cnt.hot], ['due', 'Vencidos', cnt.due], ['faro', 'Faro', cnt.faro], ['frio', 'Esfriando', cnt.esf]].map(([k, n, x]) => `<button type="button" class="hz-chip" data-act="hz-f" data-k="${k}" aria-pressed="${H.f === k}">${n}${x !== '' ? ` <b>${x}</b>` : ''}</button>`).join('')}</div>
+    C.$('hz-scope-head').innerHTML = `<div class="hz-chips" role="group" aria-label="Filtrar o radar">${[['todos', 'Tudo', ''], ['wa', 'WhatsApp', cnt.wa], ['hot', 'Quentes', cnt.hot], ['due', 'Vencidos', cnt.due], ['faro', 'Faro', cnt.faro], ['frio', 'Esfriando', cnt.esf]].map(([k, n, x]) => `<button type="button" class="hz-chip" data-act="hz-f" data-k="${k}" aria-pressed="${H.f === k}">${n}${x !== '' ? ` <b>${x}</b>` : ''}</button>`).join('')}</div>
       ${geo >= 3 ? `<div class="hz-chips" role="group" aria-label="Modo do radar">${[['calor', 'Calor'], ['mapa', 'Mapa']].map(([k, n]) => `<button type="button" class="hz-chip" data-act="hz-mode" data-k="${k}" aria-pressed="${H.mode === k}">${n}</button>`).join('')}</div>` : ''}`;
     C.$('hz-legend').innerHTML = `<span class="lg hot"><i></i>${cnt.hot} quentes</span><span class="lg warm"><i></i>${cnt.warm} mornos</span><span class="lg cold"><i></i>${cnt.cold} frios</span><span class="lg due"><i></i>${cnt.due} vencidos</span>${H.mode === 'mapa' && sc.length - geo ? `<span class="lg off">${sc.length - geo} sem posição</span>` : ''}`;
     const rk = Object.fromEntries(alvos.map(o => [o.l.id, o.rank]));
@@ -520,17 +524,17 @@
       ${alvos.length ? `<ol class="hz-list">${alvos.map(o => { const m = nextMsg(o.l); return `<li class="hz-row">
         <span class="hz-sc ${o.temp}" title="Calor ${o.h} de 100">${o.h}</span>
         <button type="button" class="hz-name" data-act="hz-open" data-id="${o.l.id}"><b>${o.rank}. ${esc(shortName(o.l.nome))}</b><span>${esc(nichoOf(o.l).n)}${o.l.bairro ? ' · ' + esc(o.l.bairro) : ''}${esc(ondeTxt(o.l))}</span><span class="hz-why">${reasons(o.l).map(esc).join(' · ')}</span></button>
-        ${`<a class="hz-btn pri" href="${esc(waUrl(o.l, compose(o.l, m.k)))}" target="_blank" rel="noopener" data-act="hz-fire" data-id="${o.l.id}" title="${esc(m.n)}${o.l.wa ? '' : ' · WhatsApp do fixo'}">${esc(m.n.replace(/^D\d · /, ''))}</a>${o.l.wa ? '' : `<button type="button" class="hz-btn" data-act="hz-call" data-id="${o.l.id}">Liguei</button>`}`}${(C.horusLimpa ? C.horusLimpa.x(o.l.id) : '')}
+        ${`<a class="hz-btn pri hz-wa" href="${esc(waUrl(o.l, compose(o.l, m.k)))}" target="_blank" rel="noopener" data-act="hz-fire" data-id="${o.l.id}" title="${esc(m.n)}${o.l.wa ? '' : ' · WhatsApp do fixo'}">${ico('wa')}<span>WhatsApp<small>${esc(m.n.replace(/^D\d · /, ''))}</small></span></a>${o.l.wa ? '' : `<button type="button" class="hz-btn" data-act="hz-call" data-id="${o.l.id}">Liguei</button>`}`}${(C.horusLimpa ? C.horusLimpa.x(o.l.id) : '')}
       </li>`; }).join('')}</ol>` : '<p class="hz-muted">Nenhuma empresa aberta com telefone. Caça aqui embaixo pra encher o radar.</p>'}`;
 
-    const fl = fila(), items = fl.due.map(o => Object.assign(o, { tipo: 'venceu' })).concat(fl.novos.map(o => Object.assign(o, { tipo: 'novo' })));
+    const fl = fila(), items = fl.due.map(o => Object.assign(o, { tipo: 'venceu' })).concat(fl.novos.map(o => Object.assign(o, { tipo: 'novo' }))).sort((a, b) => temWa(b.l) - temWa(a.l));
     C.$('hz-fila').innerHTML = `<div class="hz-h"><h2>Fila de disparo</h2><span>${items.length ? `${items.length} ${items.length === 1 ? 'mensagem pronta' : 'mensagens prontas'}` : 'fila vazia'}</span></div>
       ${items.length && C.horusCorrida ? `<button type="button" class="hz-btn pri hz-corre-go" data-act="hz-corrida">${ico('play')} Tocar a fila: um por vez</button>` : ''}
       <p class="hz-help">Cadência: <b>D0</b> abordagem, <b>D2</b> retomar, <b>D5</b> mostra, <b>D9</b> último toque. Quem responde sai da cadência e volta pra mensagem da etapa.</p>
       ${items.length ? `<ol class="hz-list">${items.slice(0, 40).map(o => { const m = nextMsg(o.l), txt = compose(o.l, m.k); return `<li class="hz-row q">
         <span class="hz-step${m.cad ? '' : ' etapa'}">${esc(m.n)}</span>
         <button type="button" class="hz-name" data-act="hz-open" data-id="${o.l.id}"><b>${esc(shortName(o.l.nome))}</b><span>${o.tipo === 'venceu' ? `<em class="late">${o.l.prox < today() ? `venceu ${ddmm(o.l.prox)}` : 'hoje'}</em> ` : '<em>novo</em> '}${esc(nichoOf(o.l).n)}${esc(ondeTxt(o.l))}</span><span class="hz-prev">${esc(txt.replace(/\s+/g, ' ').slice(0, 120))}…</span></button>
-        <div class="hz-acts">${`<a class="hz-btn pri" href="${esc(waUrl(o.l, txt))}" target="_blank" rel="noopener" data-act="hz-fire" data-id="${o.l.id}"${o.l.wa ? '' : ' title="WhatsApp do fixo"'}>Enviar</a>${o.l.wa ? '' : `<span class="hz-tel">${esc(fmtTel(o.l.fixo))}</span><button type="button" class="hz-btn" data-act="hz-call" data-id="${o.l.id}">Liguei</button>`}`}<button type="button" class="hz-btn ghost" data-act="hz-skip" data-id="${o.l.id}">Pular</button>${(C.horusLimpa ? C.horusLimpa.x(o.l.id) : '')}</div>
+        <div class="hz-acts">${`<a class="hz-btn pri hz-wa" href="${esc(waUrl(o.l, txt))}" target="_blank" rel="noopener" data-act="hz-fire" data-id="${o.l.id}"${o.l.wa ? '' : ' title="WhatsApp do fixo"'}>${ico('wa')}<span>WhatsApp</span></a>${o.l.wa ? '' : `<span class="hz-tel">${esc(fmtTel(o.l.fixo))}</span><button type="button" class="hz-btn" data-act="hz-call" data-id="${o.l.id}">Liguei</button>`}`}<button type="button" class="hz-btn ghost" data-act="hz-skip" data-id="${o.l.id}">Pular</button>${(C.horusLimpa ? C.horusLimpa.x(o.l.id) : '')}</div>
       </li>`; }).join('')}</ol>` : `<p class="hz-muted">${p.hoje >= p.meta ? 'Meta do dia batida. Amanhã o Hórus monta a fila de novo.' : 'Nada vencido e nenhum novo com telefone. Caça mais empresas aqui embaixo.'}</p>`}`;
     paintCaca(); paintBase(); if(C.horusLimpa) C.horusLimpa.paint(); if(T()) T().paint(); if(C.horusMax) C.horusMax.paint();
   }
@@ -579,13 +583,13 @@
     if(H.st === 'abertos') list = list.filter(o => !DONE.includes(o.l.st)); else if(H.st) list = list.filter(o => o.l.st === H.st);
     if(H.pf) list = list.filter(o => naPraca(o.l, H.pf));
     if(q) list = list.filter(o => C.norm([o.l.nome, o.l.bairro, o.l.cidade, nichoOf(o.l).n, o.l.insta].join(' ')).includes(q));
-    list.sort((a, b) => b.h - a.h || String(a.l.nome).localeCompare(String(b.l.nome)));
+    list.sort((a, b) => porWa(a, b) || String(a.l.nome).localeCompare(String(b.l.nome)));
     const cnt = st => H.leads.filter(l => l.st === st).length;
     el.innerHTML = `<div class="hz-h"><h2>Base</h2><span>${H.leads.length} ${H.leads.length === 1 ? 'empresa' : 'empresas'} no radar</span></div>
       <div class="hz-base-tools"><input class="hz-in" id="hz-q" placeholder="Procurar por nome, bairro, cidade, nicho" value="${esc(H.q)}" aria-label="Procurar na base">
         ${variasPracas() ? `<select class="hz-in sm" data-chg="hz-pf" aria-label="Cidade"><option value="">Todas as cidades</option>${pracasNoRadar().map(p => `<option value="${esc(p.k)}"${H.pf === p.k ? ' selected' : ''}>${esc(p.k)} (${p.n})</option>`).join('')}</select>` : ''}
         ${C.horusLimpa ? `<button type="button" class="hz-btn sm${C.horusLimpa.sel() ? ' on' : ''}" data-act="hz-sel" aria-pressed="${C.horusLimpa.sel()}">Selecionar</button>` : ''}<select class="hz-in sm" data-chg="hz-st" aria-label="Etapa"><option value="abertos"${H.st === 'abertos' ? ' selected' : ''}>Em aberto</option><option value=""${!H.st ? ' selected' : ''}>Todas</option>${STAGES.map(([k, n]) => `<option value="${k}"${H.st === k ? ' selected' : ''}>${n} (${cnt(k)})</option>`).join('')}</select></div>
-      ${C.horusLimpa ? C.horusLimpa.selBar() : ''}${list.length ? `<ul class="hz-base${C.horusLimpa && C.horusLimpa.sel() ? ' sel' : ''}">${list.slice(0, H.more).map(o => `<li>${C.horusLimpa && C.horusLimpa.sel() && !DONE.includes(o.l.st) ? `<input type="checkbox" class="hz-selck" data-chg="hz-sel-l" data-id="${o.l.id}"${C.horusLimpa.marcado(o.l.id) ? ' checked' : ''} aria-label="Marcar ${esc(o.l.nome)}">` : ''}<button type="button" data-act="hz-open" data-id="${o.l.id}"><span class="hz-sc ${o.h ? tempOf(o.h) : 'off'}">${o.h || '·'}</span><span class="nm"><b>${esc(o.l.nome)}</b><small>${esc(nichoOf(o.l).n)}${o.l.bairro ? ' · ' + esc(o.l.bairro) : ''}${esc(ondeTxt(o.l))}</small></span><span class="stg st-${o.l.st}">${SN[o.l.st] || o.l.st}</span><span class="px">${o.l.prox && !DONE.includes(o.l.st) ? ddmm(o.l.prox) : ''}</span></button></li>`).join('')}</ul>${list.length > H.more ? `<button type="button" class="hz-btn ghost wide" data-act="hz-mais">Mostrar mais ${Math.min(60, list.length - H.more)}</button>` : ''}` : '<p class="hz-muted">Nada por aqui com esse filtro.</p>'}`;
+      ${C.horusLimpa ? C.horusLimpa.selBar() : ''}${list.length ? `<ul class="hz-base${C.horusLimpa && C.horusLimpa.sel() ? ' sel' : ''}">${list.slice(0, H.more).map(o => `<li>${C.horusLimpa && C.horusLimpa.sel() && !DONE.includes(o.l.st) ? `<input type="checkbox" class="hz-selck" data-chg="hz-sel-l" data-id="${o.l.id}"${C.horusLimpa.marcado(o.l.id) ? ' checked' : ''} aria-label="Marcar ${esc(o.l.nome)}">` : ''}<button type="button" data-act="hz-open" data-id="${o.l.id}"><span class="hz-sc ${o.h ? tempOf(o.h) : 'off'}">${o.h || '·'}</span><span class="nm"><b>${esc(o.l.nome)}</b><small>${esc(nichoOf(o.l).n)}${o.l.bairro ? ' · ' + esc(o.l.bairro) : ''}${esc(ondeTxt(o.l))}</small></span><span class="stg st-${o.l.st}">${SN[o.l.st] || o.l.st}</span><span class="px">${o.l.prox && !DONE.includes(o.l.st) ? ddmm(o.l.prox) : ''}</span></button>${o.l.wa && !DONE.includes(o.l.st) && !(C.horusLimpa && C.horusLimpa.sel()) ? (m => m ? `<a class="hz-wa-mini" href="${esc(waUrl(o.l, compose(o.l, m.k)))}" target="_blank" rel="noopener" data-act="hz-fire" data-id="${o.l.id}" aria-label="WhatsApp de ${esc(shortName(o.l.nome))}: ${esc(m.n)}" title="${esc(m.n)}">${ico('wa')}</a>` : '')(nextMsg(o.l)) : ''}</li>`).join('')}</ul>${list.length > H.more ? `<button type="button" class="hz-btn ghost wide" data-act="hz-mais">Mostrar mais ${Math.min(60, list.length - H.more)}</button>` : ''}` : '<p class="hz-muted">Nada por aqui com esse filtro.</p>'}`;
     const qi = C.$('hz-q'); if(qi) qi.oninput = () => { H.q = qi.value; clearTimeout(H.qt); H.qt = setTimeout(() => { const pos = qi.selectionStart; paintBase(); const n = C.$('hz-q'); if(n){ n.focus(); try{ n.setSelectionRange(pos, pos); }catch(e){} } }, 250); };
   }
 
@@ -637,6 +641,7 @@
     const l = H.by[id]; if(!l) return;
     const c = cfg(), h = heat(l), m = nextMsg(l) || { k: defaultMsg(l), n: TN[defaultMsg(l)] };
     const panel = C.sheet(`<div class="form hz-lead"><div class="sheet-head"><h2>${esc(shortName(l.nome))}</h2><button type="button" class="cbtn plain" data-close aria-label="Fechar">${ico('x')}</button></div>
+      ${digits(l) && !DONE.includes(l.st) ? `<a class="hz-btn pri hz-wa hz-wa-grande" id="hl-send-top" href="${esc(waUrl(l, compose(l, m.k)))}" target="_blank" rel="noopener" data-act="hz-fire" data-id="${l.id}">${ico('wa')}<span>Chamar no WhatsApp<small>${esc(m.n)}${l.wa ? '' : ' · pelo fixo'}</small></span></a>` : ''}
       <div class="hz-lead-top"><span class="hz-sc ${h ? tempOf(h) : 'off'}">${h || '·'}</span><span>${h ? `${TEMP[tempOf(h)]} · ${reasons(l).map(esc).join(' · ') || 'sem sinal ainda'}` : esc(SN[l.st])}</span></div>
       ${HF() ? (o => o ? `<p class="hl-or"><span class="mono">Origem</span> ${esc(o)}${l.created_at ? ` · entrou ${ddmm(localDay(l.created_at))}` : ''}</p>` : '')(HF().origem(l)) : ''}
       ${sinaisDe(l).length ? `<div class="hz-faro" aria-label="Sinais da empresa"><span class="mono">Faro</span>${sinaisDe(l).map(k => `<span class="hz-sinal${c.faro.includes(k) ? ' on' : ''}">${esc(SINAIS[k].n)}</span>`).join('')}</div>` : ''}
@@ -673,7 +678,7 @@
       <div class="acts">${C.horusLimpa && !DONE.includes(l.st) ? `<button type="button" class="btn sm" data-act="hz-descarta" data-id="${l.id}">${ico('x')} Descartar</button>` : ''}<button type="button" class="btn sm ghost" data-act="hz-del" data-id="${l.id}">${ico('trash')} Tirar do radar</button></div>
     </div>`);
     const tpl = C.$('hl-tpl'), txt = C.$('hl-txt'), send = C.$('hl-send');
-    const sync = () => { if(send) send.href = waUrl(l, txt.value); };
+    const top = C.$('hl-send-top'), sync = () => { if(send) send.href = waUrl(l, txt.value); if(top) top.href = waUrl(l, txt.value); };
     tpl.addEventListener('change', () => { txt.value = compose(l, tpl.value); delete H.ia[l.id]; sync(); });
     txt.addEventListener('input', sync);
     if(T()) T().onLead(l, panel);
@@ -864,7 +869,7 @@
       catch(e){ C.toast(C.errMsg(e)); el.disabled = false; }
     },
     'hz-praca-r': async el => { const x = cfg().pracas[+el.dataset.i]; if(!x) return; try{ await setPraca(x); H.puf = null; H.pcid = null; H.rows = null; if(H.auto) H.auto.st = ''; if(H.leads.length) paint(); else paintCaca(); }catch(e){ C.toast(C.errMsg(e)); } },
-    'hz-fire': el => { fire(el.dataset.id, 'WhatsApp'); if(el.id === 'hl-send') C.closeSheet(); },
+    'hz-fire': el => { fire(el.dataset.id, 'WhatsApp'); if(el.id === 'hl-send' || el.id === 'hl-send-top') C.closeSheet(); },
     'hz-call': el => fire(el.dataset.id, 'Ligação'),
     'hz-skip': el => { H.skip[el.dataset.id] = true; paint(); },
     'hz-copiar': el => { const t = C.$('hl-txt'); if(t) C.copy(t.value, 'Mensagem copiada.'); fire(el.dataset.id, 'Copiada'); C.closeSheet(); },
