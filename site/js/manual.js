@@ -6,13 +6,14 @@
   'use strict';
   const C = window.Corre, { esc, ico } = C;
   /* sobe esse número a cada atualização: quem já viu recebe de novo, abrindo nas novidades */
-  const VERSAO = '4.21';
+  const VERSAO = '4.22';
   const K = 'corre-manual-visto';
 
   /* O que tem de novo: só o que é super relevante pra galera (o Thales, v3.67). No máximo 8, o mais novo em cima, uma ou
      duas frases cada, no jeito de quem conta pro amigo. Conserto, acabamento e detalhe técnico não entram aqui (moram no
      CLAUDE.md); novidade grande que chega empurra a mais velha pra fora */
   const NOVIDADES = [
+    ['eye', 'Hórus: tocar a fila e descartar num toque', 'No Hórus, "Tocar a fila" mostra um cliente por vez na tela inteira: Enviar no WhatsApp com a mensagem pronta e já vem o próximo, Pular ou Descartar. Lead que não serve sai com um toque no ×, a Faxina limpa quem só ocupa lugar e a ficha tem respostas prontas pro preço, o "vou pensar" e o "manda a proposta".'],
     ['caderno', 'Caderninho: teu dia numa tela só', 'O planner do Corre: anota numa frase ("mandar orçamento amanhã 15h #Trabalho !1") e ele entende o dia, a hora, a lista e a prioridade. O dia de hoje junta as tuas tarefas com o post do Studio, o cliente do Hórus pra retornar e a cobrança que vence. Tarefa com hora, o celular avisa na hora (e, se quiser, também 1h, 2h, 1 dia, 2 dias, 5 dias ou 1 semana antes); a que repete volta sozinha, até "a cada 56 dias". Cada tarefa guarda o endereço (abre no Google Maps) e os arquivos.'],
     ['magia', 'Studio: carrossel, story, reels e aprovação', 'No Studio, cada post agora escolhe o formato: feed, carrossel (até 10 slides com arte, foto ou vídeo), story ou reels, e o Corre programa e posta sozinho no Instagram. E tem o link de aprovação: manda pro cliente pelo WhatsApp, ele aprova ou pede ajuste em cada post, sem precisar de conta, e o teu celular avisa quando ele termina. Sem conta do Instagram conectada, o celular te chama na hora de postar e o post abre com tudo pronto.'],
     ['play', 'Coringa, o jogo do quarto', 'Na prateleira do quarto de toda casa do Correverso mora um boneco de corda: toca em Jogar Coringa e assalta o quarto do Caio em 3D, subindo na cama, na estante e na cortina. A polícia de brinquedo só vem quando toca a sirene; de noite, o Caio tá dormindo e barulho acorda ele.'],
@@ -20,7 +21,6 @@
     ['mapa', 'Correverso no mapa de Londrina', 'A cidade agora tem o formato de Londrina e cada coisa no lado certo: o Centro no meio, o Estádio do Café ao norte, o Igapó em diagonal (do 3 ao 1, com a Av. Higienópolis por cima), a Gleba na margem, o Aeroporto, a ACEL e o Arthur Thomas pro sudeste, e roça em volta. O Mapa mostra os bairros.'],
     ['star', 'Skins de Halloween no Ateliê', 'A coleção de Halloween do Correverso (Abóbora, Saci, Bruxa, Lobisomem e mais) agora sai em real, no Pix ou no cartão: R$ 14,90, R$ 9,90 ou R$ 5,90, pagamento único, e é tua pra sempre. Só até Finados.'],
     ['raio', 'Trampo virou GTA: missões', 'No Correverso, o Trampo ganhou 8 missões: perseguição de viatura, rush de moto, incêndio na Gleba, ambulância, desmanche, racha de patinete, seguir o suspeito e muamba de barco no Tibagi. Pagam bem mais que os bicos. Empurrar gente chama a polícia (agora no Calçadão 3D também), e quem leva empurrão demais deixa cair moeda de correal no chão.'],
-    ['gente', 'Torcida na rua', 'No Correverso, a torcida do Brasil desce a rua da Gleba de verde e amarelo e a de vermelho toma a rua do Centro, cantando e pulando no bumbo. Chega perto e toca em Cantar com a torcida pra pular junto.'],
   ];
   /* cada página: o que é, pra que serve no teu dia, e o botão que leva lá */
   const PAGINAS = [
