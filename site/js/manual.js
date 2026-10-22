@@ -6,14 +6,14 @@
   'use strict';
   const C = window.Corre, { esc, ico } = C;
   /* sobe esse número a cada atualização: quem já viu recebe de novo, abrindo nas novidades */
-  const VERSAO = '4.20';
+  const VERSAO = '4.21';
   const K = 'corre-manual-visto';
 
   /* O que tem de novo: só o que é super relevante pra galera (o Thales, v3.67). No máximo 8, o mais novo em cima, uma ou
      duas frases cada, no jeito de quem conta pro amigo. Conserto, acabamento e detalhe técnico não entram aqui (moram no
      CLAUDE.md); novidade grande que chega empurra a mais velha pra fora */
   const NOVIDADES = [
-    ['caderno', 'Caderninho: teu dia numa tela só', 'O planner do Corre: anota numa frase ("mandar orçamento amanhã 15h #Trabalho !1") e ele entende o dia, a hora, a lista e a prioridade. O dia de hoje junta as tuas tarefas com o post do Studio, o cliente do Hórus pra retornar e a cobrança que vence. Tarefa com hora, o celular avisa na hora (e, se quiser, também 1h, 2h, 1 dia, 2 dias, 5 dias ou 1 semana antes); a que repete volta sozinha, até "a cada 56 dias".'],
+    ['caderno', 'Caderninho: teu dia numa tela só', 'O planner do Corre: anota numa frase ("mandar orçamento amanhã 15h #Trabalho !1") e ele entende o dia, a hora, a lista e a prioridade. O dia de hoje junta as tuas tarefas com o post do Studio, o cliente do Hórus pra retornar e a cobrança que vence. Tarefa com hora, o celular avisa na hora (e, se quiser, também 1h, 2h, 1 dia, 2 dias, 5 dias ou 1 semana antes); a que repete volta sozinha, até "a cada 56 dias". Cada tarefa guarda o endereço (abre no Google Maps) e os arquivos.'],
     ['magia', 'Studio: carrossel, story, reels e aprovação', 'No Studio, cada post agora escolhe o formato: feed, carrossel (até 10 slides com arte, foto ou vídeo), story ou reels, e o Corre programa e posta sozinho no Instagram. E tem o link de aprovação: manda pro cliente pelo WhatsApp, ele aprova ou pede ajuste em cada post, sem precisar de conta, e o teu celular avisa quando ele termina. Sem conta do Instagram conectada, o celular te chama na hora de postar e o post abre com tudo pronto.'],
     ['play', 'Coringa, o jogo do quarto', 'Na prateleira do quarto de toda casa do Correverso mora um boneco de corda: toca em Jogar Coringa e assalta o quarto do Caio em 3D, subindo na cama, na estante e na cortina. A polícia de brinquedo só vem quando toca a sirene; de noite, o Caio tá dormindo e barulho acorda ele.'],
     ['grafico', 'Hórus virou CRM: funil e Entrada', 'No Hórus, teus clientes viram negócio: arrasta cada um de Contatado até Fechou, põe quanto vale e vê o que tá na mesa e a previsão do mês. Quem pede orçamento pelo teu link cai na Entrada e o teu celular avisa na hora. Conversou com alguém no Corre que quer comprar? Na conversa, Pôr no Hórus.'],
