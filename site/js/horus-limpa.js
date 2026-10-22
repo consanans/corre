@@ -22,7 +22,8 @@
   const L = { sel: false, marcados: new Set(), undo: null, undoT: 0 };
 
   /* ---------- descartar (um ou vários), com o Desfazer ---------- */
-  async function descarta(ids, st, motivo){
+  /* v4.24: troca = a carta descartada no gesto da Mesa (vai com "Não é o perfil" e a barra deixa trocar o motivo) */
+  async function descarta(ids, st, motivo, troca){
     const ls = ids.map(id => H.by[id]).filter(l => l && !Z.DONE.includes(l.st));
     if(!ls.length) return;
     const antes = ls.map(l => ({ l, st: l.st, prox: l.prox, hist: l.hist }));
@@ -36,16 +37,25 @@
     }
     if(falhou) C.toast(`${falhou} não ${falhou === 1 ? 'saiu' : 'saíram'} do radar (sem rede?). Tenta de novo.`);
     L.marcados.clear();
-    mostraUndo(antes, ls.length === 1 ? `${Z.shortName(ls[0].nome)} descartado` : `${ls.length} descartados`);
+    mostraUndo(antes, ls.length === 1 ? `${Z.shortName(ls[0].nome)} descartado` : `${ls.length} descartados`, troca);
     if(C.sinaisAtualiza) C.sinaisAtualiza();
   }
-  function mostraUndo(antes, txt){
+  function mostraUndo(antes, txt, troca){
     let b = document.getElementById('hz-undo');
     if(!b){ b = document.createElement('div'); b.id = 'hz-undo'; b.className = 'hz-undo'; b.setAttribute('role', 'status'); document.body.appendChild(b); }
     L.undo = antes;
-    b.innerHTML = `<span>${esc(txt)}</span><button type="button" data-act="hz-desfaz">Desfazer</button>`;
+    b.innerHTML = `<span>${esc(txt)}</span><button type="button" data-act="hz-desfaz">Desfazer</button>${troca ? `<div class="hz-undo-m" role="group" aria-label="Trocar o motivo">${MOTIVOS.map((m, i) => `<button type="button" class="hz-desc-m" data-act="hz-troca-m" data-i="${i}">${esc(m[0])}</button>`).join('')}</div>` : ''}`;
+    b.classList.toggle('troca', !!troca);
     b.hidden = false; b.classList.remove('sai'); void b.offsetWidth; b.classList.add('on');
-    clearTimeout(L.undoT); L.undoT = setTimeout(someUndo, 8000);
+    clearTimeout(L.undoT); L.undoT = setTimeout(someUndo, troca ? 10000 : 8000);
+  }
+  /* v4.24: o motivo certo, depois do gesto (a etapa e a linha do tempo acompanham) */
+  async function trocaMotivo(i){
+    const a = L.undo, m = MOTIVOS[i]; if(!a || !m) return;
+    a.forEach(x => { x.l.st = m[1]; const h = (x.l.hist || [])[0]; if(h && h.k === 'st') h.v = `Etapa: ${Z.SN[m[1]]}${m[2] ? ' · ' + m[2] : ''} · descartado`; });
+    Z.paint();
+    await Promise.all(a.map(x => C.api.upd('corre_leads', { id: x.l.id }, { st: x.l.st, hist: x.l.hist }).catch(() => {})));
+    mostraUndo(a, `${a.length === 1 ? Z.shortName(a[0].l.nome) : a.length + ' empresas'}: ${m[0].toLowerCase()}`);
   }
   function someUndo(){ const b = document.getElementById('hz-undo'); if(b){ b.classList.remove('on'); setTimeout(() => { if(!b.classList.contains('on')) b.hidden = true; }, 250); } L.undo = null; }
   async function desfaz(){
@@ -111,6 +121,7 @@
     'hz-descarta': el => { const l = H.by[el.dataset.id]; if(l) motivoSheet([l.id], `Descartar ${Z.shortName(l.nome)}`); },
     'hz-desc-m': el => { const m = MOTIVOS[+el.dataset.i], ids = L.pend || []; L.pend = null; C.closeSheet(); if(m && ids.length) descarta(ids, m[1], m[2]); },
     'hz-desfaz': () => desfaz(),
+    'hz-troca-m': el => trocaMotivo(+el.dataset.i),
     'hz-fx': async el => {
       const g = grupos().find(x => x.k === el.dataset.k); if(!g) return;
       if(!(await C.confirma({ ico: 'trash', titulo: `Descartar ${g.ls.length}?`, texto: `${esc(g.n)}. Vão pra ${esc(Z.SN[g.st])} com o motivo "${esc(g.m)}". Dá pra desfazer logo em seguida.`, sim: 'Descartar', nao: 'Deixa' }))) return;
@@ -140,6 +151,8 @@
     marcado: id => L.marcados.has(id),
     selBar: () => L.sel ? `<div class="hz-selbar" id="hz-selbar"><b>${L.marcados.size ? `${L.marcados.size} marcadas` : 'Marca as empresas'}</b><button type="button" class="hz-btn ghost" data-act="hz-sel-todos">Marcar todas da lista</button><button type="button" class="hz-btn pri" data-act="hz-sel-desc"${L.marcados.size ? '' : ' disabled'}>${ico('trash')} Descartar</button><button type="button" class="hz-btn ghost" data-act="hz-sel">Cancelar</button></div>` : '',
     rapidas: rapidasHTML,
+    /* v4.24: a Mesa usa as respostas prontas e os motivos */
+    rapidaNomes: RAPIDAS.map(r => r[0]), rapida, MOTIVOS,
     descarta, grupos
   };
 })();

@@ -164,6 +164,7 @@
   const lastTouch = l => { const h = (l.hist || []).find(x => x.k === 'toque' || x.k === 'res' || x.k === 'visita'); return h && h.t ? localDay(h.t) : null; };
   const responded = l => (l.hist || []).some(h => h.k === 'res' && !/^Sem resposta/.test(h.v || ''));
   const isDue = l => !DONE.includes(l.st) && l.prox && l.prox <= today();
+  const conferido = l => (l.hist || []).some(x => x && x.k === 'ok');
   const isFresh = l => l.created_at && daysBetween(String(l.created_at).slice(0, 10), today()) <= 3 && l.st === 'novo';
   function esfriando(l){
     if(!OPEN.includes(l.st)) return 0; if(l.prox && l.prox >= today()) return 0;
@@ -183,6 +184,8 @@
     if(isFresh(l)) h += 4;
     h += Math.min(18, faroDe(l).length * 7);
     if(pediuLink(l) || escolheuMural(l)) h += 30;
+    /* v4.24: você abriu o Instagram, o site ou o mapa e conferiu que a empresa existe */
+    if(conferido(l)) h += 6;
     return Math.max(1, Math.min(100, Math.round(h)));
   }
   /* pediu orçamento pelo link nos últimos 7 dias e ninguém respondeu ainda */
@@ -422,7 +425,8 @@
         const y = H.mode === 'mapa' ? c - Math.sin(lb.a) * (R - 16) : c + Math.sin(lb.a) * (R - 16);
         ctx.fillText(lb.t, c + Math.cos(lb.a) * (R - 16), y);
       });
-      const still = reduce(), th = still ? -Math.PI / 4 : (((now - t0) % PER) / PER) * Math.PI * 2;
+      /* v4.24: garimpando, o olho varre mais rápido */
+      const per = H.varre ? 1100 : PER, still = reduce(), th = still ? -Math.PI / 4 : (((now - t0) % per) / per) * Math.PI * 2;
       if(!still){
         const sw = ctx.createConicGradient ? ctx.createConicGradient(th - Math.PI * 0.5, c, c) : null;
         if(sw){ sw.addColorStop(0, 'rgba(255,170,50,0)'); sw.addColorStop(0.23, 'rgba(255,170,50,0)'); sw.addColorStop(0.25, 'rgba(255,170,50,.20)'); sw.addColorStop(0.2501, 'rgba(255,170,50,0)'); ctx.fillStyle = sw; ctx.beginPath(); ctx.arc(c, c, R, 0, Math.PI * 2); ctx.fill(); }
@@ -438,6 +442,9 @@
         if(glow > 0.6 && !still){ ctx.fillStyle = `rgba(${r0},${g0},${b0},${(glow - 0.6) * 0.5})`; ctx.beginPath(); ctx.arc(x, y, rad * 2.6, 0, Math.PI * 2); ctx.fill(); }
         if(p.rank){ ctx.fillStyle = '#050506'; ctx.strokeStyle = 'rgba(255,220,150,.95)'; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.arc(x + rad + 7, y - rad - 7, 8, 0, Math.PI * 2); ctx.fill(); ctx.stroke(); ctx.fillStyle = 'rgba(255,220,150,.95)'; ctx.font = '700 10px "IBM Plex Mono",monospace'; ctx.fillText(String(p.rank), x + rad + 7, y - rad - 6.5); }
         if(hover && hover.l.id === p.l.id){ ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(x, y, rad + 4, 0, Math.PI * 2); ctx.stroke(); }
+        /* v4.24: a carta de cima da mesa, marcada no olho */
+        if(H.marca === p.l.id){ const k = still ? 0.5 : pulse; ctx.strokeStyle = 'rgba(255,255,255,.95)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(x, y, rad + 5 + k * 6, 0, Math.PI * 2); ctx.stroke();
+          ctx.fillStyle = 'rgba(255,255,255,.9)'; ctx.font = `700 ${Math.max(10, W / 48)}px "IBM Plex Mono",monospace`; ctx.textAlign = x > c ? 'right' : 'left'; ctx.fillText(shortName(p.l.nome).slice(0, 18).toUpperCase(), x + (x > c ? -rad - 12 : rad + 12), y); ctx.textAlign = 'center'; }
       });
       ctx.fillStyle = 'rgba(255,220,150,.9)'; ctx.beginPath(); ctx.arc(c, c, 3, 0, Math.PI * 2); ctx.fill();
     }
@@ -449,7 +456,8 @@
         if(tip){ if(h){ const r = cv.getBoundingClientRect(); tip.hidden = false; tip.style.left = Math.min(r.width - 170, e.clientX - r.left + 14) + 'px'; tip.style.top = (e.clientY - r.top + 10) + 'px'; tip.innerHTML = `<b>${esc(shortName(h.l.nome))}</b><span>${h.h} · ${TEMP[h.temp]}${h.due ? ' · vencido' : ''}</span><span>${esc(nichoOf(h.l).n)}${h.l.bairro ? ' · ' + esc(h.l.bairro) : ''}</span>`; } else tip.hidden = true; }
         cv.style.cursor = h ? 'pointer' : 'default'; if(reduce()) draw(performance.now()); } };
       cv.onpointerleave = () => { hover = null; const tip = C.$('hz-tip'); if(tip) tip.hidden = true; };
-      cv.onclick = e => { const h = hit(e); if(h) leadSheet(h.l.id); };
+      /* v4.24: tocou num ponto, a empresa vem pra mesa (se não tá na mesa, abre a ficha) */
+      cv.onclick = e => { const h = hit(e); if(h && !(C.horusMesa && C.horusMesa.traz(h.l.id))) leadSheet(h.l.id); };
       if(!raf) raf = requestAnimationFrame(loop);
     }
     addEventListener('resize', () => { if(cv && cv.isConnected){ size(); draw(performance.now()); } });
@@ -474,6 +482,11 @@
       hist: sts[i] === 'novo' ? [] : [{ t: new Date(t - (i + 1) * 36e5).toISOString(), k: 'toque', v: 'WhatsApp · D0 · Abordagem' }].concat(sts[i] === 'interesse' ? [{ t: new Date(t - 30 * 36e5).toISOString(), k: 'res', v: 'Respondeu com interesse' }] : []) }));
     /* v4.16: o funil de exemplo tem valor nos negócios, um pedido que chegou pelo link e um fechado no mês */
     rows[0].valor = 1800; rows[3].valor = 3500;
+    /* v4.24: provas de que a empresa existe (Instagram, endereço, site), pra mesa de exemplo ter carta de ouro */
+    Object.assign(rows[6], { insta: 'imoveislago.exemplo', endereco: 'Av. Ayrton Senna, 500' });
+    Object.assign(rows[10], { insta: 'fornoalenha.exemplo', endereco: 'Rua Sergipe, 300' });
+    Object.assign(rows[12], { endereco: 'Calçadão, 120' });
+    rows[2].obs = 'Caça: academia · https://example.com/studio-forma';
     const ha = d => new Date(t - d * 864e5).toISOString();
     rows.push({ nome: 'Doceria Açúcar (exemplo)', nicho: 'cafe', bairro: 'Centro', potencial: 1, cidade: pr.cidade, uf: UFN[pr.uf] ? pr.uf : '', wa: '43900001990', tel: '', st: 'interesse', fonte: 'link', ref: 'ex-link', prox: today(), cad: null,
       obs: 'Pedido pelo link (Marina): Quero identidade visual pra doceria, abro em dezembro.', hist: [{ t: new Date(t - 40 * 6e4).toISOString(), k: 'res', v: 'Pediu orçamento pelo link: Quero identidade visual pra doceria, abro em dezembro.' }] },
@@ -495,48 +508,24 @@
     if(!C.$('hz-root')) return;
     /* v4.16: o Hórus tem abas (Radar, Funil, Entrada); fora do Radar quem pinta é o horus-funil.js */
     if(C.horusFunil){ C.horusFunil.badges(); if(H.aba && H.aba !== 'radar'){ C.horusFunil.pinta(); return; } }
-    if(!C.$('hz-scope-head')) return;
+    /* v4.24: o Radar é a Mesa (horus-mesa.js) com o olho do lado; o placar, a caça e a base moram nas gavetas */
+    if(!C.$('mz') && !C.$('hz-placar')) return;
     const c = cfg(), sc = scored();
     const pcs = pracasNoRadar(), on = C.$('hz-onde');
     if(on) on.textContent = `radar de clientes · ${c.oferta || 'teu corre'} · ${pcs.length > 1 ? `${pcs.length} cidades no radar` : `em ${lugarTxt(c.praca.cidade, c.praca.uf) || c.cidade}`}`;
-    const alvos = sc.filter(o => digits(o.l) && nextMsg(o.l)).slice(0, 5); alvos.forEach((o, i) => o.rank = i + 1);
-    const vis = sc.filter(o => H.f === 'todos' || (H.f === 'wa' && o.l.wa) || (H.f === 'hot' && o.temp === 'hot') || (H.f === 'due' && o.due) || (H.f === 'frio' && o.esf) || (H.f === 'faro' && faroDe(o.l).length));
-    const cnt = { wa: sc.filter(o => o.l.wa).length, hot: sc.filter(o => o.temp === 'hot').length, warm: sc.filter(o => o.temp === 'warm').length, cold: sc.filter(o => o.temp === 'cold').length, due: sc.filter(o => o.due).length, esf: sc.filter(o => o.esf).length, faro: sc.filter(o => faroDe(o.l).length).length };
-    const geo = sc.filter(o => o.l.lat != null).length;
-    if(H.mode === 'mapa' && geo < 3) H.mode = 'calor';
-    C.$('hz-scope-head').innerHTML = `<div class="hz-chips" role="group" aria-label="Filtrar o radar">${[['todos', 'Tudo', ''], ['wa', 'WhatsApp', cnt.wa], ['hot', 'Quentes', cnt.hot], ['due', 'Vencidos', cnt.due], ['faro', 'Faro', cnt.faro], ['frio', 'Esfriando', cnt.esf]].map(([k, n, x]) => `<button type="button" class="hz-chip" data-act="hz-f" data-k="${k}" aria-pressed="${H.f === k}">${n}${x !== '' ? ` <b>${x}</b>` : ''}</button>`).join('')}</div>
-      ${geo >= 3 ? `<div class="hz-chips" role="group" aria-label="Modo do radar">${[['calor', 'Calor'], ['mapa', 'Mapa']].map(([k, n]) => `<button type="button" class="hz-chip" data-act="hz-mode" data-k="${k}" aria-pressed="${H.mode === k}">${n}</button>`).join('')}</div>` : ''}`;
-    C.$('hz-legend').innerHTML = `<span class="lg hot"><i></i>${cnt.hot} quentes</span><span class="lg warm"><i></i>${cnt.warm} mornos</span><span class="lg cold"><i></i>${cnt.cold} frios</span><span class="lg due"><i></i>${cnt.due} vencidos</span>${H.mode === 'mapa' && sc.length - geo ? `<span class="lg off">${sc.length - geo} sem posição</span>` : ''}`;
-    const rk = Object.fromEntries(alvos.map(o => [o.l.id, o.rank]));
-    /* no modo mapa o radar mede distância: mostra uma cidade só (a filtrada ou a praça atual) */
-    const pk = H.pf || lugarTxt(c.praca.cidade, c.praca.uf);
-    const visR = H.mode === 'mapa' && variasPracas() ? vis.filter(o => naPraca(o.l, pk)) : vis;
-    Scope.mount(C.$('hz-cv'), visR.map(o => Object.assign({}, o, { rank: rk[o.l.id] })), H.mode);
+    const cnt = { hot: sc.filter(o => o.temp === 'hot').length, warm: sc.filter(o => o.temp === 'warm').length, cold: sc.filter(o => o.temp === 'cold').length, due: sc.filter(o => o.due).length };
+    H.mode = 'calor';
+    if(C.$('hz-legend')) C.$('hz-legend').innerHTML = `<span class="lg hot"><i></i>${cnt.hot} quentes</span><span class="lg warm"><i></i>${cnt.warm} mornos</span><span class="lg cold"><i></i>${cnt.cold} frios</span><span class="lg due"><i></i>${cnt.due} vencidos</span>`;
+    if(C.horusMesa) C.horusMesa.pinta();
+    if(C.$('hz-cv')) Scope.mount(C.$('hz-cv'), sc, 'calor');
 
     const p = placar(), pct = Math.min(100, Math.round(p.hoje / p.meta * 100)), maxBar = Math.max(p.meta, ...p.bars.map(b => b.n), 1);
-    C.$('hz-placar').innerHTML = `<div class="hz-h"><h2>Placar</h2><span class="hz-meta">meta <button type="button" class="hz-mini" data-act="hz-meta" data-k="-1" aria-label="Diminuir a meta">−</button><b>${p.meta}</b><button type="button" class="hz-mini" data-act="hz-meta" data-k="1" aria-label="Aumentar a meta">+</button> toques/dia</span></div>
+    if(C.$('hz-placar')) C.$('hz-placar').innerHTML = `<div class="hz-h"><h2>Placar</h2><span class="hz-meta">meta <button type="button" class="hz-mini" data-act="hz-meta" data-k="-1" aria-label="Diminuir a meta">−</button><b>${p.meta}</b><button type="button" class="hz-mini" data-act="hz-meta" data-k="1" aria-label="Aumentar a meta">+</button> toques/dia</span></div>
       <div class="hz-score"><div><b>${p.hoje}</b><small>toques hoje</small></div><div><b>${p.streak}</b><small>${p.streak === 1 ? 'dia na meta' : 'dias seguidos na meta'}</small></div></div>
       <div class="hz-bar" role="img" aria-label="${p.hoje} de ${p.meta} toques hoje"><i style="width:${pct}%"></i></div>
       <div class="hz-week" aria-label="Toques por dia nesta semana">${p.bars.map((b, i) => `<span class="${b.fut ? 'fut' : ''}${b.d === today() ? ' now' : ''}" title="${ddmm(b.d)}: ${b.n} toques"><i style="height:${Math.round(b.n / maxBar * 100)}%"></i><em>${'STQQSSD'[i]}</em></span>`).join('')}</div>
       <p class="hz-wk">semana: ${p.wk.toques} toques · ${p.wk.resp} respostas · ${p.wk.fech} fechados</p>`;
-
-    C.$('hz-alvos').innerHTML = `<div class="hz-h"><h2>Alvos do dia</h2><span>os 5 que mais valem um toque agora</span></div>
-      ${alvos.length ? `<ol class="hz-list">${alvos.map(o => { const m = nextMsg(o.l); return `<li class="hz-row">
-        <span class="hz-sc ${o.temp}" title="Calor ${o.h} de 100">${o.h}</span>
-        <button type="button" class="hz-name" data-act="hz-open" data-id="${o.l.id}"><b>${o.rank}. ${esc(shortName(o.l.nome))}</b><span>${esc(nichoOf(o.l).n)}${o.l.bairro ? ' · ' + esc(o.l.bairro) : ''}${esc(ondeTxt(o.l))}</span><span class="hz-why">${reasons(o.l).map(esc).join(' · ')}</span></button>
-        ${`<a class="hz-btn pri hz-wa" href="${esc(waUrl(o.l, compose(o.l, m.k)))}" target="_blank" rel="noopener" data-act="hz-fire" data-id="${o.l.id}" title="${esc(m.n)}${o.l.wa ? '' : ' · WhatsApp do fixo'}">${ico('wa')}<span>WhatsApp<small>${esc(m.n.replace(/^D\d · /, ''))}</small></span></a>${o.l.wa ? '' : `<button type="button" class="hz-btn" data-act="hz-call" data-id="${o.l.id}">Liguei</button>`}`}${(C.horusLimpa ? C.horusLimpa.x(o.l.id) : '')}
-      </li>`; }).join('')}</ol>` : '<p class="hz-muted">Nenhuma empresa aberta com telefone. Caça aqui embaixo pra encher o radar.</p>'}`;
-
-    const fl = fila(), items = fl.due.map(o => Object.assign(o, { tipo: 'venceu' })).concat(fl.novos.map(o => Object.assign(o, { tipo: 'novo' }))).sort((a, b) => temWa(b.l) - temWa(a.l));
-    C.$('hz-fila').innerHTML = `<div class="hz-h"><h2>Fila de disparo</h2><span>${items.length ? `${items.length} ${items.length === 1 ? 'mensagem pronta' : 'mensagens prontas'}` : 'fila vazia'}</span></div>
-      ${items.length && C.horusCorrida ? `<button type="button" class="hz-btn pri hz-corre-go" data-act="hz-corrida">${ico('play')} Tocar a fila: um por vez</button>` : ''}
-      <p class="hz-help">Cadência: <b>D0</b> abordagem, <b>D2</b> retomar, <b>D5</b> mostra, <b>D9</b> último toque. Quem responde sai da cadência e volta pra mensagem da etapa.</p>
-      ${items.length ? `<ol class="hz-list">${items.slice(0, 40).map(o => { const m = nextMsg(o.l), txt = compose(o.l, m.k); return `<li class="hz-row q">
-        <span class="hz-step${m.cad ? '' : ' etapa'}">${esc(m.n)}</span>
-        <button type="button" class="hz-name" data-act="hz-open" data-id="${o.l.id}"><b>${esc(shortName(o.l.nome))}</b><span>${o.tipo === 'venceu' ? `<em class="late">${o.l.prox < today() ? `venceu ${ddmm(o.l.prox)}` : 'hoje'}</em> ` : '<em>novo</em> '}${esc(nichoOf(o.l).n)}${esc(ondeTxt(o.l))}</span><span class="hz-prev">${esc(txt.replace(/\s+/g, ' ').slice(0, 120))}…</span></button>
-        <div class="hz-acts">${`<a class="hz-btn pri hz-wa" href="${esc(waUrl(o.l, txt))}" target="_blank" rel="noopener" data-act="hz-fire" data-id="${o.l.id}"${o.l.wa ? '' : ' title="WhatsApp do fixo"'}>${ico('wa')}<span>WhatsApp</span></a>${o.l.wa ? '' : `<span class="hz-tel">${esc(fmtTel(o.l.fixo))}</span><button type="button" class="hz-btn" data-act="hz-call" data-id="${o.l.id}">Liguei</button>`}`}<button type="button" class="hz-btn ghost" data-act="hz-skip" data-id="${o.l.id}">Pular</button>${(C.horusLimpa ? C.horusLimpa.x(o.l.id) : '')}</div>
-      </li>`; }).join('')}</ol>` : `<p class="hz-muted">${p.hoje >= p.meta ? 'Meta do dia batida. Amanhã o Hórus monta a fila de novo.' : 'Nada vencido e nenhum novo com telefone. Caça mais empresas aqui embaixo.'}</p>`}`;
-    paintCaca(); paintBase(); if(C.horusLimpa) C.horusLimpa.paint(); if(T()) T().paint(); if(C.horusMax) C.horusMax.paint();
+    paintCaca(); paintBase(); if(C.horusLimpa) C.horusLimpa.paint(); paintGavetas(); if(T()) T().paint(); if(C.horusMax) C.horusMax.paint();
   }
   /* praça: UF + cidade (lista do IBGE), as últimas praças e o horário de lá */
   function pracaHTML(){
@@ -609,7 +598,27 @@
     if(C.horusFunil && H.aba !== 'radar'){ C.horusFunil.pinta(); return; }
     corpoRadar();
   };
-  /* o corpo do Radar (a caça, o radar, os alvos, a fila, o mapa e a base) */
+  /* v4.24: as gavetas (o aparelho lembra quais ficaram abertas) */
+  const GAV_K = 'corre-horus-gavetas';
+  const gavLe = () => { try{ return JSON.parse(localStorage.getItem(GAV_K) || '{}') || {}; }catch(e){ return {}; } };
+  const gavAberta = (k, padrao) => { const g = gavLe(); return k in g ? !!g[k] : !!padrao; };
+  const gavGuarda = (k, v) => { try{ const g = gavLe(); g[k] = v; localStorage.setItem(GAV_K, JSON.stringify(g)); }catch(e){} };
+  /* quem tá esperando você: pediu orçamento, escolheu no Mural, respondeu, interessado ou com proposta e o retorno venceu */
+  function paraAgora(){
+    const t = today();
+    return H.leads.filter(l => !DONE.includes(l.st) && (pediuLink(l) || escolheuMural(l) || (C.horusFunil && C.horusFunil.esperando && C.horusFunil.esperando(l)) || ((l.st === 'interesse' || l.st === 'link' || responded(l)) && l.prox && l.prox <= t)))
+      .map(l => ({ l, h: heat(l) })).sort(porWa);
+  }
+  /* o número de cada gaveta fechada (dá pra saber o que tem sem abrir) */
+  function paintGavetas(){
+    const put = (k, t) => { const e = document.querySelector(`[data-gav-n="${k}"]`); if(e) e.textContent = t; };
+    const sc = scored(), ab = sc.length;
+    put('radar', (p => `${p.wk.toques} toques · ${p.wk.resp} respostas na semana`)(placar()));
+    put('base', `${ab} em aberto`);
+    put('caca', lugarTxt(cfg().praca.cidade, cfg().praca.uf) || '');
+    if(C.horusLimpa){ const g = C.horusLimpa.grupos(), n = new Set(g.flatMap(x => x.ls.map(l => l.id))).size; put('faxina', n ? `${n} só ocupando lugar` : 'tudo limpo'); }
+  }
+  /* o corpo do Radar (a Mesa, o placar, a caça, o mapa e a base) */
   function corpoRadar(){
     if(!C.$('hz-body')) return;
     if(C.horusFunil) C.horusFunil.badges();
@@ -619,17 +628,20 @@
         <section class="hz-card" id="hz-caca"></section>`;
       paintCaca(); return;
     }
-    C.$('hz-body').innerHTML = `<div class="hz-grid">
-        <section class="hz-card hz-scope"><div class="hz-scope-head" id="hz-scope-head"></div><div class="hz-cvwrap"><canvas id="hz-cv" aria-label="Radar: cada ponto é uma empresa; mais perto do centro, mais quente"></canvas><div class="hz-tip" id="hz-tip" hidden></div></div><div class="hz-legend" id="hz-legend"></div></section>
-        <div class="hz-col"><section class="hz-card" id="hz-alvos"></section><section class="hz-card" id="hz-placar"></section></div>
-      </div>
-      <section class="hz-card" id="hz-fila"></section>
-      ${C.horusMax && !C.horusFunil ? '<section class="hz-card" id="hz-orc"></section>' : ''}
-      ${T() ? '<section class="hz-card" id="hz-mapa"></section>' : ''}
-      <section class="hz-card" id="hz-caca"></section>
-      ${T() ? '<section class="hz-card" id="hz-vende"></section>' : ''}
-      <section class="hz-card" id="hz-faxina" hidden></section>
-      <section class="hz-card" id="hz-base"></section>`;
+    /* v4.24 (o Thales: "é a ferramenta que eu quero ficar parado olhando e mexendo durante o dia"; "refaça ele de uma
+       forma gostosa de ver e de mexer, que dê prazer achar o lead real e quente e mandar mensagem direto no WhatsApp dele"):
+       em cima, a Mesa (horus-mesa.js: um cliente por vez, o mais quente em cima, o olho do lado); embaixo, o resto em
+       gavetas que abrem e fecham (o aparelho lembra quais ficaram abertas) */
+    const gav = (k, t, ic, corpo, aberta) => `<details class="hz-sec" data-gav="${k}"${gavAberta(k, aberta) ? ' open' : ''}><summary><span class="hz-sec-t">${ico(ic)}${t}</span><span class="hz-sec-n" data-gav-n="${k}"></span>${ico('desce', 'hz-sec-seta')}</summary><div class="hz-sec-c">${corpo}</div></details>`;
+    C.$('hz-body').innerHTML = `${C.horusMesa ? C.horusMesa.html() : ''}
+      ${gav('radar', 'Placar da semana', 'grafico', '<section class="hz-card" id="hz-placar"></section>', false)}
+      ${gav('faxina', 'Faxina do radar', 'trash', '<section class="hz-card" id="hz-faxina" hidden></section>', false)}
+      ${gav('caca', 'Caçar empresas', 'lupa', '<section class="hz-card" id="hz-caca"></section>', H.leads.length < 15)}
+      ${T() ? gav('mapa', 'Mapa e rota', 'pin', '<section class="hz-card" id="hz-mapa"></section>', false) : ''}
+      ${T() ? gav('vende', 'O que vende', 'grafico', '<section class="hz-card" id="hz-vende"></section>', false) : ''}
+      ${C.horusMax && !C.horusFunil ? gav('orc', 'Link de orçamento', 'link', '<section class="hz-card" id="hz-orc"></section>', false) : ''}
+      ${gav('base', 'Todas as empresas', 'grade', '<section class="hz-card" id="hz-base"></section>', false)}`;
+    C.$('hz-body').querySelectorAll('details.hz-sec').forEach(d => d.addEventListener('toggle', () => { gavGuarda(d.dataset.gav, d.open); if(d.open && d.dataset.gav === 'radar') paint(); }));
     paint();
   }
 
@@ -912,7 +924,8 @@
     'hz-cfg': () => cfgSheet(),
     'hz-import': () => importSheet(),
     'hz-novo': () => novoSheet(),
-    'hz-ir-caca': () => { const i = C.$('hz-assunto'); if(i){ i.scrollIntoView({ behavior: 'smooth', block: 'center' }); i.focus(); } }
+    /* v4.24: a caça mora numa gaveta: abre ela antes */
+    'hz-ir-caca': () => { const d = document.querySelector('details[data-gav="caca"]'); if(d && !d.open) d.open = true; const i = C.$('hz-assunto') || C.$('hz-an') || C.$('hz-caca'); if(i){ i.scrollIntoView({ behavior: 'smooth', block: 'center' }); try{ i.focus({ preventScroll: true }); }catch(e){} } }
   });
   /* o select da base usa data-chg="hz-st" com valor; o botão de etapa usa data-act="hz-st" */
   const stAct = C.acts['hz-st'];
@@ -944,6 +957,6 @@
   C.horus = { parseCaca, fromBackup, heat, compose, phoneOf,
     /* o que o horus-turbo.js usa por dentro */
     _: { H, cfg, saveCfg, save, logH, paint, paintCaca, load, shortName, nichoOf, tempOf, heat, digits, waUrl, fmtTel, phoneOf, STAGES, SN, DONE, OPEN, TN, TEMP, guessNicho, normName, addRows, today, addDays, localDay, leadSheet, scored, nextMsg, compose, isDue, responded, reasons, placar,
-      SINAIS, sinaisDe, faroDe, faroPadrao, pediuLink, escolheuMural, fila, municipios, ondeTxt, cadStep,
+      SINAIS, sinaisDe, faroDe, faroPadrao, pediuLink, escolheuMural, fila, municipios, ondeTxt, cadStep, conferido, defaultMsg, paraAgora, isFresh, ddmm, EYE,
       UFS, UFN, tzDe, horaEm, oiEm, lugarTxt, lugarDe, parseLugar, pracasNoRadar, variasPracas, naPraca, setPraca, dddDe, corpoRadar, waDe } };
 })();

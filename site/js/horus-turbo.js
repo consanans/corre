@@ -156,6 +156,25 @@
       A.st = e && e.code === 'ocupado' ? 'O mapa tá ocupado agora. Tenta de novo em um minuto.' : e && e.code === 'bairro' ? `Não achei o bairro "${A.b}" em ${onde}. Confere o nome ou deixa em branco pra cidade toda.` : e && e.code === 'cidade' ? `Não achei ${onde} no mapa. Confere a cidade em Ajustar.` : (e && e.name === 'AbortError') ? 'O mapa demorou demais. Tenta um bairro ou um nicho só.' : 'Não deu pra falar com o mapa agora. Confere a internet e tenta de novo.';
     }finally{ A.busy = false; Z.paintCaca(); }
   }
+  /* v4.24: o Garimpo da Mesa. Um toque varre a praça inteira nos nichos quentes e mornos e põe no radar as empresas
+     com telefone que ainda não tão lá (até 30: as de celular primeiro, depois as que têm Instagram). Quem chama relê o
+     radar e mostra as novas na mesa */
+  TT.garimpa = async function(){
+    const c = Z.cfg(), P = praca();
+    if(!P.cidade) throw { code: 'praca' };
+    const temFiltro = n => osmDe(n).length || palavras(n.re);
+    let ns = c.nichos.filter(n => n.prio !== 'cold' && temFiltro(n));
+    if(!ns.length) ns = c.nichos.filter(temFiltro);
+    if(!ns.length) throw { code: 'nicho' };
+    const cid = await geo(cidadeQ()); if(!cid) throw { code: 'cidade' };
+    const area = `(${cid.bb[0]},${cid.bb[2]},${cid.bb[1]},${cid.bb[3]})`;
+    const els = await overpass(`[out:json][timeout:30];(${ns.flatMap(n => consulta(n, area)).join('')});out center tags 400;`);
+    const vistos = new Set(), rows = [];
+    els.forEach(e => { const k = e.type + e.id; if(vistos.has(k)) return; vistos.add(k); const r = linhaDe(e, '', P); if(r && r.ph) rows.push(r); });
+    const novas = marcaRepetidas(rows).filter(r => !r.dup).sort((a, b) => (b.ph.wa ? 1 : 0) - (a.ph.wa ? 1 : 0) || (b.insta ? 1 : 0) - (a.insta ? 1 : 0)).slice(0, 30);
+    if(novas.length){ const antes = H.assunto; H.assunto = 'garimpo'; try{ await Z.addRows(novas, 'caca'); }finally{ H.assunto = antes; } }
+    return { lidas: rows.length, novas: novas.length, wa: novas.filter(r => r.ph.wa).length };
+  };
   TT.cacaAuto = function(){
     const c = Z.cfg(), A = H.auto;
     return `<div class="hz-auto">
@@ -492,6 +511,9 @@
     try{ return await C.iaFn(Object.assign({ acao, ctx: ctxLead(l, extra && extra.tipo || 'abordagem') }, extra && extra.resposta ? { resposta: extra.resposta } : {}), { oque: acao === 'resposta' ? 'uma leitura do Hórus' : 'uma mensagem do Hórus' }); }
     catch(e){ if(e && e.code === 'nofn' && C.DEMO) return acao === 'abordagem' ? fakeAbordagem(l, extra && extra.tipo) : fakeResposta(extra && extra.resposta); throw e; }
   }
+  /* v4.24: a Mesa escreve com a IA direto na carta */
+  TT.escreve = (l, tipo) => chamaIA('abordagem', l, { tipo: tipo || 'abordagem' });
+  TT.iaErro = iaMsg;
   TT.leadBtns = l => C.visitas ? `<button type="button" class="btn sm" data-act="hz-vis" data-id="${l.id}">${ico('pin')} Marcar visita</button>` : '';
   TT.respHTML = l => {
     const vs = C.visitas ? C.visitas.doLead(l.id) : [];
