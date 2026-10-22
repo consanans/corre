@@ -451,7 +451,7 @@ O app tem três modos (`core.js`): **de verdade** (config.js com `SUPABASE_URL` 
   - **Banco (`delta-v421.sql`, sem DROP; precisa da v4.19):** `corre_caderno.endereco` (até 300) e `corre_caderno.anexos` (jsonb, até 10: `{p, n, t, s}`; o gatilho `corre_caderno_anexos_ok` só aceita caminho da pasta da própria dona) e a pasta **privada** `corre-anexos` no Storage (20 MB; cada um sobe, lê e apaga só na pasta do próprio login; o app abre com link assinado de 1 hora). Teste: `teste421.sql` (3) no `roda.sh` (313 no total).
   - **Site:** na folha, "Endereço" com "Ver no Maps" e "Como chegar" (links do Google Maps; nada vai pro Google antes do toque; sem chave de API, então sem autocompletar) e "Arquivos" (vários de uma vez, abre com o link assinado, tirar com confirmação; apagar a tarefa apaga os arquivos). Na lista, o pino com o começo do endereço e o número de arquivos.
   - Teste: scratchpad/v419/cad.cjs (pc, celular e 320 ok).
-  - **Produção:** rodar o `delta-v421.sql` (termina com "delta v4.21 ok") e subir o zip da 4.21 (leva a 4.19 e a 4.20).
+  - **Produção (22/10/2026, com o ok do Thales, pelo conector):** `delta-v421.sql` rodado (as 2 colunas, a pasta `corre-anexos` privada e as 3 regras dela conferidas). Falta o Thales subir o zip da 4.21.
 - **Próximos (20/10/2026):** a compra de teste no Asaas de produção e o código do serviço e a alíquota do ISS (do contador) pra nota fiscal automática. Instagram pra qualquer conta: a Análise do app da Meta.
 
 ## Antes (v3.44, 14/10/2026)
