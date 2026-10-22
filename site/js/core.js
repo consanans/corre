@@ -451,6 +451,18 @@
         need(await sb.storage.from('corre-video').upload(path, file, { contentType: file.type || 'video/mp4', upsert: false, cacheControl: '31536000' }));
         return sb.storage.from('corre-video').getPublicUrl(path).data.publicUrl;
       },
+      /* v4.21: os arquivos do Caderninho, na pasta PRIVADA corre-anexos (cada um na pasta do próprio login; abre com link
+         assinado que vence em 1 hora) */
+      anexo: {
+        async sobe(file){
+          const nome = String(file.name || 'arquivo').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^A-Za-z0-9._-]+/g, '-').replace(/^-+|-+$/g, '').slice(-60) || 'arquivo';
+          const path = `${uid}/${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}-${nome}`;
+          need(await sb.storage.from('corre-anexos').upload(path, file, { contentType: file.type || 'application/octet-stream', upsert: false }));
+          return path;
+        },
+        async link(path){ const r = need(await sb.storage.from('corre-anexos').createSignedUrl(path, 3600)); return r && r.signedUrl; },
+        async tira(path){ try{ await sb.storage.from('corre-anexos').remove([path]); }catch(e){} }
+      },
       async unlink(url){ const m = /\/object\/public\/(corre|corre-video)\/(.+)$/.exec(url || ''); if(m) try{ await sb.storage.from(m[1]).remove([decodeURIComponent(m[2])]); }catch(e){} limpa(); },
       /* CORRE_CONFIG.FUNCOES troca o endereço de uma função (ex.: { mural: 'swift-api' }, quando o painel do Supabase
          criou a função com outro nome). Se o endereço trocado não existir (404), tenta o nome de sempre.
@@ -758,7 +770,7 @@
       }
       /* v4.19: as mesmas regras do delta-v419.sql pro Caderninho (a hora do aviso o demo não precisa: ninguém recebe) */
       if(t === 'corre_caderno'){
-        r.titulo = String(r.titulo || '').trim(); r.lista = String(r.lista || '').trim(); r.nota = r.nota || ''; r.prio = r.prio || 4; r.repete = r.repete || ''; r.cada = ['dia', 'semana', 'mes'].includes(r.repete) ? Math.max(1, Math.min(999, Number(r.cada) || 1)) : 1; r.antes = Array.isArray(r.antes) ? r.antes : []; if(r.antes.length > 6 || r.antes.some(m => ![15, 30, 60, 120, 180, 1440, 2880, 4320, 7200, 10080, 20160].includes(m))) throw { message: 'check', code: '23514' };
+        r.titulo = String(r.titulo || '').trim(); r.lista = String(r.lista || '').trim(); r.nota = r.nota || ''; r.prio = r.prio || 4; r.repete = r.repete || ''; r.cada = ['dia', 'semana', 'mes'].includes(r.repete) ? Math.max(1, Math.min(999, Number(r.cada) || 1)) : 1; r.endereco = String(r.endereco || '').slice(0, 300); r.anexos = Array.isArray(r.anexos) ? r.anexos : []; if(r.anexos.length > 10 || r.anexos.some(x => !x || !String(x.p || '').startsWith((r.dono || uid) + '/'))) throw { message: 'anexo', hint: 'anexo' }; r.antes = Array.isArray(r.antes) ? r.antes : []; if(r.antes.length > 6 || r.antes.some(m => ![15, 30, 60, 120, 180, 1440, 2880, 4320, 7200, 10080, 20160].includes(m))) throw { message: 'check', code: '23514' };
         if(!r.titulo || r.titulo.length > 300 || r.nota.length > 2000 || r.lista.length > 40 || ![1, 2, 3, 4].includes(r.prio)) throw { message: 'check', code: '23514' };
         if(r.hora && (!/^([01][0-9]|2[0-3]):[0-5][0-9]$/.test(r.hora) || !r.dia)) throw { message: 'hora', hint: 'hora' };
         if(!['', 'dia', 'util', 'semana', 'mes'].includes(r.repete) || (r.repete && !r.dia)) throw { message: 'repete', hint: 'repete' };
@@ -1792,6 +1804,8 @@
       },
       /* v4.17: no demo o vídeo fica no aparelho (um endereço blob: que vale até recarregar a página) */
       async uploadVideo(file){ return URL.createObjectURL(file); },
+      /* v4.21: no demo o arquivo fica no aparelho (vale até recarregar a página) */
+      anexo: { L: {}, async sobe(file){ const p = `${uidOf(read()) || 'demo'}/${Date.now().toString(36)}-${String(file.name || 'arquivo').replace(/[^A-Za-z0-9._-]+/g, '-').slice(-60)}`; this.L[p] = URL.createObjectURL(file); return p; }, async link(p){ return this.L[p] || ''; }, async tira(p){ delete this.L[p]; } },
       async unlink(){},
       /* v3.60: a função "pagamento" de mentira: as mesmas regras e respostas, sem Asaas e sem cobrar. Assinou fora do
          teste grátis, já conta como pago (pra dar pra ver o plano funcionando) */

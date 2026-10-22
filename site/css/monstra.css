@@ -4278,3 +4278,17 @@ body.fn-arrastando .fn-board{scroll-snap-type:none}
 .cd-k{justify-content:flex-start}
 .cd-relogio{margin-left:auto;padding:4px 10px;border-radius:8px;background:var(--night-2);color:var(--yellow);font:600 20px/1 "IBM Plex Mono",ui-monospace,monospace;letter-spacing:.04em}
 .cd-f{grid-template-columns:minmax(0,1fr)}.cd-f-g{grid-template-columns:minmax(0,1fr)}.cd-f-lin{grid-template-columns:repeat(3,minmax(0,1fr))}@media (max-width:360px){.cd-f-lin{grid-template-columns:minmax(0,1fr)}}
+
+/* v4.21 · o Caderninho com endereço (o botão do Google Maps) e os arquivos da tarefa */
+.cd-f-end{display:flex;flex-wrap:wrap;gap:8px}
+.cd-f-end input{flex:1 1 220px;min-width:0;border:1.5px solid var(--line);border-radius:10px;padding:8px 10px;font:15px var(--font-body)}
+.cd-f-maps[hidden]{display:none}
+.cd-f-anx{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.cd-f-anx li{display:flex;align-items:center;gap:6px;border:1.5px solid var(--line);border-radius:10px;padding:4px 4px 4px 8px;min-width:0}
+.cd-anx{flex:1;min-width:0;appearance:none;border:0;background:none;display:flex;align-items:center;gap:8px;text-align:left;cursor:pointer;color:var(--ink);padding:4px 0;font:inherit}
+.cd-anx .ic{flex:none;width:18px;height:18px;color:var(--purple)}
+.cd-anx span{min-width:0;display:grid}
+.cd-anx b{font-weight:600;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cd-anx small{color:var(--muted);font-size:12px}
+.cd-anx-sub{border-style:dashed!important;color:var(--muted)}
+.cd-end{max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}

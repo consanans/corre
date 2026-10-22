@@ -132,6 +132,10 @@ testa teste419.sql 16
 delta delta-v420.sql 'delta v4.20 ok'
 delta delta-v420.sql 'delta v4.20 ok'
 testa teste420.sql 6
+# v4.21: endereço e arquivos no Caderninho
+delta delta-v421.sql 'delta v4.21 ok'
+delta delta-v421.sql 'delta v4.21 ok'
+testa teste421.sql 3
 . "$AQUI/virada343.sh"
 if grep -q 'FALHOU\|ERROR' $D/saida; then echo "deu FALHOU ou erro (acima)"; exit 1; fi
 echo "tudo ok: $(grep -c '^ok:' $D/saida) checagens"

@@ -42,6 +42,12 @@
   const ANTES = [[120, '2h antes'], [60, '1h antes'], [1440, '1 dia antes'], [2880, '2 dias antes'], [7200, '5 dias antes'], [10080, '1 semana antes']];
   const ANTES_OK = [15, 30, 60, 120, 180, 1440, 2880, 4320, 7200, 10080, 20160];
   const antesTxt = m => (ANTES.find(x => x[0] === m) || [0, m >= 1440 ? `${m / 1440} dias antes` : m >= 60 ? `${m / 60}h antes` : `${m} min antes`])[1];
+  /* v4.21: o endereço vira o Google Maps (busca e rota), e os arquivos moram na pasta privada (C.api.anexo) */
+  const mapsBusca = e => 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(e);
+  const mapsRota = e => 'https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(e);
+  const ANEXO_MAX = 20 * 1024 * 1024;
+  const tam = b => b >= 1048576 ? `${(b / 1048576).toFixed(1).replace('.', ',')} MB` : `${Math.max(1, Math.round(b / 1024))} KB`;
+  const anexosDe = t => Array.isArray(t && t.anexos) ? t.anexos : [];
   const repTxt = (rep, cada) => { cada = Math.max(1, Number(cada) || 1); return cada > 1 && UNID[rep] ? `A cada ${cada} ${UNID[rep][1]}` : REPETE[rep] || ''; };
   /* o próximo dia de uma tarefa que repete: anda a partir do dia dela até passar de hoje (a de ontem, feita hoje, volta
      amanhã, não ontem de novo) */
@@ -212,6 +218,8 @@
     if(t.repete){ const rt = repTxt(t.repete, cadaDe(t)); m.push(`<span title="${esc(rt)}">${ico('troca')}${esc(rt.replace(/^Tod[oa] /, ''))}</span>`); }
     if(ss.length) m.push(`<span class="cd-sb" title="Subtarefas">${ico('check')}${ss.filter(s => s.feito).length}/${ss.length}</span>`);
     if(t.hora && Array.isArray(t.antes) && t.antes.length) m.push(`<span title="${esc(t.antes.map(antesTxt).join(', '))}">${ico('bell')}+${t.antes.length}</span>`);
+    if(t.endereco) m.push(`<span class="cd-end" title="${esc(t.endereco)}">${ico('pin')}${esc(t.endereco.split(',')[0].slice(0, 40))}</span>`);
+    if(anexosDe(t).length) m.push(`<span title="Arquivos">${ico('up')}${anexosDe(t).length}</span>`);
     if(t.nota) m.push(`<span title="Tem nota">${ico('edit')}</span>`);
     if(t.lista) m.push(`<span class="cd-ls">#${esc(t.lista)}</span>`);
     return m.length ? `<span class="cd-meta">${m.join('')}</span>` : '';
@@ -350,7 +358,7 @@
     }catch(e){ if(faltaTabela(e)){ CD.falta = true; repinta(); return false; } toast(semCada(e) ? semCada(e) : C.errMsg(e)); return false; }
   }
   /* site novo com o banco de antes da 4.20 (sem a coluna do "a cada") */
-  const semCada = e => e && e.code === 'PGRST204' && /cada|antes/.test(e.message || '') ? 'O "a cada N dias" e os avisos de antes ligam quando o banco do Corre atualizar.' : '';
+  const semCada = e => e && e.code === 'PGRST204' && /cada|antes|endereco|anexos/.test(e.message || '') ? 'O "a cada N dias" e os avisos de antes ligam quando o banco do Corre atualizar.' : '';
   const avisoLigado = () => C.push && C.push.estado ? C.push.estado() === 'ligado' : null;
 
   /* ---------- marcar feita (a que repete pula pro próximo dia dela) ---------- */
@@ -394,6 +402,13 @@
         <label class="switch sm cd-f-av"><input type="checkbox" name="avisa"${t.avisa !== false ? ' checked' : ''}><span class="sw" aria-hidden="true"></span><span><b>Avisar no celular na hora</b><small>${avisoLigado() === false ? 'Os avisos tão desligados neste aparelho: liga em Avisos no celular.' : 'Só com hora marcada.'}</small></span></label>
         <div class="cd-f-antes" role="group" aria-label="Avisar também antes"><span>E também:</span>${ANTES.map(([m, n]) => `<label class="cd-lst cd-ant"><input type="checkbox" name="antes" value="${m}"${Array.isArray(t.antes) && t.antes.includes(m) ? ' checked' : ''}>${esc(n)}</label>`).join('')}</div>
       </fieldset>
+      <fieldset class="cd-f-g"><legend>Endereço</legend>
+        <div class="cd-f-end"><label class="sr-only" for="cd-f-e">Endereço</label><input id="cd-f-e" name="endereco" maxlength="300" value="${esc(t.endereco || '')}" placeholder="Rua, número, bairro, cidade" autocomplete="street-address">
+          <a class="btn sm cd-f-maps" id="cd-f-maps" target="_blank" rel="noopener" href="${t.endereco ? esc(mapsBusca(t.endereco)) : '#'}"${t.endereco ? '' : ' hidden'}>${ico('pin')} Ver no Maps</a>
+          <a class="btn sm ghost cd-f-maps" id="cd-f-rota" target="_blank" rel="noopener" href="${t.endereco ? esc(mapsRota(t.endereco)) : '#'}"${t.endereco ? '' : ' hidden'}>Como chegar</a></div></fieldset>
+      <fieldset class="cd-f-g"><legend>Arquivos${anexosDe(t).length ? ` <small class="num">${anexosDe(t).length}</small>` : ''}</legend>
+        <ul class="cd-f-anx" id="cd-f-anx">${anexosDe(t).map(a => anexoHTML(a)).join('')}</ul>
+        <div><button type="button" class="btn sm" data-act="cd-anexa" data-id="${esc(id)}"${anexosDe(t).length >= 10 ? ' disabled' : ''}>${ico('up')} Pôr arquivo</button> <small class="fine">PDF, foto, planilha, documento: até 20 MB, 10 por tarefa. Só você vê.</small></div></fieldset>
       <fieldset class="cd-f-g"><legend>Prioridade</legend><div class="cd-f-prio">${[1, 2, 3, 4].map(p => `<label class="p${p}"><input type="radio" name="prio" value="${p}"${(t.prio || 4) === p ? ' checked' : ''}><span>${p < 4 ? '!' + p : 'Sem'}</span></label>`).join('')}</div></fieldset>
       <label class="cd-f-ls"><span>Lista</span><input name="lista" maxlength="40" value="${esc(t.lista || '')}" placeholder="Trabalho, Casa, um cliente…" list="cd-f-lists"><datalist id="cd-f-lists">${L.map(l => `<option value="${esc(l)}">`).join('')}</datalist></label>
       <fieldset class="cd-f-g cd-f-sub"><legend>Subtarefas${ss.length ? ` <small class="num">${ss.filter(s => s.feito).length}/${ss.length}</small>` : ''}</legend>
@@ -408,9 +423,35 @@
     f.addEventListener('submit', e => { e.preventDefault(); salva(f); });
     const si = $('cd-f-s'); if(si) si.addEventListener('keydown', e => { if(e.key === 'Enter'){ e.preventDefault(); subAdd(); } });
     /* mexeu no dia à mão: os atalhos acendem certo */
+    /* o botão do Maps acompanha o que tá escrito */
+    f.endereco.addEventListener('input', () => { const v = f.endereco.value.trim(), a = $('cd-f-maps'), b = $('cd-f-rota'); [a, b].forEach(x => { if(x) x.hidden = !v; }); if(a) a.href = v ? mapsBusca(v) : '#'; if(b) b.href = v ? mapsRota(v) : '#'; });
     f.repete.addEventListener('change', () => { const c = f.querySelector('.cd-f-cada'); if(c){ c.hidden = f.repete.value !== 'cada'; if(!c.hidden) f.cada.focus(); } });
     f.dia.addEventListener('input', () => f.querySelectorAll('.cd-f-atalhos .cd-lst').forEach(b => b.classList.toggle('on', b.dataset.v === f.dia.value)));
   }
+  const anexoHTML = a => `<li data-p="${esc(a.p)}"><button type="button" class="cd-anx" data-act="cd-anexo-abre" data-p="${esc(a.p)}">${ico(/^image\//.test(a.t || '') ? 'img' : 'save')}<span><b>${esc(a.n)}</b>${a.s ? `<small>${esc(tam(a.s))}</small>` : ''}</span></button><button type="button" class="cbtn plain" data-act="cd-anexo-tira" data-p="${esc(a.p)}" aria-label="Tirar ${esc(a.n)}">${ico('x')}</button></li>`;
+  async function anexa(id){
+    const t = CD.t.find(x => x.id === id); if(!t || !C.api.anexo) return;
+    if(anexosDe(t).length >= 10){ toast('Cabem 10 arquivos por tarefa.'); return; }
+    const i = document.createElement('input'); i.type = 'file'; i.multiple = true;
+    i.addEventListener('change', async () => {
+      const fs = [...(i.files || [])].slice(0, 10 - anexosDe(t).length); i.remove(); if(!fs.length) return;
+      const grandes = fs.filter(f => f.size > ANEXO_MAX); if(grandes.length) toast(`${grandes[0].name}: passa de 20 MB.`);
+      const ok = fs.filter(f => f.size <= ANEXO_MAX); if(!ok.length) return;
+      const ul = $('cd-f-anx'); if(ul) ul.insertAdjacentHTML('beforeend', `<li class="cd-anx-sub"><small>Subindo ${ok.length === 1 ? esc(ok[0].name) : ok.length + ' arquivos'}…</small></li>`);
+      const novos = [];
+      for(const f of ok){ try{ const p = await C.api.anexo.sobe(f); novos.push({ p, n: String(f.name || 'arquivo').slice(0, 120), t: String(f.type || '').slice(0, 80), s: f.size }); }catch(e){ toast(C.errMsg(e, 'Não deu pra subir ' + f.name + '.')); } }
+      if(!novos.length){ const s1 = document.querySelector('.cd-anx-sub'); if(s1) s1.remove(); return; }
+      const lista = anexosDe(t).concat(novos);
+      try{ const r = await api.upd('corre_caderno', { id }, { anexos: lista }); t.anexos = (r && r[0] && r[0].anexos) || lista; }
+      catch(e){ novos.forEach(a => C.api.anexo.tira(a.p)); toast(semCada(e) ? 'Os arquivos ligam quando o banco do Corre atualizar.' : C.errMsg(e)); }
+      const s2 = document.querySelector('.cd-anx-sub'); if(s2) s2.remove();
+      const ul2 = $('cd-f-anx'); if(ul2) ul2.innerHTML = anexosDe(t).map(anexoHTML).join('');
+      repintaFundo();
+    });
+    document.body.appendChild(i); i.click();
+  }
+  /* a lista atrás da folha, sem fechar a folha */
+  function repintaFundo(){ const c = $('cd-corpo'); if(c) c.innerHTML = corpo(); }
   async function salva(f){
     const id = f.dataset.id, t = CD.t.find(x => x.id === id); if(!t) return;
     const titulo = f.titulo.value.trim(); if(!titulo){ f.titulo.focus(); return; }
@@ -420,7 +461,8 @@
     if(per && !(cada >= 1 && cada <= 999)){ toast('O "a cada" vai de 1 a 999.'); f.cada.focus(); return; }
     if(f.hora.value && !dia){ toast('Pra marcar hora, escolhe o dia.'); f.dia.focus(); return; }
     if(f.repete.value && !dia){ toast('Pra repetir, escolhe o dia de começar.'); f.dia.focus(); return; }
-    const patch = { titulo: titulo.slice(0, 300), nota: f.nota.value.slice(0, 2000), dia, hora, repete, ...(cada > 1 || cadaDe(t) > 1 ? { cada: repete && UNID[repete] ? cada : 1 } : {}), ...(antes.length || (Array.isArray(t.antes) && t.antes.length) ? { antes } : {}), prio: Number((f.querySelector('[name=prio]:checked') || {}).value) || 4, lista: f.lista.value.trim().slice(0, 40), avisa: f.avisa.checked };
+    const end = f.endereco.value.trim().slice(0, 300);
+    const patch = { titulo: titulo.slice(0, 300), nota: f.nota.value.slice(0, 2000), ...(end || t.endereco ? { endereco: end } : {}), dia, hora, repete, ...(cada > 1 || cadaDe(t) > 1 ? { cada: repete && UNID[repete] ? cada : 1 } : {}), ...(antes.length || (Array.isArray(t.antes) && t.antes.length) ? { antes } : {}), prio: Number((f.querySelector('[name=prio]:checked') || {}).value) || 4, lista: f.lista.value.trim().slice(0, 40), avisa: f.avisa.checked };
     try{ const r = await api.upd('corre_caderno', { id }, patch); Object.assign(t, patch, (r && r[0]) || {}); }
     catch(e){ toast(semCada(e) || C.errMsg(e)); return; }
     C.closeSheet(); repinta(); C.sinaisAtualiza && C.sinaisAtualiza();
@@ -495,11 +537,27 @@
     },
     'cd-f-dia': el => { const f = $('cd-f'); if(!f) return; f.dia.value = el.dataset.v; if(!el.dataset.v){ f.hora.value = ''; f.repete.value = ''; } f.querySelectorAll('.cd-f-atalhos .cd-lst').forEach(b => b.classList.toggle('on', b === el)); },
     'cd-sub-add': () => subAdd(),
+    'cd-anexa': el => anexa(el.dataset.id),
+    'cd-anexo-abre': async el => {
+      /* a aba abre ainda no toque (senão o navegador barra) e o link assinado chega nela */
+      const w = window.open('', '_blank');
+      try{ const u = await C.api.anexo.link(el.dataset.p); if(!u) throw new Error('link'); if(w) w.location = u; else location.href = u; }
+      catch(e){ if(w) w.close(); toast('Não deu pra abrir o arquivo agora.'); }
+    },
+    'cd-anexo-tira': async el => {
+      const f = $('cd-f'), t = f && CD.t.find(x => x.id === f.dataset.id); if(!t) return;
+      const a = anexosDe(t).find(x => x.p === el.dataset.p); if(!a) return;
+      if(!(await C.confirma({ ico: 'trash', titulo: 'Tirar o arquivo?', texto: `"${esc(a.n)}" sai da tarefa e do Corre.`, sim: 'Tirar', nao: 'Deixa' }))) return;
+      const lista = anexosDe(t).filter(x => x.p !== a.p);
+      try{ await api.upd('corre_caderno', { id: t.id }, { anexos: lista }); t.anexos = lista; C.api.anexo.tira(a.p); }catch(e){ toast(C.errMsg(e)); return; }
+      const ul = $('cd-f-anx'); if(ul) ul.innerHTML = lista.map(anexoHTML).join(''); repintaFundo();
+    },
     'cd-apaga': async el => {
       const id = el.dataset.id, t = CD.t.find(x => x.id === id); if(!t) return;
       const n = subs(id).length;
       if(!(await C.confirma({ ico: 'trash', titulo: 'Apagar a tarefa?', texto: `"${esc(t.titulo.slice(0, 80))}"${n ? ` e ${n === 1 ? 'a subtarefa' : `as ${n} subtarefas`}` : ''} saem do caderninho.`, sim: 'Apagar', nao: 'Deixa' }))) return;
       try{ await api.del('corre_caderno', { id }); }catch(e){ toast(C.errMsg(e)); return; }
+      if(C.api.anexo) CD.t.filter(x => x.id === id || x.pai === id).forEach(x => anexosDe(x).forEach(a => C.api.anexo.tira(a.p)));
       CD.t = CD.t.filter(x => x.id !== id && x.pai !== id); C.closeSheet(); repinta(); C.sinaisAtualiza && C.sinaisAtualiza(); toast('Apagada.');
     },
     'cd-rele': () => carrega(true).then(repinta)
