@@ -4583,3 +4583,6 @@ body.fn-arrastando .fn-board{scroll-snap-type:none}
 .hz-sec-c>.hz-card,.hz-sec-c .hz-grid>.hz-card{border:0;background:transparent;padding:6px}
 .hz-sec .hz-h h2{display:none}
 @media (prefers-reduced-motion:reduce){.hz-sec-seta{transition:none}}
+/* v4.25 · o Caderninho conta a que repete: a sequência da diária ("5 dias seguidos") e a que já foi feita hoje nas Feitas */
+.cd-meta .cd-seq{color:var(--ink);font-weight:700}
+.cd-meta .cd-seq .ic{color:#FF6A2B}

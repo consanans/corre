@@ -136,6 +136,10 @@ testa teste420.sql 6
 delta delta-v421.sql 'delta v4.21 ok'
 delta delta-v421.sql 'delta v4.21 ok'
 testa teste421.sql 3
+# v4.25: o Caderninho conta a que repete (os dias em que foi feita)
+delta delta-v425.sql 'delta v4.25 ok'
+delta delta-v425.sql 'delta v4.25 ok'
+testa teste425.sql 3
 . "$AQUI/virada343.sh"
 if grep -q 'FALHOU\|ERROR' $D/saida; then echo "deu FALHOU ou erro (acima)"; exit 1; fi
 echo "tudo ok: $(grep -c '^ok:' $D/saida) checagens"

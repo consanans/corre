@@ -48,6 +48,25 @@
   const ANEXO_MAX = 20 * 1024 * 1024;
   const tam = b => b >= 1048576 ? `${(b / 1048576).toFixed(1).replace('.', ',')} MB` : `${Math.max(1, Math.round(b / 1024))} KB`;
   const anexosDe = t => Array.isArray(t && t.anexos) ? t.anexos : [];
+  /* v4.25 (o Thales: "o caderninho hoje marca 0 de 2 mas eu fiz uma missão diária já, eu gostaria que ele contasse todas
+     ao total"): a que repete, feita, pula pro próximo dia e sumia da conta. Agora o dia em que foi feita fica guardado
+     (corre_caderno.feitas, delta-v425.sql, os últimos 400) e ela entra no "feitas hoje"; a diária mostra a sequência.
+     Banco sem a coluna: os dias ficam no aparelho (e sobem junto quando a coluna chegar) */
+  const K_REP = 'corre-caderno-rep', K_VOLTA = 'corre-caderno-volta';
+  const lsJ = k => { try{ return JSON.parse(ls.get(k) || '{}') || {}; }catch(e){ return {}; } };
+  const lsJSet = (k, id, v) => { const o = lsJ(k); if(v == null) delete o[id]; else o[id] = v; ls.set(k, JSON.stringify(o)); };
+  const feitasDe = t => t ? [...new Set((Array.isArray(t.feitas) ? t.feitas : []).concat(lsJ(K_REP)[t.id] || []))].sort() : [];
+  const diaria = t => t.repete === 'util' || (t.repete === 'dia' && cadaDe(t) === 1);
+  /* a sequência da diária (e da de dia útil): os dias seguidos até hoje, ou até ontem se hoje ainda não foi */
+  function seguidas(t){
+    if(!diaria(t)) return 0;
+    const S = new Set(feitasDe(t)), util = t.repete === 'util';
+    const volta = x => { let y = soma(x, -1); if(util) while(semana(y) === 0 || semana(y) === 6) y = soma(y, -1); return y; };
+    let d = hoje(); if(util) while(semana(d) === 0 || semana(d) === 6) d = soma(d, -1);
+    if(!S.has(d)) d = volta(d);
+    let n = 0; while(S.has(d) && n < 400){ n++; d = volta(d); }
+    return n;
+  }
   const repTxt = (rep, cada) => { cada = Math.max(1, Number(cada) || 1); return cada > 1 && UNID[rep] ? `A cada ${cada} ${UNID[rep][1]}` : REPETE[rep] || ''; };
   /* o próximo dia de uma tarefa que repete: anda a partir do dia dela até passar de hoje (a de ontem, feita hoje, volta
      amanhã, não ontem de novo) */
@@ -215,7 +234,10 @@
     const ss = subs(t.id), m = [];
     if(comDia && t.dia) m.push(`<span class="cd-dia${t.dia < hoje() ? ' atras' : ''}">${esc(diaTxt(t.dia))}</span>`);
     if(t.hora) m.push(`<span class="cd-h">${ico('clock')}${esc(horaTxt(t.hora))}</span>`);
-    if(t.repete){ const rt = repTxt(t.repete, cadaDe(t)); m.push(`<span title="${esc(rt)}">${ico('troca')}${esc(rt.replace(/^Tod[oa] /, ''))}</span>`); }
+    if(t.repete){ const rt = repTxt(t.repete, cadaDe(t)); m.push(`<span title="${esc(rt)}">${ico('troca')}${esc(rt.replace(/^Tod[oa] /, ''))}</span>`);
+      const sq = seguidas(t), nv = feitasDe(t).length;
+      if(sq >= 2) m.push(`<span class="cd-seq" title="Feita ${sq} dias seguidos">${ico('fogo')}${sq} dias seguidos</span>`);
+      else if(!diaria(t) && nv >= 2) m.push(`<span title="Feita ${nv} vezes">${ico('check')}${nv}x</span>`); }
     if(ss.length) m.push(`<span class="cd-sb" title="Subtarefas">${ico('check')}${ss.filter(s => s.feito).length}/${ss.length}</span>`);
     if(t.hora && Array.isArray(t.antes) && t.antes.length) m.push(`<span title="${esc(t.antes.map(antesTxt).join(', '))}">${ico('bell')}+${t.antes.length}</span>`);
     if(t.endereco) m.push(`<span class="cd-end" title="${esc(t.endereco)}">${ico('pin')}${esc(t.endereco.split(',')[0].slice(0, 40))}</span>`);
@@ -238,6 +260,14 @@
       <a class="cd-tx" href="${esc(c.href)}"><b>${esc(c.titulo)}</b><span class="cd-meta">${m.join('')}</span></a>${ico('next', 'cd-seta')}</li>`;
   }
   const item = (e, comDia) => e.t === 'tarefa' ? itTarefa(e.x, comDia) : itCorre(e.x, comDia);
+  /* v4.25: a que repete e já foi feita hoje aparece nas feitas, com o dia em que volta; o tique desfaz */
+  const repHoje = () => raiz().filter(t => !t.feito && t.repete && daLista(t) && feitasDe(t).includes(hoje()));
+  function itRepFeita(t){
+    const sq = seguidas(t);
+    return `<li class="cd-it p${t.prio || 4} feito rep" data-id="${esc(t.id)}">
+      <button type="button" class="cd-ck" data-act="cd-desfaz-rep" data-id="${esc(t.id)}" aria-pressed="true" aria-label="Desmarcar: ${esc(t.titulo)}" title="Desfazer"><i>${ico('check')}</i></button>
+      <button type="button" class="cd-tx" data-act="cd-abre" data-id="${esc(t.id)}"><b>${esc(t.titulo)}</b><span class="cd-meta"><span title="${esc(repTxt(t.repete, cadaDe(t)))}">${ico('troca')}volta ${esc(diaTxt(t.dia))}</span>${sq >= 2 ? `<span class="cd-seq">${ico('fogo')}${sq} dias seguidos</span>` : ''}</span></button></li>`;
+  }
   /* o dia em duas partes: o que tem hora (a régua da hora na esquerda) e o que é "no dia" */
   function diaHTML(L, comDia){
     const ch = L.filter(e => e.x.hora), sh = L.filter(e => !e.x.hora);
@@ -248,13 +278,13 @@
 
   function corpoHoje(){
     const hj = hoje(), at = atrasadas(), L = doDia(hj), feitas = raiz().filter(t => t.feito && t.feito_em && C.hojeBR(new Date(t.feito_em)) === hj && daLista(t)).sort((a, b) => String(b.feito_em).localeCompare(String(a.feito_em)));
-    const nT = L.filter(e => e.t === 'tarefa').length + at.filter(e => e.t === 'tarefa').length, nF = feitas.length, tot = nT + nF;
+    const rep = repHoje(), nT = L.filter(e => e.t === 'tarefa').length + at.filter(e => e.t === 'tarefa').length, nF = feitas.length + rep.length, tot = nT + nF;
     const ab = ls.get(K_FEITAS) === '1';
     let h = '';
     if(tot) h += `<div class="cd-prog" role="img" aria-label="${nF} de ${tot} tarefas de hoje feitas"><span><b class="num">${nF}</b> de <b class="num">${tot}</b> feitas hoje</span><i><b style="width:${Math.round(100 * nF / tot)}%"></b></i></div>`;
     if(at.length) h += secao('atras', 'Ficou pra trás', at.length, `<ol class="cd-l">${at.map(e => item(e, true)).join('')}</ol>${at.some(e => e.t === 'tarefa') ? `<button type="button" class="lnk cd-pra-hoje" data-act="cd-pra-hoje">${ico('cal')}Passar as minhas pra hoje</button>` : ''}`, 'atras');
     h += secao('hoje', 'Hoje', L.length, L.length ? diaHTML(L) + novoNoDia(hj) : (!at.length && nT === 0 && nF ? '<p class="cd-carimbo"><span>Caderninho em dia</span></p>' : `<p class="cd-vazio">${nF ? 'Fechou o de hoje.' : 'Nada pra hoje ainda.'} Anota aí em cima o que tem que sair hoje: o Corre junta com o teu Studio, o Hórus e as Vendas.</p>`) + (L.length ? '' : novoNoDia(hj)));
-    if(feitas.length) h += `<details class="cd-sec cd-feitas"${ab ? ' open' : ''} data-feitas><summary><h2>Feitas hoje <small class="num">${feitas.length}</small></h2></summary><ol class="cd-l">${feitas.map(t => itTarefa(t)).join('')}</ol></details>`;
+    if(nF) h += `<details class="cd-sec cd-feitas"${ab ? ' open' : ''} data-feitas><summary><h2>Feitas hoje <small class="num">${nF}</small></h2></summary><ol class="cd-l">${rep.map(itRepFeita).join('')}${feitas.map(t => itTarefa(t)).join('')}</ol></details>`;
     return h;
   }
   function corpoProx(){
@@ -367,21 +397,49 @@
     const el = document.querySelector(`.cd-it[data-id="${CSS.escape(id)}"]`);
     let patch, msg = '';
     if(!t.feito && t.repete && t.dia){
-      const nd = proximo(t.dia, t.repete, cadaDe(t)); patch = { dia: nd };
-      msg = `Feita. Volta ${diaTxt(nd)}${t.hora ? ' às ' + horaTxt(t.hora) : ''}.`;
+      const nd = proximo(t.dia, t.repete, cadaDe(t)), hj = hoje();
+      patch = { dia: nd, feitas: feitasDe(t).filter(d => d !== hj).concat(hj).slice(-400) };
+      /* pra desfazer (o tique nas Feitas hoje): o dia de antes, guardado no aparelho só por hoje */
+      lsJSet(K_VOLTA, id, { de: t.dia, em: hj });
     } else patch = { feito: !t.feito };
     /* o risco e o tique na hora (a lista se arruma logo depois) */
     if(el && !t.feito){ el.classList.add('saindo'); if(navigator.vibrate) try{ navigator.vibrate(12); }catch(e){} }
     const antes = Object.assign({}, t);
     Object.assign(t, patch, patch.feito ? { feito_em: new Date().toISOString() } : patch.feito === false ? { feito_em: null } : {});
     try{
-      const r = await api.upd('corre_caderno', { id }, patch); if(r && r[0]) Object.assign(t, r[0]);
+      const r = await salvaRep(id, patch); if(r && r[0]) Object.assign(t, r[0], (r[0].feitas || !('feitas' in patch)) ? {} : { feitas: patch.feitas });
       /* a que repete: as subtarefas voltam a ficar por fazer */
       if(patch.dia){ const ss = subs(id).filter(s => s.feito); if(ss.length){ await Promise.all(ss.map(s => api.upd('corre_caderno', { id: s.id }, { feito: false }).catch(() => {}))); ss.forEach(s => { s.feito = false; s.feito_em = null; }); } }
     }catch(e){ Object.assign(t, antes); toast(C.errMsg(e)); repinta(); return; }
     setTimeout(() => { repinta(); C.sinaisAtualiza && C.sinaisAtualiza(); }, el && !antes.feito ? 380 : 0);
-    if(msg) toast(msg);
+    if(patch.dia){
+      const sq = seguidas(t), emDia = !doDia(hoje()).some(e => e.t === 'tarefa') && !atrasadas().some(e => e.t === 'tarefa');
+      toast(`Feita${sq >= 2 ? `: ${sq} dias seguidos` : ''}. Volta ${diaTxt(t.dia)}${t.hora ? ' às ' + horaTxt(t.hora) : ''}.${emDia ? ' Caderninho em dia!' : ''}`);
+    }
+    else if(msg) toast(msg);
     else if(t.feito && !doDia(hoje()).some(e => e.t === 'tarefa') && !atrasadas().some(e => e.t === 'tarefa') && antes.dia === hoje()) toast('Caderninho em dia. Boa!');
+  }
+
+  /* v4.25: grava o dia e os dias feitos; banco sem a coluna "feitas", grava o resto e guarda os dias no aparelho */
+  async function salvaRep(id, patch){
+    if(!('feitas' in patch)) return api.upd('corre_caderno', { id }, patch);
+    try{ const r = await api.upd('corre_caderno', { id }, patch); lsJSet(K_REP, id, null); return r; }
+    catch(e){
+      if(!(e && e.code === 'PGRST204' && /feitas/.test(e.message || ''))) throw e;
+      const p2 = Object.assign({}, patch); delete p2.feitas;
+      const r = await api.upd('corre_caderno', { id }, p2); lsJSet(K_REP, id, patch.feitas); return r;
+    }
+  }
+  /* desfazer a que repete feita hoje: volta pro dia de antes e o dia de hoje sai das feitas */
+  async function desfazRep(id){
+    const t = CD.t.find(x => x.id === id); if(!t) return;
+    const v = lsJ(K_VOLTA)[id], hj = hoje();
+    if(!v || v.em !== hj || !v.de){ folha(id); toast('Pra ela voltar, muda o dia aqui.'); return; }
+    const antes = { dia: t.dia, feitas: t.feitas }, fs = feitasDe(t).filter(d => d !== hj);
+    t.dia = v.de; t.feitas = fs; repinta();
+    try{ await salvaRep(id, { dia: v.de, feitas: fs }); lsJSet(K_VOLTA, id, null); }
+    catch(e){ Object.assign(t, antes); toast(C.errMsg(e)); }
+    repinta(); C.sinaisAtualiza && C.sinaisAtualiza();
   }
 
   /* ---------- a folha da tarefa ---------- */
@@ -516,6 +574,7 @@
     'cd-aba': el => { const k = el.dataset.k; if(!ABAS.some(x => x[0] === k)) return; CD.aba = k; ls.set(K_ABA, k); repinta(); const b = document.querySelector(`.cd-aba[data-k="${k}"]`); if(b) b.focus(); },
     'cd-lista': el => { CD.lista = el.dataset.l || ''; ls.set(K_LISTA, CD.lista); repinta(); },
     'cd-feita': el => feita(el.dataset.id),
+    'cd-desfaz-rep': el => desfazRep(el.dataset.id),
     'cd-feita-f': async el => { await feita(el.dataset.id); const t = CD.t.find(x => x.id === el.dataset.id); if(t){ el.setAttribute('aria-pressed', t.feito ? 'true' : 'false'); if(t.feito || t.repete) C.closeSheet(); } },
     'cd-abre': el => {
       const t = CD.t.find(x => x.id === el.dataset.id);
