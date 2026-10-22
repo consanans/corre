@@ -758,7 +758,7 @@
       }
       /* v4.19: as mesmas regras do delta-v419.sql pro Caderninho (a hora do aviso o demo não precisa: ninguém recebe) */
       if(t === 'corre_caderno'){
-        r.titulo = String(r.titulo || '').trim(); r.lista = String(r.lista || '').trim(); r.nota = r.nota || ''; r.prio = r.prio || 4; r.repete = r.repete || '';
+        r.titulo = String(r.titulo || '').trim(); r.lista = String(r.lista || '').trim(); r.nota = r.nota || ''; r.prio = r.prio || 4; r.repete = r.repete || ''; r.cada = ['dia', 'semana', 'mes'].includes(r.repete) ? Math.max(1, Math.min(999, Number(r.cada) || 1)) : 1; r.antes = Array.isArray(r.antes) ? r.antes : []; if(r.antes.length > 6 || r.antes.some(m => ![15, 30, 60, 120, 180, 1440, 2880, 4320, 7200, 10080, 20160].includes(m))) throw { message: 'check', code: '23514' };
         if(!r.titulo || r.titulo.length > 300 || r.nota.length > 2000 || r.lista.length > 40 || ![1, 2, 3, 4].includes(r.prio)) throw { message: 'check', code: '23514' };
         if(r.hora && (!/^([01][0-9]|2[0-3]):[0-5][0-9]$/.test(r.hora) || !r.dia)) throw { message: 'hora', hint: 'hora' };
         if(!['', 'dia', 'util', 'semana', 'mes'].includes(r.repete) || (r.repete && !r.dia)) throw { message: 'repete', hint: 'repete' };

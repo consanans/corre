@@ -4260,3 +4260,21 @@ body.fn-arrastando .fn-board{scroll-snap-type:none}
 .cd-f-x{margin-left:auto}
 @media (max-width:520px){.cd-top{padding:14px 14px 12px}.cd-add{grid-template-columns:1fr}.cd-add .btn{width:100%}.cd-folha{padding:4px 10px 12px 24px}.cd-folha::before{left:14px}.cd-f-lin{grid-template-columns:1fr 1fr}.cd-f-lin label:last-child{grid-column:1/-1}.cd-aba{padding:10px 10px;font-size:14px}}
 @media (prefers-reduced-motion:reduce){.cd-it{transition:none}}
+
+/* v4.20 · o Caderninho: o "a cada N" (dias, semanas, meses) e os avisos de antes na folha da tarefa */
+.cd-f-cada{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-size:14px;color:var(--ink-2)}
+.cd-f-cada select{min-width:0;max-width:100%}
+.cd-f-cada[hidden]{display:none}
+.cd-f-cada input{width:76px;border:1.5px solid var(--line);border-radius:10px;padding:8px;font:15px var(--font-body)}
+.cd-f-cada select{border:1.5px solid var(--line);border-radius:10px;padding:8px;font:15px var(--font-body);background:var(--paper);color:var(--ink)}
+.cd-f-antes{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:13px;color:var(--ink-2)}
+.cd-ant{display:inline-flex;align-items:center;gap:6px;cursor:pointer}
+.cd-ant input{position:absolute;opacity:0;pointer-events:none}
+.cd-ant:has(input:checked){background:var(--yellow);border-color:var(--ink);color:var(--ink)}
+.cd-ant:has(input:focus-visible){outline:3px solid var(--focus);outline-offset:2px}
+@media (max-width:360px){.cd-f-lin{grid-template-columns:1fr}.cd-f-lin label:last-child{grid-column:auto}.cd-f-lin input,.cd-f-lin select{max-width:100%}}
+.cd-f,.cd-f-g{min-width:0}
+/* o reloginho da capa: letra de máquina grande, na ponta direita */
+.cd-k{justify-content:flex-start}
+.cd-relogio{margin-left:auto;padding:4px 10px;border-radius:8px;background:var(--night-2);color:var(--yellow);font:600 20px/1 "IBM Plex Mono",ui-monospace,monospace;letter-spacing:.04em}
+.cd-f{grid-template-columns:minmax(0,1fr)}.cd-f-g{grid-template-columns:minmax(0,1fr)}.cd-f-lin{grid-template-columns:repeat(3,minmax(0,1fr))}@media (max-width:360px){.cd-f-lin{grid-template-columns:minmax(0,1fr)}}
