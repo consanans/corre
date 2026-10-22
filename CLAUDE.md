@@ -441,7 +441,7 @@ O app tem três modos (`core.js`): **de verdade** (config.js com `SUPABASE_URL` 
   - **Banco (`delta-v419.sql`, sem DROP; precisa da v3.35 e da v4.18):** `corre_caderno` (RLS só a dona; gatilho `corre_caderno_ok` sem security definer: apara, confere hora/pai/repetir, calcula `quando` no horário de Brasília, `feito_em`, teto 5000), `corre_push_pref.caderno`, `corre_caderno_fila/tem/alvos` (só `service_role`; chave `caderno:id:epoch` no `corre_push_log`; 10 por pessoa por volta) e o relógio `corre-hora-de-postar` passa a chamar também quando tem tarefa na hora. Teste: `teste419.sql` (16) no `roda.sh` (304 no total).
   - **Função `push` (precisa de Deploy):** a acao `postar` entrega também o `corre_caderno_alvos` (sem o delta, só os posts). Teste: scratchpad/push/roda.mjs (52 ok).
   - Teste: scratchpad/v419/cad.cjs (pc, celular e 320 ok).
-  - **Produção (do Thales, nesta ordem):** rodar o `delta-v419.sql` (termina com "delta v4.19 ok"), Deploy da `push` (Verify JWT desligado) e subir o zip. Sem o delta, a página diz que o Caderninho liga quando o banco atualizar.
+  - **Produção (22/10/2026, com o ok do Thales, pelo conector):** a `push` v14 no ar (o código do repositório, Verify JWT desligado; OPTIONS 200, sem login 401 `login`) e o `delta-v419.sql` rodado ("delta v4.19 ok"; o relógio `corre-hora-de-postar` ativo, olhando posts e tarefas, com o cabeçalho). Falta o Thales subir o zip da 4.19.
 - **Próximos (20/10/2026):** a compra de teste no Asaas de produção e o código do serviço e a alíquota do ISS (do contador) pra nota fiscal automática. Instagram pra qualquer conta: a Análise do app da Meta.
 
 ## Antes (v3.44, 14/10/2026)
