@@ -45,7 +45,9 @@
     /* v4.0 · o Link na bio (bio.js) */
     linkbio: ['#/linkbio', 'Link na bio', 'link'], convite: ['', 'Chamar a galera', 'presente'],
     /* v4.02 · a Lojinha (o painel do dono, lojinha.js): só os donos veem (o tem() filtra; v4.04: o Jey e o Lucas também) */
-    lojinha: ['#/lojinha', 'Lojinha', 'grafico']
+    lojinha: ['#/lojinha', 'Lojinha', 'grafico'],
+    /* v4.19 · o Caderninho (caderninho.js): o planner, com o dia que junta as tarefas e o que o Corre já sabe */
+    caderno: ['#/caderninho', 'Caderninho', 'caderno']
   });
   /* os grupos: [nome, ícone, o que mora dentro]. No computador cada um abre ali mesmo, no menu; no celular a gaveta
      da tua foto já mostra eles abertos. v3.44 (o Thales pediu pra juntar o tanto que der): a Rede junta o Início, as
@@ -53,7 +55,7 @@
      Com isso o Mais some (não sobra nada nele) */
   const GRUPOS = {
     rede: ['Rede', 'chat', ['inicio', 'msg', 'grupos', 'avisos']],
-    lab: ['Laboratório', 'lab', ['studio', 'houzi', 'horus', 'marcas']],
+    lab: ['Laboratório', 'lab', ['caderno', 'studio', 'houzi', 'horus', 'marcas']],
     fin: ['Financeiro', 'calc', ['lojinha', 'corre', 'carteira', 'planos']],
     banca: ['Banca', 'toldo', ['banca', 'refs', 'rolo']],
     eu: ['Perfil', 'eu', ['perfil', 'linkbio', 'convite', 'salvos']]
@@ -62,7 +64,7 @@
      lugar à Comanda, aos Teus e ao Tudo; os grupos seguem dentro do Tudo e da gaveta) */
   const PRACA = ['verso', 'mural'];
   /* o que depende do perfil ou do módulo carregado: o Hórus liga e desliga, o Studio Houzi e os Grupos podem não vir */
-  const tem = k => (k !== 'horus' || C.ferr('horus')) && (k !== 'houzi' || C.views.houzi) && (k !== 'grupos' || C.views.grupos) && (k !== 'lojinha' || (C.ehDono() && !!C.views.lojinha));
+  const tem = k => (k !== 'caderno' || !!C.views.caderno) && (k !== 'horus' || C.ferr('horus')) && (k !== 'houzi' || C.views.houzi) && (k !== 'grupos' || C.views.grupos) && (k !== 'lojinha' || (C.ehDono() && !!C.views.lojinha));
   /* de qual item do menu cada página é (e pra onde a setinha de voltar leva). Banca e Nicho não são mais filhas do
      Início: moram na Banca, e o grupo aberto no menu já diz onde você tá */
   const DONO = { vendas: 'corre', grana: 'corre', estilo: 'corre', 'studio-dentro': 'studio', editar: 'perfil' };
@@ -78,7 +80,7 @@
      embaixo), o número no canto dos blocos e a busca vazia. O uso de cada página também mora aqui (os Teus aprendem com ele) */
   const SN = { at: 0, uid: '', pronto: false, ind: null, v: {}, prox: '' };
   /* o que cada sinal abre e o ícone dele no "Pra hoje" */
-  const SN_IR = { studio: ['#/studio', 'magia'], horus: ['#/horus', 'eye'], corre: ['#/corre', 'grana'], mural: ['#/mural', 'tacha'], planos: ['#/planos', 'cartao'] };
+  const SN_IR = { caderno: ['#/caderninho', 'caderno'], studio: ['#/studio', 'magia'], horus: ['#/horus', 'eye'], corre: ['#/corre', 'grana'], mural: ['#/mural', 'tacha'], planos: ['#/planos', 'cartao'] };
   /* estados do lead que não pedem mais retorno (os mesmos do horus.js) */
   const LEAD_FIM = ['fechado', 'perdido', 'nao_encontrado'];
   const diaMenos = (iso, n) => { const d = new Date(iso + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() - n); return d.toISOString().slice(0, 10); };
@@ -130,8 +132,14 @@
         else if(!v.planos && p.status === 'teste' && !p.assinado && dias != null && dias >= 0 && dias <= 5) v.planos = { txt: dias <= 1 ? 'acaba hoje' : `${dias} dias`, n: dias <= 1 ? '!' : dias, nivel: 'hoje', diz: `O teste do ${NOME[k] || k} acaba ${dias <= 1 ? 'hoje' : `em ${dias} dias`}` };
       });
     }).catch(() => {});
+    /* v4.19: o Caderninho (as tarefas de hoje e as que ficaram pra trás) */
+    const caderno = C.caderno && C.caderno.sinal ? C.caderno.sinal().then(c => {
+      if(!c) return;
+      if(c.atras) v.caderno = { txt: plural(c.atras, 'atrasada', 'atrasadas'), n: c.atras + c.hoje, nivel: 'alerta', diz: c.atras === 1 ? '1 tarefa ficou pra trás' : `${c.atras} tarefas ficaram pra trás` };
+      else if(c.hoje) v.caderno = { txt: `${c.hoje} hoje`, n: c.hoje, nivel: 'hoje', diz: c.hoje === 1 ? '1 tarefa pra hoje no Caderninho' : `${c.hoje} tarefas pra hoje no Caderninho` };
+    }).catch(() => {}) : null;
     /* (o saldo de correal ficou de fora: o menu só sinaliza o que pede ação, e "Carteira de correal" com o número não cabia) */
-    await Promise.all([studio, horus, vendas, mural, planos]);
+    await Promise.all([studio, horus, vendas, mural, planos, caderno]);
     return { v, prox: prox ? quandoCurto(prox) : '' };
   }
   /* "hoje 21h", "amanhã 9h30", "sex 17/10 9h" (no horário de Brasília) */
@@ -222,7 +230,7 @@
      Mensagens e Avisos subiram pro lado da marca: o número deles fica sempre à vista. Tudo no aparelho, nada no banco */
   const TEUS_K = 'corre-menu-teus', TEUS_MAX = 8;
   /* o começo de quem nunca mexeu: a barra do celular sai igual à de antes (Início, Studio, Mural, Mensagens) */
-  const PADRAO = ['inicio', 'studio', 'mural', 'msg', 'corre', 'grupos', 'horus', 'houzi', 'marcas', 'banca'];
+  const PADRAO = ['inicio', 'studio', 'mural', 'msg', 'caderno', 'corre', 'grupos', 'horus', 'houzi', 'marcas', 'banca'];
   /* o Correverso tem lugar fixo (o meio da barra e a praça) e os Avisos moram no sino */
   const FIXAVEL = k => k !== 'verso' && k !== 'avisos' && !!st.me && !!DEST(st.me)[k] && tem(k);
   const teusLe = () => { try{ const o = JSON.parse(localStorage.getItem(TEUS_K) || 'null'); return o && st.me && o.u === st.me.id ? o : null; }catch(e){ return null; } };
@@ -528,6 +536,7 @@
       ['msg', 'Conversas, pedidos e o papo dos grupos', 'chat conversa direct dm inbox papo mensagem'],
       ['grupos', 'Gente do mesmo corre num lugar só', 'comunidade turma galera'],
       ['avisos', 'Notificações e a agenda do dia', 'notificacao notificacoes sino agenda alerta lembrete'],
+      ['caderno', 'Tarefas do dia, lista de afazer e lembrete na hora', 'planner tarefa tarefas todo todoist afazer lista agenda organizar lembrete checklist caderno caderninho'],
       ['studio', 'Programa e posta no Instagram', 'instagram post programar agendar calendario conteudo redes sociais legenda reels'],
       ['houzi', 'Marca, logo e brandbook', 'branding logo logotipo logomarca marca identidade visual brandbook paleta'],
       ['horus', 'Caça, funil e pedidos de clientes', 'clientes leads prospeccao prospectar abordagem radar empresas crm funil pipeline negociacao rd station'],
@@ -1344,6 +1353,8 @@
     if((h === 'horus' || h.startsWith('horus/')) && !C.ferr('horus')) return viewHorusDesligado();
     /* v4.16: as abas do Hórus têm endereço (#/horus/funil, #/horus/entrada; o aviso do pedido abre a Entrada) */
     if((h === 'horus' || h.startsWith('horus/')) && C.views.horus) return C.views.horus(app, h.slice(6));
+    /* v4.19: o Caderninho (#/caderninho/t/ID é o aviso do celular abrindo a tarefa) */
+    if((h === 'caderninho' || h.startsWith('caderninho/')) && C.views.caderno) return C.views.caderno(app, h.slice(11));
     if(h.startsWith('marca/') && C.views.marca) return C.views.marca(app, h.slice(6));
     if((h === 'studio' || h.startsWith('studio/')) && C.views.studio) return C.views.studio(app, h.slice(7));
     if(h.startsWith('houzi/') && C.views.houzi) return C.views.houzi(app, h.slice(6));

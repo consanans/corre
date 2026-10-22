@@ -124,6 +124,10 @@ testa teste417.sql 24
 delta delta-v418.sql 'delta v4.18 ok'
 delta delta-v418.sql 'delta v4.18 ok'
 testa teste418.sql 14
+# v4.19: o Caderninho (as tarefas e o aviso no celular na hora da tarefa)
+delta delta-v419.sql 'delta v4.19 ok'
+delta delta-v419.sql 'delta v4.19 ok'
+testa teste419.sql 16
 . "$AQUI/virada343.sh"
 if grep -q 'FALHOU\|ERROR' $D/saida; then echo "deu FALHOU ou erro (acima)"; exit 1; fi
 echo "tudo ok: $(grep -c '^ok:' $D/saida) checagens"

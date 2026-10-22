@@ -19,7 +19,8 @@
 //   acao "postar" (v4.18, SEM login): o relógio do banco olha de minuto em minuto e, só quando tem post na hora, chama;
 //     a função entrega o que o corre_postar_alvos devolve: "Hora de postar" (o post programado que não sai sozinho, sem
 //     conta conectada) e "Não saiu no Instagram" (o que o Instagram recusou). Cada post avisa uma vez por horário,
-//     marcado antes de sair; chamar de novo não manda nada.
+//     marcado antes de sair; chamar de novo não manda nada. Desde a v4.19, entrega também as tarefas do Caderninho que
+//     chegaram na hora (corre_caderno_alvos, do mesmo jeito; o relógio é um só).
 // Aparelho que o serviço diz que sumiu (404/410) sai do banco (corre_push_mortos).
 //
 // A cifra é a do padrão (RFC 8291, aes128gcm) e a assinatura do Corre é a VAPID (RFC 8292), tudo com o WebCrypto do
@@ -222,6 +223,10 @@ Deno.serve(async (req) => {
     const { data: alvos, error } = await admin.rpc('corre_postar_alvos', {});
     if (error) { console.warn('[push] postar', error.message); return json({ erro: 'banco' }, 503); }
     const L = Array.isArray(alvos) ? alvos : [];
+    /* v4.19: e as tarefas do Caderninho na hora (sem o delta da 4.19, só os posts) */
+    const { data: cad, error: ec } = await admin.rpc('corre_caderno_alvos', {});
+    if (ec) { if (!/corre_caderno_alvos/.test(ec.message || '')) console.warn('[push] caderno', ec.message); }
+    else if (Array.isArray(cad)) L.push(...cad);
     if (!L.length) return json({ ok: true, avisos: 0, entregues: 0 });
     const r = await manda(admin, v, lista(L, 'high'));
     console.log('[push] postar', JSON.stringify({ avisos: L.length, entregues: r.ok, saiu: r.mortos }));

@@ -113,6 +113,8 @@
     dots: '<circle cx="6" cy="12" r="1.3" fill="currentColor"/><circle cx="12" cy="12" r="1.3" fill="currentColor"/><circle cx="18" cy="12" r="1.3" fill="currentColor"/>',
     bell: '<path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 1.5h-15z"/><path d="M10 20.5a2.2 2.2 0 0 0 4 0"/>',
     recibo: '<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6M9 16h3"/>',
+    /* v4.19: o Caderninho (o caderno de espiral) */
+    caderno: '<rect x="6" y="3" width="13" height="18" rx="2"/><path d="M4 7h4M4 12h4M4 17h4M11 8h5M11 12h5"/>',
     marcador: '<path d="M7 3.5h10v17l-5-4-5 4z"/>',
     cartao: '<rect x="3" y="5.5" width="18" height="13" rx="2"/><path d="M3 10h18M7 15h4"/>',
     calc: '<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 7h8M8 12h2M12 12h0M14 12h2M8 16h2M12 16h0M14 16h2"/>',
@@ -477,8 +479,8 @@
   const HOUZI_EX = {"spec":{"v":1,"territorio":"editorial","amostra":1,"nome":"Grão Torto","tagline":"café de esquina","nicho":"cafe","cidade":"Londrina, PR","desde":"2021","pers":[0.35,0.55,0.55,0.35,0.2],"modo":"branding","campos":["cafe","rua"],"logo":{"arranjo":"wordmark","caixa":"titulo","track":0.005,"efeito":"","gesto":"troca","tagline":true,"corTexto":"texto","trocaPor":"ideia"},"simbolo":{"tipo":"ideia","icone":"xicara","ideia":"grao","estilo":"linha","seed":84829},"tipo":{"display":"lora-bolditalic","texto":"lora-regular"},"cores":{"p":"#2B2B2E","s":"#D8D4CB","a":"#B8913A","ink":"#161618","paper":"#F6F2EA","fundo":"paper","esquema":"receita","receita":"Grafite e Ouro"},"textura":"papel","aplic":["revista","sacola","cartao","instagram","copo","fachada"],"seed":273184829,"descr":"Café de bairro, torra própria"},"voz":{"conceito":"Grão Torto é o café que trata cada detalhe como página de revista.","manifesto":"Grão Torto acredita que pressa é inimiga do bom. Por isso cada café é pensado como uma página de revista: com respiro, com ritmo, com intenção. É pra quem acorda cedo que repara. Que lê a legenda inteira. Que volta pela segunda vez.","taglines":["Grão Torto. Pra ler devagar.","A pausa boa do dia, com tempo.","O detalhe é a história.","Feito com atenção em Londrina.","Menos, e melhor."],"e":["calma","precisa","elegante"],"nao_e":["barulhenta","apressada","exagerada"],"fala":["Pensado com calma, feito pra durar.","Nem tudo precisa ser pra ontem.","A pausa boa do dia, no detalhe."],"nao_fala":["IMPERDÍVEL!!!","Só hoje, corre!","O melhor do Brasil."],"bio":"café de esquina · Café em Londrina. Chama no direct.","wa":"Olá, que bom ter você aqui. Aqui é o Grão Torto. Me conta o que procura e eu te ajudo com calma.","ia":false}};
   function demoApi(){
     const KEY = 'corre-demo-v2', mem = {};
-    const T = ['corre_perfis', 'corre_portfolio', 'corre_destaques', 'corre_stories', 'corre_insta', 'corre_contas', 'corre_lancamentos', 'corre_rolo_salvos', 'corre_leads', 'corre_posts', 'corre_feed', 'corre_curtidas', 'corre_comentarios', 'corre_seguindo', 'corre_story_curtidas', 'corre_visitas', 'corre_estilo', 'corre_produtos', 'corre_mural', 'corre_mural_propostas', 'corre_vendas', 'corre_refs', 'corre_lead_fotos', 'corre_mural_chat', 'corre_verso_bloq', 'corre_votos', 'corre_salvos', 'corre_recomendacoes', 'corre_feed_vistas', 'corre_avisos_lidos', 'corre_conversas', 'corre_conversa_membros', 'corre_mensagens', 'corre_push', 'corre_push_pref', 'corre_grupos', 'corre_grupo_membros', 'corre_houzi_marcas', 'corre_correal', 'corre_correal_log', 'corre_tarefa_vez', 'corre_ig_contas', 'corre_houzi_privado', 'corre_assinaturas', 'corre_asaas_clientes', 'corre_skins', 'corre_bio_conta', 'corre_convites', 'corre_ativo_dia', 'corre_skin_pedidos', 'corre_aprovacoes'];
-    const PRIV = ['corre_contas', 'corre_lancamentos', 'corre_rolo_salvos', 'corre_leads', 'corre_posts', 'corre_visitas', 'corre_estilo', 'corre_produtos', 'corre_mural', 'corre_mural_propostas', 'corre_vendas', 'corre_refs', 'corre_lead_fotos', 'corre_verso_bloq', 'corre_votos', 'corre_salvos', 'corre_feed_vistas', 'corre_avisos_lidos', 'corre_push', 'corre_push_pref', 'corre_correal', 'corre_correal_log', 'corre_tarefa_vez', 'corre_ig_contas', 'corre_houzi_privado', 'corre_assinaturas', 'corre_asaas_clientes', 'corre_skins', 'corre_bio_conta', 'corre_convites', 'corre_ativo_dia', 'corre_skin_pedidos', 'corre_aprovacoes'];
+    const T = ['corre_perfis', 'corre_portfolio', 'corre_destaques', 'corre_stories', 'corre_insta', 'corre_contas', 'corre_lancamentos', 'corre_rolo_salvos', 'corre_leads', 'corre_posts', 'corre_feed', 'corre_curtidas', 'corre_comentarios', 'corre_seguindo', 'corre_story_curtidas', 'corre_visitas', 'corre_estilo', 'corre_produtos', 'corre_mural', 'corre_mural_propostas', 'corre_vendas', 'corre_refs', 'corre_lead_fotos', 'corre_mural_chat', 'corre_verso_bloq', 'corre_votos', 'corre_salvos', 'corre_recomendacoes', 'corre_feed_vistas', 'corre_avisos_lidos', 'corre_conversas', 'corre_conversa_membros', 'corre_mensagens', 'corre_push', 'corre_push_pref', 'corre_grupos', 'corre_grupo_membros', 'corre_houzi_marcas', 'corre_correal', 'corre_correal_log', 'corre_tarefa_vez', 'corre_ig_contas', 'corre_houzi_privado', 'corre_assinaturas', 'corre_asaas_clientes', 'corre_skins', 'corre_bio_conta', 'corre_convites', 'corre_ativo_dia', 'corre_skin_pedidos', 'corre_aprovacoes', 'corre_caderno'];
+    const PRIV = ['corre_contas', 'corre_lancamentos', 'corre_rolo_salvos', 'corre_leads', 'corre_posts', 'corre_visitas', 'corre_estilo', 'corre_produtos', 'corre_mural', 'corre_mural_propostas', 'corre_vendas', 'corre_refs', 'corre_lead_fotos', 'corre_verso_bloq', 'corre_votos', 'corre_salvos', 'corre_feed_vistas', 'corre_avisos_lidos', 'corre_push', 'corre_push_pref', 'corre_correal', 'corre_correal_log', 'corre_tarefa_vez', 'corre_ig_contas', 'corre_houzi_privado', 'corre_assinaturas', 'corre_asaas_clientes', 'corre_skins', 'corre_bio_conta', 'corre_convites', 'corre_ativo_dia', 'corre_skin_pedidos', 'corre_aprovacoes', 'corre_caderno'];
     const now = () => new Date().toISOString();
     const inH = h => new Date(Date.now() + h * 36e5).toISOString();
     /* o mesmo do corre_tarefa_valor (delta-v338 + delta-v3391: 3 tarefas por uniforme) */
@@ -753,6 +755,16 @@
         if(M.length > 10 || M.some(x => !x || !/^(https:|blob:|data:)/.test(String(x.u || '')) || !['img', 'video'].includes(x.t))) throw { message: 'midias', hint: 'midias' };
         const f = r.formato || 'feed';
         if(r.ig_status === 'agendado' && ((f === 'carrossel' && M.length < 2) || (['story', 'reels'].includes(f) && M.length !== 1) || (f === 'reels' && (M[0] || {}).t !== 'video'))) throw { message: 'formato', hint: 'formato' };
+      }
+      /* v4.19: as mesmas regras do delta-v419.sql pro Caderninho (a hora do aviso o demo não precisa: ninguém recebe) */
+      if(t === 'corre_caderno'){
+        r.titulo = String(r.titulo || '').trim(); r.lista = String(r.lista || '').trim(); r.nota = r.nota || ''; r.prio = r.prio || 4; r.repete = r.repete || '';
+        if(!r.titulo || r.titulo.length > 300 || r.nota.length > 2000 || r.lista.length > 40 || ![1, 2, 3, 4].includes(r.prio)) throw { message: 'check', code: '23514' };
+        if(r.hora && (!/^([01][0-9]|2[0-3]):[0-5][0-9]$/.test(r.hora) || !r.dia)) throw { message: 'hora', hint: 'hora' };
+        if(!['', 'dia', 'util', 'semana', 'mes'].includes(r.repete) || (r.repete && !r.dia)) throw { message: 'repete', hint: 'repete' };
+        if(r.pai){ const p = d.t.corre_caderno.find(x => x.id === r.pai); if(!p || p.dono !== (r.dono || uid) || p.pai) throw { message: 'pai', hint: 'pai' }; r.repete = ''; }
+        if(isNew && mine.length >= 5000) throw { message: 'o Caderninho guarda até 5000 tarefas', hint: 'limite' };
+        r.feito = !!r.feito; r.avisa = r.avisa !== false; r.feito_em = r.feito ? (r.feito_em || now()) : null; r.updated_at = now();
       }
       if(t === 'corre_aprovacoes'){
         if(!(d.t.corre_portfolio || []).some(m => m.id === r.marca_id && m.dono === (r.dono || uid))) throw { message: 'marca de outra pessoa', code: '42501' };
@@ -1409,6 +1421,7 @@
         if(t === 'corre_portfolio'){ const ids = d.t.corre_portfolio.filter(kill).map(x => x.id); d.t.corre_posts = d.t.corre_posts.filter(x => !ids.includes(x.marca_id)); d.t.corre_visitas = d.t.corre_visitas.filter(x => !ids.includes(x.marca_id)); d.t.corre_produtos = (d.t.corre_produtos || []).filter(x => !ids.includes(x.marca_id)); }
         if(t === 'corre_ig_contas'){ const ids = d.t.corre_ig_contas.filter(kill).map(x => x.id); d.t.corre_posts.forEach(x => { if(ids.includes(x.ig_conta)) x.ig_conta = null; }); }
         if(t === 'corre_leads'){ const ids = d.t.corre_leads.filter(kill).map(x => x.id); d.t.corre_lead_fotos = (d.t.corre_lead_fotos || []).filter(x => !ids.includes(x.lead_id)); }
+        if(t === 'corre_caderno'){ const ids = d.t.corre_caderno.filter(kill).map(x => x.id); d.t.corre_caderno = d.t.corre_caderno.filter(x => !ids.includes(x.pai)); }
         if(t === 'corre_contas'){ const ids = d.t.corre_contas.filter(kill).map(c => c.id); d.t.corre_lancamentos = d.t.corre_lancamentos.filter(l => !ids.includes(l.conta_id)); }
         if(t === 'corre_destaques'){ const ids = d.t.corre_destaques.filter(kill).map(c => c.id); d.t.corre_stories.forEach(s => { if(ids.includes(s.destaque_id)) s.destaque_id = null; }); }
         d.t[t] = d.t[t].filter(r => !kill(r)); write(d);
@@ -1740,7 +1753,7 @@
         /* ---- v3.35: avisos no celular (mesmas regras do delta-v335.sql; a demonstração não manda aviso de verdade) ---- */
         if(/^corre_push_/.test(n)){
           if(!uidR || !d.t.corre_perfis.some(p => p.id === uidR)) throw { message: 'sem perfil', hint: 'perfil' };
-          const A = a || {}, PADRAO = { msg: true, resp: true, seg: true, curt: true, texto: true, lembra: true, postar: true };
+          const A = a || {}, PADRAO = { msg: true, resp: true, seg: true, curt: true, texto: true, lembra: true, postar: true, caderno: true };
           const pref = () => Object.assign({}, PADRAO, d.t.corre_push_pref.find(x => x.dono === uidR) || {});
           const ajustes = ep => { const p = pref(); delete p.dono; delete p.updated_at; return Object.assign(p, { aparelhos: d.t.corre_push.filter(x => x.dono === uidR).length, este: !!ep && d.t.corre_push.some(x => x.dono === uidR && x.endpoint === ep) }); };
           if(n === 'corre_push_ajustes') return ajustes(A.p_endpoint || null);
@@ -1757,7 +1770,7 @@
           }
           if(n === 'corre_push_tirar'){ const antes = d.t.corre_push.length; d.t.corre_push = d.t.corre_push.filter(x => !(x.endpoint === A.p_endpoint && x.dono === uidR)); write(d); return d.t.corre_push.length < antes; }
           if(n === 'corre_push_ajusta'){
-            if(!['msg', 'resp', 'seg', 'curt', 'texto', 'lembra', 'postar'].includes(A.p_campo) || typeof A.p_valor !== 'boolean') throw { message: 'campo', hint: 'campo' };
+            if(!['msg', 'resp', 'seg', 'curt', 'texto', 'lembra', 'postar', 'caderno'].includes(A.p_campo) || typeof A.p_valor !== 'boolean') throw { message: 'campo', hint: 'campo' };
             let p = d.t.corre_push_pref.find(x => x.dono === uidR); if(!p){ p = Object.assign({ dono: uidR }, PADRAO); d.t.corre_push_pref.push(p); }
             p[A.p_campo] = A.p_valor; p.updated_at = now(); write(d); return ajustes(null);
           }

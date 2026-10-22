@@ -6,13 +6,14 @@
   'use strict';
   const C = window.Corre, { esc, ico } = C;
   /* sobe esse número a cada atualização: quem já viu recebe de novo, abrindo nas novidades */
-  const VERSAO = '4.17';
+  const VERSAO = '4.19';
   const K = 'corre-manual-visto';
 
   /* O que tem de novo: só o que é super relevante pra galera (o Thales, v3.67). No máximo 8, o mais novo em cima, uma ou
      duas frases cada, no jeito de quem conta pro amigo. Conserto, acabamento e detalhe técnico não entram aqui (moram no
      CLAUDE.md); novidade grande que chega empurra a mais velha pra fora */
   const NOVIDADES = [
+    ['caderno', 'Caderninho: teu dia numa tela só', 'O planner do Corre: anota numa frase ("mandar orçamento amanhã 15h #Trabalho !1") e ele entende o dia, a hora, a lista e a prioridade. O dia de hoje junta as tuas tarefas com o post do Studio, o cliente do Hórus pra retornar e a cobrança que vence. Tarefa com hora, o celular avisa na hora; a que repete volta sozinha.'],
     ['magia', 'Studio: carrossel, story, reels e aprovação', 'No Studio, cada post agora escolhe o formato: feed, carrossel (até 10 slides com arte, foto ou vídeo), story ou reels, e o Corre programa e posta sozinho no Instagram. E tem o link de aprovação: manda pro cliente pelo WhatsApp, ele aprova ou pede ajuste em cada post, sem precisar de conta, e o teu celular avisa quando ele termina. Sem conta do Instagram conectada, o celular te chama na hora de postar e o post abre com tudo pronto.'],
     ['play', 'Coringa, o jogo do quarto', 'Na prateleira do quarto de toda casa do Correverso mora um boneco de corda: toca em Jogar Coringa e assalta o quarto do Caio em 3D, subindo na cama, na estante e na cortina. A polícia de brinquedo só vem quando toca a sirene; de noite, o Caio tá dormindo e barulho acorda ele.'],
     ['grafico', 'Hórus virou CRM: funil e Entrada', 'No Hórus, teus clientes viram negócio: arrasta cada um de Contatado até Fechou, põe quanto vale e vê o que tá na mesa e a previsão do mês. Quem pede orçamento pelo teu link cai na Entrada e o teu celular avisa na hora. Conversou com alguém no Corre que quer comprar? Na conversa, Pôr no Hórus.'],
@@ -20,7 +21,6 @@
     ['star', 'Skins de Halloween no Ateliê', 'A coleção de Halloween do Correverso (Abóbora, Saci, Bruxa, Lobisomem e mais) agora sai em real, no Pix ou no cartão: R$ 14,90, R$ 9,90 ou R$ 5,90, pagamento único, e é tua pra sempre. Só até Finados.'],
     ['raio', 'Trampo virou GTA: missões', 'No Correverso, o Trampo ganhou 8 missões: perseguição de viatura, rush de moto, incêndio na Gleba, ambulância, desmanche, racha de patinete, seguir o suspeito e muamba de barco no Tibagi. Pagam bem mais que os bicos. Empurrar gente chama a polícia (agora no Calçadão 3D também), e quem leva empurrão demais deixa cair moeda de correal no chão.'],
     ['gente', 'Torcida na rua', 'No Correverso, a torcida do Brasil desce a rua da Gleba de verde e amarelo e a de vermelho toma a rua do Centro, cantando e pulando no bumbo. Chega perto e toca em Cantar com a torcida pra pular junto.'],
-    ['play', 'Gude no parquinho do Zerão', 'Do lado do parquinho do Zerão tem um círculo riscado na terra: puxa a tua bolinha pra trás, solta e tira as outras do círculo. Sozinho, limpa um círculo atrás do outro; em dois, cada um escolhe um bicho e quem tirar mais leva.'],
   ];
   /* cada página: o que é, pra que serve no teu dia, e o botão que leva lá */
   const PAGINAS = [
