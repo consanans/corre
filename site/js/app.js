@@ -591,6 +591,9 @@
     ['De Boa', 'play', 'O jogo da capivara, na Prainha do Tibagi', 'de boa jogo capivara empilhar bichos torre prainha tibagi'],
     /* v4.08 */
     ['Gude', 'play', 'Bolinha de gude no parquinho do Zerão', 'gude bolinha bolinhas peteleco vidro circulo parquinho zerao jogo'],
+    /* v4.26 */
+    ['Muro de grafite', 'play', 'O Spray: grafite no muro do fundo da quadra', 'spray grafite grafiti pichacao lata muro tinta arte rua jogo'],
+    ['Sítio do café', 'play', 'A Geada de 75: salva o cafezal da geada negra', 'geada 75 1975 cafe cafezal sitio roca fazenda porteira frio jogo'],
     ['ACEL · Beisebol', 'verso', 'Desafio de rebatida do Red Sharks', 'beisebol baseball red sharks rebatida'],
     ['Sebo', 'musica', 'Discos pro teu toca-discos', 'discos disco vinil musica'],
     ['Ateliê', 'star', 'A loja de skins', 'skin skins loja roupa fantasia uniforme atelie'],

@@ -1,0 +1,594 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<!-- v4.26 · Geada de 75, nos sítios da roça do Correverso: a noite de 17 para 18 de julho de 1975, o café do norte do
+     Paraná e a geada negra. Abre na moldura dos jogos (JOGOS.geada no verso.js). Som sintetizado; o placar fica no aparelho. -->
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Geada de 75</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alfa+Slab+One&family=Nunito:wght@700;800;900&display=swap">
+<style>
+/* Layout: o cafezal visto de cima ocupa a tela; em cima, o relógio da noite, o termômetro, os pés vivos e os sacos;
+   embaixo, a dica do que fazer agora. Tema único de madrugada (o jogo é uma noite), por isso sem modo claro */
+:root{
+  --noite:#070A16;
+  --vidro:rgba(8,11,24,.8);
+  --papel:#F4EEDF;
+  --tinta:#15121A;
+  --cinza:#A9B2C8;
+  --gelo:#DCE8FF;
+  --fogo:#FF9A3C;
+  --terra:#8E3A22;
+  --ouro:#E8B83A;
+  --f-tit:"Alfa Slab One",Georgia,"Times New Roman",serif;
+  --f-txt:"Nunito",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:border-box}
+html,body{height:100%;margin:0}
+[hidden]{display:none!important}
+body{background:var(--noite);color:var(--papel);font-family:var(--f-txt);overflow:hidden;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible{outline:3px solid var(--ouro);outline-offset:2px}
+#c{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none}
+
+.topo{position:fixed;left:0;right:0;top:0;z-index:3;display:flex;justify-content:space-between;align-items:flex-start;gap:10px;pointer-events:none;
+  padding:calc(env(safe-area-inset-top,0px) + 10px) max(16px,env(safe-area-inset-right,0px)) 0 max(16px,env(safe-area-inset-left,0px))}
+.placa{background:var(--vidro);border:2px solid rgba(244,238,223,.16);border-radius:12px;padding:8px 12px;display:flex;gap:14px;align-items:center}
+.hora{font-family:var(--f-tit);font-size:28px;line-height:1;font-variant-numeric:tabular-nums}
+.hora small{display:block;font:900 10px var(--f-txt);letter-spacing:.12em;text-transform:uppercase;color:var(--cinza);margin-bottom:3px}
+.termo{display:flex;align-items:center;gap:8px}
+.termo i{display:block;width:10px;height:38px;border-radius:6px;background:rgba(244,238,223,.14);position:relative;overflow:hidden}
+.termo i span{position:absolute;left:0;right:0;bottom:0;border-radius:6px;background:var(--fogo)}
+.termo b{font-family:var(--f-tit);font-size:22px;font-weight:400;font-variant-numeric:tabular-nums;min-width:74px}
+.termo b.frio{color:var(--gelo)}
+.dir{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+.conta{background:var(--vidro);border:2px solid rgba(244,238,223,.16);border-radius:12px;padding:6px 11px;text-align:right}
+.conta b{font-family:var(--f-tit);font-weight:400;font-size:20px;line-height:1;font-variant-numeric:tabular-nums}
+.conta small{display:block;font:800 11px var(--f-txt);color:var(--cinza)}
+.bt-p{pointer-events:auto;background:var(--vidro);border:2px solid rgba(244,238,223,.3);border-radius:18px;padding:5px 11px;font:800 13px var(--f-txt);white-space:nowrap}
+.bt-p[aria-pressed="false"]{opacity:.55;text-decoration:line-through}
+
+#dica{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 14px);transform:translateX(-50%);z-index:3;pointer-events:none;width:max-content;max-width:calc(100vw - 32px);text-align:center;
+  background:var(--vidro);border:2px solid rgba(244,238,223,.28);border-radius:22px;padding:8px 16px;font:800 15px var(--f-txt);text-wrap:balance}
+#dica b{color:var(--fogo)}
+#alerta{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 84px);transform:translateX(-50%);z-index:4;pointer-events:none;width:max-content;max-width:calc(100vw - 32px);text-align:center;text-wrap:balance;
+  font-family:var(--f-tit);font-size:clamp(20px,5.5vw,30px);line-height:1.1;color:var(--tinta);background:var(--gelo);padding:7px 16px 6px;border-radius:8px;border:3px solid var(--tinta);box-shadow:0 4px 0 rgba(0,0,0,.45)}
+#alerta.fogo{background:var(--fogo)}
+#alerta small{display:block;font:800 13px var(--f-txt);margin-top:2px}
+
+.cartao{position:fixed;inset:0;margin:auto;z-index:6;width:min(450px,calc(100% - 32px));height:fit-content;max-height:calc(100% - 32px);overflow:auto;overscroll-behavior:contain;
+  background:var(--papel);color:var(--tinta);border:3px solid var(--tinta);border-radius:14px;padding:20px 20px 18px;box-shadow:0 10px 0 rgba(0,0,0,.45);display:flex;flex-direction:column;gap:12px;touch-action:pan-y;user-select:text;-webkit-user-select:text}
+.cartao h1{margin:0;font-family:var(--f-tit);font-weight:400;font-size:clamp(38px,11vw,54px);line-height:.95;color:#2C3E78;text-align:center}
+.cartao h1 span{display:block;color:var(--terra)}
+.cartao h2{margin:0;font-family:var(--f-tit);font-weight:400;font-size:26px;line-height:1.05;text-align:center}
+.cartao .olho{font:900 12px var(--f-txt);letter-spacing:.14em;text-transform:uppercase;text-align:center;color:#6A6275}
+.cartao p{margin:0;line-height:1.45;text-wrap:pretty}
+.cartao .radio{font-style:italic;border-left:4px solid var(--terra);padding-left:10px}
+.ctrls{display:grid;grid-template-columns:auto 1fr;gap:6px 10px;font-size:14px;align-items:baseline}
+.ctrls kbd{font:900 12px var(--f-txt);background:var(--tinta);color:var(--papel);border-radius:5px;padding:2px 7px;justify-self:start;white-space:nowrap}
+.bt{border:3px solid var(--tinta);border-radius:12px;padding:11px 16px;font:900 17px var(--f-txt);box-shadow:0 4px 0 var(--tinta);background:#E6DCC4;color:var(--tinta)}
+.bt-vai{background:var(--ouro);font-family:var(--f-tit);font-weight:400;font-size:22px;padding:10px 16px 8px}
+.bt:active{transform:translateY(2px);box-shadow:0 2px 0 var(--tinta)}
+.talhoes{display:grid;gap:8px}
+.talhao{display:flex;justify-content:space-between;align-items:center;gap:10px;text-align:left;border:2px solid var(--tinta);border-radius:10px;padding:9px 12px;background:#EDE5D1;box-shadow:0 3px 0 var(--tinta);color:var(--tinta)}
+.talhao b{display:block;font:900 16px var(--f-txt)}
+.talhao small{font:700 12px var(--f-txt);color:#6A6275}
+.talhao em{font-style:normal;font:900 16px var(--f-txt);color:var(--terra);white-space:nowrap}
+.talhao[disabled]{opacity:.45;cursor:not-allowed;box-shadow:none}
+.estrelas{display:flex;justify-content:center;gap:8px;font-size:38px;line-height:1}
+.estrelas span{color:#D7CFC0}
+.estrelas span.on{color:var(--ouro);-webkit-text-stroke:2px var(--tinta)}
+.numeros{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center}
+.numeros div{border:2px solid var(--tinta);border-radius:10px;padding:7px 4px;background:#EDE5D1}
+.numeros b{display:block;font-family:var(--f-tit);font-weight:400;font-size:22px;line-height:1}
+.numeros span{font:800 11px var(--f-txt);letter-spacing:.05em;text-transform:uppercase;color:#6A6275}
+.linha{display:flex;gap:10px;flex-wrap:wrap}
+.linha .bt{flex:1 1 140px}
+@media (max-height:520px){.hora{font-size:22px}.termo i{height:30px}.termo b{font-size:18px}#alerta{top:calc(env(safe-area-inset-top,0px) + 62px)}}
+@media (max-width:420px){.placa{gap:9px;padding:7px 9px}.termo b{min-width:62px;font-size:19px}.hora{font-size:23px}#dica{font-size:13px}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<canvas id="c" aria-label="Um cafezal visto de cima, de madrugada, com a casa do sítio e a lenha no alto"></canvas>
+<div class="topo" id="topo" hidden>
+  <div class="placa">
+    <div class="hora"><small>18 jul 1975</small><span id="hora">22:00</span></div>
+    <div class="termo"><i><span id="tBar"></span></i><b id="temp">3,0 °C</b></div>
+  </div>
+  <div class="dir">
+    <div class="conta" aria-live="polite"><b id="vivos">0/0</b><small>pés de café</small></div>
+    <div class="conta"><b id="sacos">0</b><small>sacos</small></div>
+    <button id="bSom" class="bt-p" aria-pressed="true">Som</button>
+  </div>
+</div>
+<div id="alerta" hidden></div>
+<div id="dica" hidden></div>
+
+<section id="inicio" class="cartao" aria-labelledby="iT">
+  <div class="olho">Norte do Paraná · 17 de julho de 1975</div>
+  <h1 id="iT">GEADA <span>DE 75</span></h1>
+  <p class="radio">"Atenção, lavradores: massa de ar polar chegando. Previsão de geada forte nesta madrugada."</p>
+  <p>Tu é sitiante e tem uma noite pra salvar o café. O frio desce primeiro na baixada, perto do córrego, e vai subindo.</p>
+  <p><b>Fogo:</b> pega lenha no paiol e acende no meio do cafezal; o calor segura a geada em volta, mas a lenha acaba e tem que pôr mais. <b>Saco:</b> cobre um pé e ele fica protegido, mas os sacos são poucos.</p>
+  <div class="ctrls" id="ctrls"></div>
+  <div class="talhoes" id="talhoes"></div>
+</section>
+
+<section id="fimNoite" class="cartao" hidden aria-live="polite">
+  <div class="olho" id="fnOlho">06:00 · amanheceu</div>
+  <h2 id="fnT">O café sobreviveu</h2>
+  <div class="estrelas" id="fnEst"></div>
+  <div class="numeros"><div><b id="fnV">0</b><span>vivos</span></div><div><b id="fnQ">0</b><span>queimados</span></div><div><b id="fnP">0%</b><span>salvo</span></div></div>
+  <p id="fnTxt"></p>
+  <div class="linha"><button id="fnDeNovo" class="bt">Essa noite de novo</button><button id="fnVai" class="bt bt-vai">Próximo talhão</button></div>
+</section>
+
+<section id="epilogo" class="cartao" hidden aria-labelledby="eT">
+  <div class="olho">Depois daquela noite</div>
+  <h2 id="eT">18 de julho de 1975</h2>
+  <p>Na madrugada de 18 de julho de 1975, a geada negra queimou os cafezais do Norte do Paraná. De manhã, os pés estavam pretos, como se tivessem pegado fogo.</p>
+  <p>Muito sitiante não plantou café de novo. No lugar vieram a soja e o trigo, a máquina tomou o lugar da enxada, e muita gente deixou a roça e foi pra cidade.</p>
+  <p>Londrina nasceu do café. Naquela noite, ela começou a virar outra cidade.</p>
+  <p id="epRec" style="font-weight:800"></p>
+  <button id="epVolta" class="bt bt-vai">Voltar pros talhões</button>
+</section>
+
+<script>
+'use strict';
+const $ = id => document.getElementById(id);
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const guarda = (k, v) => { try{ localStorage.setItem(k, v); }catch(e){} };
+const le = k => { try{ return localStorage.getItem(k); }catch(e){ return null; } };
+const reduz = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const toque = matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window;
+const rng = s => () => { s = (s * 1103515245 + 12345) & 0x7fffffff; return s / 0x7fffffff; };
+const lerp = (a, b, k) => a + (b - a) * k;
+
+/* ---------- os talhões ---------- */
+// cada um é uma noite: quantas fileiras e pés, quanto dura (em segundos de jogo), o frio de madrugada, os sacos, quantos feixes
+// de lenha cabem na mão (no último, o carrinho) e o vento
+const TALHOES = [
+  { nome: 'O talhão da casa', sub: '4 fileiras, perto do paiol', rows: 4, cols: 7, dura: 120, tmin: -2.6, sacos: 7, carga: 1, vento: false },
+  { nome: 'A baixada do córrego', sub: '5 fileiras, onde o frio desce; carrega 2 feixes', rows: 5, cols: 9, dura: 140, tmin: -3.0, sacos: 8, carga: 2, vento: false },
+  { nome: 'O cafezal inteiro', sub: '6 fileiras, vento do sul e o carrinho de 3 feixes', rows: 6, cols: 11, dura: 160, tmin: -2.5, sacos: 14, carga: 3, vento: true }
+];
+
+/* ---------- a tela ---------- */
+const cv = $('c'), ctx = cv.getContext('2d');
+let SW = 0, SH = 0, DPR = 1;
+const W0 = { W: 1000, H: 640, x: 0, y: 0, s: 1 };
+function medeTela(){
+  DPR = Math.min(window.devicePixelRatio || 1, 2);
+  SW = innerWidth; SH = innerHeight; cv.width = Math.round(SW * DPR); cv.height = Math.round(SH * DPR);
+  encaixa();
+}
+function encaixa(){ const s = Math.min(SW / W0.W, SH / W0.H); W0.s = s; W0.x = (SW - W0.W * s) / 2; W0.y = (SH - W0.H * s) / 2; }
+addEventListener('resize', () => { medeTela(); });
+
+/* ---------- o mundo de uma noite ---------- */
+let N = null;   // { tal, W, H, pes, fogos, casa, paiol, campo, chao, ... }
+const eu = { x: 0, y: 0, alvo: null, lenha: 0, faz: null, fazT: 0, dir: 1, passo: 0 };
+let jogo = 'inicio', t = 0, talAtual = 0, sacos = 0, vento = { t: 0, on: 0, aviso: 0 }, alertaT = 0, mortosAgora = 0, amanhece = 0, horaUlt = 22;
+function monta(i){
+  const tal = TALHOES[i], deitado = SW / SH > 1.05;
+  const W = deitado ? 1000 : 640, H = deitado ? Math.round(clamp(1000 * SH / SW, 560, 720)) : Math.round(clamp(640 * SH / SW, 900, 1200));
+  W0.W = W; W0.H = H; encaixa();
+  const topo = deitado ? 120 : 190, fundo = H - (deitado ? 70 : 110), x0 = W * .07, x1 = W * .93;
+  const campo = { x0, x1, y0: topo + 30, y1: fundo - 10 };
+  const casa = { x: deitado ? W * .14 : W * .2, y: topo * .52 }, paiol = { x: deitado ? W * .5 : W * .62, y: topo * .62 };
+  const paiois = [paiol]; if(tal.rows >= 6) paiois.push({ x: deitado ? W * .86 : W * .86, y: topo * .62 });
+  // as fileiras seguem a curva de nível, de leve
+  const r = rng(31 + i), pes = [], dy = (campo.y1 - campo.y0) / tal.rows, dx = (x1 - x0) / tal.cols;
+  for(let row = 0; row < tal.rows; row++) for(let col = 0; col < tal.cols; col++){
+    const x = x0 + (col + .5) * dx + (r() - .5) * dx * .12, yb = campo.y0 + (row + .5) * dy, y = yb + Math.sin(x * .011 + row * 1.7) * dy * .14;
+    pes.push({ x, y, row, col, r: Math.min(dx, dy) * .32, f: 0, morto: false, saco: false, mortoT: 0, risco: 0, sem: r() });
+  }
+  N = { tal, W, H, deitado, campo, casa, paiol, paiois, pes, fogos: [], fumaca: [], brasas: [], pr: Math.min(dx, dy) * .32, cristal: null };
+  N.chao = pintaChao(N, i);
+  N.gelo = document.createElement('canvas'); N.GW = Math.ceil(W / 20); N.GH = Math.ceil(H / 20); N.gelo.width = N.GW; N.gelo.height = N.GH; N.gctx = N.gelo.getContext('2d'); N.gimg = N.gctx.createImageData(N.GW, N.GH);
+  eu.x = casa.x + 40; eu.y = casa.y + 34; eu.alvo = null; eu.lenha = 0; eu.faz = null;
+  t = 0; sacos = tal.sacos; vento = { t: tal.vento ? 40 : 1e9, on: 0, aviso: 0 }; mortosAgora = 0; amanhece = 0; horaUlt = 22;
+}
+// o chão: terra roxa lavrada, as ruas entre as fileiras, o terreiro da casa e o córrego lá embaixo
+function pintaChao(n, semente){
+  const { W, H, campo } = n, c = document.createElement('canvas'); c.width = W; c.height = H; const x = c.getContext('2d'), r = rng(77 + semente);
+  x.fillStyle = '#4A1E16'; x.fillRect(0, 0, W, H);
+  for(let i = 0; i < 5000; i++){ const v = r(); x.fillStyle = v < .5 ? `rgba(110,40,26,${.25 + r() * .3})` : `rgba(30,10,8,${.2 + r() * .3})`; x.fillRect(r() * W, r() * H, 1 + r() * 3, 1 + r() * 2); }
+  // os sulcos acompanhando as fileiras
+  const dy = (campo.y1 - campo.y0) / n.tal.rows;
+  x.strokeStyle = 'rgba(20,6,4,.35)'; x.lineWidth = 2;
+  for(let yy = campo.y0 - dy * .5; yy < campo.y1 + dy; yy += dy / 3){ x.beginPath(); for(let xx = 0; xx <= W; xx += 20){ const y = yy + Math.sin(xx * .011 + Math.floor((yy - campo.y0) / dy) * 1.7) * dy * .14; xx ? x.lineTo(xx, y) : x.moveTo(xx, y); } x.stroke(); }
+  // o terreiro batido da casa e o caminho
+  x.fillStyle = 'rgba(150,90,60,.55)'; x.beginPath(); x.ellipse(n.casa.x + 30, n.casa.y + 20, W * .16, campo.y0 * .38, 0, 0, 7); x.fill();
+  x.strokeStyle = 'rgba(160,100,70,.45)'; x.lineWidth = 16; x.lineCap = 'round'; x.beginPath(); x.moveTo(n.casa.x + 40, n.casa.y + 30); x.quadraticCurveTo(W * .35, campo.y0 - 20, n.paiol.x, n.paiol.y + 10); x.stroke();
+  // o capim seco da beirada (palha, nada de verde)
+  for(let i = 0; i < 700; i++){ const px = r() * W, py = r() < .5 ? r() * campo.y0 * .9 : H - r() * (H - campo.y1) * .6; x.strokeStyle = `rgba(${170 + r() * 50},${140 + r() * 40},${80},${.25 + r() * .3})`; x.lineWidth = 1; x.beginPath(); x.moveTo(px, py); x.lineTo(px + (r() - .5) * 6, py - 4 - r() * 6); x.stroke(); }
+  // o córrego, embaixo, onde o ar frio se junta
+  x.strokeStyle = '#1B2A4A'; x.lineWidth = 16; x.lineCap = 'round'; x.beginPath(); for(let xx = -10; xx <= W + 10; xx += 20){ const y = H - 26 + Math.sin(xx * .009) * 10; xx < 0 ? x.moveTo(xx, y) : x.lineTo(xx, y); } x.stroke();
+  x.strokeStyle = 'rgba(180,200,240,.25)'; x.lineWidth = 2; x.beginPath(); for(let xx = -10; xx <= W + 10; xx += 20){ const y = H - 29 + Math.sin(xx * .009) * 10; xx < 0 ? x.moveTo(xx, y) : x.lineTo(xx, y); } x.stroke();
+  return c;
+}
+
+/* ---------- o frio ---------- */
+// a temperatura da noite: começa com 4 °C, desce até o mínimo perto das cinco e sobe um tiquinho quando clareia
+function tempNoite(k){ const tmin = N.tal.tmin; if(k < .88) return 4 + (tmin - 4) * Math.sin(Math.min(1, k / .86) * Math.PI / 2); return tmin + (k - .88) / .12 * 2.2; }
+// em cada lugar: a altura do terreno (embaixo é mais frio), o calor das fogueiras e o vento do sul
+function tempEm(x, y){
+  const c = N.campo, e = clamp((y - c.y0) / (c.y1 - c.y0), -.3, 1.15);
+  let T = tempNoite(t) + 1.3 - 3.0 * e;
+  if(y > N.H - 60) T -= .6;
+  for(const f of N.fogos){ const d = Math.hypot(x - f.x, y - f.y); if(d < RAIO_FOGO) T += Math.min(1.25, f.fuel) * 8 * (1 - d / RAIO_FOGO); }
+  if(vento.on > 0) T -= 1.0 * Math.min(1, vento.on / 1.5) * clamp(.4 + e, 0, 1.3);
+  return T;
+}
+const K_GEADA = .0095, RAIO_FOGO = 170;
+function passoFrio(dt){
+  let vivos = 0;
+  for(const p of N.pes){
+    if(p.morto){ p.mortoT += dt; continue; }
+    const T = tempEm(p.x, p.y);
+    if(T < 0) p.f += dt * -T * K_GEADA * (p.saco ? .12 : 1);
+    else p.f = Math.max(0, p.f - dt * T * .03);
+    if(p.f >= 1){ p.morto = true; p.f = 1; mortosAgora++; tocaSfx('morre'); if(mortosAgora === 1) aviso('Queimou o primeiro pé', '', 2.4, 'A geada não volta atrás'); }
+    else vivos++;
+    p.risco = !p.saco && p.f > .62 ? Math.min(1, (p.f - .62) / .3) : 0;
+  }
+  return vivos;
+}
+
+/* ---------- o fogo ---------- */
+const QUEIMA = .026;
+function acende(x, y){
+  // fogo em cima do pé queima o pé: empurra pro vão
+  for(const p of N.pes){ const d = Math.hypot(x - p.x, y - p.y); if(d < p.r + 10){ const a = Math.atan2(y - p.y, x - p.x) || 1.57; x = p.x + Math.cos(a) * (p.r + 12); y = p.y + Math.sin(a) * (p.r + 12); } }
+  N.fogos.push({ x, y, fuel: .9, idade: 0, sem: Math.random() * 10 }); tocaSfx('acende');
+}
+function passoFogo(dt){
+  const vent = vento.on > 0 ? 1.4 : 1;
+  for(let i = N.fogos.length - 1; i >= 0; i--){
+    const f = N.fogos[i]; f.fuel -= dt * QUEIMA * vent; f.idade += dt;
+    if(f.fuel <= 0){ N.fogos.splice(i, 1); continue; }
+    if(Math.random() < dt * 6 * Math.min(1, f.fuel + .2)) N.fumaca.push({ x: f.x + (Math.random() - .5) * 8, y: f.y - 6, r: 6 + Math.random() * 6, vida: 1, vx: (vento.on > 0 ? 0 : 4) + (Math.random() - .5) * 8, vy: vento.on > 0 ? -38 : -14 });
+    if(Math.random() < dt * 10 * f.fuel) N.brasas.push({ x: f.x + (Math.random() - .5) * 10, y: f.y - 4, vx: (Math.random() - .5) * 20, vy: -30 - Math.random() * 40, vida: .6 + Math.random() * .7 });
+  }
+  for(let i = N.fumaca.length - 1; i >= 0; i--){ const s = N.fumaca[i]; s.x += s.vx * dt; s.y += s.vy * dt; s.r += dt * 9; s.vida -= dt * .28; if(s.vida <= 0) N.fumaca.splice(i, 1); }
+  for(let i = N.brasas.length - 1; i >= 0; i--){ const b = N.brasas[i]; b.x += b.vx * dt; b.y += b.vy * dt; b.vy += 20 * dt; b.vida -= dt; if(b.vida <= 0) N.brasas.splice(i, 1); }
+  if(N.fumaca.length > 220) N.fumaca.splice(0, N.fumaca.length - 220);
+}
+
+/* ---------- o sitiante ---------- */
+const PERTO_PAIOL = 46, PERTO_FOGO = 40;
+function paiolPerto(x, y){ return N.paiois.find(p => Math.hypot(x - p.x, y - p.y) < PERTO_PAIOL); }
+function fogoPerto(x, y){ let m = null, md = PERTO_FOGO; for(const f of N.fogos){ const d = Math.hypot(x - f.x, y - f.y); if(d < md){ md = d; m = f; } } return m; }
+function peEm(x, y, folga = 6){ let m = null, md = 1e9; for(const p of N.pes){ const d = Math.hypot(x - p.x, y - p.y); if(d < p.r + folga && d < md){ md = d; m = p; } } return m; }
+// tocou num lugar: decide o que fazer quando chegar lá
+function manda(x, y){
+  if(jogo !== 'noite') return;
+  audio();
+  const pa = paiolPerto(x, y);
+  if(pa){ eu.alvo = { x: pa.x, y: pa.y + 22, faz: 'lenha' }; return; }
+  if(eu.lenha){ const f = fogoPerto(x, y); eu.alvo = f ? { x: f.x, y: f.y + 18, faz: 'alimenta', fogo: f } : { x, y, faz: 'acende' }; return; }
+  const p = peEm(x, y, 14);
+  if(p && !p.morto){
+    if(p.saco){ eu.alvo = { x: p.x, y: p.y + p.r + 10, faz: null }; aviso('Esse já tá coberto', '', 1.3); return; }
+    if(sacos <= 0){ aviso('Acabou o saco', '', 1.8, 'Agora é fogo'); eu.alvo = { x: p.x, y: p.y + p.r + 10, faz: null }; return; }
+    eu.alvo = { x: p.x, y: p.y + p.r + 8, faz: 'cobre', pe: p }; return;
+  }
+  eu.alvo = { x, y, faz: null };
+}
+function fazAgora(){
+  // a tecla de ação: faz o que dá onde tu tá
+  if(jogo !== 'noite') return;
+  const pa = paiolPerto(eu.x, eu.y); if(pa && eu.lenha < N.tal.carga){ pegaLenha(); return; }
+  if(eu.lenha){ const f = fogoPerto(eu.x, eu.y); if(f) alimenta(f); else { acende(eu.x, eu.y - 8); eu.lenha--; } return; }
+  let m = null, md = 50; for(const p of N.pes){ if(p.morto || p.saco) continue; const d = Math.hypot(eu.x - p.x, eu.y - p.y); if(d < md){ md = d; m = p; } }
+  if(m){ if(sacos > 0){ eu.faz = { k: 'cobre', pe: m }; eu.fazT = .7; } else aviso('Acabou o saco', '', 1.6, 'Agora é fogo'); }
+}
+function pegaLenha(){ eu.lenha = N.tal.carga; tocaSfx('lenha'); }
+function alimenta(f){ f.fuel = Math.min(1.3, f.fuel + .62); eu.lenha--; tocaSfx('alimenta'); }
+function chegou(){
+  const a = eu.alvo; eu.alvo = null; if(!a || !a.faz) return;
+  if(a.faz === 'lenha'){ if(eu.lenha < N.tal.carga) pegaLenha(); }
+  else if(a.faz === 'alimenta'){ if(eu.lenha){ if(N.fogos.includes(a.fogo)) alimenta(a.fogo); else { acende(eu.x, eu.y - 18); eu.lenha--; } } }
+  else if(a.faz === 'acende'){ if(eu.lenha){ acende(a.x, a.y); eu.lenha--; } }
+  else if(a.faz === 'cobre'){ if(!a.pe.morto && !a.pe.saco && sacos > 0){ eu.faz = { k: 'cobre', pe: a.pe }; eu.fazT = .7; } }
+}
+function passoEu(dt){
+  if(eu.faz){ eu.fazT -= dt; if(eu.fazT <= 0){ const p = eu.faz.pe; if(!p.morto && !p.saco && sacos > 0){ p.saco = true; sacos--; tocaSfx('saco'); } eu.faz = null; } return; }
+  const vel = eu.lenha ? 150 - eu.lenha * 6 : 195;
+  let mx = 0, my = 0;
+  if(tecla.ArrowLeft || tecla.KeyA) mx--; if(tecla.ArrowRight || tecla.KeyD) mx++; if(tecla.ArrowUp || tecla.KeyW) my--; if(tecla.ArrowDown || tecla.KeyS) my++;
+  if(mx || my){ eu.alvo = null; const k = 1 / Math.hypot(mx, my); eu.x += mx * k * vel * dt; eu.y += my * k * vel * dt; eu.dir = mx || eu.dir; eu.passo += dt * 9; }
+  else if(eu.alvo){
+    const dx = eu.alvo.x - eu.x, dy = eu.alvo.y - eu.y, d = Math.hypot(dx, dy);
+    if(d < 4){ chegou(); }
+    else { const p = Math.min(d, vel * dt); eu.x += dx / d * p; eu.y += dy / d * p; if(Math.abs(dx) > 2) eu.dir = Math.sign(dx); eu.passo += dt * 9; }
+  }
+  eu.x = clamp(eu.x, 12, N.W - 12); eu.y = clamp(eu.y, 30, N.H - 40);
+}
+
+/* ---------- os comandos ---------- */
+const tecla = {};
+addEventListener('keydown', e => { if(e.repeat) return; tecla[e.code] = true; if(jogo === 'noite' && (e.code === 'Space' || e.code === 'KeyE' || e.code === 'Enter')){ e.preventDefault(); fazAgora(); } });
+addEventListener('keyup', e => { tecla[e.code] = false; });
+addEventListener('blur', () => { for(const k in tecla) tecla[k] = false; });
+cv.addEventListener('pointerdown', e => { if(jogo !== 'noite') return; const x = (e.clientX - W0.x) / W0.s, y = (e.clientY - W0.y) / W0.s; manda(x, y); toqueMarca = { x, y, t: .5 }; });
+let toqueMarca = null;
+
+/* ---------- a noite ---------- */
+function comeca(i){
+  audio(); talAtual = i; monta(i);
+  ['inicio', 'fimNoite', 'epilogo'].forEach(id => $(id).hidden = true);
+  jogo = 'noite'; $('dica').hidden = false; $('topo').hidden = false;
+  aviso('22:00', '', 2.4, i === 0 ? 'O frio ainda tá longe. Começa pela lenha.' : TALHOES[i].vento ? 'Hoje tem vento do sul' : 'Na baixada a geada chega antes');
+}
+function passoVento(dt){
+  if(!N.tal.vento) return;
+  vento.t -= dt;
+  if(vento.on > 0){ vento.on -= dt; if(vento.on <= 0) vento.t = 28 + Math.random() * 14; return; }
+  if(vento.t <= 0 && vento.aviso <= 0){ vento.aviso = 3; aviso('Vento do sul!', 'fogo', 3, 'O fogo queima mais rápido e o frio aperta'); tocaSfx('rajada'); }
+  if(vento.aviso > 0){ vento.aviso -= dt; if(vento.aviso <= 0){ vento.on = 9; } }
+}
+function horaDe(k){ const min = 22 * 60 + k * 8 * 60, h = Math.floor(min / 60) % 24, m = Math.floor(min % 60); return [h, m]; }
+function fimDaNoite(){
+  jogo = 'amanhecendo'; amanhece = 0; $('dica').hidden = true; tocaSfx('galo');
+  aviso('06:00', '', 2.4, 'Amanheceu');
+}
+function mostraResultado(){
+  jogo = 'resultado';
+  const tot = N.pes.length, vivos = N.pes.filter(p => !p.morto).length, pct = vivos / tot, e = pct >= .9 ? 3 : pct >= .7 ? 2 : pct >= .45 ? 1 : 0;
+  $('fnOlho').textContent = '06:00 · ' + N.tal.nome;
+  $('fnT').textContent = e === 3 ? 'O café sobreviveu' : e === 2 ? 'Salvou a maior parte' : e === 1 ? 'Sobrou um pouco' : 'A geada levou tudo';
+  $('fnEst').innerHTML = [0, 1, 2].map(i => `<span class="${i < e ? 'on' : ''}">★</span>`).join(''); $('fnEst').setAttribute('aria-label', e + ' de 3 estrelas');
+  $('fnV').textContent = vivos; $('fnQ').textContent = tot - vivos; $('fnP').textContent = Math.round(pct * 100) + '%';
+  $('fnTxt').textContent = e === 3 ? 'Os pés amanheceram branquinhos de gelo, mas vivos. O sol derrete e a florada vem.' : e ? 'Os pés pretos não voltam. Os que tu salvou seguram a safra do ano que vem.' : 'De manhã o cafezal tava todo preto. Tenta de novo: começa a lenha mais cedo e cobre a baixada primeiro.';
+  const recs = lePlacar(); if(!recs[talAtual] || pct > recs[talAtual]){ recs[talAtual] = Math.round(pct * 1000) / 1000; guarda('corre-geada-placar', JSON.stringify(recs)); }
+  const ultimo = talAtual + 1 >= TALHOES.length;
+  $('fnVai').hidden = !e; $('fnVai').textContent = ultimo ? 'E depois daquela noite?' : 'Próximo talhão';
+  $('fimNoite').hidden = false; tocaSfx(e ? 'sol' : 'perdeu');
+}
+const lePlacar = () => { try{ return JSON.parse(le('corre-geada-placar') || '{}') || {}; }catch(e){ return {}; } };
+$('fnDeNovo').addEventListener('click', () => comeca(talAtual));
+$('fnVai').addEventListener('click', () => { if(talAtual + 1 >= TALHOES.length){ $('fimNoite').hidden = true; mostraEpilogo(); } else comeca(talAtual + 1); });
+$('epVolta').addEventListener('click', () => { $('epilogo').hidden = true; abreInicio(); });
+function mostraEpilogo(){
+  const r = lePlacar(), n = TALHOES.reduce((s, _, i) => s + (r[i] || 0), 0) / TALHOES.length;
+  $('epRec').textContent = 'Teu melhor nos três talhões: ' + Math.round(n * 100) + '% do café salvo.';
+  $('epilogo').hidden = false;
+}
+function abreInicio(){
+  const r = lePlacar();
+  $('talhoes').innerHTML = TALHOES.map((tl, i) => { const liberado = i === 0 || r[i - 1] >= .45; return `<button class="talhao" data-i="${i}" ${liberado ? '' : 'disabled'}><span><b>${i + 1}. ${tl.nome}</b><small>${liberado ? tl.sub : 'Salva 45% do talhão de antes'}</small></span><em>${r[i] != null ? Math.round(r[i] * 100) + '%' : liberado ? 'Jogar' : '🔒'}</em></button>`; }).join('');
+  $('inicio').hidden = false; jogo = 'inicio'; $('topo').hidden = true; $('dica').hidden = true;
+}
+$('talhoes').addEventListener('click', e => { const b = e.target.closest('.talhao'); if(b && !b.disabled) comeca(+b.dataset.i); });
+$('ctrls').innerHTML = toque
+  ? '<kbd>toca no paiol</kbd><span>pega lenha</span><kbd>com lenha, toca</kbd><span>onde acender (ou numa fogueira, pra pôr mais)</span><kbd>toca num pé</kbd><span>cobre com saco</span>'
+  : '<kbd>clica no paiol</kbd><span>pega lenha</span><kbd>com lenha, clica</kbd><span>onde acender (ou numa fogueira, pra pôr mais)</span><kbd>clica num pé</kbd><span>cobre com saco</span><kbd>WASD + Espaço</kbd><span>anda e faz o que dá ali</span>';
+
+let alertaTxt = '';
+function aviso(txt, tipo, seg, sub){ const a = $('alerta'); a.innerHTML = txt + (sub ? `<small>${sub}</small>` : ''); a.className = tipo || ''; a.hidden = false; alertaT = seg; }
+function dica(){
+  let h = '';
+  if(eu.faz) h = 'Cobrindo o pé…';
+  else if(eu.lenha) h = '<b>' + (eu.lenha > 1 ? eu.lenha + ' feixes' : 'Com lenha') + ':</b> toca onde acender, ou numa fogueira pra pôr mais';
+  else if(N.fogos.some(f => f.fuel < .25)) h = 'Tem fogueira apagando: <b>busca lenha</b> no paiol';
+  else if(!N.fogos.length) h = 'Toca no <b>paiol</b> pra pegar lenha';
+  else if(sacos > 0 && N.pes.some(p => p.risco > .3)) h = 'Pé branco de geada: <b>toca nele</b> pra cobrir com saco';
+  else h = 'Mantém o fogo aceso e cobre a baixada';
+  if($('dica').dataset.h !== h){ $('dica').dataset.h = h; $('dica').innerHTML = h; }
+}
+
+/* ---------- o som: vento, grilo, o fogo estalando, a viola e o galo ---------- */
+let ac = null, mestre = null, ruido = null, somOn = le('corre-geada-som') !== '0', ventoS = null, musica = null;
+function audio(){
+  if(ac){ if(ac.state === 'suspended') ac.resume(); return; }
+  try{ ac = new (window.AudioContext || window.webkitAudioContext)(); }catch(e){ return; }
+  mestre = ac.createGain(); mestre.gain.value = somOn ? .8 : 0; const comp = ac.createDynamicsCompressor(); mestre.connect(comp); comp.connect(ac.destination);
+  const n = ac.sampleRate * 2; ruido = ac.createBuffer(1, n, ac.sampleRate); const d = ruido.getChannelData(0); let b = 0; for(let i = 0; i < n; i++){ b = b * .97 + (Math.random() * 2 - 1) * .03; d[i] = b * 8 + (Math.random() * 2 - 1) * .1; }
+  ventoS = { g: ac.createGain(), s: ac.createBufferSource(), f: ac.createBiquadFilter() };
+  ventoS.s.buffer = ruido; ventoS.s.loop = true; ventoS.f.type = 'bandpass'; ventoS.f.frequency.value = 380; ventoS.f.Q.value = .6; ventoS.g.gain.value = 0;
+  ventoS.s.connect(ventoS.f); ventoS.f.connect(ventoS.g); ventoS.g.connect(mestre); ventoS.s.start();
+  musica = { prox: ac.currentTime + 1.5, frase: 0, grilo: 0, fogo: 0 };
+}
+const gan = (o = mestre) => { const g = ac.createGain(); g.connect(o); return g; };
+const env = (g, t0, a, v, d) => { g.gain.setValueAtTime(.0001, t0); g.gain.exponentialRampToValueAtTime(Math.max(.0002, v), t0 + a); g.gain.exponentialRampToValueAtTime(.0001, t0 + a + d); };
+const osc = (tipo, f, t0, dur, o) => { const s = ac.createOscillator(); s.type = tipo; s.frequency.setValueAtTime(f, t0); s.connect(o); s.start(t0); s.stop(t0 + dur + .05); return s; };
+const ruid = (t0, dur, o) => { const s = ac.createBufferSource(); s.buffer = ruido; s.connect(o); s.start(t0, Math.random()); s.stop(t0 + dur + .05); };
+const filt = (tipo, f, q, o) => { const b = ac.createBiquadFilter(); b.type = tipo; b.frequency.value = f; b.Q.value = q; b.connect(o); return b; };
+// a corda da viola: o ataque de serra, o corpo de triângulo, e cai rápido
+function ponteia(f, t0, v){ const g = gan(); env(g, t0, .004, .13 * v, 1.4); const fl = filt('lowpass', 2600, .8, g); osc('sawtooth', f, t0, 1.5, filt('lowpass', 1800, 1, fl)); osc('triangle', f * 2, t0, .6, fl); osc('sine', f * 1.003, t0, 1.5, fl); }
+const SFX = {
+  lenha(){ const t0 = ac.currentTime; for(let i = 0; i < 3; i++){ const g = gan(); env(g, t0 + i * .06, .002, .14, .08); ruid(t0 + i * .06, .1, filt('bandpass', 900 + i * 200, 2, g)); } },
+  acende(){ const t0 = ac.currentTime; const g = gan(); env(g, t0, .08, .2, .9); ruid(t0, 1, filt('bandpass', 1400, .7, g)); const g2 = gan(); env(g2, t0, .02, .16, .3); const s = osc('sine', 120, t0, .35, g2); s.frequency.exponentialRampToValueAtTime(60, t0 + .3); },
+  alimenta(){ const t0 = ac.currentTime; const g = gan(); env(g, t0, .03, .18, .6); ruid(t0, .7, filt('bandpass', 1100, .8, g)); for(let i = 0; i < 6; i++){ const g2 = gan(); env(g2, t0 + .1 + Math.random() * .5, .001, .1, .03); ruid(t0 + .1 + Math.random() * .5, .04, filt('highpass', 2500, 1, g2)); } },
+  saco(){ const t0 = ac.currentTime; const g = gan(); env(g, t0, .03, .16, .25); ruid(t0, .3, filt('bandpass', 600, .9, g)); },
+  morre(){ const t0 = ac.currentTime; const g = gan(); env(g, t0, .002, .2, .5); const s = osc('triangle', 180, t0, .55, filt('lowpass', 900, 1, g)); s.frequency.exponentialRampToValueAtTime(70, t0 + .5);
+    for(let i = 0; i < 5; i++){ const g2 = gan(); env(g2, t0 + i * .03, .001, .07, .03); osc('square', 3000 + Math.random() * 2000, t0 + i * .03, .04, filt('highpass', 2500, 1, g2)); } },
+  rajada(){ const t0 = ac.currentTime; const g = gan(); env(g, t0, .6, .3, 2); ruid(t0, 2.6, filt('bandpass', 500, .5, g)); },
+  hora(){ const t0 = ac.currentTime; const g = gan(); env(g, t0, .005, .08, 1.6); osc('sine', 1046, t0, 1.7, g); osc('sine', 1046 * 2.76, t0, .4, g); },
+  galo(){ const t0 = ac.currentTime; [[0, .18, 620, 900], [.22, .16, 700, 1000], [.42, .7, 900, 760]].forEach(([d, dur, f0, f1]) => { const g = gan(); env(g, t0 + d, .02, .2, dur); const s = osc('sawtooth', f0, t0 + d, dur + .05, filt('bandpass', 1400, 2, g)); s.frequency.linearRampToValueAtTime(f1, t0 + d + dur); }); },
+  sol(){ const t0 = ac.currentTime; [329.6, 415.3, 493.9, 659.3].forEach((f, i) => ponteia(f, t0 + i * .14, 1.2)); },
+  perdeu(){ const t0 = ac.currentTime; [329.6, 311.1, 293.7, 246.9].forEach((f, i) => ponteia(f, t0 + i * .3, 1)); }
+};
+const tocaSfx = k => { if(ac && somOn) SFX[k](); };
+// a viola: uma moda em mi, de tempo em tempo, e os grilos que calam quando esfria
+const MODA = [[329.6, 0], [369.9, .3], [415.3, .6], [369.9, .9], [329.6, 1.2], [246.9, 1.8], [277.2, 2.1], [329.6, 2.4], [415.3, 3.2], [440, 3.5], [493.9, 3.8], [415.3, 4.1], [369.9, 4.4], [329.6, 5]];
+function agendaSom(dt){
+  if(!musica || !somOn) return;
+  const agora = ac.currentTime, frio = clamp(-tempNoite(t) / 3, 0, 1);
+  // o vento de fundo e a rajada
+  ventoS.g.gain.setTargetAtTime((.04 + frio * .05 + (vento.on > 0 ? .18 : 0)) * (jogo === 'noite' ? 1 : .4), agora, .4);
+  ventoS.f.frequency.setTargetAtTime(vento.on > 0 ? 700 : 380, agora, .5);
+  if(jogo !== 'noite') return;
+  if(agora > musica.prox){ const t0 = agora + .05, v = .7 - frio * .3; MODA.forEach(([f, d]) => ponteia(f * (musica.frase % 2 ? .75 : 1), t0 + d, v)); musica.frase++; musica.prox = t0 + 14 + Math.random() * 6; }
+  // grilo: enquanto não gelou
+  musica.grilo -= dt; if(musica.grilo <= 0 && tempNoite(t) > -.5){ musica.grilo = .5 + Math.random() * 1.2; const t0 = agora; for(let i = 0; i < 3; i++){ const g = gan(); env(g, t0 + i * .05, .003, .03 * (1 - frio), .03); osc('sine', 4300, t0 + i * .05, .05, g); } }
+  // o fogo perto estala
+  let calor = 0; for(const f of N.fogos){ const d = Math.hypot(eu.x - f.x, eu.y - f.y); calor += f.fuel * Math.max(0, 1 - d / 260); }
+  musica.fogo -= dt; if(musica.fogo <= 0 && calor > .05){ musica.fogo = .05 + Math.random() * .25 / calor; const g = gan(); env(g, agora, .001, Math.min(.12, .05 * calor), .02 + Math.random() * .03); ruid(agora, .05, filt('highpass', 1800 + Math.random() * 2000, 1, g)); }
+}
+$('bSom').addEventListener('click', () => { somOn = !somOn; guarda('corre-geada-som', somOn ? '1' : '0'); $('bSom').setAttribute('aria-pressed', String(somOn)); audio(); if(mestre) mestre.gain.setTargetAtTime(somOn ? .8 : 0, ac.currentTime, .05); });
+$('bSom').setAttribute('aria-pressed', String(somOn));
+document.addEventListener('visibilitychange', () => { if(document.hidden && ac) ac.suspend(); else if(ac) ac.resume(); });
+
+/* ---------- o quadro ---------- */
+let ultimo = performance.now(), geloT = 0, VELOZ = 1;
+function quadro(agora){
+  requestAnimationFrame(quadro);
+  const dt = Math.min(.05, (agora - ultimo) / 1000) * VELOZ; ultimo = agora;
+  if(N && jogo === 'noite'){
+    t += dt / N.tal.dura;
+    passoEu(dt); passoFogo(dt); passoVento(dt);
+    const vivos = passoFrio(dt);
+    $('vivos').textContent = vivos + '/' + N.pes.length; $('sacos').textContent = sacos;
+    const [h, m] = horaDe(Math.min(1, t)); $('hora').textContent = String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
+    if(h !== horaUlt){ horaUlt = h; tocaSfx('hora'); }
+    const T = tempEm(eu.x, eu.y); const tb = $('temp'); tb.textContent = (T >= 0 ? '' : '−') + Math.abs(T).toFixed(1).replace('.', ',') + ' °C'; tb.classList.toggle('frio', T < 0);
+    $('tBar').style.height = Math.round(clamp((T + 5) / 10, .05, 1) * 100) + '%'; $('tBar').style.background = T < 0 ? 'var(--gelo)' : 'var(--fogo)';
+    dica();
+    if(t >= 1) fimDaNoite();
+  } else if(N && jogo === 'amanhecendo'){
+    amanhece += dt / 3.2; passoFogo(dt);
+    if(amanhece >= 1) mostraResultado();
+  }
+  if(N && ac) agendaSom(dt);
+  if(alertaT > 0){ alertaT -= dt; if(alertaT <= 0) $('alerta').hidden = true; }
+  if(toqueMarca){ toqueMarca.t -= dt; if(toqueMarca.t <= 0) toqueMarca = null; }
+  geloT -= dt; if(N && geloT <= 0){ geloT = .25; pintaGelo(); }
+  desenha(agora / 1000);
+}
+// a geada no chão: uma telinha de 20 em 20 pontos, esticada e alisada
+function pintaGelo(){
+  const { GW, GH, gimg, gctx } = N, d = gimg.data, luz = jogo === 'amanhecendo' ? 1 - amanhece * .3 : 1;
+  for(let gy = 0; gy < GH; gy++) for(let gx = 0; gx < GW; gx++){
+    const T = tempEm(gx * 20 + 10, gy * 20 + 10), a = clamp(-T * .13, 0, .46) * luz, i = (gy * GW + gx) * 4;
+    d[i] = 214; d[i + 1] = 228; d[i + 2] = 255; d[i + 3] = a * 255;
+  }
+  gctx.putImageData(gimg, 0, 0);
+}
+
+function desenha(ts){
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  ctx.fillStyle = '#070A16'; ctx.fillRect(0, 0, SW, SH);
+  if(!N){ return; }
+  ctx.save(); ctx.translate(W0.x, W0.y); ctx.scale(W0.s, W0.s);
+  ctx.drawImage(N.chao, 0, 0);
+  ctx.imageSmoothingEnabled = true; ctx.drawImage(N.gelo, 0, 0, N.GW * 20, N.GH * 20);
+  // a casa e o paiol
+  desenhaCasa(N.casa.x, N.casa.y);
+  for(const p of N.paiois) desenhaPaiol(p.x, p.y);
+  // os pés de café
+  for(const p of N.pes) desenhaPe(p, ts);
+  // as fogueiras
+  for(const f of N.fogos) desenhaFogo(f, ts);
+  desenhaEu(ts);
+  // fumaça por cima
+  for(const s of N.fumaca){ ctx.fillStyle = `rgba(150,150,170,${.16 * s.vida})`; ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, 7); ctx.fill(); }
+  // a noite: escurece tudo, com buraco onde tem luz
+  const escuro = jogo === 'amanhecendo' ? .55 * (1 - amanhece) : jogo === 'resultado' ? 0 : .55;
+  if(escuro > 0){
+    ctx.fillStyle = `rgba(6,10,30,${escuro})`; ctx.fillRect(-W0.x / W0.s, -W0.y / W0.s, SW / W0.s, SH / W0.s);
+    ctx.globalCompositeOperation = 'lighter';
+    for(const f of N.fogos){ const r = 70 + f.fuel * 90, g = ctx.createRadialGradient(f.x, f.y, 4, f.x, f.y, r); g.addColorStop(0, `rgba(255,150,60,${.45 * Math.min(1, f.fuel + .2)})`); g.addColorStop(1, 'rgba(255,120,40,0)'); ctx.fillStyle = g; ctx.fillRect(f.x - r, f.y - r, r * 2, r * 2); }
+    const gl = ctx.createRadialGradient(eu.x, eu.y, 2, eu.x, eu.y, 60); gl.addColorStop(0, 'rgba(255,210,140,.32)'); gl.addColorStop(1, 'rgba(255,210,140,0)'); ctx.fillStyle = gl; ctx.fillRect(eu.x - 60, eu.y - 60, 120, 120);
+    const jx = N.casa.x + 26, jy = N.casa.y + 6, gj = ctx.createRadialGradient(jx, jy + 20, 2, jx, jy + 20, 70); gj.addColorStop(0, 'rgba(255,200,120,.3)'); gj.addColorStop(1, 'rgba(255,200,120,0)'); ctx.fillStyle = gj; ctx.fillRect(jx - 70, jy - 50, 140, 140);
+    // o luar
+    const lu = ctx.createRadialGradient(N.W * .8, -N.H * .2, 10, N.W * .8, -N.H * .2, N.H * 1.2); lu.addColorStop(0, 'rgba(120,150,220,.12)'); lu.addColorStop(1, 'rgba(120,150,220,0)'); ctx.fillStyle = lu; ctx.fillRect(0, 0, N.W, N.H);
+    ctx.globalCompositeOperation = 'source-over';
+  }
+  // o sol nascendo, pela direita
+  if(jogo === 'amanhecendo' || jogo === 'resultado'){
+    const k = jogo === 'resultado' ? 1 : amanhece, g = ctx.createLinearGradient(N.W, 0, 0, N.H);
+    g.addColorStop(0, `rgba(255,170,90,${.35 * k})`); g.addColorStop(.6, `rgba(255,200,140,${.1 * k})`); g.addColorStop(1, 'rgba(255,200,140,0)'); ctx.fillStyle = g; ctx.fillRect(0, 0, N.W, N.H);
+    // o brilho do gelo no sol
+    if(!reduz) for(let i = 0; i < 40; i++){ const p = N.pes[(i * 7 + Math.floor(ts * 3)) % N.pes.length]; if(p.morto) continue; const a = Math.sin(ts * 6 + i) * .5 + .5; ctx.fillStyle = `rgba(255,255,255,${a * k * p.f})`; ctx.fillRect(p.x + Math.sin(i) * p.r * .6, p.y + Math.cos(i * 1.3) * p.r * .6, 2, 2); }
+  }
+  // o vento do sul: os riscos subindo
+  if(vento.on > 0 && !reduz){ ctx.strokeStyle = 'rgba(220,232,255,.18)'; ctx.lineWidth = 1.5; for(let i = 0; i < 26; i++){ const x = (i * 97 + ts * 40) % N.W, y = N.H - ((ts * 260 + i * 53) % (N.H + 60)); ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + 6, y - 34); ctx.stroke(); } }
+  if(toqueMarca){ ctx.strokeStyle = `rgba(244,238,223,${toqueMarca.t * 1.6})`; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(toqueMarca.x, toqueMarca.y, 16 - toqueMarca.t * 14, 0, 7); ctx.stroke(); }
+  if(eu.alvo && jogo === 'noite'){ ctx.strokeStyle = 'rgba(244,238,223,.35)'; ctx.setLineDash([4, 6]); ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(eu.x, eu.y); ctx.lineTo(eu.alvo.x, eu.alvo.y); ctx.stroke(); ctx.setLineDash([]); }
+  ctx.restore();
+}
+// o pé de café de cima: a copa em folhas escuras de luar (azul-noite), as cerejas vermelhas, a geada branca por cima; queimado fica preto
+const FOLHA = ['#24304F', '#2E3D63', '#3A4C78', '#1C2640'];
+function desenhaPe(p, ts){
+  const { x, y, r } = p;
+  ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.beginPath(); ctx.ellipse(x + 3, y + 5, r * 1.05, r * .8, 0, 0, 7); ctx.fill();
+  if(p.morto){
+    const k = Math.min(1, p.mortoT * 2);
+    for(let i = 0; i < 7; i++){ const a = i * .9 + p.sem * 6, d = r * (.35 + (i % 3) * .2); ctx.fillStyle = i % 2 ? '#141016' : '#221A1E'; ctx.beginPath(); ctx.arc(x + Math.cos(a) * d * .7, y + Math.sin(a) * d * .6, r * (.42 + (i % 2) * .12) * (1 - .15 * k), 0, 7); ctx.fill(); }
+    ctx.strokeStyle = 'rgba(160,150,150,.35)'; ctx.lineWidth = 1; for(let i = 0; i < 5; i++){ const a = i * 1.26 + p.sem; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + Math.cos(a) * r * .9, y + Math.sin(a) * r * .8); ctx.stroke(); }
+    return;
+  }
+  for(let i = 0; i < 9; i++){ const a = i * .7 + p.sem * 6, d = r * (i ? .45 + (i % 3) * .14 : 0); ctx.fillStyle = FOLHA[(i + Math.floor(p.sem * 4)) % 4]; ctx.beginPath(); ctx.arc(x + Math.cos(a) * d * .75, y + Math.sin(a) * d * .65, r * (i ? .42 : .55), 0, 7); ctx.fill(); }
+  ctx.fillStyle = 'rgba(140,165,220,.25)'; ctx.beginPath(); ctx.arc(x - r * .25, y - r * .3, r * .45, 0, 7); ctx.fill();
+  for(let i = 0; i < 6; i++){ const a = i * 1.1 + p.sem * 9; ctx.fillStyle = i % 2 ? '#C8323A' : '#E2563A'; ctx.beginPath(); ctx.arc(x + Math.cos(a) * r * .55, y + Math.sin(a) * r * .5, r * .1, 0, 7); ctx.fill(); }
+  // a geada: o branco vai tomando a copa
+  if(p.f > .04){ ctx.fillStyle = `rgba(232,242,255,${Math.min(.85, p.f * .9)})`; for(let i = 0; i < 9; i++){ const a = i * .7 + p.sem * 6, d = r * (i ? .45 + (i % 3) * .14 : 0); ctx.beginPath(); ctx.arc(x + Math.cos(a) * d * .75, y + Math.sin(a) * d * .65 - 1, r * (i ? .3 : .38) * Math.min(1, .4 + p.f), 0, 7); ctx.fill(); } }
+  if(p.saco){
+    ctx.fillStyle = '#A8865A'; ctx.beginPath(); ctx.ellipse(x, y, r * 1.08, r * .95, 0, 0, 7); ctx.fill();
+    ctx.strokeStyle = 'rgba(70,50,30,.6)'; ctx.lineWidth = 1.2; for(let i = -2; i <= 2; i++){ ctx.beginPath(); ctx.moveTo(x - r * .9, y + i * r * .3); ctx.lineTo(x + r * .9, y + i * r * .3 + 2); ctx.stroke(); }
+    ctx.strokeStyle = '#6A4A28'; ctx.setLineDash([3, 3]); ctx.beginPath(); ctx.ellipse(x, y, r * .95, r * .82, 0, 0, 7); ctx.stroke(); ctx.setLineDash([]);
+    if(p.f > .1){ ctx.fillStyle = `rgba(232,242,255,${p.f * .5})`; ctx.beginPath(); ctx.ellipse(x, y - r * .2, r * .8, r * .5, 0, 0, 7); ctx.fill(); }
+  }
+  // o pé em perigo pisca um anel branco (só quando dá pra fazer alguma coisa)
+  if(p.risco > 0 && jogo === 'noite'){ const a = .4 + Math.sin(ts * 8) * .3; ctx.strokeStyle = `rgba(220,232,255,${a * p.risco + .2})`; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.arc(x, y, r + 6, 0, 7); ctx.stroke(); }
+}
+function desenhaFogo(f, ts){
+  const k = Math.min(1, f.fuel + .15), x = f.x, y = f.y;
+  ctx.fillStyle = '#2A1810'; ctx.beginPath(); ctx.ellipse(x, y + 3, 16, 8, 0, 0, 7); ctx.fill();
+  ctx.strokeStyle = '#5A3418'; ctx.lineWidth = 5; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(x - 13, y + 5); ctx.lineTo(x + 11, y - 1); ctx.moveTo(x + 13, y + 5); ctx.lineTo(x - 10, y - 2); ctx.stroke();
+  const n = 5;
+  for(let i = 0; i < n; i++){
+    const fl = Math.sin(ts * (9 + i) + f.sem + i) * .5 + .5, h = (14 + fl * 12) * k * (i === 2 ? 1.3 : 1), w = 6 + (i % 2) * 3, ox = (i - 2) * 5;
+    ctx.fillStyle = i % 2 ? '#FFB347' : '#FF7A2E'; ctx.beginPath(); ctx.moveTo(x + ox - w, y); ctx.quadraticCurveTo(x + ox - w * .2, y - h * .6, x + ox + Math.sin(ts * 7 + i) * 3, y - h); ctx.quadraticCurveTo(x + ox + w * .2, y - h * .6, x + ox + w, y); ctx.fill();
+  }
+  ctx.fillStyle = '#FFE7A0'; ctx.beginPath(); ctx.ellipse(x, y - 3, 6 * k, 4 * k, 0, 0, 7); ctx.fill();
+  for(const b of N.brasas){ if(Math.hypot(b.x - x, b.y - y) > 80) continue; ctx.fillStyle = `rgba(255,190,90,${b.vida})`; ctx.fillRect(b.x, b.y, 2, 2); }
+  // quanto de lenha resta: o arquinho embaixo
+  if(jogo === 'noite'){ ctx.strokeStyle = f.fuel < .25 ? '#FF5A3A' : 'rgba(255,200,120,.75)'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(x, y + 2, 22, Math.PI * .15, Math.PI * .15 + Math.PI * .7 * Math.min(1, f.fuel / 1.3)); ctx.stroke(); }
+}
+function desenhaCasa(x, y){
+  ctx.fillStyle = 'rgba(0,0,0,.4)'; ctx.fillRect(x - 46, y - 18, 108, 62);
+  ctx.fillStyle = '#7A5634'; ctx.fillRect(x - 50, y - 24, 104, 58);
+  ctx.strokeStyle = 'rgba(40,24,12,.5)'; ctx.lineWidth = 1; for(let i = -50; i < 54; i += 8){ ctx.beginPath(); ctx.moveTo(x + i, y - 24); ctx.lineTo(x + i, y + 34); ctx.stroke(); }
+  // o telhado de duas águas visto de cima
+  ctx.fillStyle = '#9C3E28'; ctx.beginPath(); ctx.moveTo(x - 58, y - 30); ctx.lineTo(x + 62, y - 30); ctx.lineTo(x + 62, y + 4); ctx.lineTo(x - 58, y + 4); ctx.fill();
+  ctx.fillStyle = '#7E2E1C'; ctx.fillRect(x - 58, y + 4, 120, 30);
+  ctx.strokeStyle = 'rgba(30,10,6,.35)'; for(let i = -56; i < 62; i += 7){ ctx.beginPath(); ctx.moveTo(x + i, y - 30); ctx.lineTo(x + i, y + 34); ctx.stroke(); }
+  ctx.fillStyle = '#5A2414'; ctx.fillRect(x - 58, y + 2, 120, 3);
+  ctx.fillStyle = '#FFCB7A'; ctx.fillRect(x + 20, y + 34, 14, 6);   // a janela acesa
+  ctx.fillStyle = '#4A3420'; ctx.fillRect(x - 8, y + 34, 12, 8);    // a porta
+  ctx.fillStyle = '#B8A890'; ctx.fillRect(x + 38, y - 26, 8, 8);    // a chaminé
+}
+function desenhaPaiol(x, y){
+  ctx.fillStyle = 'rgba(0,0,0,.4)'; ctx.beginPath(); ctx.ellipse(x + 3, y + 6, 36, 16, 0, 0, 7); ctx.fill();
+  for(let i = 0; i < 4; i++) for(let k = 0; k < 5 - (i % 2); k++){ const lx = x - 26 + k * 13 + (i % 2) * 6, ly = y + 6 - i * 7; ctx.fillStyle = '#6A4426'; ctx.beginPath(); ctx.ellipse(lx, ly, 7, 5, 0, 0, 7); ctx.fill(); ctx.fillStyle = '#C49A68'; ctx.beginPath(); ctx.ellipse(lx, ly, 4.5, 3.2, 0, 0, 7); ctx.fill(); ctx.strokeStyle = 'rgba(90,56,30,.8)'; ctx.lineWidth = .8; ctx.beginPath(); ctx.ellipse(lx, ly, 2.2, 1.5, 0, 0, 7); ctx.stroke(); }
+  if(jogo === 'noite' && eu.lenha < N.tal.carga){ ctx.fillStyle = 'rgba(244,238,223,.85)'; ctx.font = '900 11px Nunito, sans-serif'; ctx.textAlign = 'center'; ctx.fillText('LENHA', x, y - 26); }
+}
+// o sitiante: o chapéu de palha de cima, os ombros, a lamparina; carregando, o feixe de lenha
+function desenhaEu(ts){
+  const { x, y } = eu, bal = Math.sin(eu.passo) * 1.5;
+  ctx.fillStyle = 'rgba(0,0,0,.4)'; ctx.beginPath(); ctx.ellipse(x + 2, y + 9, 13, 6, 0, 0, 7); ctx.fill();
+  ctx.fillStyle = '#3B4A6E'; ctx.beginPath(); ctx.ellipse(x, y + 2 + bal * .3, 11, 8, 0, 0, 7); ctx.fill();
+  if(eu.lenha){ for(let k = 0; k < eu.lenha; k++){ ctx.save(); ctx.translate(x + (k - (eu.lenha - 1) / 2) * 7, y - 2 - k * 3); ctx.rotate(-.3 + k * .25); ctx.fillStyle = '#6A4426'; for(let i = 0; i < 4; i++){ ctx.fillRect(-16, -4 + i * 2.6, 30, 3); } ctx.fillStyle = '#C49A68'; ctx.fillRect(13, -4, 3, 11); ctx.restore(); } }
+  ctx.fillStyle = '#D9B46A'; ctx.beginPath(); ctx.arc(x, y - 3, 10, 0, 7); ctx.fill();
+  ctx.strokeStyle = '#A88440'; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(x, y - 3, 6, 0, 7); ctx.stroke(); ctx.beginPath(); ctx.arc(x, y - 3, 10, 0, 7); ctx.stroke();
+  ctx.fillStyle = '#7A2A1C'; ctx.beginPath(); ctx.arc(x, y - 3, 3, 0, 7); ctx.fill();
+  if(!eu.lenha){ const lx = x + 12 * eu.dir, ly = y + 4; ctx.fillStyle = '#3A3A40'; ctx.fillRect(lx - 2, ly - 3, 5, 6); ctx.fillStyle = `rgba(255,214,120,${.8 + Math.sin(ts * 12) * .15})`; ctx.beginPath(); ctx.arc(lx + .5, ly, 2.6, 0, 7); ctx.fill(); }
+  if(eu.faz){ ctx.strokeStyle = '#F4EEDF'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(x, y - 22, 8, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * (1 - eu.fazT / .7)); ctx.stroke(); }
+}
+
+medeTela(); abreInicio();
+requestAnimationFrame(quadro);
+// pros testes
+window.__geada = { N: () => N, eu, estado: () => ({ jogo, t, sacos, talAtual, vivos: N ? N.pes.filter(p => !p.morto).length : 0, fogos: N ? N.fogos.length : 0, lenha: eu.lenha }), comeca, manda, fazAgora, tempEm, tempNoite, set: o => { if('t' in o) t = o.t; if('veloz' in o) VELOZ = o.veloz; }, mostraResultado };
+</script>
+</body>
+</html>

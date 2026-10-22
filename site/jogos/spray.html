@@ -1,0 +1,659 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<!-- v4.26 · o Spray, nos muros de grafite do Correverso: cinco muros numa noite, as latas, o contorno e a ronda.
+     Abre na moldura dos jogos (JOGOS.spray no verso.js). Som sintetizado (WebAudio); o recorde fica no aparelho. -->
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Spray</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Luckiest+Guy&family=Nunito:wght@700;800;900&display=swap">
+<style>
+/* Layout: o muro ocupa a tela; em cima, o muro da vez, o quanto falta e o relógio; embaixo, as latas e o Chacoalhar.
+   Tema único de noite (é uma rua de madrugada), por isso sem modo claro */
+:root{
+  --noite:#0E0C14;
+  --vidro:rgba(14,12,20,.78);
+  --papel:#FBF5E8;
+  --tinta:#16131C;
+  --cinza:#B9B2C4;
+  --rosa:#FF4F9A;
+  --amarelo:#FFC531;
+  --azul:#2E6BFF;
+  --vermelho:#E2412E;
+  --f-tit:"Luckiest Guy","Arial Black",Impact,sans-serif;
+  --f-txt:"Nunito",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:border-box}
+html,body{height:100%;margin:0}
+[hidden]{display:none!important}
+body{background:var(--noite);color:var(--papel);font-family:var(--f-txt);overflow:hidden;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible{outline:3px solid var(--amarelo);outline-offset:2px}
+#c{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:none}
+
+.topo{position:fixed;left:0;right:0;top:0;z-index:3;display:flex;justify-content:space-between;align-items:flex-start;gap:10px;pointer-events:none;
+  padding:calc(env(safe-area-inset-top,0px) + 10px) max(16px,env(safe-area-inset-right,0px)) 0 max(16px,env(safe-area-inset-left,0px))}
+.placa{background:var(--vidro);border:2px solid rgba(251,245,232,.18);border-radius:12px;padding:7px 11px 8px;min-width:0}
+.placa small{display:block;font:900 10px/1.1 var(--f-txt);letter-spacing:.12em;text-transform:uppercase;color:var(--cinza)}
+.placa b{display:block;font-family:var(--f-tit);font-weight:400;font-size:21px;line-height:1.05;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.metas{display:grid;grid-template-columns:auto 72px auto;gap:3px 7px;align-items:center;margin-top:6px;font:800 11px var(--f-txt)}
+.metas i{display:block;height:7px;border-radius:4px;background:rgba(251,245,232,.16);overflow:hidden}
+.metas i span{display:block;height:100%;width:0;border-radius:4px;background:var(--papel)}
+.metas em{font-style:normal;font-variant-numeric:tabular-nums;min-width:30px;text-align:right}
+.metas .suj span{background:var(--vermelho)}
+.dir{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+.relogio{font-family:var(--f-tit);font-size:26px;line-height:1;font-variant-numeric:tabular-nums;text-shadow:0 2px 0 rgba(0,0,0,.6)}
+.relogio.pouco{color:var(--amarelo)}
+.vidas{display:flex;gap:4px}
+.vidas span{width:16px;height:24px;border-radius:4px 4px 3px 3px;background:var(--papel);position:relative;box-shadow:0 2px 0 rgba(0,0,0,.4)}
+.vidas span::before{content:"";position:absolute;left:4px;right:4px;top:-5px;height:5px;border-radius:2px 2px 0 0;background:var(--cinza)}
+.vidas span.foi{background:transparent;border:2px dashed rgba(251,245,232,.35);box-shadow:none}
+.vidas span.foi::before{display:none}
+.bts{display:flex;gap:6px;pointer-events:auto}
+.bt-p{background:var(--vidro);border:2px solid rgba(251,245,232,.3);border-radius:18px;padding:5px 11px;font:800 13px var(--f-txt);white-space:nowrap}
+.bt-p[aria-pressed="false"]{opacity:.55;text-decoration:line-through}
+
+#alerta{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 112px);transform:translateX(-50%) rotate(-2deg);z-index:4;pointer-events:none;width:max-content;max-width:calc(100vw - 32px);text-align:center;text-wrap:balance;
+  font-family:var(--f-tit);font-size:clamp(22px,6vw,34px);line-height:1.05;color:var(--tinta);background:var(--amarelo);padding:7px 16px 4px;border-radius:8px;border:3px solid var(--tinta);box-shadow:0 4px 0 rgba(0,0,0,.45)}
+#alerta.perigo{background:var(--vermelho);color:var(--papel)}
+#alerta.bom{background:var(--rosa);color:var(--papel)}
+#alerta small{display:block;font:800 13px var(--f-txt);margin-top:2px}
+
+.base{position:fixed;left:0;right:0;bottom:0;z-index:3;display:flex;justify-content:center;align-items:flex-end;gap:12px;pointer-events:none;
+  padding:0 max(16px,env(safe-area-inset-right,0px)) calc(env(safe-area-inset-bottom,0px) + 12px) max(16px,env(safe-area-inset-left,0px))}
+.latas{display:flex;gap:8px;pointer-events:auto;background:var(--vidro);border:2px solid rgba(251,245,232,.16);border-radius:16px;padding:7px}
+.lata{width:48px;height:64px;border:0;background:none;padding:0;position:relative;border-radius:10px}
+.lata .corpo{position:absolute;left:9px;right:9px;bottom:6px;top:14px;border-radius:6px 6px 4px 4px;background:var(--c);box-shadow:inset -5px 0 0 rgba(0,0,0,.22),inset 3px 0 0 rgba(255,255,255,.25)}
+.lata .tampa{position:absolute;left:15px;right:15px;top:6px;height:9px;border-radius:4px 4px 0 0;background:#D8D2E2}
+.lata .bico{position:absolute;left:21px;width:6px;top:1px;height:6px;border-radius:2px;background:#26222E}
+.lata .pressao{position:absolute;left:9px;right:9px;bottom:6px;border-radius:0 0 4px 4px;background:rgba(0,0,0,.42);height:0}
+.lata[aria-pressed="true"]{background:rgba(251,245,232,.16);outline:2px solid var(--papel)}
+.lata.vazia .corpo{opacity:.45}
+.lata.chacoalha{animation:chaco .14s linear}
+@keyframes chaco{0%{transform:rotate(0)}30%{transform:rotate(-14deg) translateY(-3px)}70%{transform:rotate(12deg)}100%{transform:rotate(0)}}
+.lata small{position:absolute;left:0;right:0;bottom:-15px;font:800 10px var(--f-txt);color:var(--cinza);text-align:center}
+.bt-chaco{pointer-events:auto;min-width:112px;height:64px;border-radius:16px;border:3px solid var(--tinta);background:var(--papel);color:var(--tinta);font:900 15px/1.05 var(--f-txt);box-shadow:0 4px 0 rgba(0,0,0,.5);padding:0 12px}
+.bt-chaco.pede{background:var(--amarelo);animation:pede .7s ease-in-out infinite alternate}
+@keyframes pede{to{transform:translateY(-3px)}}
+.bt-chaco:active{transform:translateY(2px)}
+.bt-vaza{pointer-events:auto;height:64px;border-radius:16px;border:3px solid var(--tinta);background:var(--rosa);color:var(--papel);font-family:var(--f-tit);font-size:22px;padding:4px 16px 0;box-shadow:0 4px 0 rgba(0,0,0,.5)}
+
+.cartao{position:fixed;inset:0;margin:auto;z-index:6;width:min(440px,calc(100% - 32px));height:fit-content;max-height:calc(100% - 32px);overflow:auto;overscroll-behavior:contain;
+  background:var(--papel);color:var(--tinta);border:3px solid var(--tinta);border-radius:16px;padding:20px 20px 18px;box-shadow:0 10px 0 rgba(0,0,0,.45);display:flex;flex-direction:column;gap:12px;touch-action:pan-y;user-select:text;-webkit-user-select:text}
+.cartao h1{margin:0;font-family:var(--f-tit);font-weight:400;font-size:clamp(46px,14vw,64px);line-height:.9;color:var(--rosa);text-shadow:3px 3px 0 var(--tinta);text-align:center;transform:rotate(-3deg)}
+.cartao h2{margin:0;font-family:var(--f-tit);font-weight:400;font-size:28px;line-height:1;text-align:center}
+.cartao .olho{font:900 12px var(--f-txt);letter-spacing:.14em;text-transform:uppercase;text-align:center;color:#6A6275}
+.cartao p{margin:0;line-height:1.45;text-wrap:pretty}
+.ctrls{display:grid;grid-template-columns:auto 1fr;gap:6px 10px;font-size:14px;align-items:baseline}
+.ctrls kbd{font:900 12px var(--f-txt);background:var(--tinta);color:var(--papel);border-radius:5px;padding:2px 7px;justify-self:start;white-space:nowrap}
+.bt{border:3px solid var(--tinta);border-radius:12px;padding:11px 16px;font:900 17px var(--f-txt);box-shadow:0 4px 0 var(--tinta);background:#EFE4CC;color:var(--tinta)}
+.bt-vai{background:var(--amarelo);font-family:var(--f-tit);font-weight:400;font-size:25px;padding:10px 16px 6px}
+.bt:active{transform:translateY(2px);box-shadow:0 2px 0 var(--tinta)}
+.peca{width:100%;border-radius:10px;border:3px solid var(--tinta);display:block;background:#333}
+.estrelas{display:flex;justify-content:center;gap:8px;font-size:38px;line-height:1}
+.estrelas span{color:#D7CFC0}
+.estrelas span.on{color:var(--amarelo);-webkit-text-stroke:2px var(--tinta)}
+.numeros{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center}
+.numeros div{border:2px solid var(--tinta);border-radius:10px;padding:7px 4px;background:#EFE4CC}
+.numeros b{display:block;font-family:var(--f-tit);font-weight:400;font-size:24px;line-height:1}
+.numeros span{font:800 11px var(--f-txt);letter-spacing:.05em;text-transform:uppercase;color:#6A6275}
+.linha{display:flex;gap:10px;flex-wrap:wrap}
+.linha .bt{flex:1 1 140px}
+#cvRec{font-weight:800;text-align:center}
+@media (max-height:520px){
+  .placa b{font-size:17px}.relogio{font-size:21px}
+  .lata{width:42px;height:54px}.bt-chaco,.bt-vaza{height:54px}
+  #alerta{top:calc(env(safe-area-inset-top,0px) + 70px);font-size:20px}
+}
+@media (max-width:420px){.lata{width:40px}.bt-chaco{min-width:92px;font-size:13px}.metas{grid-template-columns:auto 52px auto}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<canvas id="c" aria-label="Um muro de rua, de noite, com o desenho a giz das letras pra pintar"></canvas>
+
+<div class="topo">
+  <div class="placa" aria-live="polite">
+    <small id="mNum">Muro 1 de 5</small>
+    <b id="mNome">CORRE</b>
+    <div class="metas">
+      <span>Preenche</span><i><span id="bP"></span></i><em id="vP">0%</em>
+      <span>Contorno</span><i><span id="bC"></span></i><em id="vC">0%</em>
+      <span>Sujeira</span><i class="suj"><span id="bS"></span></i><em id="vS">0%</em>
+    </div>
+  </div>
+  <div class="dir">
+    <div id="relogio" class="relogio" aria-label="tempo">1:10</div>
+    <div id="vidas" class="vidas" aria-label="3 chances"></div>
+    <div class="bts"><button id="bSom" class="bt-p" aria-pressed="true">Som</button></div>
+  </div>
+</div>
+<div id="alerta" hidden></div>
+<div class="base" id="base" hidden>
+  <div class="latas" id="latas" role="group" aria-label="As latas"></div>
+  <button id="bChaco" class="bt-chaco">Chacoalhar</button>
+  <button id="bVaza" class="bt-vaza" hidden>Vazar</button>
+</div>
+
+<section id="inicio" class="cartao" aria-labelledby="iT">
+  <div class="olho">Madrugada em Londrina</div>
+  <h1 id="iT">SPRAY</h1>
+  <p>Cinco muros, uma noite. Preenche as letras com cor, fecha o contorno de preto e não suja o resto do muro.</p>
+  <p>A ronda passa de tempo em tempo. Quando aparecer o aviso, <b>solta a lata</b>: se a lanterna te pegar pintando, rodou. Três vacilos e a noite acaba.</p>
+  <p>Lata fraca cospe tinta: chacoalha. Parar muito tempo no mesmo lugar escorre.</p>
+  <div class="ctrls" id="ctrls"></div>
+  <button id="comeca" class="bt bt-vai">Pegar as latas</button>
+  <p id="iRec" class="olho" hidden></p>
+</section>
+
+<section id="fimMuro" class="cartao" hidden aria-live="polite">
+  <div class="olho" id="fmOlho">Muro 1 de 5</div>
+  <h2 id="fmT">Peça pronta</h2>
+  <img id="fmImg" class="peca" alt="A peça que você pintou">
+  <div class="estrelas" id="fmEst" aria-label=""></div>
+  <div class="numeros"><div><b id="fmP">0%</b><span>preenche</span></div><div><b id="fmC">0%</b><span>contorno</span></div><div><b id="fmS">0%</b><span>sujeira</span></div></div>
+  <p id="fmTxt"></p>
+  <div class="linha"><button id="fmSalva" class="bt">Salvar a peça</button><button id="fmVai" class="bt bt-vai">Próximo muro</button></div>
+</section>
+
+<section id="fim" class="cartao" hidden aria-live="polite">
+  <div class="olho" id="fOlho">Fim da noite</div>
+  <h2 id="fT">Amanheceu</h2>
+  <div class="numeros"><div><b id="fPts">0</b><span>pontos</span></div><div><b id="fMur">0</b><span>muros</span></div><div><b id="fEst">0</b><span>estrelas</span></div></div>
+  <p id="fTxt"></p>
+  <p id="cvRec"></p>
+  <button id="deNovo" class="bt bt-vai">Outra noite</button>
+</section>
+
+<script>
+'use strict';
+const $ = id => document.getElementById(id);
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const guarda = (k, v) => { try{ localStorage.setItem(k, v); }catch(e){} };
+const le = k => { try{ return localStorage.getItem(k); }catch(e){ return null; } };
+const reduz = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const toque = matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window;
+const rng = s => () => { s = (s * 1103515245 + 12345) & 0x7fffffff; return s / 0x7fffffff; };
+const gauss = () => { let u = 0, v = 0; while(!u) u = Math.random(); while(!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(6.2832 * v); };
+
+/* ---------- as latas e os muros ---------- */
+// as cores têm bico gordo (de encher) e o preto, bico fino (de contornar), como na rua
+const LATAS = [{ k: 'rosa', nome: 'Rosa', c: '#FF4F9A', rgb: [255, 79, 154], sig: 15 }, { k: 'amarelo', nome: 'Amarelo', c: '#FFC531', rgb: [255, 197, 49], sig: 15 }, { k: 'azul', nome: 'Azul', c: '#2E6BFF', rgb: [46, 107, 255], sig: 15 }, { k: 'preto', nome: 'Preto', c: '#141218', rgb: [20, 18, 24], sig: 7 }];
+const PRETO = 3;
+// cada muro: a palavra, o tempo, de quanto em quanto a ronda vem, quanto ela avisa antes e quanto demora passando
+const MUROS = [
+  { txt: 'CORRE', pe: ['COR', 'RE'], tempo: 75, ronda: [10, 14], aviso: 2.6, passa: 2.4, onde: 'Muro do terreno baldio, Vila Nova' },
+  { txt: 'UZI', tempo: 70, ronda: [8, 12], aviso: 2.3, passa: 2.6, onde: 'Portão de aço, Rua Sergipe' },
+  { txt: 'TERRA ROXA', pe: ['TER', 'RA', 'ROXA'], tempo: 85, ronda: [8, 11], aviso: 2.0, passa: 2.8, onde: 'Muro da linha do trem' },
+  { txt: 'LONDRINA', pe: ['LON', 'DRI', 'NA'], tempo: 85, ronda: [7, 10], aviso: 1.7, passa: 3.0, onde: 'Lateral do viaduto, Av. Leste-Oeste' },
+  { txt: 'PÉ VERMELHO', pe: ['PÉ VER', 'MELHO'], tempo: 95, ronda: [6, 9], aviso: 1.4, passa: 3.2, onde: 'Empena do prédio, Calçadão' }
+];
+
+/* ---------- a tela ---------- */
+const cv = $('c'), ctx = cv.getContext('2d');
+let SW = 0, SH = 0, DPR = 1;
+const CEL = 8;
+// o muro em pontos lógicos (fixo durante o muro) e onde ele aparece na tela
+const M = { W: 960, H: 540, x: 0, y: 0, s: 1, k: 1, paint: null, pctx: null, tex: null, giz: null, tipo: null, perto: null, cor: null, blk: null, GX: 0, GY: 0, nP: 0, nC: 0 };
+let fundo = null;
+function medeTela(){
+  DPR = Math.min(window.devicePixelRatio || 1, 2);
+  SW = innerWidth; SH = innerHeight;
+  cv.width = Math.round(SW * DPR); cv.height = Math.round(SH * DPR);
+  encaixaMuro(); fundo = pintaFundo();
+}
+addEventListener('resize', () => { medeTela(); });
+// o muro cabe entre o placar de cima e as latas de baixo
+function areaMuro(){
+  const cima = SH < 520 ? 92 : 122, baixo = SH < 520 ? 84 : 100;
+  return { x: 10, y: cima, w: SW - 20, h: Math.max(140, SH - cima - baixo) };
+}
+function encaixaMuro(){
+  const a = areaMuro(), s = Math.min(a.w / M.W, a.h / M.H);
+  M.s = s; M.x = a.x + (a.w - M.W * s) / 2; M.y = a.y + (a.h - M.H * s) / 2;
+}
+
+/* ---------- a rua de fundo: céu, prédios, o poste ---------- */
+function pintaFundo(){
+  const c = document.createElement('canvas'); c.width = cv.width; c.height = cv.height; const x = c.getContext('2d'); x.scale(DPR, DPR);
+  const g = x.createLinearGradient(0, 0, 0, SH); g.addColorStop(0, '#07060D'); g.addColorStop(.55, '#151026'); g.addColorStop(1, '#241A2A'); x.fillStyle = g; x.fillRect(0, 0, SW, SH);
+  const r = rng(11); x.fillStyle = 'rgba(251,245,232,.7)'; for(let i = 0; i < 60; i++) x.fillRect(r() * SW, r() * SH * .3, 1.2, 1.2);
+  let px = -10; while(px < SW){ const w = 30 + r() * 70, h = 50 + r() * 160; x.fillStyle = '#100C1A'; x.fillRect(px, SH * .42 - h, w - 3, h + SH); x.fillStyle = 'rgba(255,190,110,.55)'; for(let yy = SH * .42 - h + 8; yy < SH * .42; yy += 12) for(let xx = px + 5; xx < px + w - 9; xx += 9) if(r() < .18) x.fillRect(xx, yy, 4, 5); px += w; }
+  x.fillStyle = '#1A1520'; x.fillRect(0, SH - 40, SW, 40);
+  return c;
+}
+
+/* ---------- o muro: textura de reboco com marca do tempo ---------- */
+function pintaTex(W, H, semente){
+  const c = document.createElement('canvas'); c.width = W; c.height = H; const x = c.getContext('2d'), r = rng(semente);
+  x.fillStyle = '#8C8279'; x.fillRect(0, 0, W, H);
+  for(let i = 0; i < 2600; i++){ const v = 110 + r() * 60 | 0; x.fillStyle = `rgba(${v},${v - 8},${v - 14},${.05 + r() * .1})`; x.fillRect(r() * W, r() * H, 1 + r() * 3, 1 + r() * 3); }
+  // manchas de chuva e de reboco remendado
+  for(let i = 0; i < 14; i++){ const gx = r() * W, gw = 30 + r() * 120, g = x.createLinearGradient(0, 0, 0, H); g.addColorStop(0, 'rgba(40,30,30,.0)'); g.addColorStop(.3 + r() * .4, 'rgba(40,30,30,.13)'); g.addColorStop(1, 'rgba(40,30,30,0)'); x.fillStyle = g; x.fillRect(gx, 0, gw, H); }
+  for(let i = 0; i < 6; i++){ x.fillStyle = `rgba(${150 + r() * 30},${140 + r() * 20},${128},.35)`; x.beginPath(); x.ellipse(r() * W, r() * H, 30 + r() * 90, 20 + r() * 50, r() * 3, 0, 7); x.fill(); }
+  // pichações velhas apagadas pelo tempo (traço cinza, nada legível)
+  x.strokeStyle = 'rgba(60,52,60,.18)'; x.lineWidth = 3; x.lineCap = 'round';
+  for(let i = 0; i < 9; i++){ let px = r() * W, py = r() * H; x.beginPath(); x.moveTo(px, py); for(let k = 0; k < 7; k++){ px += (r() - .3) * 40; py += (r() - .5) * 30; x.lineTo(px, py); } x.stroke(); }
+  // as rachaduras e a barra de baixo (a terra roxa que respinga)
+  x.strokeStyle = 'rgba(30,24,26,.4)'; x.lineWidth = 1.2; for(let i = 0; i < 5; i++){ let px = r() * W, py = r() * H; x.beginPath(); x.moveTo(px, py); for(let k = 0; k < 9; k++){ px += (r() - .5) * 24; py += r() * 16; x.lineTo(px, py); } x.stroke(); }
+  const b = x.createLinearGradient(0, H * .82, 0, H); b.addColorStop(0, 'rgba(120,40,28,0)'); b.addColorStop(1, 'rgba(120,40,28,.45)'); x.fillStyle = b; x.fillRect(0, H * .8, W, H * .2);
+  x.fillStyle = 'rgba(0,0,0,.22)'; x.fillRect(0, 0, W, 6); x.fillRect(0, H - 4, W, 4);
+  return c;
+}
+
+/* ---------- as letras: a área de preencher, o contorno e o giz ---------- */
+const fonte = fs => `${fs}px "Luckiest Guy", Impact, "Arial Black", sans-serif`;
+// numa linha, quebrada nas palavras ou empilhada como na rua (no muro em pé, a empilhada ganha)
+function linhasDe(m){
+  const ps = m.txt.split(' '), opcoes = [[m.txt]];
+  if(ps.length > 1) opcoes.push([ps.slice(0, Math.ceil(ps.length / 2)).join(' '), ps.slice(Math.ceil(ps.length / 2)).join(' ')]);
+  if(m.pe) opcoes.push(m.pe);
+  return opcoes;
+}
+function montaLetras(m){
+  const W = M.W, H = M.H, alvoW = W * .86, alvoH = H * .72;
+  const tmp = document.createElement('canvas').getContext('2d');
+  let melhor = null;
+  for(const linhas of linhasDe(m)){
+    let fs = 400;
+    for(; fs > 20; fs -= 4){ tmp.font = fonte(fs); const w = Math.max(...linhas.map(l => tmp.measureText(l).width)), h = fs * .92 * linhas.length; if(w <= alvoW && h <= alvoH) break; }
+    if(!melhor || fs > melhor.fs) melhor = { fs, linhas };
+  }
+  const { fs, linhas } = melhor, esp = fs * .92, y0 = H / 2 - esp * (linhas.length - 1) / 2 + fs * .36;
+  const escreve = (x, f) => { x.save(); x.translate(W / 2, H / 2); x.rotate(-.045); x.translate(-W / 2, -H / 2); x.font = fonte(fs); x.textAlign = 'center'; x.textBaseline = 'alphabetic'; linhas.forEach((l, i) => f(l, W / 2, y0 + i * esp)); x.restore(); };
+  const borda = Math.max(7, fs * .075);
+  // o recheio
+  const cf = document.createElement('canvas'); cf.width = W; cf.height = H; const xf = cf.getContext('2d'); xf.fillStyle = '#fff'; escreve(xf, (l, x, y) => xf.fillText(l, x, y));
+  // o contorno: a faixa em volta das letras
+  const cr = document.createElement('canvas'); cr.width = W; cr.height = H; const xr = cr.getContext('2d'); xr.strokeStyle = '#fff'; xr.lineJoin = 'round'; xr.lineWidth = borda * 2; escreve(xr, (l, x, y) => xr.strokeText(l, x, y));
+  xr.globalCompositeOperation = 'destination-out'; escreve(xr, (l, x, y) => xr.fillText(l, x, y));
+  // o giz: o risco das letras e da borda de fora, que a tinta cobre
+  const cg = document.createElement('canvas'); cg.width = W; cg.height = H; const xg = cg.getContext('2d');
+  xg.strokeStyle = 'rgba(245,240,230,.55)'; xg.lineWidth = 2; xg.lineJoin = 'round'; xg.setLineDash([7, 5]); escreve(xg, (l, x, y) => xg.strokeText(l, x, y));
+  const cr2 = document.createElement('canvas'); cr2.width = W; cr2.height = H; const xr2 = cr2.getContext('2d'); xr2.strokeStyle = '#fff'; xr2.lineJoin = 'round'; xr2.lineWidth = borda * 2 + 2; escreve(xr2, (l, x, y) => xr2.strokeText(l, x, y)); xr2.globalCompositeOperation = 'destination-out'; xr2.lineWidth = borda * 2 - 2; escreve(xr2, (l, x, y) => xr2.strokeText(l, x, y)); escreve(xr2, (l, x, y) => xr2.fillText(l, x, y));
+  xg.globalAlpha = .35; xg.drawImage(cr2, 0, 0);
+  // as casinhas de 8 pontos: 1 recheio, 2 contorno, 0 muro
+  const GX = W / CEL | 0, GY = H / CEL | 0, df = xf.getImageData(0, 0, W, H).data, dr = xr.getImageData(0, 0, W, H).data;
+  const tipo = new Uint8Array(GX * GY);
+  let nP = 0, nC = 0;
+  for(let gy = 0; gy < GY; gy++) for(let gx = 0; gx < GX; gx++){
+    const px = gx * CEL + CEL / 2 | 0, py = gy * CEL + CEL / 2 | 0, i = (py * W + px) * 4 + 3;
+    const t = df[i] > 128 ? 1 : dr[i] > 128 ? 2 : 0; tipo[gy * GX + gx] = t; if(t === 1) nP++; else if(t === 2) nC++;
+  }
+  // a margem: sujar colado na peça não conta (todo grafiteiro passa um tiquinho)
+  const perto = new Uint8Array(GX * GY);
+  for(let gy = 0; gy < GY; gy++) for(let gx = 0; gx < GX; gx++){ if(!tipo[gy * GX + gx]) continue; for(let dy = -2; dy <= 2; dy++) for(let dx = -2; dx <= 2; dx++){ const x = gx + dx, y = gy + dy; if(x >= 0 && y >= 0 && x < GX && y < GY) perto[y * GX + x] = 1; } }
+  Object.assign(M, { giz: cg, tipo, perto, GX, GY, nP, nC, cor: new Float32Array(GX * GY), blk: new Float32Array(GX * GY) });
+}
+
+/* ---------- o estado ---------- */
+let jogo = 'inicio', muro = 0, vidas = 3, tempo = 0, pontos = 0, estrelasTot = 0, murosFeitos = 0;
+let lataSel = 0, cob = { p: 0, c: 0, s: 0 }, cobT = 0, pecaPronta = false;
+const pressao = [1, 1, 1, 1];
+const pena = { on: false, x: 0, y: 0, sx: 0, sy: 0, id: null, ultX: 0, ultY: 0, parado: 0 };
+const pingos = [];
+const R = { estado: 'calmo', t: 0, lado: 1, x: 0, graca: 0 };
+let alertaT = 0, flash = 0, tremor = 0;
+
+async function comecaNoite(){
+  audio();
+  // a letra de bolha precisa ter chegado antes de riscar o muro
+  try{ await Promise.race([document.fonts.load('80px "Luckiest Guy"'), new Promise(r => setTimeout(r, 1500))]); }catch(e){}
+  muro = 0; vidas = 3; pontos = 0; estrelasTot = 0; murosFeitos = 0;
+  desenhaVidas(); comecaMuro();
+}
+function comecaMuro(){
+  const m = MUROS[muro];
+  // o muro em pé no celular em pé; deitado no resto
+  const a = areaMuro(), deitado = a.w / a.h > 1.05;
+  M.W = deitado ? 960 : 640; M.H = deitado ? Math.round(clamp(960 * a.h / a.w, 420, 620) / CEL) * CEL : Math.round(clamp(640 * a.h / a.w, 640, 980) / CEL) * CEL;
+  encaixaMuro();
+  M.tex = pintaTex(M.W, M.H, 7 + muro * 13);
+  montaLetras(m);
+  M.k = clamp(M.s * DPR, 1, 2);
+  M.paint = document.createElement('canvas'); M.paint.width = Math.round(M.W * M.k); M.paint.height = Math.round(M.H * M.k); M.pctx = M.paint.getContext('2d');
+  tempo = m.tempo; cob = { p: 0, c: 0, s: 0 }; pecaPronta = false; pingos.length = 0;
+  for(let i = 0; i < 4; i++) pressao[i] = 1;
+  lataSel = 0; desenhaLatas();
+  R.estado = 'calmo'; R.t = m.ronda[0] * .9; R.graca = 0;
+  $('mNum').textContent = 'Muro ' + (muro + 1) + ' de ' + MUROS.length; $('mNome').textContent = m.txt; $('bVaza').hidden = true;
+  $('inicio').hidden = true; $('fimMuro').hidden = true; $('fim').hidden = true; $('base').hidden = false;
+  jogo = 'pintando'; atualizaMetas();
+  aviso(m.onde, 'bom', 2.6, muro === 0 ? 'Preenche com cor, contorna de preto' : 'A ronda tá mais esperta');
+}
+
+/* ---------- pintar ---------- */
+function muroDe(cx, cy){ return { x: (cx - M.x) / M.s, y: (cy - M.y) / M.s }; }
+const OFF_TOQUE = 46;   // no celular a tinta sai acima do dedo, pra ver onde pinta
+function poeMira(cx, cy){ pena.sx = cx; pena.sy = cy - (pena.dedo ? OFF_TOQUE : 0); const p = muroDe(pena.sx, pena.sy); pena.x = p.x; pena.y = p.y; }
+cv.addEventListener('pointerdown', e => {
+  if(jogo !== 'pintando') return;
+  audio(); pena.id = e.pointerId; pena.dedo = e.pointerType !== 'mouse'; pena.on = true; poeMira(e.clientX, e.clientY); pena.ultX = pena.x; pena.ultY = pena.y; pena.parado = 0;
+  try{ cv.setPointerCapture(e.pointerId); }catch(er){}
+});
+addEventListener('pointermove', e => { if(pena.id == null || e.pointerId === pena.id){ pena.dedo = e.pointerType !== 'mouse'; poeMira(e.clientX, e.clientY); } });
+const solta = e => { if(e.pointerId === pena.id){ pena.on = false; pena.id = null; } };
+addEventListener('pointerup', solta); addEventListener('pointercancel', solta);
+addEventListener('blur', () => { pena.on = false; pena.id = null; });
+
+// a lata cospe tinta: partículas em volta do bico e a névoa; a conta das casinhas segue a mesma curva
+function borrifa(dt){
+  const l = lataSel, p = pressao[l];
+  if(p <= 0) return 0;
+  const fraca = p < .25, sig = LATAS[l].sig * (fraca ? 1.5 : 1) * (pena.dedo ? 1.08 : 1), forca = (fraca ? .45 : 1) * dt * (l === PRETO ? .8 : 1);
+  pressao[l] = Math.max(0, p - dt * .1);
+  // vai do último ponto até o de agora em passos, pra o traço rápido não sair pontilhado
+  const dx = pena.x - pena.ultX, dy = pena.y - pena.ultY, dist = Math.hypot(dx, dy), n = Math.max(1, Math.ceil(dist / 6));
+  const P = M.pctx, k = M.k, [r, g, b] = LATAS[l].rgb;
+  for(let s = 1; s <= n; s++){
+    const x = pena.ultX + dx * s / n, y = pena.ultY + dy * s / n, f = forca / n;
+    // a névoa
+    const gr = P.createRadialGradient(x * k, y * k, 0, x * k, y * k, sig * 2.1 * k);
+    // a névoa é o que vira cor chapada depois de umas passadas
+    const nv = l === PRETO ? 2.2 : 1;
+    gr.addColorStop(0, `rgba(${r},${g},${b},${Math.min(.95, 8 * f * nv)})`); gr.addColorStop(.45, `rgba(${r},${g},${b},${Math.min(.7, 4.2 * f * nv)})`); gr.addColorStop(.8, `rgba(${r},${g},${b},${Math.min(.25, .9 * f * nv)})`); gr.addColorStop(1, `rgba(${r},${g},${b},0)`);
+    P.fillStyle = gr; P.beginPath(); P.arc(x * k, y * k, sig * 2.1 * k, 0, 7); P.fill();
+    // os pinguinhos (o overspray)
+    P.fillStyle = `rgb(${r},${g},${b})`;
+    // os pinguinhos: a lata fraca cospe gota grande; o bico fino quase não respinga
+    const qd = (fraca ? 110 : 60) * (l === PRETO ? .35 : 1) * f, np = Math.floor(qd) + (Math.random() < qd % 1 ? 1 : 0);
+    for(let i = 0; i < np; i++){ const a = gauss() * sig * (fraca ? 1.4 : 1.2), bb = gauss() * sig * (fraca ? 1.4 : 1.2), rr = (fraca ? 1 : .45) + Math.random() * (fraca ? 1.8 : .9); P.globalAlpha = fraca ? .7 : .4; P.beginPath(); P.arc((x + a) * k, (y + bb) * k, rr * k, 0, 7); P.fill(); }
+    P.globalAlpha = 1;
+    // o bico fino joga a mesma tinta num círculo menor: mais grossa por casinha
+    pintaCasinhas(x, y, sig, 5.6 * f * (l === PRETO ? 3.2 : 1), l);
+  }
+  pena.ultX = pena.x; pena.ultY = pena.y;
+  return forca;
+}
+function pintaCasinhas(x, y, sig, q, l){
+  const R2 = sig * 2.2, gx0 = Math.max(0, (x - R2) / CEL | 0), gx1 = Math.min(M.GX - 1, (x + R2) / CEL | 0), gy0 = Math.max(0, (y - R2) / CEL | 0), gy1 = Math.min(M.GY - 1, (y + R2) / CEL | 0);
+  const arr = l === PRETO ? M.blk : M.cor, d2 = 2 * sig * sig;
+  for(let gy = gy0; gy <= gy1; gy++) for(let gx = gx0; gx <= gx1; gx++){
+    const cx = gx * CEL + CEL / 2 - x, cy = gy * CEL + CEL / 2 - y, w = Math.exp(-(cx * cx + cy * cy) / d2);
+    if(w > .02){ const i = gy * M.GX + gx; arr[i] += q * w; if(l !== PRETO && M.blk[i] > 0) M.blk[i] = Math.max(0, M.blk[i] - q * w * .6); if(l === PRETO && M.cor[i] > 0) M.cor[i] = Math.max(0, M.cor[i] - q * w * .12); }
+  }
+}
+// tinta demais no mesmo lugar escorre
+function talvezEscorra(dt){
+  const gx = clamp(pena.x / CEL | 0, 0, M.GX - 1), gy = clamp(pena.y / CEL | 0, 0, M.GY - 1), i = gy * M.GX + gx;
+  const tot = M.cor[i] + M.blk[i];
+  if(tot > 2.6 && pena.parado > .45 && Math.random() < dt * 3.2 && pingos.length < 40){
+    pingos.push({ x: pena.x + gauss() * 5, y: pena.y + 4, v: 22 + Math.random() * 26, vida: .8 + Math.random() * 1.4, l: lataSel, w: 1.6 + Math.random() * 1.6 });
+    tocaSfx('pinga');
+  }
+}
+function passoPingos(dt){
+  const P = M.pctx, k = M.k;
+  for(let i = pingos.length - 1; i >= 0; i--){
+    const d = pingos[i], y0 = d.y; d.y += d.v * dt; d.v *= (1 - dt * .6); d.vida -= dt;
+    const [r, g, b] = LATAS[d.l].rgb; P.strokeStyle = `rgb(${r},${g},${b})`; P.lineWidth = d.w * k; P.lineCap = 'round';
+    P.beginPath(); P.moveTo(d.x * k, y0 * k); P.lineTo(d.x * k, d.y * k); P.stroke();
+    if(d.vida <= 0){ P.fillStyle = `rgb(${r},${g},${b})`; P.beginPath(); P.arc(d.x * k, d.y * k, d.w * 1.2 * k, 0, 7); P.fill(); pingos.splice(i, 1); }
+    pintaCasinhas(d.x, d.y, 3, .5 * dt * 4, d.l);
+    if(d.y > M.H - 2) pingos.splice(i, 1);
+  }
+}
+// quanto da peça tá feito: recheio com cor (sem preto por cima), contorno de preto e a sujeira fora da margem
+function mede(){
+  let p = 0, c = 0, s = 0;
+  const { tipo, perto, cor, blk } = M;
+  for(let i = 0; i < tipo.length; i++){
+    const t = tipo[i];
+    if(t === 1){ if(cor[i] >= 1 && blk[i] < Math.max(1.2, cor[i])) p++; }
+    else if(t === 2){ if(blk[i] >= 1) c++; }
+    else if(!perto[i] && cor[i] + blk[i] >= .7) s++;
+  }
+  cob = { p: p / M.nP, c: c / M.nC, s: s / (M.nP + M.nC) };
+}
+function atualizaMetas(){
+  const pc = v => Math.round(v * 100) + '%';
+  $('bP').style.width = pc(cob.p); $('vP').textContent = pc(cob.p);
+  $('bC').style.width = pc(cob.c); $('vC').textContent = pc(cob.c);
+  $('bS').style.width = pc(Math.min(1, cob.s * 3)); $('vS').textContent = pc(cob.s);
+}
+
+/* ---------- as latas na tela ---------- */
+function desenhaLatas(){
+  $('latas').innerHTML = LATAS.map((l, i) => `<button class="lata" data-i="${i}" aria-pressed="${i === lataSel}" aria-label="Lata ${l.nome}" style="--c:${l.c}"><span class="bico"></span><span class="tampa"></span><span class="corpo"></span><span class="pressao" id="pr${i}"></span><small>${i + 1}</small></button>`).join('');
+}
+$('latas').addEventListener('click', e => { const b = e.target.closest('.lata'); if(!b) return; escolhe(+b.dataset.i); });
+function escolhe(i){ lataSel = i; document.querySelectorAll('.lata').forEach(b => b.setAttribute('aria-pressed', String(+b.dataset.i === i))); tocaSfx('tampa'); }
+function chacoalha(){
+  if(jogo !== 'pintando') return;
+  audio(); pressao[lataSel] = Math.min(1, pressao[lataSel] + .22); tocaSfx('chaco');
+  const b = document.querySelector(`.lata[data-i="${lataSel}"]`); if(b){ b.classList.remove('chacoalha'); void b.offsetWidth; b.classList.add('chacoalha'); }
+}
+$('bChaco').addEventListener('click', chacoalha);
+$('bVaza').addEventListener('click', () => { if(jogo === 'pintando') fechaMuro(true); });
+addEventListener('keydown', e => {
+  if(jogo !== 'pintando') return;
+  if(e.code === 'Space' || e.code === 'KeyS'){ e.preventDefault(); if(!e.repeat) chacoalha(); }
+  const n = '1234'.indexOf(e.key); if(n >= 0) escolhe(n);
+  if(e.code === 'KeyQ' || e.code === 'KeyE'){ escolhe((lataSel + (e.code === 'KeyE' ? 1 : 3)) % 4); }
+});
+
+/* ---------- a ronda ---------- */
+function passoRonda(dt){
+  const m = MUROS[muro];
+  R.t -= dt; R.graca -= dt;
+  if(R.estado === 'calmo' && R.t <= 0){ R.estado = 'vindo'; R.t = m.aviso; R.lado = Math.random() < .5 ? -1 : 1; aviso('Ó a ronda!', '', m.aviso + .3, 'Solta a lata e se esconde'); R.passo = 0; }
+  else if(R.estado === 'vindo' && R.t <= 0){ R.estado = 'passa'; R.t = m.passa; R.graca = .18; }
+  else if(R.estado === 'passa'){
+    const f = 1 - R.t / m.passa; R.x = R.lado > 0 ? -.3 + f * 1.6 : 1.3 - f * 1.6;
+    if(R.graca <= 0 && pena.on && pressao[lataSel] > 0 && R.x > -.12 && R.x < 1.12) return rodou();
+    if(R.t <= 0){ R.estado = 'calmo'; R.t = m.ronda[0] + Math.random() * (m.ronda[1] - m.ronda[0]); }
+  }
+  // os passos da ronda chegando
+  if(R.estado !== 'calmo'){ R.passo = (R.passo || 0) - dt; if(R.passo <= 0){ R.passo = R.estado === 'vindo' ? .42 : .5; tocaSfx('passo', R.estado === 'vindo' ? .5 + (1 - R.t / m.aviso) * .5 : 1); } }
+}
+function rodou(){
+  vidas--; desenhaVidas(); flash = 1; tremor = .5; pena.on = false; pena.id = null;
+  tocaSfx('apito'); if(navigator.vibrate) try{ navigator.vibrate([90, 60, 160]); }catch(e){}
+  R.estado = 'calmo'; R.t = MUROS[muro].ronda[1];
+  if(vidas <= 0){ aviso('RODOU!', 'perigo', 2.2, 'A ronda te levou'); jogo = 'acabou'; setTimeout(() => fimNoite(false), 1500); }
+  else aviso('RODOU!', 'perigo', 2.2, vidas === 1 ? 'Última chance' : 'Mais ' + vidas + ' chances');
+}
+function desenhaVidas(){ $('vidas').innerHTML = [0, 1, 2].map(i => `<span class="${i >= vidas ? 'foi' : ''}"></span>`).join(''); $('vidas').setAttribute('aria-label', vidas + (vidas === 1 ? ' chance' : ' chances')); }
+
+/* ---------- fim do muro e da noite ---------- */
+function estrelasDe(c){ return c.p >= .92 && c.c >= .85 && c.s < .06 ? 3 : c.p >= .82 && c.c >= .65 && c.s < .14 ? 2 : c.p >= .6 ? 1 : 0; }
+function fechaMuro(vazou){
+  mede(); atualizaMetas(); jogo = 'avaliando'; pena.on = false; $('base').hidden = true; $('alerta').hidden = true;
+  const e = estrelasDe(cob), pts = Math.max(0, Math.round(cob.p * 600 + cob.c * 400 - cob.s * 900 + (vazou ? tempo * 6 : 0)));
+  const img = fotoPeca();
+  $('fmImg').src = img; $('fmOlho').textContent = 'Muro ' + (muro + 1) + ' de ' + MUROS.length + ' · ' + MUROS[muro].txt;
+  $('fmEst').innerHTML = [0, 1, 2].map(i => `<span class="${i < e ? 'on' : ''}">★</span>`).join(''); $('fmEst').setAttribute('aria-label', e + ' de 3 estrelas');
+  $('fmP').textContent = Math.round(cob.p * 100) + '%'; $('fmC').textContent = Math.round(cob.c * 100) + '%'; $('fmS').textContent = Math.round(cob.s * 100) + '%';
+  if(e){
+    pontos += pts; estrelasTot += e; murosFeitos++;
+    $('fmT').textContent = e === 3 ? 'Peça limpa!' : e === 2 ? 'Peça pronta' : 'Passou raspando';
+    $('fmTxt').textContent = (e === 3 ? 'Recheio fechado, contorno firme, muro limpo. ' : cob.c < .65 ? 'Faltou fechar o contorno de preto. ' : cob.s >= .14 ? 'Sujou o muro em volta. ' : 'Dá pra caprichar no recheio. ') + '+' + pts + ' pontos.';
+    $('fmVai').textContent = muro + 1 < MUROS.length ? 'Próximo muro' : 'Ver a noite';
+    tocaSfx(e === 3 ? 'festa' : 'ok');
+  } else {
+    $('fmT').textContent = 'Não deu peça';
+    $('fmTxt').textContent = 'O recheio ficou abaixo de 60%. Pinta de novo esse muro (não custa chance).';
+    $('fmVai').textContent = 'Pintar de novo';
+  }
+  $('fmVai').dataset.repete = e ? '' : '1';
+  $('fimMuro').hidden = false;
+}
+$('fmVai').addEventListener('click', () => {
+  if($('fmVai').dataset.repete){ comecaMuro(); return; }
+  muro++; if(muro >= MUROS.length) return fimNoite(true);
+  comecaMuro();
+});
+// salvar a peça: no celular, a folha de compartilhar com o arquivo (posta direto no Instagram); sem ela, o link de baixar
+$('fmSalva').addEventListener('click', async () => {
+  const nome = 'spray-' + MUROS[muro].txt.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z]+/g, '-') + '.png';
+  if(ultimaFoto && navigator.share && navigator.canShare){
+    const blob = await new Promise(r => ultimaFoto.toBlob(r, 'image/png'));
+    const arq = blob && new File([blob], nome, { type: 'image/png' });
+    if(arq && navigator.canShare({ files: [arq] })){
+      try{ await navigator.share({ files: [arq], text: 'Pintei esse muro no Correverso. #Spray #Londrina' }); return; }
+      catch(e){ if(e && e.name === 'AbortError') return; }
+    }
+  }
+  const a = document.createElement('a'); a.href = $('fmImg').src; a.download = nome; document.body.appendChild(a); a.click(); a.remove();
+});
+let ultimaFoto = null;
+function fotoPeca(){
+  const W = Math.min(1200, Math.round(M.W * 1.25)), H = Math.round(W * M.H / M.W), c = document.createElement('canvas'); c.width = W; c.height = H; const x = c.getContext('2d'); ultimaFoto = c;
+  x.drawImage(M.tex, 0, 0, W, H); x.drawImage(M.paint, 0, 0, W, H);
+  // a luz do poste e a assinatura
+  const g = x.createRadialGradient(W * .15, -H * .2, 10, W * .15, -H * .2, W * 1.1); g.addColorStop(0, 'rgba(255,200,120,.18)'); g.addColorStop(1, 'rgba(10,8,20,.28)'); x.fillStyle = g; x.fillRect(0, 0, W, H);
+  x.fillStyle = 'rgba(251,245,232,.85)'; x.font = `900 ${Math.round(W * .022)}px Nunito, sans-serif`; x.textAlign = 'right'; x.fillText('SPRAY · ' + MUROS[muro].onde.toUpperCase(), W - W * .02, H - W * .02);
+  return c.toDataURL('image/png');
+}
+function fimNoite(chegou){
+  jogo = 'fim'; $('base').hidden = true; $('fimMuro').hidden = true; $('alerta').hidden = true;
+  $('fOlho').textContent = chegou ? 'Amanheceu' : 'Fim da noite';
+  $('fT').textContent = chegou ? (estrelasTot >= 13 ? 'Rei da madrugada' : 'Cidade pintada') : 'A ronda te levou';
+  $('fPts').textContent = pontos; $('fMur').textContent = murosFeitos + '/' + MUROS.length; $('fEst').textContent = estrelasTot;
+  $('fTxt').textContent = chegou ? 'Cinco muros na mesma noite. De manhã a cidade acorda com o teu nome em tudo que é canto.' : 'Três vacilos com a lata na mão. Na próxima, solta quando a lanterna vier.';
+  const rec = +(le('corre-spray-recorde') || 0);
+  if(pontos > rec){ guarda('corre-spray-recorde', String(pontos)); $('cvRec').textContent = rec ? 'Recorde novo! O de antes era ' + rec + '.' : 'Teu primeiro recorde.'; }
+  else $('cvRec').textContent = 'Teu recorde: ' + rec + ' pontos.';
+  $('fim').hidden = false; tocaSfx(chegou ? 'festa' : 'perdeu');
+}
+$('comeca').addEventListener('click', comecaNoite);
+$('deNovo').addEventListener('click', comecaNoite);
+$('ctrls').innerHTML = toque
+  ? '<kbd>dedo no muro</kbd><span>pinta (a tinta sai um pouco acima do dedo)</span><kbd>latas</kbd><span>toca pra trocar de cor</span><kbd>Chacoalhar</kbd><span>enche a pressão da lata</span>'
+  : '<kbd>segura o mouse</kbd><span>pinta</span><kbd>1 2 3 4</kbd><span>troca de lata (Q e E também)</span><kbd>Espaço</kbd><span>chacoalha a lata</span>';
+{ const r = +(le('corre-spray-recorde') || 0); if(r){ $('iRec').hidden = false; $('iRec').textContent = 'Teu recorde: ' + r + ' pontos'; } }
+
+let alertaTipo = '';
+function aviso(txt, tipo, seg, sub){ const a = $('alerta'); a.innerHTML = txt + (sub ? `<small>${sub}</small>` : ''); a.className = tipo || ''; a.hidden = false; alertaT = seg; }
+
+/* ---------- o som: a lata, os passos, o apito e o boom bap baixinho ---------- */
+let ac = null, mestre = null, ruido = null, chiado = null, somOn = le('corre-spray-som') !== '0', musica = null, abafa = null;
+function audio(){
+  if(ac){ if(ac.state === 'suspended') ac.resume(); return; }
+  try{ ac = new (window.AudioContext || window.webkitAudioContext)(); }catch(e){ return; }
+  mestre = ac.createGain(); mestre.gain.value = somOn ? .8 : 0;
+  const comp = ac.createDynamicsCompressor(); mestre.connect(comp); comp.connect(ac.destination);
+  const n = ac.sampleRate; ruido = ac.createBuffer(1, n, n); const d = ruido.getChannelData(0); for(let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
+  // o chiado da lata fica ligado, com o volume no zero
+  chiado = { g: ac.createGain(), s: ac.createBufferSource(), f: ac.createBiquadFilter() };
+  chiado.s.buffer = ruido; chiado.s.loop = true; chiado.f.type = 'bandpass'; chiado.f.frequency.value = 5200; chiado.f.Q.value = .8; chiado.g.gain.value = 0;
+  chiado.s.connect(chiado.f); chiado.f.connect(chiado.g); chiado.g.connect(mestre); chiado.s.start();
+  // a música passa por um filtro que fecha quando a ronda vem
+  abafa = ac.createBiquadFilter(); abafa.type = 'lowpass'; abafa.frequency.value = 9000; const mg = ac.createGain(); mg.gain.value = .55; abafa.connect(mg); mg.connect(mestre);
+  musica = { prox: ac.currentTime + .1, passo: 0 };
+}
+const gan = (o = mestre) => { const g = ac.createGain(); g.connect(o); return g; };
+const env = (g, t, a, v, d) => { g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(Math.max(.0002, v), t + a); g.gain.exponentialRampToValueAtTime(.0001, t + a + d); };
+const osc = (tipo, f, t, dur, o) => { const s = ac.createOscillator(); s.type = tipo; s.frequency.setValueAtTime(f, t); s.connect(o); s.start(t); s.stop(t + dur + .05); return s; };
+const ruid = (t, dur, o) => { const s = ac.createBufferSource(); s.buffer = ruido; s.connect(o); s.start(t, Math.random() * .5); s.stop(t + dur + .05); };
+const filt = (tipo, f, q, o) => { const b = ac.createBiquadFilter(); b.type = tipo; b.frequency.value = f; b.Q.value = q; b.connect(o); return b; };
+const SFX = {
+  chaco(){ const t = ac.currentTime; for(let i = 0; i < 4; i++){ const g = gan(); env(g, t + i * .055, .001, .16, .05); osc('triangle', 2900 + Math.random() * 900, t + i * .055, .07, filt('bandpass', 3200, 6, g)); const g2 = gan(); env(g2, t + i * .055, .001, .05, .03); ruid(t + i * .055, .04, filt('highpass', 4000, 1, g2)); } },
+  tampa(){ const t = ac.currentTime; const g = gan(); env(g, t, .001, .1, .05); osc('square', 1800, t, .06, filt('bandpass', 2200, 4, g)); },
+  pinga(){ const t = ac.currentTime; const g = gan(); env(g, t, .002, .05, .12); const s = osc('sine', 900, t, .15, g); s.frequency.exponentialRampToValueAtTime(380, t + .12); },
+  passo(v){ const t = ac.currentTime; const g = gan(); env(g, t, .004, .22 * v, .12); const s = osc('sine', 95, t, .15, g); s.frequency.exponentialRampToValueAtTime(48, t + .12); const g2 = gan(); env(g2, t, .002, .07 * v, .06); ruid(t, .08, filt('bandpass', 700, 1.2, g2)); },
+  apito(){ const t = ac.currentTime; const g = gan(); g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(.18, t + .02); g.gain.setValueAtTime(.18, t + .16); g.gain.exponentialRampToValueAtTime(.0001, t + .22);
+    g.gain.setValueAtTime(.0001, t + .28); g.gain.exponentialRampToValueAtTime(.18, t + .3); g.gain.setValueAtTime(.18, t + .7); g.gain.exponentialRampToValueAtTime(.0001, t + .78);
+    const s = osc('sine', 2800, t, .8, g); const l = ac.createOscillator(); l.frequency.value = 32; const lg = ac.createGain(); lg.gain.value = 120; l.connect(lg); lg.connect(s.frequency); l.start(t); l.stop(t + .8); },
+  ok(){ const t = ac.currentTime; [523, 659, 784].forEach((f, i) => { const g = gan(); env(g, t + i * .08, .005, .14, .3); osc('triangle', f, t + i * .08, .35, g); }); },
+  festa(){ const t = ac.currentTime; [523, 659, 784, 1047, 1319].forEach((f, i) => { const g = gan(); env(g, t + i * .07, .005, .14, .45); osc('square', f, t + i * .07, .5, filt('lowpass', 2600, 1, g)); }); },
+  perdeu(){ const t = ac.currentTime; [392, 349, 311, 262].forEach((f, i) => { const g = gan(); env(g, t + i * .2, .01, .16, .25); osc('sawtooth', f, t + i * .2, .3, filt('lowpass', 1100, 1, g)); }); }
+};
+const tocaSfx = (k, v = 1) => { if(ac && somOn) SFX[k](v); };
+// boom bap de 88: bumbo, caixa, chimbal e um acorde de piano Rhodes em ré menor
+const BPM = 88, S16 = 60 / BPM / 4;
+const ACORDES = [[293.7, 349.2, 440], [261.6, 311.1, 392], [233.1, 293.7, 349.2], [220, 277.2, 329.6]];
+function agendaMusica(){
+  if(!musica || jogo !== 'pintando') return;
+  const ate = ac.currentTime + .2;
+  while(musica.prox < ate){
+    const t = musica.prox, k = musica.passo % 16, comp = Math.floor(musica.passo / 16) % 4;
+    if(k === 0 || k === 7 || k === 10){ const g = gan(abafa); env(g, t, .002, .55, .22); const s = osc('sine', 110, t, .25, g); s.frequency.exponentialRampToValueAtTime(42, t + .18); }
+    if(k === 4 || k === 12){ const g = gan(abafa); env(g, t, .002, .28, .16); ruid(t, .18, filt('bandpass', 1700, .9, g)); const g2 = gan(abafa); env(g2, t, .002, .12, .08); osc('triangle', 190, t, .1, g2); }
+    if(k % 2 === 0){ const g = gan(abafa); env(g, t + (k % 4 === 2 ? S16 * .12 : 0), .001, k % 4 === 2 ? .05 : .03, .03); ruid(t + (k % 4 === 2 ? S16 * .12 : 0), .04, filt('highpass', 7500, .7, g)); }
+    if(k === 0 || k === 9){ const g = gan(abafa); env(g, t, .01, .07, 1.2); ACORDES[comp].forEach(f => { osc('sine', f, t, 1.3, g); osc('triangle', f * 2, t, .5, filt('lowpass', 1400, 1, g)); }); }
+    musica.prox += S16; musica.passo++;
+  }
+}
+$('bSom').addEventListener('click', () => { somOn = !somOn; guarda('corre-spray-som', somOn ? '1' : '0'); $('bSom').setAttribute('aria-pressed', String(somOn)); audio(); if(mestre) mestre.gain.setTargetAtTime(somOn ? .8 : 0, ac.currentTime, .05); });
+$('bSom').setAttribute('aria-pressed', String(somOn));
+document.addEventListener('visibilitychange', () => { if(document.hidden && ac) ac.suspend(); else if(ac && jogo === 'pintando') ac.resume(); });
+
+/* ---------- o quadro ---------- */
+let ultimo = performance.now();
+function quadro(agora){
+  requestAnimationFrame(quadro);
+  const dt = Math.min(.05, (agora - ultimo) / 1000); ultimo = agora;
+  const t = agora / 1000;
+  let borrifou = 0;
+  if(jogo === 'pintando'){
+    tempo -= dt;
+    if(pena.on){
+      const mv = Math.hypot(pena.x - pena.ultX, pena.y - pena.ultY);
+      pena.parado = mv < 1.5 ? pena.parado + dt : 0;
+      borrifou = borrifa(dt); if(borrifou) talvezEscorra(dt);
+    }
+    passoPingos(dt);
+    passoRonda(dt);
+    cobT -= dt; if(cobT <= 0){ cobT = .2; mede(); atualizaMetas();
+      const pronta = cob.p >= .85 && cob.c >= .75; if(pronta && !pecaPronta){ pecaPronta = true; aviso('Peça pronta!', 'bom', 2, 'Vaza ou capricha mais'); tocaSfx('ok'); } $('bVaza').hidden = !pronta; }
+    if(tempo <= 0 && jogo === 'pintando'){ tempo = 0; aviso('O comércio tá abrindo', '', 1.6); fechaMuro(false); }
+    const rl = $('relogio'), sg = Math.ceil(tempo); rl.textContent = Math.floor(sg / 60) + ':' + String(sg % 60).padStart(2, '0'); rl.classList.toggle('pouco', tempo < 15);
+    // a pressão de cada lata
+    for(let i = 0; i < 4; i++){ const e = document.getElementById('pr' + i); if(e){ e.style.height = Math.round((1 - pressao[i]) * 44) + 'px'; e.parentNode.classList.toggle('vazia', pressao[i] <= 0); } }
+    $('bChaco').classList.toggle('pede', pressao[lataSel] < .25);
+    agendaMusica();
+  }
+  if(chiado){ const alvo = borrifou && somOn ? (pressao[lataSel] < .25 ? .05 + Math.random() * .05 : .11) : 0; chiado.g.gain.setTargetAtTime(alvo, ac.currentTime, .02); }
+  if(abafa) abafa.frequency.setTargetAtTime(R.estado === 'calmo' || jogo !== 'pintando' ? 9000 : 700, ac.currentTime, .15);
+  if(alertaT > 0){ alertaT -= dt; if(alertaT <= 0) $('alerta').hidden = true; }
+  flash = Math.max(0, flash - dt * 1.6); tremor = Math.max(0, tremor - dt);
+  desenha(t);
+}
+
+function desenha(t){
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  if(fundo) ctx.drawImage(fundo, 0, 0, SW, SH); else { ctx.fillStyle = '#0E0C14'; ctx.fillRect(0, 0, SW, SH); }
+  if(!M.tex){ return; }
+  const tx = tremor > 0 ? (Math.random() - .5) * 10 * tremor : 0, ty = tremor > 0 ? (Math.random() - .5) * 8 * tremor : 0;
+  const x = M.x + tx, y = M.y + ty, w = M.W * M.s, h = M.H * M.s;
+  ctx.save();
+  ctx.shadowColor = 'rgba(0,0,0,.6)'; ctx.shadowBlur = 24; ctx.fillStyle = '#000'; ctx.fillRect(x, y, w, h); ctx.shadowBlur = 0;
+  ctx.drawImage(M.tex, x, y, w, h);
+  ctx.drawImage(M.giz, x, y, w, h);
+  ctx.drawImage(M.paint, x, y, w, h);
+  // a noite: escurece o muro, com o poste acendendo um lado
+  const lux = ctx.createRadialGradient(x + w * .1, y - h * .15, 20, x + w * .1, y - h * .15, Math.max(w, h) * 1.15);
+  lux.addColorStop(0, 'rgba(255,190,100,.1)'); lux.addColorStop(.5, 'rgba(20,14,40,.1)'); lux.addColorStop(1, 'rgba(8,6,20,.38)');
+  ctx.fillStyle = lux; ctx.fillRect(x, y, w, h);
+  // a lanterna da ronda
+  if(R.estado === 'vindo' || R.estado === 'passa'){
+    const m = MUROS[muro], bx = R.estado === 'passa' ? x + R.x * w : (R.lado > 0 ? x - w * .12 : x + w * 1.12) + Math.sin(t * 9) * 8;
+    const forte = R.estado === 'passa' ? 1 : .35 + (1 - R.t / m.aviso) * .45;
+    ctx.globalCompositeOperation = 'lighter';
+    const rr = h * .62, gl = ctx.createRadialGradient(bx, y + h * .52, 4, bx, y + h * .52, rr);
+    gl.addColorStop(0, `rgba(255,248,215,${.62 * forte})`); gl.addColorStop(.45, `rgba(255,236,180,${.28 * forte})`); gl.addColorStop(1, 'rgba(255,236,180,0)');
+    ctx.fillStyle = gl; ctx.fillRect(x - w * .3, y - h * .2, w * 1.6, h * 1.4);
+    ctx.globalCompositeOperation = 'source-over';
+    if(R.estado === 'vindo'){ ctx.fillStyle = 'rgba(255,197,49,.9)'; const ax = R.lado > 0 ? Math.max(14, x + 6) : Math.min(SW - 14, x + w - 6), ay = y + h / 2, d = R.lado > 0 ? 1 : -1; ctx.beginPath(); ctx.moveTo(ax, ay - 22); ctx.lineTo(ax + d * 22, ay); ctx.lineTo(ax, ay + 22); ctx.fill(); }
+  }
+  ctx.restore();
+  if(flash > 0){ ctx.fillStyle = `rgba(255,250,235,${flash * .8})`; ctx.fillRect(0, 0, SW, SH); }
+  // a mira: onde a tinta cai
+  if(jogo === 'pintando' && (pena.on || !pena.dedo) && pena.sx){
+    const r = LATAS[lataSel].sig * M.s * 1.5; ctx.strokeStyle = LATAS[lataSel].c; ctx.lineWidth = 2.5; ctx.setLineDash([5, 4]); ctx.beginPath(); ctx.arc(pena.sx, pena.sy, r, 0, 7); ctx.stroke(); ctx.setLineDash([]);
+    ctx.strokeStyle = 'rgba(251,245,232,.8)'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(pena.sx, pena.sy, r + 3, 0, 7); ctx.stroke();
+  }
+}
+
+medeTela(); desenhaVidas();
+requestAnimationFrame(quadro);
+// pros testes
+window.__spray = { M, R, pena, pressao, cob: () => cob, mede, estado: () => ({ jogo, muro, vidas, tempo, pontos, estrelasTot, lataSel, cob, ronda: R.estado }), escolhe, chacoalha, borrifa, comecaNoite, comecaMuro, fechaMuro, poeMira, set: o => { if('tempo' in o) tempo = o.tempo; if('rondaT' in o) R.t = o.rondaT; if('muro' in o) muro = o.muro; } };
+</script>
+</body>
+</html>

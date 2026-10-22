@@ -1684,7 +1684,10 @@
     /* v4.08: o Gude, no parquinho do Zerão (bolinha de gude no peteleco) */
     gude: { id: 'gude', titulo: 'GUDE', sub: 'bolinha de gude no peteleco', src: 'jogos/gude.html', onde: 'Parquinho do Zerão', sair: 'Sair pro parquinho', carrega: 'Riscando o círculo…' },
     /* v4.17: o Coringa, o boneco de corda da prateleira do quarto (abre de dentro da casa, a ação "coringa" do casa.js) */
-    coringa: { id: 'coringa', titulo: 'Coringa', sub: 'o assalto do quarto', src: 'jogos/coringa.html', onde: 'Prateleira do quarto', sair: 'Sair pro quarto', carrega: 'Dando corda no boneco…' } };
+    coringa: { id: 'coringa', titulo: 'Coringa', sub: 'o assalto do quarto', src: 'jogos/coringa.html', onde: 'Prateleira do quarto', sair: 'Sair pro quarto', carrega: 'Dando corda no boneco…' },
+    /* v4.26: o Spray, nos muros de grafite do fundo de umas quadras do bairro; e a Geada de 75, nos sítios do café da roça */
+    spray: { id: 'spray', titulo: 'SPRAY', sub: 'grafite contra a ronda', src: 'jogos/spray.html', onde: 'Muro de grafite', sair: 'Voltar pra quadra', carrega: 'Chacoalhando as latas…' },
+    geada: { id: 'geada', titulo: 'Geada de 75', sub: 'salva o café da geada negra', src: 'jogos/geada.html', onde: 'Sítio do café', sair: 'Voltar pra estrada', carrega: 'Acendendo a lamparina…' } };
   /* v4.14: os lugares grandes saem da planta (a ordem é a de antes: a zona do Zerão é achada antes da do lago) */
   const REGIOES = [
     pelaLetra('bosque', 'Bosque dos Ipês', 'B'),
@@ -1763,6 +1766,8 @@
     if(r <= 11) return c <= 2 ? 'Universidade' : c <= 5 ? 'Champagnat' : c <= 9 ? 'Higienópolis' : c <= 11 ? 'Ipiranga' : 'Aeroporto';
     return c <= 5 ? 'Gleba Palhano' : c <= 8 ? 'Bela Suíça' : c <= 11 ? 'Petrópolis' : 'Inglaterra';
   }
+  /* v4.26 · os nomes dos sítios do café na porteira (inventados, no jeito do norte do Paraná) */
+  const SITIOS = ['SITIO BOA VISTA', 'SITIO SANTA RITA', 'SITIO SAO JOAO', 'SITIO TRES IRMAOS', 'SITIO AGUA BOA', 'SITIO CAFEZAL', 'SITIO SAO PEDRO', 'SITIO PAU-D\'ALHO'];
   const arvRua = (K, o, q, p) => [0, 1].forEach(lado => { if(q() < (p || .55)) K.arv.push({ x: o.x + (lado ? LW - 18 : 18), y: o.y + LH + 6, cor: pega(IPES, q) }); });
 
   function montaCidade(perfis){
@@ -1818,6 +1823,16 @@
       if(f){ const i = f.lojas[0].nome === 'SEBO' ? 1 : 0; if(f.lojas[i].nome !== 'SEBO') Object.assign(f.lojas[i], { nome: 'ATELIE', toldo: ROSA, placa: INK, placaCor: AMARELO, alto: true, luz: true }); }
     }
     enche.forEach(f => { if(f.t === 'loja') f.lojas.forEach((l, i) => { if(l.nome === 'ATELIE') K.lugares.push({ nome: 'Ateliê', x: portaLoja(f, i), y: f.base + 22 }); }); });
+    /* v4.26 · os muros de grafite (o Spray): o muro do fundo de umas quadras do bairro, até 4, espalhados (a 3 quarteirões
+       um do outro no mínimo), na ordem de um sorteio fixo; sem quadra que chegue, entra o fundo de uma feira. O muro fica
+       em cima da quadra (a cerca dela começa 30 px pra dentro) e a porta é no pé dele, do lado da quadra */
+    const muros = [], sorteiaM = tp => enche.filter(f => f.t === tp).sort((a, b) => hash('muro' + a.id) - hash('muro' + b.id));
+    for(const f of [...sorteiaM('quadra'), ...sorteiaM('feira')]){
+      if(muros.length >= 4) break; if(muros.some(m => Math.abs(m.c - f.c) + Math.abs(m.r - f.r) < 3)) continue;
+      const m = { tipo: 'muroSpray', x: f.x + LW / 2, y: f.y + 26, w: LW - 60, c: f.c, r: f.r, sd: f.sd, i: muros.length }; muros.push(m); f.muro = m;
+      K.decor.push(m); K.sol.push({ x: m.x - m.w / 2, y: m.y - 12, w: m.w, h: 12 });
+      if(!m.i) K.lugares.push({ nome: 'Muro de grafite', x: m.x, y: m.y + 30 });
+    }
     /* os dois quarteirões */
     let dois = null;
     if(esp){ const a = lotXY(DOIS.c, DOIS.r), b = lotXY(DOIS.c + 1, DOIS.r); dois = { id: esp.id, p: esp, handle: esp.handle, nome: esp.nome, x: a.x, w: 2 * LW + RUA, base: a.y + LH - 34, blocos: [a, b], portaX: a.x + 154 }; grade[DOIS.r][DOIS.c] = grade[DOIS.r][DOIS.c + 1] = { t: 'dois' }; }
@@ -1850,9 +1865,24 @@
     regs.forEach(R => { for(let x = R.x + 180; x < R.x + R.w - 80; x += 420){ const c = Math.floor((x - RUA / 2) / PQ); let r = R.r0; if(R.tem){ while(r <= R.r1 && !R.tem(c, r)) r++; if(r > R.r1) continue; } if(ehRoca(c, r - 1)) continue; K.postes.push({ x, y: lotXY(c, r).y - 5 }); } });
     /* a roça: cada quarteirão uma lavoura (terra roxa lavrada, trigo, palhada, milho seco), e uns ipês e silos no meio */
     const rocaI = {};
+    /* v4.26 · os sítios do café (a Geada de 75): a porteira na beira de uns quarteirões de roça que dão pra rua da cidade
+       (o de baixo é lote, não lugar grande nem roça), até 4, espalhados (a 4 quarteirões no mínimo), num sorteio fixo.
+       A porta é na rua, na frente da porteira; o quarteirão do sítio não ganha ipê nem silo (é cafezal) */
+    const sitios = [], candS = [];
+    for(let r = 0; r < rows - 1; r++) for(let c = 0; c < COLS; c++){ const g = grade[r + 1][c]; if(roca[r][c] && g && g.t !== 'roca' && g.t !== 'reg') candS.push({ c, r }); }
+    candS.sort((a, b) => hash('sitio' + a.c + ',' + a.r) - hash('sitio' + b.c + ',' + b.r));
+    for(const s of candS){
+      if(sitios.length >= 4) break; if(sitios.some(o => Math.abs(o.c - s.c) + Math.abs(o.r - s.r) < 4)) continue;
+      const o = lotXY(s.c, s.r), d = { tipo: 'sitio', x: o.x + LW / 2, y: o.y + LH - 2, c: s.c, r: s.r, nome: SITIOS[hash('sitio' + s.c + ',' + s.r) % SITIOS.length], i: sitios.length };
+      if(sitios.some(o2 => o2.nome === d.nome)) d.nome = SITIOS[(SITIOS.indexOf(d.nome) + sitios.length + 1) % SITIOS.length];
+      sitios.push(d); K.decor.push(d);
+      if(!d.i) K.lugares.push({ nome: 'Sítio do café', x: d.x, y: d.y + 26 });
+    }
+    const ehSitio = (c, r) => sitios.some(d => d.c === c && d.r === r);
     for(let r = 0; r < rows; r++) for(let c = 0; c < COLS; c++){
       if(!roca[r][c]) continue; const q = rng(hash('roca' + c + ',' + r)), o = lotXY(c, r);
       rocaI[c + ',' + r] = { t: pega(ROCA_T, q), deitado: q() < .5, sd: Math.floor(q() * 1e6) };
+      if(ehSitio(c, r)) continue;
       if(q() < .45) K.arv.push({ x: Math.round(o.x + 40 + q() * (LW - 80)), y: Math.round(o.y + 50 + q() * (LH - 80)), cor: pega(IPES, q), mata: true, roca: true });
       if(q() < .14) K.decor.push({ tipo: 'silo', x: Math.round(o.x + 70 + q() * (LW - 140)), y: Math.round(o.y + 120 + q() * (LH - 150)) });
     }
@@ -1867,7 +1897,7 @@
         if(fecha && ini >= 0){ if(i - ini >= 3) trechos.push({ s, x0: ruaX(ini) + 20, x1: ruaX(i) - 20, n: i - ini }); ini = -1; }
       }
     }
-    return { W, H, rows, grade, ehRoca, rocaI, casas, dois, vazios, enche, praca, centro, regs, lago, zerao, bosque, gleba: glebaR.torres, glebaR, estadio, feira, aeroporto, acel, arthur, rio, trechos,
+    return { W, H, rows, grade, ehRoca, rocaI, casas, dois, vazios, enche, muros, sitios, praca, centro, regs, lago, zerao, bosque, gleba: glebaR.torres, glebaR, estadio, feira, aeroporto, acel, arthur, rio, trechos,
       arv: K.arv, bancos: K.bancos, zonas: K.zonas, sol: K.sol, lugares: K.lugares, torneio: K.torneio, decor: K.decor, quiosques: K.quiosques, trucks: K.trucks, barracas: K.barracas, postes: K.postes };
   }
   /* v4.14: as lavouras da roça */
@@ -2411,6 +2441,8 @@
     /* v4.05: na prainha, o De Boa */
     if(c.rio && c.rio.deboa) P.push({ x: c.rio.deboa.x, y: c.rio.deboa.y + 12, tipo: 'jogo', jogo: 'deboa' });
     /* v4.08: no parquinho do Zerão, o Gude (a porta é na risca, embaixo do círculo) */
+    (c.muros || []).forEach(m => P.push({ x: m.x, y: m.y + 20, tipo: 'jogo', jogo: 'spray' }));
+    (c.sitios || []).forEach(d => P.push({ x: d.x, y: d.y + 24, tipo: 'jogo', jogo: 'geada' }));
     if(c.zerao && c.zerao.gude) P.push({ x: c.zerao.gude.x, y: c.zerao.gude.y + 20, tipo: 'jogo', jogo: 'gude' });
     /* o aquário: na porta, o jogo */
     if(c.centro.aquario) P.push({ x: c.centro.aquario.x + LW / 2, y: c.centro.aquario.base + 8, tipo: 'aquario', jogo: 'killer' });
@@ -3722,6 +3754,55 @@
         ctx.fillStyle = INK; ctx.fillRect(x - 32, y - 40, 3, 40);
         pixPlaca(ctx, 'DE BOA', x - 31, y - 44, { fundo: AMARELO, cor: INK });
         luz(x, y - 16, 70, .55);
+        break; }
+      /* v4.26 · o muro de grafite do fundo da quadra (o Spray): bloco de concreto com os pilares e a pingadeira, as peças
+         dos outros (bolhas de cor com contorno preto, o brilho e o escorrido), o tag riscado, as latas no chão e a placa
+         SPRAY em cima. Cada muro tem as cores dele (d.sd); nada de verde */
+      case 'muroSpray': {
+        const w = d.w, h = 44, x0 = d.x - w / 2, y = d.y, q = rng(d.sd + 7), CORES = [ROSA, AMARELO, LARANJA, AZUL, LILAS, '#E2563A', '#38E1FF'];
+        ctx.fillStyle = 'rgba(15,18,24,.22)'; ctx.fillRect(x0 - 3, y - 2, w + 6, 6);
+        ctx.fillStyle = '#BDB4A6'; ctx.fillRect(x0, y - h, w, h);
+        ctx.fillStyle = 'rgba(80,70,60,.2)'; for(let k = 0; k < 5; k++){ const yy = y - h + k * 9; ctx.fillRect(x0, yy, w, u); for(let xx = x0 + (k % 2 ? 10 : 0); xx < x0 + w; xx += 20) ctx.fillRect(xx, yy, u, 9); }
+        for(let px = x0; px <= x0 + w + 1; px += w / 3){ ctx.fillStyle = '#A9A093'; ctx.fillRect(px - 4, y - h - 2, 8, h + 2); }
+        ctx.fillStyle = '#8E877C'; ctx.fillRect(x0 - 4, y - h - 6, w + 8, 5);
+        for(let i = 0; i < 3; i++){
+          const cx = x0 + w * (i + .5) / 3 + (q() - .5) * 14, cy = y - h / 2 + (q() - .5) * 6, c1 = CORES[Math.floor(q() * CORES.length)], n = 3 + Math.floor(q() * 3), pw = 22 + q() * 12;
+          const bs = []; for(let k = 0; k < n; k++) bs.push([cx - pw / 2 + (k + .5) * pw / n, cy + (q() - .5) * 6, pw / n * .75 + 2, 7 + q() * 4]);
+          ctx.fillStyle = INK; bs.forEach(([bx, by, rx, ry]) => { ctx.beginPath(); ctx.ellipse(bx, by, rx + 1.6, ry + 1.6, 0, 0, Math.PI * 2); ctx.fill(); });
+          ctx.fillStyle = c1; bs.forEach(([bx, by, rx, ry]) => { ctx.beginPath(); ctx.ellipse(bx, by, rx, ry, 0, 0, Math.PI * 2); ctx.fill(); });
+          ctx.fillStyle = 'rgba(255,255,255,.7)'; bs.forEach(([bx, by, rx, ry]) => ctx.fillRect(bx - rx * .5, by - ry * .6, Math.max(u, 2), Math.max(u, 2)));
+          ctx.fillStyle = c1; for(let k = 0; k < 3; k++){ const dx = cx - pw / 2 + q() * pw; ctx.fillRect(dx, cy + 8, Math.max(u, 1.2), 4 + q() * 9); }
+        }
+        ctx.strokeStyle = INK; ctx.lineWidth = Math.max(1.2, 1 / V.k); ctx.beginPath(); { const tx = x0 + 8 + q() * (w - 50), ty = y - 8; ctx.moveTo(tx, ty); for(let k = 1; k < 7; k++) ctx.lineTo(tx + k * 5, ty - (k % 2 ? 7 : 1) - q() * 2); } ctx.stroke();
+        [[w - 26, ROSA], [w - 19, AMARELO], [w - 12, AZUL]].forEach(([dx, c], k) => { const lx = x0 + dx, ly = y + 6 + (k % 2) * 3; ctx.beginPath(); ctx.rect(lx, ly - 9, 5, 9); forma(ctx, c, 1); ctx.fillStyle = INK; ctx.fillRect(lx + 1, ly - 11, 3, 2); });
+        ctx.fillStyle = INK; ctx.fillRect(x0 + 10, y - h - 20, 3, 15);
+        pixPlaca(ctx, 'SPRAY', x0 + 11, y - h - 24, { fundo: ROSA, cor: INK });
+        luz(d.x, y - 22, 110, .5);
+        break; }
+      /* v4.26 · o sítio do café (a Geada de 75), na beira da roça: duas fileiras de pé de café atrás da cerca (a copa azul
+         de noite de luar, como no jogo, com as cerejas vermelhas), a porteira de madeira com a trava em X, a placa com o
+         nome do sítio no travessão, a plaquinha GEADA DE 75 e a lamparina no mourão. Sem verde */
+      case 'sitio': {
+        const x = d.x, y = d.y, MAD = '#8E5D3D', ESC = '#6A4329', FOLHA = ['#24304F', '#2E3D63', '#3A4C78'];
+        for(let fil = 0; fil < 2; fil++) for(let k = -6; k <= 6; k++){
+          if(Math.abs(k) < 2) continue; const bx = x + k * 18 + (fil ? 9 : 0), by = y - 22 - fil * 26, r = 8;
+          ctx.fillStyle = 'rgba(15,18,24,.22)'; ctx.beginPath(); ctx.ellipse(bx + 2, by + 4, r, r * .6, 0, 0, Math.PI * 2); ctx.fill();
+          for(let i = 0; i < 4; i++){ ctx.fillStyle = FOLHA[(i + k + fil + 6) % 3]; ctx.beginPath(); ctx.arc(bx + Math.cos(i * 1.6 + k) * r * .4, by - r * .3 + Math.sin(i * 1.6 + k) * r * .3, r * .62, 0, Math.PI * 2); ctx.fill(); }
+          ctx.fillStyle = '#C8323A'; ctx.fillRect(bx - 3, by - 3, Math.max(u, 1.6), Math.max(u, 1.6)); ctx.fillRect(bx + 2, by - 6, Math.max(u, 1.6), Math.max(u, 1.6));
+        }
+        ctx.fillStyle = 'rgba(15,18,24,.22)'; ctx.fillRect(x - 30, y - 1, 60, 5);
+        [-25, 21].forEach(dx => { ctx.beginPath(); ctx.rect(x + dx, y - 44, 5, 44); forma(ctx, ESC, 1); });
+        ctx.beginPath(); ctx.rect(x - 27, y - 48, 54, 5); forma(ctx, ESC, 1);
+        const ab = Math.sin(t * .6) > .9 ? .25 : 0;
+        ctx.save(); ctx.translate(x - 20, y - 4); ctx.scale(1 - ab, 1);
+        ctx.fillStyle = MAD; [0, 6, 12].forEach(dy => ctx.fillRect(0, -18 + dy, 40, 3)); ctx.fillRect(0, -19, 3, 19); ctx.fillRect(37, -19, 3, 19);
+        ctx.strokeStyle = MAD; ctx.lineWidth = 2.4; ctx.beginPath(); ctx.moveTo(2, -1); ctx.lineTo(38, -18); ctx.moveTo(2, -18); ctx.lineTo(38, -1); ctx.stroke();
+        ctx.restore();
+        pixPlaca(ctx, d.nome, x, y - 58, { fundo: PAPEL, cor: INK, max: 18 }); ctx.fillStyle = ESC; ctx.fillRect(x - 1, y - 54, 2, 6);
+        ctx.fillStyle = INK; ctx.fillRect(x - 86, y - 16, 2, 16);
+        pixPlaca(ctx, 'GEADA DE 75', x - 85, y - 20, { fundo: '#DCE8FF', cor: INK });
+        ctx.fillStyle = INK; ctx.fillRect(x + 25, y - 32, 6, 1.5); ctx.beginPath(); ctx.rect(x + 27, y - 31, 5, 7); forma(ctx, '#FFC861', 1);
+        luz(x + 30, y - 26, 80, .7);
         break; }
       /* v4.08: o Gude no chão do Zerão: a mancha de terra roxa, o círculo riscado com graveto, as bolinhas de vidro
          dentro (brilham de vez em quando), a atiradora na risca, o saquinho de bolinhas e a placa. As cores são as do jogo */
