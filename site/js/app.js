@@ -202,6 +202,9 @@
   document.addEventListener('visibilitychange', () => { if(!C.EMBED && document.visibilityState === 'visible' && st.me && Date.now() - SN.at > 6e4) sinaisCarrega(true).then(pintaSinais); });
   /* v4.16: quem resolveu um pedido (o Hórus) refaz os sinais na hora, sem esperar os 2 minutos */
   C.sinaisAtualiza = () => { if(!C.EMBED && st.me) sinaisCarrega(true).then(pintaSinais).catch(() => {}); };
+  /* v4.33: o "teu dia" do Início e o Fala com o Corre leem o mesmo "Pra hoje" da Comanda */
+  C.sinaisCarrega = forca => sinaisCarrega(forca).then(v => { pintaSinais(); return v; });
+  C.sinaisDia = () => ({ pronto: SN.pronto, prox: SN.prox, lista: praHoje().map(k => ({ k, txt: SN.v[k].diz, nivel: SN.v[k].nivel, ir: SN.v[k].ir || SN_IR[k][0], i: SN_IR[k][1] })) });
   /* um item sem enfeite (o Mais e a gaveta). O da página aberta ganha aria-current; a carteira avisa que abre por cima */
   const itemSimples = ([k, h, l, i], cls, ativo) => h ? `<a${cls ? ` class="${cls}-${k}"` : ''} href="${esc(h)}"${cls ? ' role="menuitem"' : ''}${ativo ? ' aria-current="page"' : ''}>${ico(i)}${l}${sinalHTML(k)}</a>`
     : `<button type="button"${cls ? ` class="${cls}-${k}" role="menuitem"` : ''} data-act="${k === 'avisos' ? 'sino' : k}"${k === 'carteira' ? ' aria-haspopup="dialog"' : ''}>${ico(i)}${l}${sinalHTML(k)}</button>`;
@@ -618,7 +621,7 @@
   /* o que a pessoa abriu pela busca fica no aparelho (por login), pra voltar com um toque */
   const REC_K = 'corre-procura';
   const recentes = () => { try{ const o = JSON.parse(localStorage.getItem(REC_K) || 'null'); return o && st.me && o.u === st.me.id && Array.isArray(o.L) ? o.L.slice(0, 6) : []; }catch(e){ return []; } };
-  const guardaRecente = o => { if(!st.me || o.tipo === 'm' || o.tipo === 't' || o.tipo === 'h') return; try{ const x = Object.assign({}, o); delete x.kw; localStorage.setItem(REC_K, JSON.stringify({ u: st.me.id, L: [x].concat(recentes().filter(r => r.key !== o.key)).slice(0, 6) })); }catch(e){} };
+  const guardaRecente = o => { if(!st.me || o.tipo === 'm' || o.tipo === 't' || o.tipo === 'h' || o.tipo === 'fz' || o.tipo === 'ia') return; try{ const x = Object.assign({}, o); delete x.kw; localStorage.setItem(REC_K, JSON.stringify({ u: st.me.id, L: [x].concat(recentes().filter(r => r.key !== o.key)).slice(0, 6) })); }catch(e){} };
   /* o que tá em alta no feed (as hashtags da semana), guardado por 5 minutos */
   let altaCache = null;
   const emAlta = async () => {
@@ -653,10 +656,10 @@
 
   const P = { q: '', seq: 0, lista: [], ativo: -1, banco: null, bancoQ: '', t: 0 };
   const icone = o => o.av ? avatar(o.av, 's') : o.gav && C.grupos ? C.grupos.av(o.gav, 's') : `<span class="pq-ic pq-ic-${o.tipo}${o.nivel ? ' pq-n-' + o.nivel : ''}">${ico(o.i)}</span>`;
-  const rotulo = { f: 'ferramenta', v: 'na cidade', p: 'perfil', g: 'grupo', post: 'post', m: 'mural', t: 'hashtag' };
+  const rotulo = { f: 'ferramenta', v: 'na cidade', p: 'perfil', g: 'grupo', post: 'post', m: 'mural', t: 'hashtag', fz: 'fazer', ia: 'IA' };
   function itemHTML(o, q){
     const n = P.lista.push(o) - 1, abre = o.h ? `a href="${esc(o.h)}"` : 'button type="button"', fecha = o.h ? 'a' : 'button';
-    return `<${abre} class="pq-it pq-${o.tipo}" role="option" id="pq-o-${n}" data-pq="${n}" aria-selected="false" tabindex="-1">${icone(o)}<span class="pq-tx"><b>${q ? marca(o.t, q) : esc(o.t)}</b>${o.s ? `<small>${q ? marca(o.s, q) : esc(o.s)}</small>` : ''}</span><span class="pq-tipo">${rotulo[o.tipo] || ''}</span></${fecha}>`;
+    return `<${abre} class="pq-it pq-${o.tipo}" role="option" id="pq-o-${n}" data-pq="${n}" aria-selected="false" tabindex="-1"${o.calc ? ` data-calc="${esc(o.calc)}"` : ''}>${icone(o)}<span class="pq-tx"><b>${q ? marca(o.t, q) : esc(o.t)}</b>${o.s ? `<small>${q ? marca(o.s, q) : esc(o.s)}</small>` : ''}</span><span class="pq-tipo">${rotulo[o.tipo] || ''}</span></${fecha}>`;
   }
   const secao = (id, titulo, L, q, extra) => L.length ? `<div class="pq-sec pq-sec-${id}" role="group" aria-labelledby="pq-s-${id}"><p class="pq-k" id="pq-s-${id}"><span>${titulo}</span>${extra || ''}</p>${L.map(o => itemHTML(o, q)).join('')}</div>` : '';
   /* sem nada digitado: o que a pessoa abriu antes, os atalhos de sempre e o que tá em alta */
@@ -666,10 +669,12 @@
     /* v3.69: os atalhos começam pelo que a pessoa mais usa e completam com os de sempre; e o "Pra hoje" vem em cima */
     const atalhos = [...new Set(maisUsados(8, ['inicio']).concat(['studio', 'houzi', 'horus', 'corre', 'verso', 'mural', 'grupos', 'planos']))].map(por).filter(Boolean).slice(0, 8);
     const hoje = praHoje().map(k => ({ tipo: 'h', key: 'h:' + k, t: SN.v[k].diz, s: '', i: SN_IR[k][1], h: SN.v[k].ir || SN_IR[k][0], nivel: SN.v[k].nivel }));
-    res.innerHTML = secao('hoje', 'Pra hoje', hoje, '') + secao('rec', 'Recentes', rec, '', `<button type="button" class="pq-limpa" data-pq-limpa>limpar</button>`)
+    /* v4.33: "pede pro Corre" com os exemplos (tocou, o pedido vai pra barra) */
+    const pede = C.fala ? `<div class="pq-sec pq-pede" role="group" aria-labelledby="pq-s-pd"><p class="pq-k" id="pq-s-pd"><span>Pede pro Corre</span></p><div class="pq-chips">${C.fala.EXEMPLOS.slice(0, 4).map(x => `<button type="button" class="pq-chip" data-fala-ex="${esc(x)}" tabindex="-1">${ico('magia')}<span>${esc(x)}</span></button>`).join('')}</div></div>` : '';
+    res.innerHTML = secao('hoje', 'Pra hoje', hoje, '') + pede + secao('rec', 'Recentes', rec, '', `<button type="button" class="pq-limpa" data-pq-limpa>limpar</button>`)
       + `<div class="pq-sec" role="group" aria-labelledby="pq-s-at"><p class="pq-k" id="pq-s-at"><span>Atalhos</span></p><div class="pq-chips">${atalhos.map(o => { const n = P.lista.push(o) - 1; return o.h ? `<a class="pq-chip" href="${esc(o.h)}" data-pq="${n}" tabindex="-1">${ico(o.i)}<span>${esc(o.t)}</span></a>` : `<button type="button" class="pq-chip" data-pq="${n}" tabindex="-1">${ico(o.i)}<span>${esc(o.t)}</span></button>`; }).join('')}</div></div>
       <div class="pq-sec pq-alta" id="pq-alta" hidden></div>
-      <p class="pq-nada pq-como">Procura gente pelo nome, pelo @ ou pelo que faz (fotógrafo, DJ, bolo), um grupo, uma ferramenta, um lugar do Correverso ou um #assunto.</p>`;
+      <p class="pq-nada pq-como">Procura gente pelo nome, pelo @ ou pelo que faz (fotógrafo, DJ, bolo), um grupo, uma ferramenta, um lugar do Correverso ou um #assunto. Ou pede o que quer fazer, do teu jeito.</p>`;
     marcaAtivo(-1);
     const seq = P.seq, L = await emAlta(), el = $('pq-alta');
     if(!el || seq !== P.seq || !L.length) return;
@@ -695,13 +700,22 @@
       ['f', 'Ferramentas', F], ['v', 'No Correverso', V], ['p', 'Gente', gente], ['g', 'Grupos', grupos], ['post', 'Posts', posts]
     ];
     const ordem = forte ? blocos : [blocos[2], blocos[3], blocos[0], blocos[1], blocos[4]];
-    const html = ordem.map(([id, t, L]) => secao(id, t, L, id === 'post' ? q.replace(/^[@#]+/, '') : q)).join('');
+    /* v4.33 · Fala com o Corre: o pedido entendido no aparelho vem em cima (o Enter faz); o que só parece um pedido
+       (começa com um verbo e diz quando) fica embaixo, pra não roubar o Enter de quem só procura. A IA, quando o
+       aparelho não entendeu: em cima se a frase pede alguma coisa, senão no fim */
+    const FZ = C.fala ? C.fala.itens(q) : { fazer: [], ia: null, topo: false };
+    const fzForte = FZ.fazer.filter(o => o.fz.forte), fraco = FZ.fazer.filter(o => !o.fz.forte);
+    const iaEmCima = FZ.ia && (FZ.topo || (!fzForte.length && !fraco.length && !F.length && !V.length && B && !gente.length && !grupos.length && !posts.length));
+    const fazer = fzForte.concat(iaEmCima ? [FZ.ia] : []);
+    if(FZ.ia && !iaEmCima) mais.unshift(FZ.ia);
+    const html = secao('fz', 'Fazer', fazer, '') + ordem.map(([id, t, L]) => secao(id, t, L, id === 'post' ? q.replace(/^[@#]+/, '') : q)).join('') + secao('fz2', 'Fazer', fraco, '');
     const nadaAinda = !html && !esperando;
     res.innerHTML = html
       + (esperando ? `<div class="pq-sec pq-espera" aria-hidden="true"><p class="pq-k"><span>Gente e grupos</span></p><i></i><i></i><i></i></div>` : '')
       + (nadaAinda ? `<p class="pq-nada">Nada com "${esc(q)}" por aqui. Tenta o @ da pessoa, o nome do grupo ou o que ela faz.</p>` : '')
       + secao('m', 'Mais', mais, '');
     marcaAtivo(P.lista.length ? 0 : -1);
+    if(C.fala) C.fala.preenche(res);
     const st2 = $('pq-status'); if(st2) st2.textContent = esperando ? 'Procurando…' : `${P.lista.length} ${P.lista.length === 1 ? 'resultado' : 'resultados'}`;
   }
   /* o item aceso (setas do teclado e o Enter): o leitor de tela ouve pelo aria-activedescendant */
@@ -741,6 +755,7 @@
   }
   /* abriu um resultado */
   function vai(o, e){
+    if((o.tipo === 'fz' || o.tipo === 'ia') && C.fala){ if(o.h){ if(o.h === location.hash){ if(e) e.preventDefault(); C.closeSheet(); } return; } C.fala.vai(o, $('pq-res')); return; }
     guardaRecente(o);
     if(o.lugar) return vaiLugar(o.lugar);
     if(o.h){
@@ -755,33 +770,42 @@
     const f = o.a && C.acts[o.a];
     if(f) Promise.resolve(f(b)).catch(err => toast(C.errMsg(err)));
   }
-  function abreProcura(){
+  function abreProcura(q0, op){
     if(!st.user || !st.me) return;
+    op = op || {}; q0 = typeof q0 === 'string' ? q0 : '';
     const ja = $('sheet'); if(ja && !ja.hidden && ja.classList.contains('procura')){ const i = $('pq-q'); if(i){ i.focus(); i.select(); } return; }
-    P.q = ''; P.banco = null; P.bancoQ = ''; P.teclado = false;
+    P.q = q0; P.banco = null; P.bancoQ = ''; P.teclado = false;
+    const mic = C.fala && C.fala.temVoz() ? `<button type="button" class="pq-mic" id="pq-mic" aria-label="Ditar o pedido" aria-pressed="false">${ico('mic')}</button>` : '';
     const panel = C.sheet(`<div class="pq">
-      <div class="pq-barra">${ico('lupa', 'pq-lupa')}<input class="pq-in" id="pq-q" type="search" placeholder="${innerWidth < 420 ? 'Procurar no Corre' : 'Procurar gente, grupos, ferramentas…'}" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search" maxlength="60" autofocus
-        role="combobox" aria-expanded="true" aria-controls="pq-res" aria-autocomplete="list" aria-label="Procurar no Corre"><button type="button" class="pq-fecha" data-close aria-label="Fechar a busca"><kbd>Esc</kbd><span>Fechar</span></button></div>
+      <div class="pq-barra">${ico('lupa', 'pq-lupa')}<input class="pq-in" id="pq-q" type="search" placeholder="${innerWidth < 420 ? 'Procurar ou pedir' : 'Procurar ou pedir pro Corre…'}" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search" maxlength="400" autofocus
+        role="combobox" aria-expanded="true" aria-controls="pq-res" aria-autocomplete="list" aria-label="Procurar ou pedir pro Corre">${mic}<button type="button" class="pq-fecha" data-close aria-label="Fechar a busca"><kbd>Esc</kbd><span>Fechar</span></button></div>
       <i class="pq-barrinha" aria-hidden="true"></i>
       <div class="pq-res" id="pq-res" role="listbox" aria-label="Resultados"></div>
       <p class="pq-dica" aria-hidden="true"><span><kbd>↑</kbd><kbd>↓</kbd> escolhe</span><span><kbd>Enter</kbd> abre</span><span><kbd>/</kbd> procura de qualquer página</span></p>
       <p class="sr-only" id="pq-status" role="status" aria-live="polite"></p></div>`, 'procura');
     const inp = $('pq-q');
-    inp.addEventListener('input', () => { P.q = inp.value; P.teclado = false; clearTimeout(P.t); pinta(); P.t = setTimeout(procura, 200); });
+    inp.addEventListener('input', () => { P.q = inp.value; P.teclado = false; if(C.fala) C.fala.cancela(); clearTimeout(P.t); pinta(); P.t = setTimeout(procura, 200); });
+    /* v4.33: volta do resultado da IA pra busca (com um exemplo escrito, se veio de um) */
+    const volta = txt => { if(typeof txt === 'string'){ inp.value = txt; P.q = txt; } if(C.fala) C.fala.cancela(); clearTimeout(P.t); pinta(); P.t = setTimeout(procura, 200); inp.focus(); try{ inp.setSelectionRange(inp.value.length, inp.value.length); }catch(_){} };
+    const mb = $('pq-mic'); if(mb) mb.addEventListener('click', () => C.fala.ouve(inp, mb));
     inp.addEventListener('keydown', e => {
       if(e.key === 'ArrowDown' || e.key === 'ArrowUp'){ e.preventDefault(); P.teclado = true; const n = document.querySelectorAll('#pq-res [data-pq]').length; if(n) marcaAtivo(P.ativo < 0 ? (e.key === 'ArrowDown' ? 0 : n - 1) : (P.ativo + (e.key === 'ArrowDown' ? 1 : -1) + n) % n); }
       else if(e.key === 'Enter'){ e.preventDefault(); const el = document.querySelectorAll('#pq-res [data-pq]')[P.ativo]; if(el) el.click(); }
     });
     panel.addEventListener('pointermove', e => { const el = e.target.closest('#pq-res [data-pq]'); if(!el || el.classList.contains('on')) return; P.teclado = false; marcaAtivo([...document.querySelectorAll('#pq-res [data-pq]')].indexOf(el)); });
     panel.addEventListener('click', e => {
+      if(C.fala && C.fala.clique(e, P.q, $('pq-res'), volta)) return;
       if(e.target.closest('[data-pq-limpa]')){ try{ localStorage.removeItem(REC_K); }catch(_){} pintaVazio(); inp.focus(); return; }
       const t = e.target.closest('[data-pq-tag]'); if(t){ vai({ tipo: 't', tag: String(t.dataset.pqTag || '').toLowerCase() }, e); return; }
       const el = e.target.closest('[data-pq]'); if(!el) return;
       const o = P.lista[Number(el.dataset.pq)]; if(o) vai(o, e);
     });
-    pintaVazio();
+    if(q0){ inp.value = q0; pinta(); P.t = setTimeout(procura, 200); try{ inp.setSelectionRange(q0.length, q0.length); }catch(_){} }
+    else pintaVazio();
+    if(op.voz && mb) setTimeout(() => C.fala.ouve(inp, mb), 60);
   }
   C.procura = abreProcura;
+  C.procuraFerr = () => FERR();
   C.acts.procura = () => abreProcura();
   /* / e Ctrl+K abrem a busca (o / não vale com o cursor num campo; nenhum dos dois dentro de um lugar 3D, que usa o teclado) */
   addEventListener('keydown', e => {
@@ -1125,10 +1149,10 @@
     const cards = C.home.slice().sort((a, b) => a.o - b.o);
     /* v3.43: os atalhos seguem a ordem dos grupos do menu (Laboratório, Financeiro, Banca), pro olho achar no mesmo lugar */
     app.innerHTML = C.header('inicio') + `<main class="wrap home">
-      <div class="hello"><h1><span class="hl">E aí, ${esc(C.firstName(me.nome))}.</span></h1><p>Teu corre tá <b>${desb(me) ? 'desbaratinado' : 'na vitrine'}</b>. <a href="#/@${esc(me.handle)}">Ver meu perfil</a></p></div>
+      ${C.fala ? '<section class="dia" id="h-dia" aria-label="O teu dia"></section>' : `<div class="hello"><h1><span class="hl">E aí, ${esc(C.firstName(me.nome))}.</span></h1><p>Teu corre tá <b>${desb(me) ? 'desbaratinado' : 'na vitrine'}</b>. <a href="#/@${esc(me.handle)}">Ver meu perfil</a></p></div>`}
       <div id="h-passos"></div>
       <nav class="atalhos" aria-label="Tuas ferramentas"><a class="atalho" href="#/studio">${ico('magia')}<span>Studio</span></a>${C.views.houzi ? `<a class="atalho" href="#/houzi">${ico('houzi')}<span>Studio Houzi</span></a>` : ''}<a class="atalho" href="#/corre">${ico('grana')}<span>Vendas e Grana</span></a><a class="atalho" href="#/banca">${ico('banca')}<span>Banca do dia</span></a><a class="atalho" href="#/refs">${ico('cal')}<span>Do teu nicho</span></a><a class="atalho" href="#/rolo">${ico('rolo')}<span>Rolo 360</span></a>${C.ferr('horus') ? `<a class="atalho" href="#/horus">${ico('eye')}<span>Hórus</span></a>` : ''}<a class="atalho ghost" href="#/@${esc(me.handle)}">${ico('plus')}<span>Teu corre</span></a></nav>
-      <section class="card sbar-card" aria-label="Stories" id="h-stories"><div class="sbar"><p class="sb-empty">Carregando stories…</p></div></section>
+      <section class="card sbar-card" aria-label="Stories" id="h-stories">${(() => { const g = C.guardado.le('stories', 864e5); return g ? `<div class="vel" aria-hidden="true">${g}</div>` : `<div class="sbar">${C.esqueleto('roda', 6)}</div>`; })()}</section>
       <div id="h-grupos" class="h-grupos"></div>
       <div class="feed-grid">
         <div class="feed-main" id="h-feed"></div>
@@ -1137,14 +1161,15 @@
           ${C.ehFundador() ? '<div class="feed-rolo" id="h-rolo"></div>' : ''}
           <div class="hgrid side">${cards.map(c => `<div class="hslot" id="hc-${c.k}"><div class="hcard ghost"><span class="hc-name">${{ visitas: 'Visitas', horus: 'Hórus', mural: 'Mural', vendas: 'Vendas', banca: 'Banca do dia', grana: 'Grana', marcas: 'Portfólio', datas: 'Do teu nicho' }[c.k] || ''}</span></div></div>`).join('')}</div>
           <h2 class="sec-t"><span class="hl" id="people-t">Gente no Corre</span></h2>
-          <div id="people"><div class="empty">Carregando quem tá no Corre…</div></div>
+          <div id="people">${C.esqueleto('linha', 4)}</div>
         </aside>
       </div>
       <p class="foot"><a href="privacidade.html">Privacidade</a> <a href="termos.html">Termos</a> <span class="credit">Londrina desenhada no traço da Monstra</span></p>
     </main>`;
+    if(C.fala) C.fala.dia($('h-dia'));
     if(C.correMes) C.correMes($('h-corre'));
     if(C.estreia) C.estreia.passos($('h-passos'));
-    C.storiesBar().then(h => { const el = $('h-stories'); if(el) el.innerHTML = h; });
+    C.storiesBar().then(h => { const el = $('h-stories'); if(el) el.innerHTML = h; C.guardado.poe('stories', h); });
     if(C.rolo && $('h-rolo')) C.rolo.player($('h-rolo'));
     if(C.feed) C.feed.mount($('h-feed'));
     if(C.grupos) C.grupos.faixaHome($('h-grupos'));
@@ -1282,15 +1307,30 @@
   async function loadMe(){
     if(!st.user){ st.me = null; st.loadedFor = null; st.meErro = false; return; }
     if(st.loadedFor === st.user.id && st.me) return;
+    /* v4.33 · o Corre instantâneo: o perfil guardado no aparelho abre o app na hora; o do banco chega por baixo e troca
+       (no balcão da cidade, não: lá a cidade já tem o perfil e o balcão abre e fecha muito) */
+    if(!C.EMBED){ const g = C.guardado.le('me'); if(g && g.id === st.user.id && g.handle){ st.me = g; st.loadedFor = st.user.id; st.meErro = false; meFresco(st.user.id); return; } }
     /* erro de rede NÃO é "perfil não existe": tenta de novo e, se não der, avisa (antes caía no cadastro e a pessoa recriava o perfil) */
     st.meErro = false;
     for(let i = 0; i < 3; i++){
       /* v3.60: com o perfil, os planos (o Studio já sabe quantas redes cabem; não espera). v4.04: chegou e é dono (sem
          ser o fundador), o menu se refaz pra Lojinha aparecer */
-      try{ st.me = await api.one('corre_perfis', { eq: { id: st.user.id } }); if(st.me){ st.loadedFor = st.user.id; if(C.acessoCarrega) C.acessoCarrega().then(A => { if(A && A.dono && !C.ehFundador()) refazMenu(); }); } return; }
+      try{ st.me = await api.one('corre_perfis', { eq: { id: st.user.id } }); if(st.me){ st.loadedFor = st.user.id; C.guardado.poe('me', st.me); if(C.acessoCarrega) C.acessoCarrega().then(A => { if(A && A.dono && !C.ehFundador()) refazMenu(); }); } return; }
       catch(e){ if(i < 2) await new Promise(r => setTimeout(r, 700 * (i + 1))); }
     }
     st.me = null; st.meErro = true;
+  }
+  /* o perfil do banco chegou depois do guardado: troca; o que aparece no menu mudou (nome, foto, uma ferramenta), o menu
+     se refaz sem redesenhar a página; o perfil sumiu (apagado em outro aparelho), volta pro começo */
+  function meFresco(uid){
+    api.one('corre_perfis', { eq: { id: uid } }).then(m => {
+      if(!st.user || st.user.id !== uid) return;
+      if(!m){ C.guardado.limpa(); st.me = null; st.loadedFor = null; route(); return; }
+      const chave = o => JSON.stringify(o ? [o.nome, o.handle, o.avatar_url, o.ferramentas, o.categoria, o.desbaratinado] : null), mudou = chave(st.me) !== chave(m);
+      st.me = m; C.guardado.poe('me', m);
+      if(C.acessoCarrega) C.acessoCarrega().then(A => { if(A && A.dono && !C.ehFundador()) refazMenu(); });
+      if(mudou) refazMenu();
+    }).catch(() => {});
   }
   function viewSemRede(){
     app.innerHTML = C.header('') + `<main class="wrap"><section class="card"><h2 class="ch">Não deu pra carregar teu perfil agora.</h2><p class="note">A internet piscou. Teu perfil tá salvo, é só tentar de novo.</p><div class="acts" style="margin-top:14px"><button type="button" class="btn pri" data-act="tenta-de-novo">Tentar de novo</button></div></section></main>`;
@@ -1543,10 +1583,19 @@
     catch(e){ app.innerHTML = `<div class="boot"><span>Não deu pra conectar ao Corre agora. Atualize a página.</span></div>`; return; }
     api.onAuth((u) => {
       const changed = (u && u.id) !== (st.user && st.user.id);
+      /* saiu da conta (ou trocou): o que tava guardado do login de antes sai do aparelho */
+      if(changed && st.user) C.guardado.limpa();
       st.user = u;
       if(changed){ st.loadedFor = null; st.me = null; route(); }
     });
     route().then(() => C.pai('pronto'), () => C.pai('pronto'));
+    /* v4.33 · o service worker guarda o app no aparelho: da segunda vez abre na hora, até com o sinal ruim (antes ele
+       só existia pra quem ligava os avisos). Só no endereço de verdade (https): no computador de teste (localhost) os
+       testes trocam o config.js pela rede, e o service worker buscaria o de verdade por fora deles (?sw=1 liga pra testar) */
+    if('serviceWorker' in navigator && !C.EMBED && (location.protocol === 'https:' || /[?&]sw=1\b/.test(location.search))){
+      const reg = () => setTimeout(() => navigator.serviceWorker.register('sw.js', { scope: './' }).catch(() => {}), 1500);
+      if(document.readyState === 'complete') reg(); else addEventListener('load', reg, { once: true });
+    }
     /* v3.40: a volta do login do Instagram (o ig.html guardou o código) */
     if(C.ig) C.ig.volta();
   })();

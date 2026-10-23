@@ -137,6 +137,8 @@
     carregar().then(async () => {
       corpo();
       if(o.post) abreDoAviso(o.post);
+      /* v4.33: o "Fala com o Corre" pediu um post (agenda post da GP Burger sexta 18h): o editor abre já começado */
+      else if(C.fala && C.fala.pega){ const pd = C.fala.pega('post'); if(pd) daFala(pd); }
       if(await fila()){ try{ await carregar(); }catch(e){} corpo(); }
       relogio();
     }).catch(e => { const c = C.$('sd-corpo'); if(c) c.innerHTML = `<p class="note">${esc(C.errMsg(e, 'Não deu pra abrir os posts.'))}</p>`; });
@@ -347,16 +349,22 @@
     corpo(); if(msg) C.toast(msg, 4200);
     if(id && ST.aberto === id && C.$('sheet') && !C.$('sheet').hidden) painel(id);
   }
+  /* v4.33: a marca que a pessoa falou; sem marca dita (ou que não bate), a escolha de sempre, com o post começado junto */
+  function daFala(pd){
+    const m = ST.com.find(x => x.id === pd.marca_id);
+    if(m) return abrirEditor(m, null, pd.dia || undefined, pd);
+    ST.pre = pd; novo(pd.dia || undefined);
+  }
   function novo(dia){
     const m = ST.com.find(x => x.id === ST.sel) || (ST.com.length === 1 ? ST.com[0] : null);
-    if(m) return abrirEditor(m, null, dia);
+    if(m){ const pre = ST.pre; ST.pre = null; return abrirEditor(m, null, dia, pre); }
     C.sheet(`<div class="form"><div class="sheet-head"><h2>Post pra qual marca?</h2><button type="button" class="cbtn plain" data-close aria-label="Fechar">${ico('x')}</button></div>
       <div class="sd-qual">${ST.com.map(x => `<button type="button" class="st-mk" data-act="sd-novo-mk" data-id="${x.id}" data-dia="${esc(dia || '')}">${C.marcaLogo(x, 's')}<span><b>${esc(x.marca)}</b><small>@${esc(x.rede)}${ligada(x) ? ' · conectada' : ''}</small></span></button>`).join('')}</div></div>`);
   }
-  function abrirEditor(m, p, dia){
+  function abrirEditor(m, p, dia, pre){
     if(!C.estudio || !C.estudio.abrir) return;
     C.closeSheet();
-    C.estudio.abrir(m, p, dia, { auto: true, studio: true, onSave: q => { if(q && q.data){ ST.mes = q.data.slice(0, 7); ST.semana = weekOf(q.data); } depois(null, ''); } });
+    C.estudio.abrir(m, p, dia, { auto: true, studio: true, pre: pre || null, formato: pre && pre.formato, onSave: q => { if(q && q.data){ ST.mes = q.data.slice(0, 7); ST.semana = weekOf(q.data); } depois(null, ''); } });
   }
   /* "Postar": a legenda vai copiada e a arte vai pro Instagram. No celular, pelo compartilhar (escolhe o Instagram);
      no computador, a arte baixa e o Instagram abre numa aba (+ Criar, escolhe a arte e cola a legenda) */
@@ -413,7 +421,7 @@
     'sd-hoje': () => { ST.mes = hoje().slice(0, 7); ST.semana = weekOf(hoje()); corpo(); },
     'sd-contas': () => { if(C.ig) C.ig.sheet(); },
     'sd-novo': el => novo(el && el.dataset && el.dataset.dia),
-    'sd-novo-mk': el => { const m = ST.com.find(x => x.id === el.dataset.id); if(m) abrirEditor(m, null, el.dataset.dia || undefined); },
+    'sd-novo-mk': el => { const m = ST.com.find(x => x.id === el.dataset.id); const pre = ST.pre; ST.pre = null; if(m) abrirEditor(m, null, el.dataset.dia || undefined, pre); },
     'sd-dia': el => {
       const iso = el.dataset.dia, ps = doDia(iso), past = iso < hoje();
       if(!ps.length){ if(!past) novo(iso); return; }

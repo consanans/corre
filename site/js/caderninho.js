@@ -827,6 +827,8 @@
     return { hoje: r.filter(t => t.dia === hj).length, atras: r.filter(t => t.dia < hj).length };
   };
   C.caderno.chegou = () => { if($('cd')) carrega(true).then(repinta); };
+  /* v4.33: o "Fala com o Corre" anota de qualquer página (devolve a tarefa; erro sobe pra quem chamou) */
+  C.caderno.anota = async o => { await carrega(); if(CD.falta) throw { message: 'caderno', hint: 'caderno' }; return cria(o, null, true); };
 
   Object.assign(C.acts, {
     'cd-aba': el => { const k = el.dataset.k; if(!ABAS.some(x => x[0] === k)) return; CD.aba = k; ls.set(K_ABA, k); repinta(); const b = document.querySelector(`.cd-aba[data-k="${k}"]`); if(b) b.focus(); },

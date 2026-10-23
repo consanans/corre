@@ -22,6 +22,11 @@
 //   DIRECAO_ESFORCO       opcional: minimal | low | medium | high (padrão low; medium pensa mais e demora mais)
 //   MAQUINA_MODELO        opcional (padrão o LEGENDA_MODELO): os 6 cartões e a máquina da marca escolhida
 //   MAQUINA_ESFORCO       opcional (padrão low)
+//   FALA_LIMITE           opcional, pedidos do "Fala com o Corre" por dia (padrão 60; grátis, sem correal)
+//   FALA_MODELO           opcional (padrão o LEGENDA_MODELO); FALA_ESFORCO opcional (padrão minimal: tem que ser rápido)
+// Fala com o Corre (acao: "fala", v4.33): o que a pessoa escreveu ou ditou na busca, quando o app não entendeu sozinho,
+// vira UMA ação do app (tarefa, post, cliente, cobrança, mensagem, abrir uma parte, ou a pergunta de um número).
+// Só vai o texto e o nome das marcas dela: os números (grana, clientes) ficam no aparelho, e quem responde é o app.
 // Hórus (acao: "abordagem" ou "resposta"): escreve a mensagem de WhatsApp sob medida pra empresa
 // Hórus 4 (acao: "montar"): monta o radar inteiro (nichos, filtros do mapa, faro e mensagens) a partir de uma frase
 // e lê a resposta do cliente (o que ele quis dizer, a etapa, quando retomar e a réplica pronta).
@@ -762,6 +767,90 @@ async function maquina(sb: any, user: any, body: any, KEY: string, X: Extra) {
   });
 }
 
+// ---------- v4.33 · FALA COM O CORRE ----------
+/* O app entende sozinho o jeito mais comum de pedir ("me lembra de ligar pro contador amanhã 15h"); o que ele não
+   entende vem pra cá. A IA só escolhe a ação e preenche os campos: quem faz é o app, e a pessoa confirma antes.
+   Grátis (é a porta do app, não pode custar), com uma cota por dia pra ninguém usar de chatbot */
+const FALA_LIMITE = Math.max(0, Number(env('FALA_LIMITE', '60')) || 0);
+const FALA_MODELO = env('FALA_MODELO', LEG_MODELO);
+const FALA_ESFORCO = ['minimal', 'low', 'medium'].includes(env('FALA_ESFORCO')) ? env('FALA_ESFORCO') : 'minimal';
+const FALA_ACOES = ['tarefa', 'post', 'cliente', 'cobranca', 'mensagem', 'ir', 'pergunta', 'nada'];
+const FALA_DESTINOS = ['inicio', 'studio', 'horus', 'caderno', 'corre', 'mural', 'msg', 'grupos', 'verso', 'houzi', 'marcas', 'planos', 'perfil', 'linkbio', 'avisos', 'banca'];
+const FALA_METRICAS = ['entrou_mes', 'a_receber', 'vencidas', 'clientes_retornar', 'posts_hoje', 'proximo_post', 'tarefas_hoje', 'correal', 'dia'];
+const FALA_SISTEMA = `Você é o Corre, o app de quem vive do próprio corre (freelancer, social media, fotógrafo, dono de pequeno negócio), em português do Brasil.
+A pessoa escreveu ou ditou um pedido. Transforme em UMA ação do app e devolva só o JSON pedido.
+Ações:
+- tarefa: anotar no Caderninho (a lista de tarefas). titulo: curto, começando pelo verbo ("Ligar pro contador"). dia (AAAA-MM-DD) e hora (HH:MM) se a pessoa disse. repete: dia, util, semana ou mes se ela disse que repete.
+- post: programar um post no Studio. marca: o nome da marca como ela disse (se bater com uma da lista marcas, use o nome da lista igual). dia, hora, formato (feed, carrossel, story ou reels; vazio se não disse), titulo: a frase grande da arte (até 80 letras) se ela disse; tema: sobre o que é o post.
+- cliente: pôr uma empresa no Hórus (a lista de clientes que ela vai chamar). nome da empresa, telefone (só os números), instagram (sem @), obs (o que mais ela disse).
+- cobranca: uma venda a receber ou um orçamento. cliente, valor (em reais, número), dia (quando vence), descricao (o serviço), tipo: orcamento se ela falou orçamento ou proposta; cobranca se ela vendeu ou quer cobrar.
+- mensagem: mandar mensagem pra alguém pelo Corre. para: o @ da pessoa (sem @), texto: o que mandar.
+- ir: abrir uma parte do app. destino: inicio (o feed), studio (posts e Instagram), horus (clientes), caderno (tarefas), corre (vendas e grana), mural (pedidos de serviço), msg (mensagens), grupos, verso (a cidade, o jogo), houzi (marca e logo), marcas (portfólio e catálogo), planos (assinatura), perfil, linkbio, avisos, banca (notícias).
+- pergunta: a pessoa quer saber um número dela. metrica: entrou_mes (quanto entrou ou faturou no mês), a_receber (quanto tem pra receber), vencidas (cobranças atrasadas), clientes_retornar (clientes pra chamar), posts_hoje (posts que saem hoje), proximo_post, tarefas_hoje, correal (o saldo da moeda do jogo), dia (o resumo do dia).
+- nada: não deu pra entender, ou não é coisa do app.
+Regras: datas relativas (hoje, amanhã, sexta, dia 5, semana que vem) viram AAAA-MM-DD contando de hoje (no contexto). "15h", "3 da tarde" viram 15:00. Não invente: o que a pessoa não disse fica vazio ("" ou 0). resposta: uma frase curta, em primeira pessoa, dizendo o que vai fazer ("Anoto pra amanhã às 15h: Ligar pro contador."); em nada, diga em uma frase o que dá pra pedir.`;
+const FALA_SCHEMA = {
+  type: 'object', additionalProperties: false,
+  required: ['acao', 'titulo', 'dia', 'hora', 'repete', 'marca', 'formato', 'tema', 'nome', 'telefone', 'instagram', 'obs', 'cliente', 'valor', 'descricao', 'tipo', 'para', 'texto', 'destino', 'metrica', 'resposta'],
+  properties: {
+    acao: { type: 'string', enum: FALA_ACOES }, titulo: { type: 'string' }, dia: { type: 'string' }, hora: { type: 'string' },
+    repete: { type: 'string', enum: ['', 'dia', 'util', 'semana', 'mes'] }, marca: { type: 'string' }, formato: { type: 'string', enum: ['', 'feed', 'carrossel', 'story', 'reels'] },
+    tema: { type: 'string' }, nome: { type: 'string' }, telefone: { type: 'string' }, instagram: { type: 'string' }, obs: { type: 'string' },
+    cliente: { type: 'string' }, valor: { type: 'number' }, descricao: { type: 'string' }, tipo: { type: 'string', enum: ['', 'orcamento', 'cobranca'] },
+    para: { type: 'string' }, texto: { type: 'string' }, destino: { type: 'string', enum: [''].concat(FALA_DESTINOS) }, metrica: { type: 'string', enum: [''].concat(FALA_METRICAS) },
+    resposta: { type: 'string' },
+  },
+};
+const SEMANA = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'];
+async function fala(sb: any, body: any, KEY: string) {
+  const texto = txt(body?.texto, 400);
+  if (texto.length < 2) return json({ erro: 'prompt' }, 400);
+  if (!FALA_LIMITE || !await cota(sb, 'fala', FALA_LIMITE)) return json({ erro: 'limite', restam: 0 }, 429);
+  /* o hoje e a hora são os do servidor, em Brasília (não do aparelho) */
+  const agora = new Date(Date.now() - 3 * 3600e3), hoje = agora.toISOString().slice(0, 10);
+  const ctx = {
+    hoje, dia_da_semana: SEMANA[agora.getUTCDay()], hora_agora: agora.toISOString().slice(11, 16),
+    marcas: (Array.isArray(body?.marcas) ? body.marcas : []).slice(0, 30).map((m: unknown) => txt(m, 60)).filter(Boolean),
+  };
+  const payload: any = {
+    model: FALA_MODELO,
+    messages: [{ role: 'system', content: FALA_SISTEMA }, { role: 'user', content: 'Contexto: ' + JSON.stringify(ctx) + '\nO pedido: ' + texto }],
+    response_format: { type: 'json_schema', json_schema: { name: 'fala', strict: true, schema: FALA_SCHEMA } },
+    max_completion_tokens: 1500,
+  };
+  if (/^(gpt-5|o\d)/.test(FALA_MODELO)) payload.reasoning_effort = FALA_ESFORCO; else payload.temperature = 0.2;
+  let out: any = null, resp: Response;
+  try {
+    ({ resp, out } = await chat(payload, KEY, 25000));
+    /* modelo que não aceita o esforço "minimal": de novo sem ele */
+    if (!resp.ok && payload.reasoning_effort && /reasoning_effort|reasoning effort/i.test(out?.error?.message || '')) {
+      delete payload.reasoning_effort;
+      ({ resp, out } = await chat(payload, KEY, 25000));
+    }
+  } catch (e) { return json({ erro: (e as any)?.name === 'TimeoutError' ? 'demora' : 'provedor', detalhe: String(e) }, (e as any)?.name === 'TimeoutError' ? 504 : 502); }
+  if (!resp.ok) {
+    const msg = out?.error?.message || `HTTP ${resp.status}`;
+    console.error('fala:', resp.status, msg);
+    if (resp.status === 401) return json({ erro: 'sem_chave' }, 503);
+    return json({ erro: 'provedor', detalhe: msg }, 502);
+  }
+  let l: any = null;
+  try { l = JSON.parse(out?.choices?.[0]?.message?.content || ''); } catch (_) { /* cai abaixo */ }
+  if (!l || !FALA_ACOES.includes(l.acao)) return json({ erro: 'provedor', detalhe: 'resposta vazia' }, 502);
+  /* o que volta é conferido: data e hora no formato, número que é número, nada comprido */
+  const data = (v: unknown) => /^\d{4}-\d{2}-\d{2}$/.test(String(v || '')) ? String(v) : '';
+  const hora = (v: unknown) => { const m = /^(\d{1,2}):(\d{2})$/.exec(String(v || '')); return m && +m[1] < 24 && +m[2] < 60 ? m[1].padStart(2, '0') + ':' + m[2] : ''; };
+  const um = (v: unknown, lista: string[]) => lista.includes(String(v || '')) ? String(v) : '';
+  return json({
+    acao: l.acao, titulo: txt(l.titulo, 140), dia: data(l.dia), hora: hora(l.hora), repete: um(l.repete, ['dia', 'util', 'semana', 'mes']),
+    marca: txt(l.marca, 60), formato: um(l.formato, ['feed', 'carrossel', 'story', 'reels']), tema: txt(l.tema, 140),
+    nome: txt(l.nome, 120), telefone: String(l.telefone || '').replace(/\D/g, '').slice(0, 13), instagram: String(l.instagram || '').replace(/^@/, '').replace(/[^A-Za-z0-9_.]/g, '').slice(0, 30), obs: txt(l.obs, 300),
+    cliente: txt(l.cliente, 120), valor: Number.isFinite(+l.valor) && +l.valor > 0 ? Math.round(+l.valor * 100) / 100 : 0, descricao: txt(l.descricao, 140), tipo: um(l.tipo, ['orcamento', 'cobranca']),
+    para: String(l.para || '').replace(/^@/, '').toLowerCase().replace(/[^a-z0-9_.]/g, '').slice(0, 24), texto: txt(l.texto, 1000),
+    destino: um(l.destino, FALA_DESTINOS), metrica: um(l.metrica, FALA_METRICAS), resposta: txt(l.resposta, 220),
+  });
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   if (req.method !== 'POST') return json({ erro: 'metodo' }, 405);
@@ -804,6 +893,7 @@ Deno.serve(async (req) => {
     : acao === 'marca' || acao === 'nomes' ? await houzi(sb, user, body, KEY, X)
     : acao === 'direcao' ? await direcao(sb, user, body, KEY, X)
     : acao === 'maquina' ? await maquina(sb, user, body, KEY, X)
+    : acao === 'fala' ? await fala(sb, body, KEY)
     : await imagem(sb, user, body, KEY, X, SB_URL);
   return await fecha(r, X, admin, user.id);
 });

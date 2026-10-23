@@ -482,6 +482,10 @@
     const ARTE0 = () => ({ modelo: 'capa', cor: mk.cor || '#FFE800', kicker: '', titulo: '', texto: '', numero: '', foto: '', logo: !!mk.logo_url });
     let art = Object.assign(ARTE0(), (p && p.arte) || {});
     delete art.slides; delete art.vid; delete art.leg;
+    /* v4.33: post novo que o "Fala com o Corre" começou (o dia, a hora, a frase da arte e do que ele é) */
+    const pre = !p && o.pre && typeof o.pre === 'object' ? o.pre : null;
+    if(pre && pre.titulo) art.titulo = String(pre.titulo).slice(0, 140);
+    if(pre && pre.tema && !art.ia_d) art.ia_d = String(pre.tema).slice(0, 400);
     /* v4.17 · os formatos: feed (uma arte 4:5), carrossel (até 10 slides: arte, foto ou vídeo), story (arte 9:16 ou
        vídeo) e reels (vídeo com a capa escolhida num quadro). Os slides e o vídeo ficam no "arte" do post pra reabrir */
     let fmt = p ? (p.formato || 'feed') : (FMTS.some(f => f[0] === o.formato) ? o.formato : 'feed'), si = 0;
@@ -497,7 +501,7 @@
     if(p && !p.arte && p.legenda) leg.corpo = p.legenda;
     /* v3.38: no Studio, post novo já nasce programado (18h do dia escolhido; sem dia, o próximo 18h que ainda dá) */
     const studio = !!o.studio, dia0 = dia || (at({ data: C.hojeBR(), hora: '18:00' }) > Date.now() + 30 * 6e4 ? C.hojeBR() : isoUTC(Date.now() - 3 * 36e5 + DAY));
-    const d = p || { data: studio ? dia0 : (dia || C.hojeBR()), hora: '18:00', tema: '', status: 'ideia', alt: '' };
+    const d = p || { data: studio ? dia0 : (dia || C.hojeBR()), hora: pre && /^\d{2}:\d{2}$/.test(pre.hora || '') ? pre.hora : '18:00', tema: pre && pre.tema ? String(pre.tema).slice(0, 40) : '', status: 'ideia', alt: '' };
     const progOn = !p || p.ig_status === 'agendado' || (p.status === 'pronto' && !p.ig_status && !!p.data && at(p) > Date.now());
     /* v3.40: em qual conta sai (post novo: a conta conectada com o @ da marca, à vista; a pessoa troca se quiser) */
     const contaIni = p ? (p.ig_conta || '') : ((C.ig && C.ig.daMarca(mk)) || {}).id || '';

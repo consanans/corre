@@ -1,0 +1,12 @@
+# v4.33 · o Corre instantâneo: o css e o js do app sempre vão com a versão no endereço (corre.min.js?v=4.33), então o
+# navegador pode guardar de vez, sem perguntar nada pro servidor a cada abertura (antes conferia o arquivo de 1,4 MB
+# toda vez). Versão nova é endereço novo. Só esses quatro: os Termos e a Privacidade usam o corre.css sem versão, que
+# tem que seguir conferindo. A página (index.html) e o sw.js seguem conferindo sempre (o padrão).
+/js/corre.min.js
+  Cache-Control: public, max-age=31536000, immutable
+/js/houzi.min.js
+  Cache-Control: public, max-age=31536000, immutable
+/js/verso.min.js
+  Cache-Control: public, max-age=31536000, immutable
+/css/corre.min.css
+  Cache-Control: public, max-age=31536000, immutable

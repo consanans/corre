@@ -310,7 +310,7 @@
   async function recarrega(){
     const t = C.$('fd-topo'); if(t) t.innerHTML = topoHTML();
     const a = C.$('fd-alta'); if(a && F.alta) a.innerHTML = altaHTML();
-    const b = C.$('fd-list'); if(b) b.innerHTML = '<div class="empty">Carregando…</div>'; escondeMais();
+    const b = C.$('fd-list'); if(b) b.innerHTML = C.esqueleto('post', 2); escondeMais();
     try{ await carregar(false); pinta(); }catch(e){ if(b) b.innerHTML = `<div class="empty">${esc(C.errMsg(e, 'Não deu pra abrir o feed agora.'))}</div>`; }
   }
   /* o que eu acabei de postar/fortalecer aparece na lista que tá aberta? */
@@ -518,7 +518,7 @@
   }
 
   Object.assign(C.acts, {
-    'fd-tab': async el => { F.tab = el.dataset.t === 'seguindo' ? 'seguindo' : 'pravoce'; F.pv = null; F.pvVazio = false; document.querySelectorAll('[data-act="fd-tab"]').forEach(b => b.setAttribute('aria-selected', String(b.dataset.t === F.tab))); const b = C.$('fd-list'); if(b) b.innerHTML = '<div class="empty">Carregando…</div>'; escondeMais(); try{ await carregar(false); }catch(e){ if(b) b.innerHTML = '<div class="empty">Não deu pra carregar agora. Toca na aba de novo.</div>'; return; } pinta(); },
+    'fd-tab': async el => { F.tab = el.dataset.t === 'seguindo' ? 'seguindo' : 'pravoce'; F.pv = null; F.pvVazio = false; document.querySelectorAll('[data-act="fd-tab"]').forEach(b => b.setAttribute('aria-selected', String(b.dataset.t === F.tab))); const b = C.$('fd-list'); if(b) b.innerHTML = C.esqueleto('post', 2); escondeMais(); try{ await carregar(false); }catch(e){ if(b) b.innerHTML = '<div class="empty">Não deu pra carregar agora. Toca na aba de novo.</div>'; return; } pinta(); },
     'fd-mais': async el => { el.disabled = true; try{ await carregar(true); pinta(); }finally{ el.disabled = false; } },
     /* hashtag: filtra o feed da home (de qualquer lugar, leva pra lá) */
     'fd-tag': async el => {
@@ -719,6 +719,19 @@
     }
   });
 
+  /* v4.33 · o Corre instantâneo: o começo do feed da aba de abertura fica guardado e aparece na hora (parado, sem
+     clique, até o de agora chegar e trocar); sem nada guardado, o esqueleto dos posts */
+  const FEED_G = () => 'feed:' + F.tab;
+  function feedGuardado(){
+    const h = !F.tag && C.guardado ? C.guardado.le(FEED_G(), 3 * 864e5) : null;
+    return h ? `<div class="vel" aria-hidden="true">${h}</div>` : C.esqueleto ? C.esqueleto('post', 3) : '<div class="empty">Carregando o feed…</div>';
+  }
+  function guardaFeed(){
+    if(F.tag || !C.guardado) return;
+    const b = C.$('fd-list'); if(!b || b.classList.contains('vazio')) return;
+    const els = [...b.children].slice(0, 6), h = els.map(x => x.outerHTML).join('');
+    if(h) C.guardado.poe(FEED_G(), h);
+  }
   C.feed = {
     /* o feed da home */
     async mount(el){
@@ -726,22 +739,22 @@
       el.innerHTML = `${composer()}
         <div id="fd-alta">${F.alta ? altaHTML() : ''}</div>
         <div id="fd-topo">${topoHTML()}</div>
-        <div id="fd-list" class="fd-list tl"><div class="empty">Carregando o feed…</div></div>
+        <div id="fd-list" class="fd-list tl">${feedGuardado()}</div>
         <div class="acts center"><button type="button" class="btn" id="fd-mais" data-act="fd-mais" hidden>Carregar mais</button></div>`;
       emAlta().then(() => { const a = C.$('fd-alta'); if(a) a.innerHTML = altaHTML(); });
       if(C.focoPost){ C.focoPost = false; const t = C.$('fd-t'); if(t){ t.scrollIntoView({ block: 'center' }); t.focus(); } }
-      try{ await carregar(false); pinta(); }catch(e){ const b = C.$('fd-list'); if(b) b.innerHTML = `<div class="empty">${esc(C.errMsg(e, 'Não deu pra abrir o feed agora.'))}</div>`; }
+      try{ await carregar(false); pinta(); guardaFeed(); }catch(e){ const b = C.$('fd-list'); if(b) b.innerHTML = `<div class="empty">${esc(C.errMsg(e, 'Não deu pra abrir o feed agora.'))}</div>`; }
     },
     /* os posts de um perfil (com o que a pessoa fortaleceu) */
     async mountPerfil(el, p){
       F.perfil = p.id; F.grupo = null; F.tag = ''; F.modo = ''; F.fixo = p.post_fixo || null; F.fixoRow = null;
-      el.innerHTML = `<div id="fd-list" class="fd-list tl"><div class="empty">Carregando…</div></div><div class="acts center"><button type="button" class="btn" id="fd-mais" data-act="fd-mais" hidden>Carregar mais</button></div>`;
+      el.innerHTML = `<div id="fd-list" class="fd-list tl">${C.esqueleto('post', 2)}</div><div class="acts center"><button type="button" class="btn" id="fd-mais" data-act="fd-mais" hidden>Carregar mais</button></div>`;
       try{ await carregar(false); pinta(); }catch(e){ const b = C.$('fd-list'); if(b) b.innerHTML = `<div class="empty">${esc(C.errMsg(e))}</div>`; }
     },
     /* o mural de um grupo (v3.36): quem tá dentro posta; o fixado vem primeiro */
     async mountGrupo(el, g){
       F.grupo = g; F.perfil = null; F.tag = ''; F.modo = ''; F.fixo = g.fixo || null; F.fixoRow = null; F.gInfo[g.id] = g;
-      el.innerHTML = `${dentroG(g) && C.st.me ? composer(g) : ''}<div id="fd-list" class="fd-list tl"><div class="empty">Carregando…</div></div><div class="acts center"><button type="button" class="btn" id="fd-mais" data-act="fd-mais" hidden>Carregar mais</button></div>`;
+      el.innerHTML = `${dentroG(g) && C.st.me ? composer(g) : ''}<div id="fd-list" class="fd-list tl">${C.esqueleto('post', 2)}</div><div class="acts center"><button type="button" class="btn" id="fd-mais" data-act="fd-mais" hidden>Carregar mais</button></div>`;
       try{ await carregar(false); pinta(); }catch(e){ const b = C.$('fd-list'); if(b) b.innerHTML = `<div class="empty">${esc(C.errMsg(e, 'Não deu pra abrir o grupo agora.'))}</div>`; }
     },
     /* seguir: botão e números do perfil */
@@ -823,7 +836,7 @@
   C.views.salvos = async function(app){
     document.title = 'Salvos · Corre';
     app.innerHTML = C.header('salvos') + `<main class="wrap"><div class="hello"><h1><span class="hl">Salvos</span></h1><p>Os posts que você guardou pra ver depois. Só você vê.</p></div>
-      <div class="feed-main solo"><div id="fd-list" class="fd-list tl"><div class="empty">Carregando…</div></div><div class="acts center"><button type="button" class="btn" id="fd-mais" data-act="fd-mais" hidden>Carregar mais</button></div></div></main>`;
+      <div class="feed-main solo"><div id="fd-list" class="fd-list tl">${C.esqueleto('post', 2)}</div><div class="acts center"><button type="button" class="btn" id="fd-mais" data-act="fd-mais" hidden>Carregar mais</button></div></div></main>`;
     F.perfil = null; F.grupo = null; F.tag = ''; F.modo = 'salvos'; F.sv = null;
     try{ await carregar(false); pinta(); }catch(e){ const b = C.$('fd-list'); if(b) b.innerHTML = `<div class="empty">${esc(C.errMsg(e, 'Não deu pra abrir os salvos agora.'))}</div>`; }
   };

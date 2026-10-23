@@ -1977,6 +1977,8 @@
       async fn(name, b){
         /* v3.84: a direção criativa do Studio Houzi tem demonstração (de mentira, feita pelo próprio motor) */
         if(name === 'imagem' && b && (b.acao === 'direcao' || b.acao === 'maquina') && C.houzi && C.houzi.demoIA) return C.houzi.demoIA(b);
+        /* v4.33: o Fala com o Corre no demo (a "IA" de mentira mora no fala.js) */
+        if(name === 'imagem' && b && b.acao === 'fala' && C.fala && C.fala.demo){ await new Promise(r => setTimeout(r, 450)); return C.fala.demo(b.texto); }
         if(name !== 'pagamento') throw { code: 'nofn' };
         const d = read(), u = uidOf(d), B = b || {}, prod = String(B.produto || '');
         if(!u) throw { code: 'login', status: 401 };
@@ -2174,6 +2176,26 @@
   C.saveMe = async patch => {
     const r = await C.api.upd('corre_perfis', { id: C.uid() }, patch);
     if(r && r[0]) C.st.me = Object.assign({}, C.st.me, r[0]); else C.st.me = Object.assign({}, C.st.me, patch);
+    C.guardado.poe('me', C.st.me);
     return C.st.me;
+  };
+  /* v4.33 · o Corre instantâneo: a última tela de cada pessoa fica guardada no aparelho (o perfil dela, o feed, os
+     stories, o dia) e aparece na hora na próxima abertura; o que vem do banco troca por cima. É só do login dela: outro
+     login não lê, e sair da conta apaga tudo. Nada disso é a verdade (a verdade é o banco); é o "enquanto chega" */
+  const G_K = 'corre-g:';
+  C.guardado = {
+    le(k, maxMs){
+      try{ const o = JSON.parse(localStorage.getItem(G_K + k) || 'null'), u = C.uid(); if(!o || !u || o.u !== u) return null; if(maxMs && Date.now() - o.em > maxMs) return null; return o.v; }catch(e){ return null; }
+    },
+    poe(k, v){ try{ const u = C.uid(); if(!u || v == null) return; const t = JSON.stringify({ u, em: Date.now(), v }); if(t.length > 160000) return; localStorage.setItem(G_K + k, t); }catch(e){} },
+    limpa(){ try{ Object.keys(localStorage).filter(k => k.startsWith(G_K)).forEach(k => localStorage.removeItem(k)); }catch(e){} }
+  };
+  /* o esqueleto: a forma do que vai chegar (no lugar do "Carregando…"), que não pisca nem empurra a tela quando chega */
+  C.esqueleto = (tipo, n) => {
+    n = n || 3;
+    const um = tipo === 'post' ? '<div class="esq esq-post"><i class="esq-av"></i><span><i class="esq-l"></i><i class="esq-l curta"></i></span><i class="esq-bloco"></i></div>'
+      : tipo === 'roda' ? '<i class="esq esq-roda"></i>'
+      : '<div class="esq esq-linha"><i class="esq-av"></i><span><i class="esq-l"></i><i class="esq-l curta"></i></span></div>';
+    return `<div class="esq-lista esq-${tipo}s" aria-busy="true" aria-label="Carregando">${Array.from({ length: n }, () => um).join('')}</div>`;
   };
 })();

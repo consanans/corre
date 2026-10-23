@@ -268,6 +268,8 @@
     .observe(document.documentElement, { childList: true, subtree: true });
   addEventListener('resize', cabeLogo);
   if(document.fonts && document.fonts.ready) document.fonts.ready.then(cabeLogo);
+  /* v4.33: o "Fala com o Corre" responde "quanto entrou esse mês" com a mesma conta do corre do mês */
+  C.entrouNoMes = () => entrouNoMes();
   C.correMes = async function(el, opts){
     if(!el) return;
     try{

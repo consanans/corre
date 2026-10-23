@@ -176,7 +176,8 @@
     try{ await carregar(); }catch(e){}
     pre = pre || {};
     const novo = !v;
-    v = v || { cliente: pre.cliente || '', whats: pre.whats || '', itens: [], desconto: 0, validade: addDias(hoje(), 7), entrega: null, vence: pre.st === 'fechado' ? hoje() : null, forma: '', obs: '', recorrente: false, st: pre.st || 'orcamento', lead_id: pre.lead_id || null };
+    /* v4.33: o "Fala com o Corre" pode mandar o item e o vencimento (cobrar 1500 do João dia 30) */
+    v = v || { cliente: pre.cliente || '', whats: pre.whats || '', itens: Array.isArray(pre.itens) ? pre.itens : [], desconto: 0, validade: addDias(hoje(), 7), entrega: null, vence: pre.vence || (pre.st === 'fechado' ? hoje() : null), forma: '', obs: '', recorrente: false, st: pre.st || 'orcamento', lead_id: pre.lead_id || null };
     E.v = v; E.itens = (v.itens || []).map(e => Object.assign({}, e)); E.lead_id = v.lead_id || null;
     if(E.lead_id && !v.cliente){ const l = N.leads.find(x => x.id === E.lead_id); if(l){ v.cliente = l.nome; v.whats = v.whats || l.wa || l.fixo || ''; } }
     const cat = (C.catalogo && C.catalogo.lista()) || [];
