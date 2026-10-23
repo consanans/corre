@@ -237,6 +237,48 @@ async function contaComToken(admin: any, contaId: string, dono: string) {
   if (!t) throw { code: 'sem_conta', message: `Conecta @${c.username} de novo no Studio.` };
   return { conta: c, token: await decifra(t.token) };
 }
+/* v4.33 · "Unsupported request" (código 100): a Meta recusou o pedido pela conta sem dizer o porquê (23/10, a KivoTrack:
+   os outros perfis postaram na mesma volta). Pergunta pra ela, só lendo, quem é a conta agora e devolve o motivo em
+   português: virou pessoal, mudou o número da conta (aí acerta), a conexão caiu, ou a conta tá travada pro app */
+const naoSuportado = (e: any) => e?.code === 100 && /unsupported (post |get )?request/i.test(String(e?.message || ''));
+async function porqueNaoPosta(admin: any, conta: any, TOKEN: string) {
+  let me: any = null;
+  try { me = await igapi('me?fields=user_id,username,account_type', TOKEN); }
+  catch (e: any) {
+    console.warn('[ig] porque', conta.username, e?.code, e?.sub, String(e?.message || '').slice(0, 160));
+    if (e?.code === 190) {
+      await admin.from('corre_ig_contas').update({ status: 'expirou', erro: 'A Meta recusou a conexão (venceu ou foi tirada).', updated_at: agora() }).eq('id', conta.id);
+      return { msg: `A conexão com @${conta.username} caiu (a Meta não aceita mais). Conecta de novo no Studio.` };
+    }
+    return { msg: `O Instagram não deixa o Corre usar @${conta.username} agora. Abre o Instagram dessa conta: se tiver aviso de conta restrita, resolve lá; se não, vai em Configurações › Apps e sites, tira o Corre e conecta a conta de novo no Studio.` };
+  }
+  const tipo = String(me?.account_type || '').toUpperCase(), id = String(me?.user_id || '');
+  console.warn('[ig] porque', conta.username, JSON.stringify({ tipo, mesmo_id: !id || id === String(conta.ig_id), nome: String(me?.username || '') }));
+  if (tipo && !['BUSINESS', 'MEDIA_CREATOR'].includes(tipo)) {
+    await admin.from('corre_ig_contas').update({ tipo, updated_at: agora() }).eq('id', conta.id);
+    return { msg: `@${conta.username} virou conta pessoal no Instagram, e conta pessoal não aceita post por app. No Instagram: Configurações › Tipo de conta e ferramentas › Mudar pra conta profissional. Depois, Publicar direto.` };
+  }
+  if (id && id !== String(conta.ig_id)) {
+    await admin.from('corre_ig_contas').update({ ig_id: id, updated_at: agora() }).eq('id', conta.id);
+    return { novoId: id };
+  }
+  return { msg: `O Instagram recusou o post em @${conta.username} (a conta responde, mas não aceitou publicar). Abre o Instagram dela e vê se tem aviso de restrição; sem aviso, vai em Configurações › Apps e sites, tira o Corre e conecta a conta de novo no Studio.` };
+}
+/* os posts que já tinham dado "Unsupported request" antes da v4.33 ganham o motivo (só leitura, nada é publicado) */
+async function explicaRecusas(admin: any) {
+  const desde = new Date(Date.now() - 2 * 864e5).toISOString();
+  const { data: L } = await admin.from('corre_posts').select('id,dono,ig_conta').eq('ig_status', 'erro').ilike('ig_erro', 'Unsupported request%').gte('updated_at', desde).limit(5);
+  for (const p of L || []) {
+    try {
+      const ct = await contaComToken(admin, p.ig_conta, p.dono);
+      const r = await porqueNaoPosta(admin, ct.conta, ct.token);
+      const msg = r.novoId ? `O Instagram mudou o número da conta @${ct.conta.username} (já acertei aqui). Toca em Publicar direto pra sair agora.` : r.msg;
+      await admin.from('corre_posts').update({ ig_erro: String(msg).slice(0, 280) }).eq('id', p.id);
+    } catch (e: any) {
+      await admin.from('corre_posts').update({ ig_erro: String(e?.message || 'Não deu pra publicar.').slice(0, 280) }).eq('id', p.id);
+    }
+  }
+}
 async function publicarPost(admin: any, post: any, ate = Date.now() + 25e3) {
   const fim = (patch: any) => admin.from('corre_posts').update(patch).eq('id', post.id);
   let conta: any = null;
@@ -246,9 +288,19 @@ async function publicarPost(admin: any, post: any, ate = Date.now() + 25e3) {
     if (!post.ig_conta) throw { code: 'sem_conta', message: 'O post não tem conta do Instagram escolhida.' };
     const ct = await contaComToken(admin, post.ig_conta, post.dono);
     conta = ct.conta;
-    const r: any = feed
-      ? await publicarIG(conta.ig_id, post.midia_url, String(post.legenda || '').slice(0, 2200), String(post.alt || ''), ct.token)
-      : await publicarFormato(admin, conta.ig_id, post, ct.token, ate);
+    const vai = (igId: string) => feed
+      ? publicarIG(igId, post.midia_url, String(post.legenda || '').slice(0, 2200), String(post.alt || ''), ct.token)
+      : publicarFormato(admin, igId, post, ct.token, ate);
+    let r: any;
+    try { r = await vai(conta.ig_id); }
+    catch (e: any) {
+      if (!naoSuportado(e)) throw e;
+      /* v4.33: a Meta não disse o porquê; pergunta. Mudou o número da conta, acerta e tenta uma vez de novo */
+      const q = await porqueNaoPosta(admin, conta, ct.token);
+      if (!q.novoId) throw { code: e.code, message: q.msg };
+      conta = { ...conta, ig_id: q.novoId };
+      r = await vai(q.novoId);
+    }
     if (r.processando) {
       /* o vídeo ainda tá no forno: volta pra fila (agora, pra próxima volta pegar) e a tentativa não conta */
       await fim({ ig_status: 'agendado', ig_quando: agora(), ig_tentativas: Math.max(0, (post.ig_tentativas || 1) - 1), ig_erro: '' });
@@ -358,6 +410,7 @@ Deno.serve(async (req) => {
     for (const p of posts || []) out.push({ id: p.id, ...(await publicarPost(admin, p, Math.min(ate, Date.now() + 25e3))) });
     let renovadas = 0;
     try { renovadas = await renova(admin); } catch (e: any) { console.error('renova:', e?.message); }
+    try { await explicaRecusas(admin); } catch (e: any) { console.error('recusas:', e?.message); }
     /* v3.55: a resposta não leva o detalhe dos posts (quem chama a fila pode ser qualquer um, e o post é de outra pessoa);
        o detalhe fica só no log da função */
     if (out.length) console.log('fila:', JSON.stringify(out));
