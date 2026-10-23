@@ -2,7 +2,7 @@
   "id": "/",
   "name": "Corre",
   "short_name": "Corre",
-  "description": "A rede de quem faz o corre nas redes.",
+  "description": "A rede e a ferramenta de quem vive do próprio corre: feed, mensagens, Studio pra postar no Instagram, Hórus pra achar cliente, Caderninho, Vendas e Grana, e o Correverso.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
@@ -19,6 +19,17 @@
       "src": "icon-512.png",
       "sizes": "512x512",
       "type": "image/png"
+    },
+    {
+      "src": "icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
+  ],
+  "categories": [
+    "business",
+    "social",
+    "productivity"
   ]
 }

@@ -539,6 +539,9 @@
     const vale = [fimPago ? mais(fimPago, 3) : '', tz].filter(Boolean).sort().pop();
     return p.acesso ? { txt: `Cancelado. Vale até ${ddmm(vale)}.`, bts: ['assinar'] } : { txt: 'Cancelado.', bts: ['assinar'], fora: true };
   }
+  /* v4.31: no app da Google Play não tem botão de comprar (assinar, trocar de plano, pagar a fatura): ver C.naLoja */
+  const COMPRA = { assinar: 1, trocar: 1, pagar: 1 };
+  const btLoja = b => !(C.naLoja && C.naLoja() && COMPRA[b]);
   const BOTAO = {
     assinar: prod => `<button type="button" class="btn sm pri" data-act="pl-assinar" data-p="${prod}">${ico('cartao')} Assinar</button>`,
     trocar: prod => `<button type="button" class="btn sm" data-act="pl-assinar" data-p="${prod}">${ico('troca')} Trocar de plano</button>`,
@@ -557,14 +560,21 @@
     else if(p.status === 'teste' && !p.assinado && noTeste(p)){ const n = faltam(p.teste_ate); txt = `Teste grátis: ${n === 1 ? 'falta 1 dia' : `faltam ${n} dias`}. Depois, ${preco} por mês.`; bt = 'assinar'; }
     else if(p.status === 'atrasada'){ forte = true; txt = `A fatura do ${NOME[prod]} venceu. Paga até ${ddmm(mais(p.pago_ate || C.hojeBR(), 3))} pra não parar.`; bt = 'pagar'; }
     if(!txt) return '';
+    /* v4.31: no app da loja, a faixa só diz como tá (sem preço nem botão de comprar) */
+    if(C.naLoja && C.naLoja()){
+      if(!p) return '';
+      txt = !p.acesso ? `O ${NOME[prod]} tá parado. O que você já fez continua aqui.` : p.status === 'atrasada' ? `A fatura do ${NOME[prod]} venceu.` : `Teste grátis do ${NOME[prod]}: ${faltam(p.teste_ate) === 1 ? 'falta 1 dia' : `faltam ${faltam(p.teste_ate)} dias`}.`;
+      return `<div class="pl-faixa${forte ? ' forte' : ''}" role="${forte ? 'alert' : 'status'}">${ico(forte ? 'lock' : 'clock')}<span>${esc(txt)}</span><a class="btn sm ghost" href="#/planos">Planos</a></div>`;
+    }
     return `<div class="pl-faixa${forte ? ' forte' : ''}" role="${forte ? 'alert' : 'status'}">${ico(forte ? 'lock' : 'clock')}<span>${esc(txt)}</span>${bt ? BOTAO[bt](prod) : '<a class="btn sm ghost" href="#/planos">Planos</a>'}</div>`;
   };
 
   /* ---------- a página ---------- */
   function cartao(prod){
-    const p = plano(prod), e = estado(prod);
+    const p = plano(prod), e = estado(prod), loja = !!(C.naLoja && C.naLoja());
     const nv = prod === 'studio' ? (p && p.assinado && p.acesso ? p.nivel : 1) : 0;
-    const escada = prod === 'studio' ? `<ul class="pl-escada">${[[1, 'Grátis'], [2, reais(STUDIO[2])], [3, reais(STUDIO[3])], [4, reais(STUDIO[4])]].map(([n, v]) => `<li${n === nv ? ' class="eu"' : ''}><span>${nivelNome(n)}</span><b>${v}</b></li>`).join('')}</ul><p class="pl-mes">por mês</p>`
+    e.bts = e.bts.filter(btLoja);
+    const escada = loja ? '' : prod === 'studio' ? `<ul class="pl-escada">${[[1, 'Grátis'], [2, reais(STUDIO[2])], [3, reais(STUDIO[3])], [4, reais(STUDIO[4])]].map(([n, v]) => `<li${n === nv ? ' class="eu"' : ''}><span>${nivelNome(n)}</span><b>${v}</b></li>`).join('')}</ul><p class="pl-mes">por mês</p>`
       : `<p class="pl-preco"><b>${reais(PRECO[prod])}</b> por mês</p>`;
     return `<article class="pl-card${e.fora ? ' fora' : ''}" id="pl-${prod}">
       <header><span class="pl-ico">${ico(ICO[prod])}</span><div><h2>${NOME[prod]}</h2><p>${esc(SOBRE[prod])}</p></div></header>
@@ -577,12 +587,13 @@
   function pinta(){
     const el = C.$('pl'); if(!el) return;
     if(!C.acesso){ el.innerHTML = `<section class="card"><h1 class="ch">Planos</h1><p class="note">Os planos chegam em breve. Por enquanto tá tudo liberado.</p></section>`; return; }
-    el.innerHTML = `<header class="pl-topo"><p class="pl-kick">Planos</p><h1>Paga só a ferramenta que trabalha por você.</h1>
-        <p>A rede, as mensagens, o Correverso, o Mural e Vendas e Grana são de graça. Pix, boleto ou cartão, pelo Asaas; renova sozinho todo mês e cancela quando quiser, aqui mesmo.</p></header>
+    const loja = !!(C.naLoja && C.naLoja());
+    el.innerHTML = `<header class="pl-topo"><p class="pl-kick">Planos</p><h1>${loja ? 'Teus planos' : 'Paga só a ferramenta que trabalha por você.'}</h1>
+        <p>${loja ? 'Aqui no app dá pra ver como tá cada plano, cancelar e desistir. Assinar não está disponível no app.' : 'A rede, as mensagens, o Correverso, o Mural e Vendas e Grana são de graça. Pix, boleto ou cartão, pelo Asaas; renova sozinho todo mês e cancela quando quiser, aqui mesmo.'}</p></header>
       <div class="pl-lista">${['studio', 'houzi', 'horus'].map(cartao).join('')}</div>
       ${C.acesso.fundador ? `<article class="pl-card pl-asaas"><header><span class="pl-ico">${ico('cartao')}</span><div><h2>Asaas</h2><p>Só você vê. Confere a chave do Asaas e cadastra lá o aviso de pagamento, com o token certo. Toca de novo sempre que trocar a chave.</p></div></header>
         <p class="pl-estado" id="pl-asaas-st">A chave fica só nos Secrets do Supabase (ASAAS_API_KEY).</p><div class="acts"><button type="button" class="btn sm pri" data-act="pl-asaas">${ico('check')} Ligar o Asaas</button></div></article>` : ''}
-      <p class="fine pl-fine">O nome e o CPF ou CNPJ vão só pro Asaas, que emite a cobrança: o Corre não guarda. Cancelou, o que já foi pago vale até o fim do mês pago. Desistiu em até 7 dias do primeiro pagamento, devolvemos tudo. Tá tudo nos <a href="termos.html" target="_blank" rel="noopener">Termos de uso</a>.</p>`;
+      ${loja ? '<p class="fine pl-fine">Tá tudo nos <a href="termos.html" target="_blank" rel="noopener">Termos de uso</a>.</p>' : `<p class="fine pl-fine">O nome e o CPF ou CNPJ vão só pro Asaas, que emite a cobrança: o Corre não guarda. Cancelou, o que já foi pago vale até o fim do mês pago. Desistiu em até 7 dias do primeiro pagamento, devolvemos tudo. Tá tudo nos <a href="termos.html" target="_blank" rel="noopener">Termos de uso</a>.</p>`}`;
   }
   C.views.planos = async function(app){
     document.title = 'Planos · Corre';
@@ -699,8 +710,9 @@
         diz(e && e.code === 'config' ? 'Falta a chave: Supabase › Edge Functions › Secrets › ASAAS_API_KEY.' : e && e.code === 'asaas' ? 'O Asaas respondeu: ' + (e.detalhe || 'erro') : e && (e.code === 'nofn' || e.status === 404) ? 'A função pagamento ainda não tá no ar.' : erroTxt(e), true);
       }finally{ if(el.isConnected) el.disabled = false; }
     },
-    'pl-assinar': el => assinarSheet(el.dataset.p, Number(el.dataset.n) || 0),
+    'pl-assinar': el => { if(C.naLoja && C.naLoja()){ C.toast('Assinar não está disponível no app.', 3600); return; } assinarSheet(el.dataset.p, Number(el.dataset.n) || 0); },
     'pl-pagar': async el => {
+      if(C.naLoja && C.naLoja()){ C.toast('Pagar não está disponível no app.', 3600); return; }
       const prod = el.dataset.p, p = plano(prod);
       if(C.DEMO){ C.toast('Na demonstração não tem fatura de verdade.'); return; }
       const w = abaNova(); el.disabled = true;

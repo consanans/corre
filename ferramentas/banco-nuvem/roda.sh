@@ -149,6 +149,11 @@ $P -f "$AQUI/semente430.sql"
 delta delta-v430.sql 'delta v4.30 ok'
 delta delta-v430.sql 'delta v4.30 ok'
 testa teste430.sql 20
+# v4.31: denunciar e apagar a conta de verdade (a semente põe quem tá em cada conversa e as colunas que a cópia lê)
+$P -f "$AQUI/semente431.sql"
+delta delta-v431.sql 'delta v4.31 ok'
+delta delta-v431.sql 'delta v4.31 ok'
+testa teste431.sql 13
 . "$AQUI/virada343.sh"
 if grep -q 'FALHOU\|ERROR' $D/saida; then echo "deu FALHOU ou erro (acima)"; exit 1; fi
 echo "tudo ok: $(grep -c '^ok:' $D/saida) checagens"

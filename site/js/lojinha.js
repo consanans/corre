@@ -141,6 +141,7 @@
         <span class="fine lo-hora">Lido às ${esc(hora)}</span>
       </div>
       </header>
+      <div id="lo-den"></div>
       ${L1.length ? `<section class="card lo-leitura" aria-labelledby="lo-l"><h2 class="ch" id="lo-l">O que os números dizem</h2><ul>${L1.map(([i, t]) => `<li>${ico(i)}<span>${esc(t)}</span></li>`).join('')}</ul></section>` : ''}
       <section class="lo-pulso" aria-label="O pulso">
         <div class="lo-hero"><span class="lo-tile-r">Gente ativa na semana</span><b class="lo-hero-v">${num(g.ativos7)}</b><span class="lo-tile-s">de ${pessoas(g.perfis)} · hoje ${num(g.ativos_hoje)} · no mês ${num(g.ativos30)}</span></div>
@@ -187,6 +188,8 @@
       <div class="lo-tip" id="lo-tip" role="tooltip" hidden></div>
     </main>`;
     ouveTip();
+    /* v4.31: as denúncias, em cima de tudo (a Google pede que a gente olhe o que chega) */
+    if(C.denuncia) C.denuncia.lojinha($('lo-den'));
   }
 
   /* o balãozinho das colunas: segue o dedo/mouse e o foco do teclado (o número também tá na tabela) */

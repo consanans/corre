@@ -8521,7 +8521,7 @@
     if(foraDeEpoca(k)){ C.toast(`${x[1]} é da coleção de Halloween: volta pra vitrine em outubro.`, 4200); return false; }
     if(semPreco(k)){ C.toast(`${x[1]} chega no Ateliê já, já.`, 3600); return false; }
     /* v4.13: a de real abre a folha de pagar (o correal não compra) */
-    if(ehReal(k)){ if(LJ.realOk) skinRealSheet(k); else C.toast(`${x[1]} chega no Ateliê já, já.`, 3600); return false; }
+    if(ehReal(k)){ if(C.naLoja && C.naLoja()) C.toast(`${x[1]} não está à venda no app.`, 3600); else if(LJ.realOk) skinRealSheet(k); else C.toast(`${x[1]} chega no Ateliê já, já.`, 3600); return false; }
     const preco = precoSkin(k), saldo = Number(C.correal.saldo) || 0;
     if(!C.correalCobre(saldo, preco)){ C.toast(`${x[1]} sai por ${C.correalTxt(preco)} e você tem ${C.correalFmt(saldo)}. Faz uns trampos no Correverso (até ${C.correalFmt(C.correal.teto)} por dia) e volta.`, 5200); return false; }
     const sim = await C.confirma({ ico: 'correal', titulo: 'Comprar ' + x[1], texto: `Sai por <b>${C.correalTxt(preco)}</b>. Você tem <b>${C.correalFmt(saldo)}</b>. Comprou, é tua pra sempre.`, sim: `Comprar por ${C.correalFmt(preco)}`, nao: 'Agora não' });
@@ -8541,6 +8541,8 @@
     if(!tenhoSkin(k) && semPreco(k)) return `<span class="lj-preco">${ico('correal')} ${C.correalFmt(precoSkin(k))}</span><span class="lj-msg">em breve</span>`;
     /* v4.13: a de real: o preço em real, a fatura que espera pagamento, e (comprou há menos de 7 dias) o desistir */
     if(!tenhoSkin(k) && ehReal(k)){
+      /* v4.31: no app da Google Play a skin de real não se compra (ver C.naLoja) */
+      if(C.naLoja && C.naLoja()) return '<span class="lj-msg">não está à venda no app</span>';
       if(!LJ.realOk) return `<span class="lj-preco lj-real">${reais(precoReal(k))}</span><span class="lj-msg">em breve</span>`;
       if(pedidoAberto(k)) return `<span class="lj-msg">Esperando o pagamento</span><button type="button" class="btn sm pri" data-act="cvr-lj-real" data-k="${k}">Pagar</button>`;
       return `<button type="button" class="btn sm pri lj-compra lj-real" data-act="cvr-lj-real" data-k="${k}" aria-label="Comprar ${esc(LOJA[k][1])} por ${reais(precoReal(k))}">${reais(precoReal(k))}</button>`;
@@ -8709,7 +8711,7 @@
     const sw = (k, L) => `<div class="cvr-sw" role="radiogroup">${L.map((c, i) => `<button type="button" role="radio" data-k="${k}" data-v="${i}" aria-checked="${av[k] === i}" style="--c:${c}" aria-label="${k} ${i + 1}"></button>`).join('')}</div>`;
     const ch = (k, L) => `<div class="cvr-ch" role="radiogroup">${L.map(([v, n]) => `<button type="button" role="radio" data-k="${k}" data-s="${v}" aria-checked="${av[k] === v}">${n}</button>`).join('')}</div>`;
     /* v3.66: as skins do Ateliê, com o cadeado e o preço de quem ainda não tem */
-    const chLoja = () => `<div class="cvr-ch cvr-ch-loja" role="radiogroup">${SKINS_LOJA.filter(x => !foraDeEpoca(x[0]) || LJ.minhas.has(x[0]) || av.skin === x[0]).map(x => `<button type="button" role="radio" data-k="skin" data-s="${x[0]}" data-loja="${x[0]}" aria-checked="${av.skin === x[0]}">${tenhoSkin(x[0]) ? '' : ico('lock')}${esc(x[1])}${tenhoSkin(x[0]) ? '' : `<i>${ehReal(x[0]) ? reais(precoReal(x[0])) : C.correalFmt(precoSkin(x[0]))}</i>`}</button>`).join('')}</div>`;
+    const chLoja = () => `<div class="cvr-ch cvr-ch-loja" role="radiogroup">${SKINS_LOJA.filter(x => (!foraDeEpoca(x[0]) || LJ.minhas.has(x[0]) || av.skin === x[0]) && !(ehReal(x[0]) && C.naLoja && C.naLoja() && !LJ.minhas.has(x[0]))).map(x => `<button type="button" role="radio" data-k="skin" data-s="${x[0]}" data-loja="${x[0]}" aria-checked="${av.skin === x[0]}">${tenhoSkin(x[0]) ? '' : ico('lock')}${esc(x[1])}${tenhoSkin(x[0]) ? '' : `<i>${ehReal(x[0]) ? reais(precoReal(x[0])) : C.correalFmt(precoSkin(x[0]))}</i>`}</button>`).join('')}</div>`;
     C.sheet(`<div class="form cvr-av"><div class="sheet-head"><h2>${primeira ? 'Monta teu avatar' : armario ? 'O armário' : 'Teu avatar'}</h2><button type="button" class="cbtn plain" data-close aria-label="Fechar">${ico('x')}</button></div>
       <div class="cvr-av-cols"><div class="cvr-av-prev"><canvas id="cvr-prev" width="32" height="34" aria-label="Prévia do avatar"></canvas><div class="acts"><button type="button" class="btn sm" id="cvr-gira">Girar</button><button type="button" class="btn sm" id="cvr-sorte">Sortear</button></div></div>
       <div class="cvr-av-f">
@@ -8787,7 +8789,7 @@
     'cvr-lj-veste': async el => { el.disabled = true; try{ await vesteSkin(el.dataset.k); }catch(e){ C.toast(C.errMsg(e, 'Não deu pra vestir agora.')); } pintaLoja(); },
     'cvr-lj-tira': async el => { el.disabled = true; try{ await vesteSkin(''); }catch(e){ C.toast(C.errMsg(e, 'Não deu agora.')); } pintaLoja(); },
     /* v4.13: as de real (comprar, conferir o pagamento, vestir depois de pagar, desistir em 7 dias) */
-    'cvr-lj-real': el => skinRealSheet(el.dataset.k),
+    'cvr-lj-real': el => { if(C.naLoja && C.naLoja()) return; skinRealSheet(el.dataset.k); },
     'cvr-lj-confere': el => { if(el.dataset.k) ESP.k = el.dataset.k; ESP.ate = Date.now() + 15 * 60000; confereReal(true); },
     'cvr-lj-veste-fecha': async el => { el.disabled = true; try{ await vesteSkin(el.dataset.k); C.closeSheet(); C.toast(`Vestindo a skin ${LOJA[el.dataset.k][1]}.`); }catch(e){ el.disabled = false; C.toast(C.errMsg(e, 'Não deu pra vestir agora.')); } },
     'cvr-lj-desiste': el => desisteReal(el.dataset.p, el.dataset.k),

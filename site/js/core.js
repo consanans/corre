@@ -10,6 +10,19 @@
   const EMBED = /[?&]embed\b/.test(location.search) && window.parent !== window;
   if(EMBED) document.documentElement.classList.add('embed');
   const C = window.Corre = { CFG, LIVE, DEMO, EMBED, views: {}, acts: {}, home: [], st: { user: null, me: null, loadedFor: null } };
+  /* v4.31: o app da Google Play é o Corre embrulhado (um TWA: o Chrome abre o site em tela cheia). Lá dentro, coisa digital
+     vendida no app (os planos, as skins em real) teria que passar pelo pagamento da Google: então no app os botões de
+     comprar somem, e quem assina faz pelo site. O app abre com ?app=play (e a primeira página vem com o android-app://
+     de origem); guardado só na sessão, porque o TWA divide o armazenamento com o Chrome do celular, e no navegador
+     a compra segue normal. */
+  const LOJA = (() => {
+    try{
+      if(new URLSearchParams(location.search).get('app') === 'play' || /^android-app:\/\//.test(document.referrer || '')) sessionStorage.setItem('corre-loja', 'play');
+      return sessionStorage.getItem('corre-loja') === 'play';
+    }catch(e){ return false; }
+  })();
+  C.naLoja = () => LOJA;
+  if(LOJA) document.documentElement.classList.add('na-loja');
   /* recado pra cidade em volta (pronto, rota, fechar). Só vai pra mesma origem */
   C.pai = (t, x) => { if(!EMBED) return; try{ window.parent.postMessage(Object.assign({ corre: 'balcao', t, h: location.hash }, x || {}), location.origin); }catch(e){} };
 
@@ -157,7 +170,9 @@
     presente: '<rect x="4" y="9" width="16" height="11" rx="1"/><path d="M3 9h18M12 9v11M12 9c-1.5-3-5-4-5-1.5S10 9 12 9zM12 9c1.5-3 5-4 5-1.5S14 9 12 9z"/>',
     lua: '<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/>',
     escudo: '<path d="M12 3l7.5 3v5.2c0 4.7-3.1 8.4-7.5 9.8-4.4-1.4-7.5-5.1-7.5-9.8V6z"/><path d="M8.8 12l2.2 2.2 4.2-4.4"/>',
-    chuva: '<path d="M7 15a4 4 0 0 1 .5-8 5 5 0 0 1 9.5 1.5A3.5 3.5 0 0 1 17 15H7z"/><path d="M9 18l-1 2M13 18l-1 2M17 18l-1 2"/>'
+    chuva: '<path d="M7 15a4 4 0 0 1 .5-8 5 5 0 0 1 9.5 1.5A3.5 3.5 0 0 1 17 15H7z"/><path d="M9 18l-1 2M13 18l-1 2M17 18l-1 2"/>',
+    /* v4.31: o denunciar */
+    bandeira: '<path d="M5 21V4"/><path d="M5 4h11l-2 4 2 4H5"/>'
   };
   const ico = (k, cls) => `<svg class="ic${cls ? ' ' + cls : ''}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${I[k] || ''}</svg>`;
   /* ---------- v3.89 · a tela cheia (o 3D da casa e dos lugares, e os jogos da cidade) ----------
@@ -465,6 +480,24 @@
         async tira(path){ try{ await sb.storage.from('corre-anexos').remove([path]); }catch(e){} }
       },
       async unlink(url){ const m = /\/object\/public\/(corre|corre-video)\/(.+)$/.exec(url || ''); if(m) try{ await sb.storage.from(m[1]).remove([decodeURIComponent(m[2])]); }catch(e){} limpa(); },
+      /* v4.31: apagar a conta leva junto as fotos, os vídeos e os arquivos que a pessoa subiu (cada pasta é do login
+         dela). A lista sai antes de apagar a conta; o "tira" vem depois, ainda com o login da sessão. */
+      async minhasPastas(){
+        const out = [];
+        for(const b of ['corre', 'corre-video', 'corre-anexos']){
+          const paths = [];
+          for(let off = 0; off < 20000; off += 1000){
+            let r = null; try{ r = need(await sb.storage.from(b).list(uid, { limit: 1000, offset: off })); }catch(e){ break; }
+            (r || []).forEach(f => { if(f && f.name && f.id) paths.push(`${uid}/${f.name}`); });
+            if(!r || r.length < 1000) break;
+          }
+          if(paths.length) out.push({ b, paths });
+        }
+        return out;
+      },
+      async tiraPastas(L){
+        for(const x of L || []) for(let i = 0; i < x.paths.length; i += 100){ try{ await sb.storage.from(x.b).remove(x.paths.slice(i, i + 100)); }catch(e){} }
+      },
       /* CORRE_CONFIG.FUNCOES troca o endereço de uma função (ex.: { mural: 'swift-api' }, quando o painel do Supabase
          criou a função com outro nome). Se o endereço trocado não existir (404), tenta o nome de sempre.
          "fica": a função não grava nada que o app leia (os avisos no celular), então a memória não precisa sair. */
@@ -1871,6 +1904,53 @@
           let p = d.t.corre_push_pref.find(x => x.dono === uidR); if(!p){ p = { dono: uidR, msg: true, resp: true, seg: true, curt: true, texto: true }; d.t.corre_push_pref.push(p); }
           p.bomdia_hora = a.p_hora; p.bomdia = true; p.updated_at = now(); write(d);
           return C.api.rpc('corre_push_ajustes', {});
+        }
+        /* v4.31 (delta-v431.sql): denunciar, a lista e a decisão dos donos, e o apagar a conta de verdade */
+        if(/^corre_denuncia|^corre_apaga_minha_conta$/.test(n)){
+          const eu = uidOf(d); d.t.corre_denuncias = d.t.corre_denuncias || [];
+          const D = d.t.corre_denuncias;
+          if(n === 'corre_denuncia'){
+            if(!eu) return { ok: false, motivo: 'login' };
+            if(!['post', 'story', 'perfil', 'conversa'].includes(a.p_tipo)) return { ok: false, motivo: 'tipo' };
+            if(!['golpe', 'odio', 'assedio', 'nudez', 'violencia', 'menor', 'spam', 'falso', 'outro'].includes(a.p_motivo)) return { ok: false, motivo: 'motivo' };
+            if(D.filter(x => x.quem === eu && Date.now() - Date.parse(x.created_at) < 864e5).length >= 30) return { ok: false, motivo: 'devagar' };
+            let r = null, dono = null, trecho = '', midia = '';
+            if(a.p_tipo === 'post'){ r = (d.t.corre_feed || []).find(x => x.id === a.p_alvo); if(r){ dono = r.dono; trecho = r.texto || ''; midia = r.midia_url || ''; } }
+            else if(a.p_tipo === 'story'){ r = (d.t.corre_stories || []).find(x => x.id === a.p_alvo); if(r){ dono = r.dono; trecho = r.texto || ''; midia = r.midia_url || ''; } }
+            else { r = d.t.corre_perfis.find(x => x.id === a.p_alvo); if(r){ dono = r.id; trecho = ['@' + r.handle, r.nome, r.bio, r.faz].filter(Boolean).join(' · '); midia = r.avatar_url || '';
+              if(a.p_tipo === 'conversa'){ trecho = (d.t.corre_mensagens || []).filter(m => m.conversa === a.p_ctx && m.dono === dono && m.texto).slice(-8).map(m => m.texto.slice(0, 240)).join('\n'); midia = ''; } } }
+            if(!r || !dono) return { ok: false, motivo: 'nao' };
+            if(dono === eu) return { ok: false, motivo: 'proprio' };
+            if(D.some(x => x.quem === eu && x.tipo === a.p_tipo && x.alvo === a.p_alvo)) return { ok: true, ja: true };
+            const id = rid();
+            D.push({ id, quem: eu, tipo: a.p_tipo, alvo: a.p_alvo, dono, motivo: a.p_motivo, texto: String(a.p_texto || '').trim().slice(0, 500), trecho: trecho.slice(0, 2000), midia: /^https:\/\//.test(midia) ? midia : '', status: 'aberta', created_at: now() });
+            write(d); return { ok: true, id };
+          }
+          if(n === 'corre_denuncias_abertas') return plDono(d, eu) ? new Set(D.filter(x => x.status === 'aberta').map(x => x.tipo + ':' + x.alvo)).size : 0;
+          if(n === 'corre_denuncias_lista'){
+            if(!plDono(d, eu)) return null;
+            const st = ['aberta', 'ok', 'tirada'].includes(a.p_status) ? a.p_status : 'aberta', G = {};
+            D.filter(x => x.status === st).forEach(x => { const k = x.tipo + ':' + x.alvo; (G[k] = G[k] || []).push(x); });
+            return Object.values(G).map(L => { L.sort((x, y) => y.created_at.localeCompare(x.created_at)); const x = L[0], p = d.t.corre_perfis.find(q => q.id === x.dono) || {};
+              const existe = x.tipo === 'post' ? (d.t.corre_feed || []).some(f => f.id === x.alvo) : x.tipo === 'story' ? (d.t.corre_stories || []).some(s => s.id === x.alvo) : d.t.corre_perfis.some(q => q.id === x.alvo);
+              return { tipo: x.tipo, alvo: x.alvo, n: L.length, ultima: x.created_at, motivos: [...new Set(L.map(y => y.motivo))], textos: L.map(y => y.texto).filter(Boolean).slice(0, 3),
+                trecho: x.trecho, midia: x.midia, status: st, dono: x.dono, handle: p.handle, nome: p.nome, existe,
+                quem: [...new Set(L.map(y => (d.t.corre_perfis.find(q => q.id === y.quem) || {}).handle).filter(Boolean))].slice(0, 3) }; })
+              .sort((x, y) => y.ultima.localeCompare(x.ultima));
+          }
+          if(n === 'corre_denuncia_resolve'){
+            if(!plDono(d, eu)) return { ok: false, motivo: 'dono' };
+            if(!['ok', 'tirar'].includes(a.p_acao) || (a.p_acao === 'tirar' && !['post', 'story'].includes(a.p_tipo))) return { ok: false, motivo: 'acao' };
+            if(a.p_acao === 'tirar'){ const t = a.p_tipo === 'post' ? 'corre_feed' : 'corre_stories'; d.t[t] = (d.t[t] || []).filter(x => x.id !== a.p_alvo); }
+            let k = 0; D.forEach(x => { if(x.tipo === a.p_tipo && x.alvo === a.p_alvo && x.status === 'aberta'){ x.status = a.p_acao === 'tirar' ? 'tirada' : 'ok'; x.visto_por = eu; x.visto_em = now(); k++; } });
+            write(d); return { ok: true, n: k };
+          }
+          if(n === 'corre_apaga_minha_conta'){
+            if(!eu) return { ok: false, motivo: 'login' };
+            if((d.t.corre_assinaturas || []).some(x => x.dono === eu && x.asaas_assinatura && x.status !== 'cancelada')) throw { message: 'tem plano ativo no Asaas: cancela antes de apagar o perfil', hint: 'assinatura_ativa' };
+            d.t.corre_perfis = d.t.corre_perfis.filter(x => x.id !== eu); d.conta_apagada = (d.conta_apagada || []).concat(eu); write(d);
+            return { ok: true };
+          }
         }
         throw { message: 'rpc' };
       },

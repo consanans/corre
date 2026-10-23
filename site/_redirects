@@ -2,3 +2,6 @@
 /@*  /index.html  200
 # v4.29 · a página aberta "Quantos clientes tem pra você": app.corresocial.com/clientes (o começo do index.html troca pra #/clientes)
 /clientes  /index.html  200
+# v4.31 · o app da Google Play: o Android confere que o app é do site lendo o /.well-known/assetlinks.json. O arquivo
+# mora em well-known/ (sem o ponto: pasta que começa com ponto pode ficar de fora do zip ou do deploy).
+/.well-known/assetlinks.json  /well-known/assetlinks.json  200

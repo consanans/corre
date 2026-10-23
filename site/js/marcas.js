@@ -19,7 +19,7 @@
      segue com as marcas e as redes guardadas, mas só as que cabem no plano abrem o painel e o Studio */
   const noPlano = () => { const L = comRede().slice().sort((a, b) => String(a.created_at || '').localeCompare(String(b.created_at || ''))).slice(0, lim()); return M.list.filter(m => L.includes(m)); };
   const foraDoPlano = m => !!m.rede && !noPlano().includes(m);
-  const foraHTML = m => `<main class="wrap"><section class="card mk-head">${C.marcaLogo(m, 'l')}<div><h1>${esc(m.marca)}</h1><p class="note">@${esc(m.rede)} tá fora do teu plano agora: ele cobre ${nRedes(lim())}. A marca e tudo dela seguem guardados; o painel e o Studio dela voltam quando o plano cobrir de novo.</p></div><div class="acts"><button type="button" class="btn pri" data-act="mk-plus">${ico('cartao')} Quero mais redes</button><a class="btn" href="#/marcas">Voltar</a></div></section></main>`;
+  const foraHTML = m => `<main class="wrap"><section class="card mk-head">${C.marcaLogo(m, 'l')}<div><h1>${esc(m.marca)}</h1><p class="note">@${esc(m.rede)} tá fora do teu plano agora: ele cobre ${nRedes(lim())}. A marca e tudo dela seguem guardados; o painel e o Studio dela voltam quando o plano cobrir de novo.</p></div><div class="acts">${C.naLoja && C.naLoja() ? '' : `<button type="button" class="btn pri" data-act="mk-plus">${ico('cartao')} Quero mais redes</button>`}<a class="btn" href="#/marcas">Voltar</a></div></section></main>`;
   const acessoPronto = () => (C.acesso || !C.acessoCarrega ? null : C.acessoCarrega());
   const cleanIg = v => String(v || '').trim().replace(/^https?:\/\/(www\.)?instagram\.com\//i, '').replace(/^@/, '').replace(/[/?#].*$/, '');
 
@@ -56,7 +56,7 @@
       ${C.catalogo ? `<div id="ct-sec" class="ct-sec">${C.catalogo.secaoHTML()}</div>` : ''}
       <div class="sec-row"><h2 class="sec-t"><span class="hl">Clientes e trabalhos</span></h2></div>
       <p class="mk-intro">As marcas e clientes que você atende ou já atendeu: é a prova do teu corre no perfil. Pra quem toca rede social de cliente, cada marca ganha o painel.</p>
-      <section class="card plano"><div><b>${nomePlano()}</b><span>${pro() ? `${usadas} ${usadas === 1 ? 'rede social ligada' : 'redes sociais ligadas'}` : `${usadas} de ${nRedes(lim())} ${lim() === 1 ? 'ligada' : 'ligadas'}. A marca com rede ganha o painel: grana da marca, o que sai na banca sobre ela e o estúdio de posts.`}</span></div>${!pro() && usadas >= lim() ? '<button type="button" class="btn sm" data-act="mk-plus">Quero mais redes</button>' : ''}</section>
+      <section class="card plano"><div><b>${nomePlano()}</b><span>${pro() ? `${usadas} ${usadas === 1 ? 'rede social ligada' : 'redes sociais ligadas'}` : `${usadas} de ${nRedes(lim())} ${lim() === 1 ? 'ligada' : 'ligadas'}. A marca com rede ganha o painel: grana da marca, o que sai na banca sobre ela e o estúdio de posts.`}</span></div>${!pro() && usadas >= lim() && !(C.naLoja && C.naLoja()) ? '<button type="button" class="btn sm" data-act="mk-plus">Quero mais redes</button>' : ''}</section>
       ${M.sug.length ? `<section class="card sug"><h2 class="ch">Já te pagaram e não tão aqui</h2><p class="note">Vem da tua Grana. Um toque e a marca entra no portfólio.</p><div class="sug-row">${M.sug.map(s => `<button type="button" class="chip add" data-act="mk-sug" data-n="${esc(s.nome)}">${ico('plus')} ${esc(s.nome)} <small class="num">${money(s.v)}</small></button>`).join('')}</div></section>` : ''}
       <div class="mks">${M.list.map(m => C.marcaCard(m, true)).join('')}<button type="button" class="mk add" data-act="mk-nova">${ico('plus')}<b>Adicionar cliente ou trabalho</b><small>Marca que você atende, projeto ou a tua própria.</small></button></div>
     </main>`;
@@ -270,7 +270,7 @@
     'mk-op': async el => { if(!M.list.length) try{ await carregar(); }catch(e){} opSheet(M.list.find(m => m.id === el.dataset.id)); },
     'mk-rm': async el => { if(!M.list.length) try{ await carregar(); }catch(e){} rmSheet(M.list.find(m => m.id === el.dataset.id)); },
     'mk-sug': el => { form(null); C.$('mk-n').value = el.dataset.n; C.$('mk-n').dispatchEvent(new Event('input', { bubbles: true })); },
-    'mk-plus': () => plusSheet(),
+    'mk-plus': () => { if(C.naLoja && C.naLoja()){ C.toast('Mais redes não se assina pelo app.', 3600); return; } plusSheet(); },
     'mk-plus-ok': async () => { try{ await C.saveMe({ quer_plus: true }); }catch(e){} C.closeSheet(); C.toast('Tá na lista do Corre+. A gente te chama.', 3600); }
   });
 

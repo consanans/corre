@@ -138,8 +138,13 @@
       if(c.atras) v.caderno = { txt: plural(c.atras, 'atrasada', 'atrasadas'), n: c.atras + c.hoje, nivel: 'alerta', diz: c.atras === 1 ? '1 tarefa ficou pra trás' : `${c.atras} tarefas ficaram pra trás` };
       else if(c.hoje) v.caderno = { txt: `${c.hoje} hoje`, n: c.hoje, nivel: 'hoje', diz: c.hoje === 1 ? '1 tarefa pra hoje no Caderninho' : `${c.hoje} tarefas pra hoje no Caderninho` };
     }).catch(() => {}) : null;
+    /* v4.31: denúncia esperando o dono olhar (só pros donos; a Google pede que a gente olhe o que chega) */
+    const den = C.ehDono && C.ehDono() ? api.rpc('corre_denuncias_abertas', {}).then(n => {
+      n = Number(n) || 0;
+      if(n) v.lojinha = { txt: plural(n, 'denúncia', 'denúncias'), n, nivel: 'alerta', ir: '#/lojinha', diz: n === 1 ? '1 denúncia esperando você olhar' : `${n} denúncias esperando você olhar` };
+    }).catch(() => {}) : null;
     /* (o saldo de correal ficou de fora: o menu só sinaliza o que pede ação, e "Carteira de correal" com o número não cabia) */
-    await Promise.all([studio, horus, vendas, mural, planos, caderno]);
+    await Promise.all([studio, horus, vendas, mural, planos, caderno, den]);
     return { v, prox: prox ? quandoCurto(prox) : '' };
   }
   /* "hoje 21h", "amanhã 9h30", "sex 17/10 9h" (no horário de Brasília) */
@@ -962,7 +967,7 @@
     app.innerHTML = C.header('editar') + `<main class="wrap">
       <h2 class="sec-t"><span class="hl">Editar perfil</span></h2>
       <section class="card">${profileForm(st.me, false)}</section>
-      <section class="card danger"><h2 class="ch">Apagar meu perfil</h2><p class="note">Apaga perfil, catálogo, vendas e orçamentos, clientes do Hórus, pedidos e propostas do Mural, referências, portfólio, stories, destaques, vitrine, contas e lançamentos, e cancela os planos pagos. Não dá pra desfazer.</p>
+      <section class="card danger"><h2 class="ch">Apagar minha conta</h2><p class="note">Apaga a conta inteira: o perfil, o login, catálogo, vendas e orçamentos, clientes do Hórus, pedidos e propostas do Mural, referências, portfólio, posts, stories, destaques, mensagens, Caderninho, as fotos e os vídeos que você subiu, contas e lançamentos, e cancela os planos pagos. Não dá pra desfazer.</p>
         <div class="seguir-row"><input class="inp" id="del-h" placeholder="Digite teu @ pra confirmar" autocapitalize="none" spellcheck="false" aria-label="Digite teu @ pra confirmar"><button type="button" class="btn ghost" data-act="apagar-conta">${ico('trash')} Apagar tudo</button></div></section>
     </main>`;
     bindForm(false);
@@ -1245,7 +1250,7 @@
           ${metaHTML}
           ${gdica ? `<p class="fine pf-gdica">${gdica}</p>` : ''}
           <div id="pf-nums"></div>
-          <div class="acts"><span id="pf-seguir"></span>${mine ? `<a class="btn pri" href="#/editar">Editar perfil</a><a class="btn" href="#/linkbio">${ico('link')} Link na bio</a><button type="button" class="btn" data-act="st-novo">${ico('plus')} Story</button>` : ''}${p.visibilidade === 'mocado' ? '' : `<button type="button" class="btn" data-act="copiar" data-h="${esc(p.handle)}">Copiar link</button>`}${mine && p.visibilidade !== 'mocado' && C.insta ? `<button type="button" class="btn" data-act="ig-story" data-k="perfil">${ico('ig')} No story do Insta</button>` : ''}${!mine && C.msg ? (p.handle === 'corre' ? `<a class="btn" href="#/msg/@consanans" title="O @corre é o perfil da casa: quem responde é o @consanans">${ico('send')} Falar com o Corre</a>` : `<a class="btn" href="#/msg/@${esc(p.handle)}">${ico('send')} Mensagem</a>`) : ''}${!mine && C.msg && st.user && st.me ? `<button type="button" class="btn ghost" data-act="msg-mandar" data-k="perfil" data-h="${esc(p.handle)}" title="Mandar esse perfil pra alguém">Indicar</button>` : ''}</div>
+          <div class="acts"><span id="pf-seguir"></span>${mine ? `<a class="btn pri" href="#/editar">Editar perfil</a><a class="btn" href="#/linkbio">${ico('link')} Link na bio</a><button type="button" class="btn" data-act="st-novo">${ico('plus')} Story</button>` : ''}${p.visibilidade === 'mocado' ? '' : `<button type="button" class="btn" data-act="copiar" data-h="${esc(p.handle)}">Copiar link</button>`}${mine && p.visibilidade !== 'mocado' && C.insta ? `<button type="button" class="btn" data-act="ig-story" data-k="perfil">${ico('ig')} No story do Insta</button>` : ''}${!mine && C.msg ? (p.handle === 'corre' ? `<a class="btn" href="#/msg/@consanans" title="O @corre é o perfil da casa: quem responde é o @consanans">${ico('send')} Falar com o Corre</a>` : `<a class="btn" href="#/msg/@${esc(p.handle)}">${ico('send')} Mensagem</a>`) : ''}${!mine && C.msg && st.user && st.me ? `<button type="button" class="btn ghost" data-act="msg-mandar" data-k="perfil" data-h="${esc(p.handle)}" title="Mandar esse perfil pra alguém">Indicar</button>` : ''}${!mine && st.user && st.me && C.denuncia ? `<button type="button" class="btn ghost pf-den" data-act="den-perfil" data-id="${p.id}" data-h="${esc(p.handle)}" aria-label="Denunciar ou bloquear @${esc(p.handle)}" title="Denunciar ou bloquear">${ico('dots')}</button>` : ''}</div>
         </div>
       </section>
       ${mine ? ferramentasHTML() : ''}
@@ -1439,7 +1444,20 @@
       /* v3.61: plano pago rodando no Asaas é cancelado antes (o perfil some, mas o Asaas seguiria cobrando todo mês) */
       try{ if(C.planos && C.planos.cancelaTudo) await C.planos.cancelaTudo(); }
       catch(e){ toast(C.errMsg(e, 'Não deu pra cancelar teus planos agora. Cancela em Financeiro › Planos e tenta de novo.'), 5200); return; }
-      try{ if(C.push) await C.push.sair(); await api.del('corre_perfis', { id: st.user.id }); toast('Perfil apagado.'); await api.logout(); st.user = null; st.me = null; st.loadedFor = null; go('#/'); }
+      /* v4.31: apaga a conta de verdade (o perfil e o login, corre_apaga_minha_conta do delta-v431) e as fotos, vídeos e
+         arquivos que a pessoa subiu (a lista sai antes; o "tira" vem depois, ainda com a sessão). Banco sem o delta:
+         apaga o perfil, como antes. */
+      try{
+        if(C.push) await C.push.sair();
+        const pastas = api.minhasPastas ? await api.minhasPastas().catch(() => []) : [];
+        let conta = false;
+        try{ const r = await api.rpc('corre_apaga_minha_conta', {}); conta = !!(r && r.ok); }
+        catch(e){ if(!(e && (e.code === 'PGRST202' || e.code === '42883' || /Could not find the function|does not exist/i.test(e.message || '')))) throw e; }
+        if(!conta) await api.del('corre_perfis', { id: st.user.id });
+        if(api.tiraPastas) await api.tiraPastas(pastas).catch(() => {});
+        toast(conta ? 'Conta apagada. Valeu por ter passado pelo Corre.' : 'Perfil apagado.', 4200);
+        await api.logout(); st.user = null; st.me = null; st.loadedFor = null; go('#/');
+      }
       catch(e){ toast(C.errMsg(e)); }
     }
   });

@@ -580,7 +580,8 @@
           ${C.horusFunil && C.ferr && C.ferr('horus') ? `<button type="button" class="btn" data-act="msg-horus">${ico('eye')} Pôr no Hórus</button>` : ''}
           ${c.eu.estado === 'aceita' ? `<button type="button" class="btn" data-act="msg-estado" data-a="${c.eu.silenciada ? 'dessilenciar' : 'silenciar'}">${ico(c.eu.silenciada ? 'bell' : 'micoff')} ${c.eu.silenciada ? 'Voltar a avisar' : 'Silenciar'}</button>` : ''}
           <button type="button" class="btn" data-act="msg-apaga-conv">${ico('trash')} Apagar conversa</button>
-          <button type="button" class="btn ghost" data-act="msg-bloq"${c.bloqueei ? ' data-on="1"' : ''}>${ico('lock')} ${c.bloqueei ? 'Desbloquear' : 'Bloquear'} @${esc(o.handle)}</button></div>
+          <button type="button" class="btn ghost" data-act="msg-bloq"${c.bloqueei ? ' data-on="1"' : ''}>${ico('lock')} ${c.bloqueei ? 'Desbloquear' : 'Bloquear'} @${esc(o.handle)}</button>
+          ${C.denuncia ? `<button type="button" class="btn ghost" data-act="den-abre" data-t="conversa" data-id="${esc(o.id)}" data-h="${esc(o.handle)}" data-ctx="${esc(c.conversa)}">${ico('bandeira')} Denunciar @${esc(o.handle)}</button>` : ''}</div>
         <p class="fine">Apagar tira a conversa da tua caixa (a outra pessoa continua com ela). Bloquear vale pro Corre todo: mensagem e cidade.</p></div>`);
     },
     /* v4.16: quem conversa e quer comprar vira cliente no Hórus (Interessado, com o WhatsApp público e a conversa à mão) */

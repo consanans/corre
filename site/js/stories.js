@@ -52,7 +52,7 @@
     el.innerHTML = `<div class="st-frame" style="--bg:${esc(s.fundo || '#0F1218')}">
       ${midia}${s.texto ? `<p class="st-txt${s.midia_url ? ' over' : ''}">${esc(s.texto)}</p>` : ''}
       <div class="st-bars">${g.stories.map((x, i) => `<i><b style="width:${i < V.si ? 100 : 0}%"${i === V.si ? ' id="st-cur"' : ''}></b></i>`).join('')}</div>
-      <div class="st-head"><a href="#/@${esc(g.perfil.handle)}" data-act="st-perfil">${C.avatar(g.perfil, 's')}<b>@${esc(g.perfil.handle)}</b></a><span>${V.mode === 'destaque' ? esc(g.titulo || 'Destaque') : C.rel(s.created_at)}</span><button type="button" class="st-x" data-act="st-fechar" aria-label="Fechar">${ico('x')}</button></div>
+      <div class="st-head"><a href="#/@${esc(g.perfil.handle)}" data-act="st-perfil">${C.avatar(g.perfil, 's')}<b>@${esc(g.perfil.handle)}</b></a><span>${V.mode === 'destaque' ? esc(g.titulo || 'Destaque') : C.rel(s.created_at)}</span>${!mine && C.uid() && C.denuncia ? `<button type="button" class="st-x st-den" data-act="st-den" aria-label="Denunciar este story" title="Denunciar">${ico('bandeira')}</button>` : ''}<button type="button" class="st-x" data-act="st-fechar" aria-label="Fechar">${ico('x')}</button></div>
       <button type="button" class="st-tap l" data-act="st-prev" aria-label="Anterior"></button><button type="button" class="st-tap r" data-act="st-next" aria-label="Próximo"></button>
       ${mine ? `<div class="st-own">${V.ask ? `<span>Apagar este story?</span><button type="button" class="btn sm" data-act="st-del-ok">Apagar</button><button type="button" class="btn sm ghost" data-act="st-del-no">Não</button>` : `${V.mode === 'destaque' ? `<button type="button" class="btn sm" data-act="st-undest">Tirar do destaque</button>` : `<button type="button" class="btn sm" data-act="st-dest">${ico('star')} ${s.destaque_id ? 'Trocar destaque' : 'Destacar'}</button>`}${C.insta ? `<button type="button" class="btn sm" data-act="ig-story" data-k="story">${ico('ig')} No Insta</button>` : ''}<button type="button" class="btn sm ghost" data-act="st-del" aria-label="Apagar story">${ico('trash')}</button>`}</div>` : ''}
     </div>`;
@@ -196,6 +196,11 @@
     },
     'st-del': () => { V.ask = true; V.paused = true; show(); },
     'st-del-no': () => { V.ask = false; show(); },
+    /* v4.31: denunciar o story de outra pessoa (pausa enquanto a folha tá aberta; fechou, segue) */
+    'st-den': () => {
+      const g = V.groups[V.gi], s = g && g.stories[V.si]; if(!s || !C.denuncia) return;
+      V.paused = true; C.denuncia.abre({ tipo: 'story', id: s.id, h: g.perfil.handle });
+    },
     'st-del-ok': async () => {
       const g = V.groups[V.gi], s = g.stories[V.si];
       try{ await C.api.del('corre_stories', { id: s.id }); if(s.midia_url) C.api.unlink(s.midia_url); g.stories.splice(V.si, 1); V.dirty = true; V.ask = false; C.toast('Story apagado.'); if(!g.stories.length){ V.groups.splice(V.gi, 1); if(!V.groups.length) return close(); V.gi = Math.min(V.gi, V.groups.length - 1); V.si = 0; } else V.si = Math.min(V.si, g.stories.length - 1); show(); }
