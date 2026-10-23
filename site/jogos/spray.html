@@ -34,6 +34,19 @@ body{background:var(--noite);color:var(--papel);font-family:var(--f-txt);overflo
 button{font:inherit;color:inherit;cursor:pointer}
 button:focus-visible{outline:3px solid var(--amarelo);outline-offset:2px}
 #c{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:none}
+/* v4.28: o muro em camadas que o navegador só junta (antes o quadro inteiro era redesenhado 60 vezes por segundo e travava).
+   O fundo (#c) é pintado uma vez; o muro tem o reboco com o giz, a tinta e a luz do poste; a lanterna, a seta, o clarão e a mira só andam.
+   Tudo sem toque: quem recebe o dedo é o #c, embaixo */
+#muro,#luz,#seta,#flash,#mira{position:fixed;pointer-events:none}
+#muro{z-index:1;background:#000;box-shadow:0 0 24px rgba(0,0,0,.6);will-change:transform}
+#muro canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+/* a lanterna soma luz (como o 'lighter' do canvas); onde não tem plus-lighter, o screen fica quase igual */
+#luz{z-index:1;overflow:hidden;mix-blend-mode:screen;mix-blend-mode:plus-lighter;will-change:transform}
+#luz canvas{position:absolute;left:0;top:0;will-change:transform,opacity}
+#seta{z-index:2;left:0;top:0;width:22px;height:44px;background:rgba(255,197,49,.9);clip-path:polygon(0 0,100% 50%,0 100%)}
+#seta.volta{clip-path:polygon(100% 0,0 50%,100% 100%)}
+#flash{z-index:2;inset:0;background:rgb(255,250,235)}
+#mira{z-index:2;left:0;top:0;will-change:transform}
 
 .topo{position:fixed;left:0;right:0;top:0;z-index:3;display:flex;justify-content:space-between;align-items:flex-start;gap:10px;pointer-events:none;
   padding:calc(env(safe-area-inset-top,0px) + 10px) max(16px,env(safe-area-inset-right,0px)) 0 max(16px,env(safe-area-inset-left,0px))}
@@ -115,6 +128,11 @@ button:focus-visible{outline:3px solid var(--amarelo);outline-offset:2px}
 </head>
 <body>
 <canvas id="c" aria-label="Um muro de rua, de noite, com o desenho a giz das letras pra pintar"></canvas>
+<div id="muro" aria-hidden="true" hidden></div>
+<div id="luz" aria-hidden="true" hidden><canvas></canvas></div>
+<div id="seta" aria-hidden="true" hidden></div>
+<div id="flash" aria-hidden="true" hidden></div>
+<canvas id="mira" aria-hidden="true" hidden></canvas>
 
 <div class="topo">
   <div class="placa" aria-live="polite">
@@ -199,12 +217,12 @@ let SW = 0, SH = 0, DPR = 1;
 const CEL = 8;
 // o muro em pontos lógicos (fixo durante o muro) e onde ele aparece na tela
 const M = { W: 960, H: 540, x: 0, y: 0, s: 1, k: 1, paint: null, pctx: null, tex: null, giz: null, tipo: null, perto: null, cor: null, blk: null, GX: 0, GY: 0, nP: 0, nC: 0 };
-let fundo = null;
+const muroEl = $('muro'), luzEl = $('luz'), luzC = luzEl.firstElementChild, setaEl = $('seta'), flashEl = $('flash'), miraEl = $('mira');
 function medeTela(){
   DPR = Math.min(window.devicePixelRatio || 1, 2);
   SW = innerWidth; SH = innerHeight;
   cv.width = Math.round(SW * DPR); cv.height = Math.round(SH * DPR);
-  encaixaMuro(); fundo = pintaFundo();
+  encaixaMuro(); pintaFundo();
 }
 addEventListener('resize', () => { medeTela(); });
 // o muro cabe entre o placar de cima e as latas de baixo
@@ -215,16 +233,41 @@ function areaMuro(){
 function encaixaMuro(){
   const a = areaMuro(), s = Math.min(a.w / M.W, a.h / M.H);
   M.s = s; M.x = a.x + (a.w - M.W * s) / 2; M.y = a.y + (a.h - M.H * s) / 2;
+  poeCamadas();
 }
+// v4.28: as camadas seguem o muro na tela; a luz do poste depende do tamanho dele, então é refeita aqui
+function poeCamadas(){
+  const w = M.W * M.s, h = M.H * M.s, px = v => v.toFixed(2) + 'px';
+  Object.assign(muroEl.style, { left: px(M.x), top: px(M.y), width: px(w), height: px(h) });
+  // a lanterna só aparece dentro dessa faixa em volta do muro (o recorte de antes)
+  Object.assign(luzEl.style, { left: px(M.x - w * .3), top: px(M.y - h * .2), width: px(w * 1.6), height: px(h * 1.4) });
+  const rr = h * .62; luzC.style.width = luzC.style.height = px(rr * 2);
+  if(M.luxC) pintaLux();
+  miraEl._r = 0;
+}
+// a noite: escurece o muro, com o poste acendendo um lado (o gradiente na tela, na resolução da tela sem o 2x: é liso)
+function pintaLux(){
+  const w = Math.max(1, Math.round(M.W * M.s)), h = Math.max(1, Math.round(M.H * M.s)), c = M.luxC;
+  c.width = w; c.height = h; const x = c.getContext('2d');
+  const lux = x.createRadialGradient(w * .1, -h * .15, 20, w * .1, -h * .15, Math.max(w, h) * 1.15);
+  lux.addColorStop(0, 'rgba(255,190,100,.1)'); lux.addColorStop(.5, 'rgba(20,14,40,.1)'); lux.addColorStop(1, 'rgba(8,6,20,.38)');
+  x.fillStyle = lux; x.fillRect(0, 0, w, h);
+}
+// a lanterna da ronda desenhada uma vez, na força toda: a força de cada momento é a opacidade
+(function(){
+  const S = 256; luzC.width = luzC.height = S; const x = luzC.getContext('2d'), g = x.createRadialGradient(S / 2, S / 2, 0, S / 2, S / 2, S / 2);
+  g.addColorStop(0, 'rgba(255,248,215,.62)'); g.addColorStop(.45, 'rgba(255,236,180,.28)'); g.addColorStop(1, 'rgba(255,236,180,0)');
+  x.fillStyle = g; x.fillRect(0, 0, S, S);
+})();
 
 /* ---------- a rua de fundo: céu, prédios, o poste ---------- */
+// v4.28: pintada uma vez direto no #c (antes ia pra uma tela à parte e era copiada a cada quadro)
 function pintaFundo(){
-  const c = document.createElement('canvas'); c.width = cv.width; c.height = cv.height; const x = c.getContext('2d'); x.scale(DPR, DPR);
+  const x = ctx; x.setTransform(DPR, 0, 0, DPR, 0, 0);
   const g = x.createLinearGradient(0, 0, 0, SH); g.addColorStop(0, '#07060D'); g.addColorStop(.55, '#151026'); g.addColorStop(1, '#241A2A'); x.fillStyle = g; x.fillRect(0, 0, SW, SH);
   const r = rng(11); x.fillStyle = 'rgba(251,245,232,.7)'; for(let i = 0; i < 60; i++) x.fillRect(r() * SW, r() * SH * .3, 1.2, 1.2);
   let px = -10; while(px < SW){ const w = 30 + r() * 70, h = 50 + r() * 160; x.fillStyle = '#100C1A'; x.fillRect(px, SH * .42 - h, w - 3, h + SH); x.fillStyle = 'rgba(255,190,110,.55)'; for(let yy = SH * .42 - h + 8; yy < SH * .42; yy += 12) for(let xx = px + 5; xx < px + w - 9; xx += 9) if(r() < .18) x.fillRect(xx, yy, 4, 5); px += w; }
   x.fillStyle = '#1A1520'; x.fillRect(0, SH - 40, SW, 40);
-  return c;
 }
 
 /* ---------- o muro: textura de reboco com marca do tempo ---------- */
@@ -316,6 +359,10 @@ function comecaMuro(){
   montaLetras(m);
   M.k = clamp(M.s * DPR, 1, 2);
   M.paint = document.createElement('canvas'); M.paint.width = Math.round(M.W * M.k); M.paint.height = Math.round(M.H * M.k); M.pctx = M.paint.getContext('2d');
+  // v4.28: o reboco com o giz numa camada só (não muda durante o muro), a tinta por cima e a luz do poste por cima de tudo
+  const fixo = document.createElement('canvas'); fixo.width = M.W; fixo.height = M.H; const fx = fixo.getContext('2d'); fx.drawImage(M.tex, 0, 0); fx.drawImage(M.giz, 0, 0);
+  M.luxC = document.createElement('canvas'); pintaLux(); nevoas.clear();
+  muroEl.replaceChildren(fixo, M.paint, M.luxC); muroEl.hidden = false;
   tempo = m.tempo; cob = { p: 0, c: 0, s: 0 }; pecaPronta = false; pingos.length = 0;
   for(let i = 0; i < 4; i++) pressao[i] = 1;
   lataSel = 0; desenhaLatas();
@@ -340,6 +387,21 @@ const solta = e => { if(e.pointerId === pena.id){ pena.on = false; pena.id = nul
 addEventListener('pointerup', solta); addEventListener('pointercancel', solta);
 addEventListener('blur', () => { pena.on = false; pena.id = null; });
 
+// v4.28: a névoa de cada lata desenhada uma vez (antes era um gradiente novo a cada passinho do traço).
+// A força só muda a transparência: os quatro tons do gradiente andam juntos (8 : 4,2 : 0,9), então dá na mesma
+const nevoas = new Map();
+function nevoa(l, sig, k){
+  const ch = l + '|' + sig.toFixed(3) + '|' + k.toFixed(3);
+  let sp = nevoas.get(ch);
+  if(!sp){
+    const R = sig * 2.1 * k, D = Math.ceil(R * 2) + 2, c = document.createElement('canvas'); c.width = c.height = D;
+    const x = c.getContext('2d'), [r, g, b] = LATAS[l].rgb, gr = x.createRadialGradient(D / 2, D / 2, 0, D / 2, D / 2, R);
+    gr.addColorStop(0, `rgba(${r},${g},${b},1)`); gr.addColorStop(.45, `rgba(${r},${g},${b},.525)`); gr.addColorStop(.8, `rgba(${r},${g},${b},.1125)`); gr.addColorStop(1, `rgba(${r},${g},${b},0)`);
+    x.fillStyle = gr; x.fillRect(0, 0, D, D);
+    sp = { c, m: D / 2 }; nevoas.set(ch, sp);
+  }
+  return sp;
+}
 // a lata cospe tinta: partículas em volta do bico e a névoa; a conta das casinhas segue a mesma curva
 function borrifa(dt){
   const l = lataSel, p = pressao[l];
@@ -348,18 +410,14 @@ function borrifa(dt){
   pressao[l] = Math.max(0, p - dt * .1);
   // vai do último ponto até o de agora em passos, pra o traço rápido não sair pontilhado
   const dx = pena.x - pena.ultX, dy = pena.y - pena.ultY, dist = Math.hypot(dx, dy), n = Math.max(1, Math.ceil(dist / 6));
-  const P = M.pctx, k = M.k, [r, g, b] = LATAS[l].rgb;
+  const P = M.pctx, k = M.k, [r, g, b] = LATAS[l].rgb, sp = nevoa(l, sig, k);
+  P.fillStyle = `rgb(${r},${g},${b})`;
   for(let s = 1; s <= n; s++){
     const x = pena.ultX + dx * s / n, y = pena.ultY + dy * s / n, f = forca / n;
-    // a névoa
-    const gr = P.createRadialGradient(x * k, y * k, 0, x * k, y * k, sig * 2.1 * k);
     // a névoa é o que vira cor chapada depois de umas passadas
     const nv = l === PRETO ? 2.2 : 1;
-    gr.addColorStop(0, `rgba(${r},${g},${b},${Math.min(.95, 8 * f * nv)})`); gr.addColorStop(.45, `rgba(${r},${g},${b},${Math.min(.7, 4.2 * f * nv)})`); gr.addColorStop(.8, `rgba(${r},${g},${b},${Math.min(.25, .9 * f * nv)})`); gr.addColorStop(1, `rgba(${r},${g},${b},0)`);
-    P.fillStyle = gr; P.beginPath(); P.arc(x * k, y * k, sig * 2.1 * k, 0, 7); P.fill();
-    // os pinguinhos (o overspray)
-    P.fillStyle = `rgb(${r},${g},${b})`;
-    // os pinguinhos: a lata fraca cospe gota grande; o bico fino quase não respinga
+    P.globalAlpha = Math.min(1, 8 * f * nv); P.drawImage(sp.c, x * k - sp.m, y * k - sp.m);
+    // os pinguinhos (o overspray): a lata fraca cospe gota grande; o bico fino quase não respinga
     const qd = (fraca ? 110 : 60) * (l === PRETO ? .35 : 1) * f, np = Math.floor(qd) + (Math.random() < qd % 1 ? 1 : 0);
     for(let i = 0; i < np; i++){ const a = gauss() * sig * (fraca ? 1.4 : 1.2), bb = gauss() * sig * (fraca ? 1.4 : 1.2), rr = (fraca ? 1 : .45) + Math.random() * (fraca ? 1.8 : .9); P.globalAlpha = fraca ? .7 : .4; P.beginPath(); P.arc((x + a) * k, (y + bb) * k, rr * k, 0, 7); P.fill(); }
     P.globalAlpha = 1;
@@ -410,16 +468,19 @@ function mede(){
   cob = { p: p / M.nP, c: c / M.nC, s: s / (M.nP + M.nC) };
 }
 function atualizaMetas(){
-  const pc = v => Math.round(v * 100) + '%';
-  $('bP').style.width = pc(cob.p); $('vP').textContent = pc(cob.p);
-  $('bC').style.width = pc(cob.c); $('vC').textContent = pc(cob.c);
-  $('bS').style.width = pc(Math.min(1, cob.s * 3)); $('vS').textContent = pc(cob.s);
+  const pc = v => Math.round(v * 100) + '%', poe = (b, e, w, v) => { muda($(b), 'w', pc(w), x => { $(b).style.width = x; }); muda($(e), 't', pc(v), x => { $(e).textContent = x; }); };
+  poe('bP', 'vP', cob.p, cob.p); poe('bC', 'vC', cob.c, cob.c); poe('bS', 'vS', Math.min(1, cob.s * 3), cob.s);
 }
 
 /* ---------- as latas na tela ---------- */
 function desenhaLatas(){
   $('latas').innerHTML = LATAS.map((l, i) => `<button class="lata" data-i="${i}" aria-pressed="${i === lataSel}" aria-label="Lata ${l.nome}" style="--c:${l.c}"><span class="bico"></span><span class="tampa"></span><span class="corpo"></span><span class="pressao" id="pr${i}"></span><small>${i + 1}</small></button>`).join('');
+  presEl = LATAS.map((l, i) => $('pr' + i));
 }
+// v4.28: escreve na tela só quando o valor muda (guarda o último no próprio elemento)
+const muda = (el, k, v, f) => { k = '_' + k; if(el[k] !== v){ el[k] = v; f(v); } };
+const relEl = $('relogio'), chacoEl = $('bChaco');
+let presEl = [];
 $('latas').addEventListener('click', e => { const b = e.target.closest('.lata'); if(!b) return; escolhe(+b.dataset.i); });
 function escolhe(i){ lataSel = i; document.querySelectorAll('.lata').forEach(b => b.setAttribute('aria-pressed', String(+b.dataset.i === i))); tocaSfx('tampa'); }
 function chacoalha(){
@@ -602,10 +663,13 @@ function quadro(agora){
     cobT -= dt; if(cobT <= 0){ cobT = .2; mede(); atualizaMetas();
       const pronta = cob.p >= .85 && cob.c >= .75; if(pronta && !pecaPronta){ pecaPronta = true; aviso('Peça pronta!', 'bom', 2, 'Vaza ou capricha mais'); tocaSfx('ok'); } $('bVaza').hidden = !pronta; }
     if(tempo <= 0 && jogo === 'pintando'){ tempo = 0; aviso('O comércio tá abrindo', '', 1.6); fechaMuro(false); }
-    const rl = $('relogio'), sg = Math.ceil(tempo); rl.textContent = Math.floor(sg / 60) + ':' + String(sg % 60).padStart(2, '0'); rl.classList.toggle('pouco', tempo < 15);
+    // v4.28: o relógio e as latas só são escritos quando mudam (escrever igual 60 vezes por segundo refazia a tela de cima à toa)
+    const sg = Math.ceil(tempo);
+    muda(relEl, 's', sg, v => { relEl.textContent = Math.floor(v / 60) + ':' + String(v % 60).padStart(2, '0'); });
+    muda(relEl, 'p', tempo < 15, v => relEl.classList.toggle('pouco', v));
     // a pressão de cada lata
-    for(let i = 0; i < 4; i++){ const e = document.getElementById('pr' + i); if(e){ e.style.height = Math.round((1 - pressao[i]) * 44) + 'px'; e.parentNode.classList.toggle('vazia', pressao[i] <= 0); } }
-    $('bChaco').classList.toggle('pede', pressao[lataSel] < .25);
+    presEl.forEach((e, i) => { muda(e, 'h', Math.round((1 - pressao[i]) * 44), v => { e.style.height = v + 'px'; }); muda(e, 'v', pressao[i] <= 0, v => e.parentNode.classList.toggle('vazia', v)); });
+    muda(chacoEl, 'p', pressao[lataSel] < .25, v => chacoEl.classList.toggle('pede', v));
     agendaMusica();
   }
   if(chiado){ const alvo = borrifou && somOn ? (pressao[lataSel] < .25 ? .05 + Math.random() * .05 : .11) : 0; chiado.g.gain.setTargetAtTime(alvo, ac.currentTime, .02); }
@@ -615,39 +679,46 @@ function quadro(agora){
   desenha(t);
 }
 
+// v4.28: nada é repintado aqui. O muro, a tinta e a luz já estão nas camadas; o quadro só mexe no tremor, na lanterna, na seta, no clarão e na mira
+const vis = (el, v) => { if(el.hidden === v) el.hidden = !v; };
 function desenha(t){
-  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
-  if(fundo) ctx.drawImage(fundo, 0, 0, SW, SH); else { ctx.fillStyle = '#0E0C14'; ctx.fillRect(0, 0, SW, SH); }
   if(!M.tex){ return; }
   const tx = tremor > 0 ? (Math.random() - .5) * 10 * tremor : 0, ty = tremor > 0 ? (Math.random() - .5) * 8 * tremor : 0;
-  const x = M.x + tx, y = M.y + ty, w = M.W * M.s, h = M.H * M.s;
-  ctx.save();
-  ctx.shadowColor = 'rgba(0,0,0,.6)'; ctx.shadowBlur = 24; ctx.fillStyle = '#000'; ctx.fillRect(x, y, w, h); ctx.shadowBlur = 0;
-  ctx.drawImage(M.tex, x, y, w, h);
-  ctx.drawImage(M.giz, x, y, w, h);
-  ctx.drawImage(M.paint, x, y, w, h);
-  // a noite: escurece o muro, com o poste acendendo um lado
-  const lux = ctx.createRadialGradient(x + w * .1, y - h * .15, 20, x + w * .1, y - h * .15, Math.max(w, h) * 1.15);
-  lux.addColorStop(0, 'rgba(255,190,100,.1)'); lux.addColorStop(.5, 'rgba(20,14,40,.1)'); lux.addColorStop(1, 'rgba(8,6,20,.38)');
-  ctx.fillStyle = lux; ctx.fillRect(x, y, w, h);
-  // a lanterna da ronda
-  if(R.estado === 'vindo' || R.estado === 'passa'){
-    const m = MUROS[muro], bx = R.estado === 'passa' ? x + R.x * w : (R.lado > 0 ? x - w * .12 : x + w * 1.12) + Math.sin(t * 9) * 8;
-    const forte = R.estado === 'passa' ? 1 : .35 + (1 - R.t / m.aviso) * .45;
-    ctx.globalCompositeOperation = 'lighter';
-    const rr = h * .62, gl = ctx.createRadialGradient(bx, y + h * .52, 4, bx, y + h * .52, rr);
-    gl.addColorStop(0, `rgba(255,248,215,${.62 * forte})`); gl.addColorStop(.45, `rgba(255,236,180,${.28 * forte})`); gl.addColorStop(1, 'rgba(255,236,180,0)');
-    ctx.fillStyle = gl; ctx.fillRect(x - w * .3, y - h * .2, w * 1.6, h * 1.4);
-    ctx.globalCompositeOperation = 'source-over';
-    if(R.estado === 'vindo'){ ctx.fillStyle = 'rgba(255,197,49,.9)'; const ax = R.lado > 0 ? Math.max(14, x + 6) : Math.min(SW - 14, x + w - 6), ay = y + h / 2, d = R.lado > 0 ? 1 : -1; ctx.beginPath(); ctx.moveTo(ax, ay - 22); ctx.lineTo(ax + d * 22, ay); ctx.lineTo(ax, ay + 22); ctx.fill(); }
+  const w = M.W * M.s, h = M.H * M.s, tr = tx || ty ? `translate3d(${tx.toFixed(1)}px,${ty.toFixed(1)}px,0)` : '';
+  muda(muroEl, 't', tr, v => { muroEl.style.transform = luzEl.style.transform = v; });
+  // a lanterna da ronda (a caixa dela já treme junto com o muro)
+  const ronda = R.estado === 'vindo' || R.estado === 'passa', vindo = R.estado === 'vindo';
+  if(ronda){
+    const m = MUROS[muro], bx = R.estado === 'passa' ? M.x + R.x * w : (R.lado > 0 ? M.x - w * .12 : M.x + w * 1.12) + Math.sin(t * 9) * 8;
+    const forte = R.estado === 'passa' ? 1 : .35 + (1 - R.t / m.aviso) * .45, rr = h * .62;
+    muda(luzC, 't', `translate3d(${(bx - (M.x - w * .3) - rr).toFixed(1)}px,${(h * .72 - rr).toFixed(1)}px,0)`, v => { luzC.style.transform = v; });
+    muda(luzC, 'o', forte.toFixed(3), v => { luzC.style.opacity = v; });
   }
-  ctx.restore();
-  if(flash > 0){ ctx.fillStyle = `rgba(255,250,235,${flash * .8})`; ctx.fillRect(0, 0, SW, SH); }
-  // a mira: onde a tinta cai
-  if(jogo === 'pintando' && (pena.on || !pena.dedo) && pena.sx){
-    const r = LATAS[lataSel].sig * M.s * 1.5; ctx.strokeStyle = LATAS[lataSel].c; ctx.lineWidth = 2.5; ctx.setLineDash([5, 4]); ctx.beginPath(); ctx.arc(pena.sx, pena.sy, r, 0, 7); ctx.stroke(); ctx.setLineDash([]);
-    ctx.strokeStyle = 'rgba(251,245,232,.8)'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(pena.sx, pena.sy, r + 3, 0, 7); ctx.stroke();
+  vis(luzEl, ronda);
+  if(vindo){
+    const ax = R.lado > 0 ? Math.max(14, M.x + tx + 6) : Math.min(SW - 14, M.x + tx + w - 6), ay = M.y + ty + h / 2;
+    muda(setaEl, 't', `translate3d(${(R.lado > 0 ? ax : ax - 22).toFixed(1)}px,${(ay - 22).toFixed(1)}px,0)`, v => { setaEl.style.transform = v; });
+    muda(setaEl, 'l', R.lado < 0, v => setaEl.classList.toggle('volta', v));
   }
+  vis(setaEl, vindo);
+  const fl = flash > 0 ? (flash * .8).toFixed(3) : '';
+  muda(flashEl, 'o', fl, v => { if(v) flashEl.style.opacity = v; });
+  vis(flashEl, !!fl);
+  // a mira: onde a tinta cai (o desenho dela só é refeito quando troca de lata ou de tamanho)
+  const ve = jogo === 'pintando' && (pena.on || !pena.dedo) && !!pena.sx;
+  if(ve){
+    const r = LATAS[lataSel].sig * M.s * 1.5;
+    if(miraEl._r !== r || miraEl._l !== lataSel) pintaMira(r);
+    muda(miraEl, 't', `translate3d(${(pena.sx - miraEl._m).toFixed(1)}px,${(pena.sy - miraEl._m).toFixed(1)}px,0)`, v => { miraEl.style.transform = v; });
+  }
+  vis(miraEl, ve);
+}
+function pintaMira(r){
+  const D = Math.ceil((r + 5) * 2), c = miraEl; c.width = c.height = Math.ceil(D * DPR); c.style.width = c.style.height = D + 'px';
+  const x = c.getContext('2d'), m = D / 2; x.setTransform(DPR, 0, 0, DPR, 0, 0);
+  x.strokeStyle = LATAS[lataSel].c; x.lineWidth = 2.5; x.setLineDash([5, 4]); x.beginPath(); x.arc(m, m, r, 0, 7); x.stroke(); x.setLineDash([]);
+  x.strokeStyle = 'rgba(251,245,232,.8)'; x.lineWidth = 1.5; x.beginPath(); x.arc(m, m, r + 3, 0, 7); x.stroke();
+  c._r = r; c._l = lataSel; c._m = m; c._t = '';
 }
 
 medeTela(); desenhaVidas();
