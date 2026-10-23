@@ -729,7 +729,7 @@
         <ol class="cd-l" id="cd-f-subs">${ss.map(s => itTarefa(s)).join('')}</ol>
         <div class="cd-f-novo"><label class="sr-only" for="cd-f-s">Nova subtarefa</label><input id="cd-f-s" maxlength="300" placeholder="+ subtarefa (Enter)"><button type="button" class="btn sm" data-act="cd-sub-add">Pôr</button></div></fieldset>
       <div class="acts"><button type="submit" class="btn pri">Salvar</button>${!t.feito && C.bicho && C.bicho.tem('foco') ? `<button type="button" class="btn" data-act="cd-foco" data-id="${esc(id)}">${ico('clock')} Foco</button>` : ''}<button type="button" class="btn ghost cd-f-x" data-act="cd-apaga" data-id="${esc(id)}">${ico('trash')} Apagar</button></div>
-      ${!t.feito && C.bicho && C.bicho.me() && !C.bicho.tem('foco') ? `<p class="fine cd-f-tranca">${ico('lock')} Modo foco: ${esc(C.bicho.nome())} aprende com 30.000 tarefas.</p>` : ''}
+      ${!t.feito && C.bicho && C.bicho.me() && !C.bicho.tem('foco') ? `<p class="fine cd-f-tranca">${ico('lock')} Modo foco: ${esc(C.bicho.nome())} aprende com ${C.bicho.MARCOS.find(m => m.poder === 'foco').xp.toLocaleString('pt-BR')} tarefas.</p>` : ''}
     </form>`, 'cd-folhinha');
     const f = $('cd-f'); if(!f) return;
     const tt = $('cd-f-t'), cresce = () => { tt.style.height = 'auto'; tt.style.height = tt.scrollHeight + 'px'; };

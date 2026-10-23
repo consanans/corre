@@ -154,6 +154,10 @@ $P -f "$AQUI/semente431.sql"
 delta delta-v431.sql 'delta v4.31 ok'
 delta delta-v431.sql 'delta v4.31 ok'
 testa teste431.sql 13
+# v4.32: o bicho mais perto (a lenda em 15.000)
+delta delta-v432.sql 'delta v4.32 ok'
+delta delta-v432.sql 'delta v4.32 ok'
+testa teste432.sql 6
 . "$AQUI/virada343.sh"
 if grep -q 'FALHOU\|ERROR' $D/saida; then echo "deu FALHOU ou erro (acima)"; exit 1; fi
 echo "tudo ok: $(grep -c '^ok:' $D/saida) checagens"

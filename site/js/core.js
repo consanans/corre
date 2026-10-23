@@ -697,13 +697,13 @@
     const PL_DONOS = ['jeydiaz', 'simonini.lucas0'];
     const plDono = (d, u) => { const p = d.t.corre_perfis.find(x => x.id === u); return plFund(d, u) || !!(p && PL_DONOS.includes(p.handle)); };
     const plMais = (dia, n) => new Date(Date.parse(dia + 'T12:00:00Z') + n * 864e5).toISOString().slice(0, 10);
-    /* v4.30: o bicho do demo, com as contas do delta-v430.sql */
+    /* v4.30: o bicho do demo, com as contas do banco (os números da 4.32, delta-v432.sql) */
     const BICHO_FORMAS = { gralha: ['Ovo', 'Pinhãozinho', 'Gralhinha', 'Gralha Braba', 'Imperatriz Araucária'], guara: ['Ovo', 'Brasinha', 'Guarazinho', 'Guará Corredor', 'Guará Lua Cheia'], coruja: ['Ovo', 'Pipoquinha', 'Buraqueira', 'Coruja Vigia', 'Oráculo do Campo'] };
-    const bichoEtapa = xp => xp >= 150000 ? 4 : xp >= 50000 ? 3 : xp >= 15000 ? 2 : xp >= 3000 ? 1 : 0;
+    const bichoEtapa = xp => xp >= 15000 ? 4 : xp >= 5000 ? 3 : xp >= 1500 ? 2 : xp >= 300 ? 1 : 0;
     const bichoXP = (d, dono) => { const b = (d.t.corre_bicho || []).find(x => x.dono === dono); if(!b) return null;
       return b.xp_antes + (d.t.corre_trampo || []).filter(t => t.dono === dono && t.tipo === 'caderno' && t.em && t.em >= b.nasceu).length; };
     const bichoEscudos = (d, dono, dia) => { const b = (d.t.corre_bicho || []).find(x => x.dono === dono); if(!b) return 0; const xp = bichoXP(d, dono);
-      return Math.max(0, (xp >= 150000 ? 2 : xp >= 50000 ? 1 : 0) - b.escudos.filter(e => e > plMais(dia, -7) && e <= dia).length); };
+      return Math.max(0, (xp >= 15000 ? 2 : xp >= 5000 ? 1 : 0) - b.escudos.filter(e => e > plMais(dia, -7) && e <= dia).length); };
     const plAcesso = (d, u, prod) => plDono(d, u) || d.t.corre_assinaturas.some(a => a.dono === u && a.produto === prod
       && ((a.teste_ate && Date.parse(a.teste_ate) > Date.now()) || (a.pago_ate && plMais(a.pago_ate, 3) >= hojeBR())));
     const plRedes = (d, u) => {
@@ -1508,7 +1508,7 @@
            ou não tira nada. As contas aqui dentro são em centavos inteiros e só viram número com vírgula na saída,
            igual ao numeric do banco (nada de 0,30000000000000004 guardado na carteira) ---- */
         /* v4.30 (delta-v430.sql): o bicho do Caderninho. Conta as tarefas do trampo desde que nasceu (sem teto por dia),
-           mais o adianto das de antes (até 14.999) */
+           mais o adianto das de antes (até 1.499) */
         if(/^corre_bichos?_/.test(n)){
           const eu = uidOf(d); if(!eu) throw { message: 'login', code: '42501' };
           d.t.corre_bicho = d.t.corre_bicho || []; d.t.corre_trampo = d.t.corre_trampo || [];
@@ -1522,13 +1522,13 @@
           if(n === 'corre_bicho_meu') return meu();
           if(n === 'corre_bicho_escolhe'){
             if(!BICHO_FORMAS[a.p_especie]) return { tem: false, motivo: 'especie' };
-            if(!b){ d.t.corre_bicho.push({ dono: eu, especie: a.p_especie, apelido: '', xp_antes: Math.min(14999, pares().length), nasceu: now(), escudos: [] }); write(d); }
+            if(!b){ d.t.corre_bicho.push({ dono: eu, especie: a.p_especie, apelido: '', xp_antes: Math.min(1499, pares().length), nasceu: now(), escudos: [] }); write(d); }
             return meu();
           }
           if(n === 'corre_bicho_apelido'){ if(b){ b.apelido = String(a.p_nome || '').replace(/[\u0000-\u001f<>]/g, '').trim().slice(0, 20).trim(); write(d); } return meu(); }
           if(n === 'corre_bicho_dias'){ const o = {}, de = plMais(hj, -(Number(a.p_dias) || 182)); pares().filter(x => x > de && x <= hj).forEach(x => { o[x] = (o[x] || 0) + 1; }); return o; }
           if(n === 'corre_bichos_cidade'){
-            const o = {}; d.t.corre_bicho.forEach(x => { const xp = bichoXP(d, x.dono); if(xp >= 15000) o[x.dono] = [x.especie, bichoEtapa(xp)]; });
+            const o = {}; d.t.corre_bicho.forEach(x => { const xp = bichoXP(d, x.dono); if(xp >= 1500) o[x.dono] = [x.especie, bichoEtapa(xp)]; });
             /* na demonstração, a vizinhança também tem bicho (sempre os mesmos) */
             d.t.corre_perfis.filter(p => p.id !== eu).forEach((p, i) => { if(i % 2 === 0) o[p.id] = [['gralha', 2], ['guara', 3], ['coruja', 4], ['guara', 2], ['coruja', 3], ['gralha', 4]][(i / 2) % 6]; });
             return o;

@@ -4,8 +4,9 @@
    campos de Londrina; desenho nosso, nada de Pokémon). Cada tarefa feita alimenta o bicho: ele choca, cresce e evolui em
    quatro formas, e no caminho aprende poderes que mudam o Caderninho de verdade (aponta a tarefa da vez, o mapa do ano,
    anda contigo no Correverso, o modo foco, o escudo da sequência de trampo). Quem conta as tarefas é o banco
-   (delta-v430.sql: as tarefas que o trampo da 4.29 já conferiu, sem teto por dia). É um bicho de anos: o Thales pôs a
-   lenda em 150.000 tarefas e o resto proporcional ("tudo vezes mil": choca com 3.000, evolui com 15.000 e 50.000).
+   (delta-v430.sql: as tarefas que o trampo da 4.29 já conferiu, sem teto por dia). Na 4.30 a lenda era em 150.000; na
+   4.32 o Thales baixou pra 15.000 ("se não vai demorar demais") e o resto na mesma proporção: choca com 300, evolui com
+   1.500 e 5.000 (delta-v432.sql).
    Aqui: o desenho (figurinha com
    contorno grosso no Caderninho e o mesmo desenho em pixel na cidade), a escolha, a folha do bicho e a evolução. */
 (function(){
@@ -477,10 +478,11 @@
   const ORDEM = ['gralha', 'guara', 'coruja'];
   /* os marcos (as mesmas contas do banco, corre_bicho_etapa): onde ele evolui e onde aprende cada poder */
   const MARCOS = [
-    { xp: 3000, etapa: 1, poder: 'farejar' }, { xp: 10000, poder: 'memoria' }, { xp: 15000, etapa: 2, poder: 'passeio' },
-    { xp: 30000, poder: 'foco' }, { xp: 50000, etapa: 3, poder: 'escudo' }, { xp: 100000, poder: 'brilho' }, { xp: 150000, etapa: 4, poder: 'lenda' }
+    { xp: 300, etapa: 1, poder: 'farejar' }, { xp: 1000, poder: 'memoria' }, { xp: 1500, etapa: 2, poder: 'passeio' },
+    { xp: 3000, poder: 'foco' }, { xp: 5000, etapa: 3, poder: 'escudo' }, { xp: 10000, poder: 'brilho' }, { xp: 15000, etapa: 4, poder: 'lenda' }
   ];
-  /* os números grandes com o ponto do milhar: 3.000, 150.000 */
+  const CHOCA = MARCOS[0].xp;
+  /* os números grandes com o ponto do milhar: 1.500, 15.000 */
   const mil = n => Math.round(Number(n) || 0).toLocaleString('pt-BR');
   const PODER = {
     farejar: { ico: 'eye', nome: 'Farejar', txt: 'Aponta a tarefa da vez no alto do Hoje.' },
@@ -491,7 +493,7 @@
     brilho: { ico: 'magia', nome: 'Brilho', txt: 'Brilha no Caderninho e na cidade.' },
     lenda: { ico: 'star', nome: 'Forma lendária', txt: 'A última forma, e dois escudos por semana.' }
   };
-  const etapaDe = xp => xp >= 150000 ? 4 : xp >= 50000 ? 3 : xp >= 15000 ? 2 : xp >= 3000 ? 1 : 0;
+  const etapaDe = xp => xp >= 15000 ? 4 : xp >= 5000 ? 3 : xp >= 1500 ? 2 : xp >= CHOCA ? 1 : 0;
   const temPoder = (xp, k) => { const m = MARCOS.find(x => x.poder === k); return !!m && xp >= m.xp; };
   const proxMarco = xp => MARCOS.find(m => m.xp > xp) || null;
   const golpe = (esp, k) => (ESP[esp] && ESP[esp].golpes[k]) || (PODER[k] && PODER[k].nome) || k;
@@ -583,7 +585,7 @@
     if(!B.me) return `<button type="button" class="bx-capa bx-novo" data-act="bx-escolhe">${cvHTML({ esp: 'surpresa', etapa: 0, prog: .25 })}<span class="bx-tx"><b>Um ovo apareceu</b><small>Toca pra escolher teu bicho</small></span></button>`;
     const xp = Number(B.me.xp) || 0, e = etapaDe(xp), n = nome();
     return `<button type="button" class="bx-capa bx-e${e}${temPoder(xp, 'brilho') ? ' bx-brilho' : ''}" data-act="bx-abre" aria-label="${esc(`O teu bicho: ${n}. ${mil(xp)} tarefas; ${faltaTxt(xp)}.`)}">
-      ${cvHTML({ esp: B.me.especie, etapa: e, prog: e ? 0 : xp / 3000, meu: 1 })}
+      ${cvHTML({ esp: B.me.especie, etapa: e, prog: e ? 0 : xp / CHOCA, meu: 1 })}
       <span class="bx-tx"><b>${esc(n)}</b><small>${esc(faltaTxt(xp))}</small><i class="bx-barra" aria-hidden="true"><b style="width:${barra(xp)}%"></b></i></span></button>`;
   }
   /* o lugar do bicho na capa: vazio até o banco responder (aí ele se preenche sozinho) */
@@ -594,7 +596,7 @@
   function escolhe(){
     if(B.off){ C.toast('O bicho do Caderninho chega quando o banco do Corre atualizar.'); return; }
     C.sheet(`<div class="bx-f bx-esc"><h2 class="bx-h">Um ovo apareceu no teu Caderninho</h2>
-      <p class="bx-intro">Cada tarefa que você fechar alimenta ele. É bicho pra vida toda: choca com 3.000 tarefas, evolui com 15.000 e 50.000 e vira lenda com 150.000. No caminho, aprende poderes que mudam o teu Caderninho. Escolhe um:</p>
+      <p class="bx-intro">Cada tarefa que você fechar alimenta ele. É bicho pra vida toda: choca com 300 tarefas, evolui com 1.500 e 5.000 e vira lenda com 15.000. No caminho, aprende poderes que mudam o teu Caderninho. Escolhe um:</p>
       <div class="bx-ovos" role="radiogroup" aria-label="Os ovos">${ORDEM.map(k => { const sp = ESP[k]; return `<button type="button" role="radio" aria-checked="false" class="bx-ovo" data-act="bx-pega" data-k="${k}">
         ${cvHTML({ esp: k, etapa: 0, prog: .15, fase: ORDEM.indexOf(k) * .9 })}<b>${esc(sp.ovo)}</b><small>${esc(sp.nome)} ${esc(sp.de)}</small><span>${esc(sp.frase)}</span></button>`; }).join('')}</div>
       <p class="fine">Bicho daqui, desenho nosso. Escolheu, é teu: não troca.</p>
@@ -610,8 +612,8 @@
     C.closeSheet(); repintaCapa();
     const xp = Number(r.xp) || 0;
     /* quem já fechava tarefa: o ovo choca na hora (e aprende o que já dava) */
-    if(xp >= 3000) celebra(0, xp);
-    else C.toast(`O ${ESP[k].ovo.toLowerCase()} é teu. ${xp ? `As ${mil(xp)} tarefas que você já fez contam. ` : ''}Fecha ${3000 - xp === 1 ? 'mais 1 tarefa' : `mais ${mil(3000 - xp)} tarefas`} e ele choca.`, 5200);
+    if(xp >= CHOCA) celebra(0, xp);
+    else C.toast(`O ${ESP[k].ovo.toLowerCase()} é teu. ${xp ? `As ${mil(xp)} tarefas que você já fez contam. ` : ''}Fecha ${CHOCA - xp === 1 ? 'mais 1 tarefa' : `mais ${mil(CHOCA - xp)} tarefas`} e ele choca.`, 5200);
   }
 
   /* ---------- a folha do bicho ---------- */
@@ -620,7 +622,7 @@
     const me = B.me, xp = Number(me.xp) || 0, e = etapaDe(xp), sp = ESP[me.especie] || ESP.gralha, n = nome();
     const proxE = MARCOS.filter(m => m.etapa);
     C.sheet(`<div class="bx-f">
-      <div class="bx-f-top">${cvHTML({ esp: me.especie, etapa: e, prog: e ? 0 : xp / 3000, meu: 1 }, 'bx-grande')}
+      <div class="bx-f-top">${cvHTML({ esp: me.especie, etapa: e, prog: e ? 0 : xp / CHOCA, meu: 1 }, 'bx-grande')}
         <div class="bx-f-id"><p class="bx-f-k">${esc(sp.nome)} · ${e ? `forma ${e} de 4` : 'ainda no ovo'}</p>
           <h2 class="bx-h" id="bx-nome">${esc(n)}</h2>
           ${me.apelido ? `<p class="bx-f-forma">É ${art(formaNome(me.especie, e))} ${esc(formaNome(me.especie, e))}.</p>` : ''}
