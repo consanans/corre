@@ -411,6 +411,8 @@
       /* a que repete: as subtarefas voltam a ficar por fazer */
       if(patch.dia){ const ss = subs(id).filter(s => s.feito); if(ss.length){ await Promise.all(ss.map(s => api.upd('corre_caderno', { id: s.id }, { feito: false }).catch(() => {}))); ss.forEach(s => { s.feito = false; s.feito_em = null; }); } }
     }catch(e){ Object.assign(t, antes); toast(C.errMsg(e)); repinta(); return; }
+    /* v4.29: a tarefa feita (ou a que repete, marcada hoje) é trampo: o banco confere e paga a moedinha */
+    if(C.trampo && (patch.dia || patch.feito)) C.trampo.ganha('caderno', id);
     setTimeout(() => { repinta(); C.sinaisAtualiza && C.sinaisAtualiza(); }, el && !antes.feito ? 380 : 0);
     if(patch.dia){
       const sq = seguidas(t), emDia = !doDia(hoje()).some(e => e.t === 'tarefa') && !atrasadas().some(e => e.t === 'tarefa');

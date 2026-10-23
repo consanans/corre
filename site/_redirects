@@ -1,2 +1,4 @@
 # v4.0 · o Link na bio: app.corresocial.com/@nome abre o app (o começo do index.html troca pra #/bio/nome)
 /@*  /index.html  200
+# v4.29 · a página aberta "Quantos clientes tem pra você": app.corresocial.com/clientes (o começo do index.html troca pra #/clientes)
+/clientes  /index.html  200

@@ -6,21 +6,21 @@
   'use strict';
   const C = window.Corre, { esc, ico } = C;
   /* sobe esse número a cada atualização: quem já viu recebe de novo, abrindo nas novidades */
-  const VERSAO = '4.26';
+  const VERSAO = '4.29';
   const K = 'corre-manual-visto';
 
   /* O que tem de novo: só o que é super relevante pra galera (o Thales, v3.67). No máximo 8, o mais novo em cima, uma ou
      duas frases cada, no jeito de quem conta pro amigo. Conserto, acabamento e detalhe técnico não entram aqui (moram no
      CLAUDE.md); novidade grande que chega empurra a mais velha pra fora */
   const NOVIDADES = [
+    ['magia', 'Monta meu Corre', 'Conta numa frase o que você faz e o Corre monta o resto em uns 2 minutos: o link na bio no ar, 12 posts das próximas semanas no Studio, clientes da tua cidade no Hórus (com a mensagem pronta) e a primeira semana no Caderninho. Fica nos Primeiros passos e na busca.'],
+    ['eye', 'Quantos clientes tem pra você?', 'Em app.corresocial.com/clientes, sem cadastro: escolhe o ramo e a cidade e o Corre conta no mapa quantas empresas tem, quantas têm WhatsApp e mostra três. Gostou, leva pro teu Hórus num toque.'],
+    ['fogo', 'Trampo de verdade rende correal', 'Tarefa feita no Caderninho, post programado no Studio e cliente chamado no Hórus: 0,02 de correal cada (até 0,20 por dia, fora do teto da cidade). E os dias seguidos de trampo viram uma placa na frente da tua casa no Correverso: madeira, prata, ouro e, com 30 dias, a da lenda.'],
     ['play', 'Spray e Geada de 75 no Correverso', 'Dois jogos novos na cidade. Nos muros de grafite do fundo de umas quadras, o Spray: pinta o muro com as latas, faz o contorno e some antes da ronda, e salva a peça pra postar. Na beira da roça, a porteira dos sítios do café abre a Geada de 75: a noite de julho de 1975 em que a geada negra queimou o café do norte do Paraná, e você tenta salvar o cafezal com fogo e saco.'],
     ['eye', 'Hórus virou uma mesa de cartas', 'O Hórus mostra um cliente por vez, o melhor em cima: o calor, as provas de que a empresa existe (WhatsApp, Instagram, site, mapa) e a mensagem pronta. Arrasta pra direita e o WhatsApp dele abre com ela; pra esquerda, descarta. Carta de ouro é quente e de verdade. Acabou? Garimpar acha mais no mapa da tua cidade.'],
     ['caderno', 'Caderninho: teu dia numa tela só', 'O planner do Corre: anota numa frase ("mandar orçamento amanhã 15h #Trabalho !1") e ele entende o dia, a hora, a lista e a prioridade. O dia de hoje junta as tuas tarefas com o post do Studio, o cliente do Hórus pra retornar e a cobrança que vence. Tarefa com hora, o celular avisa na hora (e, se quiser, também 1h, 2h, 1 dia, 2 dias, 5 dias ou 1 semana antes); a que repete volta sozinha, até "a cada 56 dias". Cada tarefa guarda o endereço (abre no Google Maps) e os arquivos.'],
     ['magia', 'Studio: carrossel, story, reels e aprovação', 'No Studio, cada post agora escolhe o formato: feed, carrossel (até 10 slides com arte, foto ou vídeo), story ou reels, e o Corre programa e posta sozinho no Instagram. E tem o link de aprovação: manda pro cliente pelo WhatsApp, ele aprova ou pede ajuste em cada post, sem precisar de conta, e o teu celular avisa quando ele termina. Sem conta do Instagram conectada, o celular te chama na hora de postar e o post abre com tudo pronto.'],
     ['play', 'Coringa, o jogo do quarto', 'Na prateleira do quarto de toda casa do Correverso mora um boneco de corda: toca em Jogar Coringa e assalta o quarto do Caio em 3D, subindo na cama, na estante e na cortina. A polícia de brinquedo só vem quando toca a sirene; de noite, o Caio tá dormindo e barulho acorda ele.'],
-    ['grafico', 'Hórus virou CRM: funil e Entrada', 'No Hórus, teus clientes viram negócio: arrasta cada um de Contatado até Fechou, põe quanto vale e vê o que tá na mesa e a previsão do mês. Quem pede orçamento pelo teu link cai na Entrada e o teu celular avisa na hora. Conversou com alguém no Corre que quer comprar? Na conversa, Pôr no Hórus.'],
-    ['mapa', 'Correverso no mapa de Londrina', 'A cidade agora tem o formato de Londrina e cada coisa no lado certo: o Centro no meio, o Estádio do Café ao norte, o Igapó em diagonal (do 3 ao 1, com a Av. Higienópolis por cima), a Gleba na margem, o Aeroporto, a ACEL e o Arthur Thomas pro sudeste, e roça em volta. O Mapa mostra os bairros.'],
-    ['star', 'Skins de Halloween no Ateliê', 'A coleção de Halloween do Correverso (Abóbora, Saci, Bruxa, Lobisomem e mais) agora sai em real, no Pix ou no cartão: R$ 14,90, R$ 9,90 ou R$ 5,90, pagamento único, e é tua pra sempre. Só até Finados.'],
   ];
   /* cada página: o que é, pra que serve no teu dia, e o botão que leva lá */
   const PAGINAS = [
@@ -88,6 +88,8 @@
     if(feito || /[?&]nomanual\b/.test(location.search)) return;
     let visto = null; try{ visto = localStorage.getItem(K) || ''; }catch(e){ return; }
     if(visto === VERSAO){ feito = true; return; }
+    /* v4.29: no Monta meu Corre e na página dos clientes o manual espera (a pessoa tá no meio de uma coisa) */
+    if(/^#\/(monta|clientes)\b/.test(location.hash || '')) return;
     const sh = C.$('sheet'); if(sh && !sh.hidden){ if((tent || 0) < 30) setTimeout(() => talvez((tent || 0) + 1), 2500); return; }
     feito = true; abrir(visto ? 'novidades' : 'logica', true);
   }

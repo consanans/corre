@@ -159,7 +159,9 @@
   /* v4.24: o Garimpo da Mesa. Um toque varre a praça inteira nos nichos quentes e mornos e põe no radar as empresas
      com telefone que ainda não tão lá (até 30: as de celular primeiro, depois as que têm Instagram). Quem chama relê o
      radar e mostra as novas na mesa */
-  TT.garimpa = async function(){
+  TT.garimpa = async function(o){
+    /* v4.29: o Monta meu Corre leva até 20 (o máximo de sempre é 30) */
+    const max = Math.max(1, Math.min(30, (o && o.max) || 30));
     const c = Z.cfg(), P = praca();
     if(!P.cidade) throw { code: 'praca' };
     const temFiltro = n => osmDe(n).length || palavras(n.re);
@@ -171,8 +173,56 @@
     const els = await overpass(`[out:json][timeout:30];(${ns.flatMap(n => consulta(n, area)).join('')});out center tags 400;`);
     const vistos = new Set(), rows = [];
     els.forEach(e => { const k = e.type + e.id; if(vistos.has(k)) return; vistos.add(k); const r = linhaDe(e, '', P); if(r && r.ph) rows.push(r); });
-    const novas = marcaRepetidas(rows).filter(r => !r.dup).sort((a, b) => (b.ph.wa ? 1 : 0) - (a.ph.wa ? 1 : 0) || (b.insta ? 1 : 0) - (a.insta ? 1 : 0)).slice(0, 30);
+    const novas = marcaRepetidas(rows).filter(r => !r.dup).sort((a, b) => (b.ph.wa ? 1 : 0) - (a.ph.wa ? 1 : 0) || (b.insta ? 1 : 0) - (a.insta ? 1 : 0)).slice(0, max);
     if(novas.length){ const antes = H.assunto; H.assunto = 'garimpo'; try{ await Z.addRows(novas, 'caca'); }finally{ H.assunto = antes; } }
+    return { lidas: rows.length, novas: novas.length, wa: novas.filter(r => r.ph.wa).length };
+  };
+  /* v4.29 · a amostra da página aberta "Quantos clientes tem pra você" (#/clientes, sem login) e a caça de um nicho só
+     (o "Monta meu Corre" e quem chegou por ela). O mapa conta tudo (out count) e devolve até 1.500 com os dados; quem tem
+     telefone, celular e Instagram sai dessas. Sem login nada é gravado: é só leitura do mapa aberto */
+  const NICHOS_ABERTOS = [
+    ['comida', 'Restaurantes e lanchonetes'], ['beleza', 'Salões, barbearias e manicures'], ['saude', 'Clínicas, dentistas e consultórios'], ['estetica', 'Estética e spa'],
+    ['academia', 'Academias'], ['moda', 'Lojas de roupa e calçado'], ['pet', 'Pet shops e veterinários'], ['auto', 'Oficinas, autopeças e lava-car'],
+    ['cafe', 'Cafeterias'], ['imovel', 'Imobiliárias'], ['educacao', 'Escolas e cursos'], ['escritorio', 'Advocacia e contabilidade'],
+    ['obra', 'Material de construção'], ['hotel', 'Hotéis e pousadas'], ['eventos', 'Espaços de evento e baladas'], ['agro', 'Agropecuárias']
+  ];
+  async function areaDe(cidade, uf, bairro){
+    const q = lugarQ(cidade, uf), cid = await geo(q); if(!cid) throw { code: 'cidade' };
+    if(!bairro) return { area: `(${cid.bb[0]},${cid.bb[2]},${cid.bb[1]},${cid.bb[3]})`, cid };
+    await sleep(1100);
+    const b = await geo(`${bairro}, ${q}`); if(!b) throw { code: 'bairro' };
+    const span = b.bb.length === 4 ? Math.abs(b.bb[1] - b.bb[0]) : 0;
+    return { area: span > 0.006 ? `(${b.bb[0]},${b.bb[2]},${b.bb[1]},${b.bb[3]})` : `(around:2200,${b.lat},${b.lng})`, cid };
+  }
+  TT.NICHOS_ABERTOS = NICHOS_ABERTOS;
+  TT.amostra = async function(o){
+    const k = String(o.k || ''), cidade = String(o.cidade || '').trim(), uf = String(o.uf || '').toUpperCase(), bairro = String(o.bairro || '').trim();
+    if(!OSM[k]) throw { code: 'nicho' };
+    if(!cidade) throw { code: 'cidade' };
+    const { area } = await areaDe(cidade, uf, bairro);
+    const parts = consulta({ k, re: '' }, area).join('');
+    const els = await overpass(`[out:json][timeout:30];(${parts})->.a;.a out count;.a out center tags 1500;`);
+    const cont = els.find(e => e.type === 'count'), total = cont && cont.tags ? Number(cont.tags.total) || 0 : 0;
+    const ddd = await Z.dddDe(cidade, uf).catch(() => ''), P = { cidade, uf, ddd };
+    const vistos = new Set(), rows = [];
+    els.forEach(e => { if(e.type === 'count') return; const id = e.type + e.id; if(vistos.has(id)) return; vistos.add(id); const r = linhaDe(e, k, P); if(r) rows.push(r); });
+    const tel = rows.filter(r => r.ph), wa = tel.filter(r => r.ph.wa);
+    const semInsta = rows.filter(r => !r.insta).length, semSite = rows.filter(r => (r.sinais || []).includes('sem_site')).length;
+    /* as 3 de exemplo: as que têm celular primeiro, com Instagram, de nomes diferentes */
+    const ex = rows.slice().sort((a, b) => (b.ph && b.ph.wa ? 2 : b.ph ? 1 : 0) - (a.ph && a.ph.wa ? 2 : a.ph ? 1 : 0) || (b.insta ? 1 : 0) - (a.insta ? 1 : 0)).slice(0, 3);
+    return { total: Math.max(total, rows.length), lidas: rows.length, tel: tel.length, wa: wa.length, semInsta, semSite, exemplos: ex, cidade, uf, bairro, k };
+  };
+  /* a caça de um nicho numa praça, direto pro radar (até max, as de celular primeiro). Quem chama já conferiu o login */
+  TT.cacaNicho = async function(o){
+    const k = String(o.k || ''), cidade = String(o.cidade || '').trim(), uf = String(o.uf || '').toUpperCase(), max = Math.max(1, Math.min(60, o.max || 20));
+    if(!OSM[k] || !cidade) throw { code: 'nicho' };
+    if(!H.loaded) await Z.load();
+    const { area } = await areaDe(cidade, uf, String(o.bairro || '').trim());
+    const els = await overpass(`[out:json][timeout:30];(${consulta({ k, re: '' }, area).join('')});out center tags 600;`);
+    const ddd = await Z.dddDe(cidade, uf).catch(() => ''), P = { cidade, uf, ddd }, vistos = new Set(), rows = [];
+    els.forEach(e => { const id = e.type + e.id; if(vistos.has(id)) return; vistos.add(id); const r = linhaDe(e, k, P); if(r && r.ph) rows.push(r); });
+    const novas = marcaRepetidas(rows).filter(r => !r.dup).sort((a, b) => (b.ph.wa ? 1 : 0) - (a.ph.wa ? 1 : 0) || (b.insta ? 1 : 0) - (a.insta ? 1 : 0)).slice(0, max);
+    if(novas.length){ const antes = H.assunto; H.assunto = o.assunto || 'garimpo'; try{ await Z.addRows(novas, o.fonte || 'caca'); }finally{ H.assunto = antes; } await Z.load(); }
     return { lidas: rows.length, novas: novas.length, wa: novas.filter(r => r.ph.wa).length };
   };
   TT.cacaAuto = function(){

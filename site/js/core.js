@@ -1466,14 +1466,45 @@
            centavos. A tarefa paga 3 centavos por ponto, cortado no teto de 1,00 por dia; o gasto tira o preço inteiro
            ou não tira nada. As contas aqui dentro são em centavos inteiros e só viram número com vírgula na saída,
            igual ao numeric do banco (nada de 0,30000000000000004 guardado na carteira) ---- */
-        if(/^corre_(correal|tarefa)_/.test(n)){
+        if(/^corre_(correal|tarefa|trampo)_/.test(n)){
           const eu = uidOf(d); if(!eu) throw { message: 'login', code: '42501' };
           const real = c => c / 100, PONTO = centDe(CORREAL_PONTO), TETO = centDe(CORREAL_TETO);
-          /* v4.12: o "hoje" conta a tarefa e a rua (as moedas que caem de quem leva empurrão demais), como o delta-v412.sql */
-          const ini = Date.parse(hojeBR() + 'T03:00:00Z'), hojeC = (re = /^(tarefa|achado):/) => d.t.corre_correal_log.filter(l => l.dono === eu && l.valor > 0 && re.test(l.motivo) && Date.parse(l.created_at) >= ini).reduce((x, l) => x + centDe(l.valor), 0);
           const cart = () => { let w = d.t.corre_correal.find(x => x.dono === eu); if(!w){ w = { dono: eu, saldo: 0, ganho: 0, gasto: 0, updated_at: now() }; d.t.corre_correal.push(w); } return w; };
           const meu = () => ({ saldo: real(centDe(cart().saldo)), hoje: real(hojeC()), teto: real(TETO), ponto: real(PONTO), precos: Object.assign({}, CORREAL_PRECO) });
           if(n === 'corre_correal_meu') return meu();
+          /* v4.29 (delta-v429.sql): o trampo de verdade paga 0,02 (a tarefa e o post uma vez; a que repete e o cliente,
+             uma vez por dia), até 0,20 por dia, fora do 1,00 da cidade, e conta os dias seguidos */
+          if(/^corre_(correal_trampo|trampo_)/.test(n)){
+            d.t.corre_trampo = d.t.corre_trampo || []; d.t.corre_trampo_seq = d.t.corre_trampo_seq || [];
+            const hj = hojeBR(), ini = Date.parse(hj + 'T03:00:00Z'), ontem = plMais(hj, -1), seqDe = id => d.t.corre_trampo_seq.find(x => x.dono === id);
+            const hojeT = () => d.t.corre_trampo.filter(x => x.dono === eu && x.dia === hj).reduce((s, x) => s + centDe(x.valor), 0);
+            if(n === 'corre_trampo_meu'){ const s = seqDe(eu); return { seq: s && s.ult >= ontem ? s.seq : 0, hoje_conta: !!(s && s.ult === hj), melhor: s ? s.melhor : 0, hoje: real(hojeT()), teto: .2, valor: .02 }; }
+            if(n === 'corre_trampo_placas'){
+              const o = {}; d.t.corre_trampo_seq.filter(s => s.seq >= 2 && s.ult >= ontem).forEach(s => { o[s.dono] = s.seq; });
+              /* na demonstração, a vizinhança também trabalha: umas casas com placa (sempre as mesmas) */
+              d.t.corre_perfis.filter(p => p.id !== eu).forEach((p, i) => { if(i % 3 !== 2) o[p.id] = [9, 3, 16, 33, 4][i % 5]; });
+              return o;
+            }
+            const tipo = String(a.p_tipo || ''), ref = String(a.p_ref || '');
+            if(!['caderno', 'post', 'lead'].includes(tipo) || !ref) return { ok: false, motivo: 'tipo' };
+            let ok = false, rep = false;
+            if(tipo === 'caderno'){ const t = (d.t.corre_caderno || []).find(x => x.id === ref && x.dono === eu); rep = !!(t && t.repete); ok = !!t && ((t.feito && Date.parse(t.feito_em || 0) >= ini) || (rep && (t.feitas || []).includes(hj))); }
+            else if(tipo === 'post'){ const p = (d.t.corre_posts || []).find(x => x.id === ref && x.dono === eu); ok = !!p && (p.status === 'postado' || !!p.ig_media_id || ['agendado', 'publicado'].includes(p.ig_status)); }
+            else { rep = true; const l = (d.t.corre_leads || []).find(x => x.id === ref && x.dono === eu); ok = !!l && (Array.isArray(l.hist) ? l.hist : []).some(e => e && e.k === 'toque' && Date.parse(e.t) >= ini); }
+            if(!ok) return { ok: false, motivo: 'nao' };
+            if(d.t.corre_trampo.some(x => x.dono === eu && x.tipo === tipo && x.ref === ref && (!rep || x.dia === hj))) return { ok: false, motivo: 'ja' };
+            const tr = hojeT(), ganhou = Math.max(0, Math.min(2, 20 - tr)), w = cart();
+            d.t.corre_trampo.push({ dono: eu, tipo, ref, dia: hj, valor: real(ganhou) });
+            if(ganhou){ d.t.corre_correal_log.push({ id: rid(), dono: eu, valor: real(ganhou), motivo: 'trampo:' + tipo, created_at: now() }); w.saldo = real(centDe(w.saldo) + ganhou); w.ganho = real(centDe(w.ganho) + ganhou); w.updated_at = now(); }
+            let s = seqDe(eu), novo = false;
+            if(!s){ s = { dono: eu, seq: 1, melhor: 1, ult: hj, n: 1 }; d.t.corre_trampo_seq.push(s); novo = true; }
+            else if(s.ult === hj) s.n++;
+            else { s.seq = s.ult === ontem ? s.seq + 1 : 1; s.melhor = Math.max(s.melhor, s.seq); s.ult = hj; s.n++; novo = true; }
+            write(d);
+            return { ok: true, ganhou: real(ganhou), saldo: real(centDe(w.saldo)), trampo: real(tr + ganhou), teto_trampo: .2, seq: s.seq, melhor: s.melhor, novo_dia: novo };
+          }
+          /* v4.12: o "hoje" conta a tarefa e a rua (as moedas que caem de quem leva empurrão demais), como o delta-v412.sql */
+          const ini = Date.parse(hojeBR() + 'T03:00:00Z'), hojeC = (re = /^(tarefa|achado):/) => d.t.corre_correal_log.filter(l => l.dono === eu && l.valor > 0 && re.test(l.motivo) && Date.parse(l.created_at) >= ini).reduce((x, l) => x + centDe(l.valor), 0);
           if(n === 'corre_tarefa_comeca'){
             if(!(CORREAL_TAREFA[a.p_u] && CORREAL_TAREFA[a.p_u][a.p_k])) throw { message: 'tarefa', hint: 'tarefa', code: 'P0001' };
             d.t.corre_tarefa_vez = d.t.corre_tarefa_vez.filter(x => x.dono !== eu);

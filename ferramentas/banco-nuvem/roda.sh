@@ -140,6 +140,10 @@ testa teste421.sql 3
 delta delta-v425.sql 'delta v4.25 ok'
 delta delta-v425.sql 'delta v4.25 ok'
 testa teste425.sql 3
+# v4.29: o trampo vira jogo (a tarefa, o post e o cliente pagam correal e contam os dias seguidos)
+delta delta-v429.sql 'delta v4.29 ok'
+delta delta-v429.sql 'delta v4.29 ok'
+testa teste429.sql 17
 . "$AQUI/virada343.sh"
 if grep -q 'FALHOU\|ERROR' $D/saida; then echo "deu FALHOU ou erro (acima)"; exit 1; fi
 echo "tudo ok: $(grep -c '^ok:' $D/saida) checagens"

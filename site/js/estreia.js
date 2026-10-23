@@ -102,7 +102,8 @@
     /* v4.02: o gatilho do banco grava {"links": []} em todo perfil novo; montou = tem link ou mexeu em outra coisa da página */
     const b = me.bio_link, bio = !!b && typeof b === 'object' && (Object.keys(b).some(k => k !== 'links') || (Array.isArray(b.links) && b.links.length > 0));
     /* v4.01: no celular, o primeiro é pôr o Corre na tela (feito: aberto pelo ícone, ou disse que já pôs) */
-    const L = (celular() && !C.EMBED ? [['tela', noApp() || !!inLe().ja, 'Põe o Corre na tela do celular', 'Vira app: tela inteira, sem a barra do navegador, e os avisos chegam.', '', 'instala']] : [])
+    /* v4.29: o primeiro de todos é o Monta meu Corre (some quando a pessoa montou) */
+    const L = (C.views.monta ? [['monta', !!(C.monta && C.monta.feito()), 'Monta teu Corre com IA', 'Conta numa frase o que você faz: o link na bio, o mês no Studio, clientes e a semana saem prontos.', '#/monta']] : []).concat(celular() && !C.EMBED ? [['tela', noApp() || !!inLe().ja, 'Põe o Corre na tela do celular', 'Vira app: tela inteira, sem a barra do navegador, e os avisos chegam.', '', 'instala']] : [])
       /* v4.06: os avisos (é por eles que o Corre te chama de volta: visita no link, pedido no Mural, mensagem) */
       .concat(avs === null ? [] : [['avisos', avs, 'Liga os avisos no celular', celular() ? 'Visita no teu link na bio, pedido no Mural pro teu corre e mensagem chegam na hora, com o Corre fechado.'
         : 'Visita no teu link na bio, pedido no Mural e mensagem chegam na hora. No celular é melhor: abre o Corre lá e liga.', '', 'push-ajustes']]).concat([

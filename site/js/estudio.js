@@ -447,7 +447,7 @@
     C.$('es-ent-ok').addEventListener('click', async ev => {
       const b = ev.currentTarget; b.disabled = true;
       const patch = { status: 'postado' }; if(['agendado', 'erro'].includes(p.ig_status || '')) patch.ig_status = '';
-      try{ await C.api.upd('corre_posts', { id: p.id }, patch); Object.assign(p, patch); C.closeSheet(); C.toast('Marcado como postado.'); if(o.depois) o.depois(p); }
+      try{ await C.api.upd('corre_posts', { id: p.id }, patch); Object.assign(p, patch); C.closeSheet(); C.toast('Marcado como postado.'); if(C.trampo) C.trampo.ganha('post', p.id); if(o.depois) o.depois(p); }
       catch(e){ b.disabled = false; C.toast(C.errMsg(e, 'Não deu pra marcar agora.')); }
     });
   }
@@ -979,6 +979,8 @@
           await grava(velho);
         }
         soltar.forEach(u => C.api.unlink(u));
+        /* v4.29: post programado ou postado é trampo (o banco confere; rascunho não conta) */
+        if(C.trampo && p && p.id && (row.ig_status === 'agendado' || row.status === 'postado' || p.ig_status === 'agendado')) C.trampo.ganha('post', p.id);
         await load(); S.sel = p.id; if(p.data){ S.week = weekOf(p.data); S.mes = p.data.slice(0, 7); } lista(); dirty = false;
         if(S.onSave) try{ S.onSave(p); }catch(e){}
         btn.disabled = false; btn.innerHTML = rot;

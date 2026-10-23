@@ -154,6 +154,8 @@
       midia_url: midia, status: 'pronto', ig_status: 'agendado', ig_quando: S().igQuando(it.data, job.hora), ig_conta: job.conta || null, arte: desenho ? Object.assign({}, desenho, { leg: lg }) : { modelo: 'subida', foto: midia, cor: mk.cor || '#FFE800', logo: false, leg: lg } };
     const r = await C.api.ins('corre_posts', row);
     it.post = r && r[0]; it.thumb = URL.createObjectURL(arte);
+    /* v4.29: cada post programado do mês é trampo (a moedinha sobe e o teto do dia segura) */
+    if(it.post && C.trampo) C.trampo.ganha('post', it.post.id);
   }
   /* desenha a arte no modelo da marca (o mesmo do editor); se o logo bloquear a exportação, sai sem o logo */
   async function desenha(mk, d){
@@ -368,5 +370,19 @@
       F = null; roda(job);
     }
   });
-  C.lote = { barra, pautaLocal, vagas, trabalho: () => JOB };
+  /* v4.29 · o Monta meu Corre: o mês programado sem a folha. A pauta da IA (ou a do Corre), a arte no modelo da marca, sem
+     foto de IA (pra caber no grátis do dia de quem acabou de chegar), e a legenda da IA. Roda em segundo plano, com a barra
+     em cima do calendário; quem chama acompanha pelo trabalho() */
+  async function mesAuto(mk, o){
+    o = o || {};
+    if(JOB && !JOB.fim) return null;
+    const q = QTD.find(x => x[0] === (o.n || 12)) || QTD[2], hora = o.hora || '18:00';
+    const datas = vagas(mk, q[0], q[2], hora, o.ini || amanha());
+    if(!datas.length) return null;
+    let pauta; try{ pauta = await pautaIA(mk, datas, o.assunto || ''); }catch(e){ pauta = pautaLocal(mk, datas, o.assunto || ''); }
+    const job = novoJob('ia', mk, pauta.filter(x => String(x.titulo || '').trim()), hora, { iaImg: false, conta: o.conta || '' });
+    roda(job);
+    return job;
+  }
+  C.lote = { barra, pautaLocal, vagas, mesAuto, trabalho: () => JOB };
 })();

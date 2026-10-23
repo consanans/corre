@@ -439,6 +439,8 @@
         await C.api.upd('corre_posts', { id: p.id }, { data, hora, status: 'pronto', ig_status: 'agendado', ig_quando: igQuando(data, hora), ig_erro: '' });
         if(data.slice(0, 7) !== ST.mes){ ST.mes = data.slice(0, 7); }
         ST.semana = weekOf(data);
+        /* v4.29: post programado é trampo (o banco confere) */
+        if(C.trampo) C.trampo.ganha('post', p.id);
         await depois(p.id, `Programado: ${curto(data)} às ${hora}.`);
       }catch(e){ el.disabled = false; C.toast(C.errMsg(e, 'Não deu pra programar agora.')); }
     },
@@ -459,7 +461,7 @@
         try{ await C.api.upd('corre_posts', { id: p.id }, { ig_status: 'publicado', status: 'postado', ig_erro: '', ig_link: `https://www.instagram.com/${encodeURIComponent(c.username)}/` }); }catch(e){}
         return depois(p.id, 'Na demonstração o post fica como publicado, mas não vai pro Instagram de verdade.');
       }
-      try{ const r = await C.api.fn('instagram', { acao: 'publicar', post_id: p.id }); await depois(p.id, r && r.ja ? 'Esse já tava no Instagram.' : r && r.processando ? 'O Instagram tá processando o vídeo. Sai sozinho em alguns minutos.' : 'Publicado no Instagram.'); }
+      try{ const r = await C.api.fn('instagram', { acao: 'publicar', post_id: p.id }); if(C.trampo) C.trampo.ganha('post', p.id); await depois(p.id, r && r.ja ? 'Esse já tava no Instagram.' : r && r.processando ? 'O Instagram tá processando o vídeo. Sai sozinho em alguns minutos.' : 'Publicado no Instagram.'); }
       catch(e){ await depois(p.id, pubMsg(e)); }
     },
     'sd-manual': async el => { const p = ST.posts.find(x => x.id === el.dataset.id); if(p) await postar(p); },
@@ -468,7 +470,7 @@
       const volta = p.status === 'postado', patch = { status: volta ? 'pronto' : 'postado' };
       if(!volta && ['agendado', 'erro'].includes(p.ig_status || '')) patch.ig_status = '';
       if(volta && p.data && p.hora && p.midia_url && at(p) > Date.now() + 6e4) Object.assign(patch, { ig_status: 'agendado', ig_quando: igQuando(p.data, p.hora) });
-      try{ await C.api.upd('corre_posts', { id: p.id }, patch); await depois(p.id, volta ? 'Voltou pra agenda.' : 'Marcado como publicado.'); }
+      try{ await C.api.upd('corre_posts', { id: p.id }, patch); if(!volta && C.trampo) C.trampo.ganha('post', p.id); await depois(p.id, volta ? 'Voltou pra agenda.' : 'Marcado como publicado.'); }
       catch(e){ C.toast(C.errMsg(e, 'Não deu pra marcar agora.')); }
     }
   });

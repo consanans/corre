@@ -260,7 +260,8 @@
       C.toast(`${shortName(l.nome)}: ${how === 'Ligação' ? 'ligação registrada' : 'mensagem enviada'}.`);
     }
     H.skip[id] = true;
-    await save(l, ['st', 'cad', 'prox', 'hist']);
+    /* v4.29: cliente chamado é trampo (o banco confere o toque de hoje na linha do tempo) */
+    if(await save(l, ['st', 'cad', 'prox', 'hist']) && C.trampo) C.trampo.ganha('lead', id);
     paint();
   }
 

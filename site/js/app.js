@@ -560,6 +560,9 @@
       { k: 'msg-nova', a: 'msg-nova', t: 'Nova mensagem', i: 'send', d: 'Chamar alguém pra conversar', kw: 'mandar mensagem conversar chamar' },
       { k: 'gr-novo', a: 'gr-novo', t: 'Criar grupo', i: 'gente', d: 'Juntar a tua turma', kw: 'novo grupo comunidade' },
       /* v4.16: as abas do Hórus (o funil de vendas e quem chegou sozinho) */
+      /* v4.29: o Monta meu Corre e a página aberta dos clientes */
+      { k: 'monta', h: '#/monta', t: 'Monta meu Corre com IA', i: 'magia', d: 'Uma frase e o Corre monta link na bio, o mês no Studio, clientes e a semana', kw: 'montar monta comecar começar ia configurar inicio setup onboarding automatico' },
+      { k: 'clientes', h: '#/clientes', t: 'Quantos clientes tem pra você', i: 'eye', d: 'Conta as empresas da tua cidade no mapa, por ramo', kw: 'clientes quantos empresas bairro cidade mapa mercado prospectar leads potencial' },
       ...(C.ferr('horus') ? [{ k: 'hz-funil', h: '#/horus/funil', t: 'Funil de vendas', i: 'grafico', d: 'Hórus: arrasta o cliente até o fechou', kw: 'funil crm pipeline negociacao negocios vendas previsao etapa proposta fechou kanban rd station' },
         { k: 'hz-entrada', h: '#/horus/entrada', t: 'Pedidos que chegaram', i: 'chat', d: 'Hórus: orçamento, Mural e mensagem que viraram cliente', kw: 'entrada pedido pedidos orcamento leads chegou cliente novo inbound caixa' }] : []),
       { k: 'mural-novo', h: '#/mural/novo', t: 'Fixar um pedido no Mural', i: 'tacha', d: 'Quem faz te manda proposta', kw: 'pedir servico orcamento' },
@@ -880,7 +883,7 @@
   function viewLogin(){
     document.body.classList.remove('com-lado');
     setStickers('login');
-    app.innerHTML = `<div class="login-top"><nav class="topnav" aria-label="Navegação"><a class="hl" href="#entrar">Entrar</a><a class="hl" href="#/mural">Mural</a><a class="hl" href="privacidade.html">Privacidade</a></nav></div>
+    app.innerHTML = `<div class="login-top"><nav class="topnav" aria-label="Navegação"><a class="hl" href="#entrar">Entrar</a><a class="hl" href="#/clientes">Clientes</a><a class="hl" href="#/mural">Mural</a><a class="hl" href="privacidade.html">Privacidade</a></nav></div>
     <main class="login">
       <h1 class="mega">Corre</h1>
       <p class="tagline"><span class="hl">Mostra teu corre.</span></p>
@@ -889,6 +892,7 @@
         <div class="chips" aria-label="O que tem no Corre"><span class="chip">Link na bio</span><span class="chip">Studio</span><span class="chip">Hórus</span><span class="chip">Mural</span><span class="chip">Correverso</span><span class="chip">Vendas e Grana</span></div>
         ${conviteLogin()}<div class="g-oficial" id="g-oficial" hidden></div><button type="button" class="btn-google" id="btn-google" data-act="google">${G_LOGO}<span>Entrar com Google</span></button><button type="button" class="lnk g-outro" id="g-outro" data-act="google" hidden><span>Não abriu? Entra pelo outro jeito</span></button>${C.CFG.APPLE_LOGIN || C.DEMO ? `<button type="button" class="btn-apple" id="btn-apple" data-act="apple">${APPLE_LOGO}<span>Continuar com a Apple</span></button>` : ''}
         ${dentroDeApp() ? `<div class="iab-aviso"><b>Abriu pelo Instagram ou WhatsApp?</b><p>O Google às vezes não deixa entrar por aqui. Se travar, abre o Corre no navegador${/Android/i.test(navigator.userAgent) ? '' : ' (no menu ••• , "Abrir no navegador")'}.</p><div class="acts">${/Android/i.test(navigator.userAgent) ? `<a class="btn sm pri" href="${esc(C.insta ? C.insta.intentUrl() : `intent://${location.host + location.pathname}#Intent;scheme=https;package=com.android.chrome;end`)}">Abrir no Chrome</a>` : ''}<button type="button" class="btn sm" data-act="iab-copia">Copiar o link</button></div></div>` : ''}
+        <a class="cl-porta" href="#/clientes">${ico('eye')}<span><b>Quantos clientes tem pra você na tua cidade?</b><small>Descobre agora, sem cadastro</small></span>${ico('next')}</a>
         <div class="login-mais"><button type="button" class="lnk man-login" data-act="es-desce">${ico('desce')} O que tem no Corre</button><button type="button" class="lnk man-login" data-act="manual">${ico('manual')} Como funciona</button></div>
         <div class="em-breve" role="note" aria-label="App do Corre no celular: em breve no iOS e no Android">
           <span class="eb-tag" aria-hidden="true">Em breve</span>
@@ -1101,7 +1105,8 @@
         let ganhou = null;
         if(isNew && C.estreia){ if(chamou) ganhou = await C.estreia.aceita(chamou.handle); await C.estreia.monta(st.me); }
         toast(isNew ? (chamou ? `Perfil criado. Você já segue @${chamou.handle}, que te chamou${ganhou && ganhou.ok ? ', e ganhou 0,50 de correal de boas-vindas' : ''}.` : 'Perfil criado. Bem-vindo ao Corre.') : 'Perfil salvo.', chamou ? 5200 : undefined);
-        go('#/');
+        /* v4.29: quem acabou de chegar vai pro Monta meu Corre (a IA monta o link na bio, o mês no Studio, os clientes e a semana) */
+        go(isNew && C.views.monta ? '#/monta' : '#/');
       }catch(err){
         if(err && err.code === '23505'){ hHint.className = 'hint bad'; hHint.textContent = `@${p.handle} já tem dono. Tenta outro.`; hIn.focus(); toast('Esse @ já tem dono.'); }
         else toast(C.errMsg(err, 'Não deu pra salvar agora. Tente de novo.'), 4000);
@@ -1333,6 +1338,8 @@
     /* v4.0 · o Link na bio (app.corresocial.com/@nome vira #/bio/nome no começo do index.html): abre sem login */
     if(h.startsWith('bio/') && C.views.bio){ if(st.user) await loadMe(); window.scrollTo(0, 0); return C.views.bio(app, C.decURI(h.slice(4))); }
     if(!st.user && /^houzi\//.test(h)){ try{ localStorage.setItem('corre-volta', location.hash); }catch(e){} }
+    /* v4.29 · "Quantos clientes tem pra você" (app.corresocial.com/clientes): abre sem login */
+    if(h === 'clientes' && C.views.clientes){ if(await precisaPerfil(location.hash)) return; window.scrollTo(0, 0); return C.views.clientes(app); }
     /* v4.17 · o link de aprovação do Studio: o cliente abre sem login */
     if(h.startsWith('aprova/') && C.views.aprova){ if(st.user) await loadMe(); window.scrollTo(0, 0); return C.views.aprova(app, C.decURI(h.slice(7))); }
     /* Vendas: o orçamento que o cliente recebe abre sem login */
@@ -1346,6 +1353,8 @@
     /* voltou do login do Google: leva pra onde a pessoa tava (ex.: o pedido do Mural) */
     let volta = ''; try{ volta = localStorage.getItem('corre-volta') || ''; if(volta) localStorage.removeItem('corre-volta'); }catch(e){}
     if(volta && /^#\/((mural|p|msg|g|houzi)\/|@[a-z0-9_.]{3,24}$|grupos$|houzi$)/.test(volta) && volta !== location.hash){ location.hash = volta; return; }
+    /* v4.29: entrou pelo "levar pro meu Hórus" da página dos clientes: volta pra ela, que leva sozinha */
+    if(C.clientes && C.clientes.leva() && h !== 'monta'){ location.hash = '#/clientes'; return; }
     /* já tem perfil: convite de link não vale mais (só quem acabou de entrar segue quem chamou) */
     if(C.insta) C.insta.limpaConvite();
     window.scrollTo(0, 0);

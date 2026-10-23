@@ -369,5 +369,7 @@
     },
     'mx-orc-copiar': () => C.copy(linkOrc((C.st.me || {}).handle || ''), 'Link de orçamento copiado.')
   });
+  /* v4.29: o Monta meu Corre usa a mesma montagem (IA, ou o modelo sem IA) */
+  MX.montarIA = montar;
   C.horusMax = MX;
 })();

@@ -3687,6 +3687,27 @@
     if(o.lap) o.lapides.forEach(l => L.push({ y: l.y, f: () => lapide(ctx, l) }));
     if(o.cald) L.push({ y: yb + 12, f: () => caldeirao(ctx, o.cx, yb + 12, t, o.sd) });
   }
+  /* v4.29 · a placa do trampo: os dias seguidos de trabalho de verdade (Caderninho, Studio, Hórus) fincados na frente da casa,
+     do lado de lá da porta (o lado de cá é das abóboras do Halloween). O material sobe com a sequência: madeira (2+), prata
+     (7+), ouro (14+) e o rosa da lenda (30+), com a chaminha em cima da estaca. Nada de verde */
+  const PLACA_T = { madeira: ['#C08A55', '#5A3A1E', '#2A1A0C'], prata: ['#E3E8EF', '#6B7380', '#1B1F26'], ouro: ['#FFD23F', '#8A6A12', '#2A1F05'], lenda: ['#FF48B0', '#5A1240', '#FFFFFF'] };
+  function placaTrampo(ctx, h, n, t){
+    const nv = C.trampo ? C.trampo.nivel(n) : null, k = nv ? nv.k : 'madeira', cs = PLACA_T[k];
+    const lado = h.portaX > h.x + h.w / 2 ? -1 : 1, x = Math.round(h.portaX + lado * 48), y = h.base + 10;
+    ctx.fillStyle = 'rgba(15,18,24,.22)'; ctx.fillRect(x - 12, y - 1, 24, 3);
+    ctx.fillStyle = '#5A3A1E'; ctx.fillRect(x - 1.5, y - 36, 3, 36);
+    /* a tabuleta com o número (o ponto da letra em 2: em 1, o 7 parecia "?") */
+    ctx.fillStyle = cs[1]; ctx.fillRect(x - 15, y - 33, 30, 18);
+    ctx.fillStyle = cs[0]; ctx.fillRect(x - 14, y - 32, 28, 16);
+    if(k === 'ouro' || k === 'lenda'){ ctx.fillStyle = 'rgba(255,255,255,.45)'; ctx.fillRect(x - 14, y - 32, 28, 2); }
+    pixTxt(ctx, String(Math.min(999, n)), x, y - 24, 2, cs[2], 'c');
+    /* a chaminha em cima da estaca, que dança */
+    const f = Math.floor(t * 8 + (h.x % 7)) % 3, ch = [['#FF7A1A', 0, 0, 6, 5], ['#FFB02E', 1, -3, 4, 4], ['#FFE36B', 2, -5 - (f === 1 ? 1 : 0), 2, 3]];
+    ch.forEach(([c0, dx, dy, w, hh]) => { ctx.fillStyle = c0; ctx.fillRect(x - 3 + dx + (f === 2 ? .5 : 0), y - 39 + dy, w, hh); });
+    luz(x, y - 34, k === 'lenda' ? 46 : 30, k === 'lenda' ? .8 : .55);
+    /* a lenda brilha */
+    if(k === 'lenda' && Math.floor(t * 2.5 + h.x) % 4 === 0){ ctx.fillStyle = '#FFFFFF'; ctx.fillRect(x + 11, y - 36, 2, 2); ctx.fillRect(x - 14, y - 16, 2, 2); }
+  }
   /* coisas soltas pela cidade (placa, fonte, estátua, tabela, parquinho, academia, o ipê gigante) */
   function decor(ctx, d, t){
     const u = 1 / V.k;
@@ -5179,6 +5200,8 @@
       c.casas.concat(c.dois ? [c.dois] : []).forEach(h => { if(vis(h.portaX, h.base, 60)) L.push({ y: h.base + .5, f: () => guirlanda(ctx, h.portaX, h.base - 44) }); });
       noelNaFila(L, ctx, t, vis);
     }
+    /* v4.29: a placa do trampo na frente da casa de quem tá com 2 dias seguidos ou mais */
+    if(V.placas) c.casas.concat(c.dois ? [c.dois] : []).forEach(h => { const n = V.placas[h.id]; if(n >= 2 && vis(h.portaX, h.base, 90)) L.push({ y: h.base + 10, f: () => placaTrampo(ctx, h, n, t) }); });
     /* v3.91: o Halloween nas casas sorteadas */
     if(halloween()) c.casas.concat(c.dois ? [c.dois] : []).forEach(h => { const o = halloweenDe(h); if(o && vis(h.x + h.w / 2, h.base, Math.max(240, h.w))) hwNaFila(L, ctx, h, o, t, vis); });
     L.sort((a, b) => a.y - b.y).forEach(o => o.f());
@@ -7059,6 +7082,8 @@
     if(tipo === 'skin'){ const sk = LOJA[a]; return sk ? `Ateliê: ${sk[1]}` : 'Ateliê'; }
     /* v4.12: a moeda que caiu na rua; e o convite da 4.0, que também caía no "IA" */
     if(tipo === 'achado') return 'Achado na rua';
+    /* v4.29: o trampo de verdade, feito nas ferramentas */
+    if(tipo === 'trampo') return { caderno: 'Trampo: tarefa do Caderninho', post: 'Trampo: post no Studio', lead: 'Trampo: cliente chamado no Hórus' }[a] || 'Trampo';
     if(tipo === 'convite') return a === 'trouxe' ? 'Convite: chamou alguém' : 'Convite: chegou pelo link';
     const ia = { imagem: 'Imagem com IA', legenda: 'Legenda ou pauta com IA', abordagem: 'Hórus com IA', marca: 'Studio Houzi com IA', voo: 'Voo no Aeroporto' }[a] || 'IA';
     if(a === 'voo') return tipo === 'volta' ? 'Voo no Aeroporto: devolvido' : ia;
@@ -7069,6 +7094,8 @@
   async function carteiraSheet(){
     await C.correalCarrega();
     let L = []; try{ L = await C.api.q('corre_correal_log', { eq: { dono: C.uid() }, order: ['created_at', false], limit: 10 }); }catch(e){}
+    /* v4.29: o trampo (Caderninho, Studio e Hórus) paga à parte do teto da cidade e conta os dias seguidos */
+    const tm = C.trampo ? await C.trampo.meu() : null, nvT = tm && C.trampo.nivel(tm.seq);
     const w = C.correal, P = w.precos, naCidade = !!C.$('cvr-stage'), F = C.correalFmt, cm = comoGanha();
     /* v3.43: tudo em centavos ("0,90", "+0,15"), escrito pelo C.correalFmt; a barra do dia também conta em centavos */
     const preco = (t, v) => `<li><span>${t}</span><b class="num">${F(v)}</b><small>${C.correalUnid(v)}</small></li>`;
@@ -7079,6 +7106,7 @@
       <p class="cart-p">Trabalhando no Correverso: abre o Trampo e pega uma missão (de carro, moto, patinete ou barco) ou um bico do teu uniforme.</p>
       <p class="cart-p cart-conta">${esc(cm[0])}<br>${esc(cm[1])}</p>
       <p class="cart-p">Na rua, quem leva empurrão demais deixa cair moeda: ${esc(F(ACHA.moeda))} cada, até ${esc(F(ACHA.teto))} por dia. Mas a polícia vem atrás.</p>
+      ${tm ? `<div class="cart-trampo">${ico('fogo')}<span><b>Trampo de verdade também paga.</b> Tarefa feita no Caderninho, post programado no Studio e cliente chamado no Hórus: ${esc(F(tm.valor))} cada, até ${esc(F(tm.teto))} por dia, fora do teto da cidade. Hoje: <b class="num">${esc(F(tm.hoje))}</b>.${tm.seq ? ` <b>${tm.seq} ${tm.seq === 1 ? 'dia' : 'dias seguidos'}</b> de trampo${nvT ? ` (${esc(nvT.nome.toLowerCase())} na frente da tua casa)` : ''}${tm.hoje_conta ? '' : ': trabalha hoje pra não perder'}.` : ' Dois dias seguidos e tua casa ganha a placa.'}</span></div>` : ''}
       <h3 class="cart-h">Onde usa</h3>
       <ul class="cart-precos">${preco('Imagem com IA (Studio)', P.imagem)}${preco('Legenda ou pauta com IA', P.legenda)}${preco('Mensagem ou leitura do Hórus', P.abordagem)}${preco('Textos e nomes do Studio Houzi', P.marca)}${P.voo ? preco('Voo no Aeroporto (Correverso)', P.voo) : ''}</ul>
       <p class="fine">Correal é a moeda do Correverso, não é dinheiro: não compra, não vende e não passa pra ninguém. Na IA, só entra depois que o grátis do dia acaba; o voo cobra sempre. O Corre pergunta antes de gastar, e se a IA falhar, o correal volta.</p>
@@ -7428,6 +7456,8 @@
   function abreCidade(lista){
     const me = C.st.me;
     V.cid = montaCidade(lista); V.sol = solidos(); V.solG = gradeSol(V.sol); V.portas = portas(); V.carros = montaCarros(V.cid); V.bolas = novasBolas(V.cid);
+    /* v4.29: os dias seguidos de trampo de cada casa (só o número), pra placa da frente */
+    V.placas = {}; if(C.trampo) C.trampo.placas().then(o => { V.placas = o || {}; }).catch(() => {});
     const st = C.$('cvr-stage');
     st.innerHTML = `<canvas id="cvr-cv" aria-label="A cidade do Correverso. Anda com as setas ou W A S D, ou toca onde quer ir."></canvas>
       <div class="cvr-top"><button type="button" class="cvr-sair" data-act="cvr-sai-cidade" aria-label="Sair do Correverso">${ico('prev')}<span class="cvr-sair-l">Sair do Correverso</span><span class="cvr-sair-c" aria-hidden="true">Sair</span></button><span class="cvr-sair-dica" id="cvr-sair-dica" role="status" hidden></span><span class="cvr-tt">${ico('verso')} Correverso</span><span class="cvr-on" id="cvr-on"></span><button type="button" class="cvr-live" id="cvr-live" data-act="cvr-gente" hidden></button><span class="cvr-zona" id="cvr-zona" hidden></span><button type="button" class="cvr-evento" id="cvr-evento" data-act="cvr-evento" hidden></button><button type="button" class="cvr-tarefa" id="cvr-tarefa" data-act="cvr-trampo" hidden></button><button type="button" class="cvr-correal" id="cvr-correal" data-act="carteira" title="Carteira de correal" aria-label="Carteira de correal">${ico('correal')}<b class="num" data-correal-saldo>${C.correal.saldo == null ? '…' : C.correalFmt(C.correal.saldo)}</b></button><button type="button" class="cvr-som" id="cvr-som" data-act="cvr-som" aria-pressed="false" hidden></button><button type="button" class="cvr-som cvr-tela" id="cvr-tela" data-act="cvr-tela" aria-pressed="false"></button></div>
