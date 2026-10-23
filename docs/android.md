@@ -13,8 +13,12 @@ A 4.31 já deixou o Corre pronto pro que a Google exige:
 
 É um número de empresa, de graça, que a Google pede pra conta de **organização**. Com conta de organização, o app pode ir direto pra loja. Conta pessoal nova precisa antes de 12 pessoas testando por 14 dias seguidos.
 
-- Pede em https://www.dnb.com/duns-number/get-a-duns.html com os dados da **Houzi Produtora Ltda** (CNPJ 28.415.207/0001-46, Rua Cornélio Procópio, 26, loja 34, Londrina).
-- Pode levar de alguns dias a umas semanas.
+- **O caminho mais fácil é a página da Apple:** https://developer.apple.com/enroll/duns-lookup/
+  - Entra com o teu Apple ID (o do iPhone) e procura a Houzi. Se ela já tiver número, aparece na hora.
+  - Se não tiver, a própria página manda o pedido pra D&B, de graça. O número é o mesmo de qualquer lugar: serve pra Google e, depois, pra Apple.
+- **Use exatamente a razão social e o endereço do cartão do CNPJ:** **Houzi Produtora Ltda**, CNPJ 28.415.207/0001-46, Rua Cornélio Procópio, 26, loja 34, Aurora, Londrina-PR, CEP 86060-420. A Google confere se batem com os da conta.
+- **Prazo:** a Apple fala em até 5 dias úteis; a Google, em até 30 dias. A D&B pode ligar pedindo mais dados (tipo de empresa, funcionários).
+- Site que cobra pelo D-U-N-S não precisa: é de graça.
 
 ## 2. A conta na Google Play
 
