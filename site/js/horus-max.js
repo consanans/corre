@@ -310,6 +310,8 @@
         <div class="acts"><button type="submit" class="btn pri" id="orc-ok">Pedir orçamento</button></div>
         <p class="fine">Teus dados vão só pra ${esc(nome)}, que te chama no WhatsApp. Feito com o Corre.</p>
       </form></section></main>`;
+    /* v4.34: o Atendente 24h tira a dúvida antes do pedido (só aparece se a pessoa ligou) */
+    if(C.atende) C.atende.monta(app.querySelector('.orc-card'), p, 'orcamento');
     const pintaFotos = () => { const box = C.$('orc-fotos'); if(!box) return; box.innerHTML = fotos.map((u, i) => `<span class="orc-ft"><img src="${u}" alt="Foto ${i + 1}"><button type="button" class="cbtn plain" data-orc-tira="${i}" aria-label="Tirar a foto ${i + 1}">${ico('x')}</button></span>`).join('') + (fotos.length < FOTO_MAX ? `<button type="button" class="orc-ft-add" id="orc-ft-add">${ico('camera')}<span>${fotos.length ? 'Mais uma' : 'Pôr foto'}</span></button>` : ''); };
     pintaFotos();
     C.$('orc-f').addEventListener('click', async e => {

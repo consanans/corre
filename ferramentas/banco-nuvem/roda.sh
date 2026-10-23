@@ -158,6 +158,12 @@ testa teste431.sql 13
 delta delta-v432.sql 'delta v4.32 ok'
 delta delta-v432.sql 'delta v4.32 ok'
 testa teste432.sql 6
+# v4.34: o Atendente 24h e o Piloto automático (a semente põe o registro das cotas, o sal das conexões e as colunas
+# do lead, da venda e da marca que eles leem)
+$P -f "$AQUI/semente434.sql"
+delta delta-v434.sql 'delta v4.34 ok'
+delta delta-v434.sql 'delta v4.34 ok'
+testa teste434.sql 20
 . "$AQUI/virada343.sh"
 if grep -q 'FALHOU\|ERROR' $D/saida; then echo "deu FALHOU ou erro (acima)"; exit 1; fi
 echo "tudo ok: $(grep -c '^ok:' $D/saida) checagens"

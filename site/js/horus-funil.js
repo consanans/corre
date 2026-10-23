@@ -21,9 +21,10 @@
   const NOME = Object.fromEntries(COLS);
   /* a chance de fechar de cada etapa: o chute do começo; com 5 decididos ou mais, vale a taxa da própria pessoa */
   const CHANCE = { novo: 0, contato: .1, interesse: .25, link: .5 };
-  const ORIGEM = { link: 'Pediu orçamento', mural: 'Mural', corre: 'Mensagem no Corre', manual: 'Na mão', caca: 'Caça', vivo: 'Porta a porta', lista: 'Lista', horus: 'Backup', exemplo: 'Exemplo' };
+  const ORIGEM = { link: 'Pediu orçamento', mural: 'Mural', corre: 'Mensagem no Corre', atende: 'Atendente 24h', manual: 'Na mão', caca: 'Caça', vivo: 'Porta a porta', lista: 'Lista', horus: 'Backup', exemplo: 'Exemplo' };
   /* quem chegou sozinho (o resto o Hórus foi buscar) */
-  const ENTRA = ['link', 'mural', 'corre'];
+  /* (v4.34: e quem deixou o WhatsApp pro Atendente 24h) */
+  const ENTRA = ['link', 'mural', 'corre', 'atende'];
   const MOTIVOS = ['Preço', 'Já tem quem faz', 'Sumiu', 'Não é o momento', 'Não é o perfil', 'Escolheu outro'];
   const NOVO_MAX = 8, COL_MAX = 60;
   const ABAS = [['radar', 'Radar', 'eye'], ['funil', 'Funil', 'grafico'], ['entrada', 'Entrada', 'chat']];
@@ -37,7 +38,7 @@
   /* o registro de quando entrou na etapa (a etapa vem escrita como "Etapa: Proposta"; pedido e Mural põem o cliente em
      Interessado sozinhos; o orçamento aprovado pelo link fecha sozinho) */
   const regEtapa = (x, st) => x && ((x.k === 'st' && String(x.v || '').startsWith('Etapa: ' + Z.SN[st]))
-    || (st === 'interesse' && x.k === 'res' && /^(Pediu orçamento pelo link|Mural: .* escolheu tua proposta)/.test(x.v || ''))
+    || (st === 'interesse' && x.k === 'res' && /^(Pediu orçamento pelo link|Mural: .* escolheu tua proposta|Atendente 24h: )/.test(x.v || ''))
     || (st === 'fechado' && x.k === 'res' && x.v === 'Aprovou o orçamento pelo link.'));
   function entrouEm(l){
     const x = hist(l).find(r => regEtapa(r, l.st));
@@ -87,7 +88,7 @@
   const reais = (x, curto) => x.v ? `${x.est ? '~' : ''}${money(x.v)}` : (curto ? '' : money(0));
 
   /* chegou sozinho e ninguém respondeu ainda (o pedido mais novo vem antes de qualquer toque teu) */
-  const pedidoReg = x => x && x.k === 'res' && /^(Pediu orçamento pelo link|Mural: .* escolheu tua proposta)/.test(x.v || '');
+  const pedidoReg = x => x && x.k === 'res' && /^(Pediu orçamento pelo link|Mural: .* escolheu tua proposta|Atendente 24h: )/.test(x.v || '');
   function esperando(l){
     if(!ENTRA.includes(l.fonte) || Z.DONE.includes(l.st)) return false;
     const h = hist(l), i = h.findIndex(pedidoReg); if(i < 0) return false;
@@ -97,7 +98,7 @@
   const quandoChegou = l => { const x = hist(l).find(pedidoReg) || hist(l).find(r => r.k === 'cria'); return (x && x.t) || l.created_at; };
   function oQuePediu(l){
     const x = hist(l).find(pedidoReg);
-    if(x){ const v = String(x.v || ''); return v.startsWith('Pediu orçamento pelo link: ') ? v.slice(27) : v.startsWith('Mural: ') ? 'Te escolheu no Mural.' : ''; }
+    if(x){ const v = String(x.v || ''); return v.startsWith('Pediu orçamento pelo link: ') ? v.slice(27) : v.startsWith('Atendente 24h: ') ? v.slice(15) : v.startsWith('Mural: ') ? 'Te escolheu no Mural.' : ''; }
     return String(l.obs || '').replace(/^Pedido pelo link \([^)]*\):\s*/, '').split('\n')[0];
   }
 
@@ -294,7 +295,7 @@
     const sem30 = L.filter(l => (dia(quandoChegou(l)) || '') >= Z.addDays(-30)).length;
     const faixa = C.push && C.push.faixa ? C.push.faixa('horus') : '';
     return `<section class="hz-card"><div class="hz-h"><h2>Chegou sozinho</h2><span>${n ? `${n} esperando resposta` : `${sem30} nos últimos 30 dias`}</span></div>
-        <p class="hz-help">Quem pede orçamento pelo teu link, te escolhe no Mural ou vira cliente numa conversa do Corre cai aqui. Responde rápido: quem responde primeiro fecha mais.</p>
+        <p class="hz-help">Quem pede orçamento pelo teu link, te escolhe no Mural, deixa o WhatsApp pro teu <a href="#/atendente">Atendente 24h</a> ou vira cliente numa conversa do Corre cai aqui. Responde rápido: quem responde primeiro fecha mais.</p>
         ${faixa}
         ${L.length ? `<ol class="fn-ins">${L.slice(0, F.entMais).map(linhaEntrada).join('')}</ol>${L.length > F.entMais ? `<button type="button" class="hz-btn ghost wide" data-act="fn-ent-mais">Mostrar mais ${Math.min(30, L.length - F.entMais)}</button>` : ''}`
           : `<p class="hz-muted">${on ? 'Ninguém chegou ainda. Põe teu link de orçamento na bio do Instagram, no status e no link na bio do Corre.' : 'Liga teu link de orçamento aqui embaixo: quem pedir cai aqui, com o pedido anotado, e o teu celular avisa na hora.'}</p>`}

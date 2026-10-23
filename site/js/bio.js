@@ -164,6 +164,8 @@
     if(cfg.tema === 'marca') fontes(cfg.mv);
     app.innerHTML = bioHTML(p, cfg, d);
     visita(h);
+    /* v4.34: o Atendente 24h, se a pessoa ligou (o botão entra no fim da página, com a cara dela) */
+    if(C.atende) C.atende.monta(app.querySelector('.bio-col'), p, 'bio');
   };
 
   Object.assign(C.acts, {

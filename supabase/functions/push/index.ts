@@ -16,7 +16,8 @@
 //     depois que o cliente manda; a função entrega o que o corre_pedidos_alvos devolve (os últimos 10 minutos, um aviso
 //     por pedido, gravado antes de sair). Desde a v4.17, também o cliente que terminou de responder o link de aprovação
 //     do Studio (corre_aprov_alvos, do mesmo jeito). Desde a v4.31, também a denúncia que acabou de chegar, pros donos
-//     do Corre (corre_denuncia_alvos: as dos últimos 10 minutos, um aviso por denúncia e por dono).
+//     do Corre (corre_denuncia_alvos: as dos últimos 10 minutos, um aviso por denúncia e por dono). Desde a v4.34, também o
+//     cliente que deixou o WhatsApp pro Atendente 24h (corre_atende_alvos, um aviso por conversa).
 //   acao "postar" (v4.18, SEM login): o relógio do banco olha de minuto em minuto e, só quando tem post na hora, chama;
 //     a função entrega o que o corre_postar_alvos devolve: "Hora de postar" (o post programado que não sai sozinho, sem
 //     conta conectada) e "Não saiu no Instagram" (o que o Instagram recusou). Cada post avisa uma vez por horário,
@@ -214,6 +215,10 @@ Deno.serve(async (req) => {
     const { data: den, error: ed } = await admin.rpc('corre_denuncia_alvos', {});
     if (ed) { if (!/corre_denuncia_alvos/.test(ed.message || '')) console.warn('[push] denuncia', ed.message); }
     else if (Array.isArray(den)) L.push(...den);
+    /* v4.34: e o cliente que deixou o WhatsApp pro Atendente 24h (sem o delta da 4.34, nada) */
+    const { data: atd, error: et } = await admin.rpc('corre_atende_alvos', {});
+    if (et) { if (!/corre_atende_alvos/.test(et.message || '')) console.warn('[push] atende', et.message); }
+    else if (Array.isArray(atd)) L.push(...atd);
     if (!L.length) return json({ ok: true, pessoas: 0, entregues: 0 });
     const r = await manda(admin, v, lista(L, 'high'));
     console.log('[push] pedidos', JSON.stringify({ pessoas: L.length, entregues: r.ok, saiu: r.mortos }));

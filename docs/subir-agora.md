@@ -1,16 +1,15 @@
-# O que falta subir (23/10/2026, a 4.33)
+# O que falta subir (23/10/2026, a 4.34)
 
-A 4.33 deixa o Corre mais esperto e mais rápido:
-- **Fala com o Corre:** na busca (e no alto do Início), escreve ou dita o que precisa ("me lembra de ligar pro contador amanhã 15h", "agenda um post da GP Burger sexta 18h", "cobrar 1500 do João dia 30", "quanto entrou esse mês?") e o Corre faz. Mensagem e post nunca saem sozinhos.
-- **O Início abre com o teu dia:** o que fazer agora, antes do feed.
-- **Corre instantâneo:** o app fica guardado no celular; abre na hora, até sem internet.
+A 4.34 traz duas coisas que trabalham por você:
+- **Atendente 24h:** em Laboratório › Atendente 24h, ensina o que você faz, os preços e as perguntas de sempre, testa e liga. Ele responde teu cliente no link na bio e no pedido de orçamento, até de madrugada. Quem deixa o WhatsApp cai na Entrada do Hórus e o teu celular avisa.
+- **Piloto automático:** em Laboratório › Piloto automático (ou no convite do Caderninho), liga e ele põe no teu Caderninho o cliente esfriando, a cobrança vencida, a marca sem post e o orçamento aprovado, cada um com o botão que resolve (a mensagem sai pronta; quem manda é você).
 
-Já está no ar (feito pelo conector): a IA do "Fala com o Corre" (função `imagem` v43). O banco da 4.32 também (`delta v4.32 ok`). Sem banco novo na 4.33.
+Já está no ar (feito pelo conector): o banco da 4.34 (`delta v4.34 ok`), a função nova `atende` e a `push` atualizada. Os dois nascem desligados: cada pessoa liga o dela.
 
 Falta contigo:
 
-1. **O site:** Netlify › projeto **elegant-churros-40301a** (é o app.corresocial.com) › aba **Deploys** › arrasta o `corre-site.zip` da 4.33 › espera aparecer **Published**. Leva a 4.32 junto (o zip da 4.32 não precisa mais subir).
+1. **O site:** Netlify › projeto **elegant-churros-40301a** (é o app.corresocial.com) › aba **Deploys** › arrasta o `corre-site.zip` da 4.34 › espera aparecer **Published**. Leva a 4.33 e a 4.32 junto (os zips delas não precisam mais subir).
 
-Depois de subir: na primeira abertura o Corre se guarda no celular; da segunda em diante abre na hora.
+Depois de subir: liga o teu Atendente, faz o teste e abre o teu link na bio no celular pra ver o botão "Tirar dúvida agora".
 
 O caminho até a Google Play tá em `docs/android.md`.

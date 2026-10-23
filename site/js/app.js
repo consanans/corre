@@ -47,7 +47,9 @@
     /* v4.02 · a Lojinha (o painel do dono, lojinha.js): só os donos veem (o tem() filtra; v4.04: o Jey e o Lucas também) */
     lojinha: ['#/lojinha', 'Lojinha', 'grafico'],
     /* v4.19 · o Caderninho (caderninho.js): o planner, com o dia que junta as tarefas e o que o Corre já sabe */
-    caderno: ['#/caderninho', 'Caderninho', 'caderno']
+    caderno: ['#/caderninho', 'Caderninho', 'caderno'],
+    /* v4.34 · o Atendente 24h (atendente.js) e o Piloto automático (piloto.js) */
+    atende: ['#/atendente', 'Atendente 24h', 'atende'], piloto: ['#/piloto', 'Piloto automático', 'piloto']
   });
   /* os grupos: [nome, ícone, o que mora dentro]. No computador cada um abre ali mesmo, no menu; no celular a gaveta
      da tua foto já mostra eles abertos. v3.44 (o Thales pediu pra juntar o tanto que der): a Rede junta o Início, as
@@ -55,7 +57,7 @@
      Com isso o Mais some (não sobra nada nele) */
   const GRUPOS = {
     rede: ['Rede', 'chat', ['inicio', 'msg', 'grupos', 'avisos']],
-    lab: ['Laboratório', 'lab', ['caderno', 'studio', 'houzi', 'horus', 'marcas']],
+    lab: ['Laboratório', 'lab', ['caderno', 'studio', 'houzi', 'horus', 'atende', 'piloto', 'marcas']],
     fin: ['Financeiro', 'calc', ['lojinha', 'corre', 'carteira', 'planos']],
     banca: ['Banca', 'toldo', ['banca', 'refs', 'rolo']],
     eu: ['Perfil', 'eu', ['perfil', 'linkbio', 'convite', 'salvos']]
@@ -64,7 +66,7 @@
      lugar à Comanda, aos Teus e ao Tudo; os grupos seguem dentro do Tudo e da gaveta) */
   const PRACA = ['verso', 'mural'];
   /* o que depende do perfil ou do módulo carregado: o Hórus liga e desliga, o Studio Houzi e os Grupos podem não vir */
-  const tem = k => (k !== 'caderno' || !!C.views.caderno) && (k !== 'horus' || C.ferr('horus')) && (k !== 'houzi' || C.views.houzi) && (k !== 'grupos' || C.views.grupos) && (k !== 'lojinha' || (C.ehDono() && !!C.views.lojinha));
+  const tem = k => (k !== 'caderno' || !!C.views.caderno) && (k !== 'atende' || !!C.views.atendente) && (k !== 'piloto' || !!C.views.piloto) && (k !== 'horus' || C.ferr('horus')) && (k !== 'houzi' || C.views.houzi) && (k !== 'grupos' || C.views.grupos) && (k !== 'lojinha' || (C.ehDono() && !!C.views.lojinha));
   /* de qual item do menu cada página é (e pra onde a setinha de voltar leva). Banca e Nicho não são mais filhas do
      Início: moram na Banca, e o grupo aberto no menu já diz onde você tá */
   const DONO = { vendas: 'corre', grana: 'corre', estilo: 'corre', 'studio-dentro': 'studio', editar: 'perfil' };
@@ -573,6 +575,9 @@
       { k: 'clientes', h: '#/clientes', t: 'Quantos clientes tem pra você', i: 'eye', d: 'Conta as empresas da tua cidade no mapa, por ramo', kw: 'clientes quantos empresas bairro cidade mapa mercado prospectar leads potencial' },
       ...(C.ferr('horus') ? [{ k: 'hz-funil', h: '#/horus/funil', t: 'Funil de vendas', i: 'grafico', d: 'Hórus: arrasta o cliente até o fechou', kw: 'funil crm pipeline negociacao negocios vendas previsao etapa proposta fechou kanban rd station' },
         { k: 'hz-entrada', h: '#/horus/entrada', t: 'Pedidos que chegaram', i: 'chat', d: 'Hórus: orçamento, Mural e mensagem que viraram cliente', kw: 'entrada pedido pedidos orcamento leads chegou cliente novo inbound caixa' }] : []),
+      /* v4.34: o Atendente 24h e o Piloto automático */
+      { k: 'atende', h: '#/atendente', t: 'Atendente 24h', i: 'atende', d: 'Responde teus clientes no link na bio e no orçamento, de dia e de noite', kw: 'atendente atendimento chatbot bot robo ia responder cliente duvida 24h automatico whatsapp sac suporte faq' },
+      { k: 'piloto', h: '#/piloto', t: 'Piloto automático', i: 'piloto', d: 'Põe no Caderninho o cliente esfriando, a cobrança vencida e a marca sem post', kw: 'piloto automatico automacao automatizar lembrete cobrar retomar follow up followup esfriando rotina' },
       { k: 'mural-novo', h: '#/mural/novo', t: 'Fixar um pedido no Mural', i: 'tacha', d: 'Quem faz te manda proposta', kw: 'pedir servico orcamento' },
       { k: 'push', a: 'push-ajustes', t: 'Avisos no celular', i: 'bell', d: 'Liga e desliga as notificações', kw: 'notificacao notificacoes push celular' },
       ...(C.instala && C.instala.falta() ? [{ k: 'instala', a: 'instala', t: 'Pôr o Corre na tela do celular', i: 'cel', d: 'Vira app: tela inteira e os avisos', kw: 'instalar app aplicativo tela inicio inicial icone atalho celular iphone android cheia full screen' }] : []),
@@ -1412,6 +1417,9 @@
     if((h === 'horus' || h.startsWith('horus/')) && C.views.horus) return C.views.horus(app, h.slice(6));
     /* v4.19: o Caderninho (#/caderninho/t/ID é o aviso do celular abrindo a tarefa) */
     if((h === 'caderninho' || h.startsWith('caderninho/')) && C.views.caderno) return C.views.caderno(app, h.slice(11));
+    /* v4.34: o Atendente 24h (#/atendente/c/ID é o aviso do celular abrindo a conversa) e o Piloto automático */
+    if((h === 'atendente' || h.startsWith('atendente/')) && C.views.atendente) return C.views.atendente(app, h.slice(10));
+    if(h === 'piloto' && C.views.piloto) return C.views.piloto(app);
     if(h.startsWith('marca/') && C.views.marca) return C.views.marca(app, h.slice(6));
     if((h === 'studio' || h.startsWith('studio/')) && C.views.studio) return C.views.studio(app, h.slice(7));
     if(h.startsWith('houzi/') && C.views.houzi) return C.views.houzi(app, h.slice(6));

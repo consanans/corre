@@ -198,6 +198,8 @@
     const r = [], t = today();
     if(pediuLink(l)) r.push('pediu orçamento');
     if(escolheuMural(l)) r.push('te escolheu no Mural'); else if(l.fonte === 'mural') r.push('Mural');
+    /* v4.34: deixou o WhatsApp pro Atendente 24h e ninguém chamou ainda */
+    if(l.fonte === 'atende' && !DONE.includes(l.st) && !(l.hist || []).some(x => x.k === 'toque')) r.push('veio pelo Atendente');
     const fr = faroDe(l); if(fr.length) r.push('faro: ' + SINAIS[fr[0]].n);
     if(l.prox && l.prox < t && !DONE.includes(l.st)) r.push(`venceu há ${daysBetween(l.prox, t)}d`); else if(l.prox === t) r.push('retorno hoje');
     if(l.st === 'link') r.push('proposta na mesa'); else if(l.st === 'interesse') r.push('interessado');

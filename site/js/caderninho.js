@@ -221,7 +221,9 @@
     : (a.prio || 4) - (b.prio || 4) || (a.ordem || 0) - (b.ordem || 0) || String(a.created_at || '').localeCompare(String(b.created_at || ''));
   const listas = () => [...new Set(raiz().filter(t => t.lista && !t.feito).map(t => t.lista).concat(raiz().filter(t => t.lista).map(t => t.lista)))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
   /* o Corre só entra quando não tem lista escolhida (lista é coisa das tuas tarefas) */
-  const correDe = f => CD.lista ? [] : CD.corre.filter(f);
+  /* v4.34: o cliente e a cobrança que o piloto já pôs como tarefa (com o botão que resolve) não aparecem duas vezes */
+  const doPiloto = () => new Set(CD.t.filter(t => (t.piloto === 'cobra' || t.piloto === 'esfria') && !t.feito && t.liga && t.liga.id).map(t => t.liga.id));
+  const correDe = f => { if(CD.lista) return []; const P = doPiloto(); return CD.corre.filter(c => !P.has(c.id) && f(c)); };
   function doDia(iso){
     const t = raiz().filter(x => !x.feito && x.dia === iso && daLista(x)), c = correDe(x => x.dia === iso);
     return t.map(x => ({ x, t: 'tarefa' })).concat(c.map(x => ({ x, t: 'corre' }))).sort((a, b) => ordem(a.x, b.x));
@@ -233,6 +235,8 @@
   const PRIO = { 1: 'Prioridade 1', 2: 'Prioridade 2', 3: 'Prioridade 3', 4: 'Sem prioridade' };
   function metaTarefa(t, comDia){
     const ss = subs(t.id), m = [];
+    /* v4.34: o que o piloto automático pôs aqui */
+    if(t.piloto && C.piloto) m.push(C.piloto.marca(t));
     if(comDia && t.dia) m.push(`<span class="cd-dia${t.dia < hoje() ? ' atras' : ''}">${esc(diaTxt(t.dia))}</span>`);
     if(t.hora) m.push(`<span class="cd-h">${ico('clock')}${esc(horaTxt(t.hora))}</span>`);
     if(t.repete){ const rt = repTxt(t.repete, cadaDe(t)); m.push(`<span title="${esc(rt)}">${ico('troca')}${esc(rt.replace(/^Tod[oa] /, ''))}</span>`);
@@ -250,7 +254,7 @@
   function itTarefa(t, comDia){
     return `<li class="cd-it p${t.prio || 4}${t.feito ? ' feito' : ''}" data-id="${esc(t.id)}">
       <button type="button" class="cd-ck" data-act="cd-feita" data-id="${esc(t.id)}" aria-pressed="${t.feito ? 'true' : 'false'}" aria-label="${t.feito ? 'Desmarcar' : 'Marcar feita'}: ${esc(t.titulo)}" title="${esc(PRIO[t.prio || 4])}"><i>${ico('check')}</i></button>
-      <button type="button" class="cd-tx" data-act="cd-abre" data-id="${esc(t.id)}"><b>${esc(t.titulo)}</b>${metaTarefa(t, comDia)}</button></li>`;
+      <button type="button" class="cd-tx" data-act="cd-abre" data-id="${esc(t.id)}"><b>${esc(t.titulo)}</b>${metaTarefa(t, comDia)}</button>${t.piloto && C.piloto ? C.piloto.botao(t) : ''}</li>`;
   }
   function itCorre(c, comDia){
     const m = [];
@@ -283,6 +287,8 @@
     const ab = ls.get(K_FEITAS) === '1';
     let h = '';
     h += faroHTML();
+    /* v4.34: o convite do piloto automático (some quando liga ou no "Agora não") */
+    if(C.piloto) h += C.piloto.faixa();
     if(tot) h += `<div class="cd-prog" role="img" aria-label="${nF} de ${tot} tarefas de hoje feitas"><span><b class="num">${nF}</b> de <b class="num">${tot}</b> feitas hoje</span><i><b style="width:${Math.round(100 * nF / tot)}%"></b></i></div>`;
     if(at.length) h += secao('atras', 'Ficou pra trás', at.length, `<ol class="cd-l">${at.map(e => item(e, true)).join('')}</ol>${at.some(e => e.t === 'tarefa') ? `<button type="button" class="lnk cd-pra-hoje" data-act="cd-pra-hoje">${ico('cal')}Passar as minhas pra hoje</button>` : ''}`, 'atras');
     h += secao('hoje', 'Hoje', L.length, L.length ? diaHTML(L) + novoNoDia(hj) : (!at.length && nT === 0 && nF ? '<p class="cd-carimbo"><span>Caderninho em dia</span></p>' : `<p class="cd-vazio">${nF ? 'Fechou o de hoje.' : 'Nada pra hoje ainda.'} Anota aí em cima o que tem que sair hoje: o Corre junta com o teu Studio, o Hórus e as Vendas.</p>`) + (L.length ? '' : novoNoDia(hj)));
@@ -818,6 +824,8 @@
     repinta();
     if(abre) folha(abre[1]);
     else if(focoLe()) focoMostra();
+    /* v4.34: o piloto automático olha agora (de hora em hora no máximo), em vez de esperar o relógio */
+    if(C.piloto) C.piloto.talvez().then(repintar => { if(repintar && rota === C.rota) repinta(); }).catch(() => {});
   };
   /* (o menu e a Comanda: as tarefas de hoje e as que ficaram pra trás) */
   C.caderno.sinal = async () => {
@@ -827,6 +835,8 @@
     return { hoje: r.filter(t => t.dia === hj).length, atras: r.filter(t => t.dia < hj).length };
   };
   C.caderno.chegou = () => { if($('cd')) carrega(true).then(repinta); };
+  /* v4.34: o piloto lê a tarefa pra montar o botão que resolve */
+  C.caderno.tarefa = id => CD.t.find(x => x.id === id) || null;
   /* v4.33: o "Fala com o Corre" anota de qualquer página (devolve a tarefa; erro sobe pra quem chamou) */
   C.caderno.anota = async o => { await carrega(); if(CD.falta) throw { message: 'caderno', hint: 'caderno' }; return cria(o, null, true); };
 

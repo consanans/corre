@@ -172,7 +172,10 @@
     escudo: '<path d="M12 3l7.5 3v5.2c0 4.7-3.1 8.4-7.5 9.8-4.4-1.4-7.5-5.1-7.5-9.8V6z"/><path d="M8.8 12l2.2 2.2 4.2-4.4"/>',
     chuva: '<path d="M7 15a4 4 0 0 1 .5-8 5 5 0 0 1 9.5 1.5A3.5 3.5 0 0 1 17 15H7z"/><path d="M9 18l-1 2M13 18l-1 2M17 18l-1 2"/>',
     /* v4.31: o denunciar */
-    bandeira: '<path d="M5 21V4"/><path d="M5 4h11l-2 4 2 4H5"/>'
+    bandeira: '<path d="M5 21V4"/><path d="M5 4h11l-2 4 2 4H5"/>',
+    /* v4.34: o Atendente 24h (o fone com o balão) e o Piloto automático (o volante) */
+    atende: '<path d="M4 14v-2a8 8 0 0 1 16 0v2"/><rect x="3" y="13" width="4" height="6" rx="1.5"/><rect x="17" y="13" width="4" height="6" rx="1.5"/><path d="M19 19c0 1.5-1.5 2.5-4 2.5h-2"/>',
+    piloto: '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="2.2"/><path d="M3.6 10.5l6.3 1M14.1 11.5l6.3-1M12 14.2v6.3"/>'
   };
   const ico = (k, cls) => `<svg class="ic${cls ? ' ' + cls : ''}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${I[k] || ''}</svg>`;
   /* ---------- v3.89 · a tela cheia (o 3D da casa e dos lugares, e os jogos da cidade) ----------
@@ -350,7 +353,7 @@
        de conta) limpa tudo, e duas telas pedindo a mesma coisa ao mesmo tempo dividem o mesmo pedido */
     const CACHE = new Map(), CACHE_MS = 15e3; let geracao = 0;
     const LEITURA = new Set(['corre_vitrine', 'corre_enquetes', 'corre_verso_cidade', 'corre_seguidores_n', 'corre_seguidores_lista', 'corre_quem_faz', 'corre_pra_voce', 'corre_grana_publica', 'corre_em_alta', 'corre_mural_lista', 'corre_mural_candidatos',
-      'corre_grupo_ver', 'corre_grupos_lista', 'corre_grupos_de', 'corre_grupo_membros_lista']);
+      'corre_grupo_ver', 'corre_grupos_lista', 'corre_grupos_de', 'corre_grupo_membros_lista', 'corre_atende_info', 'corre_piloto_meu']);
     /* chamadas que não mudam nada que a tela leia (ou que precisam vir sempre fresquinhas): não usam nem limpam a memória */
     const AO_VIVO = new Set(['corre_feed_viu', 'corre_verso_sinal', 'corre_verso_entrar', 'corre_verso_quem', 'corre_handle_livre', 'corre_avisos_n', 'corre_avisos',
       'corre_msg_abrir', 'corre_msg_enviar', 'corre_msg_caixa', 'corre_msg_lista', 'corre_msg_lida', 'corre_msg_estado', 'corre_msg_apagar', 'corre_msg_badge', 'corre_grupo_papo', 'corre_meu_acesso', 'corre_bio_marca']);
@@ -525,8 +528,8 @@
   const HOUZI_EX = {"spec":{"v":1,"territorio":"editorial","amostra":1,"nome":"Grão Torto","tagline":"café de esquina","nicho":"cafe","cidade":"Londrina, PR","desde":"2021","pers":[0.35,0.55,0.55,0.35,0.2],"modo":"branding","campos":["cafe","rua"],"logo":{"arranjo":"wordmark","caixa":"titulo","track":0.005,"efeito":"","gesto":"troca","tagline":true,"corTexto":"texto","trocaPor":"ideia"},"simbolo":{"tipo":"ideia","icone":"xicara","ideia":"grao","estilo":"linha","seed":84829},"tipo":{"display":"lora-bolditalic","texto":"lora-regular"},"cores":{"p":"#2B2B2E","s":"#D8D4CB","a":"#B8913A","ink":"#161618","paper":"#F6F2EA","fundo":"paper","esquema":"receita","receita":"Grafite e Ouro"},"textura":"papel","aplic":["revista","sacola","cartao","instagram","copo","fachada"],"seed":273184829,"descr":"Café de bairro, torra própria"},"voz":{"conceito":"Grão Torto é o café que trata cada detalhe como página de revista.","manifesto":"Grão Torto acredita que pressa é inimiga do bom. Por isso cada café é pensado como uma página de revista: com respiro, com ritmo, com intenção. É pra quem acorda cedo que repara. Que lê a legenda inteira. Que volta pela segunda vez.","taglines":["Grão Torto. Pra ler devagar.","A pausa boa do dia, com tempo.","O detalhe é a história.","Feito com atenção em Londrina.","Menos, e melhor."],"e":["calma","precisa","elegante"],"nao_e":["barulhenta","apressada","exagerada"],"fala":["Pensado com calma, feito pra durar.","Nem tudo precisa ser pra ontem.","A pausa boa do dia, no detalhe."],"nao_fala":["IMPERDÍVEL!!!","Só hoje, corre!","O melhor do Brasil."],"bio":"café de esquina · Café em Londrina. Chama no direct.","wa":"Olá, que bom ter você aqui. Aqui é o Grão Torto. Me conta o que procura e eu te ajudo com calma.","ia":false}};
   function demoApi(){
     const KEY = 'corre-demo-v2', mem = {};
-    const T = ['corre_perfis', 'corre_portfolio', 'corre_destaques', 'corre_stories', 'corre_insta', 'corre_contas', 'corre_lancamentos', 'corre_rolo_salvos', 'corre_leads', 'corre_posts', 'corre_feed', 'corre_curtidas', 'corre_comentarios', 'corre_seguindo', 'corre_story_curtidas', 'corre_visitas', 'corre_estilo', 'corre_produtos', 'corre_mural', 'corre_mural_propostas', 'corre_vendas', 'corre_refs', 'corre_lead_fotos', 'corre_mural_chat', 'corre_verso_bloq', 'corre_votos', 'corre_salvos', 'corre_recomendacoes', 'corre_feed_vistas', 'corre_avisos_lidos', 'corre_conversas', 'corre_conversa_membros', 'corre_mensagens', 'corre_push', 'corre_push_pref', 'corre_grupos', 'corre_grupo_membros', 'corre_houzi_marcas', 'corre_correal', 'corre_correal_log', 'corre_tarefa_vez', 'corre_ig_contas', 'corre_houzi_privado', 'corre_assinaturas', 'corre_asaas_clientes', 'corre_skins', 'corre_bio_conta', 'corre_convites', 'corre_ativo_dia', 'corre_skin_pedidos', 'corre_aprovacoes', 'corre_caderno'];
-    const PRIV = ['corre_contas', 'corre_lancamentos', 'corre_rolo_salvos', 'corre_leads', 'corre_posts', 'corre_visitas', 'corre_estilo', 'corre_produtos', 'corre_mural', 'corre_mural_propostas', 'corre_vendas', 'corre_refs', 'corre_lead_fotos', 'corre_verso_bloq', 'corre_votos', 'corre_salvos', 'corre_feed_vistas', 'corre_avisos_lidos', 'corre_push', 'corre_push_pref', 'corre_correal', 'corre_correal_log', 'corre_tarefa_vez', 'corre_ig_contas', 'corre_houzi_privado', 'corre_assinaturas', 'corre_asaas_clientes', 'corre_skins', 'corre_bio_conta', 'corre_convites', 'corre_ativo_dia', 'corre_skin_pedidos', 'corre_aprovacoes', 'corre_caderno'];
+    const T = ['corre_perfis', 'corre_portfolio', 'corre_destaques', 'corre_stories', 'corre_insta', 'corre_contas', 'corre_lancamentos', 'corre_rolo_salvos', 'corre_leads', 'corre_posts', 'corre_feed', 'corre_curtidas', 'corre_comentarios', 'corre_seguindo', 'corre_story_curtidas', 'corre_visitas', 'corre_estilo', 'corre_produtos', 'corre_mural', 'corre_mural_propostas', 'corre_vendas', 'corre_refs', 'corre_lead_fotos', 'corre_mural_chat', 'corre_verso_bloq', 'corre_votos', 'corre_salvos', 'corre_recomendacoes', 'corre_feed_vistas', 'corre_avisos_lidos', 'corre_conversas', 'corre_conversa_membros', 'corre_mensagens', 'corre_push', 'corre_push_pref', 'corre_grupos', 'corre_grupo_membros', 'corre_houzi_marcas', 'corre_correal', 'corre_correal_log', 'corre_tarefa_vez', 'corre_ig_contas', 'corre_houzi_privado', 'corre_assinaturas', 'corre_asaas_clientes', 'corre_skins', 'corre_bio_conta', 'corre_convites', 'corre_ativo_dia', 'corre_skin_pedidos', 'corre_aprovacoes', 'corre_caderno', 'corre_atendente', 'corre_atende_conversas', 'corre_piloto', 'corre_piloto_log'];
+    const PRIV = ['corre_contas', 'corre_lancamentos', 'corre_rolo_salvos', 'corre_leads', 'corre_posts', 'corre_visitas', 'corre_estilo', 'corre_produtos', 'corre_mural', 'corre_mural_propostas', 'corre_vendas', 'corre_refs', 'corre_lead_fotos', 'corre_verso_bloq', 'corre_votos', 'corre_salvos', 'corre_feed_vistas', 'corre_avisos_lidos', 'corre_push', 'corre_push_pref', 'corre_correal', 'corre_correal_log', 'corre_tarefa_vez', 'corre_ig_contas', 'corre_houzi_privado', 'corre_assinaturas', 'corre_asaas_clientes', 'corre_skins', 'corre_bio_conta', 'corre_convites', 'corre_ativo_dia', 'corre_skin_pedidos', 'corre_aprovacoes', 'corre_caderno', 'corre_atendente', 'corre_atende_conversas', 'corre_piloto', 'corre_piloto_log'];
     const now = () => new Date().toISOString();
     const inH = h => new Date(Date.now() + h * 36e5).toISOString();
     /* o mesmo do corre_tarefa_valor (delta-v338 + delta-v3391: 3 tarefas por uniforme) */
@@ -648,6 +651,73 @@
     }
     function write(d){ mem.d = d; try{ localStorage.setItem(KEY, JSON.stringify(d)); }catch(e){ throw { name: 'QuotaExceededError', message: 'quota' }; } }
     const uidOf = d => d.user && d.user.id;
+    /* v4.34 · o Piloto automático do demo: as mesmas receitas do corre_piloto_de (delta-v434.sql) */
+    const pilotoLimpa = r => { r = r || {}; const g = (k, x) => (r[k] || {})[x]; const dias = (v, a, b, p) => /^\d{1,2}$/.test(String(v == null ? '' : v)) ? Math.min(b, Math.max(a, +v)) : p;
+      return { esfria: { on: g('esfria', 'on') !== false, dias: dias(g('esfria', 'dias'), 2, 30, 5) }, cobra: { on: g('cobra', 'on') !== false }, studio: { on: g('studio', 'on') !== false, dias: dias(g('studio', 'dias'), 3, 14, 7) }, aprovado: { on: g('aprovado', 'on') !== false } }; };
+    function pilotoDe(d, eu){
+      const p = d.t.corre_piloto.find(x => x.dono === eu && x.ligado); if(!p) return [];
+      const cfg = pilotoLimpa(p.receitas), hj = hojeBR(), out = [], dt = s => Date.parse(s + 'T12:00:00-03:00'), mais = (dia, n) => hojeBR(new Date(dt(dia) + n * 864e5));
+      const poe = (receita, ref, titulo, nota, dia, prio, liga, esperaDias) => {
+        if(d.t.corre_caderno.some(t => t.dono === eu && t.piloto === receita && !t.feito && t.liga && t.liga.ref === ref)) return;
+        if(d.t.corre_piloto_log.some(g => g.dono === eu && g.receita === receita && g.ref === ref && Date.now() - Date.parse(g.em) < esperaDias * 864e5)) return;
+        if(d.t.corre_caderno.filter(t => t.dono === eu && t.piloto && !t.feito).length >= 25) return;
+        const id = rid();
+        d.t.corre_caderno.push({ id, dono: eu, titulo: titulo.slice(0, 300), nota, lista: '', dia, hora: null, prio, repete: '', cada: 1, avisa: true, feito: false, feito_em: null, pai: null, ordem: Date.now(), endereco: '', anexos: [], feitas: [], piloto: receita, liga: Object.assign({}, liga, { ref }), created_at: now(), updated_at: now() });
+        d.t.corre_piloto_log.push({ id: rid(), dono: eu, receita, ref, tarefa: id, titulo, em: now() }); out.push({ receita, titulo, tarefa: id });
+      };
+      if(cfg.esfria.on){
+        const ult = l => Math.max(Date.parse(l.updated_at || l.created_at || 0) || 0, ...((l.hist || []).map(x => Date.parse(x.t) || 0)));
+        d.t.corre_leads.filter(l => l.dono === eu && ['contato', 'interesse', 'link'].includes(l.st) && (!l.prox || l.prox <= hj) && ult(l) < Date.now() - cfg.esfria.dias * 864e5)
+          .sort((x, y) => (y.st === 'link') - (x.st === 'link') || (Number(y.valor) || 0) - (Number(x.valor) || 0) || ult(x) - ult(y)).slice(0, 5).forEach(l => {
+            const q = Math.max(cfg.esfria.dias, Math.floor((Date.now() - ult(l)) / 864e5)), et = l.st === 'contato' ? 'contatado, sem resposta' : l.st === 'interesse' ? 'interessado, parado' : 'proposta parada';
+            poe('esfria', l.id, `Retomar ${String(l.nome || 'o cliente').slice(0, 60)} (${et} há ${q} dias)`, 'O piloto viu que esse cliente esfriou. Uma mensagem curta agora vale mais que a perfeita depois.', hj, 2, { t: 'lead', id: l.id, wa: l.wa || l.fixo || '' }, cfg.esfria.dias);
+          });
+      }
+      if(cfg.cobra.on) d.t.corre_vendas.filter(v => v.dono === eu && v.st === 'fechado' && !v.pago_em && v.vence && v.vence <= hj && v.vence >= mais(hj, -120)).sort((x, y) => String(x.vence).localeCompare(String(y.vence))).slice(0, 5).forEach(v => {
+        poe('cobra', v.id, `Cobrar ${String(v.cliente || 'o cliente').slice(0, 60)} (${v.vence === hj ? 'vence hoje' : 'venceu ' + v.vence.slice(8, 10) + '/' + v.vence.slice(5, 7)})`, 'O piloto achou essa cobrança em aberto. Manda o lembrete com o Pix ou o link do orçamento.', hj, v.vence < hj ? 1 : 2, { t: 'venda', id: v.id, wa: v.whats || '' }, 3);
+      });
+      if(cfg.studio.on) d.t.corre_portfolio.filter(m => m.dono === eu && String(m.rede || '').trim() && !d.t.corre_posts.some(x => x.marca_id === m.id && x.data >= hj && x.data <= mais(hj, cfg.studio.dias) && x.status !== 'ideia')).slice(0, 3).forEach(m => {
+        poe('studio', m.id, `Programar os posts da ${String(m.marca || 'marca').slice(0, 60)} (nada nos próximos ${cfg.studio.dias} dias)`, 'O piloto viu a agenda da marca vazia. O Mês com IA do Studio enche a semana numa tacada.', hj, 2, { t: 'marca', id: m.id }, 7);
+      });
+      if(cfg.aprovado.on) d.t.corre_vendas.filter(v => v.dono === eu && v.aprovado_em && Date.now() - Date.parse(v.aprovado_em) < 3 * 864e5 && ['fechado', 'pago'].includes(v.st)).slice(0, 5).forEach(v => {
+        const nm = String(v.cliente || 'o cliente').slice(0, 60), it = String(((v.itens || [])[0] || {}).n || '').trim();
+        poe('aprovado', v.id + ':comeca', `Começar ${it ? it.slice(0, 60) + ' de ' : 'o trabalho de '}${nm}`, 'Aprovou o orçamento pelo link. Combina os detalhes e o começo com o cliente.', hj, 2, { t: 'venda', id: v.id, wa: v.whats || '' }, 3650);
+        if(v.entrega && v.entrega >= hj) poe('aprovado', v.id + ':entrega', `Entregar pra ${nm}`, 'O dia da entrega que tá no orçamento.', v.entrega, 2, { t: 'venda', id: v.id, wa: v.whats || '' }, 3650);
+      });
+      p.rodou_em = now();
+      return out;
+    }
+    /* v4.34 · o Atendente do demo: a conversa (com a chave), o limite de 30 por conversa e o cliente na Entrada do Hórus */
+    function demoAtende(b){
+      const d = read();
+      if(b.acao === 'teste'){
+        const eu = uidOf(d); if(!eu) throw { code: 'login', status: 401 };
+        const me = d.t.corre_perfis.find(x => x.id === eu) || {}, ms = (b.msgs || []).slice(-16);
+        const r = C.atende.demo(b.ficha, String(me.nome || '').split(' ')[0], ms);
+        return { resposta: r.resposta, contato: !!r.whats, nome: r.nome || '', whats: r.whats || '', resumo: r.resumo || '', teste: true };
+      }
+      const h = String(b.h || '').replace(/^@/, '').toLowerCase(), p = d.t.corre_perfis.find(x => x.handle === h && x.visibilidade === 'publico');
+      const at = p && d.t.corre_atendente.find(x => x.dono === p.id);
+      if(!p || !at || !at.ligado) throw { code: 'desligado', status: 404, whats: (p && p.whats_publico) || '' };
+      const msg = String(b.msg || '').trim().slice(0, 500); if(!msg) throw { code: 'msg', status: 400 };
+      let c = b.conversa && /^[0-9a-f]{32}$/.test(String(b.chave || '')) ? d.t.corre_atende_conversas.find(x => x.id === b.conversa && x.dono === p.id && x.chave === b.chave && !x.limpa) : null, nova = '';
+      if(c && c.n >= 30) throw { code: 'limite', status: 429, motivo: 'conversa', resposta: 'Essa conversa ficou comprida. Deixa teu nome e WhatsApp no pedido de orçamento que a pessoa te chama.', whats: p.whats_publico || '' };
+      if(!c){ nova = Array.from({ length: 32 }, () => '0123456789abcdef'[Math.floor(Math.random() * 16)]).join(''); c = { id: rid(), dono: p.id, chave: nova, origem: b.origem === 'orcamento' ? 'orcamento' : 'bio', msgs: [], n: 0, nome: '', whats: '', resumo: '', lead_id: null, visto: false, limpa: false, created_at: now(), updated_at: now() }; d.t.corre_atende_conversas.push(c); }
+      c.msgs.push({ q: 'c', v: msg, t: now() }); c.n++; c.visto = false; c.updated_at = now();
+      const r = C.atende.demo(at.ficha, String(p.nome || '').split(' ')[0], c.msgs);
+      c.msgs.push({ q: 'a', v: r.resposta, t: now() }); c.msgs = c.msgs.slice(-60);
+      let w = String(r.whats || ''); if(w.length > 11 && w.startsWith('55')) w = w.slice(2);
+      let lead = false;
+      if(!c.lead_id && (w.length === 10 || w.length === 11) && String(r.nome || '').length >= 2){
+        const reg = { t: now(), k: 'res', v: ('Atendente 24h: ' + (r.resumo || 'deixou o WhatsApp pra você chamar.')).slice(0, 300) };
+        const ja = d.t.corre_leads.find(l => l.dono === p.id && (l.wa === w || l.fixo === w));
+        if(ja){ ja.st = ['fechado', 'link'].includes(ja.st) ? ja.st : 'interesse'; ja.prox = hojeBR(); ja.hist = [reg].concat(ja.hist || []).slice(0, 40); c.lead_id = ja.id; }
+        else { const id = rid(); d.t.corre_leads.push({ id, dono: p.id, nome: r.nome, wa: w.length === 11 ? w : '', fixo: w.length === 10 ? w : '', tel: w, obs: `Pelo Atendente 24h (${r.nome}): ${r.resumo || ''}`.slice(0, 1000), st: 'interesse', prox: hojeBR(), fonte: 'atende', potencial: 1, hist: [reg], created_at: now(), updated_at: now() }); c.lead_id = id; }
+        Object.assign(c, { nome: r.nome, whats: w, resumo: r.resumo || '' }); lead = true;
+      }
+      write(d);
+      return { conversa: c.id, chave: nova || undefined, resposta: r.resposta, contato: lead, n: c.n };
+    }
     /* grupos (v3.36): quem tá dentro, quem enxerga e quem modera (as mesmas regras do delta-v336.sql) */
     const gMembro = (d, g, u) => !!u && d.t.corre_grupo_membros.find(m => m.grupo === g && m.membro === u && m.estado === 'ativo');
     const gVe = (d, g, u) => { if(!g) return true; const x = d.t.corre_grupos.find(y => y.id === g); return !!x && (!x.fechado || !!gMembro(d, g, u)); };
@@ -1479,6 +1549,7 @@
         if(t === 'corre_destaques'){ const ids = d.t.corre_destaques.filter(kill).map(c => c.id); d.t.corre_stories.forEach(s => { if(ids.includes(s.destaque_id)) s.destaque_id = null; }); }
         d.t[t] = d.t[t].filter(r => !kill(r)); write(d);
       },
+      /* v4.34: o Piloto automático do demo (as mesmas quatro receitas e o mesmo tempo de espera do delta-v434.sql) */
       async rpc(n, a){
         const d = read();
         /* ---- v3.66: a loja de skins (mesma conta do delta-v366.sql: o preço é o da vitrine, o cadeado é o da carteira,
@@ -1691,6 +1762,48 @@
           const total = ls.reduce((s, l) => s + Number(l.valor), 0), marcas = nada ? null : d.t.corre_portfolio.filter(m => m.dono === p.id && m.publico !== false).length;
           const faixa = total <= 0 ? null : total < 2000 ? 'até R$ 2 mil' : total < 5000 ? 'R$ 2 a 5 mil' : total < 10000 ? 'R$ 5 a 10 mil' : total < 20000 ? 'R$ 10 a 20 mil' : total < 50000 ? 'R$ 20 a 50 mil' : 'mais de R$ 50 mil';
           return { mes: ini, modo: p.grana_mostra, marcas, faixa: nada || p.grana_mostra === 'bolinhas' ? null : faixa, valor: p.grana_mostra === 'valor' ? total : null, mascara: p.grana_mostra === 'bolinhas' && total > 0 ? bolas(total) : null, meta: metaDe(tudo) };
+        }
+        /* ---- v4.34: o Atendente 24h e o Piloto automático, como o banco (delta-v434.sql) ---- */
+        if(n === 'corre_atende_info'){
+          const h = String(a.p_h || '').replace(/^@/, '').toLowerCase().trim(), p = d.t.corre_perfis.find(x => x.handle === h && x.visibilidade === 'publico');
+          const at = p && d.t.corre_atendente.find(x => x.dono === p.id && x.ligado);
+          return at ? { on: true, nome: String(p.nome || '').trim().split(/\s+/)[0], ola: String((at.ficha || {}).ola || '').slice(0, 200) } : { on: false };
+        }
+        if(n === 'corre_atende_salva'){
+          const eu = uidOf(d); if(!eu) throw { message: 'sem perfil', code: '42501', hint: 'perfil' };
+          const f = a.p_ficha || {}, cut = (k, m) => String(f[k] || '').trim().slice(0, m);
+          const fc = { sobre: cut('sobre', 800), servicos: cut('servicos', 1500), precos: cut('precos', 1000), como: cut('como', 800), onde: cut('onde', 300), horario: cut('horario', 300), nunca: cut('nunca', 600), ola: cut('ola', 200),
+            tom: ['perto', 'direto', 'formal'].includes(f.tom) ? f.tom : 'perto', vitrine: f.vitrine !== false,
+            faq: (Array.isArray(f.faq) ? f.faq : []).filter(x => x && String(x.p || '').trim() && String(x.r || '').trim()).slice(0, 12).map(x => ({ p: String(x.p).trim().slice(0, 200), r: String(x.r).trim().slice(0, 600) })) };
+          if(a.p_ligado && !fc.sobre && !fc.servicos) throw { message: 'ficha', hint: 'ficha' };
+          const ja = d.t.corre_atendente.find(x => x.dono === eu);
+          if(ja) Object.assign(ja, { ligado: !!a.p_ligado, ficha: fc, updated_at: now() }); else d.t.corre_atendente.push({ dono: eu, ligado: !!a.p_ligado, ficha: fc, created_at: now(), updated_at: now() });
+          write(d); return { ligado: !!a.p_ligado, ficha: fc };
+        }
+        if(n === 'corre_atende_visto' || n === 'corre_atende_limpa'){
+          const eu = uidOf(d), c = d.t.corre_atende_conversas.find(x => x.id === a.p_id && x.dono === eu); if(!c) return null;
+          if(n === 'corre_atende_limpa') Object.assign(c, { msgs: [], nome: '', whats: '', resumo: '', limpa: true, visto: true, updated_at: now() }); else c.visto = true;
+          write(d); return true;
+        }
+        if(n === 'corre_piloto_salva'){
+          const eu = uidOf(d); if(!eu) throw { message: 'sem perfil', code: '42501', hint: 'perfil' };
+          const r = pilotoLimpa(a.p_receitas), ja = d.t.corre_piloto.find(x => x.dono === eu);
+          if(ja) Object.assign(ja, { ligado: !!a.p_ligado, receitas: r, updated_at: now() }); else d.t.corre_piloto.push({ dono: eu, ligado: !!a.p_ligado, receitas: r, rodou_em: null });
+          write(d); return { ligado: !!a.p_ligado, receitas: r };
+        }
+        if(n === 'corre_piloto_meu'){
+          const eu = uidOf(d); if(!eu) return null;
+          const p = d.t.corre_piloto.find(x => x.dono === eu), mine = d.t.corre_caderno.filter(t => t.dono === eu && t.piloto);
+          return { ligado: !!(p && p.ligado), existe: !!p, receitas: pilotoLimpa(p && p.receitas), rodou_em: (p && p.rodou_em) || null, abertas: mine.filter(t => !t.feito).length,
+            feitas: mine.filter(t => t.feito && Date.parse(t.feito_em || 0) > Date.now() - 30 * 864e5).length,
+            log: d.t.corre_piloto_log.filter(g => g.dono === eu && Date.parse(g.em) > Date.now() - 30 * 864e5).sort((x, y) => String(y.em).localeCompare(String(x.em))).slice(0, 30).map(g => ({ receita: g.receita, titulo: g.titulo, tarefa: g.tarefa, em: g.em })) };
+        }
+        if(n === 'corre_piloto_ja'){
+          const eu = uidOf(d); if(!eu) throw { message: 'login', code: '42501', hint: 'login' };
+          const p = d.t.corre_piloto.find(x => x.dono === eu);
+          if(!p || !p.ligado) return { ok: false, motivo: 'desligado', feitas: [] };
+          if(p.rodou_em && Date.now() - Date.parse(p.rodou_em) < 2 * 60e3) return { ok: true, cedo: true, feitas: [] };
+          const feitas = pilotoDe(d, eu); write(d); return { ok: true, feitas };
         }
         if(n === 'corre_pedir_orcamento'){
           const h = String(a.h || '').replace(/^@/, '').toLowerCase(), p = d.t.corre_perfis.find(x => x.handle === h);
@@ -1979,6 +2092,8 @@
         if(name === 'imagem' && b && (b.acao === 'direcao' || b.acao === 'maquina') && C.houzi && C.houzi.demoIA) return C.houzi.demoIA(b);
         /* v4.33: o Fala com o Corre no demo (a "IA" de mentira mora no fala.js) */
         if(name === 'imagem' && b && b.acao === 'fala' && C.fala && C.fala.demo){ await new Promise(r => setTimeout(r, 450)); return C.fala.demo(b.texto); }
+        /* v4.34: o Atendente 24h no demo (a "IA" de mentira mora no atendente.js; as regras do banco, aqui) */
+        if(name === 'atende' && C.atende){ await new Promise(r => setTimeout(r, 380)); return demoAtende(b || {}); }
         if(name !== 'pagamento') throw { code: 'nofn' };
         const d = read(), u = uidOf(d), B = b || {}, prod = String(B.produto || '');
         if(!u) throw { code: 'login', status: 401 };
