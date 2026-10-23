@@ -40,6 +40,8 @@
     if(!r || !r.ok) return r;
     if(r.saldo != null && C.correalSet) C.correalSet(r.saldo, C.correal && C.correal.hoje);
     mostra(r, tipo);
+    /* v4.30: a tarefa feita alimenta o bicho do Caderninho (o banco devolve quantas já contam) */
+    if(tipo === 'caderno' && C.bicho) C.bicho.ganhou(r);
     return r;
   }
 

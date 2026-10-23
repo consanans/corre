@@ -144,6 +144,11 @@ testa teste425.sql 3
 delta delta-v429.sql 'delta v4.29 ok'
 delta delta-v429.sql 'delta v4.29 ok'
 testa teste429.sql 17
+# v4.30: o bicho do Caderninho, o escudo da sequência e o bom dia (a semente põe as colunas do retorno e da cobrança)
+$P -f "$AQUI/semente430.sql"
+delta delta-v430.sql 'delta v4.30 ok'
+delta delta-v430.sql 'delta v4.30 ok'
+testa teste430.sql 20
 . "$AQUI/virada343.sh"
 if grep -q 'FALHOU\|ERROR' $D/saida; then echo "deu FALHOU ou erro (acima)"; exit 1; fi
 echo "tudo ok: $(grep -c '^ok:' $D/saida) checagens"

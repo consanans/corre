@@ -5190,6 +5190,7 @@
     const agora = Date.now(), mostra = quemAparece(agora), gente = [...V.remotos.values()].filter(r => mostra.has(r.sid) && vis(r.x, r.y, 60));
     gente.forEach(r => L.push({ y: r.y + (r.sit ? 1 : 0), f: () => boneco(ctx, r, t, false) }));
     if(V.eu){ L.push({ y: V.eu.y + (V.eu.sit ? 1 : 0), f: () => boneco(ctx, V.eu, t, true) }); luz(V.eu.x, V.eu.y - 16, 60, .5); }
+    gente.forEach(r => { if(!r.npc) bichoNaFila(L, ctx, r, t, false); }); if(V.eu) bichoNaFila(L, ctx, V.eu, t, true);
     /* v4.0: o show da Concha (o MC e a plateia) e a luz dos fogos */
     showNaFila(L, ctx, t, vis); fogosLuz(t);
     if(V.eu && V.sk && V.sk.grind) L.push({ y: V.eu.y + 2, f: () => faiscas(ctx, V.eu.x, V.eu.y, t) });
@@ -5320,6 +5321,34 @@
     const item = o.item && (eu ? o.item.ate > Date.now() && o.item.k : o.item) || null;
     if(o.barco){ barquinho(ctx, o, t, eu, item); return; }
     skin(ctx, o.av, ix, iy, o.sit ? 'baixo' : o.dir, o.mov && !o.sit ? o.passo : null, 1, o.sit ? 'sentado' : '', { item, pesca: !!(o.pesca && o.sit), vc: o.sit ? '' : veiculoDe(o), vcor: o === V.eu && veicMissao() ? V.tarefa.vcor : o.av && o.av.vcor, pulo: alturaPulo(o) * PULO_PX });
+  }
+  /* ---------- v4.30 · o bicho do Caderninho anda junto ----------
+     Quem já aprendeu o Passeio (15 tarefas feitas) leva o bicho do lado, na forma em que ele tá: o teu vem do Caderninho
+     (na hora em que ele evolui), o dos outros vem do banco quando a cidade abre (corre_bichos_cidade: só a espécie e a
+     forma). Ele segue o dono com um atraso, pula andando e olha pra ele quando para. O desenho é o do Caderninho virado
+     pixel (C.bichoArte.pixel) */
+  const BICHO_ALT = [0, 15, 19, 24, 29];
+  function bichoDe(o, eu){
+    if(!C.bichoArte || !C.bicho) return null;
+    if(eu) return C.bicho.passeio();
+    const b = o.uid && V.bichos && V.bichos[o.uid];
+    return Array.isArray(b) && C.bicho.ESP[b[0]] ? [b[0], Math.max(2, Math.min(4, Number(b[1]) || 2))] : null;
+  }
+  function bichoNaFila(L, ctx, o, t, eu){
+    const b = bichoDe(o, eu); if(!b || o.barco || emVoo(o)) return;
+    const p = o.pet || (o.pet = { x: o.x, y: o.y, lado: 1, t, mov: 0 }), u = 1 / V.k;
+    const dt = Math.min(.1, Math.max(0, t - p.t)); p.t = t;
+    const lado = o.dir === 'esq' ? 1 : o.dir === 'dir' ? -1 : (o.x >= p.x ? 1 : -1);
+    const tx = o.x + lado * 21 * u, ty = o.y + 3 * u, dx = tx - p.x, dy = ty - p.y, d = Math.hypot(dx, dy);
+    if(d > 400){ p.x = tx; p.y = ty; } else { const k = Math.min(1, dt * 5.5); p.x += dx * k; p.y += dy * k; }
+    p.mov = d > 3 * u ? 1 : 0;
+    p.lado = p.mov && Math.abs(dx) > 1.5 * u ? (dx > 0 ? 1 : -1) : (o.x >= p.x ? 1 : -1);
+    L.push({ y: p.y, f: () => {
+      const alt = BICHO_ALT[b[1]], cv = C.bichoArte.pixel(b[0], b[1], p.mov ? Math.floor(t * 6) % 2 : 0, p.lado, alt);
+      const pulo = p.mov ? Math.abs(Math.sin(t * 9)) * 2 * u : 0;
+      ctx.fillStyle = 'rgba(15,18,24,.22)'; ctx.fillRect(p.x - alt * .35 * u, p.y - u, alt * .7 * u, 2 * u);
+      ctx.drawImage(cv, p.x - cv.width / 2 * u, p.y - (cv.height - 1) * u - pulo, cv.width * u, cv.height * u);
+    } });
   }
   /* ---------- v3.40 · o pulo, o veículo de cada um ---------- */
   const PULO_MS = 480, PULO_PX = 11;
@@ -7458,6 +7487,8 @@
     V.cid = montaCidade(lista); V.sol = solidos(); V.solG = gradeSol(V.sol); V.portas = portas(); V.carros = montaCarros(V.cid); V.bolas = novasBolas(V.cid);
     /* v4.29: os dias seguidos de trampo de cada casa (só o número), pra placa da frente */
     V.placas = {}; if(C.trampo) C.trampo.placas().then(o => { V.placas = o || {}; }).catch(() => {});
+    /* v4.30: os bichos do Caderninho de quem já tem o Passeio (o teu vem do Caderninho, na hora) */
+    V.bichos = {}; if(C.bicho){ C.bicho.carrega(); C.bicho.cidade().then(o => { V.bichos = o || {}; }).catch(() => {}); }
     const st = C.$('cvr-stage');
     st.innerHTML = `<canvas id="cvr-cv" aria-label="A cidade do Correverso. Anda com as setas ou W A S D, ou toca onde quer ir."></canvas>
       <div class="cvr-top"><button type="button" class="cvr-sair" data-act="cvr-sai-cidade" aria-label="Sair do Correverso">${ico('prev')}<span class="cvr-sair-l">Sair do Correverso</span><span class="cvr-sair-c" aria-hidden="true">Sair</span></button><span class="cvr-sair-dica" id="cvr-sair-dica" role="status" hidden></span><span class="cvr-tt">${ico('verso')} Correverso</span><span class="cvr-on" id="cvr-on"></span><button type="button" class="cvr-live" id="cvr-live" data-act="cvr-gente" hidden></button><span class="cvr-zona" id="cvr-zona" hidden></span><button type="button" class="cvr-evento" id="cvr-evento" data-act="cvr-evento" hidden></button><button type="button" class="cvr-tarefa" id="cvr-tarefa" data-act="cvr-trampo" hidden></button><button type="button" class="cvr-correal" id="cvr-correal" data-act="carteira" title="Carteira de correal" aria-label="Carteira de correal">${ico('correal')}<b class="num" data-correal-saldo>${C.correal.saldo == null ? '…' : C.correalFmt(C.correal.saldo)}</b></button><button type="button" class="cvr-som" id="cvr-som" data-act="cvr-som" aria-pressed="false" hidden></button><button type="button" class="cvr-som cvr-tela" id="cvr-tela" data-act="cvr-tela" aria-pressed="false"></button></div>
@@ -8790,7 +8821,7 @@
     }
   });
 
-  C.verso = { miniVeiculo, trocaVeiculo, veiculoDe, alturaPulo, PULO_MS, SKINS_LOJA,
+  C.verso = { miniVeiculo, trocaVeiculo, veiculoDe, alturaPulo, PULO_MS, SKINS_LOJA, bichoDoEu: () => V.eu ? bichoDe(V.eu, true) : null, petDoEu: () => V.eu && V.eu.pet ? Object.assign({}, V.eu.pet) : null, bichosCidade: () => Object.assign({}, V.bichos || {}),
     /* v4.03 · o Lambe-Lambe do Noel (pros testes) */
     /* v4.11 · pros testes: o GTA (as ruas, a polícia, o empurrão e as missões) */
     grafo: () => { const G = grafo(); return { nos: G.N.length, ligados: G.N.filter(q => G.viz[q.id].length).length, arestas: G.viz.reduce((a, v) => a + v.length, 0) / 2, N: G.N.map(q => ({ id: q.id, x: q.x, y: q.y, viz: G.viz[q.id].slice() })) }; },

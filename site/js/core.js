@@ -156,6 +156,7 @@
     qr: '<rect x="4" y="4" width="6" height="6"/><rect x="14" y="4" width="6" height="6"/><rect x="4" y="14" width="6" height="6"/><path d="M14 14h2v2h-2zM18 18h2v2h-2zM14 18v2M18 14h2"/>',
     presente: '<rect x="4" y="9" width="16" height="11" rx="1"/><path d="M3 9h18M12 9v11M12 9c-1.5-3-5-4-5-1.5S10 9 12 9zM12 9c1.5-3 5-4 5-1.5S14 9 12 9z"/>',
     lua: '<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/>',
+    escudo: '<path d="M12 3l7.5 3v5.2c0 4.7-3.1 8.4-7.5 9.8-4.4-1.4-7.5-5.1-7.5-9.8V6z"/><path d="M8.8 12l2.2 2.2 4.2-4.4"/>',
     chuva: '<path d="M7 15a4 4 0 0 1 .5-8 5 5 0 0 1 9.5 1.5A3.5 3.5 0 0 1 17 15H7z"/><path d="M9 18l-1 2M13 18l-1 2M17 18l-1 2"/>'
   };
   const ico = (k, cls) => `<svg class="ic${cls ? ' ' + cls : ''}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${I[k] || ''}</svg>`;
@@ -663,6 +664,13 @@
     const PL_DONOS = ['jeydiaz', 'simonini.lucas0'];
     const plDono = (d, u) => { const p = d.t.corre_perfis.find(x => x.id === u); return plFund(d, u) || !!(p && PL_DONOS.includes(p.handle)); };
     const plMais = (dia, n) => new Date(Date.parse(dia + 'T12:00:00Z') + n * 864e5).toISOString().slice(0, 10);
+    /* v4.30: o bicho do demo, com as contas do delta-v430.sql */
+    const BICHO_FORMAS = { gralha: ['Ovo', 'Pinhãozinho', 'Gralhinha', 'Gralha Braba', 'Imperatriz Araucária'], guara: ['Ovo', 'Brasinha', 'Guarazinho', 'Guará Corredor', 'Guará Lua Cheia'], coruja: ['Ovo', 'Pipoquinha', 'Buraqueira', 'Coruja Vigia', 'Oráculo do Campo'] };
+    const bichoEtapa = xp => xp >= 150000 ? 4 : xp >= 50000 ? 3 : xp >= 15000 ? 2 : xp >= 3000 ? 1 : 0;
+    const bichoXP = (d, dono) => { const b = (d.t.corre_bicho || []).find(x => x.dono === dono); if(!b) return null;
+      return b.xp_antes + (d.t.corre_trampo || []).filter(t => t.dono === dono && t.tipo === 'caderno' && t.em && t.em >= b.nasceu).length; };
+    const bichoEscudos = (d, dono, dia) => { const b = (d.t.corre_bicho || []).find(x => x.dono === dono); if(!b) return 0; const xp = bichoXP(d, dono);
+      return Math.max(0, (xp >= 150000 ? 2 : xp >= 50000 ? 1 : 0) - b.escudos.filter(e => e > plMais(dia, -7) && e <= dia).length); };
     const plAcesso = (d, u, prod) => plDono(d, u) || d.t.corre_assinaturas.some(a => a.dono === u && a.produto === prod
       && ((a.teste_ate && Date.parse(a.teste_ate) > Date.now()) || (a.pago_ate && plMais(a.pago_ate, 3) >= hojeBR())));
     const plRedes = (d, u) => {
@@ -1466,6 +1474,34 @@
            centavos. A tarefa paga 3 centavos por ponto, cortado no teto de 1,00 por dia; o gasto tira o preço inteiro
            ou não tira nada. As contas aqui dentro são em centavos inteiros e só viram número com vírgula na saída,
            igual ao numeric do banco (nada de 0,30000000000000004 guardado na carteira) ---- */
+        /* v4.30 (delta-v430.sql): o bicho do Caderninho. Conta as tarefas do trampo desde que nasceu (sem teto por dia),
+           mais o adianto das de antes (até 14.999) */
+        if(/^corre_bichos?_/.test(n)){
+          const eu = uidOf(d); if(!eu) throw { message: 'login', code: '42501' };
+          d.t.corre_bicho = d.t.corre_bicho || []; d.t.corre_trampo = d.t.corre_trampo || [];
+          const hj = hojeBR(), b = d.t.corre_bicho.find(x => x.dono === eu);
+          const meu = () => { const x = d.t.corre_bicho.find(y => y.dono === eu); if(!x) return { tem: false }; const xp = bichoXP(d, eu), e = bichoEtapa(xp);
+            return { tem: true, especie: x.especie, apelido: x.apelido || '', xp, etapa: e, nome: BICHO_FORMAS[x.especie][e], nasceu: x.nasceu, antes: x.xp_antes,
+              hoje: d.t.corre_trampo.filter(t => t.dono === eu && t.tipo === 'caderno' && t.dia === hj && t.em && t.em >= x.nasceu).length, escudos: bichoEscudos(d, eu, hj), cobriu: x.escudos.slice(-10) }; };
+          /* os pares (tarefa, dia) feitos: as feitas, os dias da que repete e o trampo */
+          const pares = () => { const S = new Set(); (d.t.corre_caderno || []).filter(c => c.dono === eu).forEach(c => { if(c.feito && c.feito_em) S.add(c.id + '|' + hojeBR(new Date(c.feito_em))); (c.feitas || []).forEach(f => S.add(c.id + '|' + f)); });
+            d.t.corre_trampo.filter(t => t.dono === eu && t.tipo === 'caderno').forEach(t => S.add(t.ref + '|' + t.dia)); return [...S].map(x => x.split('|')[1]); };
+          if(n === 'corre_bicho_meu') return meu();
+          if(n === 'corre_bicho_escolhe'){
+            if(!BICHO_FORMAS[a.p_especie]) return { tem: false, motivo: 'especie' };
+            if(!b){ d.t.corre_bicho.push({ dono: eu, especie: a.p_especie, apelido: '', xp_antes: Math.min(14999, pares().length), nasceu: now(), escudos: [] }); write(d); }
+            return meu();
+          }
+          if(n === 'corre_bicho_apelido'){ if(b){ b.apelido = String(a.p_nome || '').replace(/[\u0000-\u001f<>]/g, '').trim().slice(0, 20).trim(); write(d); } return meu(); }
+          if(n === 'corre_bicho_dias'){ const o = {}, de = plMais(hj, -(Number(a.p_dias) || 182)); pares().filter(x => x > de && x <= hj).forEach(x => { o[x] = (o[x] || 0) + 1; }); return o; }
+          if(n === 'corre_bichos_cidade'){
+            const o = {}; d.t.corre_bicho.forEach(x => { const xp = bichoXP(d, x.dono); if(xp >= 15000) o[x.dono] = [x.especie, bichoEtapa(xp)]; });
+            /* na demonstração, a vizinhança também tem bicho (sempre os mesmos) */
+            d.t.corre_perfis.filter(p => p.id !== eu).forEach((p, i) => { if(i % 2 === 0) o[p.id] = [['gralha', 2], ['guara', 3], ['coruja', 4], ['guara', 2], ['coruja', 3], ['gralha', 4]][(i / 2) % 6]; });
+            return o;
+          }
+          return null;
+        }
         if(/^corre_(correal|tarefa|trampo)_/.test(n)){
           const eu = uidOf(d); if(!eu) throw { message: 'login', code: '42501' };
           const real = c => c / 100, PONTO = centDe(CORREAL_PONTO), TETO = centDe(CORREAL_TETO);
@@ -1478,9 +1514,12 @@
             d.t.corre_trampo = d.t.corre_trampo || []; d.t.corre_trampo_seq = d.t.corre_trampo_seq || [];
             const hj = hojeBR(), ini = Date.parse(hj + 'T03:00:00Z'), ontem = plMais(hj, -1), seqDe = id => d.t.corre_trampo_seq.find(x => x.dono === id);
             const hojeT = () => d.t.corre_trampo.filter(x => x.dono === eu && x.dia === hj).reduce((s, x) => s + centDe(x.valor), 0);
-            if(n === 'corre_trampo_meu'){ const s = seqDe(eu); return { seq: s && s.ult >= ontem ? s.seq : 0, hoje_conta: !!(s && s.ult === hj), melhor: s ? s.melhor : 0, hoje: real(hojeT()), teto: .2, valor: .02 }; }
+            /* v4.30: o escudo do bicho cobre os dias sem trampo (um por semana; dois na lenda) */
+            const vao = s => s ? Math.round((Date.parse(hj + 'T12:00:00Z') - Date.parse(s.ult + 'T12:00:00Z')) / 864e5) - 1 : 0;
+            const vale = (s, id) => !!s && (vao(s) <= 0 || vao(s) <= bichoEscudos(d, id, hj));
+            if(n === 'corre_trampo_meu'){ const s = seqDe(eu); return { seq: vale(s, eu) ? s.seq : 0, protegida: !!s && vao(s) > 0 && vale(s, eu), escudos: bichoEscudos(d, eu, hj), hoje_conta: !!(s && s.ult === hj), melhor: s ? s.melhor : 0, hoje: real(hojeT()), teto: .2, valor: .02 }; }
             if(n === 'corre_trampo_placas'){
-              const o = {}; d.t.corre_trampo_seq.filter(s => s.seq >= 2 && s.ult >= ontem).forEach(s => { o[s.dono] = s.seq; });
+              const o = {}; d.t.corre_trampo_seq.filter(s => s.seq >= 2 && vale(s, s.dono)).forEach(s => { o[s.dono] = s.seq; });
               /* na demonstração, a vizinhança também trabalha: umas casas com placa (sempre as mesmas) */
               d.t.corre_perfis.filter(p => p.id !== eu).forEach((p, i) => { if(i % 3 !== 2) o[p.id] = [9, 3, 16, 33, 4][i % 5]; });
               return o;
@@ -1494,14 +1533,21 @@
             if(!ok) return { ok: false, motivo: 'nao' };
             if(d.t.corre_trampo.some(x => x.dono === eu && x.tipo === tipo && x.ref === ref && (!rep || x.dia === hj))) return { ok: false, motivo: 'ja' };
             const tr = hojeT(), ganhou = Math.max(0, Math.min(2, 20 - tr)), w = cart();
-            d.t.corre_trampo.push({ dono: eu, tipo, ref, dia: hj, valor: real(ganhou) });
+            d.t.corre_trampo.push({ dono: eu, tipo, ref, dia: hj, valor: real(ganhou), em: now() });
             if(ganhou){ d.t.corre_correal_log.push({ id: rid(), dono: eu, valor: real(ganhou), motivo: 'trampo:' + tipo, created_at: now() }); w.saldo = real(centDe(w.saldo) + ganhou); w.ganho = real(centDe(w.ganho) + ganhou); w.updated_at = now(); }
-            let s = seqDe(eu), novo = false;
+            let s = seqDe(eu), novo = false, usou = 0;
             if(!s){ s = { dono: eu, seq: 1, melhor: 1, ult: hj, n: 1 }; d.t.corre_trampo_seq.push(s); novo = true; }
             else if(s.ult === hj) s.n++;
-            else { s.seq = s.ult === ontem ? s.seq + 1 : 1; s.melhor = Math.max(s.melhor, s.seq); s.ult = hj; s.n++; novo = true; }
+            else {
+              const v = vao(s), b = (d.t.corre_bicho || []).find(x => x.dono === eu);
+              if(v <= 0) s.seq++;
+              else if(s.seq > 0 && v <= bichoEscudos(d, eu, hj)){ s.seq++; usou = v; for(let i = 1; i <= v; i++) b.escudos.push(plMais(s.ult, i)); }
+              else s.seq = 1;
+              s.melhor = Math.max(s.melhor, s.seq); s.ult = hj; s.n++; novo = true;
+            }
             write(d);
-            return { ok: true, ganhou: real(ganhou), saldo: real(centDe(w.saldo)), trampo: real(tr + ganhou), teto_trampo: .2, seq: s.seq, melhor: s.melhor, novo_dia: novo };
+            const bx = tipo === 'caderno' ? bichoXP(d, eu) : null;
+            return { ok: true, ganhou: real(ganhou), saldo: real(centDe(w.saldo)), trampo: real(tr + ganhou), teto_trampo: .2, seq: s.seq, melhor: s.melhor, novo_dia: novo, escudo: usou, bicho: bx, bicho_etapa: bx == null ? null : bichoEtapa(bx) };
           }
           /* v4.12: o "hoje" conta a tarefa e a rua (as moedas que caem de quem leva empurrão demais), como o delta-v412.sql */
           const ini = Date.parse(hojeBR() + 'T03:00:00Z'), hojeC = (re = /^(tarefa|achado):/) => d.t.corre_correal_log.filter(l => l.dono === eu && l.valor > 0 && re.test(l.motivo) && Date.parse(l.created_at) >= ini).reduce((x, l) => x + centDe(l.valor), 0);
@@ -1796,7 +1842,7 @@
         /* ---- v3.35: avisos no celular (mesmas regras do delta-v335.sql; a demonstração não manda aviso de verdade) ---- */
         if(/^corre_push_/.test(n)){
           if(!uidR || !d.t.corre_perfis.some(p => p.id === uidR)) throw { message: 'sem perfil', hint: 'perfil' };
-          const A = a || {}, PADRAO = { msg: true, resp: true, seg: true, curt: true, texto: true, lembra: true, postar: true, caderno: true };
+          const A = a || {}, PADRAO = { msg: true, resp: true, seg: true, curt: true, texto: true, lembra: true, postar: true, caderno: true, bomdia: true, bomdia_hora: '08:00' };
           const pref = () => Object.assign({}, PADRAO, d.t.corre_push_pref.find(x => x.dono === uidR) || {});
           const ajustes = ep => { const p = pref(); delete p.dono; delete p.updated_at; return Object.assign(p, { aparelhos: d.t.corre_push.filter(x => x.dono === uidR).length, este: !!ep && d.t.corre_push.some(x => x.dono === uidR && x.endpoint === ep) }); };
           if(n === 'corre_push_ajustes') return ajustes(A.p_endpoint || null);
@@ -1813,10 +1859,18 @@
           }
           if(n === 'corre_push_tirar'){ const antes = d.t.corre_push.length; d.t.corre_push = d.t.corre_push.filter(x => !(x.endpoint === A.p_endpoint && x.dono === uidR)); write(d); return d.t.corre_push.length < antes; }
           if(n === 'corre_push_ajusta'){
-            if(!['msg', 'resp', 'seg', 'curt', 'texto', 'lembra', 'postar', 'caderno'].includes(A.p_campo) || typeof A.p_valor !== 'boolean') throw { message: 'campo', hint: 'campo' };
+            if(!['msg', 'resp', 'seg', 'curt', 'texto', 'lembra', 'postar', 'caderno', 'bomdia'].includes(A.p_campo) || typeof A.p_valor !== 'boolean') throw { message: 'campo', hint: 'campo' };
             let p = d.t.corre_push_pref.find(x => x.dono === uidR); if(!p){ p = Object.assign({ dono: uidR }, PADRAO); d.t.corre_push_pref.push(p); }
             p[A.p_campo] = A.p_valor; p.updated_at = now(); write(d); return ajustes(null);
           }
+        }
+        /* v4.30: a hora do bom dia (das 5h às 11h30, de meia em meia hora) */
+        if(n === 'corre_bomdia_hora'){
+          if(!uidR || !d.t.corre_perfis.some(p => p.id === uidR)) throw { message: 'sem perfil', hint: 'perfil' };
+          if(!/^(0[5-9]|1[01]):(00|30)$/.test(String(a.p_hora || ''))) throw { message: 'hora', hint: 'hora' };
+          let p = d.t.corre_push_pref.find(x => x.dono === uidR); if(!p){ p = { dono: uidR, msg: true, resp: true, seg: true, curt: true, texto: true }; d.t.corre_push_pref.push(p); }
+          p.bomdia_hora = a.p_hora; p.bomdia = true; p.updated_at = now(); write(d);
+          return C.api.rpc('corre_push_ajustes', {});
         }
         throw { message: 'rpc' };
       },

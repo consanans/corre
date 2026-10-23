@@ -20,7 +20,8 @@
 //     a função entrega o que o corre_postar_alvos devolve: "Hora de postar" (o post programado que não sai sozinho, sem
 //     conta conectada) e "Não saiu no Instagram" (o que o Instagram recusou). Cada post avisa uma vez por horário,
 //     marcado antes de sair; chamar de novo não manda nada. Desde a v4.19, entrega também as tarefas do Caderninho que
-//     chegaram na hora (corre_caderno_alvos, do mesmo jeito; o relógio é um só).
+//     chegaram na hora (corre_caderno_alvos, do mesmo jeito; o relógio é um só). Desde a v4.30, o bom dia de manhã
+//     (corre_bomdia_alvos: na hora que cada um escolheu, com o que tem no dia; um por dia, urgência normal).
 // Aparelho que o serviço diz que sumiu (404/410) sai do banco (corre_push_mortos).
 //
 // A cifra é a do padrão (RFC 8291, aes128gcm) e a assinatura do Corre é a VAPID (RFC 8292), tudo com o WebCrypto do
@@ -227,10 +228,14 @@ Deno.serve(async (req) => {
     const { data: cad, error: ec } = await admin.rpc('corre_caderno_alvos', {});
     if (ec) { if (!/corre_caderno_alvos/.test(ec.message || '')) console.warn('[push] caderno', ec.message); }
     else if (Array.isArray(cad)) L.push(...cad);
-    if (!L.length) return json({ ok: true, avisos: 0, entregues: 0 });
-    const r = await manda(admin, v, lista(L, 'high'));
-    console.log('[push] postar', JSON.stringify({ avisos: L.length, entregues: r.ok, saiu: r.mortos }));
-    return json({ ok: true, avisos: L.length, entregues: r.ok, saiu: r.mortos });
+    /* v4.30: o bom dia (sem o delta da 4.30, nada); não tem pressa, vai com urgência normal */
+    const { data: bd, error: eb } = await admin.rpc('corre_bomdia_alvos', {});
+    if (eb) { if (!/corre_bomdia_alvos/.test(eb.message || '')) console.warn('[push] bomdia', eb.message); }
+    const B = !eb && Array.isArray(bd) ? bd : [];
+    if (!L.length && !B.length) return json({ ok: true, avisos: 0, entregues: 0 });
+    const r = await manda(admin, v, lista(L, 'high').concat(lista(B, 'normal')));
+    console.log('[push] postar', JSON.stringify({ avisos: L.length, bomdia: B.length, entregues: r.ok, saiu: r.mortos }));
+    return json({ ok: true, avisos: L.length, bomdia: B.length, entregues: r.ok, saiu: r.mortos });
   }
 
   /* o login de quem chama (é quem "fez a ação": o banco confere que a ação é mesmo dessa pessoa) */

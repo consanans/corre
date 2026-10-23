@@ -10,9 +10,10 @@
 (function(){
   'use strict';
   const C = window.Corre, { $, esc, ico, toast } = C, api = C.api, st = C.st;
-  const ABAS = [['hoje', 'Hoje'], ['prox', 'Próximos'], ['solta', 'Algum dia']];
+  /* v4.30: a Semana (os 7 dias em colunas, arrastando de um pro outro) entra depois do Hoje */
+  const ABAS = [['hoje', 'Hoje'], ['semana', 'Semana'], ['prox', 'Próximos'], ['solta', 'Algum dia']];
   const K_ABA = 'corre-caderno-aba', K_LISTA = 'corre-caderno-lista', K_FEITAS = 'corre-caderno-feitas';
-  const CD = { uid: '', t: [], ok: false, falta: false, erro: null, corre: [], em: 0, aba: 'hoje', lista: '', ind: null };
+  const CD = { uid: '', t: [], ok: false, falta: false, erro: null, corre: [], em: 0, aba: 'hoje', lista: '', ind: null, sem: 0, pulei: new Set() };
   const ls = { get: k => { try{ return localStorage.getItem(k); }catch(e){ return null; } }, set: (k, v) => { try{ localStorage.setItem(k, v); }catch(e){} } };
   { const a = ls.get(K_ABA); if(ABAS.some(x => x[0] === a)) CD.aba = a; CD.lista = ls.get(K_LISTA) || ''; }
 
@@ -281,6 +282,7 @@
     const rep = repHoje(), nT = L.filter(e => e.t === 'tarefa').length + at.filter(e => e.t === 'tarefa').length, nF = feitas.length + rep.length, tot = nT + nF;
     const ab = ls.get(K_FEITAS) === '1';
     let h = '';
+    h += faroHTML();
     if(tot) h += `<div class="cd-prog" role="img" aria-label="${nF} de ${tot} tarefas de hoje feitas"><span><b class="num">${nF}</b> de <b class="num">${tot}</b> feitas hoje</span><i><b style="width:${Math.round(100 * nF / tot)}%"></b></i></div>`;
     if(at.length) h += secao('atras', 'Ficou pra trás', at.length, `<ol class="cd-l">${at.map(e => item(e, true)).join('')}</ol>${at.some(e => e.t === 'tarefa') ? `<button type="button" class="lnk cd-pra-hoje" data-act="cd-pra-hoje">${ico('cal')}Passar as minhas pra hoje</button>` : ''}`, 'atras');
     h += secao('hoje', 'Hoje', L.length, L.length ? diaHTML(L) + novoNoDia(hj) : (!at.length && nT === 0 && nF ? '<p class="cd-carimbo"><span>Caderninho em dia</span></p>' : `<p class="cd-vazio">${nF ? 'Fechou o de hoje.' : 'Nada pra hoje ainda.'} Anota aí em cima o que tem que sair hoje: o Corre junta com o teu Studio, o Hórus e as Vendas.</p>`) + (L.length ? '' : novoNoDia(hj)));
@@ -303,24 +305,267 @@
     const L = raiz().filter(t => !t.feito && !t.dia && daLista(t)).sort(ordem);
     return secao('solta', 'Algum dia', L.length, L.length ? `<ol class="cd-l">${L.map(t => itTarefa(t)).join('')}</ol>` : '<p class="cd-vazio">A caixa das ideias sem dia: anota sem dizer quando e ela cai aqui. Quando der, abre e põe um dia.</p>');
   }
+  /* ---------- v4.30 · a Semana: os 7 dias em colunas e o "Algum dia" no fim; a tarefa vai de um dia pro outro
+     arrastando (no dedo: segura um instante e arrasta) ou nas setinhas do cartão ---------- */
+  function cartao(t, atras){
+    const hj = hoje(), m = [];
+    if(atras) m.push(`<span class="cd-dia atras">${esc(diaTxt(t.dia))}</span>`);
+    if(t.hora) m.push(`<span class="cd-h">${ico('clock')}${esc(horaTxt(t.hora))}</span>`);
+    if(t.repete) m.push(`<span title="${esc(repTxt(t.repete, cadaDe(t)))}">${ico('troca')}</span>`);
+    if(t.lista && !CD.lista) m.push(`<span class="cd-ls">#${esc(t.lista)}</span>`);
+    const volta = !t.dia || t.dia <= hj;
+    return `<li class="cd-card p${t.prio || 4}${atras ? ' atras' : ''}" data-id="${esc(t.id)}">
+      <button type="button" class="cd-ck" data-act="cd-feita" data-id="${esc(t.id)}" aria-pressed="false" aria-label="Marcar feita: ${esc(t.titulo)}"><i>${ico('check')}</i></button>
+      <button type="button" class="cd-tx" data-act="cd-abre" data-id="${esc(t.id)}"><b>${esc(t.titulo)}</b>${m.length ? `<span class="cd-meta">${m.join('')}</span>` : ''}</button>
+      <span class="cd-mv"><button type="button" class="cd-mvb" data-act="cd-mv" data-id="${esc(t.id)}" data-d="-1" aria-label="Passar pro dia anterior: ${esc(t.titulo)}"${volta ? ' disabled' : ''}>${ico('prev')}</button><button type="button" class="cd-mvb" data-act="cd-mv" data-id="${esc(t.id)}" data-d="1" aria-label="${!t.dia || t.dia < hj ? 'Trazer pra hoje' : 'Passar pro dia seguinte'}: ${esc(t.titulo)}">${ico('next')}</button></span></li>`;
+  }
+  function corpoSemana(){
+    const hj = hoje(), ini = soma(hj, CD.sem * 7), dias = Array.from({ length: 7 }, (x, i) => soma(ini, i));
+    const col = iso => {
+      const L = raiz().filter(x => !x.feito && x.dia === iso && daLista(x)).sort(ordem);
+      const at = iso === hj ? raiz().filter(x => !x.feito && x.dia && x.dia < hj && daLista(x)).sort((a, b) => a.dia < b.dia ? -1 : a.dia > b.dia ? 1 : ordem(a, b)) : [];
+      const cc = correDe(x => x.dia === iso), n = L.length + at.length, fds = semana(iso) === 0 || semana(iso) === 6;
+      const nome = iso === hj ? 'Hoje' : iso === soma(hj, 1) ? 'Amanhã' : DIAS[semana(iso)].replace(/^./, c => c.toUpperCase());
+      return `<section class="cd-col${iso === hj ? ' hoje' : ''}${fds ? ' fds' : ''}" data-dia="${iso}" aria-label="${esc(`${nome}, ${ddmm(iso)}: ${n} ${n === 1 ? 'tarefa' : 'tarefas'}`)}">
+        <header><b>${esc(nome)}</b><small>${ddmm(iso)}</small>${n ? `<span class="cd-carga${n >= 6 ? ' cheia' : ''}">${n}</span>` : ''}</header>
+        <ol class="cd-cl">${at.map(t => cartao(t, true)).join('')}${L.map(t => cartao(t)).join('')}${cc.map(c => `<li class="cd-card cd-corre-c k-${c.k}"><a href="${esc(c.href)}"><span class="cd-fer" aria-hidden="true">${ico(c.ic)}</span><b>${esc(c.titulo)}</b><span class="cd-meta">${c.hora ? `<span class="cd-h">${esc(horaTxt(c.hora))}</span>` : ''}<span>${esc(c.sub.split(' · ')[0])}</span></span></a></li>`).join('')}</ol>
+        ${novoNoDia(iso)}</section>`;
+    };
+    const soltas = raiz().filter(x => !x.feito && !x.dia && daLista(x)).sort(ordem);
+    const toque = matchMedia && matchMedia('(pointer: coarse)').matches;
+    return `<div class="cd-sem-nav"><button type="button" class="cbtn" data-act="cd-sem" data-d="-1" aria-label="Semana de antes"${CD.sem <= 0 ? ' disabled' : ''}>${ico('prev')}</button>
+        <b>${CD.sem ? `${ddmm(dias[0])} a ${ddmm(dias[6])}` : 'Os próximos 7 dias'}</b><button type="button" class="cbtn" data-act="cd-sem" data-d="1" aria-label="Semana seguinte"${CD.sem >= 8 ? ' disabled' : ''}>${ico('next')}</button>
+        <small>${toque ? 'Segura a tarefa e arrasta pro dia.' : 'Arrasta a tarefa pro dia.'}</small></div>
+      <div class="cd-sem" id="cd-sem">${dias.map(col).join('')}<section class="cd-col solta" data-dia="" aria-label="Algum dia: ${soltas.length}"><header><b>Algum dia</b>${soltas.length ? `<span class="cd-carga">${soltas.length}</span>` : ''}</header><ol class="cd-cl">${soltas.map(t => cartao(t)).join('')}</ol>${soltas.length ? '' : '<p class="cd-col-v">Solta aqui o que não tem dia.</p>'}</section></div>`;
+  }
+  /* passar pra outro dia (null = Algum dia). A que repete precisa de dia; a hora vai junto */
+  async function moveDia(id, novo, foco){
+    const t = CD.t.find(x => x.id === id); if(!t || (t.dia || null) === (novo || null)) return;
+    if(!novo && t.repete){ toast('A que repete precisa de um dia: passa ela pra outro dia em vez de "Algum dia".'); return; }
+    const patch = novo ? { dia: novo } : { dia: null, hora: null }, antes = { dia: t.dia, hora: t.hora };
+    Object.assign(t, patch); repinta();
+    try{ await api.upd('corre_caderno', { id }, patch); }
+    catch(e){ Object.assign(t, antes); repinta(); toast(C.errMsg(e)); return; }
+    C.sinaisAtualiza && C.sinaisAtualiza();
+    toast(novo ? `Passou pra ${novo === hoje() ? 'hoje' : diaTxt(novo)}.` : 'Foi pra "Algum dia".', 2200);
+    if(foco){ const b = document.querySelector(`.cd-card[data-id="${CSS.escape(id)}"] [data-act="cd-mv"][data-d="${foco}"]`) || document.querySelector(`.cd-card[data-id="${CSS.escape(id)}"] .cd-tx`); if(b){ if(b.disabled) b.parentElement.querySelector('[data-d="1"]').focus(); else b.focus(); } }
+  }
+  /* arrastar (o jeito do funil do Hórus: o mouse arrasta; o dedo segura um instante e arrasta) */
+  const DR = { card: null, on: false, engole: 0 };
+  function arrastaLiga(board){
+    if(!board || board.dataset.liga) return; board.dataset.liga = '1';
+    board.addEventListener('pointerdown', e => {
+      if(e.button > 0 || DR.on) return;
+      const card = e.target.closest('.cd-card[data-id]'); if(!card || e.target.closest('.cd-ck, .cd-mv')) return;
+      const r = card.getBoundingClientRect();
+      solta(true);
+      Object.assign(DR, { card, board, id: card.dataset.id, x0: e.clientX, y0: e.clientY, x: e.clientX, y: e.clientY, dx: e.clientX - r.left, dy: e.clientY - r.top, w: r.width, toque: e.pointerType !== 'mouse', on: false, alvo: null, t: 0, raf: 0 });
+      if(DR.toque) DR.t = setTimeout(ativa, 320);
+    });
+    board.addEventListener('click', e => { if(Date.now() - DR.engole < 450){ e.preventDefault(); e.stopPropagation(); } }, true);
+    board.addEventListener('contextmenu', e => { if(DR.card) e.preventDefault(); });
+  }
+  function ativa(){
+    if(!DR.card || DR.on || !DR.card.isConnected) return;
+    DR.on = true;
+    const g = DR.card.cloneNode(true); g.classList.add('cd-fantasma'); g.removeAttribute('data-id'); g.setAttribute('aria-hidden', 'true');
+    g.style.width = DR.w + 'px'; document.body.appendChild(g); DR.g = g;
+    DR.card.classList.add('cd-pega'); document.body.classList.add('cd-arrastando');
+    try{ if(DR.toque && navigator.vibrate) navigator.vibrate(12); }catch(e){}
+    poe(); DR.raf = requestAnimationFrame(rola);
+  }
+  function poe(){
+    if(!DR.g) return;
+    DR.g.style.transform = `translate(${DR.x - DR.dx}px, ${DR.y - DR.dy}px) rotate(2deg)`;
+    const el = document.elementFromPoint(DR.x, DR.y), col = el && el.closest ? el.closest('.cd-col') : null;
+    if(col !== DR.alvo){ if(DR.alvo) DR.alvo.classList.remove('cd-sobre'); DR.alvo = col; if(col) col.classList.add('cd-sobre'); }
+  }
+  function rola(){
+    if(!DR.on) return;
+    const b = DR.board, r = b.getBoundingClientRect(), m = 56;
+    if(DR.x < r.left + m) b.scrollLeft -= 14; else if(DR.x > r.right - m) b.scrollLeft += 14;
+    if(DR.y < 70) window.scrollBy(0, -12); else if(DR.y > innerHeight - 70) window.scrollBy(0, 12);
+    poe(); DR.raf = requestAnimationFrame(rola);
+  }
+  function solta(cancela){
+    clearTimeout(DR.t); cancelAnimationFrame(DR.raf);
+    const era = DR.on, alvo = DR.alvo, id = DR.id;
+    if(DR.g) DR.g.remove();
+    if(DR.card) DR.card.classList.remove('cd-pega');
+    if(alvo) alvo.classList.remove('cd-sobre');
+    document.body.classList.remove('cd-arrastando');
+    Object.assign(DR, { card: null, on: false, g: null, alvo: null });
+    if(!era || cancela) return;
+    DR.engole = Date.now();
+    if(alvo && alvo.dataset.dia !== undefined) moveDia(id, alvo.dataset.dia || null);
+  }
+  document.addEventListener('pointermove', e => {
+    if(!DR.card) return;
+    DR.x = e.clientX; DR.y = e.clientY;
+    const d = Math.hypot(e.clientX - DR.x0, e.clientY - DR.y0);
+    if(!DR.on){
+      if(DR.toque){ if(d > 10){ clearTimeout(DR.t); DR.card = null; } }
+      else if(d > 6) ativa();
+      return;
+    }
+    e.preventDefault(); poe();
+  });
+  document.addEventListener('pointerup', () => { if(DR.card) solta(false); });
+  document.addEventListener('pointercancel', () => { if(DR.card) solta(true); });
+  document.addEventListener('touchmove', e => { if(DR.on) e.preventDefault(); }, { passive: false });
+  document.addEventListener('keydown', e => { if(e.key === 'Escape' && DR.on){ e.stopPropagation(); solta(true); } }, true);
+
+  /* ---------- v4.30 · despejar a cabeça: várias de uma vez ----------
+     Uma por linha; na mesma linha, a vírgula (ou o "e") separa quando o pedaço começa com um verbo ("ligar", "pagar",
+     "manda") ou quando os dois lados têm o próprio dia: "comprar pão, leite e ovos" fica uma só. Linha que é só um dia ou
+     uma lista com dois pontos ("amanhã:", "#Casa:") vale pras de baixo */
+  const NAO_VERBO = new Set(['lugar', 'bar', 'mar', 'par', 'dever', 'prazer', 'mulher', 'colher', 'qualquer', 'flor', 'cor', 'dor', 'amor', 'motor', 'doutor', 'senhor', 'valor', 'melhor', 'pior', 'maior', 'menor', 'setor', 'fornecedor', 'elevador', 'computador', 'sabor', 'calor', 'favor', 'exterior', 'interior', 'anterior', 'superior', 'professor', 'diretor', 'gestor', 'editor', 'autor', 'ator', 'leitor', 'cliente', 'contador', 'vendedor', 'pintor', 'cantor']);
+  const VERBOS = new Set(['liga', 'manda', 'paga', 'compra', 'faz', 've', 'leva', 'busca', 'marca', 'chama', 'responde', 'envia', 'grava', 'posta', 'revisa', 'confere', 'entrega', 'cobra', 'agenda', 'resolve', 'organiza', 'estuda', 'treina', 'limpa', 'lava', 'arruma', 'passa', 'pega', 'traz', 'tira', 'troca', 'separa', 'renova', 'atualiza', 'corta', 'imprime', 'assina', 'reserva', 'reuniao', 'ligacao', 'consulta', 'dentista', 'medico', 'academia', 'mercado', 'banco']);
+  function ehVerbo(w){ w = SEM(String(w || '')).replace(/[^a-z]/g, ''); if(!w || NAO_VERBO.has(w)) return false; return VERBOS.has(w) || (w.length >= 4 && /(ar|er|ir|or)$/.test(w)); }
+  const FILL = /\b(pra|para|de|do|da|dos|das|no|na|nos|nas|as|os|a|o|e|coisas|tarefas|tarefa|lista|dia|fazer)\b/g;
+  /* o cabeçalho "amanhã" / "#Casa": devolve o dia e a lista, ou null se tiver mais coisa escrita */
+  function cabecalho(h){
+    const o = entende(h, {}), sobra = o.titulo.trim() === h.trim() ? '' : SEM(o.titulo).replace(FILL, '').replace(/[^a-z0-9]/g, '');
+    return (o.dia || o.lista) && !sobra && !o.hora ? { dia: o.dia, lista: o.lista } : null;
+  }
+  function separa(txt, base0){
+    const B0 = Object.assign({}, base0 || {});
+    let ctx = Object.assign({}, B0);
+    const out = [];
+    String(txt || '').replace(/\r/g, '').split(/\n|;|\s[•·]\s/).forEach(l0 => {
+      let l = l0.replace(/^\s*(?:[-*•·▪◦–—>]+|\d{1,2}[.)]|\[[ xX]?\])\s*/, '').trim(); if(!l) return;
+      /* "amanhã:" sozinho, ou "amanhã: ligar pro João" */
+      const mc = /^([^:]{1,40}):\s*(.*)$/.exec(l);
+      if(mc){ const h = cabecalho(mc[1]); if(h){ ctx = Object.assign({}, B0, h.dia ? { dia: h.dia } : {}, h.lista ? { lista: h.lista } : {}); l = mc[2].trim(); if(!l) return; } }
+      const tk = l.split(/(,\s*|\s+e\s+depois\s+|\s+depois\s+|\s+e\s+)/i);
+      let cur = tk[0];
+      const quando = x => { const o = entende(x, {}); return !!(o.dia || o.hora); };
+      for(let i = 1; i < tk.length; i += 2){
+        const sep = tk[i], pc = (tk[i + 1] || '').trim(); if(!pc){ cur += sep; continue; }
+        if(ehVerbo(pc.split(/\s+/)[0]) || (quando(cur) && quando(pc))){ out.push([cur, ctx]); cur = pc; } else cur += sep + pc;
+      }
+      out.push([cur, ctx]);
+    });
+    return out.map(([t, c]) => entende(t.replace(/[:\s]+$/, ''), c)).filter(o => o.titulo && o.titulo.trim().length > 1).slice(0, 30);
+  }
+  C.caderno.separa = separa;
+  const DS = { L: [] };
+  function despeja(txt){
+    C.sheet(`<form class="cd-dsp" id="cd-dsp" autocomplete="off"><div class="sheet-head"><h2>${ico('caderno')} Despeja a cabeça</h2><button type="button" class="cbtn plain" data-close aria-label="Fechar">${ico('x')}</button></div>
+      <p class="cd-dsp-i">Escreve, ou dita no microfone do teclado, tudo o que tá na cabeça: uma por linha, ou separado por vírgula. O Caderninho separa e entende o dia, a hora e a lista de cada uma.</p>
+      <label class="sr-only" for="cd-dsp-t">O que tá na cabeça</label><textarea id="cd-dsp-t" rows="6" maxlength="4000" placeholder="amanhã: mandar o orçamento da padaria 15h, ligar pro contador&#10;pagar o boleto dia 5 #Casa&#10;gravar reels quinta 10h !1"></textarea>
+      <p class="cd-dsp-n" id="cd-dsp-n" aria-live="polite"></p><ol class="cd-dsp-l" id="cd-dsp-l"></ol>
+      <div class="acts"><button type="submit" class="btn pri" id="cd-dsp-ok" disabled>Anotar</button><button type="button" class="btn ghost" data-close>Agora não</button></div></form>`, 'cd-folhinha');
+    const f = $('cd-dsp'), t = $('cd-dsp-t'); if(!f || !t) return;
+    const ve = () => {
+      DS.L = separa(t.value, base()).map(o => Object.assign(o, { on: true }));
+      $('cd-dsp-l').innerHTML = DS.L.map((o, i) => `<li><label><input type="checkbox" data-i="${i}" checked><span><b>${esc(o.titulo)}</b>${chipsDe(o).map(x => `<span class="cd-chip">${x}</span>`).join('')}</span></label></li>`).join('');
+      conta();
+    };
+    const conta = () => { const n = DS.L.filter(o => o.on).length, ok = $('cd-dsp-ok'); ok.disabled = !n; ok.textContent = n ? `Anotar ${n === 1 ? '1 tarefa' : `${n} tarefas`}` : 'Anotar'; $('cd-dsp-n').textContent = DS.L.length ? `${DS.L.length === 1 ? 'Achei 1' : `Achei ${DS.L.length}`}:` : ''; };
+    t.value = txt || ''; t.addEventListener('input', ve);
+    $('cd-dsp-l').addEventListener('change', e => { const i = Number(e.target.dataset.i); if(DS.L[i]){ DS.L[i].on = e.target.checked; conta(); } });
+    C.umaVez ? C.umaVez(f, () => criaVarias()) : f.addEventListener('submit', e => { e.preventDefault(); criaVarias(); });
+    ve(); setTimeout(() => { t.focus(); t.setSelectionRange(t.value.length, t.value.length); }, 30);
+  }
+  async function criaVarias(){
+    const L = DS.L.filter(o => o.on); if(!L.length) return;
+    let n = 0;
+    for(const o of L){ try{ if(await cria(o, null, true)) n++; }catch(e){ toast(semCada(e) || C.errMsg(e)); break; } }
+    C.closeSheet(); repinta(); C.sinaisAtualiza && C.sinaisAtualiza();
+    if(!n) return;
+    const hj = hoje(), por = {}; L.slice(0, n).forEach(o => { const k = !o.dia ? 'sem dia' : o.dia === hj ? 'pra hoje' : o.dia === soma(hj, 1) ? 'pra amanhã' : 'pra frente'; por[k] = (por[k] || 0) + 1; });
+    toast(`${n === 1 ? '1 tarefa anotada' : `${n} tarefas anotadas`}: ${Object.keys(por).map(k => `${por[k]} ${k}`).join(', ')}.`, 4200);
+  }
+
+  /* ---------- v4.30 · o Farejar (poder do bicho): a tarefa da vez no alto do Hoje ----------
+     A que ficou pra trás primeiro, depois a que tem hora chegando (até 1h30), depois a prioridade */
+  function daVez(){
+    const hj = hoje(), ag = agoraHM(), min = h => Number(h.slice(0, 2)) * 60 + Number(h.slice(3, 5));
+    const nota = t => { let s = 0; if(t.dia < hj) s += 1000 + Math.min(30, entre(t.dia, hj)) * 10;
+      if(t.hora){ const dm = min(t.hora) - min(ag); s += dm <= 0 ? 600 : dm <= 90 ? 500 - dm : -60; }
+      return s + (4 - (t.prio || 4)) * 120; };
+    const L = raiz().filter(t => !t.feito && t.dia && t.dia <= hj && daLista(t));
+    const fora = L.filter(t => !CD.pulei.has(t.id));
+    return (fora.length ? fora : L).sort((a, b) => nota(b) - nota(a) || ordem(a, b))[0] || null;
+  }
+  function faroHTML(){
+    if(!(C.bicho && C.bicho.tem('farejar'))) return '';
+    const t = daVez(); if(!t) return '';
+    const me = C.bicho.me(), maisDe1 = raiz().filter(x => !x.feito && x.dia && x.dia <= hoje() && daLista(x)).length > 1;
+    return `<div class="cd-faro" data-id="${esc(t.id)}">${C.bicho.cvHTML({ esp: me.especie, etapa: C.bicho.etapa(), meu: 1 }, 'cd-faro-cv')}
+      <div class="cd-faro-tx"><small>${esc(C.bicho.golpe(me.especie, 'farejar'))}: a da vez</small><b>${esc(t.titulo)}</b>${metaTarefa(t, t.dia < hoje())}</div>
+      <div class="cd-faro-b"><button type="button" class="btn sm pri" data-act="cd-feita" data-id="${esc(t.id)}">${ico('check')} Feita</button>${C.bicho.tem('foco') ? `<button type="button" class="btn sm" data-act="cd-foco" data-id="${esc(t.id)}">${ico('clock')} Foco</button>` : ''}${maisDe1 ? `<button type="button" class="btn sm ghost" data-act="cd-faro-outra" data-id="${esc(t.id)}">Outra</button>` : ''}</div></div>`;
+  }
+
+  /* ---------- v4.30 · o Foco (poder do bicho): 25 minutos só com uma tarefa ----------
+     O relógio mora no aparelho (sair e voltar, ou recarregar, continua de onde tava) */
+  const K_FOCO = 'corre-foco';
+  const focoLe = () => { try{ const f = JSON.parse(ls.get(K_FOCO) || 'null'); return f && f.id ? f : null; }catch(e){ return null; } };
+  const focoGrava = f => ls.set(K_FOCO, f ? JSON.stringify(f) : '');
+  const resta = f => f.dur - ((f.parou || Date.now()) - f.ini - (f.pausa || 0));
+  const FC = { tk: 0, trava: null, tocou: false };
+  function focoAbre(id){ const t = CD.t.find(x => x.id === id); if(!t) return; C.closeSheet(); focoGrava({ id, ini: Date.now(), dur: 25 * 6e4, pausa: 0, parou: 0 }); FC.tocou = false; focoMostra(); }
+  function focoMostra(){
+    const f = focoLe(); if(!f) return;
+    const t = CD.t.find(x => x.id === f.id); if(!t || t.feito){ focoGrava(null); return; }
+    const old = $('cd-foco'); if(old) old.remove();
+    const me = C.bicho && C.bicho.me();
+    const box = document.createElement('div'); box.className = 'cd-foco'; box.id = 'cd-foco';
+    box.setAttribute('role', 'dialog'); box.setAttribute('aria-modal', 'true'); box.setAttribute('aria-labelledby', 'cd-foco-tit');
+    box.innerHTML = `<div class="cd-foco-in"><p class="cd-foco-k">${ico('clock')} ${esc(me ? C.bicho.golpe(me.especie, 'foco') : 'Foco')} · modo foco</p>
+      <div class="cd-foco-anel"><svg viewBox="0 0 120 120" aria-hidden="true"><circle class="fundo" cx="60" cy="60" r="54"/><circle class="arco" id="cd-foco-arco" cx="60" cy="60" r="54" pathLength="100"/></svg>
+        ${me ? C.bicho.cvHTML({ esp: me.especie, etapa: C.bicho.etapa(), meu: 1 }, 'cd-foco-cv') : ''}</div>
+      <time class="cd-foco-t num" id="cd-foco-t">25:00</time>
+      <h2 class="cd-foco-tit" id="cd-foco-tit">${esc(t.titulo)}</h2>
+      <p class="cd-foco-msg" id="cd-foco-msg" aria-live="polite">Só essa agora. O resto espera.</p>
+      <div class="cd-foco-b"><button type="button" class="btn pri" data-act="cd-foco-fechei">${ico('check')} Fechei</button><button type="button" class="btn" data-act="cd-foco-pausa" id="cd-foco-pausa">Pausar</button><button type="button" class="btn ghost" data-act="cd-foco-mais">+5 min</button><button type="button" class="btn ghost" data-act="cd-foco-sai">Sair</button></div></div>`;
+    document.body.appendChild(box); document.body.classList.add('cd-focado');
+    if(C.bicho) C.bicho.liga(box);
+    box.addEventListener('keydown', e => { if(e.key === 'Escape'){ e.preventDefault(); e.stopPropagation(); focoFecha(true); } });
+    setTimeout(() => { const b = box.querySelector('[data-act="cd-foco-fechei"]'); if(b) b.focus(); }, 30);
+    /* a tela não apaga enquanto o foco roda (onde o navegador deixa) */
+    try{ if(navigator.wakeLock && !FC.trava) navigator.wakeLock.request('screen').then(w => { FC.trava = w; }).catch(() => {}); }catch(e){}
+    clearInterval(FC.tk); FC.tk = setInterval(focoTique, 250); focoTique();
+  }
+  function focoTique(){
+    const f = focoLe(), box = $('cd-foco'); if(!f || !box){ clearInterval(FC.tk); return; }
+    const r = Math.max(0, resta(f)), m = Math.floor(r / 6e4), sg = Math.floor(r / 1e3) % 60;
+    $('cd-foco-t').textContent = `${String(m).padStart(2, '0')}:${String(sg).padStart(2, '0')}`;
+    $('cd-foco-arco').style.strokeDashoffset = String(100 * (1 - r / f.dur));
+    const pb = $('cd-foco-pausa'); if(pb){ pb.textContent = f.parou ? 'Seguir' : 'Pausar'; pb.hidden = r <= 0; }
+    box.classList.toggle('pausado', !!f.parou);
+    if(r <= 0 && !FC.tocou){
+      FC.tocou = true; box.classList.add('fim');
+      $('cd-foco-msg').textContent = 'Deu os 25. Fechou? Se faltou pouco, mais 5.';
+      try{ const A = new (window.AudioContext || window.webkitAudioContext)(); [0, .18, .36].forEach((x, i) => { const o = A.createOscillator(), g = A.createGain(); o.frequency.value = [660, 880, 1320][i]; o.type = 'triangle'; g.gain.setValueAtTime(.0001, A.currentTime + x); g.gain.linearRampToValueAtTime(.13, A.currentTime + x + .02); g.gain.exponentialRampToValueAtTime(.0001, A.currentTime + x + .5); o.connect(g); g.connect(A.destination); o.start(A.currentTime + x); o.stop(A.currentTime + x + .55); }); }catch(e){}
+      try{ if(navigator.vibrate) navigator.vibrate([60, 80, 60]); }catch(e){}
+    }
+  }
+  function focoFecha(esquece){
+    clearInterval(FC.tk); const b = $('cd-foco'); if(b) b.remove(); document.body.classList.remove('cd-focado');
+    try{ if(FC.trava){ FC.trava.release(); FC.trava = null; } }catch(e){}
+    if(esquece) focoGrava(null);
+  }
+
   const contaAba = k => k === 'hoje' ? doDia(hoje()).length + atrasadas().length : k === 'solta' ? raiz().filter(t => !t.feito && !t.dia && daLista(t)).length : 0;
   function corpo(){
     if(CD.falta) return '<section class="card cd-falta"><p>O Caderninho liga quando o banco do Corre atualizar (o delta-v419.sql). Já, já.</p></section>';
     if(CD.erro && !CD.t.length) return `<section class="card"><p>${esc(C.errMsg(CD.erro, 'Não deu pra abrir o Caderninho agora.'))}</p><div class="acts"><button type="button" class="btn" data-act="cd-rele">${ico('troca')} Tentar de novo</button></div></section>`;
-    return CD.aba === 'prox' ? corpoProx() : CD.aba === 'solta' ? corpoSolta() : corpoHoje();
+    return CD.aba === 'prox' ? corpoProx() : CD.aba === 'solta' ? corpoSolta() : CD.aba === 'semana' ? corpoSemana() : corpoHoje();
   }
   function placeholder(){
-    return CD.aba === 'solta' ? 'Anota uma ideia sem dia…' : CD.aba === 'prox' ? 'Ex.: reunião sexta 10h #Trabalho' : 'Ex.: mandar orçamento 15h #Trabalho !1';
+    return CD.aba === 'solta' ? 'Anota uma ideia sem dia…' : CD.aba === 'prox' || CD.aba === 'semana' ? 'Ex.: reunião sexta 10h #Trabalho' : 'Ex.: mandar orçamento 15h #Trabalho !1';
   }
   function pinta(app){
     const hj = hoje(), d = new Date(hj + 'T12:00:00Z'), L = listas();
     if(CD.lista && !L.includes(CD.lista)) L.unshift(CD.lista);
     const fx = C.push && C.push.faixa ? C.push.faixa('caderno') : '';
-    app.innerHTML = C.header('caderno') + `<main class="wrap cd" id="cd">
+    app.innerHTML = C.header('caderno') + `<main class="wrap cd${CD.aba === 'semana' ? ' cd-larga' : ''}" id="cd">
       <header class="cd-top">
-        <div class="cd-capa"><p class="cd-k">${ico('caderno')}Caderninho<time class="cd-relogio num" id="cd-relogio" aria-label="Agora">${esc(agoraHM())}</time></p><h1><span class="cd-dsem">${esc(DIAS[d.getUTCDay()])}</span><span class="cd-dnum num">${d.getUTCDate()}</span><span class="cd-dmes">${esc(C.MESES_L ? C.MESES_L[d.getUTCMonth()] : C.MESES[d.getUTCMonth()])}</span></h1></div>
+        <div class="cd-capa"><div class="cd-capa-d"><p class="cd-k">${ico('caderno')}Caderninho<time class="cd-relogio num" id="cd-relogio" aria-label="Agora">${esc(agoraHM())}</time></p><h1><span class="cd-dsem">${esc(DIAS[d.getUTCDay()])}</span><span class="cd-dnum num">${d.getUTCDate()}</span><span class="cd-dmes">${esc(C.MESES_L ? C.MESES_L[d.getUTCMonth()] : C.MESES[d.getUTCMonth()])}</span></h1></div>${C.bicho && !CD.falta ? C.bicho.capaHTML() : ''}</div>
         <form class="cd-add" id="cd-add" autocomplete="off"><label class="sr-only" for="cd-novo">Anotar uma tarefa</label>
-          <span class="cd-add-l">${ico('plus')}<input id="cd-novo" name="t" maxlength="300" placeholder="${esc(placeholder())}" enterkeyhint="done"></span>
+          <span class="cd-add-l">${ico('plus')}<input id="cd-novo" name="t" maxlength="300" placeholder="${esc(placeholder())}" enterkeyhint="done"><button type="button" class="cd-varias" data-act="cd-despeja" title="Despejar várias de uma vez" aria-label="Despejar várias tarefas de uma vez">${ico('caderno')}<span>Várias</span></button></span>
           <button type="submit" class="btn pri">Anotar</button>
           <p class="cd-entendi" id="cd-entendi" aria-live="polite"></p></form>
       </header>
@@ -328,9 +573,11 @@
       <nav class="cd-abas" role="tablist" aria-label="Caderninho">${ABAS.map(([k, t]) => { const n = contaAba(k); return `<button type="button" role="tab" class="cd-aba" data-act="cd-aba" data-k="${k}" aria-selected="${CD.aba === k}" tabindex="${CD.aba === k ? 0 : -1}">${esc(t)}${n ? ` <small class="num">${n}</small>` : ''}</button>`; }).join('')}</nav>
       ${L.length ? `<div class="cd-listas" role="group" aria-label="Listas"><button type="button" class="cd-lst${CD.lista ? '' : ' on'}" data-act="cd-lista" data-l="" aria-pressed="${!CD.lista}">Tudo</button>${L.map(l => `<button type="button" class="cd-lst${CD.lista === l ? ' on' : ''}" data-act="cd-lista" data-l="${esc(l)}" aria-pressed="${CD.lista === l}">#${esc(l)}</button>`).join('')}</div>` : ''}
       <div class="cd-folha" id="cd-corpo" role="tabpanel">${CD.ok ? corpo() : '<p class="cd-vazio">Abrindo o caderninho…</p>'}</div>
-      <p class="fine cd-pe">Anota numa frase: o Caderninho entende <b>hoje</b>, <b>amanhã</b>, <b>sexta</b>, <b>25/10</b>, <b>15h</b>, <b>todo dia</b>, <b>#lista</b> e <b>!1</b> (prioridade). Com hora, o celular avisa na hora.</p>
+      <p class="fine cd-pe">Anota numa frase: o Caderninho entende <b>hoje</b>, <b>amanhã</b>, <b>sexta</b>, <b>25/10</b>, <b>15h</b>, <b>todo dia</b>, <b>#lista</b> e <b>!1</b> (prioridade). Com hora, o celular avisa na hora. Tem muita coisa na cabeça? Toca em <b>Várias</b> e despeja tudo de uma vez.</p>
     </main>`;
     ouveAdd();
+    if(C.bicho){ C.bicho.liga($('cd')); if(!CD.falta) C.bicho.carrega(); }
+    if(CD.aba === 'semana') arrastaLiga($('cd-sem'));
   }
   /* repinta só o miolo (marcar, mudar de aba) sem perder o que tava escrito no anotar */
   function repinta(){
@@ -341,7 +588,7 @@
   }
 
   /* ---------- anotar ---------- */
-  function base(){ return { dia: CD.aba === 'hoje' ? hoje() : CD.aba === 'solta' ? null : undefined, lista: CD.lista || '' }; }
+  function base(){ return { dia: CD.aba === 'hoje' || CD.aba === 'semana' ? hoje() : CD.aba === 'solta' ? null : undefined, lista: CD.lista || '' }; }
   function chipsDe(o){
     const c = [];
     if(o.dia) c.push(`${ico('cal')}${esc(diaTxt(o.dia))}`);
@@ -361,6 +608,12 @@
   function ouveAdd(){
     const f = $('cd-add'), i = $('cd-novo'); if(!f || !i) return;
     i.addEventListener('input', mostraEntendi);
+    /* v4.30: colou várias linhas: vira o despejar (cada linha uma tarefa) */
+    i.addEventListener('paste', e => {
+      const tx = e.clipboardData && e.clipboardData.getData('text'); if(!tx) return;
+      if(tx.split(/\r?\n/).filter(x => x.trim()).length < 2) return;
+      e.preventDefault(); despeja((i.value.trim() ? i.value.trim() + '\n' : '') + tx);
+    });
     f.addEventListener('submit', async e => {
       e.preventDefault();
       const v = i.value.trim(); if(!v) { i.focus(); return; }
@@ -369,7 +622,7 @@
       if(ok){ i.value = ''; mostraEntendi(); i.focus(); }
     });
   }
-  async function cria(o, pai){
+  async function cria(o, pai, quieto){
     if(CD.falta){ toast('O Caderninho liga quando o banco do Corre atualizar.'); return false; }
     const row = { titulo: String(o.titulo || '').slice(0, 300), dia: o.dia || null, hora: o.hora || null, lista: String(o.lista || '').slice(0, 40), prio: o.prio || 4, repete: o.repete || '', ...(o.cada > 1 && UNID[o.repete] ? { cada: o.cada } : {}), ...(o.antes && o.antes.length && o.hora ? { antes: o.antes.slice(0, 6).sort((a, b) => a - b) } : {}), ordem: Date.now() / 1e3 };
     if(pai){ row.pai = pai; row.dia = null; row.hora = null; row.repete = ''; row.lista = ''; delete row.cada; delete row.antes; }
@@ -377,6 +630,7 @@
       const r = await api.ins('corre_caderno', row);
       const t = (r && r[0]) || Object.assign({ id: C.rid(), feito: false }, row);
       CD.t.push(t);
+      if(quieto) return t;
       if(!pai){
         /* o anotado foi pra outra aba: diz onde ficou */
         const onde = !t.dia ? 'Algum dia' : t.dia === hoje() ? '' : t.dia < hoje() ? 'Ficou pra trás' : diaTxt(t.dia);
@@ -385,7 +639,7 @@
       }
       repinta(); C.sinaisAtualiza && C.sinaisAtualiza();
       return t;
-    }catch(e){ if(faltaTabela(e)){ CD.falta = true; repinta(); return false; } toast(semCada(e) ? semCada(e) : C.errMsg(e)); return false; }
+    }catch(e){ if(faltaTabela(e)){ CD.falta = true; repinta(); return false; } if(!quieto) toast(semCada(e) ? semCada(e) : C.errMsg(e)); else throw e; return false; }
   }
   /* site novo com o banco de antes da 4.20 (sem a coluna do "a cada") */
   const semCada = e => e && e.code === 'PGRST204' && /cada|antes|endereco|anexos/.test(e.message || '') ? 'O "a cada N dias" e os avisos de antes ligam quando o banco do Corre atualizar.' : '';
@@ -474,7 +728,8 @@
       <fieldset class="cd-f-g cd-f-sub"><legend>Subtarefas${ss.length ? ` <small class="num">${ss.filter(s => s.feito).length}/${ss.length}</small>` : ''}</legend>
         <ol class="cd-l" id="cd-f-subs">${ss.map(s => itTarefa(s)).join('')}</ol>
         <div class="cd-f-novo"><label class="sr-only" for="cd-f-s">Nova subtarefa</label><input id="cd-f-s" maxlength="300" placeholder="+ subtarefa (Enter)"><button type="button" class="btn sm" data-act="cd-sub-add">Pôr</button></div></fieldset>
-      <div class="acts"><button type="submit" class="btn pri">Salvar</button><button type="button" class="btn ghost cd-f-x" data-act="cd-apaga" data-id="${esc(id)}">${ico('trash')} Apagar</button></div>
+      <div class="acts"><button type="submit" class="btn pri">Salvar</button>${!t.feito && C.bicho && C.bicho.tem('foco') ? `<button type="button" class="btn" data-act="cd-foco" data-id="${esc(id)}">${ico('clock')} Foco</button>` : ''}<button type="button" class="btn ghost cd-f-x" data-act="cd-apaga" data-id="${esc(id)}">${ico('trash')} Apagar</button></div>
+      ${!t.feito && C.bicho && C.bicho.me() && !C.bicho.tem('foco') ? `<p class="fine cd-f-tranca">${ico('lock')} Modo foco: ${esc(C.bicho.nome())} aprende com 30.000 tarefas.</p>` : ''}
     </form>`, 'cd-folhinha');
     const f = $('cd-f'); if(!f) return;
     const tt = $('cd-f-t'), cresce = () => { tt.style.height = 'auto'; tt.style.height = tt.scrollHeight + 'px'; };
@@ -562,6 +817,7 @@
     if(rota !== C.rota) return;
     repinta();
     if(abre) folha(abre[1]);
+    else if(focoLe()) focoMostra();
   };
   /* (o menu e a Comanda: as tarefas de hoje e as que ficaram pra trás) */
   C.caderno.sinal = async () => {
@@ -621,7 +877,25 @@
       if(C.api.anexo) CD.t.filter(x => x.id === id || x.pai === id).forEach(x => anexosDe(x).forEach(a => C.api.anexo.tira(a.p)));
       CD.t = CD.t.filter(x => x.id !== id && x.pai !== id); C.closeSheet(); repinta(); C.sinaisAtualiza && C.sinaisAtualiza(); toast('Apagada.');
     },
-    'cd-rele': () => carrega(true).then(repinta)
+    'cd-rele': () => carrega(true).then(repinta),
+    /* v4.30 */
+    'cd-despeja': () => { const i = $('cd-novo'); despeja(i && i.value.trim() ? i.value.trim() + '\n' : ''); if(i) i.value = ''; mostraEntendi(); },
+    'cd-sem': el => { CD.sem = Math.max(0, Math.min(8, CD.sem + Number(el.dataset.d || 0))); repinta(); const b = document.querySelector(`[data-act="cd-sem"][data-d="${el.dataset.d}"]`); if(b && !b.disabled) b.focus(); },
+    'cd-mv': el => {
+      const t = CD.t.find(x => x.id === el.dataset.id); if(!t) return;
+      const hj = hoje(), d = Number(el.dataset.d) || 0, novo = !t.dia || t.dia < hj ? (d > 0 ? hj : null) : soma(t.dia, d);
+      if(novo && novo < hj) return;
+      if(novo) moveDia(t.id, novo, String(d));
+    },
+    'cd-faro-outra': el => { CD.pulei.add(el.dataset.id); repinta(); },
+    'cd-foco': el => focoAbre(el.dataset.id),
+    'cd-foco-fechei': async () => {
+      const f = focoLe(); focoFecha(true); if(!f) return;
+      const t = CD.t.find(x => x.id === f.id); if(t && !t.feito) await feita(t.id);
+    },
+    'cd-foco-pausa': () => { const f = focoLe(); if(!f) return; if(f.parou){ f.pausa = (f.pausa || 0) + (Date.now() - f.parou); f.parou = 0; } else f.parou = Date.now(); focoGrava(f); focoTique(); },
+    'cd-foco-mais': () => { const f = focoLe(); if(!f) return; f.dur += 5 * 6e4; FC.tocou = false; const b = $('cd-foco'); if(b) b.classList.remove('fim'); const m = $('cd-foco-msg'); if(m) m.textContent = 'Mais 5. Bora.'; focoGrava(f); focoTique(); },
+    'cd-foco-sai': () => focoFecha(true)
   });
   /* as feitas abertas ou fechadas ficam lembradas; e a tecla Q anota (como no Todoist), fora de campo */
   document.addEventListener('toggle', e => { const d = e.target; if(d && d.matches && d.matches('details[data-feitas]')) ls.set(K_FEITAS, d.open ? '1' : '0'); }, true);

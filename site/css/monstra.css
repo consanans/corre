@@ -4725,3 +4725,197 @@ body.fn-arrastando .fn-board{scroll-snap-type:none}
 .mm-p.pulou{opacity:.8}
 @media (max-width:640px){.mm-extra{margin-left:0}}
 @media (prefers-reduced-motion:reduce){.mm-p.indo .mm-pi{animation:none}}
+
+/* v4.30 · o bicho do Caderninho (na capa, a folha dele, a escolha do ovo e a evolução), a Semana em colunas com
+   arrastar, o despejar várias de uma vez, a tarefa da vez (Farejar) e o modo foco. Nada de verde: o bicho é azul,
+   laranja e marrom, o mapa do ano vai do amarelo ao rosa */
+.cd-capa{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.cd-capa-d{min-width:0;flex:1}
+.bx-capa-w:empty{display:none}
+.bx-capa{appearance:none;border:0;background:rgb(255 255 255 / 6%);color:var(--night-ink);display:flex;align-items:center;gap:8px;padding:4px 10px 4px 4px;border-radius:16px;cursor:pointer;text-align:left;max-width:230px;font:inherit;transition:background .2s}
+.bx-capa:hover{background:rgb(255 255 255 / 12%)}
+.bx-capa:focus-visible{outline:3px solid var(--yellow);outline-offset:2px}
+.bx-cv{display:block;width:84px;height:84px;flex:none}
+.bx-tx{display:grid;gap:3px;min-width:0}
+.bx-tx b{font:800 14px/1.15 var(--font-display);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bx-tx small{font-size:11.5px;line-height:1.25;color:var(--night-ink-2)}
+.bx-barra{display:block;height:6px;border-radius:9px;background:rgb(255 255 255 / 14%);overflow:hidden}
+.bx-barra b{display:block;height:100%;background:var(--yellow);border-radius:9px}
+.bx-novo .bx-tx b{color:var(--yellow)}
+.bx-brilho{box-shadow:0 0 0 1.5px rgb(255 232 0 / 55%),0 0 18px rgb(255 232 0 / 25%)}
+@media (max-width:520px){.bx-cv{width:64px;height:64px}.bx-capa{max-width:150px;padding-right:8px}.bx-tx b{font-size:13px}.bx-tx small{font-size:11px}}
+@media (max-width:360px){.bx-capa .bx-tx{display:none}.bx-capa{padding:2px}}
+
+/* a folha do bicho e a escolha do ovo */
+.bx-folha .panel{max-width:600px}
+.bx-f{display:grid;gap:10px}
+.bx-h{margin:0;font:900 24px/1.1 var(--font-display)}
+.bx-f-top{display:flex;gap:14px;align-items:center}
+.bx-grande{width:150px;height:150px;background:radial-gradient(circle at 50% 70%,var(--yellow-tint),transparent 70%);border-radius:50%}
+.bx-f-id{display:grid;gap:4px;min-width:0;flex:1}
+.bx-f-k{margin:0;font:600 12px/1 "IBM Plex Mono",monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.bx-f-forma{margin:0;color:var(--ink-2);font-size:14px}
+.bx-ap{justify-self:start;font-size:13px}
+.bx-f-xp{margin:4px 0 0;font-size:14px}
+.bx-f-xp small{color:var(--muted)}
+.bx-f .bx-barra{background:var(--paper-2);border:1.5px solid var(--ink);height:10px}
+.bx-f .bx-barra b{background:var(--pink)}
+.bx-f-falta{margin:0;font-size:13px;color:var(--ink-2)}
+.bx-ap-f{display:flex;gap:6px}
+.bx-ap-f input{flex:1;min-width:0;border:1.5px solid var(--ink);border-radius:10px;padding:8px 10px;font:700 18px var(--font-display)}
+.bx-sh{display:flex;align-items:center;gap:6px;margin:8px 0 0;font:800 15px/1 var(--font-display)}
+.bx-sh .ic{width:16px;height:16px}
+.bx-linha{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}
+.bx-linha li{display:grid;justify-items:center;gap:2px;text-align:center;padding:6px 2px;border-radius:12px;border:1.5px dashed var(--line)}
+.bx-linha li.ja{border-style:solid;border-color:var(--ink);background:var(--paper)}
+.bx-linha li.aqui{background:var(--yellow-tint);box-shadow:2px 2px 0 var(--ink)}
+.bx-linha .bx-cv{width:100%;max-width:70px;height:62px}
+.bx-linha b{font-size:11.5px;line-height:1.15}
+.bx-linha small{font-size:10.5px;color:var(--muted)}
+.bx-poderes{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.bx-poderes li{display:flex;gap:10px;align-items:flex-start;padding:8px 10px;border-radius:12px;background:var(--paper-2);color:var(--muted)}
+.bx-poderes li.ja{background:var(--paper);border:1.5px solid var(--ink);color:var(--ink)}
+.bx-poderes i{flex:none;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:var(--line);color:var(--ink-2)}
+.bx-poderes li.ja i{background:var(--yellow);color:var(--ink)}
+.bx-poderes i .ic{width:16px;height:16px}
+.bx-poderes span{flex:1;font-size:13px;line-height:1.35}
+.bx-poderes span b{font-size:14px}
+.bx-poderes span small{color:var(--purple);font-weight:600}
+.bx-poderes em{flex:none;font:600 11px/1.2 "IBM Plex Mono",monospace;font-style:normal;align-self:center;white-space:nowrap}
+.bx-poderes li.ja em{color:var(--blue)}
+.bx-seq p{display:flex;gap:8px;align-items:center;margin:4px 0 0;font-size:13.5px}
+.bx-seq .ic{flex:none;width:18px;height:18px;color:var(--orange)}
+.bx-ano{display:grid;grid-template-rows:repeat(7,11px);grid-auto-flow:column;grid-auto-columns:11px;gap:3px;overflow-x:auto;padding:4px 0}
+.bx-ano i{display:block;border-radius:3px;background:var(--paper-2);border:1px solid var(--line)}
+.bx-ano i.n1{background:#FFF3A3;border-color:#E9D36A}.bx-ano i.n2{background:var(--yellow);border-color:#C9B600}
+.bx-ano i.n3{background:var(--orange);border-color:#C4501E}.bx-ano i.n4{background:var(--pink);border-color:#B8287A}
+.bx-ano i.fora{visibility:hidden}
+.bx-intro{margin:0;color:var(--ink-2);line-height:1.45}
+.bx-ovos{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.bx-ovo{appearance:none;display:grid;justify-items:center;gap:4px;text-align:center;padding:10px 8px 12px;border:2px solid var(--line);border-radius:16px;background:var(--paper);cursor:pointer;font:inherit;color:var(--ink)}
+.bx-ovo .bx-cv{width:96px;height:96px}
+.bx-ovo b{font:800 14px/1.15 var(--font-display)}
+.bx-ovo small{color:var(--purple);font-weight:600;font-size:12px}
+.bx-ovo span{font-size:12.5px;line-height:1.35;color:var(--ink-2)}
+.bx-ovo:hover{border-color:var(--ink)}
+.bx-ovo[aria-checked="true"]{border-color:var(--ink);background:var(--yellow-tint);box-shadow:3px 3px 0 var(--ink)}
+.bx-ovo:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+@media (max-width:520px){.bx-ovos{grid-template-columns:1fr}.bx-ovo{grid-template-columns:76px 1fr;justify-items:start;text-align:left;column-gap:10px}.bx-ovo .bx-cv{grid-row:span 3;width:76px;height:76px}.bx-ovo span{grid-column:2}.bx-grande{width:110px;height:110px}.bx-f-top{align-items:flex-start}.bx-linha b{font-size:10px}}
+
+/* a evolução: o escuro, os raios girando, o pisca-pisca e a revelação */
+.bx-evo{position:fixed;inset:0;z-index:95;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:24px 16px max(24px,env(safe-area-inset-bottom));background:radial-gradient(circle at 50% 42%,#2A2140,#0C0A0F 70%);color:var(--night-ink);text-align:center;animation:bx-entra .3s ease-out}
+.bx-evo-raios{position:absolute;left:50%;top:40%;width:780px;height:780px;margin:-390px 0 0 -390px;pointer-events:none;opacity:.5;background:repeating-conic-gradient(rgb(255 232 0 / 20%) 0 9deg,transparent 9deg 22deg,rgb(255 72 176 / 16%) 22deg 30deg,transparent 30deg 45deg);border-radius:50%;-webkit-mask:radial-gradient(circle,#000 18%,transparent 62%);mask:radial-gradient(circle,#000 18%,transparent 62%);animation:bx-gira 14s linear infinite}
+.bx-evo.pronto .bx-evo-raios{opacity:.9;animation-duration:6s}
+.bx-evo-cv{position:relative;width:min(280px,72vw);height:min(280px,72vw)}
+.bx-evo-t{position:relative;margin:0;max-width:520px;font:900 clamp(22px,5.4vw,32px)/1.15 var(--font-display)}
+.bx-evo.pronto .bx-evo-t{color:var(--yellow)}
+.bx-evo-p{position:relative;display:grid;gap:8px;max-width:440px;width:100%}
+.bx-evo-p p{display:flex;gap:10px;align-items:flex-start;margin:0;padding:10px 12px;border-radius:14px;background:rgb(255 255 255 / 8%);text-align:left;font-size:14px;line-height:1.4;animation:bx-entra .5s ease-out both}
+.bx-evo-p p:nth-child(2){animation-delay:.15s}.bx-evo-p p:nth-child(3){animation-delay:.3s}
+.bx-evo-p i{flex:none;width:32px;height:32px;border-radius:50%;display:grid;place-items:center;background:var(--yellow);color:var(--ink)}
+.bx-evo-p i .ic{width:17px;height:17px}
+.bx-evo-p small{color:var(--lav)}
+.bx-evo-ok{position:relative;min-width:160px}
+/* o clarão da revelação: a tela inteira acende e apaga (no canvas virava um quadrado claro) */
+.bx-evo::after{content:"";position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none}
+.bx-evo.clarao::after{animation:bx-clarao .7s ease-out}
+@keyframes bx-clarao{from{opacity:.95}to{opacity:0}}
+@keyframes bx-gira{to{transform:rotate(1turn)}}
+@keyframes bx-entra{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.bx-evo,.bx-evo-p p{animation:none}.bx-evo-raios{animation:none}.bx-evo.clarao::after{animation:none}}
+
+/* o anotar ganha o "Várias" (despejar) */
+.cd-varias{flex:none;appearance:none;border:0;background:var(--paper-2);color:var(--ink-2);border-radius:9px;display:inline-flex;align-items:center;gap:5px;padding:6px 9px;margin-right:-6px;font:600 13px/1 var(--font-body);cursor:pointer}
+.cd-varias .ic{width:15px;height:15px;color:var(--ink-2)}
+.cd-varias:hover,.cd-varias:focus-visible{background:var(--yellow);color:var(--ink)}
+@media (max-width:420px){.cd-varias span{display:none}}
+.cd-dsp{display:grid;gap:10px}
+.cd-dsp-i{margin:0;color:var(--ink-2);font-size:14px;line-height:1.45}
+.cd-dsp textarea{width:100%;box-sizing:border-box;border:2px solid var(--ink);border-radius:12px;padding:10px 12px;font:15px/1.5 var(--font-body);resize:vertical;min-height:130px}
+.cd-dsp-n{margin:0;font:600 12px/1 "IBM Plex Mono",monospace;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.cd-dsp-n:empty{display:none}
+.cd-dsp-l{list-style:none;margin:0;padding:0;display:grid;gap:4px;max-height:40vh;overflow:auto}
+.cd-dsp-l label{display:flex;gap:10px;align-items:flex-start;padding:7px 8px;border-radius:10px;background:var(--paper-2);cursor:pointer}
+.cd-dsp-l input{margin-top:3px;width:18px;height:18px;accent-color:var(--pink);flex:none}
+.cd-dsp-l span{display:flex;flex-wrap:wrap;gap:4px 6px;align-items:center;font-size:14px}
+.cd-dsp-l b{font-weight:600;width:100%}
+.cd-dsp-l .cd-chip{background:var(--ink);color:var(--paper);font-size:12px;padding:2px 8px}
+.cd-dsp-l .cd-chip .p1{color:var(--orange)}.cd-dsp-l .cd-chip .p2{color:var(--yellow)}
+.cd-dsp-l input:not(:checked) + span{opacity:.45;text-decoration:line-through}
+
+/* a tarefa da vez (Farejar) */
+.cd-faro{display:grid;grid-template-columns:64px 1fr;gap:4px 10px;align-items:center;margin:10px 0 4px;padding:8px 12px 10px 6px;border:2px solid var(--ink);border-radius:14px;background:var(--yellow-tint);box-shadow:3px 3px 0 var(--ink)}
+.cd-faro-cv{width:64px;height:64px;grid-row:span 2}
+.cd-faro-tx{display:grid;gap:2px;min-width:0}
+.cd-faro-tx small{font:600 11.5px/1.2 "IBM Plex Mono",monospace;text-transform:uppercase;letter-spacing:.06em;color:var(--purple)}
+.cd-faro-tx b{font:800 17px/1.25 var(--font-display);overflow-wrap:anywhere}
+.cd-faro-b{display:flex;flex-wrap:wrap;gap:6px}
+.cd-faro-b .btn .ic{width:15px;height:15px}
+
+/* a Semana: as colunas (rolam de lado quando não cabem) */
+.cd.cd-larga{max-width:1240px}
+.cd-sem-nav{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:8px 0}
+.cd-sem-nav b{font:800 16px/1 var(--font-display)}
+.cd-sem-nav small{color:var(--muted);font-size:12.5px;margin-left:auto}
+.cd-sem{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(150px,1fr);gap:8px;overflow-x:auto;padding:2px 2px 10px;scroll-snap-type:x proximity;overscroll-behavior-x:contain}
+.cd-col{scroll-snap-align:start;display:flex;flex-direction:column;gap:6px;min-height:220px;padding:8px;border-radius:14px;background:var(--paper-2);border:1.5px solid var(--line);transition:background .15s,border-color .15s}
+.cd-col.hoje{background:var(--yellow-tint);border-color:var(--ink)}
+.cd-col.fds header b{color:var(--purple)}
+.cd-col.solta{background:transparent;border-style:dashed}
+.cd-col.cd-sobre{background:var(--pink-tint);border-color:var(--pink);border-style:solid}
+.cd-col header{display:flex;align-items:baseline;gap:6px}
+.cd-col header b{font:800 15px/1 var(--font-display)}
+.cd-col header small{font:600 11.5px/1 "IBM Plex Mono",monospace;color:var(--muted)}
+.cd-carga{margin-left:auto;min-width:22px;height:22px;padding:0 6px;box-sizing:border-box;border-radius:11px;background:var(--ink);color:var(--paper);font:700 12px/22px var(--font-body);text-align:center}
+.cd-carga.cheia{background:var(--orange);color:var(--ink)}
+.cd-cl{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.cd-card{display:flex;align-items:flex-start;gap:6px;padding:7px 6px 7px 7px;border-radius:10px;background:var(--paper);border:1.5px solid var(--ink);box-shadow:2px 2px 0 var(--ink);touch-action:pan-y;cursor:grab;user-select:none;-webkit-user-select:none}
+.cd-card.atras{border-color:#A8420A}
+.cd-card .cd-ck{width:20px;height:20px;margin-top:0}
+.cd-card .cd-ck .ic{width:12px;height:12px}
+.cd-card .cd-tx b{font-size:13.5px;line-height:1.3}
+.cd-card .cd-meta{font-size:11.5px;gap:2px 6px}
+.cd-mv{display:flex;flex-direction:column;gap:2px;margin:-3px -2px -3px 0}
+.cd-mvb{appearance:none;border:0;background:none;width:22px;height:20px;padding:0;display:grid;place-items:center;border-radius:6px;color:var(--muted);cursor:pointer}
+.cd-mvb .ic{width:14px;height:14px}
+.cd-mvb:hover:not(:disabled),.cd-mvb:focus-visible{background:var(--yellow);color:var(--ink)}
+.cd-mvb:disabled{opacity:.25;cursor:default}
+.cd-card.cd-pega{opacity:.35}
+.cd-fantasma{position:fixed;left:0;top:0;z-index:90;pointer-events:none;box-shadow:6px 6px 0 var(--ink);opacity:.95}
+body.cd-arrastando{user-select:none;-webkit-user-select:none;cursor:grabbing}
+.cd-corre-c{cursor:default;border-style:dashed;box-shadow:none;background:var(--paper)}
+.cd-corre-c a{display:grid;grid-template-columns:auto 1fr;gap:2px 6px;color:var(--ink);text-decoration:none;width:100%}
+.cd-corre-c .cd-fer{grid-row:span 2;width:20px;height:20px;border-radius:6px;display:grid;place-items:center;background:var(--night);color:var(--yellow)}
+.cd-corre-c .cd-fer .ic{width:12px;height:12px}
+.cd-corre-c b{font-size:13px;font-weight:600;line-height:1.3}
+.cd-col .cd-mais{padding:4px 0;font-size:13px}
+.cd-col-v{margin:4px 0;font-size:12.5px;color:var(--muted)}
+@media (max-width:700px){.cd-sem{grid-auto-columns:78%;margin:0 -6px;padding-left:6px;padding-right:6px}.cd-sem-nav small{width:100%;margin:0}}
+.cd-f-tranca{display:flex;gap:6px;align-items:center;margin:0}
+.cd-f-tranca .ic{width:14px;height:14px}
+
+/* o modo foco: a tela toda, o relógio em anel em volta do bicho */
+body.cd-focado{overflow:hidden}
+.cd-foco{position:fixed;inset:0;z-index:85;display:flex;align-items:center;justify-content:center;padding:max(16px,env(safe-area-inset-top)) 16px max(16px,env(safe-area-inset-bottom));background:var(--night);color:var(--night-ink);overflow:auto}
+.cd-foco-in{display:grid;justify-items:center;gap:10px;width:100%;max-width:520px;text-align:center}
+.cd-foco-k{display:flex;align-items:center;gap:6px;margin:0;font:600 12px/1 "IBM Plex Mono",monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--yellow)}
+.cd-foco-k .ic{width:15px;height:15px}
+.cd-foco-anel{position:relative;width:min(240px,62vw);aspect-ratio:1}
+.cd-foco-anel svg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg)}
+.cd-foco-anel circle{fill:none;stroke-width:6}
+.cd-foco-anel .fundo{stroke:rgb(255 255 255 / 12%)}
+.cd-foco-anel .arco{stroke:var(--yellow);stroke-linecap:round;stroke-dasharray:100;stroke-dashoffset:0;transition:stroke-dashoffset .25s linear}
+.cd-foco.fim .cd-foco-anel .arco{stroke:var(--pink)}
+.cd-foco-cv{position:absolute;left:20%;top:18%;width:60%;height:62%}
+.cd-foco-t{font:900 clamp(44px,13vw,64px)/1 "Big Shoulders Display",var(--font-display);letter-spacing:.02em}
+.cd-foco.pausado .cd-foco-t{opacity:.5}
+.cd-foco.fim .cd-foco-t{color:var(--pink)}
+.cd-foco-tit{margin:0;font:800 clamp(20px,5vw,26px)/1.2 var(--font-display);overflow-wrap:anywhere}
+.cd-foco-msg{margin:0;color:var(--night-ink-2)}
+.cd-foco-b{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:6px}
+.cd-foco .btn.ghost{color:var(--night-ink);border-color:rgb(255 255 255 / 35%)}
+.cd-foco .btn:not(.pri):not(.ghost){color:var(--ink)}
+
+/* o bom dia nos Avisos no celular: a hora embaixo do interruptor */
+.psh-hora{display:flex;align-items:center;gap:8px;margin:-4px 0 6px 52px;font-size:13.5px}
+.psh-hora select{border:1.5px solid var(--ink);border-radius:9px;padding:6px 8px;font:600 14px var(--font-body);background:var(--paper)}

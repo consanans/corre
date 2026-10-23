@@ -192,7 +192,12 @@
     /* v4.18: só aparece com o banco novo (o ajuste traz "postar") */
     ['postar', 'Hora de postar (Studio)', 'Na hora do post programado que não sai sozinho no Instagram, e quando o Instagram recusa um post. Toca e o post abre com o Postar na mão.'],
     /* v4.19: só aparece com o banco novo (o ajuste traz "caderno") */
-    ['caderno', 'Caderninho', 'Na hora de cada tarefa com hora marcada. Toca e a tarefa abre.']];
+    ['caderno', 'Caderninho', 'Na hora de cada tarefa com hora marcada. Toca e a tarefa abre.'],
+    /* v4.30: só aparece com o banco novo (o ajuste traz "bomdia") */
+    ['bomdia', 'Bom dia', 'De manhã, um aviso com o teu dia: as tarefas, o post que sai, os clientes pra retornar e as cobranças. Só quando tem alguma coisa, e não se você já abriu o Corre.']];
+  /* v4.30: a hora do bom dia, de meia em meia hora, das 5h às 11h30 (o banco aceita só essas) */
+  const HORAS_BD = Array.from({ length: 14 }, (x, i) => `${String(5 + Math.floor(i / 2)).padStart(2, '0')}:${i % 2 ? '30' : '00'}`);
+  const horaBD = a => `<label class="psh-sub psh-hora"${a.bomdia === false ? ' hidden' : ''}><span>Que horas</span><select data-chg="push-bomdia-hora" aria-label="A hora do bom dia">${HORAS_BD.map(h => `<option value="${h}"${(a.bomdia_hora || '08:00') === h ? ' selected' : ''}>${Number(h.slice(0, 2))}h${h.slice(3) === '00' ? '' : h.slice(3)}</option>`).join('')}</select></label>`;
   /* o botão Compartilhar do Safari (quadrado com a seta pra cima), desenhado aqui pra pessoa reconhecer */
   const COMPARTILHAR = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v11.5M8 7l4-4 4 4"/><path d="M8.5 10.5H6v10h12v-10h-2.5"/></svg>';
   function passosIOS(){
@@ -223,7 +228,7 @@
       : e === 'iab' ? `<button type="button" class="btn pri" data-act="iab-copia">Copiar o link</button>`
       : e === 'bloqueado' ? `<button type="button" class="btn" data-act="push-confere">Já liberei</button>` : '';
     const tipos = P.semBanco ? '' : `<fieldset class="psh-tipos"${a.msg === undefined ? ' disabled' : ''}><legend>O que chega</legend>
-      ${TIPOS.filter(([k]) => (k !== 'lembra' && k !== 'postar' && k !== 'caderno') || a[k] !== undefined).map(([k, t, s]) => `<label class="switch sm"><input type="checkbox" data-chg="push-tipo" data-k="${k}"${a[k] !== false ? ' checked' : ''}><span class="sw" aria-hidden="true"></span><span><b>${t}</b><small>${s}</small></span></label>${k === 'msg' ? `<label class="switch sm psh-sub"><input type="checkbox" data-chg="push-tipo" data-k="texto"${a.texto !== false ? ' checked' : ''}><span class="sw" aria-hidden="true"></span><span><b>Mostrar o texto da mensagem</b><small>Desligado, chega só "mandou uma mensagem".</small></span></label>` : ''}${k === 'lembra' && liga ? `<button type="button" class="lnk psh-ex" data-act="push-lembra-teste"${a.lembra === false ? ' hidden' : ''}>Mandar um lembrete de exemplo</button>` : ''}`).join('')}
+      ${TIPOS.filter(([k]) => (k !== 'lembra' && k !== 'postar' && k !== 'caderno' && k !== 'bomdia') || a[k] !== undefined).map(([k, t, s]) => `<label class="switch sm"><input type="checkbox" data-chg="push-tipo" data-k="${k}"${a[k] !== false ? ' checked' : ''}><span class="sw" aria-hidden="true"></span><span><b>${t}</b><small>${s}</small></span></label>${k === 'msg' ? `<label class="switch sm psh-sub"><input type="checkbox" data-chg="push-tipo" data-k="texto"${a.texto !== false ? ' checked' : ''}><span class="sw" aria-hidden="true"></span><span><b>Mostrar o texto da mensagem</b><small>Desligado, chega só "mandou uma mensagem".</small></span></label>` : ''}${k === 'lembra' && liga ? `<button type="button" class="lnk psh-ex" data-act="push-lembra-teste"${a.lembra === false ? ' hidden' : ''}>Mandar um lembrete de exemplo</button>` : ''}${k === 'bomdia' ? horaBD(a) : ''}`).join('')}
       <p class="fine">Vale pra todos os teus aparelhos. Quem você bloqueou não te avisa de nada.</p></fieldset>`;
     return `<div class="form psh"><div class="sheet-head"><h2>${ico('bell')} Avisos no celular</h2><button type="button" class="cbtn plain" data-close aria-label="Fechar">${ico('x')}</button></div>
       ${statusHTML(e)}${e === 'ios-instalar' ? passosIOS() : ''}
@@ -296,6 +301,10 @@
             C.toast(`Caderninho: ${typeof d.titulo === 'string' && d.titulo ? d.titulo.slice(0, 110) : 'hora de uma tarefa'}.`, 12000, h || '#/caderninho');
             if(C.caderno) C.caderno.chegou();
           }
+          /* v4.30: o bom dia com o Corre aberto na frente (raro: ele não vem pra quem já abriu hoje) */
+          else if(d.t === 'bomdia'){
+            C.toast(`${typeof d.titulo === 'string' && d.titulo ? d.titulo.slice(0, 80) : 'Bom dia!'} Toca aqui pro teu dia.`, 9000, '#/caderninho');
+          }
           else if(d.t === 'postar' && typeof d.url === 'string'){
             const h = (/#\/[^\s<>"]*$/.exec(d.url) || [''])[0];
             C.toast(`${typeof d.titulo === 'string' && d.titulo ? d.titulo.slice(0, 120) : 'Hora de postar'}. Toca aqui pra abrir o post.`, 12000, h || '#/studio');
@@ -336,6 +345,13 @@
       try{ P.ajustes = Object.assign({}, P.ajustes, await C.api.rpc('corre_push_ajusta', { p_campo: k, p_valor: v })); }
       catch(e){ el.checked = !v; C.toast(semBanco(e) || (k === 'lembra' && e && e.hint === 'campo') ? 'Os avisos no celular ainda tão chegando no Corre.' : C.errMsg(e)); }
       if(k === 'lembra'){ const ex = document.querySelector('#sheet .psh-ex'); if(ex) ex.hidden = !el.checked; }
+      if(k === 'bomdia'){ const hb = document.querySelector('#sheet .psh-hora'); if(hb) hb.hidden = !el.checked; }
+    },
+    /* v4.30: a hora do bom dia */
+    'push-bomdia-hora': async el => {
+      const v = el.value, antes = (P.ajustes && P.ajustes.bomdia_hora) || '08:00';
+      try{ P.ajustes = Object.assign({}, P.ajustes, await C.api.rpc('corre_bomdia_hora', { p_hora: v })); C.toast(`Bom dia às ${Number(v.slice(0, 2))}h${v.slice(3) === '00' ? '' : v.slice(3)}.`); }
+      catch(e){ el.value = antes; C.toast(semBanco(e) ? 'O bom dia ainda tá chegando no Corre.' : C.errMsg(e)); }
     },
     'push-faixa-x': el => { ls.set(K_FX + (el.dataset.onde || ''), String(Date.now())); const f = el.closest('.psh-faixa'); if(f) f.remove(); }
   });
