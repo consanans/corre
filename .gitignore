@@ -7,3 +7,8 @@ test/saida/
 # Config local com chaves de produção nunca entra aqui (só as públicas, e mesmo assim no site/config.js)
 .env
 .env.*
+
+# O vídeo renderizado dos motions mora no Descript, não aqui (é pesado)
+docs/motion/**/*.mp4
+docs/motion/**/*.wav
+docs/motion/**/q/
