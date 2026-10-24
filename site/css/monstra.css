@@ -5195,3 +5195,8 @@ body.cd-focado{overflow:hidden}
 @media (prefers-reduced-motion:reduce){ .btn-face{transition:none} }
 /* (tela estreita: os nomes cabem numa linha só) */
 @media (max-width:360px){ .login-card .btn-face,.login-card .btn-apple{font-size:15px;padding:0 14px;gap:8px} }
+/* v4.36 · o Hórus de segunda a sexta: no sábado e no domingo, a faixa de cima diz que ele folga (lilás de noite, sem
+   cara de alerta: não é cobrança) */
+.hz-folga{display:flex;align-items:flex-start;gap:10px;margin:0 0 14px;padding:12px 14px;border:1.5px solid #4A3F66;border-radius:16px;background:#1C1828;color:var(--hz-ink);font-size:14px;line-height:1.45}
+.hz-folga .ic{flex:none;width:20px;height:20px;margin-top:1px;color:#C6A6FF}
+.hz-folga b{color:#C6A6FF}

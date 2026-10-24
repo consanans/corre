@@ -47,8 +47,8 @@
   const ROT = { espera: 'Esperando você', volta: 'Retorno', novo: 'Novo no radar' };
   function grupoDe(l){
     if(Z.DONE.includes(l.st) || !Z.digits(l)) return '';
-    const t = Z.today();
-    if(veio(l) || ((l.st === 'interesse' || l.st === 'link' || Z.responded(l)) && l.prox && l.prox <= t)) return 'espera';
+    /* v4.36: o retorno conta de segunda a sexta (C.horusVence); quem veio sozinho espera até no fim de semana */
+    if(veio(l) || ((l.st === 'interesse' || l.st === 'link' || Z.responded(l)) && C.horusVence(l.prox))) return 'espera';
     if(Z.isDue(l) && Z.nextMsg(l)) return 'volta';
     if(l.st === 'novo' && !l.prox && Z.nextMsg(l)) return 'novo';
     return '';
@@ -178,9 +178,9 @@
     const l = o.l, m = msgDe(l), t = Z.today();
     if(o.g === 'espera'){
       const por = Z.pediuLink(l) ? 'pediu orçamento' : Z.escolheuMural(l) ? 'te escolheu no Mural' : (HF() && HF().esperando && HF().esperando(l)) ? 'chegou sozinho' : l.st === 'link' ? 'proposta na mesa' : l.st === 'interesse' ? 'interessado' : 'respondeu';
-      return `${por}${l.prox && l.prox < t ? ` · retorno venceu ${Z.ddmm(l.prox)}` : ''}`;
+      return `${por}${l.prox && Z.pxDe(l) < t ? ` · retorno venceu ${Z.ddmm(Z.pxDe(l))}` : ''}`;
     }
-    if(o.g === 'volta') return `${l.prox < t ? `venceu ${Z.ddmm(l.prox)}` : 'hoje'} · ${m.n}`;
+    if(o.g === 'volta') return `${Z.pxDe(l) < t ? `venceu ${Z.ddmm(Z.pxDe(l))}` : 'hoje'} · ${m.n}`;
     return Z.isFresh(l) ? 'caça nova · nunca chamou' : 'nunca chamou';
   }
   function carta(o, V){

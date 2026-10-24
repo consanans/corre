@@ -163,11 +163,13 @@
   }
   const lastTouch = l => { const h = (l.hist || []).find(x => x.k === 'toque' || x.k === 'res' || x.k === 'visita'); return h && h.t ? localDay(h.t) : null; };
   const responded = l => (l.hist || []).some(h => h.k === 'res' && !/^Sem resposta/.test(h.v || ''));
-  const isDue = l => !DONE.includes(l.st) && l.prox && l.prox <= today();
+  /* v4.36: o retorno vale de segunda a sexta (o do sábado e do domingo cai na segunda; no fim de semana nada vence) */
+  const pxDe = l => C.horusDia(l.prox);
+  const isDue = l => !DONE.includes(l.st) && C.horusVence(l.prox);
   const conferido = l => (l.hist || []).some(x => x && x.k === 'ok');
   const isFresh = l => l.created_at && daysBetween(String(l.created_at).slice(0, 10), today()) <= 3 && l.st === 'novo';
   function esfriando(l){
-    if(!OPEN.includes(l.st)) return 0; if(l.prox && l.prox >= today()) return 0;
+    if(!OPEN.includes(l.st)) return 0; if(l.prox && pxDe(l) >= today()) return 0;
     const lt = lastTouch(l); if(!lt) return 0; const d = daysBetween(lt, today()); return d >= 7 ? d : 0;
   }
   function heat(l){
@@ -177,7 +179,7 @@
     h += (+l.potencial || 0) * 5;
     if(l.wa) h += 10; else if(l.fixo) h += 2; else h = Math.min(h, 14);
     if(responded(l)) h += 10;
-    if(l.prox){ const t = today(); if(l.prox < t) h += 14 + Math.min(6, daysBetween(l.prox, t)); else if(l.prox === t) h += 10; }
+    if(l.prox){ const t = today(), px = pxDe(l); if(px < t) h += 14 + Math.min(6, daysBetween(px, t)); else if(px === t) h += 10; }
     const lt = lastTouch(l); if(lt && daysBetween(lt, today()) <= 3) h += 4;
     if(esfriando(l)) h -= 8;
     if(l.cad && l.cad.fim) h -= 18;
@@ -201,7 +203,8 @@
     /* v4.34: deixou o WhatsApp pro Atendente 24h e ninguém chamou ainda */
     if(l.fonte === 'atende' && !DONE.includes(l.st) && !(l.hist || []).some(x => x.k === 'toque')) r.push('veio pelo Atendente');
     const fr = faroDe(l); if(fr.length) r.push('faro: ' + SINAIS[fr[0]].n);
-    if(l.prox && l.prox < t && !DONE.includes(l.st)) r.push(`venceu há ${daysBetween(l.prox, t)}d`); else if(l.prox === t) r.push('retorno hoje');
+    const px = pxDe(l);
+    if(px && px < t && !DONE.includes(l.st)) r.push(`venceu há ${daysBetween(px, t)}d`); else if(px === t) r.push('retorno hoje');
     if(l.st === 'link') r.push('proposta na mesa'); else if(l.st === 'interesse') r.push('interessado');
     if(responded(l) && l.st !== 'interesse') r.push('respondeu');
     const e = esfriando(l); if(e) r.push(`esfriando há ${e}d`);
@@ -253,7 +256,7 @@
       l.cad = Object.assign({}, l.cad, { step: s + 1 });
       if(l.st === 'novo') l.st = 'contato';
       const nx = CAD[s + 1];
-      if(nx){ const p = addDays(nx.d, l.cad.ini); l.prox = p > today() ? p : addDays(1); delete l.cad.fim; }
+      if(nx){ const p = addDays(nx.d, l.cad.ini); l.prox = C.diaUtil(p > today() ? p : addDays(1)); delete l.cad.fim; }
       else { l.prox = null; l.cad.fim = today(); }
       logH(l, 'toque', `${how} · ${CAD[s].n}${ia}`);
       C.toast(nx ? `${shortName(l.nome)}: ${CAD[s].n.replace(/^D\d · /, '')} ${how === 'Ligação' ? 'feita' : 'enviada'}. Próximo toque ${ddmm(l.prox)}.` : `${shortName(l.nome)}: último toque da cadência.`, 3200);
@@ -276,8 +279,10 @@
       if(h.k === 'toque') bump(d, 'toques'); else if(h.k === 'res' && !/^Sem resposta/.test(h.v || '')) bump(d, 'resp'); else if(h.k === 'st' && /Fechado/.test(h.v || '')) bump(d, 'fech');
     }));
     const t = today(), hoje = (days[t] || {}).toques || 0;
+    /* v4.36: sábado e domingo não quebram a sequência (o Hórus folga); se bateu a meta no fim de semana, conta */
+    const fds = x => { const w = new Date(x + 'T12:00:00Z').getUTCDay(); return w === 0 || w === 6; };
     let streak = 0, d = hoje >= meta ? t : addDays(-1);
-    while((days[d] || {}).toques >= meta && streak < 400){ streak++; d = addDays(-1, d); }
+    for(let i = 0; i < 560 && streak < 400; i++){ if((days[d] || {}).toques >= meta) streak++; else if(!fds(d)) break; d = addDays(-1, d); }
     const dow = (new Date(t + 'T12:00:00Z').getUTCDay() + 6) % 7, wk = { toques: 0, resp: 0, fech: 0 }, bars = [];
     for(let i = 0; i < 7; i++){ const di = addDays(i - dow); const x = days[di] || {}; if(i <= dow) ['toques', 'resp', 'fech'].forEach(k => wk[k] += x[k] || 0); bars.push({ d: di, n: x.toques || 0, fut: i > dow }); }
     return { meta, hoje, streak, wk, bars };
@@ -581,7 +586,7 @@
       <div class="hz-base-tools"><input class="hz-in" id="hz-q" placeholder="Procurar por nome, bairro, cidade, nicho" value="${esc(H.q)}" aria-label="Procurar na base">
         ${variasPracas() ? `<select class="hz-in sm" data-chg="hz-pf" aria-label="Cidade"><option value="">Todas as cidades</option>${pracasNoRadar().map(p => `<option value="${esc(p.k)}"${H.pf === p.k ? ' selected' : ''}>${esc(p.k)} (${p.n})</option>`).join('')}</select>` : ''}
         ${C.horusLimpa ? `<button type="button" class="hz-btn sm${C.horusLimpa.sel() ? ' on' : ''}" data-act="hz-sel" aria-pressed="${C.horusLimpa.sel()}">Selecionar</button>` : ''}<select class="hz-in sm" data-chg="hz-st" aria-label="Etapa"><option value="abertos"${H.st === 'abertos' ? ' selected' : ''}>Em aberto</option><option value=""${!H.st ? ' selected' : ''}>Todas</option>${STAGES.map(([k, n]) => `<option value="${k}"${H.st === k ? ' selected' : ''}>${n} (${cnt(k)})</option>`).join('')}</select></div>
-      ${C.horusLimpa ? C.horusLimpa.selBar() : ''}${list.length ? `<ul class="hz-base${C.horusLimpa && C.horusLimpa.sel() ? ' sel' : ''}">${list.slice(0, H.more).map(o => `<li>${C.horusLimpa && C.horusLimpa.sel() && !DONE.includes(o.l.st) ? `<input type="checkbox" class="hz-selck" data-chg="hz-sel-l" data-id="${o.l.id}"${C.horusLimpa.marcado(o.l.id) ? ' checked' : ''} aria-label="Marcar ${esc(o.l.nome)}">` : ''}<button type="button" data-act="hz-open" data-id="${o.l.id}"><span class="hz-sc ${o.h ? tempOf(o.h) : 'off'}">${o.h || '·'}</span><span class="nm"><b>${esc(o.l.nome)}</b><small>${esc(nichoOf(o.l).n)}${o.l.bairro ? ' · ' + esc(o.l.bairro) : ''}${esc(ondeTxt(o.l))}</small></span><span class="stg st-${o.l.st}">${SN[o.l.st] || o.l.st}</span><span class="px">${o.l.prox && !DONE.includes(o.l.st) ? ddmm(o.l.prox) : ''}</span></button>${o.l.wa && !DONE.includes(o.l.st) && !(C.horusLimpa && C.horusLimpa.sel()) ? (m => m ? `<a class="hz-wa-mini" href="${esc(waUrl(o.l, compose(o.l, m.k)))}" target="_blank" rel="noopener" data-act="hz-fire" data-id="${o.l.id}" aria-label="WhatsApp de ${esc(shortName(o.l.nome))}: ${esc(m.n)}" title="${esc(m.n)}">${ico('wa')}</a>` : '')(nextMsg(o.l)) : ''}</li>`).join('')}</ul>${list.length > H.more ? `<button type="button" class="hz-btn ghost wide" data-act="hz-mais">Mostrar mais ${Math.min(60, list.length - H.more)}</button>` : ''}` : '<p class="hz-muted">Nada por aqui com esse filtro.</p>'}`;
+      ${C.horusLimpa ? C.horusLimpa.selBar() : ''}${list.length ? `<ul class="hz-base${C.horusLimpa && C.horusLimpa.sel() ? ' sel' : ''}">${list.slice(0, H.more).map(o => `<li>${C.horusLimpa && C.horusLimpa.sel() && !DONE.includes(o.l.st) ? `<input type="checkbox" class="hz-selck" data-chg="hz-sel-l" data-id="${o.l.id}"${C.horusLimpa.marcado(o.l.id) ? ' checked' : ''} aria-label="Marcar ${esc(o.l.nome)}">` : ''}<button type="button" data-act="hz-open" data-id="${o.l.id}"><span class="hz-sc ${o.h ? tempOf(o.h) : 'off'}">${o.h || '·'}</span><span class="nm"><b>${esc(o.l.nome)}</b><small>${esc(nichoOf(o.l).n)}${o.l.bairro ? ' · ' + esc(o.l.bairro) : ''}${esc(ondeTxt(o.l))}</small></span><span class="stg st-${o.l.st}">${SN[o.l.st] || o.l.st}</span><span class="px">${o.l.prox && !DONE.includes(o.l.st) ? ddmm(pxDe(o.l)) : ''}</span></button>${o.l.wa && !DONE.includes(o.l.st) && !(C.horusLimpa && C.horusLimpa.sel()) ? (m => m ? `<a class="hz-wa-mini" href="${esc(waUrl(o.l, compose(o.l, m.k)))}" target="_blank" rel="noopener" data-act="hz-fire" data-id="${o.l.id}" aria-label="WhatsApp de ${esc(shortName(o.l.nome))}: ${esc(m.n)}" title="${esc(m.n)}">${ico('wa')}</a>` : '')(nextMsg(o.l)) : ''}</li>`).join('')}</ul>${list.length > H.more ? `<button type="button" class="hz-btn ghost wide" data-act="hz-mais">Mostrar mais ${Math.min(60, list.length - H.more)}</button>` : ''}` : '<p class="hz-muted">Nada por aqui com esse filtro.</p>'}`;
     const qi = C.$('hz-q'); if(qi) qi.oninput = () => { H.q = qi.value; clearTimeout(H.qt); H.qt = setTimeout(() => { const pos = qi.selectionStart; paintBase(); const n = C.$('hz-q'); if(n){ n.focus(); try{ n.setSelectionRange(pos, pos); }catch(e){} } }, 250); };
   }
 
@@ -608,8 +613,7 @@
   const gavGuarda = (k, v) => { try{ const g = gavLe(); g[k] = v; localStorage.setItem(GAV_K, JSON.stringify(g)); }catch(e){} };
   /* quem tá esperando você: pediu orçamento, escolheu no Mural, respondeu, interessado ou com proposta e o retorno venceu */
   function paraAgora(){
-    const t = today();
-    return H.leads.filter(l => !DONE.includes(l.st) && (pediuLink(l) || escolheuMural(l) || (C.horusFunil && C.horusFunil.esperando && C.horusFunil.esperando(l)) || ((l.st === 'interesse' || l.st === 'link' || responded(l)) && l.prox && l.prox <= t)))
+    return H.leads.filter(l => !DONE.includes(l.st) && (pediuLink(l) || escolheuMural(l) || (C.horusFunil && C.horusFunil.esperando && C.horusFunil.esperando(l)) || ((l.st === 'interesse' || l.st === 'link' || responded(l)) && C.horusVence(l.prox))))
       .map(l => ({ l, h: heat(l) })).sort(porWa);
   }
   /* o número de cada gaveta fechada (dá pra saber o que tem sem abrir) */
@@ -636,7 +640,9 @@
        em cima, a Mesa (horus-mesa.js: um cliente por vez, o mais quente em cima, o olho do lado); embaixo, o resto em
        gavetas que abrem e fecham (o aparelho lembra quais ficaram abertas) */
     const gav = (k, t, ic, corpo, aberta) => `<details class="hz-sec" data-gav="${k}"${gavAberta(k, aberta) ? ' open' : ''}><summary><span class="hz-sec-t">${ico(ic)}${t}</span><span class="hz-sec-n" data-gav-n="${k}"></span>${ico('desce', 'hz-sec-seta')}</summary><div class="hz-sec-c">${corpo}</div></details>`;
-    C.$('hz-body').innerHTML = `${C.horusMesa ? C.horusMesa.html() : ''}
+    /* v4.36: no sábado e no domingo o Hórus folga (os retornos esperam a segunda); quem pediu orçamento segue na mesa */
+    const folga = C.horusFolga() ? `<p class="hz-folga" role="status">${ico('lua')}<span><b>${new Date(today() + 'T12:00:00Z').getUTCDay() === 6 ? 'Sábado' : 'Domingo'}: o Hórus folga.</b> Os retornos ficam pra segunda, e o Corre não te cobra nada daqui no fim de semana. Quem pediu orçamento continua aparecendo.</span></p>` : '';
+    C.$('hz-body').innerHTML = `${folga}${C.horusMesa ? C.horusMesa.html() : ''}
       ${gav('radar', 'Placar da semana', 'grafico', '<section class="hz-card" id="hz-placar"></section>', false)}
       ${gav('faxina', 'Faxina do radar', 'trash', '<section class="hz-card" id="hz-faxina" hidden></section>', false)}
       ${gav('caca', 'Caçar empresas', 'lupa', '<section class="hz-card" id="hz-caca"></section>', H.leads.length < 15)}
@@ -732,7 +738,7 @@
     if(C.horusFunil){ C.closeSheet(); if(await C.horusFunil.mover(l, st) && st !== 'fechado') leadSheet(l.id); return; }
     l.st = st; logH(l, 'st', `Etapa: ${SN[st]}`);
     if(DONE.includes(st)) l.prox = null;
-    if(st === 'interesse' && !l.prox) l.prox = addDays(1);
+    if(st === 'interesse' && !l.prox) l.prox = C.diaUtil(addDays(1));
     if(await save(l, ['st', 'prox', 'hist'])){
       if(st === 'fechado') fechou(l); else { C.toast(`${shortName(l.nome)}: ${SN[st]}.`); leadSheet(l.id); }
       paint();
@@ -891,7 +897,7 @@
     'hz-st': el => { const l = H.by[el.dataset.id]; if(l) setStage(l, el.dataset.k); },
     'hz-res': async el => {
       const l = H.by[el.dataset.id]; if(!l) return;
-      if(el.dataset.k === 'sim'){ logH(l, 'res', 'Respondeu'); if(l.st === 'novo') l.st = 'contato'; l.prox = addDays(1); C.toast('Respondeu: saiu da cadência. Próximo passo amanhã.'); }
+      if(el.dataset.k === 'sim'){ logH(l, 'res', 'Respondeu'); if(l.st === 'novo') l.st = 'contato'; l.prox = C.diaUtil(addDays(1)); C.toast(`Respondeu: saiu da cadência. Próximo passo ${l.prox === addDays(1) ? 'amanhã' : 'na segunda'}.`); }
       else { logH(l, 'res', 'Sem resposta'); C.toast('Anotado. A cadência segue.'); }
       if(await save(l, ['st', 'prox', 'hist'])){ leadSheet(l.id); paint(); }
     },
@@ -959,7 +965,7 @@
   document.addEventListener('input', e => { if(e.target.id === 'hz-pcid') H.pcid = e.target.value; });
   C.horus = { parseCaca, fromBackup, heat, compose, phoneOf,
     /* o que o horus-turbo.js usa por dentro */
-    _: { H, cfg, saveCfg, save, logH, paint, paintCaca, load, shortName, nichoOf, tempOf, heat, digits, waUrl, fmtTel, phoneOf, STAGES, SN, DONE, OPEN, TN, TEMP, guessNicho, normName, addRows, today, addDays, localDay, leadSheet, scored, nextMsg, compose, isDue, responded, reasons, placar,
+    _: { H, cfg, saveCfg, save, logH, paint, paintCaca, load, shortName, nichoOf, tempOf, heat, digits, waUrl, fmtTel, phoneOf, STAGES, SN, DONE, OPEN, TN, TEMP, guessNicho, normName, addRows, today, addDays, pxDe, localDay, leadSheet, scored, nextMsg, compose, isDue, responded, reasons, placar,
       SINAIS, sinaisDe, faroDe, faroPadrao, pediuLink, escolheuMural, fila, municipios, ondeTxt, cadStep, conferido, defaultMsg, paraAgora, isFresh, ddmm, EYE,
       UFS, UFN, tzDe, horaEm, oiEm, lugarTxt, lugarDe, parseLugar, pracasNoRadar, variasPracas, naPraca, setPraca, dddDe, corpoRadar, waDe } };
 })();

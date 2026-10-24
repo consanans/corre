@@ -110,11 +110,13 @@
       else if(hoje) v.studio = { txt: `${hoje} hoje`, n: hoje, nivel: 'hoje', diz: hoje === 1 ? '1 post sai hoje' : `${hoje} posts saem hoje` };
     }).catch(() => {});
     const horus = !C.ferr('horus') ? null : api.q('corre_leads', { select: 'id,st,prox,fonte,hist', eq: { dono: uid }, lte: { prox: hj }, limit: 3000 }).then(L => {
-      const ab = (L || []).filter(l => l.prox && !LEAD_FIM.includes(l.st)); if(!ab.length) return;
+      const todos = (L || []).filter(l => l.prox && !LEAD_FIM.includes(l.st));
       /* v4.16: pedido de orçamento (ou Mural) que ninguém respondeu vem antes de tudo e leva pra Entrada do Hórus */
-      const ped = ab.filter(l => C.horusFunil ? C.horusFunil.esperando(l) : false).length;
+      const ped = todos.filter(l => C.horusFunil ? C.horusFunil.esperando(l) : false).length;
+      /* v4.36: o pedido avisa qualquer dia; o retorno, só de segunda a sexta (o do fim de semana vale na segunda) */
+      const ab = todos.filter(l => C.horusVence(l.prox)); if(!ped && !ab.length) return;
       if(ped) v.horus = { txt: plural(ped, 'pedido', 'pedidos'), n: ped, nivel: 'alerta', ir: '#/horus/entrada', diz: ped === 1 ? '1 pedido de orçamento esperando resposta' : `${ped} pedidos de orçamento esperando resposta` };
-      else v.horus = { txt: String(ab.length), n: ab.length, nivel: ab.some(l => l.prox < hj) ? 'alerta' : 'hoje', diz: ab.length === 1 ? '1 cliente pra retornar' : `${ab.length} clientes pra retornar` };
+      else v.horus = { txt: String(ab.length), n: ab.length, nivel: ab.some(l => C.horusDia(l.prox) < hj) ? 'alerta' : 'hoje', diz: ab.length === 1 ? '1 cliente pra retornar' : `${ab.length} clientes pra retornar` };
     }).catch(() => {});
     const vendas = api.q('corre_vendas', { select: 'id,st,vence', eq: { dono: uid, st: 'fechado' }, lte: { vence: hj }, limit: 1000 }).then(L => {
       const venc = (L || []).filter(x => x.vence && x.vence < hj).length, hoje = (L || []).filter(x => x.vence === hj).length;

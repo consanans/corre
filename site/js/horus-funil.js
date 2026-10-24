@@ -184,8 +184,9 @@
     if(l.st === 'fechado') return `<span class="fn-px">fechou ${C.ddmm(fechouEm(l) || hoje())}</span>`;
     if(l.st === 'perdido') return `<span class="fn-px">${esc(motivoDe(l) || 'perdido')} · ${C.ddmm(perdeuEm(l) || hoje())}</span>`;
     if(!l.prox) return '';
-    const t = hoje();
-    return l.prox < t ? `<span class="fn-px venceu">venceu ${C.ddmm(l.prox)}</span>` : l.prox === t ? '<span class="fn-px hoje">retorno hoje</span>' : `<span class="fn-px">retorno ${C.ddmm(l.prox)}</span>`;
+    /* v4.36: o dia que vale (o retorno do fim de semana cai na segunda) */
+    const t = hoje(), px = C.horusDia(l.prox);
+    return px < t ? `<span class="fn-px venceu">venceu ${C.ddmm(px)}</span>` : px === t ? '<span class="fn-px hoje">retorno hoje</span>' : `<span class="fn-px">retorno ${C.ddmm(px)}</span>`;
   }
   function cartaoHTML(l){
     const h = Z.heat(l), temp = h ? Z.tempOf(h) : 'off', i = IDX[l.st], vd = valorDe(l), d = diasAqui(l);
@@ -334,7 +335,7 @@
     const antes = { st: l.st, prox: l.prox, hist: l.hist };
     l.st = st; Z.logH(l, 'st', `Etapa: ${Z.SN[st]}${motivo ? ' · ' + motivo : ''}`);
     if(Z.DONE.includes(st)) l.prox = null;
-    else if(!l.prox || l.prox < hoje()) l.prox = Z.addDays(st === 'interesse' ? 1 : 2);
+    else if(!l.prox || l.prox < hoje()) l.prox = C.diaUtil(Z.addDays(st === 'interesse' ? 1 : 2));
     if(!(await Z.save(l, ['st', 'prox', 'hist']))){ Object.assign(l, antes); pinta(); return false; }
     if(st === 'fechado') fechouSheet(l);
     else C.toast(`${Z.shortName(l.nome)}: ${st === 'perdido' ? 'perdido' : NOME[st] || Z.SN[st]}.`, 2400);

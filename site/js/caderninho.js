@@ -199,7 +199,8 @@
     const leads = !C.ferr('horus') ? null : api.q('corre_leads', { select: 'id,nome,prox,st,fonte,hist', eq: { dono: u }, lte: { prox: fim }, limit: 3000 }).then(L => {
       (L || []).filter(l => l.prox && !LEAD_FIM.includes(l.st)).forEach(l => {
         const ped = C.horusFunil && C.horusFunil.esperando ? C.horusFunil.esperando(l) : false;
-        out.push({ k: 'lead', id: l.id, dia: l.prox, hora: null, titulo: ped ? `Responder ${l.nome || 'o pedido'}` : `Retornar ${l.nome || 'cliente'}`, sub: ped ? 'Hórus · pediu orçamento' : 'Hórus · retorno', href: ped ? '#/horus/entrada' : '#/horus', ic: 'eye' });
+        /* v4.36: o retorno do Hórus é de segunda a sexta (o do fim de semana aparece na segunda); o pedido fica no dia dele */
+        out.push({ k: 'lead', id: l.id, dia: ped ? l.prox : C.horusDia(l.prox), hora: null, titulo: ped ? `Responder ${l.nome || 'o pedido'}` : `Retornar ${l.nome || 'cliente'}`, sub: ped ? 'Hórus · pediu orçamento' : 'Hórus · retorno', href: ped ? '#/horus/entrada' : '#/horus', ic: 'eye' });
       });
     }).catch(() => {});
     const vendas = api.q('corre_vendas', { select: 'id,cliente,vence,st,total,sinal', eq: { dono: u, st: 'fechado' }, lte: { vence: fim }, limit: 1000 }).then(L => {

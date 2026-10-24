@@ -45,6 +45,15 @@
   /* "hoje" no fuso de Brasília, como AAAA-MM-DD */
   const hojeBR = (d) => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit' }).format(d || new Date());
   const ddmm = iso => { const [y, m, d] = String(iso).slice(0, 10).split('-'); return `${d}/${m}`; };
+  /* v4.36: o Hórus trabalha de segunda a sexta (o Thales: "o horus tem que funcionar de segunda a sexta").
+     Retorno que cai no sábado ou no domingo vale na segunda; no fim de semana o que venceu espera a segunda
+     (assim nada do Hórus cobra no sábado, e na segunda o retorno do sábado aparece como "hoje", não "venceu"). */
+  const semanaDe = d => new Date(String(d).slice(0, 10) + 'T12:00:00Z').getUTCDay();
+  const somaDia = (d, n) => { const x = new Date(String(d).slice(0, 10) + 'T12:00:00Z'); x.setUTCDate(x.getUTCDate() + n); return x.toISOString().slice(0, 10); };
+  const diaUtil = d => { if(!d) return d; const w = semanaDe(d); return w === 6 ? somaDia(d, 2) : w === 0 ? somaDia(d, 1) : String(d).slice(0, 10); };
+  const horusFolga = () => { const w = semanaDe(hojeBR()); return w === 0 || w === 6; };
+  const horusDia = prox => { if(!prox) return prox; const d = diaUtil(prox), h = diaUtil(hojeBR()); return horusFolga() && d < h ? h : d; };
+  const horusVence = prox => !!prox && horusDia(prox) <= hojeBR();
   function rel(iso){
     const s = (Date.now() - new Date(iso).getTime()) / 1000;
     if(s < 60) return 'agora'; if(s < 3600) return Math.floor(s / 60) + ' min';
@@ -674,7 +683,8 @@
         d.t.corre_caderno.push({ id, dono: eu, titulo: titulo.slice(0, 300), nota, lista: '', dia, hora: null, prio, repete: '', cada: 1, avisa: true, feito: false, feito_em: null, pai: null, ordem: Date.now(), endereco: '', anexos: [], feitas: [], piloto: receita, liga: Object.assign({}, liga, { ref }), created_at: now(), updated_at: now() });
         d.t.corre_piloto_log.push({ id: rid(), dono: eu, receita, ref, tarefa: id, titulo, em: now() }); out.push({ receita, titulo, tarefa: id });
       };
-      if(cfg.esfria.on){
+      /* v4.36: igual ao banco: no fim de semana o piloto não põe "Retomar" (o Hórus é de segunda a sexta) */
+      if(cfg.esfria.on && !horusFolga()){
         const ult = l => Math.max(Date.parse(l.updated_at || l.created_at || 0) || 0, ...((l.hist || []).map(x => Date.parse(x.t) || 0)));
         d.t.corre_leads.filter(l => l.dono === eu && ['contato', 'interesse', 'link'].includes(l.st) && (!l.prox || l.prox <= hj) && ult(l) < Date.now() - cfg.esfria.dias * 864e5)
           .sort((x, y) => (y.st === 'link') - (x.st === 'link') || (Number(y.valor) || 0) - (Number(x.valor) || 0) || ult(x) - ult(y)).slice(0, 5).forEach(l => {
@@ -2191,7 +2201,7 @@
   }); };
   /* v3.55: endereço com % quebrado (#/@ana%) não derruba a rota: devolve o texto como veio */
   const decURI = s => { try{ return decodeURIComponent(s); }catch(e){ return String(s); } };
-  Object.assign(C, { $, esc, decURI, umaVez, norm, rid, hash, rng, shuffle, money, MESES, MESES_L, hojeBR, ddmm, rel, toast, copy, initials, avatar, firstName, profileUrl, ico, shrink, pickFile, sheet, closeSheet, errMsg });
+  Object.assign(C, { $, esc, decURI, umaVez, norm, rid, hash, rng, shuffle, money, MESES, MESES_L, hojeBR, ddmm, diaUtil, horusFolga, horusDia, horusVence, rel, toast, copy, initials, avatar, firstName, profileUrl, ico, shrink, pickFile, sheet, closeSheet, errMsg });
   C.uid = () => C.st.user && C.st.user.id;
   /* v4.16: o cliente acabou de pedir orçamento, escolher a proposta no Mural ou aprovar o orçamento: a função dos avisos
      entrega o aviso no celular de quem recebe, na hora. Sem login (o cliente não tem conta): quem decide o que avisar é o

@@ -266,10 +266,10 @@
       /* venda perdida não vira "Fechado" no Hórus */
       const stL = st === 'orcamento' ? 'link' : ['fechado', 'pago'].includes(st) ? 'fechado' : null;
       if(!lid && stL){
-        try{ const r = await C.api.ins('corre_leads', { nome: cliente, wa: whats.length === 11 ? whats : '', fixo: whats.length === 10 ? whats : '', tel: whats, st: stL, prox: st === 'orcamento' ? addDias(hoje(), 2) : null, fonte: 'venda', hist: [{ t: new Date().toISOString(), k: 'toque', v: st === 'orcamento' ? 'Orçamento: ' + resumo({ itens }) : 'Venda: ' + resumo({ itens }) }].slice(0, 1) }); lid = r[0] && r[0].id; }catch(e){ lid = null; }
+        try{ const r = await C.api.ins('corre_leads', { nome: cliente, wa: whats.length === 11 ? whats : '', fixo: whats.length === 10 ? whats : '', tel: whats, st: stL, prox: st === 'orcamento' ? C.diaUtil(addDias(hoje(), 2)) : null, fonte: 'venda', hist: [{ t: new Date().toISOString(), k: 'toque', v: st === 'orcamento' ? 'Orçamento: ' + resumo({ itens }) : 'Venda: ' + resumo({ itens }) }].slice(0, 1) }); lid = r[0] && r[0].id; }catch(e){ lid = null; }
       }else{
         const l = N.leads.find(x => x.id === lid);
-        if(stL && l && l.st !== 'fechado' && (stL === 'fechado' || ['novo', 'contato', 'interesse'].includes(l.st))){ try{ await C.api.upd('corre_leads', { id: lid }, { st: stL, prox: stL === 'link' ? addDias(hoje(), 2) : null }); }catch(e){} }
+        if(stL && l && l.st !== 'fechado' && (stL === 'fechado' || ['novo', 'contato', 'interesse'].includes(l.st))){ try{ await C.api.upd('corre_leads', { id: lid }, { st: stL, prox: stL === 'link' ? C.diaUtil(addDias(hoje(), 2)) : null }); }catch(e){} }
       }
       row.lead_id = lid || null;
       if(novo) await C.api.ins('corre_vendas', row); else await C.api.upd('corre_vendas', { id: E.v.id }, row);
@@ -386,7 +386,7 @@
     'ng-recebi': el => { const v = achar(el.dataset.id); if(v) recebi(v); },
     'ng-fechou': async el => { const v = achar(el.dataset.id); if(!v) return; try{ await C.api.upd('corre_vendas', { id: v.id }, { st: 'fechado', vence: v.vence || (v.entrega && v.entrega >= hoje() ? v.entrega : hoje()) }); if(v.lead_id) await C.api.upd('corre_leads', { id: v.lead_id }, { st: 'fechado', prox: null }).catch(() => null); await carregar(true); N.tab = 'receber'; pinta(); C.toast('Fechou! Tá em "A receber". Ajusta a data do pagamento se precisar.', 3600); }catch(e){ C.toast(C.errMsg(e)); } },
     'ng-perdeu': async el => { const v = achar(el.dataset.id); if(!v) return; if(el.dataset.armed !== '1'){ el.dataset.armed = '1'; el.textContent = 'Perdeu mesmo?'; return; } try{ await C.api.upd('corre_vendas', { id: v.id }, { st: 'perdido' }); if(v.lead_id) await C.api.upd('corre_leads', { id: v.lead_id }, { st: 'perdido', prox: null }).catch(() => null); await carregar(true); pinta(); C.toast('Anotado. Fica no histórico.'); }catch(e){ C.toast(C.errMsg(e)); } },
-    'ng-mandou': el => { const v = achar(el.dataset.id); if(v && v.lead_id) C.api.upd('corre_leads', { id: v.lead_id }, { st: 'link', prox: addDias(hoje(), 2) }).catch(() => null); },
+    'ng-mandou': el => { const v = achar(el.dataset.id); if(v && v.lead_id) C.api.upd('corre_leads', { id: v.lead_id }, { st: 'link', prox: C.diaUtil(addDias(hoje(), 2)) }).catch(() => null); },
     'ng-link': el => { const v = achar(el.dataset.id); if(v) C.copy(linkOrc(v.codigo), 'Link do orçamento copiado.'); },
     'ng-copiar': el => { const v = achar(el.dataset.id); if(v) C.copy(el.dataset.t === 'cobrar' ? cobranca(v) : textoOrc(v), 'Copiado. Cola no WhatsApp.'); },
     'ng-pix': el => C.copy(el.dataset.p, 'Pix copiado.'),

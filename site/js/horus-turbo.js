@@ -611,7 +611,7 @@
       if(aplicado) return; aplicado = true;
       Z.logH(l, 'res', `Respondeu · ${LEIT[r.leitura] || r.leitura}: ${String(r.resumo || resp).slice(0, 120)}`);
       if(r.etapa && r.etapa !== l.st){ l.st = r.etapa; Z.logH(l, 'st', `Etapa: ${Z.SN[r.etapa]}`); }
-      l.prox = Z.DONE.includes(l.st) ? null : Z.addDays(Math.max(0, r.retorno_em_dias || 0));
+      l.prox = Z.DONE.includes(l.st) ? null : C.diaUtil(Z.addDays(Math.max(0, r.retorno_em_dias || 0)));
       l.cad = l.cad ? Object.assign({}, l.cad, { fim: Z.today() }) : l.cad;
       if(await Z.save(l, ['st', 'prox', 'cad', 'hist'])){ if(!silencio) C.toast(`${Z.shortName(l.nome)}: ${Z.SN[l.st]}${l.prox ? ', retomar ' + C.ddmm(l.prox) : ''}.`); Z.paint(); }
     };
@@ -728,7 +728,7 @@
       try{
         if(!r.dup) await vivoAdd([r]);
         const l = leadDaLinha(r); if(!l){ C.toast('Não achei essa empresa no radar.'); return; }
-        Z.logH(l, 'visita', 'Visita: entrei (porta a porta)'); if(l.st === 'novo') l.st = 'contato'; l.prox = Z.addDays(2);
+        Z.logH(l, 'visita', 'Visita: entrei (porta a porta)'); if(l.st === 'novo') l.st = 'contato'; l.prox = C.diaUtil(Z.addDays(2));
         await Z.save(l, ['hist', 'st', 'prox']);
         C.toast(`Check-in na ${Z.shortName(l.nome)}. O Hórus te lembra de voltar em 2 dias.`, 3600); Z.paint();
       }catch(e){ C.toast(C.errMsg(e)); el.disabled = false; }

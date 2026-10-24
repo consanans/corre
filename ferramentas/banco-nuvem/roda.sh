@@ -164,6 +164,10 @@ $P -f "$AQUI/semente434.sql"
 delta delta-v434.sql 'delta v4.34 ok'
 delta delta-v434.sql 'delta v4.34 ok'
 testa teste434.sql 20
+# v4.36: o Hórus de segunda a sexta (o bom dia e o piloto não contam cliente no fim de semana)
+delta delta-v436.sql 'delta v4.36 ok'
+delta delta-v436.sql 'delta v4.36 ok'
+testa teste436.sql 5
 . "$AQUI/virada343.sh"
 if grep -q 'FALHOU\|ERROR' $D/saida; then echo "deu FALHOU ou erro (acima)"; exit 1; fi
 echo "tudo ok: $(grep -c '^ok:' $D/saida) checagens"
