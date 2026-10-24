@@ -1,10 +1,11 @@
-# O que falta subir (23/10/2026, depois da 4.34)
+# O que falta subir (24/10/2026, a 4.35)
 
-Nada. A 4.34 tá inteira no ar (o site subido pelo Thales em 23/10, conferido por fora; o banco e as funções `atende` e `push` pelo conector). Ela levou a 4.33 e a 4.32 junto.
+A 4.35 traz o **Entrar com o Facebook** no login. Sem banco novo e sem função nova.
 
-O que dá pra fazer agora, no app:
-- **Atendente 24h:** Laboratório › Atendente 24h. Preenche (ou "Preencher com o que o Corre já sabe"), testa no "Testa antes" e liga. Depois abre o teu link na bio no celular pra ver o botão "Tirar dúvida agora".
-- **Piloto automático:** Laboratório › Piloto automático (ou o convite no Caderninho). Liga e escolhe as receitas.
+1. **O site:** Netlify › projeto **elegant-churros-40301a** (é o app.corresocial.com) › aba **Deploys** › arrasta o `corre-site.zip` da 4.35 › espera aparecer **Published**.
+2. **Ligar o Facebook:** o passo a passo tá em `docs/login-facebook.md` (criar o app na Meta, colar o ID e a chave no Supabase, publicar o app). Assim que o Facebook estiver ligado no Supabase, o botão aparece sozinho no login, sem zip novo.
+
+Até o passo 2, o login fica igual: só o Google aparece.
 
 Pendente do teu lado, fora do zip:
 - Reconectar a conta da KivoTrack no Studio (a conexão guardada parou de enxergar a conta).

@@ -324,7 +324,7 @@
        Authentication > Providers > Google) e do endereço do site nas "Origens JavaScript autorizadas" desse cliente no
        Google Cloud. Sem isso (ou se o Google não carregar), fica o login de antes. */
     const GSI = 'https://accounts.google.com/gsi/client';
-    let gsiP = null;
+    let gsiP = null, provP = null;
     const temGsi = () => !!(window.google && window.google.accounts && window.google.accounts.id);
     const carregaGsi = () => gsiP || (gsiP = new Promise((ok, falha) => {
       if(temGsi()) return ok();
@@ -379,11 +379,20 @@
         const u = data.session ? data.session.user : null; uid = u && u.id; return u;
       },
       onAuth(cb){ sb.auth.onAuthStateChange((ev, s) => { const novo = s && s.user ? s.user.id : null; if(novo !== uid) limpa(); uid = novo; cb(s ? s.user : null, ev); }); },
-      /* v3.44: login("apple") entra pela Apple (o Supabase precisa do provedor Apple ligado; no site, CFG.APPLE_LOGIN) */
+      /* v3.44: login("apple") entra pela Apple; v4.35: login("facebook") pelo Facebook (o Supabase precisa do provedor
+         ligado em Authentication > Providers; o botão só aparece quando tá, pelo provedores() abaixo) */
       async login(prov){
-        const apple = prov === 'apple';
-        const r = await sb.auth.signInWithOAuth({ provider: apple ? 'apple' : 'google', options: Object.assign({ redirectTo: location.origin + location.pathname }, apple ? {} : { queryParams: { prompt: 'select_account' } }) });
+        const provider = prov === 'apple' || prov === 'facebook' ? prov : 'google';
+        const r = await sb.auth.signInWithOAuth({ provider, options: Object.assign({ redirectTo: location.origin + location.pathname }, provider === 'google' ? { queryParams: { prompt: 'select_account' } } : {}) });
         if(r.error) throw r.error;
+      },
+      /* v4.35: quais logins o Supabase tem ligados agora ({ google: true, facebook: false, ... }). O /auth/v1/settings é
+         aberto (só a chave pública); fica na memória da página, então ligar no painel vale na próxima vez que alguém abre */
+      provedores(){
+        return provP || (provP = fetch(CFG.SUPABASE_URL + '/auth/v1/settings', { headers: { apikey: CFG.SUPABASE_ANON_KEY } })
+          .then(r => { if(!r.ok) throw new Error('settings'); return r.json(); })
+          .then(j => (j && j.external) || {})
+          .catch(e => { provP = null; throw e; }));
       },
       /* desenha o botão do Google em "alvo". o.entrando: tocou e escolheu a conta; o.falhou(erro): não entrou.
          Cada desenho leva um nonce novo (o Supabase confere o hash dele dentro do token do Google). */
@@ -1458,9 +1467,9 @@
     return {
       async init(){ return read().user; },
       onAuth(f){ cb = f; },
-      async login(){
+      async login(prov){
         await wait(300);
-        const d = read(); d.user = { id: 'demo-voce', email: 'voce@exemplo.com', user_metadata: { full_name: 'Você no Corre', avatar_url: '' } };
+        const d = read(); d.user = { id: 'demo-voce', email: 'voce@exemplo.com', app_metadata: { provider: prov === 'apple' || prov === 'facebook' ? prov : 'google' }, user_metadata: { full_name: 'Você no Corre', avatar_url: '' } };
         write(d); cb && cb(d.user, 'SIGNED_IN');
       },
       async logout(){ const d = read(); d.user = null; write(d); cb && cb(null, 'SIGNED_OUT'); },

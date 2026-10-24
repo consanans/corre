@@ -9,6 +9,8 @@
   const ST = window.CorreStickers;
   const setStickers = page => { const el = $('stickers'); if(ST && el && !C.EMBED && el.dataset.page !== page) ST.scatter(el, page); };
   const G_LOGO = '<svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>';
+  /* v4.35: o "f" do Facebook (o desenho que a Meta pede no botão de entrar: branco, num botão azul dela) */
+  const FACE_LOGO = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M9.1 23.69v-7.98H6.63v-3.67H9.1v-1.58c0-4.09 1.85-5.98 5.86-5.98.4 0 .96.04 1.47.1.39.05.77.12 1.14.2v3.32a8.6 8.6 0 0 0-.65-.03 26.8 26.8 0 0 0-.73-.01c-.71 0-1.26.1-1.68.31-.29.15-.52.36-.68.62-.26.42-.37 1-.37 1.75v1.3h3.92l-.39 2.1-.29 1.57h-3.24v8.24C19.4 23.24 24 18.18 24 12.04 24 5.42 18.63.04 12 .04S0 5.42 0 12.04c0 5.63 3.87 10.35 9.1 11.65Z"/></svg>';
   /* a maçã do botão da Apple (o desenho que a Apple pede no "Continuar com a Apple"), na cor do texto do botão */
   const APPLE_LOGO = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M16.37 12.6c-.02-2.2 1.8-3.26 1.88-3.31-1.03-1.5-2.62-1.7-3.18-1.73-1.35-.14-2.64.8-3.33.8-.69 0-1.74-.78-2.86-.76-1.47.02-2.83.86-3.59 2.17-1.53 2.66-.39 6.6 1.1 8.76.73 1.06 1.6 2.24 2.73 2.2 1.1-.05 1.51-.71 2.84-.71 1.32 0 1.7.71 2.86.69 1.18-.02 1.93-1.07 2.65-2.13.84-1.22 1.18-2.41 1.2-2.47-.03-.01-2.29-.88-2.3-3.51zM14.2 6.13c.6-.73 1.01-1.75.9-2.76-.87.04-1.92.58-2.54 1.31-.56.65-1.05 1.68-.92 2.67.97.08 1.96-.49 2.56-1.22z"/></svg>';
   function suggestHandle(user){
@@ -924,7 +926,7 @@
       <section class="login-card" id="entrar" aria-label="Entrar no Corre">
         <p class="lead">Pra quem vende serviço ou produto, de qualquer segmento: acha cliente, manda orçamento, recebe e vê quanto o corre tá rendendo. Você mostra o que quiser; o resto fica só contigo.</p>
         <div class="chips" aria-label="O que tem no Corre"><span class="chip">Link na bio</span><span class="chip">Studio</span><span class="chip">Hórus</span><span class="chip">Mural</span><span class="chip">Correverso</span><span class="chip">Vendas e Grana</span></div>
-        ${conviteLogin()}<div class="g-oficial" id="g-oficial" hidden></div><button type="button" class="btn-google" id="btn-google" data-act="google">${G_LOGO}<span>Entrar com Google</span></button><button type="button" class="lnk g-outro" id="g-outro" data-act="google" hidden><span>Não abriu? Entra pelo outro jeito</span></button>${C.CFG.APPLE_LOGIN || C.DEMO ? `<button type="button" class="btn-apple" id="btn-apple" data-act="apple">${APPLE_LOGO}<span>Continuar com a Apple</span></button>` : ''}
+        ${conviteLogin()}<div class="g-oficial" id="g-oficial" hidden></div><button type="button" class="btn-google" id="btn-google" data-act="google">${G_LOGO}<span>Entrar com Google</span></button><button type="button" class="lnk g-outro" id="g-outro" data-act="google" hidden><span>Não abriu? Entra pelo outro jeito</span></button><button type="button" class="btn-face" id="btn-face" data-act="facebook"${C.DEMO ? '' : ' hidden'}>${FACE_LOGO}<span>Entrar com o Facebook</span></button><button type="button" class="btn-apple" id="btn-apple" data-act="apple"${C.CFG.APPLE_LOGIN || C.DEMO ? '' : ' hidden'}>${APPLE_LOGO}<span>Continuar com a Apple</span></button>
         ${dentroDeApp() ? `<div class="iab-aviso"><b>Abriu pelo Instagram ou WhatsApp?</b><p>O Google às vezes não deixa entrar por aqui. Se travar, abre o Corre no navegador${/Android/i.test(navigator.userAgent) ? '' : ' (no menu ••• , "Abrir no navegador")'}.</p><div class="acts">${/Android/i.test(navigator.userAgent) ? `<a class="btn sm pri" href="${esc(C.insta ? C.insta.intentUrl() : `intent://${location.host + location.pathname}#Intent;scheme=https;package=com.android.chrome;end`)}">Abrir no Chrome</a>` : ''}<button type="button" class="btn sm" data-act="iab-copia">Copiar o link</button></div></div>` : ''}
         <a class="cl-porta" href="#/clientes">${ico('eye')}<span><b>Quantos clientes tem pra você na tua cidade?</b><small>Descobre agora, sem cadastro</small></span>${ico('next')}</a>
         <div class="login-mais"><button type="button" class="lnk man-login" data-act="es-desce">${ico('desce')} O que tem no Corre</button><button type="button" class="lnk man-login" data-act="manual">${ico('manual')} Como funciona</button></div>
@@ -938,6 +940,15 @@
     </main>${C.estreia ? C.estreia.vitrineLogin() : ''}
     <p class="login-assina">Um produto <b>Houzi Records</b> <span class="la-x"><i aria-hidden="true">×</i><span class="sr-only">e</span> <b>Simonini Software</b></span></p>`;
     botaoGoogle();
+    outrosLogins();
+  }
+  /* v4.35: o Facebook (e a Apple) aparecem sozinhos quando o provedor tá ligado no Supabase (Authentication >
+     Providers): o app pergunta pro próprio Supabase quais logins tão valendo, então ligar lá não pede site novo.
+     Desligado, o botão nem aparece (tocar daria erro do Supabase). */
+  async function outrosLogins(){
+    if(C.DEMO || !api.provedores) return;
+    let v = null; try{ v = await api.provedores(); }catch(e){ return; }
+    [['facebook', 'btn-face'], ['apple', 'btn-apple']].forEach(([k, id]) => { const b = $(id); if(b && v && v[k] === true) b.hidden = false; });
   }
   /* v3.38: com o GOOGLE_CLIENT_ID no config, entra o botão do próprio Google (a janela mostra o endereço do Corre).
      Se o Google não carregar, volta o botão de antes; dentro do Instagram/WhatsApp fica o de antes (o Google barra lá). */
@@ -958,10 +969,13 @@
   /* ---------------- perfil: formulário ---------------- */
   function profileForm(p, isNew){
     const u = st.user, md = (u && u.user_metadata) || {};
-    const v = p || { nome: md.full_name || md.name || '', handle: suggestHandle(u), bio: '', cidade: '', instagram: '', visibilidade: 'publico', avatar_url: md.avatar_url || md.picture || '' };
     const gpic = md.avatar_url || md.picture || '';
+    /* v4.35: a foto do Facebook vem num endereço que vence em poucos dias: não entra direto no perfil (o bindForm
+       guarda uma cópia no Corre) */
+    const face = ehFotoFace(gpic);
+    const v = p || { nome: md.full_name || md.name || '', handle: suggestHandle(u), bio: '', cidade: '', instagram: '', visibilidade: 'publico', avatar_url: face ? '' : gpic };
     return `<form class="form" id="pf" novalidate>
-      <div class="prof"><span id="pf-av">${avatar(v, 'm')}</span><div class="who"><b style="font-size:15px">Foto</b><div class="acts"><label class="btn sm up-lbl" id="pf-up">${ico('camera')} <span>Trocar foto</span><input type="file" accept="image/*" id="pf-file" aria-label="Escolher foto de perfil"></label>${gpic ? '<button type="button" class="btn sm ghost" id="pf-g">Usar a do Google</button>' : ''}</div></div></div>
+      <div class="prof"><span id="pf-av">${avatar(v, 'm')}</span><div class="who"><b style="font-size:15px">Foto</b><div class="acts"><label class="btn sm up-lbl" id="pf-up">${ico('camera')} <span>Trocar foto</span><input type="file" accept="image/*" id="pf-file" aria-label="Escolher foto de perfil"></label>${gpic ? `<button type="button" class="btn sm ghost" id="pf-g">Usar a do ${face ? 'Facebook' : 'Google'}</button>` : ''}</div></div></div>
       <input type="hidden" id="f-av" value="${esc(v.avatar_url || '')}">
       ${isNew ? '' : `<div class="capa-row"><span class="capa-prev" id="pf-capa-prev"${capaOk(v.capa_url) ? ` style="background-image:url('${v.capa_url}')"` : ''}></span><div class="who"><b style="font-size:15px">Capa do perfil</b><div class="acts"><label class="btn sm up-lbl">${ico('camera')} <span>Trocar capa</span><input type="file" accept="image/*" data-up="capa" aria-label="Escolher capa do perfil"></label><button type="button" class="btn sm ghost" data-act="tira-capa"${capaOk(v.capa_url) ? '' : ' hidden'}>Tirar capa</button></div></div></div>`}
       <div class="row2">
@@ -1013,6 +1027,14 @@
       throw e;
     }
   }
+  /* v4.35: a foto que o Facebook manda no login vence em dias (o endereço leva a validade): o Corre copia ela pro
+     Storage dele, como a foto que a pessoa escolhe. O servidor de foto do Facebook deixa o navegador ler (CORS aberto). */
+  const ehFotoFace = url => /^https:\/\/([a-z0-9-]+\.)*(fbcdn\.net|fbsbx\.com|facebook\.com)\//i.test(url || '');
+  async function copiaFoto(url){
+    const r = await fetch(url, { mode: 'cors', credentials: 'omit', referrerPolicy: 'no-referrer' });
+    if(!r.ok) throw new Error('foto');
+    return api.upload(await imagemBlob('foto', await r.blob()));
+  }
   const msgImagem = (e, tipo) => e && e.code === 'heic' ? 'Essa foto tá em HEIC e o navegador não abre. Tira um print dela e manda o print, ou escolhe outra.' : C.errMsg(e, tipo === 'capa' ? 'Não deu pra trocar a capa.' : 'Não deu pra trocar a foto.');
   /* a tua foto aparece no menu (computador), no alto e na gaveta (celular): troca em todos */
   const pintaAvMenu = () => {
@@ -1062,7 +1084,15 @@
       pintaAvMenu();
       toast('Foto trocada.');
     }
-    const g = $('pf-g'); if(g) g.addEventListener('click', async () => { const md = st.user.user_metadata || {}; try{ await aplicaFoto(md.avatar_url || md.picture || ''); }catch(e){ toast(C.errMsg(e, 'Não deu pra trocar a foto.')); } });
+    const md = st.user.user_metadata || {}, gpic = md.avatar_url || md.picture || '';
+    const g = $('pf-g'); if(g) g.addEventListener('click', async () => {
+      if(g.disabled) return; g.disabled = true;
+      try{ await aplicaFoto(ehFotoFace(gpic) ? await copiaFoto(gpic) : gpic); }
+      catch(e){ toast(ehFotoFace(gpic) ? 'Não deu pra trazer a foto do Facebook. Escolhe uma em Trocar foto.' : C.errMsg(e, 'Não deu pra trocar a foto.'), 4800); }
+      finally{ g.disabled = false; }
+    });
+    /* v4.35: perfil novo que veio do Facebook: a foto entra copiada sozinha (se a pessoa ainda não escolheu outra) */
+    if(isNew && ehFotoFace(gpic)) copiaFoto(gpic).then(url => { const fa = $('f-av'); if(fa && fa.isConnected && !fa.value){ fa.value = url; paintAv(); } }).catch(() => {});
     bio.addEventListener('input', () => { $('h-bio').textContent = `${bio.value.length}/160`; });
     hIn.addEventListener('input', () => {
       const clean = hIn.value.toLowerCase().replace(/[^a-z0-9_.]/g, '');
@@ -1454,6 +1484,13 @@
       try{ await api.login('apple'); }
       catch(err){ toast(err && err.code === 'off' ? 'O login do Corre ainda não tá ligado neste endereço.' : 'Não deu pra abrir o login da Apple. Tente de novo.', 4200); el.disabled = false; if(sp) sp.textContent = antes; }
     },
+    /* v4.35 · entrar pelo Facebook (no modo demonstração, o mesmo login de mentira) */
+    facebook: async el => {
+      const sp = el.querySelector('span'), antes = sp ? sp.textContent : '';
+      el.disabled = true; if(sp) sp.textContent = 'Abrindo o Facebook…';
+      try{ await api.login('facebook'); }
+      catch(err){ toast(err && err.code === 'off' ? 'O login do Corre ainda não tá ligado neste endereço.' : 'Não deu pra abrir o login do Facebook. Tente de novo.', 4200); el.disabled = false; if(sp) sp.textContent = antes; }
+    },
     google: async el => {
       const sp = el.querySelector('span'), antes = sp ? sp.textContent : '';
       el.disabled = true; if(sp) sp.textContent = 'Abrindo o Google…';
@@ -1586,6 +1623,23 @@
   if(ST){ document.body.insertAdjacentHTML('afterbegin', ST.DEFS); const c = $('sky'); if(c && !C.EMBED) ST.sky(c); }
 
   /* ---------------- início ---------------- */
+  /* v4.35: o login que não terminou volta com ?error=... no endereço (o Supabase manda o motivo junto). Antes a
+     pessoa caía de volta no login sem saber por quê. Sai do endereço logo, pra não repetir ao recarregar. */
+  const erroLogin = (() => {
+    try{
+      const q = new URLSearchParams(location.search), hh = new URLSearchParams(location.hash.replace(/^#\/?/, ''));
+      const noHash = hh.has('error') || hh.has('error_description');
+      const d = [q.get('error'), q.get('error_description'), hh.get('error'), hh.get('error_description')].filter(Boolean).join(' ');
+      if(!d) return '';
+      /* tira só os três do endereço, do jeito que veio (o URLSearchParams escreveria o "?demo" como "?demo=") */
+      const s = location.search.slice(1).split('&').filter(x => x && !/^error(_code|_description)?=/.test(x)).join('&');
+      history.replaceState(null, '', location.pathname + (s ? '?' + s : '') + (noHash ? '#/' : location.hash));
+      return d;
+    }catch(e){ return ''; }
+  })();
+  const msgErroLogin = d => /e-?mail/i.test(d) ? 'O Facebook não mandou o teu e-mail, e o Corre precisa dele pra criar a conta. Põe um e-mail confirmado no Facebook (Configurações › Central de Contas › Dados pessoais) ou entra com o Google.'
+    : /access_denied|denied|cancel/i.test(d) ? 'O login foi cancelado. Quando quiser, é só tocar de novo.'
+    : 'O login não terminou. Tenta de novo.';
   (async function boot(){
     try{ st.user = await api.init(); }
     catch(e){ app.innerHTML = `<div class="boot"><span>Não deu pra conectar ao Corre agora. Atualize a página.</span></div>`; return; }
@@ -1597,6 +1651,7 @@
       if(changed){ st.loadedFor = null; st.me = null; route(); }
     });
     route().then(() => C.pai('pronto'), () => C.pai('pronto'));
+    if(erroLogin && !st.user) setTimeout(() => toast(msgErroLogin(erroLogin), 9000), 300);
     /* v4.33 · o service worker guarda o app no aparelho: da segunda vez abre na hora, até com o sinal ruim (antes ele
        só existia pra quem ligava os avisos). Só no endereço de verdade (https): no computador de teste (localhost) os
        testes trocam o config.js pela rede, e o service worker buscaria o de verdade por fora deles (?sw=1 liga pra testar) */

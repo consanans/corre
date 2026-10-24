@@ -27,7 +27,8 @@ window.CORRE_CONFIG = {
   /* IG_ABERTO (v3.42): false enquanto o app da Meta tá em teste (só testador conecta; o resto vê "em breve" no Studio).
      Quando a Meta aprovar a Análise do app e ele estiver Ao vivo, muda pra true e sobe o site. */
   IG_ABERTO: false,
-  /* APPLE_LOGIN (v3.44): o botão "Continuar com a Apple" no login. Fica false até a Apple estar ligada no Supabase
-     (Authentication > Providers > Apple, com o Services ID e a chave da conta Apple Developer). Depois: true e sobe o site. */
+  /* APPLE_LOGIN (v3.44): o botão "Continuar com a Apple" no login. Desde a v4.35 ele (e o "Entrar com o Facebook")
+     aparece sozinho quando o provedor tá ligado no Supabase (Authentication > Providers): o app pergunta pro Supabase.
+     true aqui força o da Apple a aparecer mesmo assim. O passo a passo do Facebook: docs/login-facebook.md. */
   APPLE_LOGIN: false
 };

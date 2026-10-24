@@ -5179,3 +5179,19 @@ body.cd-focado{overflow:hidden}
 @media (prefers-reduced-motion:reduce){ .atd-bolha{animation:none} .atd-m.pensa i{animation:none} .atd-liga-b,.atd-liga-b::after{transition:none} }
 /* (o botão do atendente fica por cima do pé do link na bio e do pedido de orçamento: abre espaço embaixo) */
 .bio:has(.atd-bolha) .bio-col,.orc:has(.atd-bolha){padding-bottom:92px}
+/* v4.35 · entrar com o Facebook: o botão azul que a Meta pede (o "f" branco), no mesmo jeito do Google e da Apple.
+   Nada de verde. O [hidden] precisa vir escrito: o display do botão passaria por cima dele. */
+.btn-face{display:flex;align-items:center;justify-content:center;gap:10px;min-height:56px;margin:10px auto 0;padding:0 22px;border-radius:999px;border:2.5px solid var(--ink);background:#0866FF;color:#fff;font-weight:800;font-size:16px;cursor:pointer;box-shadow:4px 4px 0 var(--ink);transition:transform .12s,box-shadow .12s}
+.btn-face svg{width:22px;height:22px;flex:none}
+.btn-face:hover{transform:translate(-1px,-1px);box-shadow:5px 5px 0 var(--ink)}
+.btn-face:active{transform:translate(3px,3px);box-shadow:1px 1px 0 var(--ink)}
+.btn-face:focus-visible{outline:3px solid var(--ink);outline-offset:3px}
+.btn-face[disabled]{opacity:.6;cursor:progress}
+.btn-face[hidden],.btn-apple[hidden]{display:none}
+/* no cartão de entrar, os três do mesmo tamanho e com a mesma sombra do Google */
+.login-card .btn-face,.login-card .btn-apple{display:flex;width:100%;margin:12px 0 0}
+.login-card .btn-apple{border-width:2.5px;box-shadow:4px 4px 0 var(--ink)}
+.login-card .btn-apple:active{transform:translate(3px,3px);box-shadow:1px 1px 0 var(--ink)}
+@media (prefers-reduced-motion:reduce){ .btn-face{transition:none} }
+/* (tela estreita: os nomes cabem numa linha só) */
+@media (max-width:360px){ .login-card .btn-face,.login-card .btn-apple{font-size:15px;padding:0 14px;gap:8px} }
