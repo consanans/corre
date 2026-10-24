@@ -514,7 +514,7 @@
           <div class="es-sl" id="es-sl" hidden></div>
           <canvas id="es-cv" width="1080" height="1350" aria-label="Prévia da arte"></canvas>
           <div class="es-vid" id="es-vid" hidden><video id="es-video" playsinline muted controls preload="metadata"></video>
-            <div class="es-vvz" id="es-vvz" hidden>${ico('film')}<b>Sem vídeo ainda</b><span class="hint">MP4 ou MOV, até 50 MB</span></div>
+            <div class="es-vvz" id="es-vvz" hidden>${ico('film')}<b>Sem vídeo ainda</b><span class="hint" id="es-vlim">MP4 ou MOV, até 50 MB</span></div>
             <div class="fld es-vt"><label for="es-vt">Capa: o quadro do vídeo que aparece no perfil</label><input type="range" id="es-vt" min="0" max="1" step="0.1" value="0"></div>
             <p class="hint" id="es-vinfo" aria-live="polite"></p></div>
           <div class="seg2 es-mod" id="es-mod" role="radiogroup" aria-label="Modelo"></div>
@@ -613,6 +613,13 @@
     }
     /* o vídeo aberto: a prévia, a capa (o quadro escolhido) e o que o Instagram aceita */
     const LIM_V = { story: [1, 60], carrossel: [1, 60], reels: [3, 900] };
+    /* v4.38: o tamanho máximo vem do banco (o limite da pasta de vídeo, que acompanha o plano do Supabase) e do
+       Instagram, que não aceita story com mais de 100 MB (reels e carrossel vão até 300) */
+    const MB = 1048576, IG_MB = { story: 100, carrossel: 300, reels: 300 };
+    let pastaB = 50 * MB;
+    const limP = Promise.resolve(C.api.videoLimite ? C.api.videoLimite() : 0).then(b => { if(b > 0) pastaB = b; const vl = C.$('es-vlim'); if(vl) vl.textContent = limTx(fmt); }, () => {});
+    const limB = onde => Math.min(pastaB, (IG_MB[onde] || 300) * MB);
+    const limTx = onde => `MP4 ou MOV, até ${Math.round(limB(onde) / MB)} MB`;
     const seg = x => x >= 60 ? `${Math.floor(x / 60)}min${String(Math.round(x % 60)).padStart(2, '0')}` : `${Math.round(x)} s`;
     function poeVideo(){
       const o = vObj(), ve = C.$('es-video'), rg = C.$('es-vt'), src = o && (o.src || o.u) || '';
@@ -620,6 +627,7 @@
       C.$('es-fa').hidden = false;
       C.$('es-fa').innerHTML = `<button type="button" class="btn sm${src ? '' : ' pri'}" data-fa="trocavideo">${ico('film')} ${src ? 'Trocar vídeo' : 'Pôr vídeo'}</button>${fmt === 'story' ? `<button type="button" class="btn sm ghost" data-fa="arte">Usar arte em vez de vídeo</button>` : ''}`;
       if(ve.dataset.src !== src){ ve.dataset.src = src; if(src) ve.src = src; else ve.removeAttribute('src'); }
+      C.$('es-vlim').textContent = limTx(fmt);
       infoVideo();
     }
     function infoVideo(){
@@ -647,7 +655,12 @@
     const duracao = f => new Promise(ok => { const v = document.createElement('video'), u = URL.createObjectURL(f); const fim = d => { clearTimeout(t); ok({ d, u }); }; const t = setTimeout(() => fim(0), 8000); v.preload = 'metadata'; v.onloadedmetadata = () => fim(v.duration || 0); v.onerror = () => fim(0); v.src = u; });
     async function aceitaVideo(f, onde){
       if(!/^video\/(mp4|quicktime)$/.test(f.type) && !/\.(mp4|mov)$/i.test(f.name || '')){ C.toast('O Instagram aceita vídeo em MP4 ou MOV.'); return null; }
-      if(f.size > 50 * 1048576){ C.toast(`Esse vídeo tem ${(f.size / 1048576).toFixed(0)} MB. O limite é 50 MB: exporta mais leve (1080p) e tenta de novo.`, 5200); return null; }
+      await limP;
+      if(f.size > limB(onde)){
+        const tem = Math.ceil(f.size / MB), mx = Math.round(limB(onde) / MB);
+        C.toast(onde === 'story' && pastaB > IG_MB.story * MB ? `Esse vídeo tem ${tem} MB. O Instagram só aceita story de até ${mx} MB: exporta mais leve (1080p) ou põe ele como reels.` : `Esse vídeo tem ${tem} MB. O limite é ${mx} MB: exporta mais leve (1080p) e tenta de novo.`, 5600);
+        return null;
+      }
       const { d, u } = await duracao(f), [mn, mx] = LIM_V[onde] || LIM_V.reels;
       if(d && d < mn){ URL.revokeObjectURL(u); C.toast(`Esse vídeo tem ${seg(d)}: o Instagram pede no mínimo ${mn} s.`); return null; }
       if(d && d > mx){ URL.revokeObjectURL(u); C.toast(`Esse vídeo tem ${seg(d)}. ${onde === 'reels' ? 'O reels vai até 15 min.' : 'No ' + (onde === 'story' ? 'story' : 'carrossel') + ', até 60 s.'} Corta antes de subir.`, 5200); return null; }
@@ -905,8 +918,9 @@
       font(x, 900, 64, 'condensed'); x.fillStyle = ink; x.textAlign = 'center'; x.fillText(String(mk.marca || 'VÍDEO').toUpperCase(), W / 2, h / 2 + 250);
       return new Promise(ok => tela.toBlob(ok, 'image/jpeg', .88));
     }
-    async function sobeVideo(o, h, btn){
-      if(o.file){ btn.textContent = 'Subindo o vídeo…'; o.u = await C.api.uploadVideo(o.file); o.file = null; o.cs = ''; btn.textContent = 'Salvando…'; }
+    async function sobeVideo(o, h, btn, rot){
+      /* v4.38: o vídeo grande leva minutos pra subir: o botão mostra a porcentagem */
+      if(o.file){ const tx = rot || 'Subindo o vídeo'; btn.textContent = `${tx}…`; o.u = await C.api.uploadVideo(o.file, f => { btn.textContent = `${tx}… ${Math.min(100, Math.round(f * 100))}%`; }); o.file = null; o.cs = ''; btn.textContent = 'Salvando…'; }
       const cs = `${o.u}|${o.tempo || 0}|${h}`;
       if(!o.capa || o.cs !== cs){ const b = (await quadro(o.src || o.u, o.tempo || 0, h)) || (await capaVazia(h)); o.capa = await C.api.upload(b); o.cs = cs; }
     }
@@ -919,7 +933,7 @@
         const tela = document.createElement('canvas'), out = [], meta = [];
         for(let i = 0; i < slides.length; i++){
           const x = slides[i]; btn.textContent = `Salvando o slide ${i + 1} de ${slides.length}…`;
-          if(x.t === 'video'){ await sobeVideo(x, 1350, btn); out.push({ u: x.u, t: 'video' }); meta.push({ t: 'video', u: x.u, capa: x.capa, tempo: x.tempo || 0, cs: x.cs }); continue; }
+          if(x.t === 'video'){ await sobeVideo(x, 1350, btn, `Subindo o vídeo do slide ${i + 1}`); out.push({ u: x.u, t: 'video' }); meta.push({ t: 'video', u: x.u, capa: x.capa, tempo: x.tempo || 0, cs: x.cs }); continue; }
           if(x.fotoFile){ x.art.foto = await C.api.upload(x.fotoFile); x.fotoFile = null; }
           x.u = await sobeArte(x.art, x.u, x.sig, 1350, tela); x.sig = sigDe(x.art, 1350);
           out.push({ u: x.u, t: 'img' }); meta.push({ t: 'img', u: x.u, sig: x.sig, art: Object.assign({}, x.art) });

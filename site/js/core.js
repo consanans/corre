@@ -317,9 +317,57 @@
     return (fallback || 'Não deu agora. Tenta de novo.') + cod;
   }
 
+  /* v4.38: o vídeo grande sobe em pedaços pelo jeito "retomável" do Supabase (o protocolo TUS, feito aqui com fetch, sem
+     biblioteca): dá pra mostrar a porcentagem, e a internet que cai no meio retoma de onde parou em vez de começar do zero
+     (com 150 MB num 4G, um envio só de uma vez quase nunca chega inteiro). O pedaço tem que ser de 6 MB: é regra do
+     Supabase. Erro na hora de abrir o envio que não é de tamanho volta pro jeito de antes (quem chama decide). */
+  const TUS_PEDACO = 6 * 1024 * 1024, TUS_ESPERA = [1000, 3000, 6000, 12000, 20000];
+  const b64 = s => btoa(unescape(encodeURIComponent(String(s))));
+  const tusErro = (r, tx, onde) => {
+    const st = r ? r.status : 0, grande = st === 413 || /maximum|exceeded|too large/i.test(tx || '');
+    /* 4xx não adianta repetir; 409 (o servidor tá em outro ponto), 423 e 429 sim */
+    return { tus: onde, status: st, grande, fatal: grande || (st >= 400 && st < 500 && ![409, 423, 429].includes(st)), message: tx || `tus ${st || 'rede'}` };
+  };
+  async function sobeTus(o){
+    const cab = async x => Object.assign({ 'Tus-Resumable': '1.0.0' }, await o.cabecalho(), x || {});
+    const meta = { bucketName: o.pasta, objectName: o.caminho, contentType: o.tipo, cacheControl: o.cache || '3600' };
+    let url;
+    try{
+      const r = await fetch(o.endpoint, { method: 'POST', headers: await cab({ 'Upload-Length': String(o.file.size), 'Upload-Metadata': Object.keys(meta).map(k => `${k} ${b64(meta[k])}`).join(','), 'x-upsert': 'false' }) });
+      if(r.status !== 201) throw tusErro(r, await r.text().catch(() => ''), 'cria');
+      const loc = r.headers.get('Location'); if(!loc) throw tusErro(null, 'sem Location', 'cria');
+      url = new URL(loc, o.endpoint).href;
+    }catch(e){ throw e && e.tus ? e : Object.assign(tusErro(null, e && e.message, 'cria'), { fatal: false }); }
+    let off = 0, falhas = 0;
+    if(o.onProg) o.onProg(0);
+    while(off < o.file.size){
+      try{
+        const fim = Math.min(off + TUS_PEDACO, o.file.size);
+        const p = await fetch(url, { method: 'PATCH', headers: await cab({ 'Upload-Offset': String(off), 'Content-Type': 'application/offset+octet-stream' }), body: o.file.slice(off, fim) });
+        if(p.status !== 204) throw tusErro(p, await p.text().catch(() => ''), 'pedaco');
+        const v = parseInt(p.headers.get('Upload-Offset'), 10);
+        off = v > off ? v : fim; falhas = 0;
+        if(o.onProg) o.onProg(off / o.file.size);
+      }catch(e){
+        if(e && e.fatal) throw e;
+        if(++falhas > TUS_ESPERA.length) throw e && e.tus ? e : tusErro(null, e && e.message, 'pedaco');
+        await new Promise(ok => setTimeout(ok, (o.espera || TUS_ESPERA)[falhas - 1] || 0));
+        /* pergunta pro servidor onde parou (o pedaço pode ter chegado e só a resposta se perdeu) */
+        try{
+          const h = await fetch(url, { method: 'HEAD', headers: await cab(), cache: 'no-store' });
+          const v = parseInt(h.headers.get('Upload-Offset'), 10);
+          if(h.ok && v >= 0) off = v;
+          else if(h.status === 404 || h.status === 410) throw tusErro(h, 'o envio venceu', 'pedaco');
+        }catch(err){ if(err && err.fatal) throw err; }
+      }
+    }
+    if(o.onProg) o.onProg(1);
+  }
+  C.sobeTus = sobeTus;
+
   /* ---------------- dados: Supabase ---------------- */
   function liveApi(){
-    let sb = null, uid = null;
+    let sb = null, uid = null, vlimP = null;
     /* supabase-js com a versão travada: o navegador guarda o arquivo de vez, e o index já começa a baixar ele cedo
        (antes era "@2": cada abertura perguntava qual era a versão mais nova, e uma versão nova podia mudar o app sozinha) */
     const SB_LIB = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/dist/umd/supabase.js';
@@ -483,12 +531,35 @@
         need(await sb.storage.from('corre').upload(path, blob, { contentType: blob.type || 'image/jpeg', upsert: false, cacheControl: '31536000' }));
         return sb.storage.from('corre').getPublicUrl(path).data.publicUrl;
       },
-      /* v4.17: o vídeo do story, do reels e do carrossel vai pra pasta própria (corre-video: até 50 MB, MP4 ou MOV) */
-      async uploadVideo(file){
-        const ext = /quicktime/.test(file.type) ? 'mov' : 'mp4';
+      /* v4.17: o vídeo do story, do reels e do carrossel vai pra pasta própria (corre-video, MP4 ou MOV; o tamanho máximo
+         é o da pasta, que o videoLimite lê). v4.38: passou de 6 MB, sobe em pedaços com a porcentagem (sobeTus), pelo
+         endereço direto do armazenamento (o Supabase pede esse pra arquivo grande); não abriu, vai do jeito de antes. */
+      async uploadVideo(file, onProg){
+        const ext = /quicktime/.test(file.type) ? 'mov' : 'mp4', tipo = file.type || 'video/mp4';
         const path = `${uid}/${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-        need(await sb.storage.from('corre-video').upload(path, file, { contentType: file.type || 'video/mp4', upsert: false, cacheControl: '31536000' }));
+        const grande = () => ({ corre: true, grande: true, message: 'Esse vídeo passou do tamanho que o armazenamento do Corre aceita. Exporta mais leve (1080p) e tenta de novo.' });
+        if(file.size > TUS_PEDACO){
+          try{
+            const u = new URL(CFG.SUPABASE_URL), m = /^([a-z0-9]+)\.supabase\.co$/.exec(u.host);
+            await sobeTus({ endpoint: (m ? `https://${m[1]}.storage.supabase.co` : u.origin) + '/storage/v1/upload/resumable',
+              cabecalho: async () => { const s = (await sb.auth.getSession()).data.session; return { authorization: `Bearer ${s ? s.access_token : CFG.SUPABASE_ANON_KEY}`, apikey: CFG.SUPABASE_ANON_KEY }; },
+              pasta: 'corre-video', caminho: path, file, tipo, cache: '31536000', onProg });
+            return sb.storage.from('corre-video').getPublicUrl(path).data.publicUrl;
+          }catch(e){
+            if(e && e.grande) throw grande();
+            if(!(e && e.tus === 'cria')) throw { corre: true, message: 'A internet caiu no meio e o vídeo não terminou de subir. Toca em salvar de novo.' };
+          }
+        }
+        const r = await sb.storage.from('corre-video').upload(path, file, { contentType: tipo, upsert: false, cacheControl: '31536000' });
+        if(r.error && /Payload too large|exceeded the maximum|413/i.test((r.error.message || '') + ' ' + (r.error.statusCode || ''))) throw grande();
+        need(r);
+        if(onProg) onProg(1);
         return sb.storage.from('corre-video').getPublicUrl(path).data.publicUrl;
+      },
+      /* v4.38: o tamanho máximo do vídeo é o da pasta corre-video (o banco diz; acompanha o plano do Supabase sem zip
+         novo). Sem o delta, os 50 MB de antes. */
+      videoLimite(){
+        return vlimP || (vlimP = (async () => { try{ const b = +need(await sb.rpc('corre_video_limite')); return b > 0 ? b : 50 * 1048576; }catch(e){ vlimP = null; return 50 * 1048576; } })());
       },
       /* v4.21: os arquivos do Caderninho, na pasta PRIVADA corre-anexos (cada um na pasta do próprio login; abre com link
          assinado que vence em 1 hora) */
@@ -2102,7 +2173,13 @@
         return await new Promise((ok, fail) => { const fr = new FileReader(); fr.onload = () => ok(fr.result); fr.onerror = fail; fr.readAsDataURL(small); });
       },
       /* v4.17: no demo o vídeo fica no aparelho (um endereço blob: que vale até recarregar a página) */
-      async uploadVideo(file){ return URL.createObjectURL(file); },
+      async uploadVideo(file, onProg){
+        /* v4.38: imita a porcentagem do envio em pedaços (um passo por "pedaço" de 6 MB, rapidinho) */
+        if(onProg && file.size > 6291456){ const n = Math.ceil(file.size / 6291456); for(let i = 0; i <= n; i++){ onProg(i / n); await new Promise(ok => setTimeout(ok, 40)); } }
+        return URL.createObjectURL(file);
+      },
+      /* v4.38: o limite da pasta de vídeo (no demo, o de quando o Supabase tiver o plano pago; os testes trocam) */
+      async videoLimite(){ return window.CORRE_DEMO_VLIM || 150 * 1048576; },
       /* v4.21: no demo o arquivo fica no aparelho (vale até recarregar a página) */
       anexo: { L: {}, async sobe(file){ const p = `${uidOf(read()) || 'demo'}/${Date.now().toString(36)}-${String(file.name || 'arquivo').replace(/[^A-Za-z0-9._-]+/g, '-').slice(-60)}`; this.L[p] = URL.createObjectURL(file); return p; }, async link(p){ return this.L[p] || ''; }, async tira(p){ delete this.L[p]; } },
       async unlink(){},

@@ -121,7 +121,9 @@ begin
   if to_regclass('storage.buckets') is null then return; end if;
   insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
   values ('corre-video', 'corre-video', true, 52428800, array['video/mp4', 'video/quicktime'])
-  on conflict (id) do update set public = true, file_size_limit = excluded.file_size_limit, allowed_mime_types = excluded.allowed_mime_types;
+  on conflict (id) do update set public = true, allowed_mime_types = excluded.allowed_mime_types,
+    -- v4.38: rodar este delta de novo não desce a pasta que já foi pra 150 MB (o video-150mb.sql)
+    file_size_limit = greatest(coalesce(storage.buckets.file_size_limit, 0), excluded.file_size_limit);
   if not exists (select 1 from pg_policies where schemaname = 'storage' and tablename = 'objects' and policyname = 'corre-video: subo na minha pasta') then
     execute $p$create policy "corre-video: subo na minha pasta" on storage.objects for insert with check (bucket_id = 'corre-video' and (storage.foldername(name))[1] = (auth.uid())::text)$p$;
   end if;

@@ -1,10 +1,14 @@
-# O que falta subir (24/10/2026, a 4.37)
+# O que falta subir (24/10/2026, a 4.38)
 
-A 4.37 traz os **avisos no computador**: no Mac e no Windows o ajuste vira "Avisos no computador", ensina o que fazer se o aviso não aparece no canto da tela, e com o Corre aberto na frente a mensagem, o pedido e o seguidor novo aparecem lá dentro, em cima. Sem banco novo e sem função nova. Leva junto a 4.36 (o Hórus de segunda a sexta, que já tá no banco) e a 4.35 (o Entrar com o Facebook).
+A 4.38 deixa o Studio pronto pro **vídeo de até 150 MB**: o tamanho máximo agora vem do banco, o vídeo grande sobe em pedaços (com a porcentagem no botão de salvar, e sem começar do zero se a internet cair no meio), e o story fica nos 100 MB, que é o máximo do Instagram. O banco já tá pronto (rodei em 24/10). Leva junto a 4.37 (os avisos no computador), a 4.36 (o Hórus de segunda a sexta) e a 4.35 (o Entrar com o Facebook).
 
-1. **O site:** Netlify › projeto **elegant-churros-40301a** (é o app.corresocial.com) › aba **Deploys** › arrasta o `corre-site.zip` da 4.37 › espera aparecer **Published**.
-2. **No computador:** o teu Mac já tá com os avisos ligados. Abre o Corre › tua foto › **Avisos no computador** › **Mandar um teste**. Se não aparecer no canto da tela, abre "Não aparece no computador?" ali mesmo (quase sempre é o Mac segurando: Ajustes do Sistema › Notificações › Google Chrome › Permitir).
-3. **Ligar o Facebook (quando quiser):** o passo a passo tá em `docs/login-facebook.md`.
+1. **O site:** Netlify › projeto **elegant-churros-40301a** (é o app.corresocial.com) › aba **Deploys** › arrasta o `corre-site.zip` da 4.38 › espera aparecer **Published**.
+2. **Pros 150 MB valerem de verdade** (hoje o limite é 50 MB, e é do Supabase, não do Corre):
+   - No Supabase, a organização **consanans** tá no plano grátis, que não deixa nenhum arquivo passar de 50 MB (e guarda só 1 GB no total). Troca pro **Pro** (US$ 25 por mês): Organization › Billing.
+   - Depois, no projeto CORRE: **Storage › Settings › Global file size limit** = 150 MB › Save.
+   - Me avisa: eu subo a pasta dos vídeos pra 150 MB (é um comando só) e o app passa a aceitar na hora, sem zip novo.
+3. **No computador:** abre o Corre › tua foto › **Avisos no computador** › **Mandar um teste**.
+4. **Ligar o Facebook (quando quiser):** o passo a passo tá em `docs/login-facebook.md`.
 
 Pendente do teu lado, fora do zip:
 - Reconectar a conta da KivoTrack no Studio (a conexão guardada parou de enxergar a conta).

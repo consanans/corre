@@ -168,6 +168,10 @@ testa teste434.sql 20
 delta delta-v436.sql 'delta v4.36 ok'
 delta delta-v436.sql 'delta v4.36 ok'
 testa teste436.sql 5
+# v4.38: o tamanho máximo do vídeo do Studio vem da pasta corre-video
+delta delta-v438.sql 'delta v4.38 ok'
+delta delta-v438.sql 'delta v4.38 ok'
+testa teste438.sql 4
 . "$AQUI/virada343.sh"
 if grep -q 'FALHOU\|ERROR' $D/saida; then echo "deu FALHOU ou erro (acima)"; exit 1; fi
 echo "tudo ok: $(grep -c '^ok:' $D/saida) checagens"
