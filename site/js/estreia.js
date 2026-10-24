@@ -105,8 +105,8 @@
     /* v4.29: o primeiro de todos é o Monta meu Corre (some quando a pessoa montou) */
     const L = (C.views.monta ? [['monta', !!(C.monta && C.monta.feito()), 'Monta teu Corre com IA', 'Conta numa frase o que você faz: o link na bio, o mês no Studio, clientes e a semana saem prontos.', '#/monta']] : []).concat(celular() && !C.EMBED ? [['tela', noApp() || !!inLe().ja, 'Põe o Corre na tela do celular', 'Vira app: tela inteira, sem a barra do navegador, e os avisos chegam.', '', 'instala']] : [])
       /* v4.06: os avisos (é por eles que o Corre te chama de volta: visita no link, pedido no Mural, mensagem) */
-      .concat(avs === null ? [] : [['avisos', avs, 'Liga os avisos no celular', celular() ? 'Visita no teu link na bio, pedido no Mural pro teu corre e mensagem chegam na hora, com o Corre fechado.'
-        : 'Visita no teu link na bio, pedido no Mural e mensagem chegam na hora. No celular é melhor: abre o Corre lá e liga.', '', 'push-ajustes']]).concat([
+      .concat(avs === null ? [] : [['avisos', avs, celular() ? 'Liga os avisos no celular' : 'Liga os avisos no computador', celular() ? 'Visita no teu link na bio, pedido no Mural pro teu corre e mensagem chegam na hora, com o Corre fechado.'
+        : 'Visita no teu link na bio, pedido de orçamento e mensagem chegam na hora, no canto da tela. No celular, liga lá também.', '', 'push-ajustes']]).concat([
       ['foto', !!me.avatar_url, 'Põe tua foto', 'Gente confia em quem mostra a cara.', '#/editar'],
       ['faz', !!me.faz, 'Diz o que você vende', 'Numa frase. O Corre monta teu Hórus, teu Mural e tua vitrine por ela.', '#/editar'],
       ['whats', !!me.whats_publico, 'Põe o WhatsApp pra clientes', 'Vira o botão "Chamar no WhatsApp" do perfil e do link na bio.', '#/editar'],

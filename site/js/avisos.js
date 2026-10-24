@@ -46,7 +46,7 @@
   async function abrir(aba){
     A.aba = aba || 'tudo';
     const nv = C.visitas && C.visitas.contaSino ? C.visitas.contaSino() : 0;
-    C.sheet(`<div class="form avs"><div class="sheet-head"><h2>${ico('bell')} Avisos</h2>${C.push ? `<button type="button" class="cbtn plain avs-cel" data-act="push-ajustes" aria-label="Avisos no celular" title="Avisos no celular">${ico('cel')}</button>` : ''}<button type="button" class="cbtn plain" data-close aria-label="Fechar">${ico('x')}</button></div>
+    C.sheet(`<div class="form avs"><div class="sheet-head"><h2>${ico('bell')} Avisos</h2>${C.push ? `<button type="button" class="cbtn plain avs-cel" data-act="push-ajustes" aria-label="${C.push.nome()}" title="${C.push.nome()}">${ico(C.push.CEL ? 'cel' : 'pc')}</button>` : ''}<button type="button" class="cbtn plain" data-close aria-label="Fechar">${ico('x')}</button></div>
       ${C.push ? C.push.faixa('avisos') : ''}
       <div class="mu-tabs avs-tabs" role="tablist" aria-label="Avisos">${[['tudo', 'Tudo'], ['mencoes', 'Menções'], ['agenda', 'Agenda']].map(([k, t]) => `<button type="button" role="tab" data-act="av-aba" data-k="${k}" aria-selected="${A.aba === k}">${t}${k === 'agenda' && nv ? ` <b class="num">${nv}</b>` : ''}</button>`).join('')}</div>
       <div id="av-l"><p class="note">Abrindo…</p></div></div>`);

@@ -369,7 +369,7 @@
   const contaHTML = (me, gaveta, active) => `${gaveta ? `<div class="gv-topo"><a href="#/@${esc(me.handle)}" aria-label="Teu perfil">${avatar(me, 'm')}</a><b>${esc(me.nome || '')}</b><small>@${esc(me.handle)}</small></div>
       ${gavetaHTML(me, active)}
       <span class="gv-k">Conta</span>` : `<a href="#/@${esc(me.handle)}">${ico('eu')}Meu perfil</a><a href="#/salvos">${ico('save')}Salvos</a>`}
-      <a href="#/editar">${ico('edit')}Editar perfil</a><button type="button" data-act="st-novo">${ico('plus')}Postar story</button>${C.push ? `<button type="button" data-act="push-ajustes">${ico('bell')}Avisos no celular</button>` : ''}<button type="button" data-act="manual">${ico('manual')}Manual do Corre</button>
+      <a href="#/editar">${ico('edit')}Editar perfil</a><button type="button" data-act="st-novo">${ico('plus')}Postar story</button>${C.push ? `<button type="button" data-act="push-ajustes">${ico('bell')}${C.push.nome ? C.push.nome() : 'Avisos no celular'}</button>` : ''}<button type="button" data-act="manual">${ico('manual')}Manual do Corre</button>
       <a href="privacidade.html">${ico('lock')}Privacidade</a><a href="termos.html">${ico('check')}Termos de uso</a><button type="button" data-act="sair">${ico('prev')}Sair</button>`;
   /* o menu da esquerda (computador). v3.70: a marca com as Mensagens e o sino do lado, o Procurar, a Comanda (no menu
      estreito, o ícone com o número), os Teus, a praça e o Tudo. Postar e a conta seguem embaixo */
@@ -583,7 +583,7 @@
       { k: 'atende', h: '#/atendente', t: 'Atendente 24h', i: 'atende', d: 'Responde teus clientes no link na bio e no orçamento, de dia e de noite', kw: 'atendente atendimento chatbot bot robo ia responder cliente duvida 24h automatico whatsapp sac suporte faq' },
       { k: 'piloto', h: '#/piloto', t: 'Piloto automático', i: 'piloto', d: 'Põe no Caderninho o cliente esfriando, a cobrança vencida e a marca sem post', kw: 'piloto automatico automacao automatizar lembrete cobrar retomar follow up followup esfriando rotina' },
       { k: 'mural-novo', h: '#/mural/novo', t: 'Fixar um pedido no Mural', i: 'tacha', d: 'Quem faz te manda proposta', kw: 'pedir servico orcamento' },
-      { k: 'push', a: 'push-ajustes', t: 'Avisos no celular', i: 'bell', d: 'Liga e desliga as notificações', kw: 'notificacao notificacoes push celular' },
+      { k: 'push', a: 'push-ajustes', t: C.push && C.push.nome ? C.push.nome() : 'Avisos no celular', i: 'bell', d: 'Liga e desliga as notificações', kw: 'notificacao notificacoes push celular computador mac windows avisos' },
       ...(C.instala && C.instala.falta() ? [{ k: 'instala', a: 'instala', t: 'Pôr o Corre na tela do celular', i: 'cel', d: 'Vira app: tela inteira e os avisos', kw: 'instalar app aplicativo tela inicio inicial icone atalho celular iphone android cheia full screen' }] : []),
       { k: 'manual', a: 'manual', t: 'Manual do Corre', i: 'manual', d: 'Como usar cada coisa', kw: 'ajuda duvida tutorial como funciona' },
       { k: 'loja', a: 'cvr-loja', t: 'Ateliê: loja de skins', i: 'star', d: 'Skins pro teu avatar, pagas em correal', kw: 'skin skins loja roupa fantasia uniforme avatar comprar atelie' },

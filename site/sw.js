@@ -1,4 +1,4 @@
-/* CORRE · service worker (v3.35 os avisos no celular; v4.33 o Corre instantâneo).
+/* CORRE · service worker (v3.35 os avisos no celular, v4.37 no computador também; v4.33 o Corre instantâneo).
    Os avisos: chega o aviso (criptografado; o navegador abre), aparece na tela; tocou, abre o Corre no lugar certo. Com o
    Corre aberto e na frente, não toca: a tela já atualiza sozinha (no iPhone e no Safari toca sempre, que a Apple exige).
    O Corre instantâneo (o Thales: "deixar mais smart, moderno, inteligente"): o app fica guardado no aparelho.
@@ -9,7 +9,7 @@
    - Imagem, ícone e fonte do próprio Corre: sai do aparelho e a rede atualiza por baixo.
    - Banco, funções, login, a volta do Instagram, os jogos e o resto: direto da rede, como sempre. */
 'use strict';
-const VERSAO = '4.33';
+const VERSAO = '4.37';
 const CACHE = 'corre-app-1';
 const UA = (self.navigator && self.navigator.userAgent) || '';
 const APPLE = /iPhone|iPad|iPod|Macintosh/.test(UA) && !/Chrome|Chromium|CriOS|Edg\/|Firefox|FxiOS|Android/.test(UA);
@@ -92,7 +92,8 @@ async function mostra(d){
     try{ if(d.n > 0) await self.navigator.setAppBadge(Math.min(d.n, 999)); else await self.navigator.clearAppBadge(); }catch(e){}
   }
   const abertas = await janelas();
-  fala(abertas, { corre: 'push', t: String(d.t || ''), url, titulo });
+  /* v4.37: o texto vai junto: com o Corre na frente, ele mesmo mostra o aviso lá dentro (no computador, principalmente) */
+  fala(abertas, { corre: 'push', t: String(d.t || ''), url, titulo, corpo: String(d.corpo || '').slice(0, 300) });
   const naFrente = abertas.some(c => c.focused && c.visibilityState === 'visible');
   if(naFrente && !APPLE && d.t !== 'teste') return;
   const op = {

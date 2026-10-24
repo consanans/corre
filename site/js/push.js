@@ -1,4 +1,4 @@
-/* CORRE · AVISOS NO CELULAR (web push, v3.35). Mensagem e pedido, resposta e menção, seguidor novo e curtida chegam
+/* CORRE · AVISOS NO CELULAR E NO COMPUTADOR (web push, v3.35; o computador, v4.37). Mensagem e pedido, resposta e menção, seguidor novo e curtida chegam
    na tela de bloqueio, com o Corre fechado. Quem liga é a pessoa, em cada aparelho (o navegador pergunta antes).
    No iPhone só funciona com o Corre na Tela de Início (iOS 16.4 ou mais novo): o ajuste ensina o caminho.
    Depois de cada ação (mandar mensagem, responder, seguir, curtir), o site chama a função "push"; o banco decide quem
@@ -14,6 +14,12 @@
   const ua = navigator.userAgent || '';
   const IOS = /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
   const ANDROID = /Android/i.test(ua);
+  /* v4.37 (o Thales: "quero notificação no computador"): o aviso do navegador funciona igual no Chrome, Edge, Firefox e
+     Safari do computador. O que muda é o nome (no computador, "Avisos no computador"), as dicas do Mac e do Windows e o
+     aviso de dentro com o Corre na frente (ver o "dentro" lá embaixo) */
+  const CEL = IOS || ANDROID, ONDE = CEL ? 'celular' : 'computador';
+  const MAC = !IOS && /Macintosh|Mac OS X/.test(ua), WIN = /Windows/.test(ua);
+  const nome = () => 'Avisos no ' + ONDE;
   const dentroDeApp = () => C.insta && C.insta.dentroDeApp ? C.insta.dentroDeApp() : /Instagram|FBAN|FBAV|FB_IAB|FBIOS|Line\/|WhatsApp|musical_ly|TikTok|BytedanceWebview|; wv\)/i.test(ua);
   const instalado = () => { try{ return navigator.standalone === true || matchMedia('(display-mode: standalone)').matches || matchMedia('(display-mode: fullscreen)').matches; }catch(e){ return false; } };
   /* a demonstração finge tudo (não tem banco nem função); o teste liga o caminho de verdade com CORRE_PUSH_REAL */
@@ -89,7 +95,7 @@
     const u = C.uid(); if(!u || !C.st.me || P.ocupado) return;
     if(!real()){
       P.ocupado = true;
-      try{ P.ajustes = await C.api.rpc('corre_push_salvar', { p_endpoint: 'https://fcm.googleapis.com/fcm/send/demo-' + u, p_p256dh: 'B' + 'x'.repeat(86), p_auth: 'y'.repeat(22), p_ua: 'demonstração' }); marcaAqui(u, true); C.toast('Avisos ligados. Na demonstração não chega aviso de verdade; no Corre, chega no celular.', 4200); refazPassos(); }
+      try{ P.ajustes = await C.api.rpc('corre_push_salvar', { p_endpoint: 'https://fcm.googleapis.com/fcm/send/demo-' + u, p_p256dh: 'B' + 'x'.repeat(86), p_auth: 'y'.repeat(22), p_ua: 'demonstração' }); marcaAqui(u, true); C.toast(`Avisos ligados. Na demonstração não chega aviso de verdade; no Corre, chega no ${ONDE}.`, 4200); refazPassos(); }
       catch(e){ C.toast(C.errMsg(e)); }
       finally{ P.ocupado = false; pinta(); }
       return;
@@ -114,7 +120,7 @@
   const refazPassos = () => { if(C.estreia && C.estreia.refaz) C.estreia.refaz(); document.querySelectorAll('.psh-faixa').forEach(f => { if(estado() === 'ligado') f.remove(); }); };
   function erroTxt(e){
     const c = e && (e.code || e.name);
-    if(semBanco(e) || c === 'nofn' || (e && e.status === 404)) return 'Os avisos no celular ainda tão chegando no Corre. Tenta de novo mais tarde.';
+    if(semBanco(e) || c === 'nofn' || (e && e.status === 404)) return 'Os avisos ainda tão chegando no Corre. Tenta de novo mais tarde.';
     if(c === 'NotAllowedError') return 'O navegador não deixou ligar os avisos. Confere a permissão do site.';
     if(c === 'AbortError' || c === 'InvalidStateError') return 'O serviço de avisos do navegador não respondeu. Tenta de novo daqui a pouco.';
     return C.errMsg(e, 'Não deu pra ligar os avisos agora.');
@@ -210,14 +216,30 @@
   function statusHTML(e){
     const n = P.ajustes && Number(P.ajustes.aparelhos) || 0;
     const S = {
-      ligado: ['on', 'bell', 'Ligado neste aparelho', n > 1 ? `E em mais ${n - 1} ${n - 1 === 1 ? 'aparelho' : 'aparelhos'}. Cada um liga e desliga o seu.` : 'Chega com o Corre fechado, na tela de bloqueio.'],
+      ligado: ['on', 'bell', 'Ligado neste aparelho', (CEL ? 'Chega com o Corre fechado, na tela de bloqueio.' : 'Chega no canto da tela, com o Corre minimizado, em outra aba ou fechado (o navegador aberto). Com o Corre na frente, aparece aqui dentro, em cima.')
+        + (n > 1 ? ` Tá ligado em mais ${n - 1} ${n - 1 === 1 ? 'aparelho' : 'aparelhos'}: cada um liga e desliga o seu.` : '')],
       desligado: ['off', 'bell', 'Desligado neste aparelho', 'Toca em ligar: o navegador pergunta se o Corre pode avisar. Diz que sim.'],
-      bloqueado: ['bloq', 'lock', 'Bloqueado neste navegador', IOS ? 'Libera em Ajustes › Notificações › Corre, e volta aqui.' : 'Toca no cadeado (ou no ⓘ) ao lado do endereço › Notificações › Permitir. Depois volta aqui.'],
+      bloqueado: ['bloq', 'lock', 'Bloqueado neste navegador', IOS ? 'Libera em Ajustes › Notificações › Corre, e volta aqui.'
+        : !CEL && instalado() ? 'No ⋮ do alto da janela do Corre › Informações do app (ou Configurações do site) › Notificações › Permitir. Depois volta aqui.'
+        : `${CEL ? 'Toca' : 'Clica'} no cadeado (ou no ⓘ) ao lado do endereço › Notificações › Permitir. Depois volta aqui.`],
       'ios-instalar': ['ios', 'cel', 'No iPhone, pela Tela de Início', 'A Apple só deixa site mandar aviso quando ele mora na Tela de Início. Leva 10 segundos:'],
       iab: ['iab', 'ext', 'Abre no navegador', 'Dentro do Instagram ou do WhatsApp não dá pra ligar aviso. Abre o Corre no Chrome ou no Safari.'],
       'sem-suporte': ['sem', 'x', 'Esse navegador não recebe aviso', IOS ? 'Atualiza o iPhone (iOS 16.4 ou mais novo) e abre o Corre pela Tela de Início.' : 'No Android, usa o Chrome. No computador, Chrome, Edge, Firefox ou Safari.']
     }[e] || ['off', 'bell', '', ''];
     return `<div class="psh-st ${S[0]}"><span class="psh-ic" aria-hidden="true">${ico(S[1])}</span><div><b>${S[2]}</b><p>${S[3]}</p></div></div>`;
+  }
+  /* v4.37: ligou e não aparece no computador? Quase sempre é o sistema (Mac ou Windows) segurando o aviso do navegador */
+  function ajudaPC(){
+    const nav = /Edg\//.test(ua) ? 'Microsoft Edge' : /Firefox/.test(ua) ? 'Firefox' : /Chrome/.test(ua) ? 'Google Chrome' : /Safari/.test(ua) ? 'Safari' : 'o teu navegador';
+    const L = [];
+    if(MAC) L.push(nav === 'Safari' ? 'No Mac: Safari › Ajustes › Sites › Notificações › app.corresocial.com em Permitir. E menu  › Ajustes do Sistema › Notificações › Safari › Permitir notificações.'
+      : `No Mac: menu  › Ajustes do Sistema › Notificações › ${nav}${instalado() ? ' (e Corre, se aparecer na lista)' : ''} › Permitir notificações.`);
+    else if(WIN) L.push(`No Windows: Configurações › Sistema › Notificações › ${nav} ligado.`);
+    else L.push(`Nas configurações do sistema, deixa as notificações do ${nav} ligadas.`);
+    L.push('O modo Foco (ou Não perturbe) esconde os avisos enquanto tá ligado.');
+    L.push(`O ${nav === 'o teu navegador' ? 'navegador' : nav} precisa estar aberto (pode ser sem janela nenhuma). Fechado, o aviso chega quando abrir, até um dia depois.`);
+    L.push('Toca em Mandar um teste: com o Corre na frente, ele aparece aqui dentro e no canto da tela.');
+    return `<details class="psh-pc"><summary>Não aparece no computador?</summary><ul>${L.map(x => `<li>${esc(x)}</li>`).join('')}</ul></details>`;
   }
   function folhaHTML(){
     const e = estado(), a = P.ajustes || {}, liga = e === 'ligado';
@@ -230,11 +252,12 @@
     const tipos = P.semBanco ? '' : `<fieldset class="psh-tipos"${a.msg === undefined ? ' disabled' : ''}><legend>O que chega</legend>
       ${TIPOS.filter(([k]) => (k !== 'lembra' && k !== 'postar' && k !== 'caderno' && k !== 'bomdia') || a[k] !== undefined).map(([k, t, s]) => `<label class="switch sm"><input type="checkbox" data-chg="push-tipo" data-k="${k}"${a[k] !== false ? ' checked' : ''}><span class="sw" aria-hidden="true"></span><span><b>${t}</b><small>${s}</small></span></label>${k === 'msg' ? `<label class="switch sm psh-sub"><input type="checkbox" data-chg="push-tipo" data-k="texto"${a.texto !== false ? ' checked' : ''}><span class="sw" aria-hidden="true"></span><span><b>Mostrar o texto da mensagem</b><small>Desligado, chega só "mandou uma mensagem".</small></span></label>` : ''}${k === 'lembra' && liga ? `<button type="button" class="lnk psh-ex" data-act="push-lembra-teste"${a.lembra === false ? ' hidden' : ''}>Mandar um lembrete de exemplo</button>` : ''}${k === 'bomdia' ? horaBD(a) : ''}`).join('')}
       <p class="fine">Vale pra todos os teus aparelhos. Quem você bloqueou não te avisa de nada.</p></fieldset>`;
-    return `<div class="form psh"><div class="sheet-head"><h2>${ico('bell')} Avisos no celular</h2><button type="button" class="cbtn plain" data-close aria-label="Fechar">${ico('x')}</button></div>
+    return `<div class="form psh"><div class="sheet-head"><h2>${ico('bell')} ${nome()}</h2><button type="button" class="cbtn plain" data-close aria-label="Fechar">${ico('x')}</button></div>
       ${statusHTML(e)}${e === 'ios-instalar' ? passosIOS() : ''}
       ${botao ? `<div class="acts psh-acts">${botao}</div>` : ''}
+      ${!CEL && (e === 'ligado' || e === 'desligado' || e === 'bloqueado') && real() ? ajudaPC() : ''}
       ${pode || P.ajustes ? tipos : ''}
-      ${P.semBanco ? '<p class="note">Os avisos no celular ainda tão chegando no Corre.</p>' : ''}
+      ${P.semBanco ? '<p class="note">Os avisos ainda tão chegando no Corre.</p>' : ''}
       <p class="fine psh-pv">O aviso sai criptografado do Corre: o Google, a Apple e a Mozilla só entregam, não leem.</p></div>`;
   }
   const aberta = () => !!document.querySelector('#sheet .psh');
@@ -268,17 +291,33 @@
     let fx = 0; try{ fx = Number(ls.get(K_FX + onde)) || 0; }catch(er){}
     if(Date.now() - fx < 21 * 864e5) return '';
     const txt = onde === 'msg' ? 'Liga os avisos e fica sabendo na hora quando chegar mensagem.'
-      : onde === 'bio' ? 'Liga os avisos e o Corre te conta no celular quando teu link na bio tiver visita.'
-      : onde === 'horus' ? 'Liga os avisos e o celular apita na hora que chegar pedido de orçamento.'
-      : onde === 'caderno' ? 'Liga os avisos e o celular te chama na hora de cada tarefa com hora marcada.'
-      : onde === 'studio' ? 'Liga os avisos e o celular te chama na hora de postar (e quando o cliente responde a aprovação).'
-      : 'Curtida, resposta e seguidor novo no celular, com o Corre fechado.';
+      : onde === 'bio' ? `Liga os avisos e o Corre te conta no ${ONDE} quando teu link na bio tiver visita.`
+      : onde === 'horus' ? `Liga os avisos e o ${ONDE} apita na hora que chegar pedido de orçamento.`
+      : onde === 'caderno' ? `Liga os avisos e o ${ONDE} te chama na hora de cada tarefa com hora marcada.`
+      : onde === 'studio' ? `Liga os avisos e o ${ONDE} te chama na hora de postar (e quando o cliente responde a aprovação).`
+      : `Curtida, resposta e seguidor novo no ${ONDE}, com o Corre fechado.`;
     return `<div class="psh-faixa" data-onde="${esc(onde)}"><span class="psh-fx-ic" aria-hidden="true">${ico('bell')}</span><p>${txt}</p>
       <button type="button" class="btn sm pri" data-act="push-ajustes">${e === 'ios-instalar' ? 'Como ligar' : 'Ligar'}</button>
       <button type="button" class="cbtn plain psh-fx-x" data-act="push-faixa-x" data-onde="${esc(onde)}" aria-label="Agora não">${ico('x')}</button></div>`;
   }
 
   /* ---------- o que o service worker conta ---------- */
+  /* v4.37: com o Corre na frente, o service worker não mostra o aviso do sistema (menos no Safari, que a Apple exige
+     mostrar sempre): o que chegou aparece aqui dentro, no aviso de cima, com o "Abrir". Antes só a hora de postar, o
+     Caderninho e o bom dia apareciam; mensagem, pedido, curtida e o resto só mudavam o número do sino. Já tá na página
+     do aviso (a conversa aberta, por exemplo), não repete */
+  const APPLE = /iPhone|iPad|iPod|Macintosh/.test(ua) && !/Chrome|Chromium|CriOS|Edg\/|Firefox|FxiOS|Android/.test(ua);
+  const naFrente = () => { try{ return document.visibilityState === 'visible' && document.hasFocus(); }catch(e){ return false; } };
+  const hashDe = url => (/#\/[^\s<>"]*$/.exec(String(url || '')) || [''])[0];
+  function dentro(d){
+    if(APPLE || !naFrente()) return;
+    const h = hashDe(d.url);
+    if(h && h !== '#/' && location.hash === h) return;
+    const t = typeof d.titulo === 'string' ? d.titulo.trim().slice(0, 90) : '', c = typeof d.corpo === 'string' ? d.corpo.trim().slice(0, 120) : '';
+    if(!t && !c) return;
+    C.toast(t && c ? `${t} · ${c}` : t || c, 9000, h || null);
+  }
+
   if('serviceWorker' in navigator && !C.EMBED){
     try{
       navigator.serviceWorker.addEventListener('message', ev => {
@@ -290,9 +329,11 @@
           C.closeSheet();
           if(location.hash === h) C.refresh(); else location.hash = h;
         }else if(d.corre === 'push'){
-          if(d.t === 'msg'){ if(C.msg) C.msg.sync(true); }
+          if(d.t === 'msg'){ if(C.msg) C.msg.sync(true); dentro(d); }
           /* v4.16: chegou pedido com o Corre aberto: o Hórus relê (a Entrada e o número da aba) */
-          else if(d.t === 'pedido'){ if(C.horusFunil) C.horusFunil.chegou(); }
+          else if(d.t === 'pedido'){ if(C.horusFunil) C.horusFunil.chegou(); dentro(d); }
+          /* v4.37: o teste com o Corre na frente, no computador: chegou aqui; se não apareceu no canto da tela também, é o sistema */
+          else if(d.t === 'teste'){ if(!CEL && !APPLE && naFrente()) C.toast('O teste chegou no Corre. Se não apareceu também no canto da tela, abre "Não aparece no computador?" nos Avisos.', 9000); }
           /* v4.18: a hora de postar com o Corre aberto na frente (no computador o service worker não mostra o aviso):
              vira um aviso de cima que leva até o post */
           /* v4.19: a tarefa do Caderninho na hora, com o Corre aberto na frente */
@@ -309,7 +350,7 @@
             const h = (/#\/[^\s<>"]*$/.exec(d.url) || [''])[0];
             C.toast(`${typeof d.titulo === 'string' && d.titulo ? d.titulo.slice(0, 120) : 'Hora de postar'}. Toca aqui pra abrir o post.`, 12000, h || '#/studio');
           }
-          else if(C.avisos) C.avisos.sync(true);
+          else{ if(C.avisos) C.avisos.sync(true); dentro(d); }
         }else if(d.corre === 'push-sync') sync(true);
       });
     }catch(e){}
@@ -343,7 +384,7 @@
     'push-tipo': async el => {
       const k = el.dataset.k, v = !!el.checked;
       try{ P.ajustes = Object.assign({}, P.ajustes, await C.api.rpc('corre_push_ajusta', { p_campo: k, p_valor: v })); }
-      catch(e){ el.checked = !v; C.toast(semBanco(e) || (k === 'lembra' && e && e.hint === 'campo') ? 'Os avisos no celular ainda tão chegando no Corre.' : C.errMsg(e)); }
+      catch(e){ el.checked = !v; C.toast(semBanco(e) || (k === 'lembra' && e && e.hint === 'campo') ? 'Os avisos ainda tão chegando no Corre.' : C.errMsg(e)); }
       if(k === 'lembra'){ const ex = document.querySelector('#sheet .psh-ex'); if(ex) ex.hidden = !el.checked; }
       if(k === 'bomdia'){ const hb = document.querySelector('#sheet .psh-hora'); if(hb) hb.hidden = !el.checked; }
     },
@@ -363,5 +404,5 @@
     try{ const a = await C.api.rpc('corre_push_ajustes', { p_endpoint: null }); return a ? (Number(a.aparelhos) || 0) > 0 : null; }catch(e){ return null; }
   }
 
-  C.push = { estado, abrir, ligar, desligar, sair, sync, avisa, badge, faixa, temAparelho, log: () => P.log.slice(), instalado, IOS };
+  C.push = { estado, abrir, ligar, desligar, sair, sync, avisa, badge, faixa, temAparelho, log: () => P.log.slice(), instalado, IOS, CEL, nome };
 })();

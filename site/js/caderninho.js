@@ -642,7 +642,7 @@
         /* o anotado foi pra outra aba: diz onde ficou */
         const onde = !t.dia ? 'Algum dia' : t.dia === hoje() ? '' : t.dia < hoje() ? 'Ficou pra trás' : diaTxt(t.dia);
         if(onde && !(CD.aba === 'prox' && t.dia > hoje()) && !(CD.aba === 'solta' && !t.dia)) toast(`Anotado pra ${onde === 'Algum dia' ? '"Algum dia"' : onde}${t.hora ? ' às ' + horaTxt(t.hora) : ''}.`);
-        else if(t.hora && avisoLigado() === false) toast(`Anotado. Liga os avisos e o celular te chama às ${horaTxt(t.hora)}.`, 4200);
+        else if(t.hora && avisoLigado() === false) toast(`Anotado. Liga os avisos e o ${C.push && C.push.CEL === false ? 'computador' : 'celular'} te chama às ${horaTxt(t.hora)}.`, 4200);
       }
       repinta(); C.sinaisAtualiza && C.sinaisAtualiza();
       return t;
@@ -720,7 +720,7 @@
           <label><span>Repetir</span><select name="repete">${Object.keys(REPETE).map(k => `<option value="${k}"${(t.repete || '') === k && !(cadaDe(t) > 1) ? ' selected' : ''}>${REPETE[k]}</option>`).join('')}<option value="cada"${cadaDe(t) > 1 && UNID[t.repete] ? ' selected' : ''}>A cada…</option></select></label></div>
         <div class="cd-f-cada"${cadaDe(t) > 1 && UNID[t.repete] ? '' : ' hidden'}><span>A cada</span><label class="sr-only" for="cd-f-cn">Quantos</label><input id="cd-f-cn" name="cada" type="number" inputmode="numeric" min="1" max="999" value="${cadaDe(t) > 1 ? cadaDe(t) : 2}">
           <label class="sr-only" for="cd-f-cu">Dias, semanas ou meses</label><select id="cd-f-cu" name="cadau">${Object.keys(UNID).map(k => `<option value="${k}"${(UNID[t.repete] ? t.repete : 'dia') === k ? ' selected' : ''}>${UNID[k][1]}</option>`).join('')}</select></div>
-        <label class="switch sm cd-f-av"><input type="checkbox" name="avisa"${t.avisa !== false ? ' checked' : ''}><span class="sw" aria-hidden="true"></span><span><b>Avisar no celular na hora</b><small>${avisoLigado() === false ? 'Os avisos tão desligados neste aparelho: liga em Avisos no celular.' : 'Só com hora marcada.'}</small></span></label>
+        <label class="switch sm cd-f-av"><input type="checkbox" name="avisa"${t.avisa !== false ? ' checked' : ''}><span class="sw" aria-hidden="true"></span><span><b>Avisar na hora</b><small>${avisoLigado() === false ? `Os avisos tão desligados neste aparelho: liga em ${C.push && C.push.nome ? C.push.nome() : 'Avisos no celular'}.` : 'Só com hora marcada. Chega no celular e no computador que tiverem os avisos ligados.'}</small></span></label>
         <div class="cd-f-antes" role="group" aria-label="Avisar também antes"><span>E também:</span>${ANTES.map(([m, n]) => `<label class="cd-lst cd-ant"><input type="checkbox" name="antes" value="${m}"${Array.isArray(t.antes) && t.antes.includes(m) ? ' checked' : ''}>${esc(n)}</label>`).join('')}</div>
       </fieldset>
       <fieldset class="cd-f-g"><legend>Endereço</legend>
