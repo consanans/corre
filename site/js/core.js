@@ -967,8 +967,10 @@
       /* v4.17: as mesmas regras do delta-v417.sql pros formatos (no demo, o vídeo é um endereço blob: do aparelho) */
       if(t === 'corre_posts'){
         const M = Array.isArray(r.midias) ? r.midias : [];
-        if(M.length > 10 || M.some(x => !x || !/^(https:|blob:|data:)/.test(String(x.u || '')) || !['img', 'video'].includes(x.t))) throw { message: 'midias', hint: 'midias' };
+        if(M.length > 20 || M.some(x => !x || !/^(https:|blob:|data:)/.test(String(x.u || '')) || !['img', 'video'].includes(x.t))) throw { message: 'midias', hint: 'midias' };
         const f = r.formato || 'feed';
+        /* v4.39: carrossel com mais de 10 não sai sozinho (a API do Instagram vai até 10): vira lembrete, como no banco */
+        if(f === 'carrossel' && M.length > 10) r.ig_conta = null;
         if(r.ig_status === 'agendado' && ((f === 'carrossel' && M.length < 2) || (['story', 'reels'].includes(f) && M.length !== 1) || (f === 'reels' && (M[0] || {}).t !== 'video'))) throw { message: 'formato', hint: 'formato' };
       }
       /* v4.19: as mesmas regras do delta-v419.sql pro Caderninho (a hora do aviso o demo não precisa: ninguém recebe) */

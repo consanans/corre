@@ -8,7 +8,11 @@
   const W = 1080, M = 80;
   let HH = 1350, PT = 0, PB = 0;
   /* v4.17: os formatos do post (a chave, o nome, o selo e a dica do editor) */
-  const FMTS = [['feed', 'Feed', '4:5', 'Uma arte no feed, 1080×1350.'], ['carrossel', 'Carrossel', 'até 10', 'De 2 a 10 slides: arte, foto ou vídeo de até 60 s. A legenda é uma só.'], ['story', 'Story', '9:16', 'Arte 1080×1920 ou vídeo de até 60 s. Story não leva legenda: o que precisa dizer vai na arte.'], ['reels', 'Reels', 'vídeo', 'Vídeo de 3 s a 15 min, em pé. A capa é um quadro do vídeo.']];
+  /* v4.39: o app do Instagram aceita carrossel de até 20, mas a porta que o Corre usa pra postar sozinho (a API da Meta)
+     ainda vai até 10. De 11 a 20, o post fica no Studio e vira lembrete: na hora, o Corre avisa e a pessoa posta pelo celular. */
+  const SL_MAX = 20, SL_API = 10;
+  C.soMao = p => !!p && p.formato === 'carrossel' && (Array.isArray(p.midias) ? p.midias.length : 0) > SL_API;
+  const FMTS = [['feed', 'Feed', '4:5', 'Uma arte no feed, 1080×1350.'], ['carrossel', 'Carrossel', 'até 20', 'De 2 a 20 slides: arte, foto ou vídeo de até 60 s. A legenda é uma só. Com mais de 10, o Corre te avisa na hora e você posta pelo celular (o Instagram só deixa postar sozinho até 10).'], ['story', 'Story', '9:16', 'Arte 1080×1920 ou vídeo de até 60 s. Story não leva legenda: o que precisa dizer vai na arte.'], ['reels', 'Reels', 'vídeo', 'Vídeo de 3 s a 15 min, em pé. A capa é um quadro do vídeo.']];
   const MODELOS = [['capa', 'Capa'], ['imagem', 'Só imagem'], ['foto', 'Foto'], ['oferta', 'Oferta'], ['frase', 'Frase'], ['lista', 'Lista']];
   const ESTILOS = [['refs', 'Igual às referências', 'seguindo de perto o estilo visual das imagens de referência'], ['foto', 'Foto de anúncio', 'fotografia realista de publicidade, luz natural bonita, foco nítido, cores vivas'], ['riso', 'Risografia', 'ilustração em risografia com três cores chapadas, textura de impressão e granulado'], ['colagem', 'Colagem', 'colagem editorial com recortes de papel e fotografias, textura de xerox'], ['3d', '3D brinquedo', 'render 3D estilo brinquedo, cores vivas, luz de estúdio suave'], ['noite', 'Cinema noturno', 'fotografia cinematográfica noturna, luz de neon, grão de filme']];
   const IG_ERRO = { sem_chave: 'O Instagram ainda não foi ligado no Corre. Por enquanto, sobe o print do feed.', nao_comercial: 'Esse @ não é conta comercial ou de criador (ou não existe). Sobe o print do feed.', sem_posts: 'Esse perfil não tem posts com imagem.', limite: 'Hoje já deu o limite de puxadas do Instagram. Amanhã tem mais.', ocupado: 'O Instagram pediu um tempo. Tenta daqui a pouco.', usuario: 'Esse @ não parece certo.', login: 'Entra de novo pra puxar do Instagram.', provedor: 'O Instagram não respondeu. Tenta de novo.' };
@@ -486,7 +490,7 @@
     const pre = !p && o.pre && typeof o.pre === 'object' ? o.pre : null;
     if(pre && pre.titulo) art.titulo = String(pre.titulo).slice(0, 140);
     if(pre && pre.tema && !art.ia_d) art.ia_d = String(pre.tema).slice(0, 400);
-    /* v4.17 · os formatos: feed (uma arte 4:5), carrossel (até 10 slides: arte, foto ou vídeo), story (arte 9:16 ou
+    /* v4.17 · os formatos: feed (uma arte 4:5), carrossel (até 20 slides desde a v4.39: arte, foto ou vídeo), story (arte 9:16 ou
        vídeo) e reels (vídeo com a capa escolhida num quadro). Os slides e o vídeo ficam no "arte" do post pra reabrir */
     let fmt = p ? (p.formato || 'feed') : (FMTS.some(f => f[0] === o.formato) ? o.formato : 'feed'), si = 0;
     let slides = (p && p.arte && Array.isArray(p.arte.slides) ? p.arte.slides : []).map(x => x.t === 'video'
@@ -540,8 +544,8 @@
           <div class="fld"><label for="es-alt">Texto alternativo (descreve a imagem pra quem não enxerga)</label><textarea class="inp" id="es-alt" rows="2" maxlength="1000">${esc(d.alt || '')}</textarea></div>
           <div class="row2"><div class="fld"><label for="es-d">Data</label><input class="inp" id="es-d" type="date" value="${esc(d.data || '')}"></div><div class="fld"><label for="es-hr">Hora</label><input class="inp" id="es-hr" type="time" value="${esc(d.hora || '')}"></div></div>
           ${o.auto || studio ? (igFim ? `<p class="fine es-auto-fim">${ico('ig')} ${p.ig_status === 'publicado' ? 'Já foi pro Instagram pelo Corre. Mudar aqui não muda o post de lá.' : 'Indo pro Instagram agora.'}</p>`
-            : studio ? `<label class="switch es-auto"><input type="checkbox" id="es-auto"${progOn && !(p && p.status === 'postado') ? ' checked' : ''}><span class="sw"></span><span><b>Programar</b><small>No dia e na hora acima (horário de Brasília), na conta do "Postar em". Desligado, o post fica de rascunho.</small></span></label><div id="es-conta-w">${C.ig ? C.ig.seletor('es-conta', contaIni, mk) : ''}</div>`
-            : `<label class="switch es-auto"><input type="checkbox" id="es-auto"${p && p.ig_status === 'agendado' ? ' checked' : ''}><span class="sw"></span><span><b>Publicar sozinho no Instagram</b><small>no @${esc(mk.rede)}, no dia e na hora acima (horário de Brasília)</small></span></label>`) : ''}
+            : studio ? `<label class="switch es-auto"><input type="checkbox" id="es-auto"${progOn && !(p && p.status === 'postado') ? ' checked' : ''}><span class="sw"></span><span><b>Programar</b><small>No dia e na hora acima (horário de Brasília), na conta do "Postar em". Desligado, o post fica de rascunho.</small></span></label><div id="es-conta-w">${C.ig ? C.ig.seletor('es-conta', contaIni, mk) : ''}</div><p class="hint es-api" id="es-api" hidden>${ico('ig')} Carrossel com mais de 10: o Instagram não deixa o Corre postar sozinho. Programado, vira lembrete: na hora, o Corre te avisa e você posta pelo celular.</p>`
+            : `<label class="switch es-auto"><input type="checkbox" id="es-auto"${p && p.ig_status === 'agendado' ? ' checked' : ''}><span class="sw"></span><span><b>Publicar sozinho no Instagram</b><small>no @${esc(mk.rede)}, no dia e na hora acima (horário de Brasília)</small></span></label><p class="hint es-api" id="es-api" hidden>${ico('ig')} Carrossel com mais de 10: o Instagram não deixa o Corre postar sozinho. Na hora, o Corre te avisa e você posta pelo celular.</p>`) : ''}
           ${studio ? `<div class="fld"><label for="es-tm">Tema</label><input class="inp" id="es-tm" maxlength="40" value="${esc(d.tema || '')}" placeholder="Produto, Bastidor, Dica…"></div>`
             : `<div class="row2"><div class="fld"><label for="es-tm">Tema</label><input class="inp" id="es-tm" maxlength="40" value="${esc(d.tema || '')}" placeholder="Produto, Bastidor, Dica…"></div><div class="fld"><label for="es-st">Status</label><select class="inp" id="es-st">${STATUS.map(([k, n]) => `<option value="${k}"${d.status === k ? ' selected' : ''}>${n}</option>`).join('')}</select></div></div>`}
         </div>
@@ -550,7 +554,7 @@
     </div>`, 'wide');
     const cv = C.$('es-cv');
     /* as contas ainda não tinham carregado: o "Postar em" redesenha quando chegarem */
-    if(studio && C.ig && C.$('es-conta-w')) C.ig.carrega().then(() => { const w = C.$('es-conta-w'), at0 = C.$('es-conta'); if(w && at0 && !at0.dataset.mexeu){ const ini = p ? (p.ig_conta || '') : ((C.ig.daMarca(mk)) || {}).id || ''; w.innerHTML = C.ig.seletor('es-conta', ini, mk); const n = C.$('es-conta'); if(n) n.addEventListener('change', () => { n.dataset.mexeu = '1'; }); } });
+    if(studio && C.ig && C.$('es-conta-w')) C.ig.carrega().then(() => { const w = C.$('es-conta-w'), at0 = C.$('es-conta'); if(w && at0 && !at0.dataset.mexeu){ const ini = p ? (p.ig_conta || '') : ((C.ig.daMarca(mk)) || {}).id || ''; w.innerHTML = C.ig.seletor('es-conta', ini, mk); const n = C.$('es-conta'); if(n) n.addEventListener('change', () => { n.dataset.mexeu = '1'; }); apiNota(); } });
     if(C.$('es-conta')) C.$('es-conta').addEventListener('change', e => { e.target.dataset.mexeu = '1'; });
     const read = () => {
       art.modelo = (document.querySelector('input[name="es-m"]:checked') || {}).value || (art.modelo === 'subida' ? 'subida' : 'capa');
@@ -589,14 +593,21 @@
       C.$('es-ia-d').value = art.ia_d || '';
     }
     const thumbDe = x => x.t === 'video' ? (x.prev || x.capa || '') : (x.prev || x.u || (x.art.modelo === 'subida' ? x.art.foto : '') || '');
+    /* v4.39: de 11 a 20 slides, a conta sai do "Postar em" (vira lembrete) e a nota explica por quê */
+    function apiNota(){
+      const muitos = fmt === 'carrossel' && slides.length > SL_API, nt = C.$('es-api'), ct = C.$('es-conta');
+      if(nt) nt.hidden = !muitos;
+      if(ct) ct.disabled = muitos;
+    }
     function slPinta(){
+      apiNota();
       const el = C.$('es-sl'); if(!el) return;
       el.hidden = fmt !== 'carrossel'; if(el.hidden) return;
       const n = slides.length;
       el.innerHTML = `<ol class="es-sl-l" aria-label="Slides do carrossel">${slides.map((x, i) => { const t = thumbDe(x); return `<li><button type="button" class="es-sl-b${i === si ? ' on' : ''}" data-si="${i}" aria-label="Slide ${i + 1}${x.t === 'video' ? ', vídeo' : ''}" aria-current="${i === si}">${t ? `<img src="${esc(t)}" alt="">` : ''}<i class="n num">${i + 1}</i>${x.t === 'video' ? `<i class="v">${ico('play')}</i>` : ''}</button></li>`; }).join('')}</ol>
-        <div class="es-sl-a">${n < 10 ? `<button type="button" class="btn sm" data-sl="arte">${ico('plus')} Arte</button><button type="button" class="btn sm" data-sl="arq">${ico('up')} Foto ou vídeo</button>` : ''}
+        <div class="es-sl-a">${n < SL_MAX ? `<button type="button" class="btn sm" data-sl="arte">${ico('plus')} Arte</button><button type="button" class="btn sm" data-sl="arq">${ico('up')} Foto ou vídeo</button>` : ''}
           ${n > 1 ? `<button type="button" class="rnd sm" data-sl="esq" aria-label="Levar o slide ${si + 1} pra esquerda"${si === 0 ? ' disabled' : ''}>${ico('prev')}</button><button type="button" class="rnd sm" data-sl="dir" aria-label="Levar o slide ${si + 1} pra direita"${si === n - 1 ? ' disabled' : ''}>${ico('next')}</button><button type="button" class="btn sm ghost" data-sl="tira">${ico('trash')} Tirar o ${si + 1}</button>` : ''}
-          <span class="mono${n < 2 ? ' bad' : ''}">${n}/10${n < 2 ? ' · mínimo 2' : ''}</span></div>`;
+          <span class="mono${n < 2 ? ' bad' : ''}">${n}/${SL_MAX}${n < 2 ? ' · mínimo 2' : n > SL_API ? ' · posta pelo celular' : ''}</span></div>`;
     }
     /* mostra o canvas (arte) ou o vídeo, os slides do carrossel e os campos que valem pro que tá aberto */
     function mostra(){
@@ -711,21 +722,21 @@
       const b = e.target.closest('[data-si]'); if(b){ vaiSlide(+b.dataset.si); return; }
       const a = e.target.closest('[data-sl]'); if(!a) return;
       const k = a.dataset.sl;
-      if(k === 'arte' && slides.length < 10){
+      if(k === 'arte' && slides.length < SL_MAX){
         read(); if(slides[si]) slides[si].fotoFile = fotoFile;
         slides.splice(si + 1, 0, { t: 'img', u: '', sig: '', art: Object.assign(ARTE0(), { cor: art.cor, modelo: art.modelo === 'subida' ? 'capa' : art.modelo, logo: art.logo }) });
         vaiSlide(si + 1); dirty = true;
       } else if(k === 'arq'){
         const inp = document.createElement('input'); inp.type = 'file'; inp.multiple = true; inp.accept = 'image/*,video/mp4,video/quicktime,.mp4,.mov';
         inp.onchange = async () => {
-          const fs = [...(inp.files || [])].slice(0, 10 - slides.length); if(!fs.length) return;
+          const fs = [...(inp.files || [])].slice(0, SL_MAX - slides.length); if(!fs.length) return;
           read(); if(slides[si]) slides[si].fotoFile = fotoFile;
           let pos = si + 1;
           for(const f of fs){
             if(/^video\//.test(f.type) || /\.(mp4|mov)$/i.test(f.name || '')){ const r = await aceitaVideo(f, 'carrossel'); if(r) slides.splice(pos++, 0, Object.assign({ t: 'video' }, r)); }
             else try{ const ff = await C.shrink(f, 1600, .88); slides.splice(pos++, 0, { t: 'img', u: '', sig: '', fotoFile: ff, art: Object.assign(ARTE0(), { modelo: 'subida', foto: URL.createObjectURL(ff), logo: false }) }); }catch(err){ C.toast('Uma imagem não abriu.'); }
           }
-          if((inp.files || []).length > fs.length) C.toast('O carrossel vai até 10.');
+          if((inp.files || []).length > fs.length) C.toast(`O carrossel vai até ${SL_MAX}.`);
           vaiSlide(pos - 1); dirty = true;
         };
         inp.click();
@@ -973,6 +984,8 @@
         const ficam = urlsDo(Object.assign({}, row, { arte: row.arte }));
         const soltar = velhas.filter(u => !ficam.includes(u));
         if(studio && C.$('es-conta') && !igFim) row.ig_conta = C.$('es-conta').value || null;
+        /* v4.39: carrossel com mais de 10 vira lembrete (o banco faz o mesmo) */
+        if(fmt === 'carrossel' && md.midias.length > SL_API) row.ig_conta = null;
         if(au && !igFim){
           if(auto) Object.assign(row, { ig_status: 'agendado', ig_quando: `${row.data}T${row.hora}:00-03:00`, status: row.status === 'ideia' ? 'pronto' : row.status });
           else if(p && ['agendado', 'erro'].includes(p.ig_status || '')) row.ig_status = '';

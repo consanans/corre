@@ -50,7 +50,9 @@
   const vivo = () => !!(ST.el && ST.el.isConnected && C.$('sd-corpo'));
 
   /* ---------- Instagram: as contas conectadas (o login de cada conta, igcontas.js) e a conta de cada post ---------- */
-  const contaDoPost = p => { const c = p && p.ig_conta && C.ig ? C.ig.porId(p.ig_conta) : null; return c && C.ig.ok(c) ? c : null; };
+  /* v4.39: carrossel com mais de 10 não sai sozinho (a API do Instagram vai até 10): é sempre lembrete */
+  const muitos = p => !!(C.soMao && C.soMao(p));
+  const contaDoPost = p => { const c = p && p.ig_conta && C.ig && !muitos(p) ? C.ig.porId(p.ig_conta) : null; return c && C.ig.ok(c) ? c : null; };
   /* a marca tem conta conectada com o @ dela (é ela que vem marcada nos posts novos) */
   const ligada = m => !!(m && C.ig && C.ig.daMarca(m));
   async function contas(force){ if(C.ig) await C.ig.carrega(force); ST.contas = C.ig ? C.ig.contas() : []; ST.contasErro = ''; ST.contasEm = Date.now(); }
@@ -273,6 +275,7 @@
   /* ---------- o painel do post ---------- */
   function linhaEstado(p, s, m, conta){
     const hr = p.hora || '';
+    if(s === 'prog' && muitos(p)) return `Programado como <b>lembrete</b>: carrossel com mais de 10, e o Instagram só deixa o Corre postar sozinho até 10. Na hora, o Corre te avisa: toca em <b>Postar</b> e escolhe os ${p.midias.length} no Instagram (a legenda vai copiada).`;
     if(s === 'prog') return conta ? `Sai sozinho no <b>@${esc(conta.username)}</b>, ${esc(longo(p).toLowerCase())}.${C.DEMO ? ' (Demonstração: não vai pro Instagram de verdade.)' : ''}` : `Programado como <b>lembrete</b>: sem conta escolhida, não sai sozinho. Na hora, toca em <b>Postar</b> (a legenda vai copiada), ou escolhe a conta aqui embaixo.`;
     if(s === 'atras') return `Passou da hora${hr ? ` (${esc(hr)})` : ''} e não foi pro Instagram. Posta agora: a legenda vai copiada.`;
     if(s === 'indo') return 'Indo pro Instagram agora.';
@@ -293,14 +296,14 @@
           <div class="sd-pp-q">${pill(s)}<b class="num">${esc(longo(p))}</b>${fim && foi ? C.ig.chip(foi) : ''}${tags(p)}</div>
           ${p.aprov === 'ajuste' ? `<p class="apr-nota"><b>${esc(p.aprov_quem || 'O cliente')} pediu ajuste:</b> ${esc(p.aprov_nota || '')}</p>` : p.aprov === 'aprovado' ? `<p class="apr-nota ok"><b>Aprovado</b>${p.aprov_quem ? ` por ${esc(p.aprov_quem)}` : ''}${p.aprov_em ? ` em ${esc(curto(String(p.aprov_em).slice(0, 10)))}` : ''}.</p>` : p.aprov_nota ? `<p class="apr-nota velha"><b>Ajuste pedido antes:</b> ${esc(p.aprov_nota)}</p>` : ''}
           <p class="fine">${linhaEstado(p, s, m, conta)}</p>
-          ${!fim && C.ig ? `<div class="sd-pp-conta">${C.ig.seletor('sd-pc', p.ig_conta || '', m)}</div>` : ''}
+          ${!fim && C.ig && !muitos(p) ? `<div class="sd-pp-conta">${C.ig.seletor('sd-pc', p.ig_conta || '', m)}</div>` : ''}
           ${s === 'erro' && p.ig_erro ? `<p class="sd-pp-erro">${esc(p.ig_erro)}</p>` : ''}
           <h3 class="sd-pp-t">${esc(p.titulo || 'Sem título')}</h3>
           <div class="sd-pp-leg">${p.legenda ? esc(p.legenda).replace(/(^|\s)(#[\p{L}\p{N}_]+)/gu, '$1<span class="h">$2</span>') : '<span class="note">Sem legenda ainda. No Editar, a IA escreve olhando a arte.</span>'}</div>
           <div class="sd-pp-prog" id="sd-pp-prog" hidden>
             <div class="row2"><div class="fld"><label for="sd-pd">Dia</label><input class="inp" id="sd-pd" type="date" min="${hoje()}" value="${dDef}"></div><div class="fld"><label for="sd-ph">Hora</label><input class="inp" id="sd-ph" type="time" value="${hDef}"></div></div>
             <div class="acts"><button type="button" class="btn pri" data-act="sd-prog-ok" data-id="${p.id}">${ico('clock')} Programar</button><button type="button" class="btn ghost" data-act="sd-prog-x">Voltar</button></div>
-            <p class="fine">${conta ? `Sai no @${esc(conta.username)} nessa hora (horário de Brasília), com essa arte e essa legenda.` : 'Sem conta escolhida: vira lembrete pra postar à mão nessa hora (horário de Brasília).'}</p>
+            <p class="fine">${conta ? `Sai no @${esc(conta.username)} nessa hora (horário de Brasília), com essa arte e essa legenda.` : muitos(p) ? 'Carrossel com mais de 10: vira lembrete pra postar pelo celular nessa hora (horário de Brasília). O Instagram só deixa postar sozinho até 10.' : 'Sem conta escolhida: vira lembrete pra postar à mão nessa hora (horário de Brasília).'}</p>
           </div>
           <div class="sd-pp-acts" id="sd-pp-acts">
             <div class="acts">

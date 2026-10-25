@@ -172,6 +172,10 @@ testa teste436.sql 5
 delta delta-v438.sql 'delta v4.38 ok'
 delta delta-v438.sql 'delta v4.38 ok'
 testa teste438.sql 4
+# v4.39: o carrossel até 20 (de 11 a 20 vira lembrete)
+delta delta-v439.sql 'delta v4.39 ok'
+delta delta-v439.sql 'delta v4.39 ok'
+testa teste439.sql 5
 . "$AQUI/virada343.sh"
 if grep -q 'FALHOU\|ERROR' $D/saida; then echo "deu FALHOU ou erro (acima)"; exit 1; fi
 echo "tudo ok: $(grep -c '^ok:' $D/saida) checagens"
