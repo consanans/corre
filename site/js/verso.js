@@ -3708,6 +3708,267 @@
     /* a lenda brilha */
     if(k === 'lenda' && Math.floor(t * 2.5 + h.x) % 4 === 0){ ctx.fillStyle = '#FFFFFF'; ctx.fillRect(x + 11, y - 36, 2, 2); ctx.fillRect(x - 14, y - 16, 2, 2); }
   }
+  /* ---------- v4.40 · a loja de cada casa (o Thales: "marcha", na vitrine da cidade) ----------
+     Toda casa do Correverso é a loja de quem mora nela: o toldo listrado em cima da vitrine do térreo, com o letreiro do que
+     a pessoa faz (nas casas de estilo próprio e nos dois quarteirões do fundador, que têm fachada desenhada, vai um
+     cavalete na calçada). Tocou na porta, cai no link na bio dela por cima da cidade (orçamento, WhatsApp, vitrine), e a
+     visita conta no "Quem passou" dela. O letreiro e a cor moram no verso.loja do perfil ({ t, c, on }); sem nada, o
+     letreiro sai do "O que você faz" curto ou da categoria. Quem não tem nenhum dos dois fica só com a casa. A letra é a
+     de pixel da cidade (sem acento nem emoji), e a cor nunca é verde (a da marca só entra se não for) */
+  const LOJA_MAX = 16;
+  const LOJA_CORES = [[ROSA, 'Rosa'], [AMARELO, 'Amarelo'], [AZUL, 'Azul'], [LARANJA, 'Laranja'], [LILAS, 'Lilás'], ['#E2412E', 'Vermelho'], ['#765BA7', 'Roxo'], [INK, 'Preto']];
+  const LOJA_CAT = { social: 'SOCIAL MEDIA', design: 'DESIGN', foto_video: 'FOTO E VIDEO', site: 'SITES E APPS', trafego: 'TRAFEGO PAGO', musica: 'MUSICA E DJ', eventos: 'EVENTOS',
+    reforma: 'REFORMAS', tecnica: 'ASSISTENCIA', aulas: 'AULAS', beleza: 'BELEZA', tattoo: 'TATTOO', moda: 'MODA', comida: 'COMIDA', frete: 'FRETE', juridico: 'JURIDICO', casa: 'LIMPEZA' };
+  Object.setPrototypeOf(LOJA_CAT, null);
+  /* só o que a letra de pixel desenha; o resto sai (o & vira E, que é como se lê) */
+  const letreiro = t => txtN(t).replace(/&/g, 'E').replace(/[^A-Z0-9 @.\-_:!?/+,'$]/g, '').replace(/\s+/g, ' ').trim().slice(0, LOJA_MAX).trim();
+  const HEX6 = /^#[0-9A-Fa-f]{6}$/;
+  /* verde fica de fora até na cor da marca (matiz de 70 a 170 com cor de verdade) */
+  function ehVerde(hx){
+    const [r, g, b] = [1, 3, 5].map(i => parseInt(hx.slice(i, i + 2), 16) / 255), mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn, l = (mx + mn) / 2;
+    if(d < .08) return false;
+    const s = d / (1 - Math.abs(2 * l - 1)), hue = mx === r ? 60 * (((g - b) / d) % 6) : mx === g ? 60 * ((b - r) / d + 2) : 60 * ((r - g) / d + 4), H = (hue + 360) % 360;
+    return s > .18 && H >= 70 && H <= 170;
+  }
+  const corOk = c => typeof c === 'string' && HEX6.test(c) && !ehVerde(c);
+  const lumL = hx => { const c = [1, 3, 5].map(i => parseInt(hx.slice(i, i + 2), 16) / 255).map(v => v <= .03928 ? v / 12.92 : Math.pow((v + .055) / 1.055, 2.4)); return .2126 * c[0] + .7152 * c[1] + .0722 * c[2]; };
+  const letraEm = c => lumL(c) > .3 ? INK : PAPEL;
+  /* o letreiro que ela escolheu, ou o que dá pra tirar do perfil */
+  function lojaPadrao(p){
+    const faz = String(p.faz || '').trim(), lf = letreiro(faz);
+    if(lf && lf.length >= 3 && txtN(faz).replace(/\s+/g, ' ').length <= LOJA_MAX && lf.length >= txtN(faz).replace(/\s+/g, ' ').length - 1) return lf;
+    return LOJA_CAT[p.categoria] || '';
+  }
+  function lojaDe(p){
+    p = p || {}; const v = p.verso && typeof p.verso === 'object' && p.verso.loja && typeof p.verso.loja === 'object' ? p.verso.loja : {};
+    if(v.on === false) return null;
+    const t = letreiro(v.t || '') || lojaPadrao(p); if(!t) return null;
+    const cat = CASA[p.categoria] ? p.categoria : 'outros', a = (CASA[cat] || CASA.outros).a, c = corOk(v.c) ? v.c.toUpperCase() : corOk(a) ? a : ROSA;
+    return { t, c, tx: letraEm(c), meu: !!(v.t || v.c) };
+  }
+  /* guardado na casa e refeito quando o verso muda (a tua, quando você salva a loja) */
+  function lojaH(h){ if(!h || !h.p) return null; const v = h.p.verso || null; if(h.lojaV !== v || !('lojaC' in h)){ h.lojaV = v; h.lojaC = lojaDe(h.p); } return h.lojaC; }
+  /* o texto que cabe em tantos pontos de largura (o resto vira ..) */
+  function cabeTxt(t, larg){ if(pixLarg(t, 1) <= larg) return t; let s = t; while(s.length > 2 && pixLarg(s + '..', 1) > larg) s = s.slice(0, -1); return s.trim() + '..'; }
+  /* a vitrine do térreo da casa de sempre (a mesma conta do spriteCasa) */
+  function vitrineDe(h){
+    const S = CASA[h.cat] || CASA.outros, w = h.w, x0 = h.x, px = h.portaX - x0, lado = px > w / 2 ? 1 : -1, recuo = S.f === 'pilotis' ? 14 : 0;
+    if(S.f === 'garagem') return { x: lado > 0 ? x0 + 12 : x0 + w - 12 - 96, w: 96 };
+    const vw = Math.round(w * .46); return { x: lado > 0 ? x0 + 12 + recuo : x0 + w - 12 - vw - recuo, w: vw };
+  }
+  /* o toldo vai da beira da vitrine até perto da porta (sem cobrir ela): cabe o letreiro inteiro no zoom de sempre */
+  function toldoSpan(h){
+    const v = vitrineDe(h), px = h.portaX;
+    if(px > h.x + h.w / 2){ const a = v.x - 6, b = Math.max(v.x + v.w + 6, px - 18); return { x: a, w: b - a }; }
+    const b = v.x + v.w + 6, a = Math.min(v.x - 6, px + 18); return { x: a, w: b - a };
+  }
+  /* o toldo: a barra preta presa na parede, as listras na cor da loja e branco, a faixa da frente com o letreiro e o
+     babado embaixo; a sombra cai no vidro. O letreiro fica no tamanho da letra da cidade (a faixa cresce com ela) */
+  function toldoLoja(ctx, h, lj, t, semLuz){
+    const v = vitrineDe(h), s = toldoSpan(h), bpw = escala(ctx) / BASE(ctx), u = 1 / Math.max(.15, bpw);
+    const tx = s.x, tw = s.w, ty = h.base - 74 + 5, inc = 9, fh = Math.max(10, 9 * u), fy = ty + inc;
+    ctx.fillStyle = 'rgba(15,18,24,.28)'; ctx.fillRect(v.x, fy + fh + 3, v.w, 5);
+    ctx.fillStyle = INK; ctx.fillRect(tx + 2, ty - 2, tw - 4, 3);
+    for(let i = 0, xx = tx; xx < tx + tw; i++, xx += 8){ ctx.fillStyle = i % 2 ? PAPEL : lj.c; ctx.fillRect(xx, ty, Math.min(8, tx + tw - xx), inc); }
+    ctx.fillStyle = 'rgba(15,18,24,.18)'; ctx.fillRect(tx, ty + inc - 2, tw, 2);
+    ctx.beginPath(); ctx.rect(tx, fy, tw, fh); forma(ctx, lj.c, 1.4);
+    for(let i = 0, xx = tx; xx < tx + tw - 1; i++, xx += 8){ ctx.beginPath(); ctx.moveTo(xx, fy + fh); ctx.lineTo(xx + 8, fy + fh); ctx.lineTo(xx + 4, fy + fh + 4); ctx.closePath(); ctx.fillStyle = i % 2 ? PAPEL : lj.c; ctx.fill(); }
+    pixTxt(ctx, cabeTxt(lj.t, Math.floor(tw * bpw) - 6), tx + tw / 2, fy + fh / 2, 1, lj.tx, 'c');
+    if(!semLuz) luz(tx + tw / 2, fy + 6, 58, .6);
+  }
+  /* o cavalete na calçada (casas de fachada própria): a tabuleta na cor da loja em cima de duas pernas abertas */
+  function cavaleteLoja(ctx, h, lj, t, semLuz){
+    const bpw = escala(ctx) / BASE(ctx), u = 1 / Math.max(.15, bpw), lado = h.portaX > h.x + h.w / 2 ? -1 : 1;
+    const x = Math.round(h.portaX + lado * 84), y = h.base + 16, txt = cabeTxt(lj.t, 120), bw = Math.max(34, (pixLarg(txt, 1) + 10) * u), bh = Math.max(16, 11 * u);
+    ctx.fillStyle = 'rgba(15,18,24,.22)'; ctx.fillRect(x - bw / 2 - 2, y - 1, bw + 4, 4);
+    ctx.strokeStyle = '#3A2A1C'; ctx.lineWidth = Math.max(2, 1.05 / escala(ctx)); ctx.beginPath(); ctx.moveTo(x - bw * .32, y); ctx.lineTo(x - 2, y - 26 - bh); ctx.moveTo(x + bw * .32, y); ctx.lineTo(x + 2, y - 26 - bh); ctx.stroke();
+    ctx.beginPath(); ctx.rect(x - bw / 2, y - 22 - bh, bw, bh); forma(ctx, lj.c, 1.6);
+    ctx.fillStyle = 'rgba(255,255,255,.25)'; ctx.fillRect(x - bw / 2 + 2, y - 22 - bh + 2, bw - 4, 2);
+    pixTxt(ctx, txt, x, y - 22 - bh / 2, 1, lj.tx, 'c');
+    if(!semLuz) luz(x, y - 24, 40, .5);
+  }
+  const lojaPinta = (ctx, h, lj, t, semLuz) => (h.estilo || h.blocos) ? cavaleteLoja(ctx, h, lj, t, semLuz) : toldoLoja(ctx, h, lj, t, semLuz);
+  const bairroDe = h => h.blocos ? bairro(DOIS.c, DOIS.r) : bairro(h.c, h.r);
+  const minhaCasa = () => { const me = C.st.me, c = V.cid; if(!me || !c) return null; return c.dois && c.dois.id === me.id ? c.dois : c.casas.find(x => x.id === me.id) || null; };
+  /* o letreiro em HTML (na porta e no editor): a faixa listrada em cima e o nome na cor da loja */
+  const lojaFaixa = (lj, extra) => `<div class="cvr-lj${extra ? ' ' + extra : ''}" style="--lj:${lj.c};--ljt:${lj.tx}"><i class="cvr-lj-toldo" aria-hidden="true"></i><b class="cvr-lj-l">${esc(lj.t)}</b></div>`;
+  function lojaBloco(c, lj, meu){
+    const ond = `${esc(bairroDe(c))}, Londrina`;
+    if(!meu) return lj ? `<div class="cvr-lj-w">${lojaFaixa(lj)}<p class="cvr-lj-on">${ond}</p>
+      <div class="acts"><button type="button" class="btn pri" data-act="cvr-loja-ver" data-h="${esc(c.handle)}" data-cor="${esc(lj.c)}">${ico('cartao')} Ver a loja</button></div>
+      <p class="fine">É o link na bio de @${esc(c.handle)}: orçamento, WhatsApp e o que vende.</p></div>` : '';
+    if(!lj) return `<div class="cvr-lj-w"><div class="cvr-lj vazia"><b class="cvr-lj-l">Tua casa pode virar loja</b></div>
+      <p class="fine">Põe um letreiro com o que você faz: quem passa na frente toca e cai no teu link na bio.</p>
+      <div class="acts"><button type="button" class="btn pri" data-act="cvr-loja-edita">${ico('cartao')} Abrir a loja</button></div></div>`;
+    return `<div class="cvr-lj-w">${lojaFaixa(lj)}<p class="cvr-lj-on">Tua loja · ${ond}</p>
+      <div class="acts"><button type="button" class="btn pri" data-act="cvr-loja-story">${ico('share')} Postar no Instagram</button><button type="button" class="btn" data-act="cvr-loja-edita">${ico('edit')} Ajeitar a loja</button><button type="button" class="btn" data-act="cvr-loja-ver" data-h="${esc(c.handle)}" data-cor="${esc(lj.c)}">${ico('eye')} Ver como fica</button></div></div>`;
+  }
+  /* as cores do toldo: as da casa e as da marca que a pessoa fez no Studio Houzi (se não forem verdes) */
+  function coresLoja(){
+    const mv = (C.st.me && C.st.me.bio_link && C.st.me.bio_link.mv) || {}, L = LOJA_CORES.slice();
+    [[mv.cor, 'A cor da tua marca'], [mv.acento, 'O acento da tua marca']].forEach(([c, n]) => { if(corOk(c) && !L.some(x => x[0].toUpperCase() === c.toUpperCase())) L.unshift([c.toUpperCase(), n]); });
+    return L;
+  }
+  const ML = { c: '', on: true };
+  function minhaLojaSheet(){
+    const me = C.st.me; if(!me) return;
+    const h = minhaCasa(), p = h ? h.p : me, v = (me.verso && me.verso.loja && typeof me.verso.loja === 'object') ? me.verso.loja : {};
+    const padrao = lojaPadrao(me) || 'TEU CORRE', atual = lojaDe(Object.assign({}, me, { verso: Object.assign({}, me.verso || {}, { loja: Object.assign({}, v, { on: true }) }) }));
+    ML.c = (atual && atual.c) || ROSA; ML.on = v.on !== false;
+    const cores = coresLoja();
+    C.sheet(`<div class="form cvr-mloja"><div class="sheet-head"><h2>${ico('cartao')} Tua loja na cidade</h2><button type="button" class="cbtn plain" data-close aria-label="Fechar">${ico('x')}</button></div>
+      <p class="note">Tua casa no Correverso é a tua loja. Quem passa vê o toldo com o letreiro, toca na porta e cai no teu link na bio, com orçamento, WhatsApp e o que você vende.</p>
+      <div class="cvr-lj-w" id="cvr-lj-prev">${lojaFaixa({ t: letreiro(v.t || '') || padrao, c: ML.c, tx: letraEm(ML.c) }, 'grande')}</div>
+      <label class="fld"><span class="lbl-s">Letreiro</span><input id="cvr-lj-t" maxlength="${LOJA_MAX}" value="${esc(letreiro(v.t || ''))}" placeholder="${esc(padrao)}" autocomplete="off" spellcheck="false"><small class="fine">Até ${LOJA_MAX} letras, do jeito que sai na cidade: sem acento e sem emoji. Vazio, vale o que tá apagadinho.</small></label>
+      <fieldset class="fld cvr-lj-cs"><legend class="lbl-s">Cor do toldo</legend><div class="cvr-lj-cores" role="radiogroup" aria-label="Cor do toldo">${cores.map(([c, n]) => `<button type="button" role="radio" aria-checked="${c.toUpperCase() === ML.c.toUpperCase()}" data-act="cvr-loja-cor" data-c="${c}" style="--c:${c}" title="${esc(n)}" aria-label="${esc(n)}"></button>`).join('')}</div></fieldset>
+      <label class="switch"><input type="checkbox" id="cvr-lj-on"${ML.on ? ' checked' : ''}><span class="sw"></span><span><b>Loja aberta na cidade</b><small>Fechada, tua casa fica só casa (sem toldo nem letreiro).</small></span></label>
+      <div class="acts"><button type="button" class="btn pri" data-act="cvr-loja-salva">${ico('check')} Salvar a loja</button></div>
+      <p class="fine">O que abre quando tocam na loja é o teu link na bio${p && p.handle ? ` (app.corresocial.com/@${esc(p.handle)})` : ''}: <button type="button" class="lnk" data-act="cvr-loja-bio">ajeitar o link na bio</button>.</p></div>`, 'cvr-mloja-f');
+    const inp = C.$('cvr-lj-t'); if(inp) inp.addEventListener('input', () => { const lim = letreiro(inp.value); if(inp.value !== lim && txtN(inp.value).length > lim.length + 1){ const pos = inp.selectionStart; inp.value = inp.value.slice(0, LOJA_MAX); try{ inp.setSelectionRange(pos, pos); }catch(e){} } lojaPrevia(); });
+  }
+  function lojaPrevia(){
+    const w = C.$('cvr-lj-prev'), inp = C.$('cvr-lj-t'); if(!w) return;
+    const t = letreiro(inp ? inp.value : '') || (inp && inp.placeholder) || 'TEU CORRE';
+    w.innerHTML = lojaFaixa({ t, c: ML.c, tx: letraEm(ML.c) }, 'grande');
+  }
+  async function salvaLoja(){
+    const me = C.st.me; if(!me) return;
+    const inp = C.$('cvr-lj-t'), on = C.$('cvr-lj-on'), t = letreiro(inp ? inp.value : '');
+    const loja = { t, c: corOk(ML.c) ? ML.c.toUpperCase() : '', on: on ? on.checked : true };
+    const verso = Object.assign({}, me.verso && typeof me.verso === 'object' ? me.verso : {}, { loja });
+    try{ await C.saveMe({ verso }); }catch(e){ C.toast(C.errMsg(e, 'Não deu pra guardar a loja agora.')); return; }
+    const h = minhaCasa(); if(h){ h.p = Object.assign({}, h.p, { verso: C.st.me.verso || verso }); }
+    C.closeSheet();
+    const lj = h ? lojaH(h) : lojaDe(Object.assign({}, me, { verso }));
+    C.toast(lj ? `Loja aberta: ${lj.t}. Bora mostrar pro mundo?` : 'Loja fechada: tua casa voltou a ser só casa.', 3200);
+    if(lj && V.vivo) setTimeout(() => { const sh = C.$('sheet'); if(V.vivo && (!sh || sh.hidden)) storySheet(); }, 500);
+  }
+
+  /* ---------- v4.40 · "Meu corre tá no mapa": o story pra postar ----------
+     1080x1920 (o story do Instagram), montado aqui, não é print: o céu da hora com Londrina lá atrás (os prédios e a
+     torre da Catedral), a tua casa grande com o toldo e o letreiro, você na porta, o alfinete do mapa em cima, o @, o
+     bairro e o endereço do teu link na bio. O texto fica longe do alto e do pé (onde o Instagram põe o nome e a caixa de
+     resposta). Postar manda pelo compartilhar do celular e copia o link antes (o adesivo de Link do story é colar);
+     sem compartilhar, baixa o arquivo. Nada vai pro banco */
+  const SL = { card: null };
+  function cartaoLoja(h, lj){
+    const W = 1080, H = 1920, cv = document.createElement('canvas'); cv.width = W; cv.height = H; const g = cv.getContext('2d');
+    const ce = ceuAgora(), nt = ce.escuro > .45, tarde = !nt && ce.quente > .3, r = rng(hash('loja:' + h.id));
+    /* (a rua fica alta: o pé do story é da caixa de resposta do Instagram, e o link tem que aparecer antes dela) */
+    const chao = 1130;
+    /* o céu da hora e as estrelas */
+    const cg = g.createLinearGradient(0, 0, 0, chao);
+    if(nt){ cg.addColorStop(0, '#070A22'); cg.addColorStop(1, '#2B2766'); } else if(tarde){ cg.addColorStop(0, '#34367E'); cg.addColorStop(.6, '#E2687E'); cg.addColorStop(1, '#FFB36E'); } else { cg.addColorStop(0, '#4E8ED2'); cg.addColorStop(1, '#CFE4F7'); }
+    g.fillStyle = cg; g.fillRect(0, 0, W, chao);
+    if(nt){ g.fillStyle = '#FFFFFF'; for(let i = 0; i < 90; i++){ g.globalAlpha = .35 + r() * .65; const s = r() < .15 ? 4 : 2; g.fillRect(Math.round(r() * W), Math.round(r() * chao * .7), s, s); } g.globalAlpha = 1; }
+    /* Londrina lá atrás: os prédios (acesos de noite) e a torre da Catedral */
+    const fundo = nt ? '#171A3C' : tarde ? '#5A4A78' : '#94ABC6', jan = nt ? 'rgba(255,214,140,.85)' : tarde ? 'rgba(255,200,150,.45)' : 'rgba(255,255,255,.4)';
+    let x = -20; const pr = rng(hash('skyline-londrina'));
+    while(x < W){ const w = 50 + pr() * 80, hh = 120 + pr() * pr() * 340, y0 = chao - 150 - hh; g.fillStyle = fundo; g.fillRect(Math.round(x), Math.round(y0), Math.round(w), Math.round(hh + 160)); g.fillStyle = jan; for(let yy = y0 + 14; yy < chao - 170; yy += 18) for(let xx = x + 8; xx < x + w - 10; xx += 16) if(pr() < (nt ? .42 : .6)) g.fillRect(Math.round(xx), Math.round(yy), 7, 8); x += w + 6 + pr() * 22; }
+    const tx = W * .78; g.fillStyle = fundo; g.beginPath(); g.moveTo(tx - 34, chao - 150); g.lineTo(tx - 10, chao - 640); g.lineTo(tx + 10, chao - 640); g.lineTo(tx + 34, chao - 150); g.closePath(); g.fill();
+    g.fillRect(tx - 3, chao - 700, 6, 70); g.fillRect(tx - 16, chao - 684, 32, 6);
+    /* a calçada e a rua */
+    g.fillStyle = nt ? '#3A3A4A' : '#C9C2B6'; g.fillRect(0, chao, W, 130); g.fillStyle = nt ? 'rgba(255,255,255,.06)' : 'rgba(0,0,0,.08)'; for(let xx = 0; xx < W; xx += 72) g.fillRect(xx, chao, 3, 130);
+    g.fillStyle = nt ? '#22232E' : '#4A4C55'; g.fillRect(0, chao + 130, W, H - chao - 130);
+    g.fillStyle = '#F2D24A'; for(let xx = 20; xx < W; xx += 120) g.fillRect(xx, chao + 196, 64, 8);
+    /* os ipês dos lados (nada de verde) */
+    [[70, ROSA], [W - 70, AMARELO]].forEach(([ix, cor]) => { g.fillStyle = '#5A3A1E'; g.fillRect(ix - 8, chao - 150, 16, 170); g.fillStyle = cor; [[0, -200, 90], [-60, -160, 60], [60, -160, 60]].forEach(([dx, dy, rr]) => { g.beginPath(); g.arc(ix + dx, chao + dy, rr, 0, Math.PI * 2); g.fill(); }); g.fillStyle = 'rgba(0,0,0,.12)'; g.beginPath(); g.arc(ix + 20, chao - 180, 70, 0, Math.PI * 2); g.fill(); });
+    /* a casa, grande: o desenho de verdade da cidade, na escala que cabe (a letra das placas acompanha) */
+    const fazer = k => h.blocos ? spriteDois(k) : (ESTILO_SPRITE()[h.estilo] || spriteCasa)(h, k);
+    const fx0 = V.fx; let sp, K;
+    /* (a altura manda: casa alta encolhe até o alfinete caber embaixo do título) */
+    try{ V.fx = 1; const s1 = fazer(1); K = Math.min(820 / h.w, 476 / Math.max(120, s1.base - 30)); V.fx = Math.max(2, Math.round(K / .45)); sp = fazer(K); } finally { V.fx = fx0; }
+    const casaL = Math.round(W / 2 - (h.w / 2) * K), baseY = chao + 26;
+    g.imageSmoothingEnabled = false;
+    g.drawImage(sp.cv, Math.round(casaL - sp.M * K), Math.round(baseY - sp.base * K), sp.cv.width, sp.cv.height);
+    /* o toldo (ou o cavalete) na mesma escala, por cima */
+    /* (no toldo, a letra encolhe até o letreiro caber inteiro: na cidade ele pode cortar com .., aqui não) */
+    const bTol = h.estilo || h.blocos ? 99 : Math.floor(K * toldoSpan(h).w / (pixLarg(lj.t, 1) + 8));
+    g.save(); g.setTransform(K, 0, 0, K, casaL - h.x * K, baseY - h.base * K); g.__b = Math.max(2, Math.min(Math.round(K / .45), bTol)); lojaPinta(g, h, lj, 0, true); g.restore(); g.__b = 0;
+    /* você na porta */
+    const me = C.st.me, av = (V.eu && V.eu.av) || avLimpo(me && me.verso, me && me.id), b = bonecoPola(av, 'nada'), e = Math.max(4, Math.round(62 * K / 34));
+    const bx = Math.round(casaL + (h.portaX - h.x) * K - 20 * e), by = Math.round(baseY + 34 - 44 * e);
+    g.fillStyle = 'rgba(0,0,0,.28)'; g.beginPath(); g.ellipse(bx + 20 * e, by + 42 * e, 9 * e, 2 * e, 0, 0, Math.PI * 2); g.fill();
+    g.drawImage(b, bx, by, 40 * e, 44 * e);
+    /* o alfinete do mapa em cima da casa */
+    const topo = Math.max(690, Math.round(baseY - (sp.base - 30) * K)), pk = 10, px = Math.round(W / 2 - 4.5 * pk), py = topo - 14 * pk - 30;
+    const PIN = ['..XXXXX..', '.XXXXXXX.', 'XXXOOOXXX', 'XXOOOOOXX', 'XXOOOOOXX', 'XXXOOOXXX', '.XXXXXXX.', '.XXXXXXX.', '..XXXXX..', '..XXXXX..', '...XXX...', '...XXX...', '....X....'];
+    g.fillStyle = 'rgba(0,0,0,.35)'; g.beginPath(); g.ellipse(W / 2, topo + 6, 34, 9, 0, 0, Math.PI * 2); g.fill();
+    PIN.forEach((row, y) => [...row].forEach((ch, xx) => { if(ch === '.') return; g.fillStyle = ch === 'O' ? PAPEL : ROSA; g.fillRect(px + xx * pk, py + y * pk, pk, pk); }));
+    g.fillStyle = INK; PIN.forEach((row, y) => [...row].forEach((ch, xx) => { if(ch === '.') return; const viz = (dx, dy) => { const rr = PIN[y + dy]; return rr && rr[xx + dx] && rr[xx + dx] !== '.'; }; if(!viz(-1, 0)) g.fillRect(px + xx * pk - 3, py + y * pk, 3, pk); if(!viz(1, 0)) g.fillRect(px + (xx + 1) * pk, py + y * pk, 3, pk); if(!viz(0, -1)) g.fillRect(px + xx * pk, py + y * pk - 3, pk, 3); }));
+    g.imageSmoothingEnabled = true;
+    /* o título: MEU CORRE / TÁ NO MAPA (o segundo no marca-texto amarelo), com a sombra dura da casa */
+    const titulo = (t, y, tam, fundoTx, cor) => { g.font = `${tam}px CorrePixel, monospace`; g.textAlign = 'center'; g.textBaseline = 'middle'; const w = Math.min(W - 120, g.measureText(t).width);
+      if(fundoTx){ g.fillStyle = INK; g.fillRect(W / 2 - w / 2 - 26 + 10, y - tam * .62 + 10, w + 52, tam * 1.24); g.fillStyle = fundoTx; g.fillRect(W / 2 - w / 2 - 26, y - tam * .62, w + 52, tam * 1.24); g.strokeStyle = INK; g.lineWidth = 6; g.strokeRect(W / 2 - w / 2 - 26, y - tam * .62, w + 52, tam * 1.24); }
+      else { g.fillStyle = INK; g.fillText(t, W / 2 + 7, y + 7, W - 120); }
+      g.fillStyle = cor; g.fillText(t, W / 2, y, W - 120); };
+    titulo('MEU CORRE', 290, 112, null, PAPEL);
+    titulo('TÁ NO MAPA', 420, 100, '#FFE800', INK);
+    /* o cartão de baixo: o @, o letreiro, o bairro e o link (no marca-texto), tudo antes do pé do story */
+    const cy = chao + 150, ch = 270, cw = W - 140;
+    g.fillStyle = INK; g.fillRect(70 + 12, cy + 12, cw, ch); g.fillStyle = PAPEL; g.fillRect(70, cy, cw, ch); g.strokeStyle = INK; g.lineWidth = 6; g.strokeRect(70, cy, cw, ch);
+    g.fillStyle = lj.c; g.fillRect(70, cy, cw, 22); g.fillStyle = PAPEL; for(let xx = 70 + 24; xx < 70 + cw; xx += 48) g.fillRect(xx, cy, 24, 22);
+    g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = INK; g.font = '64px CorrePixel, monospace'; g.fillText('@' + (h.handle || ''), W / 2, cy + 82, cw - 60);
+    g.font = '40px CorrePixel, monospace'; g.fillStyle = '#4A4E58'; g.fillText(`${lj.t} · ${txtN(bairroDe(h))}, LONDRINA`, W / 2, cy + 152, cw - 60);
+    const url = `APP.CORRESOCIAL.COM/@${String(h.handle || '').toUpperCase()}`; g.font = '38px CorrePixel, monospace'; const uw = Math.min(cw - 60, g.measureText(url).width);
+    g.fillStyle = '#FFE800'; g.fillRect(W / 2 - uw / 2 - 16, cy + 194, uw + 32, 52); g.fillStyle = INK; g.fillText(url, W / 2, cy + 221, cw - 60);
+    g.font = '26px CorrePixel, monospace'; g.fillStyle = 'rgba(255,255,255,.7)'; g.fillText('FEITO NO CORREVERSO · LONDRINA EM PIXEL', W / 2, cy + ch + 56, W - 100);
+    return cv;
+  }
+  const linkLoja = hd => `${location.origin}/@${hd}`;
+  async function storySheet(){
+    const h = minhaCasa(), lj = h && lojaH(h); if(!h || !lj){ minhaLojaSheet(); return; }
+    C.sheet(`<div class="form cvr-story"><div class="sheet-head"><h2>${ico('share')} Meu corre tá no mapa</h2><button type="button" class="cbtn plain" data-close aria-label="Fechar">${ico('x')}</button></div>
+      <div class="cvr-story-img" id="cvr-story-img"><span class="note">Montando a imagem…</span></div>
+      <p class="fine">Posta no story e põe o adesivo de Link com o teu link na bio: quem tocar cai na tua loja. O link vai copiado quando você toca em Postar.</p>
+      <div class="acts"><button type="button" class="btn pri" data-act="cvr-loja-posta" disabled>${ico('share')} Postar no Instagram</button><button type="button" class="btn" data-act="cvr-loja-baixa" disabled>${ico('down')} Baixar</button></div></div>`, 'cvr-story-f');
+    await fontePola();
+    let cv = null; try{ cv = cartaoLoja(h, lj); }catch(e){ try{ console.error('[loja]', e); }catch(_){} }
+    const box = C.$('cvr-story-img'); if(!box) return;
+    if(!cv){ box.innerHTML = '<span class="note">Não deu pra montar a imagem neste aparelho.</span>'; return; }
+    SL.card = cv; SL.h = h.handle;
+    box.innerHTML = `<img alt="${esc(`A loja de @${h.handle} no Correverso: ${lj.t}`)}">`; box.querySelector('img').src = cv.toDataURL('image/jpeg', .86);
+    document.querySelectorAll('.cvr-story [data-act="cvr-loja-posta"], .cvr-story [data-act="cvr-loja-baixa"]').forEach(b => { b.disabled = false; });
+  }
+  const blobLoja = () => new Promise(r => SL.card ? SL.card.toBlob(r, 'image/jpeg', .92) : r(null));
+  function baixaLoja(b){ const u = URL.createObjectURL(b), a = document.createElement('a'); a.href = u; a.download = `corre-loja-${SL.h || 'mapa'}.jpg`; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(u), 4000); }
+
+  /* ---------- v4.40 · Quem faz na cidade (no Mapa): procura nas lojas pelo letreiro, pelo que a pessoa faz, pela
+     categoria, pelo nome e pelo @; cada palavra tem que começar uma palavra de lá (sem acento). Tocou, vai até a porta ---------- */
+  function lojasDaCidade(){ const c = V.cid; if(!c) return []; return c.casas.concat(c.dois ? [c.dois] : []).map(h => ({ h, lj: lojaH(h) })).filter(o => o.lj); }
+  function quemFaz(q){
+    const L = lojasDaCidade(), ws = txtN(q).split(/[^A-Z0-9@]+/).filter(Boolean); if(!ws.length) return L;
+    const catN = k => ((C.mural && C.mural.CATS || []).find(x => x[0] === k) || [])[1] || '';
+    return L.map(o => { const p = o.h.p || {}, txt = txtN([o.lj.t, p.faz, catN(p.categoria), p.nome, '@' + (o.h.handle || ''), o.h.handle].join(' ')), pal = txt.split(/[^A-Z0-9@]+/).filter(Boolean);
+      const nota = ws.every(w => pal.some(x => x.startsWith(w))) ? ws.reduce((a, w) => a + (txtN(o.lj.t).split(/\s+/).some(x => x.startsWith(w)) ? 3 : 1), 0) : 0; return Object.assign({ nota }, o); })
+      .filter(o => o.nota).sort((a, b) => b.nota - a.nota);
+  }
+  function quemFazHTML(q){
+    const L = quemFaz(q), n = lojasDaCidade().length;
+    if(!n) return '<p class="fine">Nenhuma loja aberta na cidade ainda. A tua pode ser a primeira: toca na porta da tua casa.</p>';
+    if(!L.length) return `<p class="fine">Ninguém com "${esc(q)}" por aqui ainda. Chama quem faz pro Corre: cada perfil novo ganha casa e loja na cidade.</p>`;
+    return `<div class="cvr-lojas">${L.slice(0, 18).map(o => `<button type="button" class="cvr-loja-b" data-act="cvr-ir-loja" data-id="${esc(o.h.id)}" style="--lj:${o.lj.c};--ljt:${o.lj.tx}"><b>${esc(o.lj.t)}</b><small>@${esc(o.h.handle)} · ${esc(bairroDe(o.h))}</small></button>`).join('')}</div>${L.length > 18 ? `<p class="fine">E mais ${L.length - 18}. Escreve mais pra achar.</p>` : ''}`;
+  }
+
+  Object.assign(C.acts, {
+    'cvr-loja-ver': el => { const h = el.dataset.h; if(!h) return; C.closeSheet(); abreBalcao({ id: 'loja', titulo: (C.st.me && C.st.me.handle === h ? 'Tua loja' : 'Loja de @' + h), rota: '#/bio/' + h, cor: el.dataset.cor || ROSA }); },
+    'cvr-loja-edita': () => minhaLojaSheet(),
+    'cvr-loja-cor': el => { const c = el.dataset.c; if(!corOk(c)) return; ML.c = c; document.querySelectorAll('.cvr-lj-cores [role="radio"]').forEach(b => b.setAttribute('aria-checked', String(b === el))); lojaPrevia(); },
+    'cvr-loja-salva': () => salvaLoja(),
+    'cvr-loja-bio': () => { C.closeSheet(); abreBalcao({ id: 'linkbio', titulo: 'Link na bio', rota: '#/linkbio', cor: ML.c || ROSA }); },
+    'cvr-loja-story': () => storySheet(),
+    'cvr-loja-posta': async () => {
+      const b = await blobLoja(); if(!b) return; const url = linkLoja(SL.h || '');
+      try{ if(navigator.clipboard && navigator.clipboard.writeText) await navigator.clipboard.writeText(url); }catch(e){}
+      const F = window.File, arq = F ? new F([b], `corre-loja-${SL.h}.jpg`, { type: 'image/jpeg' }) : null;
+      if(arq && navigator.canShare && navigator.canShare({ files: [arq] })){
+        try{ await navigator.share({ files: [arq], text: `Meu corre tá no mapa: ${url} #Londrina #Correverso` }); C.toast('No story, põe o adesivo de Link e cola o link (já tá copiado).', 6000); return; }catch(e){ if(e && e.name === 'AbortError') return; }
+      }
+      baixaLoja(b); C.toast('A imagem foi pro teu aparelho. Posta no story e põe o adesivo de Link: o link já tá copiado.', 7000);
+    },
+    'cvr-loja-baixa': async () => { const b = await blobLoja(); if(b){ baixaLoja(b); C.toast('Imagem baixada.', 2500); } },
+    'cvr-ir-loja': el => { const c = V.cid, h = c && (c.dois && c.dois.id === el.dataset.id ? c.dois : c.casas.find(x => x.id === el.dataset.id)); if(!h) return; const p = pertoLivre(h.portaX, h.base + 12); if(p) teleporta(p.x, p.y); }
+  });
   /* coisas soltas pela cidade (placa, fonte, estátua, tabela, parquinho, academia, o ipê gigante) */
   function decor(ctx, d, t){
     const u = 1 / V.k;
@@ -5203,6 +5464,8 @@
     }
     /* v4.29: a placa do trampo na frente da casa de quem tá com 2 dias seguidos ou mais */
     if(V.placas) c.casas.concat(c.dois ? [c.dois] : []).forEach(h => { const n = V.placas[h.id]; if(n >= 2 && vis(h.portaX, h.base, 90)) L.push({ y: h.base + 10, f: () => placaTrampo(ctx, h, n, t) }); });
+    /* v4.40: a loja de cada casa (o toldo com o letreiro; o cavalete nas de fachada própria) */
+    c.casas.concat(c.dois ? [c.dois] : []).forEach(h => { const lj = lojaH(h); if(lj && vis(h.x + h.w / 2, h.base, Math.max(200, h.w))) L.push({ y: h.blocos || h.estilo ? h.base + 16 : h.base + .4, f: () => lojaPinta(ctx, h, lj, t) }); });
     /* v3.91: o Halloween nas casas sorteadas */
     if(halloween()) c.casas.concat(c.dois ? [c.dois] : []).forEach(h => { const o = halloweenDe(h); if(o && vis(h.x + h.w / 2, h.base, Math.max(240, h.w))) hwNaFila(L, ctx, h, o, t, vis); });
     L.sort((a, b) => a.y - b.y).forEach(o => o.f());
@@ -5287,8 +5550,12 @@
       <canvas id="cvr-mapa-cv" width="${mw}" height="${mh}" aria-label="Mapa da cidade. Toca num lugar pra ir direto pra lá."></canvas>
       <p class="fine">Londrina com o norte pra cima: toca no mapa pra ir direto pra lá, ou escolhe um lugar (em ordem de A a Z). Você é o quadradinho rosa; os brancos são quem tá na cidade.</p>
       <button type="button" class="btn sm cvr-ag-bt" data-act="cvr-agenda">${ico('cal')} Agenda da cidade${eventoAgora() ? ` <b class="cvr-ag-vivo">AO VIVO: ${esc(eventoAgora().e.nome)}</b>` : ''}</button>
+      <div class="cvr-qf-w"><p class="lbl-s">Quem faz na cidade: toca na loja e vai até a porta</p>
+        <input type="search" class="cvr-qf" id="cvr-qf" placeholder="bolo, tatuagem, design, DJ…" aria-label="Procurar quem faz na cidade" autocomplete="off" enterkeyhint="search">
+        <div id="cvr-qf-l" aria-live="polite">${quemFazHTML('')}</div></div>
       ${c.feira ? `<p class="lbl-s">Feira do Corre: vai direto pra barraca</p><div class="cvr-lugares cvr-fb">${c.feira.barracas.filter(paraMim).map(b => `<button type="button" class="btn sm" data-act="cvr-ir-barraca" data-id="${esc(b.id)}">${ico(b.ico)} ${esc(b.titulo)}</button>`).join('')}</div><p class="lbl-s">Lugares</p>` : ''}
       <div class="cvr-lugares">${L.map((l, i) => ({ l, i })).sort((a, b) => (b.l.nome === 'Tua casa') - (a.l.nome === 'Tua casa') || a.l.nome.localeCompare(b.l.nome, 'pt-BR')).map(({ l, i }) => `<button type="button" class="btn sm" data-act="cvr-ir-lugar" data-i="${i}">${esc(l.nome)}</button>`).join('')}</div></div>`, 'wide');
+    const qf = C.$('cvr-qf'); if(qf) qf.addEventListener('input', () => { const l = C.$('cvr-qf-l'); if(l) l.innerHTML = quemFazHTML(qf.value.trim()); });
     const cv = C.$('cvr-mapa-cv'); if(!cv) return;
     const ajusta = () => { const box = cv.parentElement.clientWidth, alt = Math.max(220, innerHeight * .58); cv.style.width = Math.min(box, alt * mw / mh) + 'px'; }; ajusta();
     desenhaMapa(cv, S);
@@ -7307,7 +7574,7 @@
       if(j && T.fase === 'jogando'){ b.disabled = j.t === 'seq'; b.innerHTML = `${ico('raio')} ${esc(j.t === 'tempo' ? j.verbo : j.t === 'segura' ? 'Segura: ' + j.verbo.toLowerCase() : 'Usa as setas')}`; return; }
       b.innerHTML = `${ico('raio')} ${esc(p.et.acao)}${ag ? '…' : ''}`; b.disabled = !!ag; return; }
     b.disabled = false;
-    b.innerHTML = p.tipo === 'morador' ? `${ico('chat')} Trocar ideia com ${esc(p.m.nome)}` : p.tipo === 'torcida' ? `${ico('musica')} Cantar com ${esc(p.T.d.nome)}` : p.tipo === 'barco' ? `${ico('peixe')} Pegar um barquinho` : p.tipo === 'aeroporto' ? `${ico('aviao')} Voar (${C.correalTxt(precoVoo())})` : p.tipo === 'sebo' ? `${ico('musica')} Entrar no Sebo` : p.tipo === 'calcadao' ? `${ico('gente')} Entrar no Calçadão 3D` : p.tipo === 'atelie' ? `${ico('star')} Ateliê: skins` : p.tipo === 'torneio' ? `${ico('peixe')} Torneio de Pesca` : p.tipo === 'beisebol' ? `${ico('raio')} Jogar beisebol na ACEL` : p.tipo === 'quadra' ? `${ico('raio')} ${p.k === 'quadra-futsal' ? 'Desafio de pênalti' : 'Desafio de arremesso'}` : p.tipo === 'publi' ? `${ico('ext')} ${esc((PUBLI[p.k] || {}).nome || '')}: baixar o app` : p.tipo === 'pista' ? `${ico('raio')} ${p.k === 'moto' ? 'Autódromo do Café' : 'Corrida de patinete'}` : p.tipo === 'civico' ? `${ico('raio')} ${esc(CIVICOS[p.k].entra)}` : p.tipo === 'barraca' ? (aberta(p.b) ? `${ico(p.b.ico)} ${esc(p.b.botao)}` : `${ico('eye')} Hórus desligado: ligar`) : p.tipo === 'comida' ? `${ico('banca')} ${esc(COMIDAS[p.k][0])}` : p.tipo === 'aquario' || p.tipo === 'jogo' ? `${ico('play')} Jogar ${esc(JOGOS[p.jogo].titulo)}` : p.tipo === 'placa' ? `${ico('eye')} Ler: ${esc(p.titulo)}` : p.tipo === 'polaroid' ? `${ico('camera')} Tirar foto com o Papai Noel` : p.tipo === 'banco' ? (p.pesca ? `${ico('gente')} Pescar no ${p.b.lugar.startsWith('Deck') ? 'deck' : 'píer'}` : `${ico('gente')} Sentar ${p.b.degrau ? 'na Concha' : 'no banco'}`) : p.tipo === 'mural' ? `${ico('tacha')} Abrir o Mural` : p.tipo === 'banca' ? `${ico('banca')} Banca do dia` : p.tipo === 'lote' ? `${ico('plus')} Lote livre` : meu ? `${ico('home')} Tua casa` : `${ico('home')} Bater na porta de @${esc(p.c.handle)}`;
+    b.innerHTML = p.tipo === 'morador' ? `${ico('chat')} Trocar ideia com ${esc(p.m.nome)}` : p.tipo === 'torcida' ? `${ico('musica')} Cantar com ${esc(p.T.d.nome)}` : p.tipo === 'barco' ? `${ico('peixe')} Pegar um barquinho` : p.tipo === 'aeroporto' ? `${ico('aviao')} Voar (${C.correalTxt(precoVoo())})` : p.tipo === 'sebo' ? `${ico('musica')} Entrar no Sebo` : p.tipo === 'calcadao' ? `${ico('gente')} Entrar no Calçadão 3D` : p.tipo === 'atelie' ? `${ico('star')} Ateliê: skins` : p.tipo === 'torneio' ? `${ico('peixe')} Torneio de Pesca` : p.tipo === 'beisebol' ? `${ico('raio')} Jogar beisebol na ACEL` : p.tipo === 'quadra' ? `${ico('raio')} ${p.k === 'quadra-futsal' ? 'Desafio de pênalti' : 'Desafio de arremesso'}` : p.tipo === 'publi' ? `${ico('ext')} ${esc((PUBLI[p.k] || {}).nome || '')}: baixar o app` : p.tipo === 'pista' ? `${ico('raio')} ${p.k === 'moto' ? 'Autódromo do Café' : 'Corrida de patinete'}` : p.tipo === 'civico' ? `${ico('raio')} ${esc(CIVICOS[p.k].entra)}` : p.tipo === 'barraca' ? (aberta(p.b) ? `${ico(p.b.ico)} ${esc(p.b.botao)}` : `${ico('eye')} Hórus desligado: ligar`) : p.tipo === 'comida' ? `${ico('banca')} ${esc(COMIDAS[p.k][0])}` : p.tipo === 'aquario' || p.tipo === 'jogo' ? `${ico('play')} Jogar ${esc(JOGOS[p.jogo].titulo)}` : p.tipo === 'placa' ? `${ico('eye')} Ler: ${esc(p.titulo)}` : p.tipo === 'polaroid' ? `${ico('camera')} Tirar foto com o Papai Noel` : p.tipo === 'banco' ? (p.pesca ? `${ico('gente')} Pescar no ${p.b.lugar.startsWith('Deck') ? 'deck' : 'píer'}` : `${ico('gente')} Sentar ${p.b.degrau ? 'na Concha' : 'no banco'}`) : p.tipo === 'mural' ? `${ico('tacha')} Abrir o Mural` : p.tipo === 'banca' ? `${ico('banca')} Banca do dia` : p.tipo === 'lote' ? `${ico('plus')} Lote livre` : meu ? `${ico('home')} Tua casa${lojaH(p.c) ? ' e loja' : ''}` : lojaH(p.c) ? `${ico('cartao')} Entrar na loja de @${esc(p.c.handle)}` : `${ico('home')} Bater na porta de @${esc(p.c.handle)}`;
   }
   function tamanhoTela(){
     const st = C.$('cvr-stage'); if(!st || !V.cv) return;
@@ -7548,6 +7815,18 @@
     /* v4.05: no celular em pé, primeiro o "vira o celular de lado"; o balão do Sair vem depois */
     cidadeCheia(true); if(!giraDica()) sairDica(); dicaIphone();
     st.addEventListener('pointerdown', telaToque, true); st.addEventListener('pointerup', telaToque, true);
+    /* v4.40: na primeira vez, conta que a casa virou loja (depois das outras dicas e com a tela livre) */
+    clearTimeout(V.lojaDicaT); V.lojaDicaT = setTimeout(() => lojaDica(0), 9000);
+  }
+  const LOJA_DICA = 'corre-loja-dica';
+  function lojaDica(n){
+    if(!V.vivo) return;
+    try{ if(localStorage.getItem(LOJA_DICA)) return; }catch(e){ return; }
+    const sh = C.$('sheet'), ocupado = (sh && !sh.hidden) || BC.aberto || V.jogo || (C.casa && C.casa.aberta()) || !!document.getElementById('cvr-vire');
+    if(ocupado){ if(n < 8) V.lojaDicaT = setTimeout(() => lojaDica(n + 1), 7000); return; }
+    try{ localStorage.setItem(LOJA_DICA, '1'); }catch(e){}
+    const h = minhaCasa(), lj = h && lojaH(h);
+    C.toast(lj ? `Tua casa virou loja: "${lj.t}" tá no toldo. Toca na tua porta pra mudar o letreiro e postar no Instagram.` : 'Agora toda casa da cidade é loja. Toca na porta da tua casa e põe o letreiro do teu corre.', 9000);
   }
   function aoSairDaRota(){ if(!/^#\/verso/.test(location.hash)) sair(); }
   /* ---------- v3.89/v3.90 · a tela cheia da cidade ----------
@@ -8443,9 +8722,12 @@
     const nums = [[f.posts, 'post', 'posts'], [f.seg, 'seguidor', 'seguidores'], [f.itens, 'item no catálogo', 'itens no catálogo'], [f.esc, 'escolha no Mural', 'escolhas no Mural']].filter(([n]) => n).map(([n, a, b]) => `<span class="tag">${n} ${n === 1 ? a : b}</span>`).join('');
     /* a porta: a prévia da casa por dentro com o botão de entrar em cima, e o perfil embaixo */
     const PV = C.casa, pl = PV && PV.plantaDe ? PV.plantaDe(c) : null, loft = !!(pl && pl.mezanino), mansao = !!(pl && pl.k === 'brutal'), templo = !!(pl && pl.k === 'templo'), luxo = !!(pl && pl.k === 'luxo');
-    C.sheet(`<div class="form cvr-porta-s"><div class="sheet-head"><h2>${meu ? 'Tua casa' : 'Casa de @' + esc(c.handle)}</h2><button type="button" class="cbtn plain" data-close aria-label="Fechar">${ico('x')}</button></div>
+    /* v4.40: a loja vem primeiro (o link na bio de quem mora aqui); a casa por dentro fica embaixo */
+    const lj = lojaH(c);
+    C.sheet(`<div class="form cvr-porta-s"><div class="sheet-head"><h2>${meu ? 'Tua casa' : lj ? 'Loja de @' + esc(c.handle) : 'Casa de @' + esc(c.handle)}</h2><button type="button" class="cbtn plain" data-close aria-label="Fechar">${ico('x')}</button></div>
+      ${lojaBloco(c, lj, meu)}
       ${PV ? `<div class="cvr-previa"><canvas id="cvr-previa" width="320" height="180" aria-label="A casa por dentro, vista de cima"></canvas><span class="cvr-previa-t">${mansao ? 'mansão brutalista · 2 andares' : templo ? 'o templo · 2 andares' : luxo ? 'mansão de 20 milhões · 2 andares' : loft ? 'loft · 2 andares' : 'por dentro · 3D'}</span>
-        <button type="button" class="btn pri cvr-entrar" data-act="cvr-casa-entrar" data-id="${esc(c.id)}">${ico('home')} ${meu ? 'Entrar na casa' : 'Visitar a casa'}</button></div>` : ''}
+        <button type="button" class="btn${lj && !meu ? '' : ' pri'} cvr-entrar" data-act="cvr-casa-entrar" data-id="${esc(c.id)}">${ico('home')} ${meu ? 'Entrar na casa' : 'Visitar a casa'}</button></div>` : ''}
       <div class="cvr-casa-h">${C.avatar(f, 'l')}<div><b>${esc(f.nome || c.handle)}</b><small>@${esc(c.handle)}${f.cidade ? ' · ' + esc(f.cidade) : ''}</small>${cat ? `<span class="tag cat">${esc(cat)}</span>` : ''}</div></div>
       ${f.faz ? `<p>${esc(f.faz)}</p>` : ''}
       <div class="meta">${nums || '<span class="note">Casa nova no pedaço.</span>'}</div>
@@ -8823,7 +9105,10 @@
     }
   });
 
-  C.verso = { miniVeiculo, trocaVeiculo, veiculoDe, alturaPulo, PULO_MS, SKINS_LOJA, bichoDoEu: () => V.eu ? bichoDe(V.eu, true) : null, petDoEu: () => V.eu && V.eu.pet ? Object.assign({}, V.eu.pet) : null, bichosCidade: () => Object.assign({}, V.bichos || {}),
+  C.verso = { miniVeiculo, trocaVeiculo, veiculoDe, alturaPulo, PULO_MS, SKINS_LOJA,
+    /* v4.40: a loja de cada casa (pros testes) */
+    vitrine: { de: h => lojaH(h), padrao: lojaPadrao, letreiro, ehVerde, minha: () => { const h = minhaCasa(); return h ? lojaH(h) : null; }, quemFaz: q => quemFaz(q).map(o => ({ id: o.h.id, t: o.lj.t, c: o.lj.c })), cartao: () => { const h = minhaCasa(), lj = h && lojaH(h); return lj ? cartaoLoja(h, lj) : null; }, story: storySheet, edita: minhaLojaSheet },
+    bichoDoEu: () => V.eu ? bichoDe(V.eu, true) : null, petDoEu: () => V.eu && V.eu.pet ? Object.assign({}, V.eu.pet) : null, bichosCidade: () => Object.assign({}, V.bichos || {}),
     /* v4.03 · o Lambe-Lambe do Noel (pros testes) */
     /* v4.11 · pros testes: o GTA (as ruas, a polícia, o empurrão e as missões) */
     grafo: () => { const G = grafo(); return { nos: G.N.length, ligados: G.N.filter(q => G.viz[q.id].length).length, arestas: G.viz.reduce((a, v) => a + v.length, 0) / 2, N: G.N.map(q => ({ id: q.id, x: q.x, y: q.y, viz: G.viz[q.id].slice() })) }; },

@@ -5208,3 +5208,38 @@ body.cd-focado{overflow:hidden}
 .psh-pc[open] summary::before{transform:rotate(45deg)}
 .psh-pc ul{margin:0;padding:0 14px 12px 32px;display:grid;gap:7px;font-size:14px;color:var(--ink-2)}
 @media (prefers-reduced-motion:reduce){ .psh-pc summary::before{transition:none} }
+/* v4.40 · a loja de cada casa no Correverso: o letreiro em HTML (a faixa listrada do toldo em cima e o nome na cor da
+   loja, na letra de pixel da cidade), o editor da loja, o story e o "Quem faz" do Mapa. A cor vem do perfil (--lj e a
+   letra que lê nela, --ljt) */
+.cvr-lj-w{margin:0 0 14px}
+.cvr-lj{position:relative;display:block;border:2.5px solid var(--ink);background:var(--lj,#FF4F9A);color:var(--ljt,#0F1218);box-shadow:5px 5px 0 var(--ink);padding:22px 14px 12px;text-align:center}
+.cvr-lj-toldo{position:absolute;left:-2.5px;right:-2.5px;top:-2.5px;height:14px;border:2.5px solid var(--ink);border-bottom:0;background:repeating-linear-gradient(90deg,var(--lj,#FF4F9A) 0 14px,#FFFFFF 14px 28px)}
+.cvr-lj-l{display:block;font-family:"Silkscreen",var(--font-mono);font-weight:400;font-size:20px;line-height:1.15;letter-spacing:.04em;text-transform:uppercase;overflow-wrap:anywhere}
+.cvr-lj.grande .cvr-lj-l{font-size:26px}
+.cvr-lj.vazia{background:var(--paper-2);color:var(--ink);border-style:dashed;box-shadow:none;padding:14px}
+.cvr-lj.vazia .cvr-lj-l{font-size:16px}
+.cvr-lj-on{margin:10px 0 0;font-size:13px;color:var(--ink-2);text-align:center}
+.cvr-lj-w .acts{margin-top:12px}
+.cvr-lj-cores{display:flex;flex-wrap:wrap;gap:8px}
+.cvr-lj-cores button{width:40px;height:40px;border:2.5px solid var(--ink);border-radius:50%;background:var(--c);cursor:pointer;padding:0}
+.cvr-lj-cores button[aria-checked="true"]{box-shadow:0 0 0 3px var(--paper),0 0 0 6px var(--ink)}
+.cvr-lj-cores button:focus-visible{outline:3px solid var(--ink);outline-offset:4px}
+.cvr-lj-cs{border:0;margin:0 0 12px;padding:0}
+.cvr-mloja .switch{margin:0 0 12px}
+.cvr-mloja input#cvr-lj-t{font-family:"Silkscreen",var(--font-mono);text-transform:uppercase;letter-spacing:.04em}
+/* o story: a prévia no tamanho que cabe (9:16) */
+.cvr-story-img{display:grid;place-items:center;min-height:200px;margin:0 0 12px;border:2.5px solid var(--ink);background:#0C0A0F;aspect-ratio:9/16;max-height:62vh;max-width:100%;margin-inline:auto}
+.cvr-story-img img{display:block;width:100%;height:100%;object-fit:contain}
+.cvr-story-img .note{color:#FFFFFF}
+/* Quem faz na cidade (no Mapa) */
+.cvr-qf-w{margin:14px 0 6px}
+.cvr-qf{width:100%;min-height:44px;margin:0 0 10px;padding:0 14px;border:2.5px solid var(--ink);border-radius:0;background:var(--paper);font:inherit;font-size:16px}
+.cvr-lojas{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.cvr-loja-b{display:flex;flex-direction:column;align-items:flex-start;gap:3px;min-height:52px;padding:8px 10px 8px 12px;border:2.5px solid var(--ink);border-left-width:10px;border-left-color:var(--lj,#FF4F9A);background:var(--paper);color:var(--ink);text-align:left;cursor:pointer;box-shadow:3px 3px 0 var(--ink)}
+.cvr-loja-b b{font-family:"Silkscreen",var(--font-mono);font-weight:400;font-size:13px;line-height:1.2;overflow-wrap:anywhere}
+.cvr-loja-b small{font-size:12px;color:var(--ink-2)}
+.cvr-loja-b:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+.cvr-loja-b:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+/* o link na bio aberto por cima da cidade (a loja): quem tá lá dentro já tem conta, o convite do pé e o "Corre" de cima saem */
+html.embed .bio-pe,html.embed .bio-corre{display:none}
+@media (prefers-reduced-motion:reduce){ .cvr-loja-b:hover{transform:none} }
