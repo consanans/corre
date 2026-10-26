@@ -3,6 +3,8 @@
 # O limite global (Storage › Settings) não mora no banco e o conector não lê ele. Esta sonda pede pro Storage abrir um
 # envio em pedaços (TUS) de N MB com a chave pública: acima do limite ele responde 413 na hora; abaixo, passa do tamanho
 # e para na RLS (403), porque a chave pública não grava na pasta de ninguém. Nada fica no storage.objects.
+# O que ela mede é o menor entre o limite global e o da pasta corre-video: pra saber o global, a pasta tem que estar
+# acima dele (em 26/10 a pasta em 50 escondeu que o global já tinha ido pra 150).
 # Uso: sh ferramentas/sonda-video.sh 60 151   (padrão: 49 51 60 150 151)
 cd "$(dirname "$0")/.." || exit 1
 K=$(grep -o "SUPABASE_ANON_KEY: '[^']*'" site/config.js | cut -d"'" -f2)
