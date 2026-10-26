@@ -14,4 +14,4 @@ Pra conferir quando der:
 
 Pendente do teu lado, fora do site:
 - O caminho até a Google Play tá em `docs/android.md`.
-- A compra de teste no Asaas e o Pix liberado lá (`docs/asaas-producao.md`).
+- O Asaas tá pronto (a compra de teste e o Pix, feitos pelo Thales em 26/10).
