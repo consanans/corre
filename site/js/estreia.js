@@ -120,7 +120,7 @@
     const feitos = L.filter(p => p[1]).length;
     if(feitos === L.length){ el.innerHTML = ''; return; }
     let est = null; try{ est = JSON.parse(localStorage.getItem('corre-estreia:' + me.id) || 'null'); }catch(e){}
-    const montado = est && Date.now() - est.em < 14 * 864e5 && C.meuCorre ? `<p class="ps-montou">${ico('magia')}<span>Teu Corre tá montado pra <b>${esc(C.meuCorre.catNome(est.cat) || 'o teu corre')}</b>: teu Corre Studio começa por ${esc((MONTA[est.cat] || MONTA.outros).filter(k => k !== 'mural' && k !== 'grupos').slice(0, 3).map(k => NOME_K[k] || k).join(', '))}${est.horus ? ', e o Hórus tá ligado pra caçar cliente' : ''}.</span></p>` : '';
+    const montado = est && Date.now() - est.em < 14 * 864e5 && C.meuCorre ? `<p class="ps-montou">${ico('magia')}<span>Teu Corre tá montado pra <b>${esc(C.meuCorre.catNome(est.cat) || 'o teu corre')}</b>: teu Corre Studio começa por ${esc((MONTA[est.cat] || MONTA.outros).filter(k => k !== 'grupos').slice(0, 3).map(k => NOME_K[k] || k).join(', '))}${est.horus ? ', e o Hórus tá ligado pra caçar cliente' : ''}.</span></p>` : '';
     const prox = L.find(p => !p[1]);
     /* à vista, só os 3 próximos que faltam; o resto (e os feitos) no "ver tudo" */
     const vis = new Set(L.filter(p => !p[1]).slice(0, 3).map(p => p[0])), extras = L.length - vis.size;

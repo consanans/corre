@@ -1,6 +1,8 @@
 # O que falta subir (27/10/2026)
 
-**O zip da 5.0** (`saida/corre-site.zip`): arrasta no Netlify, como sempre. O banco já tá pronto (o `delta-v500.sql` rodou hoje pelo conector). Leva junto a 4.43 (o modo escuro) e o que vem antes, se ainda não subiu.
+**O zip da 5.01** (`saida/corre-site.zip`): arrasta no Netlify, como sempre. O banco já tá pronto (o `delta-v500.sql` rodou hoje pelo conector). Leva junto a 5.0, a 4.43 (o modo escuro) e o que vem antes, se ainda não subiu.
+
+O que a 5.01 traz: **o Mural mora no Corre Studio**, do lado do Hórus (pedido de serviço é trabalho). Na Rede, o Correverso ficou sozinho no destaque do menu, e a barra de baixo do celular virou Início, Grupos, Correverso, Mensagens e Perfil. No Studio, o Mural tá no grupo Trabalho, num bloco de O teu dia e no cartão do canto. Quem pede serviço sem conta segue pedindo igual.
 
 O que a 5.0 traz: **Londrina no Google**.
 - Páginas abertas, sem login, que o Google lê: `app.corresocial.com/londrina/` e uma por ramo (social media, design, foto e vídeo, reforma, beleza, tatuagem, frete... são 17). Cada uma tem:

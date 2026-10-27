@@ -65,19 +65,21 @@
   /* v4.41 · as três partes (o Thales: "vamos separar o app em 3 partes, igual o TikTok"): a Rede é onde todo mundo
      entra, limpa, só o social; o trabalho mora no Corre Studio (entra pelo perfil, pelo botão do alto ou pelo
      app.corresocial.com/studio); o Correverso é o jogo. Cada página é de uma parte, e o menu muda com ela */
+  /* v5.01 (o Thales: "o mural fica no studio também, ali ele está competindo demais com o correverso"): o Mural é pedido
+     de serviço, trabalho; saiu da Rede (da praça, da barra e da gaveta) e mora no Corre Studio, do lado do Hórus */
   const GRUPOS_REDE = {
-    rede: ['Rede', 'chat', ['inicio', 'msg', 'grupos', 'mural', 'avisos']],
+    rede: ['Rede', 'chat', ['inicio', 'msg', 'grupos', 'avisos']],
     banca: ['Banca', 'toldo', ['banca', 'refs', 'rolo']],
     verso: ['Correverso', 'verso', ['verso', 'carteira']],
     eu: ['Perfil', 'eu', ['perfil', 'salvos', 'convite']]
   };
   const GRUPOS = {
-    trampo: ['Trabalho', 'lab', ['dia', 'caderno', 'studio', 'horus', 'atende', 'piloto', 'msg']],
+    trampo: ['Trabalho', 'lab', ['dia', 'caderno', 'studio', 'horus', 'mural', 'atende', 'piloto', 'msg']],
     marca: ['Marca', 'houzi', ['houzi', 'marcas', 'linkbio']],
     fin: ['Financeiro', 'calc', ['corre', 'planos', 'lojinha']]
   };
   /* as páginas do Corre Studio (o resto é da Rede; as Mensagens servem as duas e ficam na parte de onde a pessoa veio) */
-  const STUDIO_K = ['dia', 'caderno', 'studio', 'horus', 'atende', 'piloto', 'houzi', 'marcas', 'linkbio', 'corre', 'planos', 'lojinha'];
+  const STUDIO_K = ['dia', 'caderno', 'studio', 'horus', 'mural', 'atende', 'piloto', 'houzi', 'marcas', 'linkbio', 'corre', 'planos', 'lojinha'];
   const NEUTRO = ['msg', 'avisos'];
   const MODO = { ult: (() => { try{ return sessionStorage.getItem('corre-modo') || 'rede'; }catch(e){ return 'rede'; } })() };
   const modoDe = active => {
@@ -87,9 +89,10 @@
     return m;
   };
   C.modo = () => MODO.ult;
-  /* a praça: o Correverso e o Mural, juntos no meio do menu. (v3.70: a lista em grupos e a barra fixa do celular deram
-     lugar à Comanda, aos Teus e ao Tudo; os grupos seguem dentro do Tudo e da gaveta) */
-  const PRACA = ['verso', 'mural'];
+  /* a praça: o Correverso em destaque no meio do menu da Rede. (v3.70: a lista em grupos e a barra fixa do celular deram
+     lugar à Comanda, aos Teus e ao Tudo; os grupos seguem dentro do Tudo e da gaveta. v5.01: o Mural foi pro Studio, e o
+     Correverso ficou sozinho na praça, sem disputar o olho com ele) */
+  const PRACA = ['verso'];
   /* o que depende do perfil ou do módulo carregado: o Hórus liga e desliga, o Studio Houzi e os Grupos podem não vir */
   const tem = k => (k !== 'dia' || !!C.views.dia) && (k !== 'caderno' || !!C.views.caderno) && (k !== 'atende' || !!C.views.atendente) && (k !== 'piloto' || !!C.views.piloto) && (k !== 'horus' || C.ferr('horus')) && (k !== 'houzi' || C.views.houzi) && (k !== 'grupos' || C.views.grupos) && (k !== 'lojinha' || (C.ehDono() && !!C.views.lojinha));
   /* de qual item do menu cada página é (e pra onde a setinha de voltar leva). Banca e Nicho não são mais filhas do
@@ -271,7 +274,7 @@
   const TEUS_K = 'corre-menu-teus', TEUS_MAX = 8;
   /* v4.41: a Comanda, os Teus e o Tudo viraram o menu do Corre Studio (a Rede tem o menu dela, fixo e limpo). O começo de
      quem nunca mexeu: Studio, Caderninho e Vendas e Grana na barra do celular, entre O teu dia e a volta pra Rede */
-  const PADRAO = ['studio', 'caderno', 'corre', 'horus', 'houzi', 'marcas', 'atende', 'linkbio', 'piloto', 'planos'];
+  const PADRAO = ['studio', 'caderno', 'corre', 'horus', 'mural', 'houzi', 'marcas', 'atende', 'linkbio', 'piloto', 'planos'];
   /* nos Teus só entra trabalho (e as Mensagens, que o cliente também manda); O teu dia tem lugar fixo */
   const FIXAVEL = k => k !== 'dia' && (STUDIO_K.includes(k) || k === 'msg') && !!st.me && !!DEST(st.me)[k] && tem(k);
   const teusLe = () => { try{ const o = JSON.parse(localStorage.getItem(TEUS_K) || 'null'); return o && st.me && o.u === st.me.id ? o : null; }catch(e){ return null; } };
@@ -293,9 +296,10 @@
   const completa = (L, n, fora) => { const r = L.filter(k => !fora.includes(k)); PADRAO.forEach(k => { if(r.length < n && !r.includes(k) && !fora.includes(k) && FIXAVEL(k)) r.push(k); }); return r.slice(0, n); };
   /* no computador as Mensagens moram no alto: os blocos são os outros, de 4 a 6 */
   const blocosLado = () => { const L = teus().filter(k => k !== 'msg').slice(0, 6); return L.length >= 4 ? L : completa(L, 4, ['msg']); };
-  /* a barra do celular. Na Rede: o Início, o Mural, o Correverso no meio, as Mensagens e o Perfil (fixa: é ali que se
-     acha o botão do Corre Studio, como no TikTok). No Studio: O teu dia, os 3 primeiros dos Teus e a volta pra Rede */
-  const BARRA_REDE = ['inicio', 'mural', 'verso', 'msg', 'perfil'];
+  /* a barra do celular. Na Rede: o Início, os Grupos, o Correverso no meio, as Mensagens e o Perfil (fixa: é ali que se
+     acha o botão do Corre Studio, como no TikTok; v5.01: os Grupos no lugar do Mural, que foi pro Studio). No Studio:
+     O teu dia, os 3 primeiros dos Teus e a volta pra Rede */
+  const BARRA_REDE = ['inicio', 'grupos', 'verso', 'msg', 'perfil'];
   const barra = () => MENU.modo === 'studio' ? ['dia'].concat(completa(teus(), 3, []), ['rede']) : BARRA_REDE.filter(k => k === 'perfil' || tem(k));
   /* um bloco dos Teus. O número do sinal fica no canto; as palavras, na Comanda */
   const blocoHTML = (k, D, active) => {
@@ -415,7 +419,7 @@
         <a class="lado-rb" href="#/msg" data-msg${idSe(true, 'msg-btn')} aria-label="Mensagens" title="Mensagens"${active === 'msg' ? ' aria-current="page"' : ''}>${ico('send')}<span class="msg-n num" hidden></span></a><button type="button" class="lado-rb" data-act="sino" data-sino${idSe(true, 'sino')} aria-label="Avisos e agenda" title="Avisos">${ico('bell')}<span class="sino-n num" hidden></span></button></div>`;
   const ladoConta = (me, active) => `<details class="me lado-conta"${idSe(true, 'me')}><summary class="lado-eu" aria-label="Tua conta" title="${esc(me.nome || '')} (@${esc(me.handle)})">${avatar(me, 's')}<span><b>${esc(me.nome || '')}</b><small>@${esc(me.handle)}</small></span>${ico('dots')}</summary>
         <div class="me-menu">${contaHTML(me, false, active)}</div></details>`;
-  /* a Rede: a lista no jeito do X (Início, Grupos, a Banca, os Salvos e o Perfil), a praça (o Correverso e o Mural), a
+  /* a Rede: a lista no jeito do X (Início, Grupos, a Banca, os Salvos e o Perfil), a praça (o Correverso; v5.01: o Mural foi pro Studio), a
      carteira e, embaixo, a porta do Corre Studio com o número da Comanda. O Postar e a conta no pé */
   const LADO_REDE = ['inicio', 'grupos', 'banca', 'refs', 'rolo', 'salvos', 'perfil'];
   const ladoRede = (active, me) => {
@@ -537,7 +541,7 @@
     DICA_CS.feita = true; try{ localStorage.setItem('corre-cs-dica', String(n + 1)); }catch(e){}
     const r = b.getBoundingClientRect(), d = document.createElement('div');
     d.className = 'hdr-cs-dica'; d.setAttribute('role', 'status');
-    d.innerHTML = '<b>Teu trabalho mora aqui:</b> o Corre Studio, com os posts, os clientes e a grana.';
+    d.innerHTML = '<b>Teu trabalho mora aqui:</b> o Corre Studio, com os posts, os clientes, o Mural e a grana.';
     document.body.appendChild(d);
     const dir = Math.max(8, innerWidth - r.right - 2);
     d.style.top = Math.round(r.bottom + 12) + 'px'; d.style.right = dir + 'px';
@@ -1280,8 +1284,8 @@
 
   /* ---------------- início ---------------- */
   /* os cartões do canto (cada módulo põe o dele no C.home). v4.41: os do trabalho (Hórus, Vendas, Grana e Portfólio) moram
-     na casa do Corre Studio; os da Rede (visitas, Mural, Banca e Do teu nicho) ficam no Início */
-  const CARTOES_STUDIO = ['horus', 'vendas', 'grana', 'marcas'];
+     na casa do Corre Studio; os da Rede (visitas, Banca e Do teu nicho) ficam no Início. v5.01: o do Mural foi pro Studio */
+  const CARTOES_STUDIO = ['horus', 'mural', 'vendas', 'grana', 'marcas'];
   const NOME_CARTAO = { visitas: 'Visitas', horus: 'Hórus', mural: 'Mural', vendas: 'Vendas', banca: 'Banca do dia', grana: 'Grana', marcas: 'Portfólio', datas: 'Do teu nicho' };
   const cartoesDe = studio => C.home.slice().filter(c => CARTOES_STUDIO.includes(c.k) === studio).sort((a, b) => a.o - b.o);
   const cartoesHTML = cards => cards.map(c => `<div class="hslot" id="hc-${c.k}"><div class="hcard ghost"><span class="hc-name">${NOME_CARTAO[c.k] || ''}</span></div></div>`).join('');
@@ -1335,7 +1339,8 @@
      e os cartões do trabalho, e o "do teu jeito" (abrir o Corre direto aqui, o Hórus ligado, ajeitar o menu) */
   const FERR_ST = [
     ['caderno', 'As tarefas do dia, com aviso na hora'], ['studio', 'O calendário de posts de cada marca'],
-    ['horus', 'Acha cliente no mapa e chama no WhatsApp'], ['corre', 'Do orçamento ao dinheiro na conta'],
+    ['horus', 'Acha cliente no mapa e chama no WhatsApp'], ['mural', 'Pedidos de quem precisa: manda proposta'],
+    ['corre', 'Do orçamento ao dinheiro na conta'],
     ['atende', 'A IA responde teu cliente 24h'], ['piloto', 'O que esfria vira tarefa sozinho'],
     ['houzi', 'Marca, logo e brandbook'], ['marcas', 'Teus trabalhos e o que você vende'],
     ['linkbio', 'Tua página pra bio do Instagram'], ['planos', 'Assinaturas e faturas'], ['lojinha', 'Os números do Corre']
