@@ -288,6 +288,30 @@
   C.prende = (...urls) => { urls.forEach(u => SOLTAS.delete(u)); };
   C.soltaFora = url => { if(url && SOLTAS.has(url)){ SOLTAS.delete(url); try{ const r = C.api.unlink(url); if(r && r.catch) r.catch(() => {}); }catch(e){} } };
 
+  /* v4.43 · O MODO ESCURO: a escolha mora no aparelho (corre-tema: claro, escuro ou auto, que segue o celular), não no
+     perfil, porque cada aparelho tem a sua luz. O script do começo do index.html já põe a classe antes de qualquer coisa
+     desenhar (sem piscar branco); aqui é o resto: trocar na hora e acompanhar o celular quando ele vira de noite */
+  const TEMAS = ['claro', 'escuro', 'auto'];
+  const temaLido = () => { try{ const t = localStorage.getItem('corre-tema'); return TEMAS.includes(t) ? t : 'claro'; }catch(e){ return 'claro'; } };
+  const noiteDoAparelho = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+  const temaAplica = () => {
+    const t = temaLido(), on = t === 'escuro' || (t === 'auto' && !!(noiteDoAparelho && noiteDoAparelho.matches));
+    const mudou = document.documentElement.classList.contains('escuro') !== on;
+    document.documentElement.classList.toggle('escuro', on);
+    if(mudou) try{ window.dispatchEvent(new CustomEvent('corre-tema', { detail: { escuro: on } })); }catch(e){}
+    return on;
+  };
+  if(noiteDoAparelho && noiteDoAparelho.addEventListener) noiteDoAparelho.addEventListener('change', () => { if(temaLido() === 'auto') temaAplica(); });
+  /* outra aba do mesmo aparelho trocou: esta acompanha */
+  addEventListener('storage', e => { if(e.key === 'corre-tema') temaAplica(); });
+  C.tema = {
+    atual: temaLido,
+    escuro: () => document.documentElement.classList.contains('escuro'),
+    poe(t){ if(!TEMAS.includes(t)) return; try{ localStorage.setItem('corre-tema', t); }catch(e){} return temaAplica(); },
+    nome: t => ({ claro: 'Desligado', escuro: 'Ligado', auto: 'Igual ao aparelho' })[t || temaLido()]
+  };
+  temaAplica();
+
   /* v3.38 · CORREAL: os preços da IA em correal (os mesmos do banco; quem manda é o banco) */
   /* v3.40: o voo do Aeroporto de Londrina (Correverso) também sai em correal */
   /* v3.43: o correal tem centavos (delta-v343.sql). Os preços caíram na mesma conta da carteira (divididos por 10) e

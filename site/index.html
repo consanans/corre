@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <script>/* v4.0 · o Link na bio: app.corresocial.com/@nome (o _redirects manda pra cá) vira #/bio/nome antes de qualquer arquivo carregar, pra css/ e js/ acharem a pasta certa */(function(){var m=location.pathname.match(/^\/@([A-Za-z0-9_.]{3,24})\/?$/);if(m)history.replaceState(null,"","/"+location.search+"#/bio/"+m[1].toLowerCase());else if(/^\/clientes\/?$/.test(location.pathname))history.replaceState(null,"","/"+location.search+"#/clientes");else if(/^\/studio\/?$/.test(location.pathname))history.replaceState(null,"","/"+location.search+"#/dia");})();</script>
+<script>/* v4.43 · o modo escuro: a escolha mora no aparelho (corre-tema: claro, escuro ou auto, que segue o celular). Fica aqui no começo pra página já nascer escura, sem piscar branco */(function(){try{var t=localStorage.getItem("corre-tema");if(t==="escuro"||(t==="auto"&&matchMedia("(prefers-color-scheme: dark)").matches))document.documentElement.classList.add("escuro");}catch(e){}})();</script>
 <title>Corre</title>
 <meta name="description" content="Corre: a rede de quem faz o corre nas redes. Perfil, clientes, referências e quanto o trampo tá rendendo.">
 <meta name="theme-color" content="#141216">
@@ -26,7 +27,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Bagel+Fat+One&family=Big+Shoulders+Display:wght@800;900&family=Cormorant+Garamond:ital,wght@1,500;1,600&family=IBM+Plex+Mono:wght@500;600&family=Playfair+Display:ital,wght@1,800;1,900&family=Silkscreen:wght@400;700&display=swap">
 <!-- css:inicio -->
-<link rel="stylesheet" href="css/corre.min.css?v=4.42">
+<link rel="stylesheet" href="css/corre.min.css?v=4.43">
 <!-- css:fim -->
 </head>
 <body>
@@ -91,6 +92,27 @@
       <path d="M-10 -10 h20" stroke="#141216" stroke-width="6"/>
       <path d="M-42 -8 l10 0" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity=".7"/><path d="M18 -8 l10 0" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity=".7"/>
       <path d="M-24 34 Q0 52 24 34" fill="none" stroke="#141216" stroke-width="7" stroke-linecap="round"/>
+    </g>
+    <!-- v4.43 · a noite do modo escuro: a lua dormindo no lugar do sol e as estrelas (só aparecem com o html.escuro) -->
+    <g class="sc-noite">
+      <g fill="#FFF6B8" stroke="none">
+        <circle cx="940" cy="90" r="4"/><circle cx="1080" cy="230" r="3"/><circle cx="1330" cy="60" r="3.5"/><circle cx="1460" cy="200" r="2.5"/><circle cx="1610" cy="40" r="3"/>
+        <circle cx="1700" cy="180" r="2.5"/><circle cx="1990" cy="60" r="3"/><circle cx="2050" cy="330" r="2.5"/><circle cx="2320" cy="300" r="3"/><circle cx="1210" cy="400" r="2.5"/>
+        <circle cx="900" cy="470" r="3"/><circle cx="1540" cy="110" r="2"/><circle cx="2260" cy="40" r="2.5"/><circle cx="1880" cy="430" r="2"/>
+      </g>
+      <g stroke="#141216" stroke-width="5" stroke-linejoin="round" fill="#FFF6B8">
+        <use href="#sc-spark" class="sc-pisca" transform="translate(1000 150) scale(.45)"/>
+        <use href="#sc-spark" class="sc-pisca b" transform="translate(1410 300) scale(.35)"/>
+        <use href="#sc-spark" class="sc-pisca c" transform="translate(1930 110) scale(.4)"/>
+      </g>
+      <g class="sc-lua" transform="translate(2178 162)">
+        <circle r="96" fill="#FFF6B8" opacity=".12"/>
+        <path d="M18 -74 A76 76 0 1 0 70 34 A60 60 0 0 1 18 -74 Z" fill="#FFF6B8" stroke="#141216" stroke-width="8" stroke-linejoin="round"/>
+        <path d="M-34 -6 q10 9 20 0" fill="none" stroke="#141216" stroke-width="6" stroke-linecap="round"/>
+        <path d="M-22 28 q12 8 24 0" fill="none" stroke="#141216" stroke-width="6" stroke-linecap="round"/>
+        <ellipse cx="-44" cy="14" rx="9" ry="5" fill="#FFB3DA" opacity=".9"/>
+        <path d="M54 -70 h22 l-22 26 h22 M86 -104 h14 l-14 17 h14" fill="none" stroke="#FFF6B8" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+      </g>
     </g>
     <g fill="#fff" stroke="#141216" stroke-width="7" stroke-linejoin="round">
       <g class="sc-drift a"><use href="#sc-cloud" transform="translate(880 180) scale(1.25)"/></g>
@@ -1092,9 +1114,9 @@
 <div id="app"><div class="boot"><span>Abrindo o Corre…</span></div></div>
 <div class="sheet" id="sheet" hidden></div>
 <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
-<script src="config.js?v=4.42"></script>
+<script src="config.js?v=4.43"></script>
 <!-- js:inicio -->
-<script src="js/corre.min.js?v=4.42"></script>
+<script src="js/corre.min.js?v=4.43"></script>
 <!-- js:fim -->
 </body>
 </html>

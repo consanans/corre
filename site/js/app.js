@@ -401,7 +401,7 @@
       ${gavetaHTML(me, active)}
       <span class="gv-k">Conta</span>` : `<a href="#/@${esc(me.handle)}">${ico('eu')}Meu perfil</a><a href="#/salvos">${ico('save')}Salvos</a>`}
       ${MENU.modo === 'studio' ? `<a href="#/">${ico('chat')}Voltar pra rede</a>` : `<a href="#/dia">${ico('luminaria')}Corre Studio</a>`}
-      <a href="#/editar">${ico('edit')}Editar perfil</a><button type="button" data-act="st-novo">${ico('plus')}Postar story</button>${C.push ? `<button type="button" data-act="push-ajustes">${ico('bell')}${C.push.nome ? C.push.nome() : 'Avisos no celular'}</button>` : ''}<button type="button" data-act="manual">${ico('manual')}Manual do Corre</button>
+      <a href="#/editar">${ico('edit')}Editar perfil</a><button type="button" data-act="st-novo">${ico('plus')}Postar story</button>${C.push ? `<button type="button" data-act="push-ajustes">${ico('bell')}${C.push.nome ? C.push.nome() : 'Avisos no celular'}</button>` : ''}<button type="button" data-act="manual">${ico('manual')}Manual do Corre</button>${C.tema ? `<button type="button" data-act="tema">${ico(C.tema.escuro() ? 'lua' : 'sol')}Modo escuro<small class="tm-k">${C.tema.nome()}</small></button>` : ''}
       <a href="privacidade.html">${ico('lock')}Privacidade</a><a href="termos.html">${ico('check')}Termos de uso</a><button type="button" data-act="sair">${ico('prev')}Sair</button>`;
   /* o menu da esquerda (computador). v3.70: a marca com as Mensagens e o sino do lado, o Procurar, a Comanda (no menu
      estreito, o ícone com o número), os Teus, a praça e o Tudo. Postar e a conta seguem embaixo */
@@ -671,6 +671,7 @@
       { k: 'push', a: 'push-ajustes', t: C.push && C.push.nome ? C.push.nome() : 'Avisos no celular', i: 'bell', d: 'Liga e desliga as notificações', kw: 'notificacao notificacoes push celular computador mac windows avisos' },
       ...(C.instala && C.instala.falta() ? [{ k: 'instala', a: 'instala', t: 'Pôr o Corre na tela do celular', i: 'cel', d: 'Vira app: tela inteira e os avisos', kw: 'instalar app aplicativo tela inicio inicial icone atalho celular iphone android cheia full screen' }] : []),
       { k: 'manual', a: 'manual', t: 'Manual do Corre', i: 'manual', d: 'Como usar cada coisa', kw: 'ajuda duvida tutorial como funciona' },
+      { k: 'tema', a: 'tema', t: 'Modo escuro', i: 'lua', d: 'O Corre de noite: liga, desliga ou segue o aparelho', kw: 'escuro dark noite tema claro cor fundo preto tela olho' },
       { k: 'loja', a: 'cvr-loja', t: 'Ateliê: loja de skins', i: 'star', d: 'Skins pro teu avatar, pagas em correal', kw: 'skin skins loja roupa fantasia uniforme avatar comprar atelie' },
       { k: 'privacidade', h: 'privacidade.html', t: 'Privacidade', i: 'lock', d: 'O que o Corre guarda e por quê', kw: 'dados lgpd' },
       { k: 'termos', h: 'termos.html', t: 'Termos de uso', i: 'check', d: 'Planos, cobrança, cancelar e desistir em 7 dias', kw: 'termos contrato regras cancelar cancelamento desistir devolver reembolso estorno arrependimento cdc consumidor' }
@@ -1607,6 +1608,24 @@
   C.recarregaMe = async () => { if(!st.user) return; try{ const m = await api.one('corre_perfis', { eq: { id: st.user.id } }); if(m && st.user && m.id === st.user.id){ st.me = m; st.loadedFor = m.id; } }catch(e){} };
 
   /* ---------------- ações ---------------- */
+  /* v4.43 · o modo escuro: a folha com as três escolhas. Cada amostra tem a cor fixa dela (não a do tema da vez), pra
+     mostrar como fica antes de escolher. Trocar não redesenha a página: é só a classe no html */
+  const TEMA_OP = [['claro', 'Desligado', 'O céu de dia e as etiquetas brancas'], ['escuro', 'Ligado', 'O Igapó de noite e as etiquetas escuras'], ['auto', 'Igual ao aparelho', 'Escurece quando o celular ou o computador escurecem']];
+  const temaHTML = () => { const t = C.tema.atual();
+    return `<div class="form tm"><div class="sheet-head"><h2>${ico('lua')} Modo escuro</h2><button type="button" class="cbtn plain" data-close aria-label="Fechar">${ico('x')}</button></div>
+      <p class="fine">Vale neste aparelho: o celular e o computador escolhem cada um o seu.</p>
+      <div class="tm-ops" role="radiogroup" aria-label="Modo escuro">${TEMA_OP.map(([k, n, d]) => `<button type="button" class="tm-op" role="radio" aria-checked="${k === t}" data-act="tema-poe" data-k="${k}"><span class="tm-amostra tm-a-${k}" aria-hidden="true"><i></i><i></i><i></i></span><span class="tm-tx"><b>${n}</b><small>${d}</small></span>${ico('check', 'tm-v')}</button>`).join('')}</div></div>`; };
+  const temaRefaz = () => { document.querySelectorAll('[data-act="tema"]').forEach(b => { const s = b.querySelector('.tm-k'), i = b.querySelector('svg'); if(s) s.textContent = C.tema.nome(); if(i && b.closest('.me-menu, .gaveta')) i.outerHTML = ico(C.tema.escuro() ? 'lua' : 'sol'); }); };
+  addEventListener('corre-tema', temaRefaz);
+  Object.assign(C.acts, {
+    tema: () => { if(C.tema) C.sheet(temaHTML(), 'tm-folha'); },
+    'tema-poe': el => {
+      const k = el.dataset.k; C.tema.poe(k);
+      document.querySelectorAll('.tm-op').forEach(b => b.setAttribute('aria-checked', String(b.dataset.k === k)));
+      temaRefaz();
+      toast(k === 'escuro' ? 'Modo escuro ligado.' : k === 'auto' ? `Modo escuro igual ao aparelho: agora tá ${C.tema.escuro() ? 'ligado' : 'desligado'}.` : 'Modo escuro desligado.', 2600);
+    }
+  });
   Object.assign(C.acts, {
     'tenta-de-novo': () => { st.loadedFor = null; route(); },
     'corre-ir': el => { const s = $('corre-' + el.dataset.k); if(s) s.scrollIntoView({ behavior: 'smooth', block: 'start' }); },
