@@ -14,7 +14,7 @@
   /* os botões, na ordem de fábrica. Quem não tem o dado (sem WhatsApp, vitrine vazia...) some sozinho */
   const BLOCOS = [
     ['orc', 'Pedir orçamento', 'recibo'], ['w', 'WhatsApp', 'wa'], ['vit', 'O que vende (a vitrine)', 'cartao'],
-    ['links', 'Teus links', 'link'], ['ig', 'Instagram', 'ig'], ['pix', 'Pix', 'grana'], ['pf', 'Marcas que você toca', 'marcas'],
+    ['links', 'Teus links', 'link'], ['ig', 'Instagram', 'ig'], ['pix', 'Pix', 'grana'], ['doa', 'Dá um corre por uma causa', 'heart'], ['pf', 'Marcas que você toca', 'marcas'],
     ['bb', 'O brandbook da marca', 'houzi'], ['perfil', 'Teu perfil no Corre', 'eu']
   ];
   const NOME_BLOCO = Object.fromEntries(BLOCOS.map(b => [b[0], b[1]]));
@@ -43,6 +43,8 @@
       on: b.on !== false, tema: TEMAS.some(t => t[0] === b.tema) || b.tema === 'marca' ? b.tema : 'corre', marca: typeof b.marca === 'string' ? b.marca : '',
       frase: String(b.frase || '').slice(0, 140), blocos, links,
       pix: b.pix && typeof b.pix === 'object' ? { chave: String(b.pix.chave || '').slice(0, 120), nome: String(b.pix.nome || '').slice(0, 60) } : { chave: '', nome: '' },
+      /* v5.03: a entidade que a pessoa apoia (só o id: a chave Pix vem da lista aprovada pelo Corre, nunca daqui) */
+      doa: /^[0-9a-f-]{36}$/.test(String(b.doa || '')) ? b.doa : '',
       mv: { fundo: HEX.test(mv.fundo) ? mv.fundo : '', texto: HEX.test(mv.texto) ? mv.texto : '', cor: HEX.test(mv.cor) ? mv.cor : '', acento: HEX.test(mv.acento) ? mv.acento : '',
         fd: FONTE.test(mv.fd || '') ? mv.fd : '', ft: FONTE.test(mv.ft || '') ? mv.ft : '', logo: LOGO_OK(mv.logo) ? mv.logo : '', nome: String(mv.nome || '').slice(0, 40), slug: /^[a-z0-9-]{1,80}$/.test(mv.slug || '') ? mv.slug : '' }
     };
@@ -93,6 +95,7 @@
       links: () => cfg.links.map((l, i) => bt(l.u, 'l' + i, icoLink(l.u), l.t, '', true)).join(''),
       ig: () => p.instagram ? bt(`https://www.instagram.com/${encodeURIComponent(p.instagram)}/`, 'ig', 'ig', `@${p.instagram} no Instagram`, '', true) : '',
       pix: () => cfg.pix.chave ? `<div class="bio-pix"><span class="bio-pix-t">${ico('grana')}<b>Pix</b></span><code>${esc(cfg.pix.chave)}</code>${cfg.pix.nome ? `<small>${esc(cfg.pix.nome)}</small>` : ''}<button type="button" class="bio-pix-c" data-act="bio-pix" data-bk="pix" data-chave="${esc(cfg.pix.chave)}">${ico('copy')} Copiar</button></div>` : '',
+      doa: () => cfg.doa && d.doa && C.doa ? C.doa.cartao(d.doa, { h }) : '',
       pf: () => marcas.length ? `<section class="bio-pf" aria-label="Marcas que toca"><h2 class="bio-h">Marcas que eu toco</h2><div class="bio-pf-l">${marcas.slice(0, 12).map(m => `<span class="bio-pf-i">${C.marcaLogo ? C.marcaLogo(m) : ''}<small>${esc(m.marca)}</small></span>`).join('')}</div></section>` : '',
       bb: () => cfg.tema === 'marca' && mv.slug ? bt(`#/bb/${mv.slug}`, 'bb', 'houzi', mv.nome ? `A marca ${mv.nome}` : 'A marca', 'O brandbook feito no Studio Houzi') : '',
       perfil: () => bt(`#/@${h}`, 'perfil', 'eu', 'Meu perfil no Corre', 'Posts, portfólio e recomendações')
@@ -120,11 +123,12 @@
   /* o que a página lê além do perfil: a vitrine (aberta, é de venda) e o portfólio (o banco esconde de quem não pode ver) */
   async function dadosDe(p, cfg){
     const on = k => cfg.blocos.some(b => b.k === k && b.on);
-    const [vit, marcas] = await Promise.all([
+    const [vit, marcas, doa] = await Promise.all([
       on('vit') ? api.rpc('corre_vitrine', { p: p.id }).catch(() => null) : null,
-      on('pf') ? api.q('corre_portfolio', { eq: { dono: p.id }, order: ['ordem', true] }).catch(() => []) : []
+      on('pf') ? api.q('corre_portfolio', { eq: { dono: p.id }, order: ['ordem', true] }).catch(() => []) : [],
+      on('doa') && cfg.doa && C.doa ? C.doa.lista().then(l => l.find(e => e.id === cfg.doa) || null) : null
     ]);
-    return { itens: (vit && vit.itens) || [], marcas: (marcas || []).filter(m => m.publico !== false) };
+    return { itens: (vit && vit.itens) || [], marcas: (marcas || []).filter(m => m.publico !== false), doa };
   }
 
   /* ---------- os números: a visita uma vez por sessão, e cada toque. A do dono o banco nem conta ---------- */
@@ -178,15 +182,15 @@
   });
 
   /* ---------- o editor (#/linkbio) ---------- */
-  const E = { cfg: null, d: null, marcas: [], prevUrl: '', logoDe: '', sujo: false };
+  const E = { cfg: null, d: null, marcas: [], ents: [], prevUrl: '', logoDe: '', sujo: false };
   const novoLink = () => ({ t: '', u: '' });
   function temDado(k){
     const p = st.me || {}, d = E.d || {};
     return k === 'orc' ? (p.horus || {}).orcamento === 'on' : k === 'w' ? !!p.whats_publico : k === 'vit' ? !!(d.itens || []).length : k === 'links' ? E.cfg.links.some(l => URL_OK.test(l.u) && l.t.trim())
-      : k === 'ig' ? !!p.instagram : k === 'pix' ? !!E.cfg.pix.chave : k === 'pf' ? !!(d.marcas || []).length : k === 'bb' ? E.cfg.tema === 'marca' && !!E.cfg.mv.slug : true;
+      : k === 'ig' ? !!p.instagram : k === 'pix' ? !!E.cfg.pix.chave : k === 'doa' ? !!entDe(E.cfg.doa) : k === 'pf' ? !!(d.marcas || []).length : k === 'bb' ? E.cfg.tema === 'marca' && !!E.cfg.mv.slug : true;
   }
   const FALTA = { orc: ['Liga o "Pedido de orçamento" em Editar perfil.', '#/editar'], w: ['Põe teu WhatsApp em Editar perfil.', '#/editar'], vit: ['Marca "Mostrar no meu perfil" no catálogo.', '#/marcas'],
-    links: ['Põe um link embaixo, em Teus links.', ''], ig: ['Põe teu @ do Instagram em Editar perfil.', '#/editar'], pix: ['Põe a chave embaixo, em Pix.', ''], pf: ['Põe as marcas que você toca no Portfólio.', '#/marcas'],
+    links: ['Põe um link embaixo, em Teus links.', ''], doa: ['Escolhe a entidade embaixo, em Dá um corre.', ''], ig: ['Põe teu @ do Instagram em Editar perfil.', '#/editar'], pix: ['Põe a chave embaixo, em Pix.', ''], pf: ['Põe as marcas que você toca no Portfólio.', '#/marcas'],
     bb: ['Só com a cara de uma marca do Studio Houzi publicada.', ''] };
 
   C.views.linkbio = async app => {
@@ -195,13 +199,14 @@
     app.innerHTML = C.header('linkbio') + `<main class="wrap lb"><section class="card"><p>Abrindo o teu link na bio…</p></section></main>`;
     const rota = C.rota;
     E.cfg = norma(me.bio_link); E.sujo = false; E.prevUrl = ''; E.logoDe = E.cfg.mv.logo ? E.cfg.marca : '';
-    const [d, marcas, nums] = await Promise.all([
+    const [d, marcas, nums, ents] = await Promise.all([
       dadosDe(me, Object.assign({}, E.cfg, { blocos: BLOCOS.map(b => ({ k: b[0], on: true })) })),
       api.q('corre_houzi_marcas', { eq: { dono: me.id }, order: ['updated_at', false], limit: 40 }).catch(() => []),
-      api.rpc('corre_bio_numeros', { p_dias: 30 }).catch(() => null)
+      api.rpc('corre_bio_numeros', { p_dias: 30 }).catch(() => null),
+      C.doa ? C.doa.lista(true) : []
     ]);
     if(rota !== C.rota) return;
-    E.d = d; E.marcas = (marcas || []).filter(m => m && m.spec && m.spec.cores && m.spec.tipo);
+    E.d = d; E.ents = ents || []; E.marcas = (marcas || []).filter(m => m && m.spec && m.spec.cores && m.spec.tipo);
     const h = me.handle;
     app.innerHTML = C.header('linkbio') + `<main class="wrap lb">
       <div class="lb-cols">
@@ -220,13 +225,15 @@
           <section class="card"><h2 class="ch">Teus links</h2><p class="fine">Portfólio, loja, música, agenda, o que quiser (até ${MAX_LINKS}).</p><div id="lb-links"></div><button type="button" class="btn sm" data-act="lb-link-mais">${ico('plus')} Link</button></section>
           <section class="card"><h2 class="ch">Pix</h2><div class="row2"><div class="fld"><label for="lb-pix">Chave</label><input class="inp" id="lb-pix" maxlength="120" value="${esc(E.cfg.pix.chave)}" placeholder="CPF, CNPJ, e-mail, celular ou aleatória"></div>
             <div class="fld"><label for="lb-pix-n">Nome de quem recebe</label><input class="inp" id="lb-pix-n" maxlength="60" value="${esc(E.cfg.pix.nome)}" placeholder="${esc(me.nome)}"></div></div><p class="fine">A chave aparece pra qualquer um que abrir a página, com o botão de copiar.</p></section>
+          <section class="card lb-doa" aria-labelledby="lb-doa-h"><h2 class="ch" id="lb-doa-h">${ico('heart')} Dá um corre por uma causa</h2>
+            <p class="fine">Escolhe uma entidade de Londrina conferida pelo Corre e ela ganha um cartão na tua página: quem passa doa no Pix, direto pra ela. O Corre não fica com nada.</p><div id="lb-doa" class="lb-doa-l" role="radiogroup" aria-labelledby="lb-doa-h"></div></section>
           <section class="card lb-nums" id="lb-nums" aria-label="Quem passou"></section>
           <div class="lb-salva"><button type="button" class="btn pri" id="lb-salvar" data-act="lb-salva">${ico('check')} Salvar</button><span class="fine" id="lb-st" role="status"></span></div>
         </div>
         <aside class="lb-prev" aria-label="Como fica"><p class="mono">Como fica</p><div class="lb-tel"><div class="lb-tela" id="lb-tela"></div></div></aside>
       </div>
     </main>`;
-    pintaTemas(); pintaBlocos(); pintaLinks(); pintaNums(nums); previa();
+    pintaTemas(); pintaBlocos(); pintaLinks(); pintaDoa(); pintaNums(nums); previa();
     const on = $('lb-on'), frase = $('lb-frase'), pix = $('lb-pix'), pixN = $('lb-pix-n');
     on.addEventListener('change', () => { E.cfg.on = on.checked; suja(); });
     frase.addEventListener('input', () => { E.cfg.frase = frase.value; suja(); prevLogo(); });
@@ -241,7 +248,7 @@
     const t = $('lb-tela'); if(!t || !st.me) return;
     const cfg = Object.assign({}, E.cfg, { links: E.cfg.links.filter(l => URL_OK.test(l.u) && l.t.trim()), mv: Object.assign({}, E.cfg.mv, E.prevUrl ? { logo: E.prevUrl } : {}) });
     if(cfg.tema === 'marca') fontes(cfg.mv);
-    t.innerHTML = bioHTML(st.me, cfg, E.d, { prev: true });
+    t.innerHTML = bioHTML(st.me, cfg, Object.assign({}, E.d, { doa: entDe(cfg.doa) }), { prev: true });
   }
   function pintaTemas(){
     const el = $('lb-temas'); if(!el) return;
@@ -260,6 +267,16 @@
         <span class="lb-b-a"><button type="button" class="lb-seta" data-act="lb-sobe" data-i="${i}" aria-label="Subir ${esc(n)}"${i ? '' : ' disabled'}>${ico('sobe')}</button><button type="button" class="lb-seta" data-act="lb-desce" data-i="${i}" aria-label="Descer ${esc(n)}"${i < E.cfg.blocos.length - 1 ? '' : ' disabled'}>${ico('desce')}</button>
         <label class="switch sw-so"><input type="checkbox" data-chg="lb-bloco" data-i="${i}"${b.on ? ' checked' : ''} aria-label="Mostrar ${esc(n)}"><span class="sw"></span></label></span></li>`;
     }).join('');
+  }
+  /* v5.03 · Dá um corre: a entidade que a pessoa apoia, da lista aprovada pelo Corre */
+  const entDe = id => id ? (E.ents || []).find(e => e.id === id) || null : null;
+  function pintaDoa(){
+    const el = $('lb-doa'); if(!el) return;
+    const ls = E.ents || [];
+    if(!ls.length){ el.innerHTML = '<p class="fine lb-doa-vazio">As primeiras entidades tão sendo conferidas pelo Corre (CNPJ e a chave Pix da própria entidade). Assim que entrarem, aparecem aqui pra você escolher.</p>'; return; }
+    const op = (id, t, s) => `<button type="button" class="lb-doa-op" role="radio" aria-checked="${(E.cfg.doa || '') === id}" data-act="lb-doa" data-id="${esc(id)}"><b>${esc(t)}</b>${s ? `<small>${esc(s)}</small>` : ''}</button>`;
+    el.innerHTML = op('', 'Nenhuma por enquanto', '') + ls.map(e => op(e.id, e.nome, [C.doa.causaNome(e.causa), e.faz].filter(Boolean).join(' · '))).join('');
+    if(E.cfg.doa && !entDe(E.cfg.doa)) el.insertAdjacentHTML('beforeend', '<p class="fine">A entidade que você tinha escolhido saiu da lista do Corre. Escolhe outra.</p>');
   }
   function pintaLinks(){
     const el = $('lb-links'); if(!el) return;
@@ -292,7 +309,7 @@
     if(!n){ el.innerHTML = `<h2 class="ch">Quem passou</h2>${fx}<p class="fine">Os números aparecem aqui depois que o Corre for atualizado (falta rodar o delta da 4.0 no banco).</p>`; return; }
     const dias = n.porDia || [], max = Math.max(1, ...dias.map(x => +x.n || 0)), hoje = Date.now();
     const barras = Array.from({ length: 30 }, (_, i) => { const dia = new Date(hoje - (29 - i) * 864e5 - 3 * 3600e3).toISOString().slice(0, 10), x = dias.find(y => String(y.dia).slice(0, 10) === dia); const v = x ? +x.n : 0; return `<i style="height:${Math.round(4 + 56 * v / max)}px" title="${C.ddmm ? C.ddmm(dia) : dia}: ${v}"></i>`; }).join('');
-    const nome = k => k.startsWith('l') && /^l\d+$/.test(k) ? `Link: ${(E.cfg.links[+k.slice(1)] || {}).t || 'tirado'}` : k.startsWith('it:') ? `Vitrine: ${((E.d.itens || []).find(i => i.id === k.slice(3)) || {}).nome || 'item'}` : ({ orc: 'Pedir orçamento', w: 'WhatsApp', ig: 'Instagram', pix: 'Copiou o Pix', perfil: 'Perfil no Corre', bb: 'Brandbook', corre: 'Foi fazer o dele no Corre', share: 'Mandou o teu link' })[k] || k;
+    const nome = k => k.startsWith('l') && /^l\d+$/.test(k) ? `Link: ${(E.cfg.links[+k.slice(1)] || {}).t || 'tirado'}` : k.startsWith('it:') ? `Vitrine: ${((E.d.itens || []).find(i => i.id === k.slice(3)) || {}).nome || 'item'}` : ({ orc: 'Pedir orçamento', w: 'WhatsApp', ig: 'Instagram', pix: 'Copiou o Pix', doa: 'Abriu a doação', 'doa-pix': 'Copiou o Pix da doação', perfil: 'Perfil no Corre', bb: 'Brandbook', corre: 'Foi fazer o dele no Corre', share: 'Mandou o teu link' })[k] || k;
     const t = Object.entries(n.toques || {}).sort((a, b) => b[1] - a[1]);
     el.innerHTML = `<h2 class="ch">Quem passou <small>(30 dias)</small></h2>${fx}
       <p class="lb-n-g"><b class="num">${n.visitas || 0}</b> ${(n.visitas || 0) === 1 ? 'visita' : 'visitas'} <span>· ${t.reduce((s, x) => s + x[1], 0)} toques nos botões</span></p>
@@ -329,6 +346,13 @@
       else { E.cfg.tema = k; E.cfg.marca = ''; }
       suja(); pintaTemas(); pintaBlocos(); previa();
     },
+    'lb-doa': el => {
+      E.cfg.doa = el.dataset.id || '';
+      /* escolheu uma: o cartão liga sozinho (quem escolhe quer ver na página) */
+      const b = E.cfg.blocos.find(x => x.k === 'doa'); if(b && E.cfg.doa) b.on = true;
+      suja(); pintaDoa(); pintaBlocos(); previa();
+      const a = document.querySelector(`[data-act="lb-doa"][data-id="${E.cfg.doa}"]`); if(a) a.focus();
+    },
     'lb-bloco': el => { const b = E.cfg.blocos[+el.dataset.i]; if(b){ b.on = el.checked; suja(); previa(); } },
     'lb-sobe': el => { const i = +el.dataset.i, L = E.cfg.blocos; if(i > 0){ [L[i - 1], L[i]] = [L[i], L[i - 1]]; suja(); pintaBlocos(); previa(); const b = document.querySelector(`[data-act="lb-sobe"][data-i="${i - 1}"]`); if(b && !b.disabled) b.focus(); } },
     'lb-desce': el => { const i = +el.dataset.i, L = E.cfg.blocos; if(i < L.length - 1){ [L[i + 1], L[i]] = [L[i], L[i + 1]]; suja(); pintaBlocos(); previa(); const b = document.querySelector(`[data-act="lb-desce"][data-i="${i + 1}"]`); if(b && !b.disabled) b.focus(); } },
@@ -343,7 +367,7 @@
       try{
         /* o logo da marca sobe uma vez (a imagem fica no Storage do Corre e a página não precisa do Studio) */
         if(cfg.tema === 'marca' && cfg.marca && E.blob && E.logoDe !== cfg.marca){ cfg.mv.logo = await api.upload(E.blob); E.logoDe = cfg.marca; }
-        const salvo = { on: cfg.on, tema: cfg.tema, frase: cfg.frase.trim(), blocos: cfg.blocos, links: cfg.links.map(l => ({ t: l.t.trim(), u: arruma(l.u) })).filter(l => l.t && URL_OK.test(l.u)), pix: cfg.pix };
+        const salvo = { on: cfg.on, tema: cfg.tema, frase: cfg.frase.trim(), blocos: cfg.blocos, links: cfg.links.map(l => ({ t: l.t.trim(), u: arruma(l.u) })).filter(l => l.t && URL_OK.test(l.u)), pix: cfg.pix, doa: cfg.doa || '' };
         if(cfg.tema === 'marca' && cfg.marca){ salvo.marca = cfg.marca; salvo.mv = cfg.mv; }
         await C.saveMe({ bio_link: salvo });
         E.cfg = norma(st.me.bio_link || salvo); E.sujo = false;

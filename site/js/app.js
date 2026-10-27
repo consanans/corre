@@ -68,18 +68,20 @@
   /* v5.01 (o Thales: "o mural fica no studio também, ali ele está competindo demais com o correverso"): o Mural é pedido
      de serviço, trabalho; saiu da Rede (da praça, da barra e da gaveta) e mora no Corre Studio, do lado do Hórus */
   const GRUPOS_REDE = {
-    rede: ['Rede', 'chat', ['inicio', 'msg', 'grupos', 'avisos']],
-    banca: ['Banca', 'toldo', ['banca', 'refs', 'rolo']],
+    rede: ['Rede', 'chat', ['inicio', 'msg', 'grupos', 'avisos', 'rolo']],
     verso: ['Correverso', 'verso', ['verso', 'carteira']],
     eu: ['Perfil', 'eu', ['perfil', 'salvos', 'convite']]
   };
   const GRUPOS = {
     trampo: ['Trabalho', 'lab', ['dia', 'caderno', 'studio', 'horus', 'mural', 'atende', 'piloto', 'msg']],
+    ref: ['Referência', 'banca', ['banca', 'refs']],
     marca: ['Marca', 'houzi', ['houzi', 'marcas', 'linkbio']],
     fin: ['Financeiro', 'calc', ['corre', 'planos', 'lojinha']]
   };
   /* as páginas do Corre Studio (o resto é da Rede; as Mensagens servem as duas e ficam na parte de onde a pessoa veio) */
-  const STUDIO_K = ['dia', 'caderno', 'studio', 'horus', 'mural', 'atende', 'piloto', 'houzi', 'marcas', 'linkbio', 'corre', 'planos', 'lojinha'];
+  /* v5.03 (o Thales: "banca do dia e do teu nicho são onde as pessoas buscam referência pra criar seus materiais, então
+     tem que estar dentro do studio"): as duas vieram da Rede. O Rolo 360 fica na Rede (só o Thales tem, e ele quer à mão) */
+  const STUDIO_K = ['dia', 'caderno', 'studio', 'horus', 'mural', 'atende', 'piloto', 'banca', 'refs', 'houzi', 'marcas', 'linkbio', 'corre', 'planos', 'lojinha'];
   const NEUTRO = ['msg', 'avisos'];
   const MODO = { ult: (() => { try{ return sessionStorage.getItem('corre-modo') || 'rede'; }catch(e){ return 'rede'; } })() };
   const modoDe = active => {
@@ -91,7 +93,7 @@
   C.modo = () => MODO.ult;
   /* v5.02: a luz pela rota, antes da página carregar os dados (o C.header confirma depois). É a mesma conta do script do
      começo do index.html: as páginas do Studio são de noite, as Mensagens seguem a parte de onde a pessoa veio */
-  const ROTA_STUDIO = /^(dia|caderninho|studio|horus|mural|atendente|piloto|houzi|marcas?|linkbio|corre|vendas|grana|estilo|planos|lojinha|monta|clientes)(\/|$)/;
+  const ROTA_STUDIO = /^(dia|caderninho|studio|horus|mural|atendente|piloto|banca|refs|houzi|marcas?|linkbio|corre|vendas|grana|estilo|planos|lojinha|monta|clientes)(\/|$)/;
   const noiteDaRota = h => !!st.user && (ROTA_STUDIO.test(h) || (/^msg(\/|$)/.test(h) && MODO.ult === 'studio'));
   /* a praça: o Correverso em destaque no meio do menu da Rede. (v3.70: a lista em grupos e a barra fixa do celular deram
      lugar à Comanda, aos Teus e ao Tudo; os grupos seguem dentro do Tudo e da gaveta. v5.01: o Mural foi pro Studio, e o
@@ -106,7 +108,7 @@
   const VOLTA = { estilo: ['#/corre', 'Vendas e Grana'], salvos: ['perfil', 'Perfil'] };
   /* onde o Postar redondo do celular aparece: no Início, no teu perfil e nas páginas de ler (Banca do dia e Do teu
      nicho), como até a v3.42, quando elas eram do Início. O Editar perfil acende o Perfil, mas ali ninguém posta */
-  const POSTAR = ['inicio', 'perfil', 'banca', 'refs'];
+  const POSTAR = ['inicio', 'perfil'];
   /* ---------------- v3.69 · o menu esperto ----------------
      O Thales: "melhore o menu e deixe ele o mais smart possível". Os sinais: onde tem coisa pra fazer (post que sai hoje
      ou atrasou, cliente pra retornar, cobrança vencida, alguém te escolheu no Mural ou pedido novo, teste do plano
@@ -425,7 +427,7 @@
         <div class="me-menu">${contaHTML(me, false, active)}</div></details>`;
   /* a Rede: a lista no jeito do X (Início, Grupos, a Banca, os Salvos e o Perfil), a praça (o Correverso; v5.01: o Mural foi pro Studio), a
      carteira e, embaixo, a porta do Corre Studio com o número da Comanda. O Postar e a conta no pé */
-  const LADO_REDE = ['inicio', 'grupos', 'banca', 'refs', 'rolo', 'salvos', 'perfil'];
+  const LADO_REDE = ['inicio', 'grupos', 'rolo', 'salvos', 'perfil'];
   const ladoRede = (active, me) => {
     const D = DEST(me), um = k => itemMenu(k, D[k][0], D[k][1], D[k][2], 'lado-i', k === active, true);
     return `<aside class="lado lado-rede" aria-label="Menu da Rede">
@@ -684,6 +686,7 @@
       { k: 'push', a: 'push-ajustes', t: C.push && C.push.nome ? C.push.nome() : 'Avisos no celular', i: 'bell', d: 'Liga e desliga as notificações', kw: 'notificacao notificacoes push celular computador mac windows avisos' },
       ...(C.instala && C.instala.falta() ? [{ k: 'instala', a: 'instala', t: 'Pôr o Corre na tela do celular', i: 'cel', d: 'Vira app: tela inteira e os avisos', kw: 'instalar app aplicativo tela inicio inicial icone atalho celular iphone android cheia full screen' }] : []),
       { k: 'manual', a: 'manual', t: 'Manual do Corre', i: 'manual', d: 'Como usar cada coisa', kw: 'ajuda duvida tutorial como funciona' },
+      { k: 'doa', h: '#/linkbio', t: 'Dá um corre: doação pra entidade', i: 'heart', d: 'Uma entidade de Londrina no teu link na bio, com o Pix dela', kw: 'doar doacao doação entidade caridade causa ong ajudar solidario pix instituicao' },
       { k: 'google', h: '#/editar', t: 'Aparecer no Google', i: 'lupa', d: 'Teu trabalho na página aberta do teu ramo em Londrina', kw: 'google busca procurar seo londrina pagina publica aparecer achar cliente vitrine' },
       { k: 'loja', a: 'cvr-loja', t: 'Ateliê: loja de skins', i: 'star', d: 'Skins pro teu avatar, pagas em correal', kw: 'skin skins loja roupa fantasia uniforme avatar comprar atelie' },
       { k: 'privacidade', h: 'privacidade.html', t: 'Privacidade', i: 'lock', d: 'O que o Corre guarda e por quê', kw: 'dados lgpd' },
@@ -1290,7 +1293,7 @@
   /* ---------------- início ---------------- */
   /* os cartões do canto (cada módulo põe o dele no C.home). v4.41: os do trabalho (Hórus, Vendas, Grana e Portfólio) moram
      na casa do Corre Studio; os da Rede (visitas, Banca e Do teu nicho) ficam no Início. v5.01: o do Mural foi pro Studio */
-  const CARTOES_STUDIO = ['horus', 'mural', 'vendas', 'grana', 'marcas'];
+  const CARTOES_STUDIO = ['horus', 'mural', 'vendas', 'grana', 'marcas', 'banca', 'datas'];
   const NOME_CARTAO = { visitas: 'Visitas', horus: 'Hórus', mural: 'Mural', vendas: 'Vendas', banca: 'Banca do dia', grana: 'Grana', marcas: 'Portfólio', datas: 'Do teu nicho' };
   const cartoesDe = studio => C.home.slice().filter(c => CARTOES_STUDIO.includes(c.k) === studio).sort((a, b) => a.o - b.o);
   const cartoesHTML = cards => cards.map(c => `<div class="hslot" id="hc-${c.k}"><div class="hcard ghost"><span class="hc-name">${NOME_CARTAO[c.k] || ''}</span></div></div>`).join('');
@@ -1344,6 +1347,7 @@
      e os cartões do trabalho, e o "do teu jeito" (abrir o Corre direto aqui, o Hórus ligado, ajeitar o menu) */
   const FERR_ST = [
     ['caderno', 'As tarefas do dia, com aviso na hora'], ['studio', 'O calendário de posts de cada marca'],
+    ['banca', 'As manchetes do teu assunto, pra pauta'], ['refs', 'Referências e datas que vendem'],
     ['horus', 'Acha cliente no mapa e chama no WhatsApp'], ['mural', 'Pedidos de quem precisa: manda proposta'],
     ['corre', 'Do orçamento ao dinheiro na conta'],
     ['atende', 'A IA responde teu cliente 24h'], ['piloto', 'O que esfria vira tarefa sozinho'],

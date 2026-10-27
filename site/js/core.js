@@ -652,7 +652,7 @@
   const HOUZI_EX = {"spec":{"v":1,"territorio":"editorial","amostra":1,"nome":"Grão Torto","tagline":"café de esquina","nicho":"cafe","cidade":"Londrina, PR","desde":"2021","pers":[0.35,0.55,0.55,0.35,0.2],"modo":"branding","campos":["cafe","rua"],"logo":{"arranjo":"wordmark","caixa":"titulo","track":0.005,"efeito":"","gesto":"troca","tagline":true,"corTexto":"texto","trocaPor":"ideia"},"simbolo":{"tipo":"ideia","icone":"xicara","ideia":"grao","estilo":"linha","seed":84829},"tipo":{"display":"lora-bolditalic","texto":"lora-regular"},"cores":{"p":"#2B2B2E","s":"#D8D4CB","a":"#B8913A","ink":"#161618","paper":"#F6F2EA","fundo":"paper","esquema":"receita","receita":"Grafite e Ouro"},"textura":"papel","aplic":["revista","sacola","cartao","instagram","copo","fachada"],"seed":273184829,"descr":"Café de bairro, torra própria"},"voz":{"conceito":"Grão Torto é o café que trata cada detalhe como página de revista.","manifesto":"Grão Torto acredita que pressa é inimiga do bom. Por isso cada café é pensado como uma página de revista: com respiro, com ritmo, com intenção. É pra quem acorda cedo que repara. Que lê a legenda inteira. Que volta pela segunda vez.","taglines":["Grão Torto. Pra ler devagar.","A pausa boa do dia, com tempo.","O detalhe é a história.","Feito com atenção em Londrina.","Menos, e melhor."],"e":["calma","precisa","elegante"],"nao_e":["barulhenta","apressada","exagerada"],"fala":["Pensado com calma, feito pra durar.","Nem tudo precisa ser pra ontem.","A pausa boa do dia, no detalhe."],"nao_fala":["IMPERDÍVEL!!!","Só hoje, corre!","O melhor do Brasil."],"bio":"café de esquina · Café em Londrina. Chama no direct.","wa":"Olá, que bom ter você aqui. Aqui é o Grão Torto. Me conta o que procura e eu te ajudo com calma.","ia":false}};
   function demoApi(){
     const KEY = 'corre-demo-v2', mem = {};
-    const T = ['corre_perfis', 'corre_portfolio', 'corre_destaques', 'corre_stories', 'corre_insta', 'corre_contas', 'corre_lancamentos', 'corre_rolo_salvos', 'corre_leads', 'corre_posts', 'corre_feed', 'corre_curtidas', 'corre_comentarios', 'corre_seguindo', 'corre_story_curtidas', 'corre_visitas', 'corre_estilo', 'corre_produtos', 'corre_mural', 'corre_mural_propostas', 'corre_vendas', 'corre_refs', 'corre_lead_fotos', 'corre_mural_chat', 'corre_verso_bloq', 'corre_votos', 'corre_salvos', 'corre_recomendacoes', 'corre_feed_vistas', 'corre_avisos_lidos', 'corre_conversas', 'corre_conversa_membros', 'corre_mensagens', 'corre_push', 'corre_push_pref', 'corre_grupos', 'corre_grupo_membros', 'corre_houzi_marcas', 'corre_correal', 'corre_correal_log', 'corre_tarefa_vez', 'corre_ig_contas', 'corre_houzi_privado', 'corre_assinaturas', 'corre_asaas_clientes', 'corre_skins', 'corre_bio_conta', 'corre_convites', 'corre_ativo_dia', 'corre_skin_pedidos', 'corre_aprovacoes', 'corre_caderno', 'corre_atendente', 'corre_atende_conversas', 'corre_piloto', 'corre_piloto_log'];
+    const T = ['corre_perfis', 'corre_portfolio', 'corre_destaques', 'corre_stories', 'corre_insta', 'corre_contas', 'corre_lancamentos', 'corre_rolo_salvos', 'corre_leads', 'corre_posts', 'corre_feed', 'corre_curtidas', 'corre_comentarios', 'corre_seguindo', 'corre_story_curtidas', 'corre_visitas', 'corre_estilo', 'corre_produtos', 'corre_mural', 'corre_mural_propostas', 'corre_vendas', 'corre_refs', 'corre_lead_fotos', 'corre_mural_chat', 'corre_verso_bloq', 'corre_votos', 'corre_salvos', 'corre_recomendacoes', 'corre_feed_vistas', 'corre_avisos_lidos', 'corre_conversas', 'corre_conversa_membros', 'corre_mensagens', 'corre_push', 'corre_push_pref', 'corre_grupos', 'corre_grupo_membros', 'corre_houzi_marcas', 'corre_correal', 'corre_correal_log', 'corre_tarefa_vez', 'corre_ig_contas', 'corre_houzi_privado', 'corre_assinaturas', 'corre_asaas_clientes', 'corre_skins', 'corre_bio_conta', 'corre_convites', 'corre_ativo_dia', 'corre_skin_pedidos', 'corre_aprovacoes', 'corre_caderno', 'corre_atendente', 'corre_atende_conversas', 'corre_piloto', 'corre_piloto_log', 'corre_entidades', 'corre_doacao_conta'];
     const PRIV = ['corre_contas', 'corre_lancamentos', 'corre_rolo_salvos', 'corre_leads', 'corre_posts', 'corre_visitas', 'corre_estilo', 'corre_produtos', 'corre_mural', 'corre_mural_propostas', 'corre_vendas', 'corre_refs', 'corre_lead_fotos', 'corre_verso_bloq', 'corre_votos', 'corre_salvos', 'corre_feed_vistas', 'corre_avisos_lidos', 'corre_push', 'corre_push_pref', 'corre_correal', 'corre_correal_log', 'corre_tarefa_vez', 'corre_ig_contas', 'corre_houzi_privado', 'corre_assinaturas', 'corre_asaas_clientes', 'corre_skins', 'corre_bio_conta', 'corre_convites', 'corre_ativo_dia', 'corre_skin_pedidos', 'corre_aprovacoes', 'corre_caderno', 'corre_atendente', 'corre_atende_conversas', 'corre_piloto', 'corre_piloto_log'];
     const now = () => new Date().toISOString();
     const inH = h => new Date(Date.now() + h * 36e5).toISOString();
@@ -2093,6 +2093,47 @@
           const tipos = {}; L2.forEach(x => { tipos[x.tipo] = (tipos[x.tipo] || 0) + 1; });
           return { enviados: L2.length, pessoas: new Set(L2.map(x => x.dono)).size, voltaram: 0, tipos, avisos: new Set(ap.map(x => x.dono)).size, aparelhos: ap.length,
             desligaram: (d.t.corre_push_pref || []).filter(x => x.lembra === false && !fora.has(x.dono)).length, dias_periodo: Math.max(7, Math.min(+(a && a.p_dias) || 30, 120)) };
+        }
+        /* v5.03 · Dá um Corre (as mesmas regras do delta-v503.sql). No demo, duas entidades de exemplo, inventadas */
+        if(/^corre_(entidades?_|doacao_)/.test(n)){
+          if(!d.entSemente){ d.entSemente = true;
+            d.t.corre_entidades.push({ id: 'e5030000-0000-4000-8000-000000000001', nome: 'Casa do Exemplo (exemplo)', faz: 'Acolhe crianças no contraturno da escola, com reforço e lanche.', causa: 'criancas', cidade: 'Londrina', cnpj: '11222333000181', pix: 'doe@exemplo.org', pix_nome: 'CASA DO EXEMPLO', site: '', instagram: '', foto: '', ativa: true, ordem: 0 },
+              { id: 'e5030000-0000-4000-8000-000000000002', nome: 'Patas de Exemplo (exemplo)', faz: 'Resgata e cuida de cachorro e gato até a adoção.', causa: 'animais', cidade: 'Londrina', cnpj: '45997418000153', pix: '45997418000153', pix_nome: 'PATAS DE EXEMPLO', site: '', instagram: '', foto: '', ativa: true, ordem: 1 });
+            write(d); }
+          const E = d.t.corre_entidades, pub = e => ({ id: e.id, nome: e.nome, faz: e.faz, causa: e.causa, cidade: e.cidade, cnpj: e.cnpj, pix: e.pix, pix_nome: e.pix_nome, site: e.site, instagram: e.instagram, foto: e.foto });
+          const dono = () => { const eu = uidOf(d); if(!eu || !plDono(d, eu)) throw { message: 'so_dono', code: 'P0001', hint: 'so_dono' }; return eu; };
+          if(n === 'corre_entidades_lista') return E.filter(e => e.ativa).sort((x, y) => x.ordem - y.ordem || x.nome.localeCompare(y.nome)).map(pub);
+          if(n === 'corre_doacao_marca'){
+            const e = E.find(x => x.id === (a && a.p_entidade) && x.ativa), tp = a && a.p_tipo;
+            if(!e || !['abre', 'copia', 'qr'].includes(tp)) return null;
+            const dia = hojeBR(); let r = d.t.corre_doacao_conta.find(x => x.dia === dia && x.entidade === e.id && x.tipo === tp);
+            if(!r){ r = { dia, entidade: e.id, tipo: tp, n: 0 }; d.t.corre_doacao_conta.push(r); }
+            r.n++; write(d); return null;
+          }
+          if(n === 'corre_entidades_donos'){
+            dono();
+            const soma = (id, tp) => d.t.corre_doacao_conta.filter(x => x.entidade === id && x.tipo === tp).reduce((t, x) => t + x.n, 0);
+            return { dias: Math.max(1, Math.min(+(a && a.p_dias) || 30, 120)), entidades: E.slice().sort((x, y) => (y.ativa - x.ativa) || x.ordem - y.ordem || x.nome.localeCompare(y.nome)).map(e => Object.assign(pub(e), { ativa: e.ativa, ordem: e.ordem,
+              abre: soma(e.id, 'abre'), copia: soma(e.id, 'copia'), qr: soma(e.id, 'qr'), bios: d.t.corre_perfis.filter(p => p.bio_link && p.bio_link.doa === e.id && p.bio_link.on !== false).length })) };
+          }
+          if(n === 'corre_entidade_salva'){
+            const eu = dono(), p = (a && a.p) || {}, erro = k => { throw { message: k, code: 'P0001', hint: k }; };
+            const nome = String(p.nome || '').trim(), cnpj = String(p.cnpj || '').replace(/\D/g, '');
+            let k = String(p.pix || '').trim(); if(!/@/.test(k) && !/^[0-9a-f]{8}-/i.test(k)) k = (/^\+/.test(k) ? '+' : '') + k.replace(/\D/g, '');
+            const pn = String(p.pix_nome || nome).normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase().replace(/[^A-Z0-9 .&-]/g, ' ').trim().slice(0, 25);
+            if(nome.length < 2 || nome.length > 80) erro('nome');
+            if(!/^\d{14}$/.test(cnpj)) erro('cnpj');
+            if(!/^(\d{11}|\d{14}|\+55\d{10,11}|[^\s@]{1,64}@[^\s@]{1,180}\.[a-z]{2,}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i.test(k)) erro('pix');
+            if(!/^[A-Z0-9 .&-]{2,25}$/.test(pn)) erro('pix_nome');
+            if(p.site && !/^https:\/\/\S{3,200}$/i.test(p.site)) erro('site');
+            if(E.some(e => e.cnpj === cnpj && e.id !== p.id)) erro('cnpj_repetido');
+            const v = { nome, faz: String(p.faz || '').trim().slice(0, 280), causa: ['criancas', 'idosos', 'animais', 'saude', 'fome', 'educacao', 'deficiencia', 'rua', 'mulheres'].includes(p.causa) ? p.causa : 'outra',
+              cidade: String(p.cidade || 'Londrina').trim().slice(0, 60) || 'Londrina', cnpj, pix: k, pix_nome: pn, site: String(p.site || ''), instagram: String(p.instagram || '').replace(/^@/, '').toLowerCase(), foto: '' };
+            if(p.id){ const e = E.find(x => x.id === p.id); if(!e) erro('nao_achou'); Object.assign(e, v, p.ativa === undefined ? {} : { ativa: !!p.ativa }); write(d); return e.id; }
+            if(E.length >= 60) erro('limite');
+            const e = Object.assign({ id: crypto.randomUUID ? crypto.randomUUID() : 'e' + Date.now(), ativa: p.ativa === undefined ? true : !!p.ativa, ordem: E.length, por: eu }, v);
+            E.push(e); write(d); return e.id;
+          }
         }
         /* v5.0: os números das páginas abertas (como o corre_seo_numeros; no demo ninguém visita) */
         if(n === 'corre_seo_numeros'){

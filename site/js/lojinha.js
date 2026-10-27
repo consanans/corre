@@ -181,6 +181,7 @@
           ${bio.top && bio.top.length ? `<h3 class="lo-h3">As páginas mais vistas</h3>${gente(bio.top)}` : '<p class="fine">Nenhuma visita no período ainda.</p>'}</section>` : ''}
         ${lembraHTML(L.lm, g, per)}
         ${googleHTML(L.sg, per)}
+        <div id="lo-doa"></div>
         ${cv ? `<section class="card" aria-labelledby="lo-c"><h2 class="ch" id="lo-c">Convites</h2>
           <div class="lo-tiles dois">${tile('Entraram por convite', num(cv.total), `${num(cv.periodo)} em ${per}`)}${tile('Renderam correal', num(cv.pagos))}</div>
           ${cv.top && cv.top.length ? `<h3 class="lo-h3">Quem mais chamou</h3>${gente(cv.top)}` : '<p class="fine">Ninguém entrou por convite ainda.</p>'}</section>` : ''}
@@ -204,6 +205,8 @@
     ouveTip();
     /* v4.31: as denúncias, em cima de tudo (a Google pede que a gente olhe o que chega) */
     if(C.denuncia) C.denuncia.lojinha($('lo-den'));
+    /* v5.03: as entidades do Dá um Corre (só entidade conferida: CNPJ e a chave Pix da própria entidade) */
+    if(C.doa) C.doa.lojinha($('lo-doa'), L.dias);
   }
 
   /* o balãozinho das colunas: segue o dedo/mouse e o foco do teclado (o número também tá na tabela) */

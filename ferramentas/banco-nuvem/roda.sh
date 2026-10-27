@@ -181,6 +181,10 @@ $P -f "$AQUI/semente500.sql"
 delta delta-v500.sql 'delta v5.0 ok'
 delta delta-v500.sql 'delta v5.0 ok'
 testa teste500.sql 9
+# v5.03: Dá um Corre (as entidades aprovadas pelos donos, o Pix direto, a conta dos toques)
+delta delta-v503.sql 'delta v5.03 ok'
+delta delta-v503.sql 'delta v5.03 ok'
+testa teste503.sql 8
 . "$AQUI/virada343.sh"
 if grep -q 'FALHOU\|ERROR' $D/saida; then echo "deu FALHOU ou erro (acima)"; exit 1; fi
 echo "tudo ok: $(grep -c '^ok:' $D/saida) checagens"
