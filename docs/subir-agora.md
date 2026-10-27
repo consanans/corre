@@ -1,8 +1,8 @@
 # O que falta subir (27/10/2026)
 
-**O zip da 4.41** (`saida/corre-site.zip`): arrasta no Netlify, como sempre. Sem banco nem função nova. Leva a 4.40 junto (a loja de cada casa no Correverso), se ela ainda não subiu.
+**O zip da 4.42** (`saida/corre-site.zip`): arrasta no Netlify, como sempre. Sem banco nem função nova. Tira as torcidas da rua do Correverso (a do Brasil na Gleba e a de vermelho no Centro) e leva junto a 4.41 (as três partes, abaixo) e a 4.40 (a loja de cada casa), se ainda não subiram.
 
-O que ele traz: o Corre em três partes.
+O que a 4.41 traz: o Corre em três partes.
 - **A Rede** é onde todo mundo chega: o feed, os stories, os grupos, as mensagens e o Mural. O Início ficou limpo: saíram o teu dia, os atalhos das ferramentas e o corre do mês.
 - **O Corre Studio** guarda o trabalho: Studio, Hórus, Vendas e Grana, Caderninho, Atendente, Piloto, Studio Houzi, Portfólio, Link na bio e Planos. Tem três entradas:
   - a luminária amarela no alto do celular (no computador, embaixo do menu);

@@ -1707,6 +1707,9 @@
           const eu = uidOf(d); if(!eu) throw { message: 'login', code: '42501' };
           const real = c => c / 100, PONTO = centDe(CORREAL_PONTO), TETO = centDe(CORREAL_TETO);
           const cart = () => { let w = d.t.corre_correal.find(x => x.dono === eu); if(!w){ w = { dono: eu, saldo: 0, ganho: 0, gasto: 0, updated_at: now() }; d.t.corre_correal.push(w); } return w; };
+          /* v4.42: o que a cidade deu hoje mora antes do meu() (desde a 4.29 ele vinha depois do trampo, e a carteira do demo
+             quebrava: "Cannot access before initialization") */
+          const ini = Date.parse(hojeBR() + 'T03:00:00Z'), hojeC = (re = /^(tarefa|achado):/) => d.t.corre_correal_log.filter(l => l.dono === eu && l.valor > 0 && re.test(l.motivo) && Date.parse(l.created_at) >= ini).reduce((x, l) => x + centDe(l.valor), 0);
           const meu = () => ({ saldo: real(centDe(cart().saldo)), hoje: real(hojeC()), teto: real(TETO), ponto: real(PONTO), precos: Object.assign({}, CORREAL_PRECO) });
           if(n === 'corre_correal_meu') return meu();
           /* v4.29 (delta-v429.sql): o trampo de verdade paga 0,02 (a tarefa e o post uma vez; a que repete e o cliente,
@@ -1751,7 +1754,6 @@
             return { ok: true, ganhou: real(ganhou), saldo: real(centDe(w.saldo)), trampo: real(tr + ganhou), teto_trampo: .2, seq: s.seq, melhor: s.melhor, novo_dia: novo, escudo: usou, bicho: bx, bicho_etapa: bx == null ? null : bichoEtapa(bx) };
           }
           /* v4.12: o "hoje" conta a tarefa e a rua (as moedas que caem de quem leva empurrão demais), como o delta-v412.sql */
-          const ini = Date.parse(hojeBR() + 'T03:00:00Z'), hojeC = (re = /^(tarefa|achado):/) => d.t.corre_correal_log.filter(l => l.dono === eu && l.valor > 0 && re.test(l.motivo) && Date.parse(l.created_at) >= ini).reduce((x, l) => x + centDe(l.valor), 0);
           if(n === 'corre_tarefa_comeca'){
             if(!(CORREAL_TAREFA[a.p_u] && CORREAL_TAREFA[a.p_u][a.p_k])) throw { message: 'tarefa', hint: 'tarefa', code: 'P0001' };
             d.t.corre_tarefa_vez = d.t.corre_tarefa_vez.filter(x => x.dono !== eu);
