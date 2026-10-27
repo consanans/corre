@@ -186,7 +186,7 @@
   }
   /* depois de mudar: redesenha o que mostra o catálogo */
   function depois(){
-    ['h-corre', 'g-corre'].forEach(id => { const el = C.$(id); if(el && C.correMes) C.correMes(el); });
+    ['h-corre', 'cs-corre', 'g-corre'].forEach(id => { const el = C.$(id); if(el && C.correMes) C.correMes(el); });
     if(C.estiloRepinta) C.estiloRepinta();
     const sec = C.$('ct-sec'); if(sec) sec.innerHTML = secaoHTML();
     const pm = C.$('mk-vende'); if(pm) pm.innerHTML = painelHTML(pm.dataset.id);

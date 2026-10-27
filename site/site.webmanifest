@@ -31,5 +31,32 @@
     "business",
     "social",
     "productivity"
+  ],
+  "shortcuts": [
+    {
+      "name": "Corre Studio",
+      "short_name": "Studio",
+      "description": "O teu dia e as ferramentas de trabalho",
+      "url": "/studio",
+      "icons": [
+        {
+          "src": "icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Mensagens",
+      "short_name": "Mensagens",
+      "url": "/#/msg",
+      "icons": [
+        {
+          "src": "icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
   ]
 }

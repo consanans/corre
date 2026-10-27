@@ -186,7 +186,10 @@
     bandeira: '<path d="M5 21V4"/><path d="M5 4h11l-2 4 2 4H5"/>',
     /* v4.34: o Atendente 24h (o fone com o balão) e o Piloto automático (o volante) */
     atende: '<path d="M4 14v-2a8 8 0 0 1 16 0v2"/><rect x="3" y="13" width="4" height="6" rx="1.5"/><rect x="17" y="13" width="4" height="6" rx="1.5"/><path d="M19 19c0 1.5-1.5 2.5-4 2.5h-2"/>',
-    piloto: '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="2.2"/><path d="M3.6 10.5l6.3 1M14.1 11.5l6.3-1M12 14.2v6.3"/>'
+    piloto: '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="2.2"/><path d="M3.6 10.5l6.3 1M14.1 11.5l6.3-1M12 14.2v6.3"/>',
+    /* v4.41: a luminária de mesa (a porta do Corre Studio: a maleta já é do Portfólio) e o sol (O teu dia) */
+    luminaria: '<path d="M3.5 20.5h9"/><path d="M8 20.5 5.6 13.6l6.2-7.5"/><circle cx="5.6" cy="13.6" r="1.2"/><path d="M12.8 10.4a4.6 4.6 0 0 1 6.5-6.5z"/><path d="M17.9 9.6l1.7 1.7M15.6 11.6l.8 2.1M19.9 7.6l2.1.8"/>',
+    sol: '<circle cx="12" cy="12" r="4"/><path d="M12 2.5v2.2M12 19.3v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6"/>'
   };
   const ico = (k, cls) => `<svg class="ic${cls ? ' ' + cls : ''}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${I[k] || ''}</svg>`;
   /* ---------- v3.89 · a tela cheia (o 3D da casa e dos lugares, e os jogos da cidade) ----------

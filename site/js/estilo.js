@@ -180,7 +180,7 @@
   C.estiloRepinta = () => { const ev = C.$('ev-corre'); if(ev && E.row){ ev.innerHTML = heroHTML(E.row, false, E.entrou, true); if(C.vendas) C.vendas.ritmoHorus(ev); } };
   function repinta(){
     const ev = C.$('ev-corre'); if(ev) ev.innerHTML = heroHTML(E.row, false, E.entrou, true);
-    ['h-corre', 'g-corre'].forEach(id => { const el = C.$(id); if(el) C.correMes(el); });
+    ['h-corre', 'cs-corre', 'g-corre'].forEach(id => { const el = C.$(id); if(el) C.correMes(el); });
   }
   async function metaForm(){
     try{ await carregar(); }catch(e){}

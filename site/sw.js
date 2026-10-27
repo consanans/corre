@@ -9,7 +9,7 @@
    - Imagem, ícone e fonte do próprio Corre: sai do aparelho e a rede atualiza por baixo.
    - Banco, funções, login, a volta do Instagram, os jogos e o resto: direto da rede, como sempre. */
 'use strict';
-const VERSAO = '4.37';
+const VERSAO = '4.41';
 const CACHE = 'corre-app-1';
 const UA = (self.navigator && self.navigator.userAgent) || '';
 const APPLE = /iPhone|iPad|iPod|Macintosh/.test(UA) && !/Chrome|Chromium|CriOS|Edg\/|Firefox|FxiOS|Android/.test(UA);
@@ -23,8 +23,8 @@ self.addEventListener('activate', e => e.waitUntil((async () => {
 
 /* ---------- o Corre instantâneo ---------- */
 const ESCOPO = new URL('./', self.registration.scope).href;
-/* as páginas que são o app (o / e os endereços curtos que o _redirects manda pro index.html) */
-const ehApp = u => u.href.split('#')[0].split('?')[0] === ESCOPO || /^\/(index\.html|@[^/]+|clientes)$/.test(u.pathname.slice(new URL(ESCOPO).pathname.length - 1));
+/* as páginas que são o app (o / e os endereços curtos que o _redirects manda pro index.html; v4.41: o /studio) */
+const ehApp = u => u.href.split('#')[0].split('?')[0] === ESCOPO || /^\/(index\.html|@[^/]+|clientes|studio)$/.test(u.pathname.slice(new URL(ESCOPO).pathname.length - 1));
 const bom = r => r && r.ok && (r.type === 'basic' || r.type === 'cors') && !r.redirected;
 self.addEventListener('fetch', e => {
   const r = e.request;

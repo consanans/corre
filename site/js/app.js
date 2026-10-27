@@ -51,24 +51,44 @@
     /* v4.19 · o Caderninho (caderninho.js): o planner, com o dia que junta as tarefas e o que o Corre já sabe */
     caderno: ['#/caderninho', 'Caderninho', 'caderno'],
     /* v4.34 · o Atendente 24h (atendente.js) e o Piloto automático (piloto.js) */
-    atende: ['#/atendente', 'Atendente 24h', 'atende'], piloto: ['#/piloto', 'Piloto automático', 'piloto']
+    atende: ['#/atendente', 'Atendente 24h', 'atende'], piloto: ['#/piloto', 'Piloto automático', 'piloto'],
+    /* v4.41 · a casa do Corre Studio: o teu dia e as ferramentas de trabalho */
+    dia: ['#/dia', 'O teu dia', 'sol']
   });
   /* os grupos: [nome, ícone, o que mora dentro]. No computador cada um abre ali mesmo, no menu; no celular a gaveta
      da tua foto já mostra eles abertos. v3.44 (o Thales pediu pra juntar o tanto que der): a Rede junta o Início, as
      Mensagens, os Grupos e os Avisos; o Hórus e o Portfólio vão pro Laboratório; o Perfil e os Salvos ficam juntos.
      Com isso o Mais some (não sobra nada nele) */
-  const GRUPOS = {
-    rede: ['Rede', 'chat', ['inicio', 'msg', 'grupos', 'avisos']],
-    lab: ['Laboratório', 'lab', ['caderno', 'studio', 'houzi', 'horus', 'atende', 'piloto', 'marcas']],
-    fin: ['Financeiro', 'calc', ['lojinha', 'corre', 'carteira', 'planos']],
+  /* v4.41 · as três partes (o Thales: "vamos separar o app em 3 partes, igual o TikTok"): a Rede é onde todo mundo
+     entra, limpa, só o social; o trabalho mora no Corre Studio (entra pelo perfil, pelo botão do alto ou pelo
+     app.corresocial.com/studio); o Correverso é o jogo. Cada página é de uma parte, e o menu muda com ela */
+  const GRUPOS_REDE = {
+    rede: ['Rede', 'chat', ['inicio', 'msg', 'grupos', 'mural', 'avisos']],
     banca: ['Banca', 'toldo', ['banca', 'refs', 'rolo']],
-    eu: ['Perfil', 'eu', ['perfil', 'linkbio', 'convite', 'salvos']]
+    verso: ['Correverso', 'verso', ['verso', 'carteira']],
+    eu: ['Perfil', 'eu', ['perfil', 'salvos', 'convite']]
   };
+  const GRUPOS = {
+    trampo: ['Trabalho', 'lab', ['dia', 'caderno', 'studio', 'horus', 'atende', 'piloto', 'msg']],
+    marca: ['Marca', 'houzi', ['houzi', 'marcas', 'linkbio']],
+    fin: ['Financeiro', 'calc', ['corre', 'planos', 'lojinha']]
+  };
+  /* as páginas do Corre Studio (o resto é da Rede; as Mensagens servem as duas e ficam na parte de onde a pessoa veio) */
+  const STUDIO_K = ['dia', 'caderno', 'studio', 'horus', 'atende', 'piloto', 'houzi', 'marcas', 'linkbio', 'corre', 'planos', 'lojinha'];
+  const NEUTRO = ['msg', 'avisos'];
+  const MODO = { ult: (() => { try{ return sessionStorage.getItem('corre-modo') || 'rede'; }catch(e){ return 'rede'; } })() };
+  const modoDe = active => {
+    let m = STUDIO_K.includes(active) || (!active && /^#\/(monta|clientes)\/?$/.test(location.hash)) ? 'studio' : NEUTRO.includes(active) ? MODO.ult : 'rede';
+    if(m !== 'studio') m = 'rede';
+    if(m !== MODO.ult){ MODO.ult = m; try{ sessionStorage.setItem('corre-modo', m); }catch(e){} }
+    return m;
+  };
+  C.modo = () => MODO.ult;
   /* a praça: o Correverso e o Mural, juntos no meio do menu. (v3.70: a lista em grupos e a barra fixa do celular deram
      lugar à Comanda, aos Teus e ao Tudo; os grupos seguem dentro do Tudo e da gaveta) */
   const PRACA = ['verso', 'mural'];
   /* o que depende do perfil ou do módulo carregado: o Hórus liga e desliga, o Studio Houzi e os Grupos podem não vir */
-  const tem = k => (k !== 'caderno' || !!C.views.caderno) && (k !== 'atende' || !!C.views.atendente) && (k !== 'piloto' || !!C.views.piloto) && (k !== 'horus' || C.ferr('horus')) && (k !== 'houzi' || C.views.houzi) && (k !== 'grupos' || C.views.grupos) && (k !== 'lojinha' || (C.ehDono() && !!C.views.lojinha));
+  const tem = k => (k !== 'dia' || !!C.views.dia) && (k !== 'caderno' || !!C.views.caderno) && (k !== 'atende' || !!C.views.atendente) && (k !== 'piloto' || !!C.views.piloto) && (k !== 'horus' || C.ferr('horus')) && (k !== 'houzi' || C.views.houzi) && (k !== 'grupos' || C.views.grupos) && (k !== 'lojinha' || (C.ehDono() && !!C.views.lojinha));
   /* de qual item do menu cada página é (e pra onde a setinha de voltar leva). Banca e Nicho não são mais filhas do
      Início: moram na Banca, e o grupo aberto no menu já diz onde você tá */
   const DONO = { vendas: 'corre', grana: 'corre', estilo: 'corre', 'studio-dentro': 'studio', editar: 'perfil' };
@@ -184,11 +204,14 @@
     });
     document.querySelectorAll('.cm-box').forEach(el => { el.innerHTML = comandaHTML(); });
     const L = praHoje(), n = L.length, nv = n ? SN.v[L[0]].nivel : '';
-    document.querySelectorAll('.cm-n, .eu-n').forEach(el => {
+    /* (v4.41: o .cs-n é o número na porta do Corre Studio, na Rede) */
+    document.querySelectorAll('.cm-n, .eu-n, .cs-n').forEach(el => {
       el.hidden = !n; el.textContent = n ? String(n) : '';
       NIVEIS.forEach(c => el.classList.toggle(c, c === nv));
     });
-    const eu = document.querySelector('.hdr-eu > summary'); if(eu) eu.setAttribute('aria-label', 'Abrir o menu: teu perfil e o teu corre' + (n ? `. Na comanda: ${n}` : ''));
+    const studio = MENU.modo === 'studio', na = n ? `. Na comanda: ${n}` : '';
+    const eu = document.querySelector('.hdr-eu > summary'); if(eu) eu.setAttribute('aria-label', `Abrir o menu${studio ? ' do Corre Studio' : ''}: teu perfil e o teu corre${studio ? na : ''}`);
+    document.querySelectorAll('.hdr-cs, .lado-cs, .gv-cs, .pf-cs').forEach(el => el.setAttribute('aria-label', 'Abrir o Corre Studio' + na));
   }
   /* o que a pessoa mais usa: cada página aberta soma 1, e tudo perde 10% por dia (o que você parou de usar sai sozinho) */
   const USO_K = 'corre-menu-uso';
@@ -243,10 +266,11 @@
      - a praça (Correverso e Mural) segue no meio, e o Tudo guarda o resto do Corre, nos grupos de sempre.
      Mensagens e Avisos subiram pro lado da marca: o número deles fica sempre à vista. Tudo no aparelho, nada no banco */
   const TEUS_K = 'corre-menu-teus', TEUS_MAX = 8;
-  /* o começo de quem nunca mexeu: a barra do celular sai igual à de antes (Início, Studio, Mural, Mensagens) */
-  const PADRAO = ['inicio', 'studio', 'mural', 'msg', 'caderno', 'corre', 'grupos', 'horus', 'houzi', 'marcas', 'banca'];
-  /* o Correverso tem lugar fixo (o meio da barra e a praça) e os Avisos moram no sino */
-  const FIXAVEL = k => k !== 'verso' && k !== 'avisos' && !!st.me && !!DEST(st.me)[k] && tem(k);
+  /* v4.41: a Comanda, os Teus e o Tudo viraram o menu do Corre Studio (a Rede tem o menu dela, fixo e limpo). O começo de
+     quem nunca mexeu: Studio, Caderninho e Vendas e Grana na barra do celular, entre O teu dia e a volta pra Rede */
+  const PADRAO = ['studio', 'caderno', 'corre', 'horus', 'houzi', 'marcas', 'atende', 'linkbio', 'piloto', 'planos'];
+  /* nos Teus só entra trabalho (e as Mensagens, que o cliente também manda); O teu dia tem lugar fixo */
+  const FIXAVEL = k => k !== 'dia' && (STUDIO_K.includes(k) || k === 'msg') && !!st.me && !!DEST(st.me)[k] && tem(k);
   const teusLe = () => { try{ const o = JSON.parse(localStorage.getItem(TEUS_K) || 'null'); return o && st.me && o.u === st.me.id ? o : null; }catch(e){ return null; } };
   const teusGrava = o => { try{ localStorage.setItem(TEUS_K, JSON.stringify(Object.assign({}, o, { u: st.me.id }))); }catch(e){} };
   /* o automático: os mais usados (1,5 ou mais) na frente, completado pelo começo. Recalcula uma vez por dia; quem continua
@@ -264,10 +288,12 @@
   const teus = () => fixados() || teusAuto();
   /* completa com o começo, sem repetir, até n (quem fixou só dois ainda ganha a barra inteira) */
   const completa = (L, n, fora) => { const r = L.filter(k => !fora.includes(k)); PADRAO.forEach(k => { if(r.length < n && !r.includes(k) && !fora.includes(k) && FIXAVEL(k)) r.push(k); }); return r.slice(0, n); };
-  /* no computador o Mural mora na praça e as Mensagens no alto: os blocos são os outros, de 4 a 6 */
-  const blocosLado = () => { const L = teus().filter(k => k !== 'mural' && k !== 'msg').slice(0, 6); return L.length >= 4 ? L : completa(L, 4, ['mural', 'msg']); };
-  /* a barra do celular: os 4 primeiros dos Teus, com o Correverso no meio */
-  const barra = () => { const L = completa(teus(), 4, []); return [L[0], L[1], 'verso', L[2], L[3]].filter(Boolean); };
+  /* no computador as Mensagens moram no alto: os blocos são os outros, de 4 a 6 */
+  const blocosLado = () => { const L = teus().filter(k => k !== 'msg').slice(0, 6); return L.length >= 4 ? L : completa(L, 4, ['msg']); };
+  /* a barra do celular. Na Rede: o Início, o Mural, o Correverso no meio, as Mensagens e o Perfil (fixa: é ali que se
+     acha o botão do Corre Studio, como no TikTok). No Studio: O teu dia, os 3 primeiros dos Teus e a volta pra Rede */
+  const BARRA_REDE = ['inicio', 'mural', 'verso', 'msg', 'perfil'];
+  const barra = () => MENU.modo === 'studio' ? ['dia'].concat(completa(teus(), 3, []), ['rede']) : BARRA_REDE.filter(k => k === 'perfil' || tem(k));
   /* um bloco dos Teus. O número do sinal fica no canto; as palavras, na Comanda */
   const blocoHTML = (k, D, active) => {
     const [h, l, i] = D[k], m = k === 'msg';
@@ -278,10 +304,10 @@
   /* a página aberta que não tá à vista no menu aparece tracejada, com o "fixar": um toque e ela entra nos Teus */
   const fantasmaHTML = (k, D) => `<button type="button" class="tl tl-aqui" data-act="menu-fixa" data-k="${k}" title="Fixar no menu" aria-label="Você tá em ${D[k][1]}. Fixar no menu"><span class="tl-ic">${ico(D[k][2])}</span><span class="tl-t">${D[k][1]}</span><span class="tl-fixa">${ico('pin')}fixar</span></button>`;
   const teusHTML = (L, D, active, onde) => {
-    const vis = L.concat(onde === 'lado' ? ['mural', 'msg', 'verso', 'avisos'] : barra());
+    const vis = L.concat(onde === 'lado' ? ['msg', 'dia', 'avisos'] : barra());
     const aqui = active && D[active] && FIXAVEL(active) && !vis.includes(active) ? fantasmaHTML(active, D) : '';
     return `<div class="tls-g tls-${onde}" role="group" aria-labelledby="tls-k-${onde}"><p class="tls-k"><span id="tls-k-${onde}">${ico('star')}Teus</span><button type="button" class="tls-aj" data-act="menu-ajeita" aria-haspopup="dialog" title="Fixar, tirar e mudar a ordem">${ico('edit')}<span>Ajeitar</span></button></p>
-      ${L.length || aqui ? `<div class="tls">${L.map(k => blocoHTML(k, D, active)).join('')}${aqui}</div>` : '<p class="tls-vazio">Os teus 4 primeiros tão na barra de baixo.</p>'}</div>`;
+      ${L.length || aqui ? `<div class="tls">${L.map(k => blocoHTML(k, D, active)).join('')}${aqui}</div>` : '<p class="tls-vazio">Os teus 3 primeiros tão na barra de baixo.</p>'}</div>`;
   };
   /* a Comanda: cabeçalho com o dia, uma linha por pedido (o urgente primeiro), o total e o próximo post */
   const DIA_S = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
@@ -309,21 +335,26 @@
       : `<button type="button" class="tudo-i" data-act="${k === 'avisos' ? 'sino' : k}"${dados} aria-haspopup="dialog"><span class="tudo-ic">${ico(i)}${k === 'avisos' ? n : ''}</span><span class="tudo-t">${l}</span>${k === 'avisos' ? '' : n}</button>`;
   };
   const tudoHTML = (D, active) => {
-    const vis = blocosLado().concat(PRACA);
-    return `<div class="tudo-k"><b>Tudo do Corre</b><button type="button" class="tls-aj" data-act="menu-ajeita" aria-haspopup="dialog">${ico('edit')}<span>Ajeitar o menu</span></button></div>
+    const vis = blocosLado().concat(['dia']);
+    return `<div class="tudo-k"><b>Tudo do Studio</b><button type="button" class="tls-aj" data-act="menu-ajeita" aria-haspopup="dialog">${ico('edit')}<span>Ajeitar o menu</span></button></div>
       <div class="tudo-g">${Object.keys(GRUPOS).map(g => { const [t, i, ks] = GRUPOS[g], l = ks.filter(tem); return l.length ? `<div class="tudo-c" role="group" aria-label="${t}"><p class="tudo-ck">${ico(i)}${t}</p>${l.map(k => tudoItem(k, D, active, vis)).join('')}</div>` : ''; }).join('')}</div>`;
   };
-  /* a gaveta do celular: a Comanda, os Teus que não couberam na barra (e a página aberta, pra fixar) e o Tudo nos grupos */
+  /* v4.41 · a porta do Corre Studio (na Rede): o cartão do menu, o da gaveta e o do perfil, com o número da Comanda */
+  const portaStudio = cls => `<a class="${cls}" href="#/dia" aria-label="Abrir o Corre Studio${filaN().n ? `. Na comanda: ${filaN().n}` : ''}"><span class="cs-ic">${ico('luminaria')}${filaNum('cs-n')}</span><span class="cs-t"><b>Corre Studio</b><small>posts, clientes e grana</small></span>${ico('next', 'cs-seta')}</a>`;
+  const voltaRede = cls => `<a class="${cls}" href="#/" aria-label="Voltar pra rede">${ico('prev')}<span>Voltar pra rede</span></a>`;
+  /* a gaveta do celular. No Studio: a volta pra Rede, a Comanda, os Teus que não couberam na barra (e a página aberta,
+     pra fixar) e o Tudo nos grupos. Na Rede: a porta do Studio e os grupos da Rede */
   const gavetaHTML = (me, active) => {
     const D = DEST(me), bar = barra(), um = k => tem(k) ? itemSimples([k].concat(D[k]), '', k === active) : '';
     const bloco = (id, t, i, ks) => { const l = ks.filter(tem); return l.length ? `<div class="gv-g" role="group" aria-labelledby="gv-g-${id}"><span class="gv-k" id="gv-g-${id}">${i ? ico(i) : ''}${t}</span>${l.map(um).join('')}</div>` : ''; };
-    return comandaBox('gaveta') + teusHTML(teus().filter(k => !bar.includes(k)).slice(0, 4), D, active, 'gaveta')
+    if(MENU.modo !== 'studio') return portaStudio('gv-cs') + Object.keys(GRUPOS_REDE).map(g => bloco(g, GRUPOS_REDE[g][0], GRUPOS_REDE[g][1], GRUPOS_REDE[g][2])).join('');
+    return voltaRede('gv-volta') + comandaBox('gaveta') + teusHTML(teus().filter(k => !bar.includes(k)).slice(0, 4), D, active, 'gaveta')
       + Object.keys(GRUPOS).map(g => bloco(g, GRUPOS[g][0], GRUPOS[g][1], GRUPOS[g][2])).join('');
   };
-  /* fixar a página aberta: entra logo depois das 4 da barra (no celular, o primeiro bloco da gaveta; no computador, à vista) */
+  /* fixar a página aberta: entra logo depois das 3 da barra (no celular, o primeiro bloco da gaveta; no computador, à vista) */
   C.acts['menu-fixa'] = el => {
     const k = el.dataset.k; if(!st.me || !FIXAVEL(k)) return;
-    const L = teus().filter(x => x !== k); L.splice(Math.min(4, L.length), 0, k);
+    const L = teus().filter(x => x !== k); L.splice(Math.min(3, L.length), 0, k);
     teusGrava(Object.assign(teusLe() || {}, { fixos: L.slice(0, TEUS_MAX) }));
     refazMenu(); toast(`${DEST(st.me)[k][1]}: fixado no menu. Pra mudar a ordem, "Ajeitar".`);
   };
@@ -369,36 +400,64 @@
   const contaHTML = (me, gaveta, active) => `${gaveta ? `<div class="gv-topo"><a href="#/@${esc(me.handle)}" aria-label="Teu perfil">${avatar(me, 'm')}</a><b>${esc(me.nome || '')}</b><small>@${esc(me.handle)}</small></div>
       ${gavetaHTML(me, active)}
       <span class="gv-k">Conta</span>` : `<a href="#/@${esc(me.handle)}">${ico('eu')}Meu perfil</a><a href="#/salvos">${ico('save')}Salvos</a>`}
+      ${MENU.modo === 'studio' ? `<a href="#/">${ico('chat')}Voltar pra rede</a>` : `<a href="#/dia">${ico('luminaria')}Corre Studio</a>`}
       <a href="#/editar">${ico('edit')}Editar perfil</a><button type="button" data-act="st-novo">${ico('plus')}Postar story</button>${C.push ? `<button type="button" data-act="push-ajustes">${ico('bell')}${C.push.nome ? C.push.nome() : 'Avisos no celular'}</button>` : ''}<button type="button" data-act="manual">${ico('manual')}Manual do Corre</button>
       <a href="privacidade.html">${ico('lock')}Privacidade</a><a href="termos.html">${ico('check')}Termos de uso</a><button type="button" data-act="sair">${ico('prev')}Sair</button>`;
   /* o menu da esquerda (computador). v3.70: a marca com as Mensagens e o sino do lado, o Procurar, a Comanda (no menu
      estreito, o ícone com o número), os Teus, a praça e o Tudo. Postar e a conta seguem embaixo */
-  const lado = (active, me) => {
-    const D = DEST(me), um = k => itemMenu(k, D[k][0], D[k][1], D[k][2], 'lado-i', k === active, true);
-    return `<aside class="lado" aria-label="Menu do Corre">
-      <a class="wm lado-wm" href="#/" aria-label="Corre, início"><span class="lado-wm-t">Corre</span><span class="lado-wm-c" aria-hidden="true">C</span><span class="wm-tag" aria-hidden="true">rede</span></a>
+  /* v4.41: o alto do menu é o mesmo nas duas partes (a marca, o Procurar, as Mensagens e o sino); a marca diz em qual
+     parte você tá e leva pro começo dela */
+  const ladoTopo = (active, studio) => `<a class="wm lado-wm" href="${studio ? '#/dia' : '#/'}" aria-label="${studio ? 'Corre Studio, o teu dia' : 'Corre, início'}"><span class="lado-wm-t">Corre</span><span class="lado-wm-c" aria-hidden="true">C</span><span class="wm-tag" aria-hidden="true">${studio ? 'studio' : 'rede'}</span></a>
       <div class="lado-busca"><button type="button" class="lado-procura" data-act="procura" aria-label="Procurar no Corre" title="Procurar (/)" aria-haspopup="dialog">${ico('lupa')}<span class="lado-procura-t">Procurar</span><kbd aria-hidden="true">/</kbd></button>
-        <a class="lado-rb" href="#/msg" data-msg${idSe(true, 'msg-btn')} aria-label="Mensagens" title="Mensagens"${active === 'msg' ? ' aria-current="page"' : ''}>${ico('send')}<span class="msg-n num" hidden></span></a><button type="button" class="lado-rb" data-act="sino" data-sino${idSe(true, 'sino')} aria-label="Avisos e agenda" title="Avisos">${ico('bell')}<span class="sino-n num" hidden></span></button></div>
+        <a class="lado-rb" href="#/msg" data-msg${idSe(true, 'msg-btn')} aria-label="Mensagens" title="Mensagens"${active === 'msg' ? ' aria-current="page"' : ''}>${ico('send')}<span class="msg-n num" hidden></span></a><button type="button" class="lado-rb" data-act="sino" data-sino${idSe(true, 'sino')} aria-label="Avisos e agenda" title="Avisos">${ico('bell')}<span class="sino-n num" hidden></span></button></div>`;
+  const ladoConta = (me, active) => `<details class="me lado-conta"${idSe(true, 'me')}><summary class="lado-eu" aria-label="Tua conta" title="${esc(me.nome || '')} (@${esc(me.handle)})">${avatar(me, 's')}<span><b>${esc(me.nome || '')}</b><small>@${esc(me.handle)}</small></span>${ico('dots')}</summary>
+        <div class="me-menu">${contaHTML(me, false, active)}</div></details>`;
+  /* a Rede: a lista no jeito do X (Início, Grupos, a Banca, os Salvos e o Perfil), a praça (o Correverso e o Mural), a
+     carteira e, embaixo, a porta do Corre Studio com o número da Comanda. O Postar e a conta no pé */
+  const LADO_REDE = ['inicio', 'grupos', 'banca', 'refs', 'rolo', 'salvos', 'perfil'];
+  const ladoRede = (active, me) => {
+    const D = DEST(me), um = k => itemMenu(k, D[k][0], D[k][1], D[k][2], 'lado-i', k === active, true);
+    return `<aside class="lado lado-rede" aria-label="Menu da Rede">
+      ${ladoTopo(active, false)}
       <nav class="lado-nav" aria-label="Navegação">
+        ${LADO_REDE.filter(tem).map(um).join('')}
+        <div class="lado-praca">${PRACA.filter(tem).map(um).join('')}</div>
+        ${um('carteira')}
+      </nav>
+      <i class="lado-trilho" aria-hidden="true"></i>
+      ${portaStudio('lado-cs')}
+      <div class="lado-pe"><button type="button" class="btn pri lado-post" data-act="lado-postar" title="Postar no feed">${ico('plus')}<span>Postar</span></button>
+      ${ladoConta(me, active)}</div>
+    </aside>`;
+  };
+  /* o Studio: O teu dia, a Comanda (no menu estreito, o ícone com o número), os Teus e o Tudo do Studio; a volta pra
+     Rede embaixo. No pé, no lugar do Postar, o "Pedir pro Corre" (o Fala com o Corre: anota, cobra, agenda) */
+  const ladoStudio = (active, me) => {
+    const D = DEST(me);
+    return `<aside class="lado lado-st" aria-label="Menu do Corre Studio">
+      ${ladoTopo(active, true)}
+      <nav class="lado-nav" aria-label="Navegação do Studio">
+        ${tem('dia') ? itemMenu('dia', D.dia[0], D.dia[1], D.dia[2], 'lado-i', active === 'dia', true) : ''}
         ${comandaBox('lado')}
         <details class="lado-mais lado-cmm"><summary class="lado-i" title="Comanda de hoje" aria-label="Comanda de hoje"><span class="mi-ic">${ico('recibo')}${filaNum('cm-n')}</span></summary><div class="lado-mais-m lado-cmm-m">${comandaBox('balao')}</div></details>
         ${teusHTML(blocosLado(), D, active, 'lado')}
-        <div class="lado-praca">${PRACA.filter(tem).map(um).join('')}</div>
-        <details class="lado-mais lado-tudo"><summary class="lado-i" title="Tudo do Corre"><span class="mi-ic">${ico('grade')}</span><span class="mi-t">Tudo</span>${ico('next', 'lado-tudo-seta')}</summary>
+        <details class="lado-mais lado-tudo"><summary class="lado-i" title="Tudo do Studio"><span class="mi-ic">${ico('grade')}</span><span class="mi-t">Tudo</span>${ico('next', 'lado-tudo-seta')}</summary>
           <div class="lado-mais-m lado-tudo-m">${tudoHTML(D, active)}</div></details>
       </nav>
       <i class="lado-trilho" aria-hidden="true"></i>
-      <div class="lado-pe"><button type="button" class="btn pri lado-post" data-act="lado-postar" title="Postar no feed">${ico('plus')}<span>Postar</span></button>
-      <details class="me lado-conta"${idSe(true, 'me')}><summary class="lado-eu" aria-label="Tua conta" title="${esc(me.nome || '')} (@${esc(me.handle)})">${avatar(me, 's')}<span><b>${esc(me.nome || '')}</b><small>@${esc(me.handle)}</small></span>${ico('dots')}</summary>
-        <div class="me-menu">${contaHTML(me, false, active)}</div></details></div>
+      ${voltaRede('lado-volta')}
+      <div class="lado-pe"><button type="button" class="btn pri lado-post lado-fala" data-act="fala-abre" title="Pedir pro Corre: anota, cobra, agenda">${ico('magia')}<span>Pedir pro Corre</span></button>
+      ${ladoConta(me, active)}</div>
     </aside>`;
   };
-  /* a barra do celular (v3.70: os Teus, com o Correverso no meio) */
-  const tabbarHTML = (me, active, cru) => `<nav class="tabbar tbx" aria-label="Navegação">${barra().map(k => { const [h, l, i] = DEST(me)[k]; return itemMenu(k, h, l, i, 'tb-i', k === active, false); }).join('')}</nav>
-      ${POSTAR.includes(cru || active) ? `<button type="button" class="tb-postar" data-act="lado-postar" aria-label="Postar no feed">${ico('plus')}</button>` : ''}`;
+  const lado = (active, me) => MENU.modo === 'studio' ? ladoStudio(active, me) : ladoRede(active, me);
+  /* a barra do celular (v4.41: a da Rede é fixa; a do Studio são os Teus entre O teu dia e a volta pra Rede) */
+  const tabRede = `<a class="tb-i tb-rede" href="#/" title="Voltar pra rede" aria-label="Voltar pra rede"><span class="tb-rede-p">${ico('prev')}<span>Rede</span></span></a>`;
+  const tabbarHTML = (me, active, cru) => `<nav class="tabbar tbx${MENU.modo === 'studio' ? ' tb-st' : ''}" aria-label="Navegação">${barra().map(k => { if(k === 'rede') return tabRede; const [h, l, i] = DEST(me)[k]; return itemMenu(k, h, l, i, 'tb-i', k === active, false); }).join('')}</nav>
+      ${MENU.modo !== 'studio' && POSTAR.includes(cru || active) ? `<button type="button" class="tb-postar" data-act="lado-postar" aria-label="Postar no feed">${ico('plus')}</button>` : ''}`;
   /* o que o C.header desenhou por último: pra refazer só o menu (fixou ou ajeitou) sem redesenhar a página (a cidade
      reiniciaria) */
-  const MENU = { active: '', cru: '' };
+  const MENU = { active: '', cru: '', modo: 'rede' };
   function refazMenu(){
     const me = st.me; if(!me) return;
     const l = document.querySelector('.lado'); if(l) l.outerHTML = lado(MENU.active, me);
@@ -415,7 +474,7 @@
   function ajeitaPinta(foco){
     const D = DEST(st.me), l = $('aj-l'), m = $('aj-mais'); if(!l || !m) return;
     const n = AJ.L.length;
-    l.innerHTML = AJ.L.map((k, i) => `<li class="aj-i" data-k="${k}"><span class="aj-alca" title="Arrasta pra mudar a ordem" aria-hidden="true">${ico('dots')}${ico('dots')}</span><span class="aj-n${i < 4 ? ' barra' : ''}" aria-hidden="true">${i + 1}</span>${ico(D[k][2])}<b>${D[k][1]}</b>
+    l.innerHTML = AJ.L.map((k, i) => `<li class="aj-i" data-k="${k}"><span class="aj-alca" title="Arrasta pra mudar a ordem" aria-hidden="true">${ico('dots')}${ico('dots')}</span><span class="aj-n${i < 3 ? ' barra' : ''}" aria-hidden="true">${i + 1}</span>${ico(D[k][2])}<b>${D[k][1]}</b>
       <span class="aj-bs"><button type="button" class="aj-b" data-aj="cima" aria-label="Subir ${D[k][1]}"${i ? '' : ' disabled'}>${ico('sobe')}</button><button type="button" class="aj-b" data-aj="baixo" aria-label="Descer ${D[k][1]}"${i < n - 1 ? '' : ' disabled'}>${ico('desce')}</button><button type="button" class="aj-b aj-tira" data-aj="tira" aria-label="Tirar ${D[k][1]} dos Teus">${ico('x')}</button></span></li>`).join('')
       || '<li class="aj-vazio">Nada fixado: o Corre completa com o de sempre.</li>';
     const fora = Object.keys(D).filter(k => FIXAVEL(k) && !AJ.L.includes(k));
@@ -443,8 +502,8 @@
   C.acts['menu-ajeita'] = () => {
     if(!st.me) return;
     AJ.L = teus().slice(0, TEUS_MAX);
-    const panel = C.sheet(`<div class="aj"><div class="sheet-head"><h2>Ajeitar o menu</h2><button type="button" class="cbtn plain" data-close aria-label="Fechar">${ico('x')}</button></div>
-      <p class="aj-txt">Os Teus viram os blocos do menu. Os 4 primeiros são a barra de baixo do celular, com o Correverso no meio. Arrasta pela alça ou usa as setas.</p>
+    const panel = C.sheet(`<div class="aj"><div class="sheet-head"><h2>Ajeitar o menu do Studio</h2><button type="button" class="cbtn plain" data-close aria-label="Fechar">${ico('x')}</button></div>
+      <p class="aj-txt">Os Teus são o menu do Corre Studio. Os 3 primeiros vão na barra de baixo do celular, entre O teu dia e a volta pra Rede. Arrasta pela alça ou usa as setas.</p>
       <p class="aj-k"><span>Teus</span><small id="aj-cont"></small></p>
       <ol class="aj-l" id="aj-l"></ol>
       <p class="aj-k"><span>Pode fixar</span></p>
@@ -464,6 +523,25 @@
       else if(a === 'auto'){ const o = teusLe() || {}; delete o.fixos; delete o.dia; teusGrava(o); C.closeSheet(); refazMenu(); toast('Voltou pro automático: o menu se monta pelo que você mais usa.'); }
     });
   };
+  /* a dica da porta do Studio: uma por abertura, até 3 ao todo; espera folha e manual fecharem; um toque ou 6 s apagam */
+  const DICA_CS = { feita: false };
+  function dicaStudio(){
+    if(DICA_CS.feita || MENU.modo === 'studio' || innerWidth > 900) return;
+    const b = document.querySelector('.hdr-cs'), sh = $('sheet'); if(!b || !b.getBoundingClientRect().width) return;
+    if(sh && !sh.hidden){ setTimeout(dicaStudio, 2500); return; }
+    let n = 0; try{ n = Number(localStorage.getItem('corre-cs-dica')) || 0; }catch(e){}
+    if(n >= 3) return;
+    DICA_CS.feita = true; try{ localStorage.setItem('corre-cs-dica', String(n + 1)); }catch(e){}
+    const r = b.getBoundingClientRect(), d = document.createElement('div');
+    d.className = 'hdr-cs-dica'; d.setAttribute('role', 'status');
+    d.innerHTML = '<b>Teu trabalho mora aqui:</b> o Corre Studio, com os posts, os clientes e a grana.';
+    document.body.appendChild(d);
+    const dir = Math.max(8, innerWidth - r.right - 2);
+    d.style.top = Math.round(r.bottom + 12) + 'px'; d.style.right = dir + 'px';
+    d.style.setProperty('--seta', Math.max(10, Math.round(r.width / 2 - 8)) + 'px');
+    const some = () => { d.remove(); removeEventListener('pointerdown', some, true); removeEventListener('hashchange', some); };
+    addEventListener('pointerdown', some, true); addEventListener('hashchange', some); setTimeout(some, 6500);
+  }
   C.header = function(cru){
     const me = st.me;
     let active = DONO[cru] || cru;
@@ -477,7 +555,10 @@
     document.body.classList.toggle('em-rolo', cru === 'rolo');
     if(cru !== 'rolo' && C.roloSom) C.roloSom.sai();
     if(logged && active === '' && /^#\/@/.test(location.hash) && C.decURI(location.hash.slice(3)).toLowerCase() === me.handle) active = 'perfil';
-    MENU.active = active; MENU.cru = cru;
+    /* v4.41: em qual das partes a página mora (as Mensagens ficam na de onde a pessoa veio) */
+    const modo = logged ? modoDe(active) : 'rede', studio = modo === 'studio';
+    document.body.classList.toggle('modo-studio', logged && studio);
+    MENU.active = active; MENU.cru = cru; MENU.modo = modo;
     if(logged && C.visitas) setTimeout(() => C.visitas.sync(), 0);
     /* v3.69: o menu esperto (o uso de cada página e os sinais, de 2 em 2 minutos no máximo) */
     /* (no balcão dos lugares 3D o menu não aparece: conta o uso, mas não faz as consultas dos sinais de novo) */
@@ -492,19 +573,22 @@
     if(logged && C.instala && !C.EMBED) setTimeout(() => C.instala.talvez(), 2600);
     /* v4.02: avisa o banco que a pessoa abriu o Corre hoje (uma vez por dia por aparelho; a Lojinha conta) */
     if(logged && C.marcaDia) setTimeout(() => C.marcaDia(), 1200);
+    /* v4.41: no celular, na Rede, as 3 primeiras vezes um balão aponta pra porta do Corre Studio (a luminária) */
+    if(logged && !studio && !C.EMBED) setTimeout(dicaStudio, 3200);
     /* em tela baixa a lista do menu rola: o item aceso aparece (depois de a página ir pra tela) */
     if(logged) setTimeout(() => { aVista(document.querySelector('.lado-nav [aria-current="page"]')); sinalRola(); }, 0);
     const v = logged && VOLTA[cru], volta = v ? (v[0] === 'perfil' ? ['#/@' + me.handle, 'Perfil'] : v) : null;
     return `<header class="hdr">
-      ${logged ? `<details class="me hdr-eu"${idSe(false, 'me')}><summary aria-label="Abrir o menu: teu perfil e o teu corre${filaN().n ? `. Na comanda: ${filaN().n}` : ''}">${avatar(me, 's')}${filaNum('eu-n')}</summary>
+      ${logged ? `<details class="me hdr-eu"${idSe(false, 'me')}><summary aria-label="Abrir o menu${studio ? ' do Corre Studio' : ''}: teu perfil e o teu corre${studio && filaN().n ? `. Na comanda: ${filaN().n}` : ''}">${avatar(me, 's')}${studio ? filaNum('eu-n') : ''}</summary>
         <div class="gv-scrim" data-act="gaveta-x" aria-hidden="true"></div><div class="me-menu gaveta" aria-label="Teu menu">${contaHTML(me, true, active)}</div></details>` : ''}
       <nav class="topnav" aria-label="Navegação">
-        <a class="wm" href="#/" aria-label="Corre, início">Corre<span class="wm-tag" aria-hidden="true">rede</span></a>
+        <a class="wm" href="${logged && studio ? '#/dia' : '#/'}" aria-label="${logged && studio ? 'Corre Studio, o teu dia' : 'Corre, início'}">Corre<span class="wm-tag" aria-hidden="true">${logged && studio ? 'studio' : 'rede'}</span></a>
         ${!st.user ? `<a class="hl" href="#/">Entrar</a>` : ''}
       </nav>
+      ${logged && !studio ? `<a class="hdr-cs" href="#/dia" aria-label="Abrir o Corre Studio${filaN().n ? `. Na comanda: ${filaN().n}` : ''}" title="Corre Studio">${ico('luminaria')}<span class="hdr-cs-t">Studio</span>${filaNum('cs-n')}</a>` : ''}
       ${logged ? `<button type="button" class="hdr-procura" data-act="procura" aria-label="Procurar no Corre" title="Procurar" aria-haspopup="dialog">${ico('lupa')}</button>` : ''}
       ${logged ? `<button type="button" class="sino hdr-sino" data-act="sino" data-sino${idSe(false, 'sino')} aria-label="Avisos e agenda" title="Avisos">${ico('bell')}<span class="sino-n num" hidden></span></button>` : ''}
-      ${logged ? `<button type="button" class="oculto-btn" data-act="oculto" aria-pressed="${C.oculto}" aria-label="${C.oculto ? 'Mostrar valores' : 'Esconder valores'}" title="${C.oculto ? 'Mostrar valores' : 'Esconder valores'}">${ico(C.oculto ? 'eyeoff' : 'eye')}</button>` : ''}
+      ${logged && studio ? `<button type="button" class="oculto-btn" data-act="oculto" aria-pressed="${C.oculto}" aria-label="${C.oculto ? 'Mostrar valores' : 'Esconder valores'}" title="${C.oculto ? 'Mostrar valores' : 'Esconder valores'}">${ico(C.oculto ? 'eyeoff' : 'eye')}</button>` : ''}
       ${st.user && !me ? `<details class="me" id="me">
         <summary aria-label="Menu da conta">${avatar({ nome: st.user.email }, 's')}</summary>
         <div class="me-menu"><a href="privacidade.html">Privacidade</a><a href="termos.html">Termos de uso</a><button type="button" data-act="sair">Sair</button></div>
@@ -550,6 +634,7 @@
       ['msg', 'Conversas, pedidos e o papo dos grupos', 'chat conversa direct dm inbox papo mensagem'],
       ['grupos', 'Gente do mesmo corre num lugar só', 'comunidade turma galera'],
       ['avisos', 'Notificações e a agenda do dia', 'notificacao notificacoes sino agenda alerta lembrete'],
+      ['dia', 'Corre Studio: o que fazer hoje e todas as ferramentas de trabalho', 'corre studio painel trabalho trampo dashboard hoje ferramentas comanda pra hoje'],
       ['caderno', 'Tarefas do dia, lista de afazer e lembrete na hora', 'planner tarefa tarefas todo todoist afazer lista agenda organizar lembrete checklist caderno caderninho'],
       ['studio', 'Programa e posta no Instagram', 'instagram post programar agendar calendario conteudo redes sociais legenda reels'],
       ['houzi', 'Marca, logo e brandbook', 'branding logo logotipo logomarca marca identidade visual brandbook paleta'],
@@ -1181,37 +1266,42 @@
   }
 
   /* ---------------- início ---------------- */
+  /* os cartões do canto (cada módulo põe o dele no C.home). v4.41: os do trabalho (Hórus, Vendas, Grana e Portfólio) moram
+     na casa do Corre Studio; os da Rede (visitas, Mural, Banca e Do teu nicho) ficam no Início */
+  const CARTOES_STUDIO = ['horus', 'vendas', 'grana', 'marcas'];
+  const NOME_CARTAO = { visitas: 'Visitas', horus: 'Hórus', mural: 'Mural', vendas: 'Vendas', banca: 'Banca do dia', grana: 'Grana', marcas: 'Portfólio', datas: 'Do teu nicho' };
+  const cartoesDe = studio => C.home.slice().filter(c => CARTOES_STUDIO.includes(c.k) === studio).sort((a, b) => a.o - b.o);
+  const cartoesHTML = cards => cards.map(c => `<div class="hslot" id="hc-${c.k}"><div class="hcard ghost"><span class="hc-name">${NOME_CARTAO[c.k] || ''}</span></div></div>`).join('');
+  function pintaCartoes(cards){
+    const STK = { horus: 'olho', rolo: 'camera', banca: 'hype', grana: 'grana', marcas: 'trampo' };
+    cards.forEach(c => Promise.resolve().then(() => c.html()).then(h => { const el = $('hc-' + c.k); if(!el) return; if(!h){ el.remove(); return; } el.innerHTML = h; const card = el.querySelector('.hcard'); if(card && ST && STK[c.k]) card.insertAdjacentHTML('beforeend', `<span class="hc-stk" aria-hidden="true">${ST.svg(STK[c.k])}</span>`); }).catch(() => { const el = $('hc-' + c.k); if(el) el.remove(); }));
+  }
+  /* v4.41: o Início é da Rede, limpo: os primeiros passos (só pra quem tá chegando), os stories, os grupos e o feed, com
+     quem seguir do lado. O teu dia, os atalhos das ferramentas e o corre do mês foram pra casa do Corre Studio (#/dia) */
   async function viewHome(){
     const me = st.me;
-    const cards = C.home.slice().sort((a, b) => a.o - b.o);
-    /* v3.43: os atalhos seguem a ordem dos grupos do menu (Laboratório, Financeiro, Banca), pro olho achar no mesmo lugar */
+    const cards = cartoesDe(false);
     app.innerHTML = C.header('inicio') + `<main class="wrap home">
-      ${C.fala ? '<section class="dia" id="h-dia" aria-label="O teu dia"></section>' : `<div class="hello"><h1><span class="hl">E aí, ${esc(C.firstName(me.nome))}.</span></h1><p>Teu corre tá <b>${desb(me) ? 'desbaratinado' : 'na vitrine'}</b>. <a href="#/@${esc(me.handle)}">Ver meu perfil</a></p></div>`}
       <div id="h-passos"></div>
-      <nav class="atalhos" aria-label="Tuas ferramentas"><a class="atalho" href="#/studio">${ico('magia')}<span>Studio</span></a>${C.views.houzi ? `<a class="atalho" href="#/houzi">${ico('houzi')}<span>Studio Houzi</span></a>` : ''}<a class="atalho" href="#/corre">${ico('grana')}<span>Vendas e Grana</span></a><a class="atalho" href="#/banca">${ico('banca')}<span>Banca do dia</span></a><a class="atalho" href="#/refs">${ico('cal')}<span>Do teu nicho</span></a><a class="atalho" href="#/rolo">${ico('rolo')}<span>Rolo 360</span></a>${C.ferr('horus') ? `<a class="atalho" href="#/horus">${ico('eye')}<span>Hórus</span></a>` : ''}<a class="atalho ghost" href="#/@${esc(me.handle)}">${ico('plus')}<span>Teu corre</span></a></nav>
       <section class="card sbar-card" aria-label="Stories" id="h-stories">${(() => { const g = C.guardado.le('stories', 864e5); return g ? `<div class="vel" aria-hidden="true">${g}</div>` : `<div class="sbar">${C.esqueleto('roda', 6)}</div>`; })()}</section>
       <div id="h-grupos" class="h-grupos"></div>
       <div class="feed-grid">
         <div class="feed-main" id="h-feed"></div>
-        <aside class="feed-aside" aria-label="Teu corre">
-          <div id="h-corre"></div>
+        <aside class="feed-aside" aria-label="Na rede">
           ${C.ehFundador() ? '<div class="feed-rolo" id="h-rolo"></div>' : ''}
-          <div class="hgrid side">${cards.map(c => `<div class="hslot" id="hc-${c.k}"><div class="hcard ghost"><span class="hc-name">${{ visitas: 'Visitas', horus: 'Hórus', mural: 'Mural', vendas: 'Vendas', banca: 'Banca do dia', grana: 'Grana', marcas: 'Portfólio', datas: 'Do teu nicho' }[c.k] || ''}</span></div></div>`).join('')}</div>
+          <div class="hgrid side">${cartoesHTML(cards)}</div>
           <h2 class="sec-t"><span class="hl" id="people-t">Gente no Corre</span></h2>
           <div id="people">${C.esqueleto('linha', 4)}</div>
         </aside>
       </div>
       <p class="foot"><a href="privacidade.html">Privacidade</a> <a href="termos.html">Termos</a> <span class="credit">Londrina desenhada no traço da Monstra</span></p>
     </main>`;
-    if(C.fala) C.fala.dia($('h-dia'));
-    if(C.correMes) C.correMes($('h-corre'));
     if(C.estreia) C.estreia.passos($('h-passos'));
     C.storiesBar().then(h => { const el = $('h-stories'); if(el) el.innerHTML = h; C.guardado.poe('stories', h); });
     if(C.rolo && $('h-rolo')) C.rolo.player($('h-rolo'));
     if(C.feed) C.feed.mount($('h-feed'));
     if(C.grupos) C.grupos.faixaHome($('h-grupos'));
-    const STK = { horus: 'olho', rolo: 'camera', banca: 'hype', grana: 'grana', marcas: 'trampo' };
-    cards.forEach(c => Promise.resolve().then(() => c.html()).then(h => { const el = $('hc-' + c.k); if(!el) return; if(!h){ el.remove(); return; } el.innerHTML = h; const card = el.querySelector('.hcard'); if(card && ST && STK[c.k]) card.insertAdjacentHTML('beforeend', `<span class="hc-stk" aria-hidden="true">${ST.svg(STK[c.k])}</span>`); }).catch(() => { const el = $('hc-' + c.k); if(el) el.remove(); }));
+    pintaCartoes(cards);
     try{
       const list = await api.q('corre_perfis', { eq: { visibilidade: 'publico' }, order: ['created_at', false], limit: 30 });
       const others = list.filter(p => p.id !== me.id);
@@ -1226,23 +1316,67 @@
     }catch(e){ const el = $('people'); if(el) el.innerHTML = `<div class="empty">Não deu pra carregar a lista agora. Atualize a página daqui a pouco.</div>`; }
   }
 
-  /* ---------------- ferramentas (só no teu perfil) ---------------- */
-  /* o que é de trabalho pesado sai do menu e mora aqui: o Studio (com porta de entrada) e o Hórus (liga e desliga) */
-  function ferramentasHTML(){
-    const hz = C.ferr('horus');
-    return `<section class="card ferr" aria-label="Teu corre">
-      <div class="ferr-h"><h2 class="ch">Teu corre</h2><span class="mono">só você vê</span></div>
-      <div class="ferr-l">
-        <div class="ferr-i ferr-cart"><span class="ferr-ico">${ico('correal')}</span><div class="ferr-tx"><b>Correal: <span class="num" data-correal-saldo>${C.correal.saldo == null ? '…' : C.correalFmt(C.correal.saldo)}</span></b><small>A moeda do Correverso (não é dinheiro). Cada tarefa feita na cidade vale centavos de correal, até ${C.correalFmt(C.correal.teto)} por dia; correal paga a IA do Studio, do Studio Houzi e do Hórus quando acaba o grátis do dia.</small></div><button type="button" class="btn sm" data-act="carteira">Carteira</button></div>
-        <div class="ferr-i"><span class="ferr-ico">${ico('magia')}</span><div class="ferr-tx"><b>Studio</b><small>Programa o mês das marcas que você toca: a IA faz as artes e as legendas, e cada post sai sozinho no Instagram.</small></div><a class="btn sm pri" href="#/studio">${ico('next')} Entrar no Studio</a></div>
-        <div class="ferr-i"><span class="ferr-ico">${ico('link')}</span><div class="ferr-tx"><b>Link na bio</b><small>Tua página pra bio do Instagram: vitrine, orçamento, WhatsApp, Pix e teus links, com a cara da tua marca.</small></div><a class="btn sm pri" href="#/linkbio">${ico('next')} Montar</a></div>
-        <div class="ferr-i"><span class="ferr-ico">${ico('grana')}</span><div class="ferr-tx"><b>Vendas e Grana</b><small>Do orçamento ao dinheiro na conta: vendas, o que tem pra receber, o extrato e o mês.</small></div><a class="btn sm pri" href="#/corre">${ico('next')} Abrir</a></div>
-        ${C.views.houzi ? `<div class="ferr-i"><span class="ferr-ico">${ico('houzi')}</span><div class="ferr-tx"><b>Studio Houzi</b><small>Marca com conceito, do naming ao brandbook: logo em vetor, cores, letra, kit e PDF.</small></div><a class="btn sm" href="#/houzi">Abrir</a></div>` : ''}
-        <div class="ferr-i${hz ? ' on' : ''}"><span class="ferr-ico">${ico('eye')}</span><div class="ferr-tx"><b>Hórus</b><small>${hz ? 'Ligado: o radar tá no Início e no teu menu.' : 'Radar de clientes: caça empresa no mapa e monta a abordagem. Liga quando quiser.'}</small></div>
-          <div class="ferr-a">${hz ? `<a class="btn sm" href="#/horus">Abrir</a>` : ''}<label class="switch sw-so" title="${hz ? 'Desligar o Hórus' : 'Ligar o Hórus'}"><input type="checkbox" data-chg="ferr-horus"${hz ? ' checked' : ''} aria-label="Hórus ligado"><span class="sw"></span></label></div></div>
-        <div class="ferr-i"><span class="ferr-ico">${ico('rolo')}</span><div class="ferr-tx"><b>Rolo 360</b><small>A sala de projeção: 5 lugares do mundo por dia, no escuro, com música clássica. Pra respirar e pegar referência.</small></div><a class="btn sm" href="#/rolo">Abrir</a></div>
-        <div class="ferr-i"><span class="ferr-ico">${ico('marcas')}</span><div class="ferr-tx"><b>Portfólio e catálogo</b><small>As marcas que você toca e o que você vende, com preço.</small></div><a class="btn sm" href="#/marcas">Abrir</a></div>
-      </div></section>`;
+  /* ---------------- v4.41 · a casa do Corre Studio ----------------
+     O trabalho saiu do Início e do perfil e mora aqui (#/dia, ou app.corresocial.com/studio): o teu dia (a saudação, o
+     Fala com o Corre e os cartões do que tá esperando), as ferramentas em blocos com o número do sinal, o corre do mês
+     e os cartões do trabalho, e o "do teu jeito" (abrir o Corre direto aqui, o Hórus ligado, ajeitar o menu) */
+  const FERR_ST = [
+    ['caderno', 'As tarefas do dia, com aviso na hora'], ['studio', 'O calendário de posts de cada marca'],
+    ['horus', 'Acha cliente no mapa e chama no WhatsApp'], ['corre', 'Do orçamento ao dinheiro na conta'],
+    ['atende', 'A IA responde teu cliente 24h'], ['piloto', 'O que esfria vira tarefa sozinho'],
+    ['houzi', 'Marca, logo e brandbook'], ['marcas', 'Teus trabalhos e o que você vende'],
+    ['linkbio', 'Tua página pra bio do Instagram'], ['planos', 'Assinaturas e faturas'], ['lojinha', 'Os números do Corre']
+  ];
+  /* abrir o Corre direto no Studio: guardado no aparelho, por login (quem divide o aparelho não herda) */
+  const FIXA_K = 'corre-abre-studio';
+  const abreNoStudio = () => { try{ return !!st.me && localStorage.getItem(FIXA_K) === st.me.id; }catch(e){ return false; } };
+  C.abreNoStudio = abreNoStudio;
+  function ferrStudioHTML(){
+    const D = DEST(st.me);
+    return FERR_ST.filter(([k]) => D[k] && (k === 'horus' || tem(k))).map(([k, d]) => {
+      const off = k === 'horus' && !C.ferr('horus');
+      return `<a class="csd-t${off ? ' off' : ''}" href="${D[k][0]}"><span class="csd-ic">${ico(D[k][2])}</span><span class="csd-tx"><b>${D[k][1]}</b><small>${off ? 'Desligado: toca pra ligar' : d}</small></span>${off ? '' : sinalHTML(k, true)}</a>`;
+    }).join('');
+  }
+  async function viewDia(){
+    const me = st.me, cards = cartoesDe(true), hz = C.ferr('horus'), fixa = abreNoStudio();
+    app.innerHTML = C.header('dia') + `<main class="wrap csd">
+      <p class="csd-k"><span>${ico('luminaria')}Corre Studio</span><a href="#/">${ico('prev')} Voltar pra rede</a></p>
+      <section class="dia csd-dia" id="cs-dia" aria-label="O teu dia"></section>
+      <div class="csd-cols">
+        <section class="csd-ferr" aria-labelledby="csd-ferr-t">
+          <h2 class="sec-t" id="csd-ferr-t"><span class="hl">Tuas ferramentas</span></h2>
+          <nav class="csd-g" aria-label="Ferramentas do Corre Studio">${ferrStudioHTML()}</nav>
+        </section>
+        <aside class="csd-lado" aria-label="O teu mês">
+          <div id="cs-corre"></div>
+          <div class="hgrid side">${cartoesHTML(cards)}</div>
+        </aside>
+      </div>
+      <section class="card csd-jeito" aria-labelledby="csd-jeito-t">
+        <h2 class="ch" id="csd-jeito-t">Do teu jeito</h2>
+        <label class="csd-sw"><span><b>Abrir o Corre direto aqui</b><small>Quando você abrir o app, cai no Corre Studio em vez do feed. A Rede fica a um toque.</small></span><span class="switch sw-so"><input type="checkbox" data-chg="cs-fixa"${fixa ? ' checked' : ''} aria-label="Abrir o Corre direto no Studio"><span class="sw"></span></span></label>
+        <label class="csd-sw"><span><b>Hórus ligado</b><small>${hz ? 'O radar de clientes tá no teu Studio.' : 'Radar de clientes: caça empresa no mapa e monta a abordagem.'}</small></span><span class="switch sw-so"><input type="checkbox" data-chg="ferr-horus"${hz ? ' checked' : ''} aria-label="Hórus ligado"><span class="sw"></span></span></label>
+        <div class="acts"><button type="button" class="btn" data-act="menu-ajeita">${ico('edit')} Ajeitar o menu do Studio</button><button type="button" class="btn ghost" data-act="cs-link">${ico('link')} Copiar o endereço do Studio</button></div>
+      </section>
+    </main>`;
+    if(C.fala) C.fala.dia($('cs-dia'));
+    if(C.correMes) C.correMes($('cs-corre'));
+    pintaCartoes(cards);
+  }
+  C.views.dia = viewDia;
+  Object.assign(C.acts, {
+    'cs-fixa': el => {
+      try{ if(el.checked) localStorage.setItem(FIXA_K, st.me.id); else localStorage.removeItem(FIXA_K); }catch(e){}
+      toast(el.checked ? 'Pronto: o Corre abre direto no Studio neste aparelho.' : 'O Corre volta a abrir na Rede.', 3200);
+    },
+    /* o endereço curto (app.corresocial.com/studio): pra pôr nos favoritos ou num atalho */
+    'cs-link': () => C.copy(location.origin + '/studio', 'Endereço do Corre Studio copiado.')
+  });
+  /* no teu perfil, como no TikTok: o botão do Corre Studio fica do lado do Editar perfil; embaixo, só o correal (o que
+     era o cartão "Teu corre", com as ferramentas, virou a casa do Studio) */
+  function portaPerfilHTML(){
+    return `<p class="pf-correal">${ico('correal')}<span>Correal: <b class="num" data-correal-saldo>${C.correal.saldo == null ? '…' : C.correalFmt(C.correal.saldo)}</b> · a moeda do Correverso, não é dinheiro</span><button type="button" class="btn sm ghost" data-act="carteira">Carteira</button></p>`;
   }
 
   /* ---------------- perfil público ---------------- */
@@ -1312,10 +1446,10 @@
           ${metaHTML}
           ${gdica ? `<p class="fine pf-gdica">${gdica}</p>` : ''}
           <div id="pf-nums"></div>
-          <div class="acts"><span id="pf-seguir"></span>${mine ? `<a class="btn pri" href="#/editar">Editar perfil</a><a class="btn" href="#/linkbio">${ico('link')} Link na bio</a><button type="button" class="btn" data-act="st-novo">${ico('plus')} Story</button>` : ''}${p.visibilidade === 'mocado' ? '' : `<button type="button" class="btn" data-act="copiar" data-h="${esc(p.handle)}">Copiar link</button>`}${mine && p.visibilidade !== 'mocado' && C.insta ? `<button type="button" class="btn" data-act="ig-story" data-k="perfil">${ico('ig')} No story do Insta</button>` : ''}${!mine && C.msg ? (p.handle === 'corre' ? `<a class="btn" href="#/msg/@consanans" title="O @corre é o perfil da casa: quem responde é o @consanans">${ico('send')} Falar com o Corre</a>` : `<a class="btn" href="#/msg/@${esc(p.handle)}">${ico('send')} Mensagem</a>`) : ''}${!mine && C.msg && st.user && st.me ? `<button type="button" class="btn ghost" data-act="msg-mandar" data-k="perfil" data-h="${esc(p.handle)}" title="Mandar esse perfil pra alguém">Indicar</button>` : ''}${!mine && st.user && st.me && C.denuncia ? `<button type="button" class="btn ghost pf-den" data-act="den-perfil" data-id="${p.id}" data-h="${esc(p.handle)}" aria-label="Denunciar ou bloquear @${esc(p.handle)}" title="Denunciar ou bloquear">${ico('dots')}</button>` : ''}</div>
+          <div class="acts"><span id="pf-seguir"></span>${mine ? `<a class="btn pri" href="#/editar">Editar perfil</a><a class="btn pf-cs" href="#/dia">${ico('luminaria')} Corre Studio${filaNum('cs-n')}</a><button type="button" class="btn" data-act="st-novo">${ico('plus')} Story</button>` : ''}${p.visibilidade === 'mocado' ? '' : `<button type="button" class="btn" data-act="copiar" data-h="${esc(p.handle)}">Copiar link</button>`}${mine && p.visibilidade !== 'mocado' && C.insta ? `<button type="button" class="btn" data-act="ig-story" data-k="perfil">${ico('ig')} No story do Insta</button>` : ''}${!mine && C.msg ? (p.handle === 'corre' ? `<a class="btn" href="#/msg/@consanans" title="O @corre é o perfil da casa: quem responde é o @consanans">${ico('send')} Falar com o Corre</a>` : `<a class="btn" href="#/msg/@${esc(p.handle)}">${ico('send')} Mensagem</a>`) : ''}${!mine && C.msg && st.user && st.me ? `<button type="button" class="btn ghost" data-act="msg-mandar" data-k="perfil" data-h="${esc(p.handle)}" title="Mandar esse perfil pra alguém">Indicar</button>` : ''}${!mine && st.user && st.me && C.denuncia ? `<button type="button" class="btn ghost pf-den" data-act="den-perfil" data-id="${p.id}" data-h="${esc(p.handle)}" aria-label="Denunciar ou bloquear @${esc(p.handle)}" title="Denunciar ou bloquear">${ico('dots')}</button>` : ''}</div>
+          ${mine ? portaPerfilHTML() : ''}
         </div>
       </section>
-      ${mine ? ferramentasHTML() : ''}
       ${vitHTML}
       ${fechado ? `<section class="card pf-desb">${ico('lock')}<div><b>@${esc(p.handle)} tá desbaratinado.</b><p>${st.user ? 'Segue' : 'Entra no Corre e segue'} pra ver os posts, stories, destaques e o portfólio.</p></div></section>` : `
       ${ds.length || mine ? `<h2 class="sec-t"><span class="hl">Destaques</span></h2><section class="card">${C.destaquesHTML(ds, mine)}</section>` : ''}
@@ -1384,6 +1518,7 @@
     try{ return await rotaDe(); }
     finally{ if(C.EMBED) C.pai('rota'); if(C.insta) C.insta.barra(); }
   }
+  const ABRIU = { ja: false };
   async function rotaDe(){
     C.rota = (C.rota || 0) + 1;
     document.title = 'Corre';
@@ -1420,6 +1555,8 @@
     /* v4.0 · o Link na bio (app.corresocial.com/@nome vira #/bio/nome no começo do index.html): abre sem login */
     if(h.startsWith('bio/') && C.views.bio){ if(st.user) await loadMe(); window.scrollTo(0, 0); return C.views.bio(app, C.decURI(h.slice(4))); }
     if(!st.user && /^houzi\//.test(h)){ try{ localStorage.setItem('corre-volta', location.hash); }catch(e){} }
+    /* v4.41: o app.corresocial.com/studio sem login: depois de entrar com o Google, volta pro Corre Studio */
+    if(!st.user && h === 'dia'){ try{ localStorage.setItem('corre-volta', '#/dia'); }catch(e){} }
     /* v4.29 · "Quantos clientes tem pra você" (app.corresocial.com/clientes): abre sem login */
     if(h === 'clientes' && C.views.clientes){ if(await precisaPerfil(location.hash)) return; window.scrollTo(0, 0); return C.views.clientes(app); }
     /* v4.17 · o link de aprovação do Studio: o cliente abre sem login */
@@ -1434,12 +1571,15 @@
     if(!st.me) return st.meErro ? viewSemRede() : viewOnboarding();
     /* voltou do login do Google: leva pra onde a pessoa tava (ex.: o pedido do Mural) */
     let volta = ''; try{ volta = localStorage.getItem('corre-volta') || ''; if(volta) localStorage.removeItem('corre-volta'); }catch(e){}
-    if(volta && /^#\/((mural|p|msg|g|houzi)\/|@[a-z0-9_.]{3,24}$|grupos$|houzi$)/.test(volta) && volta !== location.hash){ location.hash = volta; return; }
+    if(volta && /^#\/((mural|p|msg|g|houzi)\/|@[a-z0-9_.]{3,24}$|grupos$|houzi$|dia$)/.test(volta) && volta !== location.hash){ location.hash = volta; return; }
     /* v4.29: entrou pelo "levar pro meu Hórus" da página dos clientes: volta pra ela, que leva sozinha */
     if(C.clientes && C.clientes.leva() && h !== 'monta'){ location.hash = '#/clientes'; return; }
     /* já tem perfil: convite de link não vale mais (só quem acabou de entrar segue quem chamou) */
     if(C.insta) C.insta.limpaConvite();
     window.scrollTo(0, 0);
+    /* v4.41: quem fixou "abrir o Corre direto aqui" cai no Corre Studio na primeira página da abertura (o link de um
+       post, de um perfil ou de um aviso abre o que foi pedido; depois disso, a Rede é um toque) */
+    if(!ABRIU.ja){ ABRIU.ja = true; if(!h && abreNoStudio()){ try{ history.replaceState(null, '', location.pathname + location.search + '#/dia'); }catch(e){} return viewDia(); } }
     if(h === 'editar') return viewEdit();
     /* o aviso no celular de "seguidores novos" abre o sino por cima do Início */
     if(h === 'avisos'){ try{ history.replaceState(null, '', location.pathname + location.search + '#/'); }catch(e){} await viewHome(); if(C.avisos) C.avisos.abrir(); return; }
@@ -1474,7 +1614,7 @@
     'ferr-horus': async el => {
       const liga = el.type === 'checkbox' ? el.checked : el.dataset.liga === '1';
       const f = Object.assign({}, (st.me && st.me.ferramentas) || {}, { horus: liga });
-      try{ await C.saveMe({ ferramentas: f }); toast(liga ? 'Hórus ligado. Tá no teu perfil e no Início.' : 'Hórus desligado. Teus leads ficam guardados.', 3200); if(el.type !== 'checkbox' && liga){ go('#/horus'); return; } route(); }
+      try{ await C.saveMe({ ferramentas: f }); toast(liga ? 'Hórus ligado. Tá no teu Corre Studio.' : 'Hórus desligado. Teus leads ficam guardados.', 3200); if(el.type !== 'checkbox' && liga){ go('#/horus'); return; } route(); }
       catch(e){ if(el.type === 'checkbox') el.checked = !liga; toast(C.errMsg(e)); }
     },
     'iab-copia': () => C.copy(C.insta ? C.insta.linkAqui() : location.origin + location.pathname, 'Link copiado. Cola no navegador.'),
