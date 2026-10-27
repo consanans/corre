@@ -46,25 +46,41 @@
       <div class="row2"><div class="fld"><label for="f-wa">WhatsApp pra clientes <small>(opcional)</small></label><input class="inp" id="f-wa" inputmode="tel" autocomplete="tel" placeholder="(DDD) 9 9999-9999" value="${esc(fmt(v.whats_publico || ''))}"><span class="hint">Aparece no teu perfil com o botão "Chamar no WhatsApp".</span></div>
         <label class="switch mc-orc"><input type="checkbox" id="f-orc"${orcOn ? ' checked' : ''}><span class="sw"></span><span><b>Pedido de orçamento</b><small>Botão no perfil: o pedido cai no teu Hórus como Interessado.</small></span></label></div>
       <label class="switch mc-mural"><input type="checkbox" id="f-mural"${v.no_mural ? ' checked' : ''}><span class="sw"></span><span><b>Aparecer no Mural</b><small>Quando alguém perguntar no Mural por quem faz o que você faz, a IA pode te indicar (com o teu perfil, o que vende e a cidade). Precisa do perfil na vitrine.</small></span></label>
+      <label class="switch mc-google"><input type="checkbox" id="f-google"${v.no_google ? ' checked' : ''}><span class="sw"></span><span><b>Aparecer no Google</b><small>Teu nome, o que você faz, a cidade, a foto e até 3 itens da vitrine entram na página aberta do teu ramo, que o Google mostra pra quem procura. <span id="f-google-u">${esc(googleTx(v))}</span></small></span></label>
     </fieldset>`;
+  }
+  /* v5.0 · Aparecer no Google: a página aberta de cada ramo (os mesmos endereços do ferramentas/seo/ramos.mjs). As páginas
+     são de Londrina; quem é de fora aparece nelas nos ramos que dão pra fazer à distância */
+  const GOOGLE = { social: 'social-media', design: 'design', foto_video: 'foto-e-video', site: 'site-e-app', trafego: 'trafego-pago', musica: 'musica-e-dj', eventos: 'eventos-e-festas',
+    reforma: 'reforma-e-reparos', tecnica: 'assistencia-tecnica', aulas: 'aulas-e-consultoria', beleza: 'beleza-e-estetica', tattoo: 'tatuagem', moda: 'costura-e-moda',
+    comida: 'comida-e-buffet', frete: 'frete-e-mudanca', juridico: 'contador-e-advogado', casa: 'limpeza-e-diarista' };
+  const DIGITAL = ['social', 'design', 'site', 'trafego', 'aulas', 'juridico'];
+  const cidadeK = t => String(t || '').split('/')[0].split(',')[0].normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
+  const googleUrl = v => { const sl = v && GOOGLE[v.categoria]; return sl && (cidadeK(v.cidade) === 'londrina' || DIGITAL.includes(v.categoria)) ? `/londrina/${sl}/` : null; };
+  function googleTx(v){
+    if(!v || !v.categoria || v.categoria === 'outros') return 'Escolhe a categoria aí em cima pra saber onde você aparece.';
+    const u = googleUrl(v); if(u) return `A tua: ${location.host}${u}`;
+    return 'Por enquanto as páginas são de Londrina; no teu ramo, aparece quem é daqui. Liga mesmo assim: quando a tua cidade ganhar página, você já entra.';
   }
   const fmt = n => { const d = String(n || '').replace(/\D/g, ''); return d.length === 11 ? `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}` : d.length === 10 ? `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}` : d; };
   let manual = false;
   function bind(){
     manual = !!(C.$('f-cat') && C.$('f-cat').value);
     const faz = C.$('f-faz'); if(!faz) return;
+    const cid = C.$('f-cidade'); if(cid) cid.addEventListener('input', googleRefaz);
     faz.addEventListener('input', () => {
       if(manual) return;
       const k = catDe(faz.value) || '';
       if(k && k !== C.$('f-cat').value){ marca(k); C.$('f-cat-auto').textContent = '· o Corre entendeu: ' + catNome(k); }
     });
   }
-  function marca(k){ C.$('f-cat').value = k; document.querySelectorAll('[data-act="mc-cat"]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.k === k))); }
+  function marca(k){ C.$('f-cat').value = k; document.querySelectorAll('[data-act="mc-cat"]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.k === k))); googleRefaz(); }
+  const googleRefaz = () => { const u = C.$('f-google-u'), c = C.$('f-cat'); if(u && c) u.textContent = googleTx({ categoria: c.value, cidade: (C.$('f-cidade') || {}).value || '' }); };
   /* lê o que tá no formulário (null se o formulário não tem os campos) */
   function ler(){
     if(!C.$('f-faz')) return null;
     let w = String(C.$('f-wa').value || '').replace(/\D/g, ''); if(w.length > 11 && w.startsWith('55')) w = w.slice(2);
-    return { categoria: C.$('f-cat').value || '', faz: C.$('f-faz').value.trim().slice(0, 120), vende_pra: (document.querySelector('input[name="f-vp"]:checked') || {}).value || 'ambos', whats_publico: w, orc: C.$('f-orc').checked, no_mural: !!(C.$('f-mural') && C.$('f-mural').checked) };
+    return { categoria: C.$('f-cat').value || '', faz: C.$('f-faz').value.trim().slice(0, 120), vende_pra: (document.querySelector('input[name="f-vp"]:checked') || {}).value || 'ambos', whats_publico: w, orc: C.$('f-orc').checked, no_mural: !!(C.$('f-mural') && C.$('f-mural').checked), no_google: !!(C.$('f-google') && C.$('f-google').checked) };
   }
   const whatsOk = w => !w || w.length === 10 || w.length === 11;
 
@@ -94,5 +110,5 @@
   Object.assign(C.acts, {
     'mc-cat': el => { manual = true; marca(el.dataset.k); const a = C.$('f-cat-auto'); if(a) a.textContent = ''; }
   });
-  C.meuCorre = { SEG, campos, bind, ler, aplicar, sugestoes, catNome, whatsOk, fmt };
+  C.meuCorre = { SEG, campos, bind, ler, aplicar, sugestoes, catNome, whatsOk, fmt, googleUrl, GOOGLE };
 })();

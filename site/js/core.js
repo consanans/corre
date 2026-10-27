@@ -690,6 +690,8 @@
       T.forEach(t => { if(!d.t[t]) d.t[t] = []; });
       /* v3.56: perfil mocado (escondido) virou público e desbaratinado, como no banco (delta-v356.sql) */
       d.t.corre_perfis.forEach(p => { if(p.visibilidade === 'mocado'){ p.visibilidade = 'publico'; p.desbaratinado = true; } });
+      /* v5.0: o "Aparecer no Google" nasce desligado, como a coluna do banco (delta-v500.sql) */
+      d.t.corre_perfis.forEach(p => { if(!('no_google' in p)) p.no_google = false; });
       /* v3.43: o correal ganhou centavos e o que já existia foi dividido por 10, como no banco (delta-v343.sql): quem
          tinha 9 na demonstração fica com 0,90, que compra o mesmo que os 9 compravam */
       if(!d.v343){
@@ -2085,6 +2087,13 @@
           const tipos = {}; L2.forEach(x => { tipos[x.tipo] = (tipos[x.tipo] || 0) + 1; });
           return { enviados: L2.length, pessoas: new Set(L2.map(x => x.dono)).size, voltaram: 0, tipos, avisos: new Set(ap.map(x => x.dono)).size, aparelhos: ap.length,
             desligaram: (d.t.corre_push_pref || []).filter(x => x.lembra === false && !fora.has(x.dono)).length, dias_periodo: Math.max(7, Math.min(+(a && a.p_dias) || 30, 120)) };
+        }
+        /* v5.0: os números das páginas abertas (como o corre_seo_numeros; no demo ninguém visita) */
+        if(n === 'corre_seo_numeros'){
+          const eu = uidOf(d); if(!eu || !plDono(d, eu)) throw { message: 'A Lojinha é só do dono do Corre.', code: '42501', hint: 'so_dono' };
+          const g = d.t.corre_perfis.filter(p => p.no_google);
+          return { dias: Math.max(1, Math.min(+(a && a.p_dias) || 30, 120)), ligaram: g.length, aparecem: g.filter(p => !p.desbaratinado && p.categoria && p.categoria !== 'outros' && (p.faz || p.bio)).length,
+            total: { ver: 0, pedido: 0, perfil: 0, entrar: 0 }, paginas: [] };
         }
         if(n === 'corre_meu_acesso') return plMeu(d, uidOf(d));
         if(n === 'corre_teste_comeca'){ if(!uidOf(d)) throw { message: 'login', hint: 'login' }; plGarante(d, uidOf(d), a && a.p_produto); write(d); return plMeu(d, uidOf(d)); }

@@ -5480,3 +5480,7 @@ html.embed .bio-pe,html.embed .bio-corre{display:none}
 /* na gaveta do celular, a página aberta nos Teus perdia o amarelo (o fundo da gaveta ganhava dele) e ficava escura no
    escuro, de dia também: volta o marca-texto amarelo */
 @media (max-width:900px){ .gaveta .tls .tl[aria-current="page"]{background:var(--yellow)} }
+
+/* v5.0 · Londrina no Google: o interruptor "Aparecer no Google" no Editar perfil (o jeito do "Aparecer no Mural") */
+.mc-google{margin-top:4px}
+.mc-google #f-google-u{display:block;margin-top:4px;font-weight:700;color:var(--ink-2);overflow-wrap:anywhere}

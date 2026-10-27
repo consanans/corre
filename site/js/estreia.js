@@ -109,6 +109,8 @@
         : 'Visita no teu link na bio, pedido de orçamento e mensagem chegam na hora, no canto da tela. No celular, liga lá também.', '', 'push-ajustes']]).concat([
       ['foto', !!me.avatar_url, 'Põe tua foto', 'Gente confia em quem mostra a cara.', '#/editar'],
       ['faz', !!me.faz, 'Diz o que você vende', 'Numa frase. O Corre monta teu Hórus, teu Mural e tua vitrine por ela.', '#/editar'],
+      /* v5.0: aparecer na página aberta do ramo (só quando o banco já tem a escolha; quem é de outra cidade, só nos ramos à distância) */
+      ...(('no_google' in me) && (!me.categoria || (C.meuCorre && C.meuCorre.googleUrl && C.meuCorre.googleUrl(me))) ? [['google', !!me.no_google, 'Aparece no Google', 'Liga "Aparecer no Google" no Editar perfil: teu trabalho entra na página do teu ramo em Londrina, que o Google mostra pra quem procura.', '#/editar']] : []),
       ['whats', !!me.whats_publico, 'Põe o WhatsApp pra clientes', 'Vira o botão "Chamar no WhatsApp" do perfil e do link na bio.', '#/editar'],
       ['bio', bio, 'Monta teu link na bio', `Cola ${location.host}/@${me.handle} na bio do Instagram.`, '#/linkbio'],
       ['vit', vit, 'Põe um preço na vitrine', 'O que você vende, com preço, no perfil e no link na bio.', '#/marcas'],

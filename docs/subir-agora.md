@@ -1,5 +1,28 @@
 # O que falta subir (27/10/2026)
 
+**O zip da 5.0** (`saida/corre-site.zip`): arrasta no Netlify, como sempre. O banco já tá pronto (o `delta-v500.sql` rodou hoje pelo conector). Leva junto a 4.43 (o modo escuro) e o que vem antes, se ainda não subiu.
+
+O que a 5.0 traz: **Londrina no Google**.
+- Páginas abertas, sem login, que o Google lê: `app.corresocial.com/londrina/` e uma por ramo (social media, design, foto e vídeo, reforma, beleza, tatuagem, frete... são 17). Cada uma tem:
+  - quem faz aquilo em Londrina no Corre (com foto, o que faz, até 3 preços da vitrine e o botão pro link na bio da pessoa);
+  - um guia de verdade: o que contar no pedido, como comparar propostas e com o que tomar cuidado;
+  - o pedido no Mural **sem cadastro**: a pessoa diz o que precisa, o nome e o WhatsApp, e recebe o link pra ver as propostas;
+  - os pedidos abertos daquele ramo e o convite pra quem faz se cadastrar.
+- **Ninguém aparece sem querer:** no Editar perfil tem o interruptor "Aparecer no Google", desligado pra todo mundo. Quem liga vê o endereço da página dele. Desbaratinado nunca aparece.
+- Nos Primeiros passos entrou "Aparece no Google"; na busca, "Aparecer no Google".
+- Na Lojinha, o cartão "Londrina no Google": quantos aparecem, as visitas, os pedidos fixados e quem foi ver alguém.
+- A privacidade ganhou a seção do Aparecer no Google. O login ganhou o link "Londrina".
+
+Pra conferir depois de subir:
+- Abre `app.corresocial.com/londrina/` e `app.corresocial.com/londrina/design/` (abrem sem login, rápidas).
+- Editar perfil › liga "Aparecer no Google" › Salvar: o aviso diz o endereço da tua página. Abre ela: você aparece na hora.
+
+**Do teu lado, pra o Google achar em dias e não em semanas:** o passo a passo tá em `docs/google.md` (Search Console: me manda a linha da "Tag HTML", eu ponho no site; depois manda o `sitemap.xml`).
+
+---
+
+# Antes (4.43)
+
 **O zip da 4.43** (`saida/corre-site.zip`): arrasta no Netlify, como sempre. Sem banco nem função nova. Traz o modo escuro e leva junto a 4.42 (sem as torcidas da rua), a 4.41 (as três partes, abaixo) e a 4.40 (a loja de cada casa), se ainda não subiram.
 
 O que a 4.43 traz: o modo escuro.

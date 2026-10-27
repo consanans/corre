@@ -4,6 +4,9 @@
   'use strict';
   const C = window.Corre, { $, esc, ico, avatar, toast, copy } = C, api = C.api, st = C.st;
   const app = $('app');
+  /* v5.0: ligou o Aparecer no Google agora: diz onde (o Google leva uns dias pra ler a página nova) */
+  const googleDiz = antes => { const me = st.me, u = me && me.no_google && !antes && C.meuCorre && C.meuCorre.googleUrl ? C.meuCorre.googleUrl(me) : null;
+    return u ? `Perfil salvo. Teu trabalho já tá em ${location.host}${u}; o Google leva uns dias pra mostrar.` : me && me.no_google && !antes ? 'Perfil salvo. Aparecer no Google ligado.' : ''; };
   const HANDLE_RE = /^[a-z0-9_.]{3,24}$/;
   const IG_RE = /^[A-Za-z0-9_.]{0,30}$/;
   const ST = window.CorreStickers;
@@ -671,6 +674,7 @@
       { k: 'push', a: 'push-ajustes', t: C.push && C.push.nome ? C.push.nome() : 'Avisos no celular', i: 'bell', d: 'Liga e desliga as notificações', kw: 'notificacao notificacoes push celular computador mac windows avisos' },
       ...(C.instala && C.instala.falta() ? [{ k: 'instala', a: 'instala', t: 'Pôr o Corre na tela do celular', i: 'cel', d: 'Vira app: tela inteira e os avisos', kw: 'instalar app aplicativo tela inicio inicial icone atalho celular iphone android cheia full screen' }] : []),
       { k: 'manual', a: 'manual', t: 'Manual do Corre', i: 'manual', d: 'Como usar cada coisa', kw: 'ajuda duvida tutorial como funciona' },
+      { k: 'google', h: '#/editar', t: 'Aparecer no Google', i: 'lupa', d: 'Teu trabalho na página aberta do teu ramo em Londrina', kw: 'google busca procurar seo londrina pagina publica aparecer achar cliente vitrine' },
       { k: 'tema', a: 'tema', t: 'Modo escuro', i: 'lua', d: 'O Corre de noite: liga, desliga ou segue o aparelho', kw: 'escuro dark noite tema claro cor fundo preto tela olho' },
       { k: 'loja', a: 'cvr-loja', t: 'Ateliê: loja de skins', i: 'star', d: 'Skins pro teu avatar, pagas em correal', kw: 'skin skins loja roupa fantasia uniforme avatar comprar atelie' },
       { k: 'privacidade', h: 'privacidade.html', t: 'Privacidade', i: 'lock', d: 'O que o Corre guarda e por quê', kw: 'dados lgpd' },
@@ -1007,7 +1011,7 @@
   function viewLogin(){
     document.body.classList.remove('com-lado');
     setStickers('login');
-    app.innerHTML = `<div class="login-top"><nav class="topnav" aria-label="Navegação"><a class="hl" href="#entrar">Entrar</a><a class="hl" href="#/clientes">Clientes</a><a class="hl" href="#/mural">Mural</a><a class="hl" href="privacidade.html">Privacidade</a></nav></div>
+    app.innerHTML = `<div class="login-top"><nav class="topnav" aria-label="Navegação"><a class="hl" href="#entrar">Entrar</a><a class="hl" href="#/clientes">Clientes</a><a class="hl" href="/londrina/">Londrina</a><a class="hl" href="#/mural">Mural</a><a class="hl" href="privacidade.html">Privacidade</a></nav></div>
     <main class="login">
       <h1 class="mega">Corre</h1>
       <p class="tagline"><span class="hl">Mostra teu corre.</span></p>
@@ -1225,17 +1229,25 @@
         if(!C.meuCorre.whatsOk(mc.whats_publico)){ toast('Confere o WhatsApp com DDD, ou deixa em branco.'); $('f-wa').focus(); return; }
         Object.assign(p, { categoria: mc.categoria, faz: mc.faz, vende_pra: mc.vende_pra, whats_publico: mc.whats_publico, no_mural: mc.no_mural });
       }
+      /* v5.0 · Aparecer no Google: vai quando o banco já tem a coluna (delta-v500) ou quando a pessoa ligou; sem o delta, salva o resto */
+      if(mc && (mc.no_google || (st.me && 'no_google' in st.me))) p.no_google = mc.no_google;
       const antes = isNew || !st.me ? null : { categoria: st.me.categoria || '', faz: st.me.faz || '' };
+      const antesGoogle = !!(st.me && st.me.no_google);
       /* o Desbaratinado só vai quando o banco já tem a coluna (delta-v356) ou quando a pessoa escolheu; sem o delta, salva o resto */
       const querDesb = fd.get('desbaratinado') === '1';
       if(querDesb || (st.me && 'desbaratinado' in st.me)) p.desbaratinado = querDesb;
-      const semColuna = e => /desbaratinado/i.test(String((e && e.message) || '') + String((e && e.hint) || '') + String((e && e.details) || ''));
+      const semColuna = e => /desbaratinado|no_google/i.test(String((e && e.message) || '') + String((e && e.hint) || '') + String((e && e.details) || ''));
+      /* tira do pedido a coluna que o banco ainda não tem e diz qual ficou de fora */
+      const semEssa = e => { const m = String((e && e.message) || '') + String((e && e.hint) || '') + String((e && e.details) || ''), fora = [];
+        if('desbaratinado' in p && /desbaratinado/i.test(m)){ delete p.desbaratinado; fora.push('O Desbaratinado'); }
+        if('no_google' in p && /no_google/i.test(m)){ delete p.no_google; fora.push('O Aparecer no Google'); }
+        return fora.length ? fora.join(' e ') + ' ainda não tá ligado no Corre.' : ''; };
       const b = $('pf-ok'); b.disabled = true;
       try{
         if(isNew){
           try{
             let r; try{ r = await api.ins('corre_perfis', Object.assign({ id: st.user.id }, p)); }
-            catch(e0){ if(!('desbaratinado' in p) || !semColuna(e0)) throw e0; delete p.desbaratinado; r = await api.ins('corre_perfis', Object.assign({ id: st.user.id }, p)); toast('O Desbaratinado ainda não tá ligado no Corre. Teu perfil foi salvo na vitrine.', 4200); }
+            catch(e0){ if(!semColuna(e0)) throw e0; const fora = semEssa(e0); if(!fora) throw e0; r = await api.ins('corre_perfis', Object.assign({ id: st.user.id }, p)); toast(fora + ' Teu perfil foi salvo.', 4200); }
             st.me = r[0];
           }
           catch(e1){
@@ -1247,7 +1259,7 @@
         }
         else {
           try{ await C.saveMe(p); }
-          catch(e2){ if(!('desbaratinado' in p) || !semColuna(e2)) throw e2; delete p.desbaratinado; await C.saveMe(p); toast('O Desbaratinado ainda não tá ligado no Corre. O resto foi salvo.', 4200); }
+          catch(e2){ if(!semColuna(e2)) throw e2; const fora = semEssa(e2); if(!fora) throw e2; await C.saveMe(p); toast(fora + ' O resto foi salvo.', 4200); }
         }
         if(mc && C.meuCorre) await C.meuCorre.aplicar(antes, mc.orc);
         st.loadedFor = st.user.id;
@@ -1256,7 +1268,7 @@
         /* v4.0 · a Estreia: o convite rende correal pros dois, e o app se monta pela categoria */
         let ganhou = null;
         if(isNew && C.estreia){ if(chamou) ganhou = await C.estreia.aceita(chamou.handle); await C.estreia.monta(st.me); }
-        toast(isNew ? (chamou ? `Perfil criado. Você já segue @${chamou.handle}, que te chamou${ganhou && ganhou.ok ? ', e ganhou 0,50 de correal de boas-vindas' : ''}.` : 'Perfil criado. Bem-vindo ao Corre.') : 'Perfil salvo.', chamou ? 5200 : undefined);
+        toast(isNew ? (chamou ? `Perfil criado. Você já segue @${chamou.handle}, que te chamou${ganhou && ganhou.ok ? ', e ganhou 0,50 de correal de boas-vindas' : ''}.` : 'Perfil criado. Bem-vindo ao Corre.') : googleDiz(antesGoogle) || 'Perfil salvo.', chamou ? 5200 : googleDiz(antesGoogle) ? 6000 : undefined);
         /* v4.29: quem acabou de chegar vai pro Monta meu Corre (a IA monta o link na bio, o mês no Studio, os clientes e a semana) */
         go(isNew && C.views.monta ? '#/monta' : '#/');
       }catch(err){

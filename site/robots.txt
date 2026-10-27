@@ -1,0 +1,7 @@
+# Corre: o Google pode ler tudo; os jogos e as fontes do Studio Houzi não precisam aparecer na busca
+User-agent: *
+Allow: /
+Disallow: /jogos/
+Disallow: /lab/
+
+Sitemap: https://app.corresocial.com/sitemap.xml

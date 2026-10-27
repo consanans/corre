@@ -6,13 +6,14 @@
   'use strict';
   const C = window.Corre, { esc, ico } = C;
   /* sobe esse número a cada atualização: quem já viu recebe de novo, abrindo nas novidades */
-  const VERSAO = '4.43';
+  const VERSAO = '5.0';
   const K = 'corre-manual-visto';
 
   /* O que tem de novo: só o que é super relevante pra galera (o Thales, v3.67). No máximo 8, o mais novo em cima, uma ou
      duas frases cada, no jeito de quem conta pro amigo. Conserto, acabamento e detalhe técnico não entram aqui (moram no
      CLAUDE.md); novidade grande que chega empurra a mais velha pra fora */
   const NOVIDADES = [
+    ['lupa', 'Corre 5.0: Londrina no Google', 'O Corre ganhou páginas abertas de quem faz cada coisa em Londrina (app.corresocial.com/londrina): social media, design, foto, reforma, festa, aula e mais. Quem procura no Google acha, vê o teu trabalho e fixa o pedido sem cadastro. Pra aparecer, liga "Aparecer no Google" no Editar perfil.'],
     ['lua', 'Modo escuro', 'O Corre de noite: o Igapó escuro com a lua dormindo, as janelas acesas e as telas em grafite, mais leve pros olhos. Liga no menu da tua conta › Modo escuro, ou deixa igual ao celular, que escurece sozinho quando ele escurece.'],
     ['luminaria', 'O Corre em três partes', 'Abriu, caiu na Rede: o feed, os stories, as mensagens e o Mural, limpo. O trabalho todo (Studio, Hórus, Vendas e Grana, Caderninho, Atendente e Piloto) mora no Corre Studio: entra pela luminária amarela do alto, pelo botão do teu perfil ou por app.corresocial.com/studio, e lá dentro dá pra fazer o Corre abrir direto nele. E o Correverso segue sendo o jogo.'],
     ['cartao', 'Tua casa no Correverso virou loja', 'Toda casa da cidade agora tem toldo com o letreiro do que a pessoa faz: tocou na porta, abre o link na bio dela, com orçamento, WhatsApp e o que vende. Na tua porta você muda o letreiro e a cor e posta no Instagram o story "Meu corre tá no mapa". E no Mapa, "Quem faz na cidade" acha a loja pelo que você procura.'],
@@ -20,7 +21,6 @@
     ['piloto', 'Piloto automático', 'Liga no Corre Studio › Piloto automático e o Corre põe no teu Caderninho, sozinho, o cliente esfriando, a cobrança vencida, a marca sem post e o orçamento aprovado, cada um com o botão que resolve num toque (a mensagem sai pronta, quem manda é você).'],
     ['magia', 'Fala com o Corre', 'Escreve ou dita o que precisa, na busca ou no alto do Corre Studio: "me lembra de ligar pro contador amanhã 15h", "agenda um post da padaria sexta 18h", "cobrar 1500 do João dia 30", "quanto entrou esse mês?". O Corre entende e faz: anota a tarefa, abre o post já começado, prepara a cobrança ou responde o número na hora. Mensagem e post nunca saem sozinhos: você confere antes.'],
     ['star', 'O bicho do Caderninho', 'Um ovo aparece no Caderninho: escolhe a gralha-azul, o lobo-guará ou a coruja-buraqueira, e cada tarefa feita alimenta ele. É bicho pra vida toda: choca com 300 tarefas, evolui com 1.500 e 5.000 e vira lenda com 15.000, aprendendo poderes no caminho (a tarefa da vez, o mapa do ano, andar contigo no Correverso, o modo foco e o escudo da sequência).'],
-    ['caderno', 'Caderninho: despeja, semana e bom dia', 'Toca em Várias e despeja tudo o que tá na cabeça, até ditando: o Caderninho separa e entende cada tarefa. Na aba Semana, arrasta a tarefa de um dia pro outro. E de manhã o celular te dá bom dia com o teu dia: as tarefas, o post que sai, os clientes e as cobranças.'],
   ];
   /* cada página: o que é, pra que serve no teu dia, e o botão que leva lá */
   const PAGINAS = [

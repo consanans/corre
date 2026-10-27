@@ -103,6 +103,19 @@
       ${tipos.length ? `<h3 class="lo-h3">O que saiu</h3>${barras(tipos, 'var(--blue)')}` : ''}
       <p class="fine">Saem das 17h às 21h pra quem não abriu o Corre no dia, só com novidade pra pessoa, no máximo um por dia e três por semana.${Number(lm.desligaram) ? ` ${pessoas(lm.desligaram)} ${Number(lm.desligaram) === 1 ? 'desligou' : 'desligaram'} os lembretes.` : ''}</p></section>`;
   }
+  /* v5.0: as páginas abertas (Londrina no Google): quantos ligaram, quantos aparecem, as visitas e o que tocaram, por página */
+  function googleHTML(sg, per){
+    if(!sg) return '';
+    const cab = `<section class="card lo-google" aria-labelledby="lo-gg"><h2 class="ch" id="lo-gg">Londrina no Google <small>(${per})</small></h2>`;
+    if(sg.falta) return cab + '<p class="fine">As páginas abertas ligam quando o delta-v500.sql rodar no banco.</p></section>';
+    const t = sg.total || {}, pg = (sg.paginas || []).map(x => ({ t: String(x.pagina || '').replace(/^\/|\/$/g, '').replace(/\//g, ' › ') || 'londrina', v: Number(x.ver) || 0 })).filter(x => x.v);
+    return cab + `<div class="lo-tiles">${tile('Aparecem nas páginas', num(sg.aparecem), `${num(sg.ligaram)} ${Number(sg.ligaram) === 1 ? 'ligou' : 'ligaram'} o Google`)}
+        ${tile('Visitas', num(t.ver), Number(t.ver) ? 'abriram uma página' : 'nenhuma no período')}
+        ${tile('Pedidos fixados', num(t.pedido), Number(t.ver) ? `${pct(t.pedido, t.ver)}% de quem abriu` : '')}
+        ${tile('Foram ver alguém', num(t.perfil), Number(t.entrar) ? `${num(t.entrar)} tocaram em Entrar` : '')}</div>
+      ${pg.length ? `<h3 class="lo-h3">As páginas mais vistas</h3>${barras(pg.slice(0, 8), 'var(--blue)')}` : ''}
+      <p class="fine">Cada visita conta uma vez por sessão, sem saber quem é. O Google leva de dias a semanas pra mostrar página nova: <a href="/londrina/" target="_blank" rel="noopener">abrir as páginas</a>.</p></section>`;
+  }
   /* o botão das boas-vindas: o WhatsApp público da pessoa, com a mensagem pronta (quem manda é o dono, no WhatsApp dele) */
   function boasVindas(p){
     const w = L.wa[p.id]; if(!w || !/^\d{10,11}$/.test(w)) return '';
@@ -167,6 +180,7 @@
           <div class="lo-tiles dois">${tile('Visitas', num(bio.visitas))}${tile('Toques nos botões', num(bio.toques))}</div>
           ${bio.top && bio.top.length ? `<h3 class="lo-h3">As páginas mais vistas</h3>${gente(bio.top)}` : '<p class="fine">Nenhuma visita no período ainda.</p>'}</section>` : ''}
         ${lembraHTML(L.lm, g, per)}
+        ${googleHTML(L.sg, per)}
         ${cv ? `<section class="card" aria-labelledby="lo-c"><h2 class="ch" id="lo-c">Convites</h2>
           <div class="lo-tiles dois">${tile('Entraram por convite', num(cv.total), `${num(cv.periodo)} em ${per}`)}${tile('Renderam correal', num(cv.pagos))}</div>
           ${cv.top && cv.top.length ? `<h3 class="lo-h3">Quem mais chamou</h3>${gente(cv.top)}` : '<p class="fine">Ninguém entrou por convite ainda.</p>'}</section>` : ''}
@@ -209,9 +223,10 @@
     if(L.r) document.querySelector('.lo') && document.querySelector('.lo').classList.add('lendo');
     const semFn = e => !!e && (e.code === 'PGRST202' || e.code === '42883' || /Could not find the function|does not exist/i.test(e.message || ''));
     try{
-      const [r, lm] = await Promise.all([api.rpc('corre_lojinha', { p_dias: L.dias }),
-        api.rpc('corre_lembretes_numeros', { p_dias: L.dias }).catch(e => semFn(e) ? { falta: true } : null)]);
-      L.r = r; L.lm = lm; L.em = Date.now(); L.erro = null;
+      const [r, lm, sg] = await Promise.all([api.rpc('corre_lojinha', { p_dias: L.dias }),
+        api.rpc('corre_lembretes_numeros', { p_dias: L.dias }).catch(e => semFn(e) ? { falta: true } : null),
+        api.rpc('corre_seo_numeros', { p_dias: L.dias }).catch(e => semFn(e) ? { falta: true } : null)]);
+      L.r = r; L.lm = lm; L.sg = sg; L.em = Date.now(); L.erro = null;
       /* o WhatsApp de quem chegou (o número que a pessoa deixou público) */
       const ids = ((r && r.chegaram) || []).map(p => p.id).filter(Boolean);
       if(ids.length){ try{ const ps = await api.q('corre_perfis', { select: 'id,whats_publico', in: { id: ids } }); L.wa = {}; (ps || []).forEach(p => { if(p.whats_publico) L.wa[p.id] = String(p.whats_publico).replace(/\D/g, ''); }); }catch(e){ L.wa = {}; } }

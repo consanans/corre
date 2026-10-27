@@ -176,6 +176,11 @@ testa teste438.sql 4
 delta delta-v439.sql 'delta v4.39 ok'
 delta delta-v439.sql 'delta v4.39 ok'
 testa teste439.sql 5
+# v5.0: Londrina no Google (quem ligou aparece nas páginas abertas, os pedidos do Mural, a conta das visitas)
+$P -f "$AQUI/semente500.sql"
+delta delta-v500.sql 'delta v5.0 ok'
+delta delta-v500.sql 'delta v5.0 ok'
+testa teste500.sql 9
 . "$AQUI/virada343.sh"
 if grep -q 'FALHOU\|ERROR' $D/saida; then echo "deu FALHOU ou erro (acima)"; exit 1; fi
 echo "tudo ok: $(grep -c '^ok:' $D/saida) checagens"
