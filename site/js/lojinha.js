@@ -36,11 +36,11 @@
   const pessoas = n => `${num(n)} ${Number(n) === 1 ? 'pessoa' : 'pessoas'}`;
   /* o nome de cada coisa que o banco conta */
   const FERR = { feed: 'Postou no feed', stories: 'Postou story', msg: 'Mandou mensagem', grupos: 'Entrou em grupo', mural: 'Fixou pedido no Mural', propostas: 'Mandou proposta no Mural',
-    studio: 'Programou post no Studio', houzi: 'Fez marca no Studio Houzi', horus: 'Caçou cliente no Hórus', vendas: 'Fez orçamento em Vendas', grana: 'Lançou na Grana',
+    studio: 'Programou post no Studio Cria', houzi: 'Fez marca no Studio Houzi', horus: 'Caçou cliente no Hórus', vendas: 'Fez orçamento em Vendas', grana: 'Lançou na Grana',
     catalogo: 'Pôs item no catálogo', tarefas: 'Fez tarefa no Correverso', atelie: 'Comprou skin no Ateliê', ia: 'Usou a IA', instagram: 'Conectou o Instagram',
     avisos: 'Ligou os avisos no celular', linkbio: 'Teve visita no link na bio' };
   const LEMBRA = { bio: 'Visita no link na bio', mural: 'Pedido novo no Mural', passos: 'O que falta no perfil', feed: 'Post de quem a pessoa segue', concha: 'O show da Concha' };
-  const IA = { legenda: 'Legendas (Studio)', imagem: 'Imagens (Studio)', abordagem: 'Abordagens (Hórus)', marca: 'Marcas (Studio Houzi)', nomes: 'Nomes (Studio Houzi)',
+  const IA = { legenda: 'Legendas (Studio Cria)', imagem: 'Imagens (Studio Cria)', abordagem: 'Abordagens (Hórus)', marca: 'Marcas (Studio Houzi)', nomes: 'Nomes (Studio Houzi)',
     direcao: 'Direção criativa (Studio Houzi)', maquina: 'Plataforma de marca (Studio Houzi)' };
   /* o caminho de quem chega, na ordem dos Primeiros passos: [chave, o que fez, o que falta (pra frase da leitura)] */
   const FUNIL = [['contas', 'Entrou com o Google'], ['perfil', 'Criou o perfil'], ['foto', 'Pôs foto', 'puseram foto'], ['faz', 'Disse o que vende', 'disseram o que vendem'],
@@ -186,7 +186,7 @@
           ${cv.top && cv.top.length ? `<h3 class="lo-h3">Quem mais chamou</h3>${gente(cv.top)}` : '<p class="fine">Ninguém entrou por convite ainda.</p>'}</section>` : ''}
         ${pl ? `<section class="card" aria-labelledby="lo-p"><h2 class="ch" id="lo-p">Planos</h2>
           <div class="lo-tiles">${tile('Receita do mês', C.money(Number(pl.mrr) || 0), 'planos pagos com a fatura em dia', 'grana')}
-            ${tile('Studio', num(pl.studio), 'pagando')}${tile('Studio Houzi', num(pl.houzi), 'pagando')}${tile('Hórus', num(pl.horus), 'pagando')}
+            ${tile('Studio Cria', num(pl.studio), 'pagando')}${tile('Studio Houzi', num(pl.houzi), 'pagando')}${tile('Hórus', num(pl.horus), 'pagando')}
             ${tile('No teste grátis', num(pl.teste))}${tile('Fatura atrasada', num(pl.atrasados), Number(pl.atrasados) ? 'tá no Planos de cada um' : '', Number(pl.atrasados) ? 'alerta' : '')}</div>
           <p class="fine">${Number(pl.pendentes) ? `${pessoas(pl.pendentes)} assinou e não pagou a primeira. ` : ''}${Number(pl.cancelados) ? `${num(pl.cancelados)} cancelaram em ${per}. ` : ''}${pl.donos !== undefined ? `Donos (liberados sem pagar): ${num(pl.donos)}.` : ''}</p></section>` : ''}
         ${ia ? `<section class="card" aria-labelledby="lo-i"><h2 class="ch" id="lo-i">IA <small>(${per})</small></h2>

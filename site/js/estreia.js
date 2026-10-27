@@ -17,7 +17,7 @@
   /* ---------- a vitrine antes do login ---------- */
   const OQUE = [
     ['link', 'Link na bio', 'Uma página pra bio do Insta: vitrine, orçamento, WhatsApp e Pix, com a cara da tua marca.'],
-    ['magia', 'Studio', 'Programa o mês: a IA faz a arte e a legenda, e o post sai sozinho no Instagram.'],
+    ['magia', 'Studio Cria', 'Programa o mês: a IA faz a arte e a legenda, e o post sai sozinho no Instagram.'],
     ['grana', 'Vendas e Grana', 'Do orçamento ao dinheiro na conta: manda com link, cobra no WhatsApp, vê o mês.'],
     ['eye', 'Hórus', 'Radar de clientes: acha empresa no mapa e monta a abordagem por você.'],
     ['houzi', 'Studio Houzi', 'Marca com conceito: nome, logo em vetor, cores, letra e o brandbook.'],
@@ -29,9 +29,9 @@
   function vitrineLogin(){
     const P = C.planos, r = v => C.money(v);
     const precos = P ? `<div class="es-precos">
-        <div class="es-pc"><h3>De graça</h3><ul><li>Perfil, rede e mensagens</li><li>Link na bio</li><li>Mural e Correverso</li><li>Vendas e Grana</li><li>Studio com 1 rede social</li></ul></div>
+        <div class="es-pc"><h3>De graça</h3><ul><li>Perfil, rede e mensagens</li><li>Link na bio</li><li>Mural e Correverso</li><li>Vendas e Grana</li><li>Studio Cria com 1 rede social</li></ul></div>
         <div class="es-pc es-pc-pago"><h3>Quando precisar de mais</h3><ul>
-          <li><span>Studio com 2 redes</span><b class="num">${r(P.preco('studio', 2))}</b></li><li><span>Studio com 3 redes</span><b class="num">${r(P.preco('studio', 3))}</b></li><li><span>Studio com 4 ou mais</span><b class="num">${r(P.preco('studio', 4))}</b></li>
+          <li><span>Studio Cria com 2 redes</span><b class="num">${r(P.preco('studio', 2))}</b></li><li><span>Studio Cria com 3 redes</span><b class="num">${r(P.preco('studio', 3))}</b></li><li><span>Studio Cria com 4 ou mais</span><b class="num">${r(P.preco('studio', 4))}</b></li>
           <li><span>Studio Houzi <small>30 dias de graça</small></span><b class="num">${r(P.preco('houzi'))}</b></li><li><span>Hórus <small>30 dias de graça</small></span><b class="num">${r(P.preco('horus'))}</b></li></ul>
           <p class="fine">Por mês, renova sozinho e cancela quando quiser. Desistiu em até 7 dias do primeiro pagamento, volta tudo. <a href="termos.html">Termos de uso</a></p></div>
       </div>` : '';
@@ -86,7 +86,7 @@
   }
 
   /* ---------- os primeiros passos (no Início) ---------- */
-  const NOME_K = { inicio: 'Início', studio: 'Studio', mural: 'Mural', msg: 'Mensagens', corre: 'Vendas e Grana', grupos: 'Grupos', horus: 'Hórus', houzi: 'Studio Houzi', marcas: 'Portfólio', banca: 'Banca', linkbio: 'Link na bio' };
+  const NOME_K = { inicio: 'Início', studio: 'Studio Cria', mural: 'Mural', msg: 'Mensagens', corre: 'Vendas e Grana', grupos: 'Grupos', horus: 'Hórus', houzi: 'Studio Houzi', marcas: 'Portfólio', banca: 'Banca', linkbio: 'Link na bio' };
   async function passos(el){
     const me = st.me; if(!el || !me) return;
     let x = null; try{ x = JSON.parse(localStorage.getItem('corre-passos-x:' + me.id) || 'null'); }catch(e){}
@@ -103,7 +103,7 @@
     const b = me.bio_link, bio = !!b && typeof b === 'object' && (Object.keys(b).some(k => k !== 'links') || (Array.isArray(b.links) && b.links.length > 0));
     /* v4.01: no celular, o primeiro é pôr o Corre na tela (feito: aberto pelo ícone, ou disse que já pôs) */
     /* v4.29: o primeiro de todos é o Monta meu Corre (some quando a pessoa montou) */
-    const L = (C.views.monta ? [['monta', !!(C.monta && C.monta.feito()), 'Monta teu Corre com IA', 'Conta numa frase o que você faz: o link na bio, o mês no Studio, clientes e a semana saem prontos.', '#/monta']] : []).concat(celular() && !C.EMBED ? [['tela', noApp() || !!inLe().ja, 'Põe o Corre na tela do celular', 'Vira app: tela inteira, sem a barra do navegador, e os avisos chegam.', '', 'instala']] : [])
+    const L = (C.views.monta ? [['monta', !!(C.monta && C.monta.feito()), 'Monta teu Corre com IA', 'Conta numa frase o que você faz: o link na bio, o mês no Studio Cria, clientes e a semana saem prontos.', '#/monta']] : []).concat(celular() && !C.EMBED ? [['tela', noApp() || !!inLe().ja, 'Põe o Corre na tela do celular', 'Vira app: tela inteira, sem a barra do navegador, e os avisos chegam.', '', 'instala']] : [])
       /* v4.06: os avisos (é por eles que o Corre te chama de volta: visita no link, pedido no Mural, mensagem) */
       .concat(avs === null ? [] : [['avisos', avs, celular() ? 'Liga os avisos no celular' : 'Liga os avisos no computador', celular() ? 'Visita no teu link na bio, pedido no Mural pro teu corre e mensagem chegam na hora, com o Corre fechado.'
         : 'Visita no teu link na bio, pedido de orçamento e mensagem chegam na hora, no canto da tela. No celular, liga lá também.', '', 'push-ajustes']]).concat([

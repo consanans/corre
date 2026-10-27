@@ -190,7 +190,7 @@
       const id = el && el.dataset && el.dataset.marca, todas = marcasDo().concat(C.estudio && C.estudio.marca && C.estudio.marca() ? [C.estudio.marca()] : []);
       const mk = (id && todas.find(x => x.id === id)) || (C.studio && C.studio.marcaAtual && C.studio.marcaAtual());
       if(mk) return abre(mk);
-      const L = marcasDo(); if(!L.length){ C.toast('Põe uma marca no Studio primeiro.'); return; }
+      const L = marcasDo(); if(!L.length){ C.toast('Põe uma marca no Studio Cria primeiro.'); return; }
       C.sheet(`<div class="form"><div class="sheet-head"><h2>Aprovação de qual marca?</h2><button type="button" class="cbtn plain" data-close aria-label="Fechar">${ico('x')}</button></div>
         <div class="sd-qual">${L.map(x => `<button type="button" class="st-mk" data-act="ap-link" data-marca="${x.id}">${C.marcaLogo(x, 's')}<span><b>${esc(x.marca)}</b><small>@${esc(x.rede || '')}</small></span></button>`).join('')}</div></div>`);
     },

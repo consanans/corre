@@ -483,7 +483,7 @@
 (function(){
   'use strict';
   const C = window.Corre, ico = C.ico, esc = C.esc;
-  const NOME = { studio: 'Studio', houzi: 'Studio Houzi', horus: 'Hórus' };
+  const NOME = { studio: 'Studio Cria', houzi: 'Studio Houzi', horus: 'Hórus' };
   const PRECO = { houzi: 29.90, horus: 9.90 }, STUDIO = { 2: 59.90, 3: 69.90, 4: 79.90 };
   const ICO = { studio: 'magia', houzi: 'houzi', horus: 'eye' };
   const SOBRE = {

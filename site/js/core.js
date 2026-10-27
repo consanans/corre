@@ -288,29 +288,35 @@
   C.prende = (...urls) => { urls.forEach(u => SOLTAS.delete(u)); };
   C.soltaFora = url => { if(url && SOLTAS.has(url)){ SOLTAS.delete(url); try{ const r = C.api.unlink(url); if(r && r.catch) r.catch(() => {}); }catch(e){} } };
 
-  /* v4.43 · O MODO ESCURO: a escolha mora no aparelho (corre-tema: claro, escuro ou auto, que segue o celular), não no
-     perfil, porque cada aparelho tem a sua luz. O script do começo do index.html já põe a classe antes de qualquer coisa
-     desenhar (sem piscar branco); aqui é o resto: trocar na hora e acompanhar o celular quando ele vira de noite */
-  const TEMAS = ['claro', 'escuro', 'auto'];
-  const temaLido = () => { try{ const t = localStorage.getItem('corre-tema'); return TEMAS.includes(t) ? t : 'claro'; }catch(e){ return 'claro'; } };
-  const noiteDoAparelho = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
-  const temaAplica = () => {
-    const t = temaLido(), on = t === 'escuro' || (t === 'auto' && !!(noiteDoAparelho && noiteDoAparelho.matches));
-    const mudou = document.documentElement.classList.contains('escuro') !== on;
-    document.documentElement.classList.toggle('escuro', on);
-    if(mudou) try{ window.dispatchEvent(new CustomEvent('corre-tema', { detail: { escuro: on } })); }catch(e){}
-    return on;
+  /* v5.02 · A REDE É DIA, O STUDIO É NOITE (o Thales: "e se a rede social for dia e o studio noite? e tira a opção de
+     escolher, só pra perceber que mudou de ambiente mesmo"). O escuro da v4.43 deixou de ser escolha: quem decide é a
+     parte do Corre onde a pessoa tá (o app.js chama o C.tema.poe a cada página). O script do começo do index.html já
+     adivinha pela rota, pra página nascer na luz certa sem piscar. A escolha que ficou guardada (corre-tema) não vale
+     mais e sai do aparelho. Trocar de parte depois de aberto passa um véu na cor do lugar novo, com a lua ou o sol */
+  try{ localStorage.removeItem('corre-tema'); }catch(e){}
+  const quieto = () => !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  const veuTema = on => {
+    if(C.EMBED || quieto() || !document.body) return;
+    const v = document.createElement('div');
+    v.className = 'tema-veu ' + (on ? 'tv-noite' : 'tv-dia');
+    v.setAttribute('aria-hidden', 'true');
+    v.innerHTML = C.ico(on ? 'lua' : 'sol', 'tv-i') + `<span class="tv-t">${on ? 'Corre Studio' : 'Rede'}</span>`;
+    document.body.appendChild(v);
+    setTimeout(() => v.remove(), 900);
   };
-  if(noiteDoAparelho && noiteDoAparelho.addEventListener) noiteDoAparelho.addEventListener('change', () => { if(temaLido() === 'auto') temaAplica(); });
-  /* outra aba do mesmo aparelho trocou: esta acompanha */
-  addEventListener('storage', e => { if(e.key === 'corre-tema') temaAplica(); });
   C.tema = {
-    atual: temaLido,
     escuro: () => document.documentElement.classList.contains('escuro'),
-    poe(t){ if(!TEMAS.includes(t)) return; try{ localStorage.setItem('corre-tema', t); }catch(e){} return temaAplica(); },
-    nome: t => ({ claro: 'Desligado', escuro: 'Ligado', auto: 'Igual ao aparelho' })[t || temaLido()]
+    /* vivo: depois da primeira página (o app.js liga). Antes disso, acertar a luz não passa véu */
+    vivo: false,
+    poe(on){
+      on = !!on;
+      if(document.documentElement.classList.contains('escuro') === on) return on;
+      document.documentElement.classList.toggle('escuro', on);
+      if(C.tema.vivo) veuTema(on);
+      try{ window.dispatchEvent(new CustomEvent('corre-tema', { detail: { escuro: on } })); }catch(e){}
+      return on;
+    }
   };
-  temaAplica();
 
   /* v3.38 · CORREAL: os preços da IA em correal (os mesmos do banco; quem manda é o banco) */
   /* v3.40: o voo do Aeroporto de Londrina (Correverso) também sai em correal */
@@ -798,7 +804,7 @@
         poe('cobra', v.id, `Cobrar ${String(v.cliente || 'o cliente').slice(0, 60)} (${v.vence === hj ? 'vence hoje' : 'venceu ' + v.vence.slice(8, 10) + '/' + v.vence.slice(5, 7)})`, 'O piloto achou essa cobrança em aberto. Manda o lembrete com o Pix ou o link do orçamento.', hj, v.vence < hj ? 1 : 2, { t: 'venda', id: v.id, wa: v.whats || '' }, 3);
       });
       if(cfg.studio.on) d.t.corre_portfolio.filter(m => m.dono === eu && String(m.rede || '').trim() && !d.t.corre_posts.some(x => x.marca_id === m.id && x.data >= hj && x.data <= mais(hj, cfg.studio.dias) && x.status !== 'ideia')).slice(0, 3).forEach(m => {
-        poe('studio', m.id, `Programar os posts da ${String(m.marca || 'marca').slice(0, 60)} (nada nos próximos ${cfg.studio.dias} dias)`, 'O piloto viu a agenda da marca vazia. O Mês com IA do Studio enche a semana numa tacada.', hj, 2, { t: 'marca', id: m.id }, 7);
+        poe('studio', m.id, `Programar os posts da ${String(m.marca || 'marca').slice(0, 60)} (nada nos próximos ${cfg.studio.dias} dias)`, 'O piloto viu a agenda da marca vazia. O Mês com IA do Studio Cria enche a semana numa tacada.', hj, 2, { t: 'marca', id: m.id }, 7);
       });
       if(cfg.aprovado.on) d.t.corre_vendas.filter(v => v.dono === eu && v.aprovado_em && Date.now() - Date.parse(v.aprovado_em) < 3 * 864e5 && ['fechado', 'pago'].includes(v.st)).slice(0, 5).forEach(v => {
         const nm = String(v.cliente || 'o cliente').slice(0, 60), it = String(((v.itens || [])[0] || {}).n || '').trim();

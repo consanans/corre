@@ -8,7 +8,7 @@
   'use strict';
   const C = window.Corre, { esc, ico } = C;
   const T = { off: false, fila: Promise.resolve(), vistos: new Set(), el: null, t: 0 };
-  const NOME = { caderno: 'tarefa feita', post: 'post no Studio', lead: 'cliente chamado' };
+  const NOME = { caderno: 'tarefa feita', post: 'post no Studio Cria', lead: 'cliente chamado' };
   /* a placa da casa muda de material com os dias seguidos (nada de verde: madeira, prata, ouro e o rosa da lenda) */
   const NIVEIS = [[30, 'lenda', 'Lenda do corre'], [14, 'ouro', 'Placa de ouro'], [7, 'prata', 'Placa de prata'], [2, 'madeira', 'Placa de madeira']];
   const nivel = n => { const x = NIVEIS.find(v => n >= v[0]); return x ? { k: x[1], nome: x[2], de: x[0] } : null; };

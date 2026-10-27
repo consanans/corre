@@ -196,7 +196,7 @@
     /* v4.06: só aparece com o banco novo (o ajuste traz "lembra") */
     ['lembra', 'Lembretes do Corre', 'No fim da tarde, no máximo um por dia e só quando tem novidade pra você: visita no teu link na bio, pedido no Mural pro teu corre, o que falta no teu perfil.'],
     /* v4.18: só aparece com o banco novo (o ajuste traz "postar") */
-    ['postar', 'Hora de postar (Studio)', 'Na hora do post programado que não sai sozinho no Instagram, e quando o Instagram recusa um post. Toca e o post abre com o Postar na mão.'],
+    ['postar', 'Hora de postar (Studio Cria)', 'Na hora do post programado que não sai sozinho no Instagram, e quando o Instagram recusa um post. Toca e o post abre com o Postar na mão.'],
     /* v4.19: só aparece com o banco novo (o ajuste traz "caderno") */
     ['caderno', 'Caderninho', 'Na hora de cada tarefa com hora marcada. Toca e a tarefa abre.'],
     /* v4.30: só aparece com o banco novo (o ajuste traz "bomdia") */

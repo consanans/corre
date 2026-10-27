@@ -12,14 +12,14 @@
   /* v3.60: quantas redes o plano libera vem do banco (corre_meu_acesso; 999 = quantas quiser) */
   const lim = () => pro() ? Infinity : C.acesso && C.acesso.redes ? (C.acesso.redes >= 999 ? Infinity : C.acesso.redes) : Math.max(1, Number(C.st.me && C.st.me.redes) || 1);
   const nRedes = n => n === Infinity ? 'quantas redes sociais quiser' : `${n} ${n === 1 ? 'rede social' : 'redes sociais'}`;
-  /* v3.60: o nome do plano do Studio (o fundador não paga; quem assinou tem o Plano Studio) */
-  const nomePlano = () => pro() ? 'Plano Corre+' : C.acesso && C.acesso.fundador ? 'Fundador' : C.acesso && C.acesso.dono ? 'Dono' : C.acesso && C.acesso.planos && C.acesso.planos.studio && C.acesso.planos.studio.acesso ? 'Plano Studio' : lim() > 1 ? 'Plano grátis + liberadas' : 'Plano grátis';
+  /* v3.60: o nome do plano do Studio Cria (o fundador não paga; quem assinou tem o Plano Studio Cria) */
+  const nomePlano = () => pro() ? 'Plano Corre+' : C.acesso && C.acesso.fundador ? 'Fundador' : C.acesso && C.acesso.dono ? 'Dono' : C.acesso && C.acesso.planos && C.acesso.planos.studio && C.acesso.planos.studio.acesso ? 'Plano Studio Cria' : lim() > 1 ? 'Plano grátis + liberadas' : 'Plano grátis';
   const comRede = () => M.list.filter(m => m.rede);
   /* v3.61: as redes que o plano cobre (as mais antigas primeiro). Quem tinha o "4 ou mais" e cancelou (ou não pagou)
-     segue com as marcas e as redes guardadas, mas só as que cabem no plano abrem o painel e o Studio */
+     segue com as marcas e as redes guardadas, mas só as que cabem no plano abrem o painel e o Studio Cria */
   const noPlano = () => { const L = comRede().slice().sort((a, b) => String(a.created_at || '').localeCompare(String(b.created_at || ''))).slice(0, lim()); return M.list.filter(m => L.includes(m)); };
   const foraDoPlano = m => !!m.rede && !noPlano().includes(m);
-  const foraHTML = m => `<main class="wrap"><section class="card mk-head">${C.marcaLogo(m, 'l')}<div><h1>${esc(m.marca)}</h1><p class="note">@${esc(m.rede)} tá fora do teu plano agora: ele cobre ${nRedes(lim())}. A marca e tudo dela seguem guardados; o painel e o Studio dela voltam quando o plano cobrir de novo.</p></div><div class="acts">${C.naLoja && C.naLoja() ? '' : `<button type="button" class="btn pri" data-act="mk-plus">${ico('cartao')} Quero mais redes</button>`}<a class="btn" href="#/marcas">Voltar</a></div></section></main>`;
+  const foraHTML = m => `<main class="wrap"><section class="card mk-head">${C.marcaLogo(m, 'l')}<div><h1>${esc(m.marca)}</h1><p class="note">@${esc(m.rede)} tá fora do teu plano agora: ele cobre ${nRedes(lim())}. A marca e tudo dela seguem guardados; o painel e o Studio Cria dela voltam quando o plano cobrir de novo.</p></div><div class="acts">${C.naLoja && C.naLoja() ? '' : `<button type="button" class="btn pri" data-act="mk-plus">${ico('cartao')} Quero mais redes</button>`}<a class="btn" href="#/marcas">Voltar</a></div></section></main>`;
   const acessoPronto = () => (C.acesso || !C.acessoCarrega ? null : C.acessoCarrega());
   const cleanIg = v => String(v || '').trim().replace(/^https?:\/\/(www\.)?instagram\.com\//i, '').replace(/^@/, '').replace(/[/?#].*$/, '');
 
@@ -31,7 +31,7 @@
       ${C.marcaLogo(m)}
       <div class="mk-tx"><b>${esc(m.marca)}</b><small>${esc([m.segmento, m.papel].filter(Boolean).join(' · '))}</small>${m.desde ? `<small class="mono">desde ${esc(m.desde)}</small>` : ''}</div>
       <div class="mk-tags">${m.rede ? `<a class="tag" href="https://www.instagram.com/${encodeURIComponent(m.rede)}/" target="_blank" rel="noopener">${ico('ig')} @${esc(m.rede)}</a>` : ''}${m.link ? `<a class="tag" href="${esc(m.link)}" target="_blank" rel="noopener">${ico('ext')} Site</a>` : ''}${mine && !m.publico ? '<span class="tag moc">Mocada</span>' : ''}</div>
-      ${mine ? `<div class="acts">${m.rede ? `<a class="btn sm pri" href="#/studio/${m.id}">${ico('magia')} Studio</a><a class="btn sm" href="#/marca/${m.id}">Painel</a>` : ''}<button type="button" class="btn sm" data-act="mk-edit" data-id="${m.id}">Editar</button><button type="button" class="btn sm" data-act="vd-marca" data-id="${m.id}">${ico('star')} O que vendo</button></div>` : ''}
+      ${mine ? `<div class="acts">${m.rede ? `<a class="btn sm pri" href="#/studio/${m.id}">${ico('magia')} Studio Cria</a><a class="btn sm" href="#/marca/${m.id}">Painel</a>` : ''}<button type="button" class="btn sm" data-act="mk-edit" data-id="${m.id}">Editar</button><button type="button" class="btn sm" data-act="vd-marca" data-id="${m.id}">${ico('star')} O que vendo</button></div>` : ''}
     </article>`;
 
   async function carregar(){
@@ -105,7 +105,7 @@
     });
   }
   function plusSheet(){
-    /* v3.60: com os planos no banco, mais redes é assinar o Studio (o próximo degrau já vem marcado) */
+    /* v3.60: com os planos no banco, mais redes é assinar o Studio Cria (o próximo degrau já vem marcado) */
     if(C.acesso && C.planos){ const l = lim(); C.planos.assinar('studio', l === Infinity ? 4 : Math.min(4, l + 1)); return; }
     const ja = C.st.me && C.st.me.quer_plus;
     C.sheet(`<div class="form"><div class="sheet-head"><h2>Mais marcas no Corre</h2><button type="button" class="cbtn plain" data-close aria-label="Fechar">${ico('x')}</button></div>
@@ -114,11 +114,11 @@
       <div class="acts">${ja ? '<span class="tag pub">Você tá na lista do Corre+</span>' : '<button type="button" class="btn pri" data-act="mk-plus-ok">Quero o Corre+</button>'}${C.CFG.CONTATO_PLANO ? `<a class="btn" href="${esc(C.CFG.CONTATO_PLANO)}" target="_blank" rel="noopener">Falar com o Corre</a>` : ''}</div></div>`);
   }
 
-  /* depois de salvar ou tirar uma marca: volta pra onde a pessoa tava (Studio ou Portfólio) */
+  /* depois de salvar ou tirar uma marca: volta pra onde a pessoa tava (Studio Cria ou Portfólio) */
   const volta = () => { const h = location.hash.replace(/^#\/?/, ''); if(/^studio/.test(h) && C.views.studio) C.views.studio(C.$('app'), h.slice(7)); else C.views.marcas(C.$('app')); };
 
-  /* v4.27 · REMOVER A MARCA (o Thales, na porta do Studio: "precisa ter opção de remover marca"). Antes só dava pelo Editar,
-     com dois toques e sem dizer o que ia junto. No banco, tirar a marca leva junto (on delete cascade) os posts do Studio
+  /* v4.27 · REMOVER A MARCA (o Thales, na porta do Studio Cria: "precisa ter opção de remover marca"). Antes só dava pelo Editar,
+     com dois toques e sem dizer o que ia junto. No banco, tirar a marca leva junto (on delete cascade) os posts do Studio Cria
      dela, os links de aprovação, as visitas e o que ela vende; a grana fica na Grana (é pelo nome do cliente) e o que já
      saiu no Instagram fica lá. Por isso a folha conta antes. A conexão do Instagram é pelo @, não pela marca: se nenhuma
      outra marca usa o mesmo @, a folha oferece desconectar junto (senão a conexão fica guardada à toa). */
@@ -129,7 +129,7 @@
       ${m.rede ? `<p class="note">@${esc(m.rede)}${C.ig ? C.ig.seloTx(m) : ''}</p>` : ''}
       <div class="mk-op-l">
         <button type="button" class="mk-op-b" data-act="mk-edit" data-id="${m.id}">${ico('edit')}<span><b>Editar a marca</b><small>Nome, @ do Instagram, logo e cor</small></span></button>
-        <button type="button" class="mk-op-b rm" data-act="mk-rm" data-id="${m.id}">${ico('trash')}<span><b>Remover a marca</b><small>Tira do Studio e do Portfólio</small></span></button>
+        <button type="button" class="mk-op-b rm" data-act="mk-rm" data-id="${m.id}">${ico('trash')}<span><b>Remover a marca</b><small>Tira do Studio Cria e do Portfólio</small></span></button>
       </div></div>`);
   }
   /* a conta do Instagram que só essa marca usa (outra marca com o mesmo @ segue precisando dela) */
@@ -139,7 +139,7 @@
     if(C.ig) try{ await C.ig.carrega(); }catch(e){}
     const c = contaSo(m);
     C.sheet(`<div class="form mk-rm"><div class="sheet-head"><h2>Remover a ${esc(m.marca)}?</h2><button type="button" class="cbtn plain" data-close aria-label="Fechar">${ico('x')}</button></div>
-      <p>Ela sai do Studio e do Portfólio, e o Corre não posta mais nada nela.</p>
+      <p>Ela sai do Studio Cria e do Portfólio, e o Corre não posta mais nada nela.</p>
       <ul class="mk-rm-l"><li id="mk-rm-vai">${ico('trash')}<span>Contando o que vai junto…</span></li><li>${ico('check')}<span>Ficam: o que já saiu no Instagram e a grana dela na Grana.</span></li></ul>
       ${c ? `<label class="switch"><input type="checkbox" id="mk-rm-ig" checked><span class="sw"></span><span><b>Desconectar o @${esc(c.username)} do Instagram também</b><small>Sem a marca, a conexão fica guardada à toa. Dá pra conectar de novo quando quiser.</small></span></label>` : ''}
       <div class="acts"><button type="button" class="btn armed" id="mk-rm-ok">${ico('trash')} Remover a ${esc(m.marca)}</button><button type="button" class="btn ghost" data-close>Agora não</button></div></div>`);
@@ -148,7 +148,7 @@
     const vai = C.$('mk-rm-vai'); if(!vai) return;
     const hoje = C.hojeBR(), porSair = (posts || []).filter(p => p.status !== 'postado' && !p.ig_media_id && String(p.data || '') >= hoje).length;
     const n = (k, um, varios) => `<b>${k} ${k === 1 ? um : varios}</b>`;
-    const L = [posts === null ? 'os posts dela no Studio' : posts.length ? `${n(posts.length, 'post', 'posts')} do Studio${porSair ? ` (${porSair === 1 ? '1 ainda ia sair' : porSair + ' ainda iam sair'})` : ''}` : '']
+    const L = [posts === null ? 'os posts dela no Studio Cria' : posts.length ? `${n(posts.length, 'post', 'posts')} do Studio Cria${porSair ? ` (${porSair === 1 ? '1 ainda ia sair' : porSair + ' ainda iam sair'})` : ''}` : '']
       .concat(prods && prods.length ? [`${n(prods.length, 'item', 'itens')} do que ela vende`] : [], vis && vis.length ? [n(vis.length, 'visita', 'visitas')] : [], ['os links de aprovação dela']).filter(Boolean);
     vai.lastElementChild.innerHTML = `Vão junto: ${L.length > 1 ? L.slice(0, -1).join(', ') + ' e ' + L[L.length - 1] : L[0]}.`;
     C.$('mk-rm-ok').addEventListener('click', async ev => {
@@ -167,22 +167,22 @@
     let foi = '';
     if(c) try{ await C.api.del('corre_ig_contas', { id: c.id }); foi = ` e o @${c.username} desconectado`; if(C.ig) C.ig.esquece(); }catch(e){}
     C.closeSheet(); C.toast(`${m.marca} removida${foi}.`, 3600);
-    /* tava no Studio dessa marca: volta pro Studio, não pra uma marca que não existe mais */
+    /* tava no Studio Cria dessa marca: volta pro Studio Cria, não pra uma marca que não existe mais */
     if(location.hash.includes(m.id)) history.replaceState(null, '', '#/studio');
     volta();
   }
 
   /* ---------- STUDIO: escolhe a marca e cria com a IA, direto (sem passar pelo Portfólio e pelo painel) ----------
      As referências seguem as da marca: as 9 últimas do Instagram dela e as que a pessoa sobe. */
-  /* v3.19: o Studio tem porta. Você entra (escolhe a marca), trabalha no modo Studio (sem o menu do app) e sai
-     quando quiser. Entrou uma vez nesta aba, a porta abre direto até você tocar em "Sair do Studio". */
+  /* v3.19: o Studio Cria tem porta. Você entra (escolhe a marca), trabalha no modo Studio Cria (sem o menu do app) e sai
+     quando quiser. Entrou uma vez nesta aba, a porta abre direto até você tocar em "Sair do Studio Cria". */
   const DENTRO_K = 'corre-studio-dentro';
   const dentro = () => { try{ return sessionStorage.getItem(DENTRO_K) === '1'; }catch(e){ return false; } };
   const marcaDentro = v => { try{ if(v) sessionStorage.setItem(DENTRO_K, '1'); else sessionStorage.removeItem(DENTRO_K); }catch(e){} };
   C.views.studio = async function(app, id){
-    document.title = 'Studio · Corre';
+    document.title = 'Studio Cria · Corre';
     id = String(id || '').replace(/^\/+/, '');
-    /* v4.18: o aviso "Hora de postar" chega em #/studio/postar/ID: entra no Studio e abre esse post com o Postar na mão
+    /* v4.18: o aviso "Hora de postar" chega em #/studio/postar/ID: entra no Studio Cria e abre esse post com o Postar na mão
        (o endereço volta pra #/studio, pra recarregar a página não abrir o post de novo) */
     let post = '';
     const mp = /^postar\/([0-9a-f-]{36})$/i.exec(id);
@@ -190,7 +190,7 @@
     if(!id && dentro()) id = 'entrar';
     if(!id) return porta(app);
     marcaDentro(true);
-    app.innerHTML = C.header('studio-dentro') + `<div class="st-barra" role="banner"><span class="st-barra-t">${ico('magia')} Studio</span><span class="st-barra-sp"></span><button type="button" class="btn sm" data-act="studio-trocar" title="Trocar marca">${ico('marcas')} <span class="st-l">Trocar marca</span></button><button type="button" class="btn sm pri" data-act="studio-sair">${ico('prev')} <span class="st-l">Sair do Studio</span><span class="st-s">Sair</span></button></div><main class="wrap studio" id="sd"><section class="card"><p>Abrindo o Studio…</p></section></main>`;
+    app.innerHTML = C.header('studio-dentro') + `<div class="st-barra" role="banner"><span class="st-barra-t">${ico('magia')} Studio Cria</span><span class="st-barra-sp"></span><button type="button" class="btn sm" data-act="studio-trocar" title="Trocar marca">${ico('marcas')} <span class="st-l">Trocar marca</span></button><button type="button" class="btn sm pri" data-act="studio-sair">${ico('prev')} <span class="st-l">Sair do Studio Cria</span><span class="st-s">Sair</span></button></div><main class="wrap studio" id="sd"><section class="card"><p>Abrindo o Studio Cria…</p></section></main>`;
     document.body.classList.add('em-studio');
     try{ await Promise.all([carregar(), acessoPronto()]); }catch(e){}
     if(!C.$('sd')) return;
@@ -199,16 +199,16 @@
     if(C.studio) C.studio.mount(C.$('sd'), { com: noPlano(), sem: M.list.filter(m => !m.rede), id: id === 'entrar' ? '' : id, post });
   };
   async function porta(app){
-    app.innerHTML = C.header('studio') + '<main class="wrap st-porta-w"><section class="card"><p>Abrindo a porta do Studio…</p></section></main>';
+    app.innerHTML = C.header('studio') + '<main class="wrap st-porta-w"><section class="card"><p>Abrindo a porta do Studio Cria…</p></section></main>';
     try{ await Promise.all([carregar(), acessoPronto()]); }catch(e){}
     const com = noPlano(), sem = M.list.filter(m => !m.rede), fora = comRede().filter(m => !com.includes(m));
     if(!/^#\/studio\/?$/.test(location.hash)) return;
     app.innerHTML = C.header('studio') + `<main class="wrap st-porta-w"><section class="st-porta">
-      <span class="st-porta-k">${ico('magia')} Studio</span>
-      <h1>Entra no Studio.</h1>
+      <span class="st-porta-k">${ico('magia')} Studio Cria</span>
+      <h1>Entra no Studio Cria.</h1>
       <p>Programa o mês inteiro de uma vez: a IA faz as artes com a cara da marca e escreve as legendas (ou você sobe as tuas), e ${C.ig && !C.ig.aberto() ? 'cada post entra na agenda, no dia e na hora (a postagem automática no Instagram chega em breve)' : 'cada post sai sozinho no Instagram, no dia e na hora'}. Escolhe com qual marca vai trampar agora.</p>
       ${com.length ? `<div class="st-porta-l">${com.length > 1 ? `<button type="button" class="st-porta-mk todas" data-act="studio-entrar" data-id="todas"><span class="sd-todas" aria-hidden="true">${com.slice(0, 3).map(x => `<i style="--c:${esc(x.cor || '#FFE800')}"></i>`).join('')}</span><b>Todas as marcas</b><small>${com.length} marcas</small></button>` : ''}${com.map(m => `<div class="st-porta-c"><button type="button" class="st-porta-mk" data-act="studio-entrar" data-id="${m.id}"><span class="st-mk-av">${C.marcaLogo(m, 'l')}${C.ig ? C.ig.selo(m) : ''}</span><b>${esc(m.marca)}</b><small>@${esc(m.rede)}${C.ig ? C.ig.seloTx(m) : ''}</small></button>${opBtn(m)}</div>`).join('')}${fora.map(m => `<div class="st-porta-c"><button type="button" class="st-porta-mk fora" data-act="mk-plus">${C.marcaLogo(m, 'l')}<b>${esc(m.marca)}</b><small>fora do plano</small></button>${opBtn(m)}</div>`).join('')}</div>`
-        : `<p class="st-porta-v"><b>${sem.length ? 'Liga o Instagram de uma marca pra entrar.' : 'Põe a primeira marca que você trampa.'}</b> Com o @ da marca, o Studio puxa as últimas postagens dela como referência pra IA.</p>`}
+        : `<p class="st-porta-v"><b>${sem.length ? 'Liga o Instagram de uma marca pra entrar.' : 'Põe a primeira marca que você trampa.'}</b> Com o @ da marca, o Studio Cria puxa as últimas postagens dela como referência pra IA.</p>`}
       <div class="acts">${sem.slice(0, 3).map(m => `<button type="button" class="btn sm" data-act="mk-edit" data-id="${m.id}">${ico('ig')} Ligar o Insta da ${esc(m.marca)}</button>`).join('')}<button type="button" class="btn sm" data-act="mk-nova">${ico('plus')} Nova marca</button></div>
     </section>${C.ig ? `<p class="sd-ig sd-auto st-porta-ig" id="st-porta-ig" data-ig-linha data-rede="${esc(com.length === 1 ? com[0].rede : '')}">${C.ig.linha()}</p>` : ''}</main>`;
     /* v3.41: a porta também diz se o Instagram tá ligado (é aqui que a volta do login cai) */
@@ -261,9 +261,9 @@
     'studio-trocar': () => { marcaDentro(false); C.go('#/studio'); },
     'studio-sair': () => {
       marcaDentro(false); document.body.classList.remove('em-studio');
-      /* no balcão da barraca do Studio, sair é voltar pra rua do Correverso */
+      /* no balcão da barraca do Studio Cria, sair é voltar pra rua do Correverso */
       if(C.EMBED){ C.pai('fechar'); return; }
-      C.toast('Saiu do Studio. Tá nas tuas Ferramentas, no perfil.'); C.go(C.st.me ? '#/@' + C.st.me.handle : '#/');
+      C.toast('Saiu do Studio Cria.'); C.go(C.st.me ? '#/@' + C.st.me.handle : '#/');
     },
     'mk-nova': () => form(null),
     'mk-edit': async el => { if(!M.list.length) try{ await carregar(); }catch(e){} form(M.list.find(m => m.id === el.dataset.id)); },

@@ -1,8 +1,12 @@
 # O que falta subir (27/10/2026)
 
-**O zip da 5.01** (`saida/corre-site.zip`): arrasta no Netlify, como sempre. O banco já tá pronto (o `delta-v500.sql` rodou hoje pelo conector). Leva junto a 5.0, a 4.43 (o modo escuro) e o que vem antes, se ainda não subiu.
+**O zip da 5.02** (`saida/corre-site.zip`): arrasta no Netlify, como sempre. O banco já tá pronto (o `delta-v500.sql` rodou hoje pelo conector). Leva junto a 5.01, a 5.0, a 4.43 e o que vem antes, se ainda não subiu.
 
-O que a 5.01 traz: **o Mural mora no Corre Studio**, do lado do Hórus (pedido de serviço é trabalho). Na Rede, o Correverso ficou sozinho no destaque do menu, e a barra de baixo do celular virou Início, Grupos, Correverso, Mensagens e Perfil. No Studio, o Mural tá no grupo Trabalho, num bloco de O teu dia e no cartão do canto. Quem pede serviço sem conta segue pedindo igual.
+O que a 5.02 traz: **a Rede é dia, o Corre Studio é noite.** Não tem mais o "Modo escuro" pra escolher: o lugar manda. Entrou no Studio, passa um véu com a lua e a tela fica de noite; voltou pra Rede, passa o sol e fica de dia. E **o Studio que posta agora se chama Studio Cria** (no menu, na porta, nos planos, no manual, nos Termos e na Privacidade), pra não confundir com o Corre Studio e o Studio Houzi.
+
+Pra conferir depois de subir: abre o Corre (de dia), toca na luminária do alto (a lua passa e fica de noite), abre o Studio Cria pelo menu e volta pra Rede (o sol passa). Se o celular tava com o modo escuro ligado na 4.43, a Rede volta clara sozinha.
+
+O que a 5.01 traz (vai junto): **o Mural mora no Corre Studio**, do lado do Hórus (pedido de serviço é trabalho). Na Rede, o Correverso ficou sozinho no destaque do menu, e a barra de baixo do celular virou Início, Grupos, Correverso, Mensagens e Perfil. No Studio, o Mural tá no grupo Trabalho, num bloco de O teu dia e no cartão do canto. Quem pede serviço sem conta segue pedindo igual.
 
 O que a 5.0 traz: **Londrina no Google**.
 - Páginas abertas, sem login, que o Google lê: `app.corresocial.com/londrina/` e uma por ramo (social media, design, foto e vídeo, reforma, beleza, tatuagem, frete... são 17). Cada uma tem:

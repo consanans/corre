@@ -14,7 +14,7 @@
   const RECEITAS = [
     ['esfria', 'Cliente esfriando', 'eye', d => `Cliente do Hórus em Contatado, Interessado ou Proposta sem nada há ${d} dias vira "Retomar Fulano", com o WhatsApp num toque.`, [3, 5, 7, 10, 15]],
     ['cobra', 'Cobrança vencida', 'grana', () => 'Venda fechada que venceu (ou vence hoje) e não foi paga vira "Cobrar Fulano", com a mensagem e o teu Pix prontos. O valor não aparece na tela do celular.'],
-    ['studio', 'Marca sem post', 'magia', d => `Marca com o @ sem nenhum post nos próximos ${d} dias vira "Programar os posts", que abre o Studio dela.`, [3, 5, 7, 10, 14]],
+    ['studio', 'Marca sem post', 'magia', d => `Marca com o @ sem nenhum post nos próximos ${d} dias vira "Programar os posts", que abre o Studio Cria dela.`, [3, 5, 7, 10, 14]],
     ['aprovado', 'Orçamento aprovado', 'check', () => 'Quando o cliente aprova o orçamento pelo link, entram "Começar o trabalho" hoje e "Entregar" no dia da entrega.']
   ];
   const ICO = Object.fromEntries(RECEITAS.map(r => [r[0], r[2]]));
@@ -46,7 +46,7 @@
     const m = P.meu || { ligado: false, receitas: {}, log: [], abertas: 0, feitas: 0 }, on = !!m.ligado;
     app.innerHTML = C.header('piloto') + `<main class="wrap pl-pg">
       <header class="pl-topo"><span class="pl-topo-i">${ico('piloto')}</span><div><span class="mono">Piloto automático</span><h1>O Corre lembra por você</h1>
-        <p>De hora em hora (das 7h às 20h) ele olha teu Hórus, tuas Vendas e o Studio e põe no Caderninho o que tá esfriando, com o botão que resolve. Ele nunca manda nada sozinho: a mensagem sai pronta, quem manda é você.</p></div>
+        <p>De hora em hora (das 7h às 20h) ele olha teu Hórus, tuas Vendas e o Studio Cria e põe no Caderninho o que tá esfriando, com o botão que resolve. Ele nunca manda nada sozinho: a mensagem sai pronta, quem manda é você.</p></div>
         <button type="button" class="atd-liga${on ? ' on' : ''}" data-act="pl-liga" aria-pressed="${on}"><span class="atd-liga-b" aria-hidden="true"></span><span>${on ? 'Ligado' : 'Desligado'}</span></button></header>
       ${P.semBanco ? '<p class="atd-falta">O Piloto liga quando o banco do Corre atualizar (falta o delta-v434.sql).</p>' : ''}
       <section class="atd-num" aria-label="O piloto"><div><b class="num">${m.abertas || 0}</b><span>no teu Caderninho agora</span></div><div><b class="num">${m.feitas || 0}</b><span>resolvidas em 30 dias</span></div><div><b class="num">${(m.log || []).length}</b><span>que ele achou em 30 dias</span></div></section>
@@ -89,7 +89,7 @@
   };
 
   /* ---------- no Caderninho ---------- */
-  const ROT = { lead: ['wa', 'WhatsApp'], venda: ['wa', 'Cobrar'], marca: ['magia', 'Abrir o Studio'] };
+  const ROT = { lead: ['wa', 'WhatsApp'], venda: ['wa', 'Cobrar'], marca: ['magia', 'Abrir o Studio Cria'] };
   function botao(t){
     if(!t || !t.piloto || !t.liga || t.feito) return '';
     const l = t.liga, wa = waDe(l.wa);

@@ -71,7 +71,7 @@
   function autoLinha(){
     const mk = ST.com.find(x => x.id === ST.sel), L = C.ig ? C.ig.conectadas() : [], btn = `<button type="button" class="btn sm" data-act="ig-contas">${ico('ig')} Contas</button>`;
     if(ST.contas === null) return `<span class="sd-auto-k">${ico('ig')} Instagram</span><span>Vendo as contas conectadas…</span>`;
-    /* v3.41: sem conta (nenhuma, vencida ou a última tentativa falhou), a linha é a mesma da porta do Studio
+    /* v3.41: sem conta (nenhuma, vencida ou a última tentativa falhou), a linha é a mesma da porta do Studio Cria
        (igcontas.js): o estado e o motivo ficam aqui, não só no aviso que some */
     /* falha guardada ou conta vencida também mandam a linha pra lá, mesmo com outra conta conectada */
     if(!L.length || (C.ig && (C.ig.falhou() || C.ig.contas().some(c => !C.ig.ok(c))))) return C.ig ? C.ig.linha({ rede: mk ? mk.rede : '' }) : '';
@@ -88,7 +88,7 @@
     migra();
   }
   /* o que entrou na agenda antes da v3.38 sem "programar" (dia, hora e arte, pra frente) passa a ser programado:
-     no Studio novo, tudo que tá no calendário sai sozinho */
+     no Studio Cria novo, tudo que tá no calendário sai sozinho */
   async function migra(){
     if(ST.migrou) return; ST.migrou = true;
     const L = ST.posts.filter(p => !p.ig_status && p.status === 'pronto' && p.data && p.hora && p.midia_url && at(p) > Date.now() + 6e4).slice(0, 60);
@@ -167,13 +167,13 @@
     const chip = x => `<button type="button" role="tab" class="st-mk" data-act="sd-marca" data-id="${x.id}" aria-selected="${ST.sel === x.id}"><span class="st-mk-av">${C.marcaLogo(x, 's')}${ig ? C.ig.selo(x) : ''}</span><span><b>${esc(x.marca)}</b><small>@${esc(x.rede)}${ig ? C.ig.seloTx(x) : ''}</small></span></button>`;
     ST.el.innerHTML = `
       <section class="card st-top">
-        <div class="st-h"><div><span class="mono">${ico('magia')} Studio</span><h1>${m ? `O mês da <span class="hl">${esc(m.marca)}</span>` : ST.com.length ? 'Programa o mês. <span class="hl">O Corre posta.</span>' : 'Escolhe a marca e programa o mês'}</h1>
+        <div class="st-h"><div><span class="mono">${ico('magia')} Studio Cria</span><h1>${m ? `O mês da <span class="hl">${esc(m.marca)}</span>` : ST.com.length ? 'Programa o mês. <span class="hl">O Corre posta.</span>' : 'Escolhe a marca e programa o mês'}</h1>
           <p class="note">Sobe as artes ou manda a IA fazer, escolhe os dias e pronto: ${C.ig && !C.ig.aberto() && !(C.ig.conectadas() || []).length ? 'cada post entra na agenda, e na hora o Corre te lembra de postar (a postagem automática no Instagram chega em breve).' : 'cada post sai sozinho no Instagram, no dia e na hora.'}</p></div>
           ${ST.com.length ? `<div class="st-ctas"><button type="button" class="btn pri st-novo" data-act="lt-mes">${ico('magia')} Mês com IA</button><button type="button" class="btn st-sub" data-act="lt-subir">${ico('up')} Subir artes</button><button type="button" class="btn ghost st-um" data-act="sd-novo">${ico('plus')} Um post</button>${C.aprova ? `<button type="button" class="btn ghost st-apr" data-act="ap-link"${m ? ` data-marca="${m.id}"` : ''}>${ico('check')} Link de aprovação</button>` : ''}</div>` : ''}</div>
         ${ST.com.length || ST.sem.length ? `<div class="st-marcas" role="tablist" aria-label="Marcas">
           ${ST.com.length > 1 ? `<button type="button" role="tab" class="st-mk todas" data-act="sd-marca" data-id="todas" aria-selected="${ST.sel === 'todas'}"><span class="sd-todas" aria-hidden="true">${ST.com.slice(0, 3).map(x => `<i style="--c:${esc(x.cor || '#FFE800')}"></i>`).join('')}</span><span><b>Todas</b><small>${ST.com.length} marcas${ig ? `<em class="mk-st-t on" data-mk-noar="${esc(ST.com.map(m => String(m.rede || '').toLowerCase()).join(','))}"></em>` : ''}</small></span></button>` : ''}
           ${ST.com.map(x => chip(x) + (x.id === ST.sel ? `<button type="button" class="st-mk-op" data-act="mk-op" data-id="${x.id}" aria-label="Editar ou remover a marca ${esc(x.marca)}" title="Editar ou remover a ${esc(x.marca)}">${ico('dots')}</button>` : '')).join('')}
-          ${ST.sem.map(x => `<button type="button" class="st-mk off" data-act="mk-edit" data-id="${x.id}" title="Liga o Instagram dessa marca pra trampar nela no Studio">${C.marcaLogo(x, 's')}<span><b>${esc(x.marca)}</b><small>ligar o Insta</small></span></button>`).join('')}
+          ${ST.sem.map(x => `<button type="button" class="st-mk off" data-act="mk-edit" data-id="${x.id}" title="Liga o Instagram dessa marca pra trampar nela no Studio Cria">${C.marcaLogo(x, 's')}<span><b>${esc(x.marca)}</b><small>ligar o Insta</small></span></button>`).join('')}
           <button type="button" class="st-mk add" data-act="mk-nova">${ico('plus')}<span><b>Nova marca</b><small>pra trampar</small></span></button>
         </div>` : ''}
         <p class="sd-ig sd-auto" id="sd-ig">${autoLinha()}</p>${ST.com.length && C.push ? C.push.faixa('studio') : ''}${ST.com.length ? `<div class="lt-barra" id="lt-barra" hidden></div>` : ''}
@@ -186,7 +186,7 @@
         <div class="sd-nums" id="sd-nums"></div>
         <div id="sd-corpo"></div>
       </section>`
-      : `<section class="card st-vazio"><p><b>${ST.sem.length ? 'Liga o Instagram de uma marca pra começar.' : 'Põe a primeira marca que você trampa.'}</b></p><p class="note">Com o @ da marca, o Studio puxa as 9 últimas postagens dela como referência pra IA. Também dá pra subir fotos e prints do feed.</p>
+      : `<section class="card st-vazio"><p><b>${ST.sem.length ? 'Liga o Instagram de uma marca pra começar.' : 'Põe a primeira marca que você trampa.'}</b></p><p class="note">Com o @ da marca, o Studio Cria puxa as 9 últimas postagens dela como referência pra IA. Também dá pra subir fotos e prints do feed.</p>
         <div class="acts">${ST.sem.length ? `<button type="button" class="btn pri" data-act="mk-edit" data-id="${ST.sem[0].id}">Ligar o Instagram da ${esc(ST.sem[0].marca)}</button>` : `<button type="button" class="btn pri" data-act="mk-nova">${ico('plus')} Adicionar marca</button>`}</div></section>`}`;
   }
   function corpo(){

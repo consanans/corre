@@ -70,7 +70,7 @@
 
   /* ---------- o escritório: cada ferramenta é um móvel fixo ---------- */
   const ESTACOES = [
-    { id: 'studio', titulo: 'Studio', rota: '#/studio', cor: AMARELO, x: 17.4, z: 4.35, w: 2, d: 1.9, bl: [...mesaTrab().map(b => Object.assign({}, b)), B(.65, .45, 1.1, .7, .1, .7, INK), B(.65, .55, 1.72, .7, .7, .12, INK), B(.75, .62, 1.7, .5, .5, .02, AMARELO), B(.9, 0, 1.3, .1, .45, .1, INK), B(.8, 0, 1.25, .4, .05, .4, CINZA)], tag: [1, 1.3, .3] },
+    { id: 'studio', titulo: 'Studio Cria', rota: '#/studio', cor: AMARELO, x: 17.4, z: 4.35, w: 2, d: 1.9, bl: [...mesaTrab().map(b => Object.assign({}, b)), B(.65, .45, 1.1, .7, .1, .7, INK), B(.65, .55, 1.72, .7, .7, .12, INK), B(.75, .62, 1.7, .5, .5, .02, AMARELO), B(.9, 0, 1.3, .1, .45, .1, INK), B(.8, 0, 1.25, .4, .05, .4, CINZA)], tag: [1, 1.3, .3] },
     { id: 'feed', titulo: 'Feed', rota: '#/', cor: ROSA, parede: true, x: 13.25, z: 4.15, w: 1.4, d: .1, bl: [B(0, 1.4, 0, 1.4, .85, .08, INK), B(.08, 1.47, .08, 1.24, .71, .02, CEU), B(.2, 1.6, .1, .45, .08, .01, ROSA), B(.2, 1.75, .1, .9, .05, .01, INK), B(.2, 1.9, .1, .7, .05, .01, INK)], tag: [.7, 2.3, .1] },
     /* o Computador IA: trancado, pra ver agora e comprar depois (Corre+). Torre com luz, tela com o olho, cadeado de ouro */
     { id: 'ia', titulo: 'Computador IA', rota: '', cor: LILAS, trava: true, x: 14.5, z: 4.4, w: 1.6, d: 1.1, bl: [B(0, 0, 0, 1.6, .08, 1.1, '#2A2D33'), B(.05, .08, .15, .5, 1.45, .85, '#15171B'), B(.1, .25, 1.0, .4, .04, .01, ROSA), B(.1, .45, 1.0, .4, .04, .01, '#38E1FF'), B(.1, .65, 1.0, .4, .04, .01, LILAS), B(.1, .85, 1.0, .4, .04, .01, AMARELO), B(.65, .08, .3, .9, .72, .6, '#2A2D33'), B(.7, .8, .35, .8, .55, .07, INK), B(.74, .84, .42, .72, .47, .02, '#101318'), B(1.0, .98, .44, .2, .2, .01, AMARELO), B(1.06, 1.04, .45, .08, .08, .01, INK), B(.9, .92, .44, .4, .03, .01, LILAS), B(.9, 1.25, .44, .4, .03, .01, LILAS), B(.95, 1.36, .5, .3, .3, .3, LILAS), B(1.0, 1.66, .55, .2, .12, .2, LILAS), B(.98, .4, .92, .24, .22, .06, OURO), B(1.03, .62, .92, .14, .1, .05, OURO)], tag: [.9, 2.05, .55] },
@@ -2573,7 +2573,7 @@
   const LUGARES = {
     horus: { titulo: 'Casa do Hórus', planta: PLANTA_HORUS, ola: 'Casa do Hórus. O radar é o altar do meio: chega e toca.',
       estacoes: () => [{ id: 'radar', liga: 'horus', titulo: 'Radar do Hórus', rota: '#/horus', cor: INK, x: 5.6, z: 5, w: 2.8, d: 2.8, bl: RADAR, tag: [1.4, 1.75, 1.4], y: 0 }] },
-    studio: { titulo: 'O Estúdio', planta: PLANTA_ESTUDIO, ola: 'O Estúdio. A mesa de criação abre o Studio: chega e toca.',
+    studio: { titulo: 'O Estúdio', planta: PLANTA_ESTUDIO, ola: 'O Estúdio. A mesa de criação abre o Studio Cria: chega e toca.',
       estacoes: () => [{ id: 'studio', titulo: 'Mesa de criação', rota: '#/studio', cor: AMARELO, x: 7.4, z: .9, w: 4.2, d: 1.2, bl: ESTUDIO_MESA, tag: [2.1, 2.05, .6], y: 0 }],
       itens: [['cadeira_gamer', 10.4, 2.3, 2, 0, 2], ['banqueta', 2.4, 1.4, 0, 0, 2], ['mic_pedestal', 6, 4.4, 0, 0, 0], ['cabine_foto', 11.6, 6, 0, 0, 0], ['pufe', 8.6, 8.6, 0, 0, 0],
         ['bean_bag', 9.8, 8.4, 0, 0, 1], ['luminaria', .4, 10, 0, 0, 0], ['neon_raio', 5.9, .15, 0, 0, 0], ['varal_luzes', 8.4, 9.6, 0, 0, 0], ['tapete', 8.6, 7.6, 1, 0, 2]] },

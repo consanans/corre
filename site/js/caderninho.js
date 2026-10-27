@@ -193,7 +193,7 @@
         /* o que já passou e não saiu só entra se tem arte (rascunho de semana passada não é atraso) */
         if(p.data < hj && !p.midia_url && p.ig_status !== 'erro') return;
         const hora = p.hora ? String(p.hora).slice(0, 5) : null;
-        out.push({ k: 'post', id: p.id, dia: p.data, hora, titulo: p.titulo || (FMT[p.formato] || 'Post') + ' sem título', sub: `Studio · ${nomes[p.marca_id] || 'post'}${p.ig_status === 'erro' ? ' · não saiu no Instagram' : p.ig_status === 'agendado' ? ' · programado' : ''}`, href: '#/studio/postar/' + p.id, ic: 'magia', erro: p.ig_status === 'erro' });
+        out.push({ k: 'post', id: p.id, dia: p.data, hora, titulo: p.titulo || (FMT[p.formato] || 'Post') + ' sem título', sub: `Studio Cria · ${nomes[p.marca_id] || 'post'}${p.ig_status === 'erro' ? ' · não saiu no Instagram' : p.ig_status === 'agendado' ? ' · programado' : ''}`, href: '#/studio/postar/' + p.id, ic: 'magia', erro: p.ig_status === 'erro' });
       });
     }).catch(() => {});
     const leads = !C.ferr('horus') ? null : api.q('corre_leads', { select: 'id,nome,prox,st,fonte,hist', eq: { dono: u }, lte: { prox: fim }, limit: 3000 }).then(L => {
@@ -292,7 +292,7 @@
     if(C.piloto) h += C.piloto.faixa();
     if(tot) h += `<div class="cd-prog" role="img" aria-label="${nF} de ${tot} tarefas de hoje feitas"><span><b class="num">${nF}</b> de <b class="num">${tot}</b> feitas hoje</span><i><b style="width:${Math.round(100 * nF / tot)}%"></b></i></div>`;
     if(at.length) h += secao('atras', 'Ficou pra trás', at.length, `<ol class="cd-l">${at.map(e => item(e, true)).join('')}</ol>${at.some(e => e.t === 'tarefa') ? `<button type="button" class="lnk cd-pra-hoje" data-act="cd-pra-hoje">${ico('cal')}Passar as minhas pra hoje</button>` : ''}`, 'atras');
-    h += secao('hoje', 'Hoje', L.length, L.length ? diaHTML(L) + novoNoDia(hj) : (!at.length && nT === 0 && nF ? '<p class="cd-carimbo"><span>Caderninho em dia</span></p>' : `<p class="cd-vazio">${nF ? 'Fechou o de hoje.' : 'Nada pra hoje ainda.'} Anota aí em cima o que tem que sair hoje: o Corre junta com o teu Studio, o Hórus e as Vendas.</p>`) + (L.length ? '' : novoNoDia(hj)));
+    h += secao('hoje', 'Hoje', L.length, L.length ? diaHTML(L) + novoNoDia(hj) : (!at.length && nT === 0 && nF ? '<p class="cd-carimbo"><span>Caderninho em dia</span></p>' : `<p class="cd-vazio">${nF ? 'Fechou o de hoje.' : 'Nada pra hoje ainda.'} Anota aí em cima o que tem que sair hoje: o Corre junta com o teu Studio Cria, o Hórus e as Vendas.</p>`) + (L.length ? '' : novoNoDia(hj)));
     if(nF) h += `<details class="cd-sec cd-feitas"${ab ? ' open' : ''} data-feitas><summary><h2>Feitas hoje <small class="num">${nF}</small></h2></summary><ol class="cd-l">${rep.map(itRepFeita).join('')}${feitas.map(t => itTarefa(t)).join('')}</ol></details>`;
     return h;
   }

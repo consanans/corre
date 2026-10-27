@@ -250,7 +250,7 @@
       + E.marcas.map(m => { const c = m.spec.cores; return chip('m:' + m.id, `<i class="lb-amostra" aria-hidden="true" style="background:${HEX.test(c.paper) ? c.paper : '#fff'};border-color:${HEX.test(c.p) ? c.p : '#000'};box-shadow:inset 0 -10px 0 ${HEX.test(c.p) ? c.p : '#000'}"></i><b>${esc(m.nome || m.spec.nome || 'Marca')}</b>`, 'Marca do Studio Houzi', E.cfg.tema === 'marca' && E.cfg.marca === m.id); }).join('')
       + (E.marcas.length ? '' : `<a class="lb-tema lb-tema-nova" href="#/houzi"><i class="lb-amostra" aria-hidden="true">${ico('houzi')}</i><b>Tua marca</b><small>Faz no Studio Houzi e ela veste a página</small></a>`);
     const n = $('lb-marca-n');
-    if(n) n.textContent = E.cfg.tema === 'marca' && E.cfg.mv.nome ? `Com a marca ${E.cfg.mv.nome}: as cores, as letras e o logo dela. Mudou a marca no Studio? Escolhe ela aqui de novo e salva.` : '';
+    if(n) n.textContent = E.cfg.tema === 'marca' && E.cfg.mv.nome ? `Com a marca ${E.cfg.mv.nome}: as cores, as letras e o logo dela. Mudou a marca no Studio Houzi? Escolhe ela aqui de novo e salva.` : '';
   }
   function pintaBlocos(){
     const el = $('lb-blocos'); if(!el) return;

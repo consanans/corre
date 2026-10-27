@@ -2,7 +2,7 @@
    O Thales: "quem entra vê ferramenta, não resultado". Agora quem acabou de criar o perfil escreve numa frase o que
    faz, e em uns 2 minutos o Corre entrega, montado com a IA que já existe (nada de função nova):
    - o link na bio no ar (a frase dela em cima; orçamento, WhatsApp, vitrine e Instagram embaixo);
-   - o mês no Studio: a marca dela (com o @ do Instagram) e 12 posts nas próximas 4 semanas, com a pauta e a legenda da
+   - o mês no Studio Cria: a marca dela (com o @ do Instagram) e 12 posts nas próximas 4 semanas, com a pauta e a legenda da
      IA e a arte no modelo da marca (o "Mês com IA" do lote.js, sem foto de IA pra caber no grátis do dia). Sem conta
      do Instagram conectada, cada post vira o aviso "hora de postar";
    - clientes no Hórus (quem vende pra empresa): o Hórus montado pela frase (a mesma IA do "Monta o Hórus pra mim") e
@@ -37,7 +37,7 @@
     return `<main class="wrap mm" id="mm">
       <div class="hello mm-hero"><p class="mm-olho">${ico('magia')} Monta meu Corre</p>
         <h1 class="mm-t"><span class="hl">Conta o que você faz.</span> O Corre monta o resto.</h1>
-        <p class="mm-lead">Numa frase, do teu jeito. Em uns 2 minutos você tem o link na bio no ar, o mês de posts no Studio${b2b ? ', clientes no Hórus' : ''} e a semana no Caderninho.${ja ? ' <b>Você já montou uma vez:</b> o que já existe não é refeito.' : ''}</p></div>
+        <p class="mm-lead">Numa frase, do teu jeito. Em uns 2 minutos você tem o link na bio no ar, o mês de posts no Studio Cria${b2b ? ', clientes no Hórus' : ''} e a semana no Caderninho.${ja ? ' <b>Você já montou uma vez:</b> o que já existe não é refeito.' : ''}</p></div>
       <form class="card mm-f" id="mm-f" novalidate>
         <div class="fld"><label for="mm-q">O que você faz, pra quem?</label><textarea class="inp" id="mm-q" rows="2" maxlength="300" placeholder="Ex.: faço bolo de pote e coffee break pra empresas">${esc(me.faz || '')}</textarea></div>
         <div class="chips mm-ex">${EXEMPLOS.map(t => `<button type="button" class="chip" data-act="mm-ex" data-t="${esc(t)}">${esc(t)}</button>`).join('')}</div>
@@ -48,7 +48,7 @@
         <div class="fld"><label for="mm-cid">Cidade</label><input class="inp" id="mm-cid" maxlength="60" value="${esc(l ? `${l.cidade}, ${l.uf}` : me.cidade || '')}" placeholder="Londrina, PR" autocomplete="address-level2"></div>
         <fieldset class="mm-itens"><legend>O que montar</legend>
           ${item('bio', 'link', 'Teu link na bio no ar', `${location.host}/@${me.handle}: tua frase em cima, orçamento, WhatsApp e Instagram embaixo.`, true)}
-          ${item('studio', 'magia', 'O mês no Studio', '12 posts nas próximas 4 semanas: pauta, arte e legenda. Na hora de cada um, o Corre te avisa.', true)}
+          ${item('studio', 'magia', 'O mês no Studio Cria', '12 posts nas próximas 4 semanas: pauta, arte e legenda. Na hora de cada um, o Corre te avisa.', true)}
           ${item('horus', 'eye', 'Clientes no Hórus', 'Até 20 empresas da tua cidade com WhatsApp, cada uma com a primeira mensagem pronta.', b2b,
             `<label class="mm-sub" for="mm-ramo">Quem você quer atender</label><select class="inp" id="mm-ramo"><option value="">Deixa a IA escolher pela tua frase</option>${N.map(([k, n]) => `<option value="${esc(k)}"${k === ramo && l ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select>`)}
           ${item('cad', 'caderno', 'A semana no Caderninho', '6 tarefas, uma por dia, pra começar. Tarefa feita rende correal.', true)}
@@ -62,7 +62,7 @@
   }
 
   /* ---------- a montagem: cada coisa por si ---------- */
-  const PASSOS = { bio: ['link', 'Link na bio', '#/linkbio'], horus: ['eye', 'Clientes no Hórus', '#/horus'], studio: ['magia', 'O mês no Studio', '#/studio'], cad: ['caderno', 'A semana no Caderninho', '#/caderninho'] };
+  const PASSOS = { bio: ['link', 'Link na bio', '#/linkbio'], horus: ['eye', 'Clientes no Hórus', '#/horus'], studio: ['magia', 'O mês no Studio Cria', '#/studio'], cad: ['caderno', 'A semana no Caderninho', '#/caderninho'] };
   function progresso(){
     const L = M.it;
     return `<main class="wrap mm" id="mm"><div class="hello mm-hero"><p class="mm-olho">${ico('magia')} Monta meu Corre</p>
@@ -105,25 +105,25 @@
     marca('horus', 'ok', r.novas ? `${r.novas} ${r.novas === 1 ? 'empresa' : 'empresas'} no radar${r.wa ? `, ${r.wa} com WhatsApp` : ''}. A primeira mensagem de cada uma tá pronta.` : 'O mapa não achou empresa nova com telefone aí. No Hórus dá pra caçar por bairro ou colar uma lista.', { n: r.novas });
   }
   async function studio(o){
-    if(!C.lote || !C.lote.mesAuto){ marca('studio', 'pulou', 'O Studio não abriu agora.'); return; }
+    if(!C.lote || !C.lote.mesAuto){ marca('studio', 'pulou', 'O Studio Cria não abriu agora.'); return; }
     const rede = String(o.ig || '').replace(/^@/, '').trim();
     let L = []; try{ L = await api.q('corre_portfolio', { eq: { dono: st.me.id }, limit: 50 }); }catch(e){}
     let mk = L.find(m => m.rede && (!rede || m.rede === rede)) || L.find(m => m.rede);
     if(!mk){
-      if(!rede){ marca('studio', 'pulou', 'Põe teu Instagram aqui em cima pra o Studio montar o mês.'); return; }
+      if(!rede){ marca('studio', 'pulou', 'Põe teu Instagram aqui em cima pra o Studio Cria montar o mês.'); return; }
       const row = { marca: String(o.nome || st.me.nome || st.me.handle).slice(0, 60), segmento: String((C.meuCorre && C.meuCorre.catNome(st.me.categoria)) || '').slice(0, 60), papel: 'Minha marca', rede, cor: CORES[C.hash(st.me.id) % CORES.length], publico: true, ordem: L.length };
       const r = await api.ins('corre_portfolio', row); mk = r && r[0];
       if(!mk) throw { code: 'marca' };
     }
     marca('studio', 'indo', `A IA tá fazendo a pauta da ${mk.marca}…`);
     const job = await C.lote.mesAuto(mk, { n: 12, assunto: o.q });
-    if(!job){ marca('studio', 'pulou', 'O Studio já tava fazendo um mês agora. Confere no calendário.'); return; }
+    if(!job){ marca('studio', 'pulou', 'O Studio Cria já tava fazendo um mês agora. Confere no calendário.'); return; }
     M.it.studio.job = job; M.it.studio.ir = '#/studio/' + mk.id;
     /* acompanha o trabalho (ele segue mesmo se a pessoa sair daqui) */
     await new Promise(ok => {
       const passo = () => {
         const n = job.itens.length;
-        if(job.fim){ marca('studio', job.feitos ? 'ok' : 'erro', job.feitos ? `${job.feitos} posts programados pra ${mk.marca}, de ${C.ddmm(job.itens[0].data)} a ${C.ddmm(job.itens[n - 1].data)}.` : 'Não deu pra criar os posts agora. Tenta pelo "Mês com IA" do Studio.'); ok(); return; }
+        if(job.fim){ marca('studio', job.feitos ? 'ok' : 'erro', job.feitos ? `${job.feitos} posts programados pra ${mk.marca}, de ${C.ddmm(job.itens[0].data)} a ${C.ddmm(job.itens[n - 1].data)}.` : 'Não deu pra criar os posts agora. Tenta pelo "Mês com IA" do Studio Cria.'); ok(); return; }
         marca('studio', 'indo', `Fazendo os posts: ${job.feitos} de ${n}…`);
         M.t = setTimeout(passo, 900);
       };
@@ -135,7 +135,7 @@
     const L = [
       F.bio && F.bio.s === 'ok' ? ['Cola o link na bio no Instagram', `${location.host}/@${me.handle}`] : ['Monta o link na bio', 'Perfil › Link na bio'],
       F.horus && F.horus.s === 'ok' && F.horus.n ? ['Chama os 5 primeiros clientes do Hórus', 'A mensagem de cada um já tá pronta. Arrasta a carta pra direita.'] : ['Manda o link na bio pra 5 clientes antigos', 'E pede uma indicação pra cada um.'],
-      F.studio && F.studio.job ? ['Confere os posts da semana no Studio', 'Mexe na arte ou na legenda do que não tiver a tua cara.'] : ['Faz o primeiro post', 'Mostra um trampo teu.'],
+      F.studio && F.studio.job ? ['Confere os posts da semana no Studio Cria', 'Mexe na arte ou na legenda do que não tiver a tua cara.'] : ['Faz o primeiro post', 'Mostra um trampo teu.'],
       ['Põe 3 coisas com preço na vitrine', 'O que você vende aparece no perfil e no link na bio.'],
       ['Pede uma foto ou um depoimento pra um cliente', 'Vira post e vira prova.'],
       ['Olha quanto o corre rendeu na semana', 'Vendas e Grana: o que entrou e o que falta cobrar.']
@@ -152,7 +152,7 @@
     if(o.q && o.q !== st.me.faz){ try{ await C.saveMe({ faz: o.q.slice(0, 160) }); }catch(e){} }
     if(o.ig && o.ig !== st.me.instagram && /^[A-Za-z0-9_.]{1,30}$/.test(o.ig)){ try{ await C.saveMe({ instagram: o.ig }); }catch(e){} }
     const roda = async (k, f) => { if(!M.it[k]) return; marca(k, 'indo', ''); try{ await f(); }catch(e){ marca(k, 'erro', C.errMsg(e, 'Não deu agora. Dá pra fazer depois, na ferramenta.')); } };
-    /* o link na bio é na hora; o Hórus e o Studio correm juntos (cada um fala com o mapa ou com a IA); o Caderninho por
+    /* o link na bio é na hora; o Hórus e o Studio Cria correm juntos (cada um fala com o mapa ou com a IA); o Caderninho por
        último, que as tarefas falam do que deu certo */
     await roda('bio', () => bio(o.q));
     await Promise.all([roda('horus', () => horus(o.q, o)), roda('studio', () => studio(o))]);

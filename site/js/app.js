@@ -42,7 +42,7 @@
   C.ferr = k => { const f = (st.me && st.me.ferramentas && typeof st.me.ferramentas === 'object') ? st.me.ferramentas : {}; if(k === 'studio') return f.studio !== false; return f[k] === undefined ? !!C.DEMO : f[k] === true; };
   /* cada lugar do menu: [endereço, nome, ícone]. Sem endereço é botão (o sino abre os avisos; a carteira abre por cima) */
   const DEST = me => ({
-    inicio: ['#/', 'Início', 'home'], msg: ['#/msg', 'Mensagens', 'send'], avisos: ['', 'Avisos', 'bell'], studio: ['#/studio', 'Studio', 'magia'],
+    inicio: ['#/', 'Início', 'home'], msg: ['#/msg', 'Mensagens', 'send'], avisos: ['', 'Avisos', 'bell'], studio: ['#/studio', 'Studio Cria', 'magia'],
     verso: ['#/verso', 'Correverso', 'verso'], corre: ['#/corre', 'Vendas e Grana', 'grana'], mural: ['#/mural', 'Mural', 'tacha'],
     houzi: ['#/houzi', 'Studio Houzi', 'houzi'], perfil: ['#/@' + me.handle, 'Meu perfil', 'eu'], grupos: ['#/grupos', 'Grupos', 'gente'],
     horus: ['#/horus', 'Hórus', 'eye'], rolo: ['#/rolo', 'Rolo 360', 'rolo'], carteira: ['', 'Carteira de correal', 'correal'], planos: ['#/planos', 'Planos', 'cartao'],
@@ -89,6 +89,10 @@
     return m;
   };
   C.modo = () => MODO.ult;
+  /* v5.02: a luz pela rota, antes da página carregar os dados (o C.header confirma depois). É a mesma conta do script do
+     começo do index.html: as páginas do Studio são de noite, as Mensagens seguem a parte de onde a pessoa veio */
+  const ROTA_STUDIO = /^(dia|caderninho|studio|horus|mural|atendente|piloto|houzi|marcas?|linkbio|corre|vendas|grana|estilo|planos|lojinha|monta|clientes)(\/|$)/;
+  const noiteDaRota = h => !!st.user && (ROTA_STUDIO.test(h) || (/^msg(\/|$)/.test(h) && MODO.ult === 'studio'));
   /* a praça: o Correverso em destaque no meio do menu da Rede. (v3.70: a lista em grupos e a barra fixa do celular deram
      lugar à Comanda, aos Teus e ao Tudo; os grupos seguem dentro do Tudo e da gaveta. v5.01: o Mural foi pro Studio, e o
      Correverso ficou sozinho na praça, sem disputar o olho com ele) */
@@ -157,7 +161,7 @@
     }).catch(() => {}) : null;
     const planos = (C.acesso ? Promise.resolve(C.acesso) : C.acessoCarrega ? C.acessoCarrega() : Promise.resolve(null)).then(A => {
       if(!A || A.fundador || A.dono || !A.planos) return;
-      const NOME = { studio: 'Studio', houzi: 'Studio Houzi', horus: 'Hórus' };
+      const NOME = { studio: 'Studio Cria', houzi: 'Studio Houzi', horus: 'Hórus' };
       Object.keys(A.planos).forEach(k => {
         const p = A.planos[k], dias = p.teste_ate ? Math.ceil((Date.parse(p.teste_ate) - Date.now()) / 864e5) : null;
         if(p.status === 'atrasada') v.planos = { txt: 'atrasado', n: '!', nivel: 'alerta', diz: `A fatura do ${NOME[k] || k} atrasou` };
@@ -408,7 +412,7 @@
       ${gavetaHTML(me, active)}
       <span class="gv-k">Conta</span>` : `<a href="#/@${esc(me.handle)}">${ico('eu')}Meu perfil</a><a href="#/salvos">${ico('save')}Salvos</a>`}
       ${MENU.modo === 'studio' ? `<a href="#/">${ico('chat')}Voltar pra rede</a>` : `<a href="#/dia">${ico('luminaria')}Corre Studio</a>`}
-      <a href="#/editar">${ico('edit')}Editar perfil</a><button type="button" data-act="st-novo">${ico('plus')}Postar story</button>${C.push ? `<button type="button" data-act="push-ajustes">${ico('bell')}${C.push.nome ? C.push.nome() : 'Avisos no celular'}</button>` : ''}<button type="button" data-act="manual">${ico('manual')}Manual do Corre</button>${C.tema ? `<button type="button" data-act="tema">${ico(C.tema.escuro() ? 'lua' : 'sol')}Modo escuro<small class="tm-k">${C.tema.nome()}</small></button>` : ''}
+      <a href="#/editar">${ico('edit')}Editar perfil</a><button type="button" data-act="st-novo">${ico('plus')}Postar story</button>${C.push ? `<button type="button" data-act="push-ajustes">${ico('bell')}${C.push.nome ? C.push.nome() : 'Avisos no celular'}</button>` : ''}<button type="button" data-act="manual">${ico('manual')}Manual do Corre</button>
       <a href="privacidade.html">${ico('lock')}Privacidade</a><a href="termos.html">${ico('check')}Termos de uso</a><button type="button" data-act="sair">${ico('prev')}Sair</button>`;
   /* o menu da esquerda (computador). v3.70: a marca com as Mensagens e o sino do lado, o Procurar, a Comanda (no menu
      estreito, o ícone com o número), os Teus, a praça e o Tudo. Postar e a conta seguem embaixo */
@@ -565,6 +569,8 @@
     /* v4.41: em qual das partes a página mora (as Mensagens ficam na de onde a pessoa veio) */
     const modo = logged ? modoDe(active) : 'rede', studio = modo === 'studio';
     document.body.classList.toggle('modo-studio', logged && studio);
+    /* v5.02: o Studio é de noite, a Rede (e quem não entrou) é de dia */
+    if(C.tema) C.tema.poe(logged && studio);
     MENU.active = active; MENU.cru = cru; MENU.modo = modo;
     if(logged && C.visitas) setTimeout(() => C.visitas.sync(), 0);
     /* v3.69: o menu esperto (o uso de cada página e os sinais, de 2 em 2 minutos no máximo) */
@@ -667,7 +673,7 @@
       { k: 'gr-novo', a: 'gr-novo', t: 'Criar grupo', i: 'gente', d: 'Juntar a tua turma', kw: 'novo grupo comunidade' },
       /* v4.16: as abas do Hórus (o funil de vendas e quem chegou sozinho) */
       /* v4.29: o Monta meu Corre e a página aberta dos clientes */
-      { k: 'monta', h: '#/monta', t: 'Monta meu Corre com IA', i: 'magia', d: 'Uma frase e o Corre monta link na bio, o mês no Studio, clientes e a semana', kw: 'montar monta comecar começar ia configurar inicio setup onboarding automatico' },
+      { k: 'monta', h: '#/monta', t: 'Monta meu Corre com IA', i: 'magia', d: 'Uma frase e o Corre monta link na bio, o mês no Studio Cria, clientes e a semana', kw: 'montar monta comecar começar ia configurar inicio setup onboarding automatico' },
       { k: 'clientes', h: '#/clientes', t: 'Quantos clientes tem pra você', i: 'eye', d: 'Conta as empresas da tua cidade no mapa, por ramo', kw: 'clientes quantos empresas bairro cidade mapa mercado prospectar leads potencial' },
       ...(C.ferr('horus') ? [{ k: 'hz-funil', h: '#/horus/funil', t: 'Funil de vendas', i: 'grafico', d: 'Hórus: arrasta o cliente até o fechou', kw: 'funil crm pipeline negociacao negocios vendas previsao etapa proposta fechou kanban rd station' },
         { k: 'hz-entrada', h: '#/horus/entrada', t: 'Pedidos que chegaram', i: 'chat', d: 'Hórus: orçamento, Mural e mensagem que viraram cliente', kw: 'entrada pedido pedidos orcamento leads chegou cliente novo inbound caixa' }] : []),
@@ -679,7 +685,6 @@
       ...(C.instala && C.instala.falta() ? [{ k: 'instala', a: 'instala', t: 'Pôr o Corre na tela do celular', i: 'cel', d: 'Vira app: tela inteira e os avisos', kw: 'instalar app aplicativo tela inicio inicial icone atalho celular iphone android cheia full screen' }] : []),
       { k: 'manual', a: 'manual', t: 'Manual do Corre', i: 'manual', d: 'Como usar cada coisa', kw: 'ajuda duvida tutorial como funciona' },
       { k: 'google', h: '#/editar', t: 'Aparecer no Google', i: 'lupa', d: 'Teu trabalho na página aberta do teu ramo em Londrina', kw: 'google busca procurar seo londrina pagina publica aparecer achar cliente vitrine' },
-      { k: 'tema', a: 'tema', t: 'Modo escuro', i: 'lua', d: 'O Corre de noite: liga, desliga ou segue o aparelho', kw: 'escuro dark noite tema claro cor fundo preto tela olho' },
       { k: 'loja', a: 'cvr-loja', t: 'Ateliê: loja de skins', i: 'star', d: 'Skins pro teu avatar, pagas em correal', kw: 'skin skins loja roupa fantasia uniforme avatar comprar atelie' },
       { k: 'privacidade', h: 'privacidade.html', t: 'Privacidade', i: 'lock', d: 'O que o Corre guarda e por quê', kw: 'dados lgpd' },
       { k: 'termos', h: 'termos.html', t: 'Termos de uso', i: 'check', d: 'Planos, cobrança, cancelar e desistir em 7 dias', kw: 'termos contrato regras cancelar cancelamento desistir devolver reembolso estorno arrependimento cdc consumidor' }
@@ -1021,7 +1026,7 @@
       <p class="tagline"><span class="hl">Mostra teu corre.</span></p>
       <section class="login-card" id="entrar" aria-label="Entrar no Corre">
         <p class="lead">Pra quem vende serviço ou produto, de qualquer segmento: acha cliente, manda orçamento, recebe e vê quanto o corre tá rendendo. Você mostra o que quiser; o resto fica só contigo.</p>
-        <div class="chips" aria-label="O que tem no Corre"><span class="chip">Link na bio</span><span class="chip">Studio</span><span class="chip">Hórus</span><span class="chip">Mural</span><span class="chip">Correverso</span><span class="chip">Vendas e Grana</span></div>
+        <div class="chips" aria-label="O que tem no Corre"><span class="chip">Link na bio</span><span class="chip">Studio Cria</span><span class="chip">Hórus</span><span class="chip">Mural</span><span class="chip">Correverso</span><span class="chip">Vendas e Grana</span></div>
         ${conviteLogin()}<div class="g-oficial" id="g-oficial" hidden></div><button type="button" class="btn-google" id="btn-google" data-act="google">${G_LOGO}<span>Entrar com Google</span></button><button type="button" class="lnk g-outro" id="g-outro" data-act="google" hidden><span>Não abriu? Entra pelo outro jeito</span></button><button type="button" class="btn-face" id="btn-face" data-act="facebook"${C.DEMO ? '' : ' hidden'}>${FACE_LOGO}<span>Entrar com o Facebook</span></button><button type="button" class="btn-apple" id="btn-apple" data-act="apple"${C.CFG.APPLE_LOGIN || C.DEMO ? '' : ' hidden'}>${APPLE_LOGO}<span>Continuar com a Apple</span></button>
         ${dentroDeApp() ? `<div class="iab-aviso"><b>Abriu pelo Instagram ou WhatsApp?</b><p>O Google às vezes não deixa entrar por aqui. Se travar, abre o Corre no navegador${/Android/i.test(navigator.userAgent) ? '' : ' (no menu ••• , "Abrir no navegador")'}.</p><div class="acts">${/Android/i.test(navigator.userAgent) ? `<a class="btn sm pri" href="${esc(C.insta ? C.insta.intentUrl() : `intent://${location.host + location.pathname}#Intent;scheme=https;package=com.android.chrome;end`)}">Abrir no Chrome</a>` : ''}<button type="button" class="btn sm" data-act="iab-copia">Copiar o link</button></div></div>` : ''}
         <a class="cl-porta" href="#/clientes">${ico('eye')}<span><b>Quantos clientes tem pra você na tua cidade?</b><small>Descobre agora, sem cadastro</small></span>${ico('next')}</a>
@@ -1534,7 +1539,7 @@
   /* no balcão do Correverso (iframe), cada página aberta avisa a cidade (tira o "abrindo…") */
   async function route(){
     try{ return await rotaDe(); }
-    finally{ if(C.EMBED) C.pai('rota'); if(C.insta) C.insta.barra(); }
+    finally{ if(C.EMBED) C.pai('rota'); if(C.insta) C.insta.barra(); if(C.tema) C.tema.vivo = true; }
   }
   const ABRIU = { ja: false };
   async function rotaDe(){
@@ -1543,6 +1548,9 @@
     C.closeSheet();
     document.body.classList.remove('em-bb', 'em-bio');
     const h = location.hash.replace(/^#\/?/, '');
+    /* v5.02: a luz do lugar novo já na troca (a página fala com o banco antes de desenhar). A primeira página sem
+       endereço fica como o index.html deixou: quem fixou "abrir direto no Studio" cai lá logo abaixo */
+    if(C.tema && (h || ABRIU.ja)) C.tema.poe(noiteDaRota(h));
     if(C.EMBED){
       /* a cidade é quem tá em volta: #/verso fecha o balcão; #/fechado é o balcão parado, sem nada rodando escondido */
       if(h === 'fechado'){ app.innerHTML = ''; return; }
@@ -1625,24 +1633,6 @@
   C.recarregaMe = async () => { if(!st.user) return; try{ const m = await api.one('corre_perfis', { eq: { id: st.user.id } }); if(m && st.user && m.id === st.user.id){ st.me = m; st.loadedFor = m.id; } }catch(e){} };
 
   /* ---------------- ações ---------------- */
-  /* v4.43 · o modo escuro: a folha com as três escolhas. Cada amostra tem a cor fixa dela (não a do tema da vez), pra
-     mostrar como fica antes de escolher. Trocar não redesenha a página: é só a classe no html */
-  const TEMA_OP = [['claro', 'Desligado', 'O céu de dia e as etiquetas brancas'], ['escuro', 'Ligado', 'O Igapó de noite e as etiquetas escuras'], ['auto', 'Igual ao aparelho', 'Escurece quando o celular ou o computador escurecem']];
-  const temaHTML = () => { const t = C.tema.atual();
-    return `<div class="form tm"><div class="sheet-head"><h2>${ico('lua')} Modo escuro</h2><button type="button" class="cbtn plain" data-close aria-label="Fechar">${ico('x')}</button></div>
-      <p class="fine">Vale neste aparelho: o celular e o computador escolhem cada um o seu.</p>
-      <div class="tm-ops" role="radiogroup" aria-label="Modo escuro">${TEMA_OP.map(([k, n, d]) => `<button type="button" class="tm-op" role="radio" aria-checked="${k === t}" data-act="tema-poe" data-k="${k}"><span class="tm-amostra tm-a-${k}" aria-hidden="true"><i></i><i></i><i></i></span><span class="tm-tx"><b>${n}</b><small>${d}</small></span>${ico('check', 'tm-v')}</button>`).join('')}</div></div>`; };
-  const temaRefaz = () => { document.querySelectorAll('[data-act="tema"]').forEach(b => { const s = b.querySelector('.tm-k'), i = b.querySelector('svg'); if(s) s.textContent = C.tema.nome(); if(i && b.closest('.me-menu, .gaveta')) i.outerHTML = ico(C.tema.escuro() ? 'lua' : 'sol'); }); };
-  addEventListener('corre-tema', temaRefaz);
-  Object.assign(C.acts, {
-    tema: () => { if(C.tema) C.sheet(temaHTML(), 'tm-folha'); },
-    'tema-poe': el => {
-      const k = el.dataset.k; C.tema.poe(k);
-      document.querySelectorAll('.tm-op').forEach(b => b.setAttribute('aria-checked', String(b.dataset.k === k)));
-      temaRefaz();
-      toast(k === 'escuro' ? 'Modo escuro ligado.' : k === 'auto' ? `Modo escuro igual ao aparelho: agora tá ${C.tema.escuro() ? 'ligado' : 'desligado'}.` : 'Modo escuro desligado.', 2600);
-    }
-  });
   Object.assign(C.acts, {
     'tenta-de-novo': () => { st.loadedFor = null; route(); },
     'corre-ir': el => { const s = $('corre-' + el.dataset.k); if(s) s.scrollIntoView({ behavior: 'smooth', block: 'start' }); },

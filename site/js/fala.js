@@ -111,8 +111,8 @@
     if(C.sinaisCarrega) await C.sinaisCarrega().catch(() => null);
     const S2 = C.sinaisDia ? C.sinaisDia() : S, ach = key => S2.lista.find(x => x.k === key);
     if(k === 'clientes_retornar'){ if(!C.ferr('horus')) return { t: 'O Hórus tá desligado.', s: 'Liga ele no teu perfil pra ter clientes pra chamar.' }; const x = ach('horus'); return { t: x ? x.txt + '.' : 'Ninguém pra chamar hoje.', s: 'Hórus. Toca pra abrir.' }; }
-    if(k === 'posts_hoje'){ const x = ach('studio'); return { t: x ? x.txt + '.' : 'Nenhum post pra hoje.', s: S2.prox ? `O próximo: ${S2.prox}.` : 'Studio. Toca pra abrir.' }; }
-    if(k === 'proximo_post') return { t: S2.prox ? `O próximo post sai ${S2.prox}.` : 'Nenhum post programado.', s: 'Studio. Toca pra abrir.' };
+    if(k === 'posts_hoje'){ const x = ach('studio'); return { t: x ? x.txt + '.' : 'Nenhum post pra hoje.', s: S2.prox ? `O próximo: ${S2.prox}.` : 'Studio Cria. Toca pra abrir.' }; }
+    if(k === 'proximo_post') return { t: S2.prox ? `O próximo post sai ${S2.prox}.` : 'Nenhum post programado.', s: 'Studio Cria. Toca pra abrir.' };
     if(k === 'tarefas_hoje'){ const x = ach('caderno'); return { t: x ? x.txt + '.' : 'Nenhuma tarefa pra hoje.', s: 'Caderninho. Toca pra abrir.' }; }
     const L = S2.lista;
     return { t: L.length ? L.map(x => x.txt).slice(0, 3).join(' · ') : 'Tudo em dia por aqui.', s: S2.prox ? `Próximo post: ${S2.prox}.` : '' };
@@ -196,7 +196,7 @@
     if(z.k === 'pergunta'){ const P = PERG[z.metrica]; return { t: P.t(), s: 'Calculando…', i: P.i, h: P.h, calc: z.metrica }; }
     if(z.k === 'ir') return { t: `Abrir ${z.f.t}`, s: z.f.s || '', i: z.f.i || 'next', h: z.f.h || '' };
     if(z.k === 'tarefa'){ const q = quando(z.o.dia, z.o.hora); return { t: `Anotar: ${z.o.titulo}`, s: `Caderninho${q ? ' · ' + q : ' · sem dia'}${z.o.repete ? ' · repete' : ''}`, i: 'caderno' }; }
-    if(z.k === 'post'){ const q = quando(z.dia, z.hora); return { t: `Post${z.formato ? ' (' + z.formato + ')' : ''}${z.marca ? ' da ' + z.marca.marca : ''}${q ? ' ' + q : ''}`, s: `Studio: abre o editor já começado${z.tema ? ' · ' + z.tema : ''}`, i: 'magia' }; }
+    if(z.k === 'post'){ const q = quando(z.dia, z.hora); return { t: `Post${z.formato ? ' (' + z.formato + ')' : ''}${z.marca ? ' da ' + z.marca.marca : ''}${q ? ' ' + q : ''}`, s: `Studio Cria: abre o editor já começado${z.tema ? ' · ' + z.tema : ''}`, i: 'magia' }; }
     if(z.k === 'cliente') return { t: `Pôr ${z.nome} no Hórus`, s: [z.tel ? C.horus && C.horus._ ? C.horus._.fmtTel(z.tel.replace(/^55/, '')) : z.tel : 'sem telefone ainda', z.ig ? '@' + z.ig : ''].filter(Boolean).join(' · '), i: 'eye' };
     if(z.k === 'cobranca') return { t: `${z.tipo === 'orcamento' ? 'Orçamento' : 'Cobrar'}${z.valor ? ' ' + C.money(z.valor) : ''}${z.cliente ? (z.tipo === 'orcamento' ? ' pra ' : ' de ') + z.cliente : ''}`, s: `Vendas: confere e salva${z.vence ? ' · vence ' + diaTxt(z.vence) : ''}${z.desc ? ' · ' + z.desc : ''}`, i: 'recibo' };
     if(z.k === 'mensagem') return { t: `Mensagem pra @${z.para}`, s: z.texto ? `"${z.texto.slice(0, 80)}" (você confere e manda)` : 'Abre a conversa', i: 'send' };
@@ -257,7 +257,7 @@
     if(z.k === 'post'){
       /* o Studio só agenda pra marca com o @ (as sem @ ficam no Portfólio) */
       const L = (await marcasJa()).filter(m => m.rede);
-      if(!L.length){ C.closeSheet(); ir('#/studio'); toast('Primeiro liga uma marca com o @ no Studio; depois é só pedir o post.', 4200); return; }
+      if(!L.length){ C.closeSheet(); ir('#/studio'); toast('Primeiro liga uma marca com o @ no Studio Cria; depois é só pedir o post.', 4200); return; }
       const mk = z.marca || (z.n ? marcaNa(z.n) : null);
       PEND.post = { marca_id: mk ? mk.id : '', dia: z.dia || '', hora: z.hora || '', formato: z.formato || '', tema: z.tema || '', titulo: z.titulo || '' };
       /* direto pra dentro do Studio (o #/studio sem nada é a porta, que não abre o editor) */

@@ -1005,7 +1005,7 @@
              conhecia as colunas novas). Post de feed salva sem elas; carrossel, story e reels esperam o banco */
           const semColuna = e && (e.code === 'PGRST204' || /column/i.test(e.message || '')) && /formato|midias/.test(e.message || '');
           if(!semColuna) throw e;
-          if(fmt !== 'feed'){ const x = new Error('O Studio tá terminando de atualizar: carrossel, story e reels voltam logo. Post de feed salva normal.'); x.corre = true; throw x; }
+          if(fmt !== 'feed'){ const x = new Error('O Studio Cria tá terminando de atualizar: carrossel, story e reels voltam logo. Post de feed salva normal.'); x.corre = true; throw x; }
           const velho = Object.assign({}, row); delete velho.formato; delete velho.midias;
           await grava(velho);
         }

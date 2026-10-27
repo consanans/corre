@@ -151,7 +151,7 @@
     /* deu errado: o aviso rápido e o motivo guardado, com as Contas abertas pra ver na hora */
     const erro = (code, msg) => { guardaUltima({ ok: false, code, msg }); muda(); C.toast(msg, 7000); if(C.st.user) sheet(); };
     if(v.erro) return erro(v.erro, v.erro === 'access_denied' ? 'Conexão cancelada: o Instagram não foi conectado.' : 'O Instagram não conectou. Tenta de novo.');
-    if(!s || !v.state || v.state !== s.s || !v.code) return erro('state', 'A volta do Instagram não bateu com o pedido. Conecta de novo pelo Studio.');
+    if(!s || !v.state || v.state !== s.s || !v.code) return erro('state', 'A volta do Instagram não bateu com o pedido. Conecta de novo pelo Studio Cria.');
     if(!C.st.user){ C.toast('Entra no Corre e conecta o Instagram de novo.', 4600); return; }
     C.toast('Conectando o Instagram…', 8000);
     try{
