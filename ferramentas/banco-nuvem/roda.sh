@@ -185,6 +185,11 @@ testa teste500.sql 9
 delta delta-v503.sql 'delta v5.03 ok'
 delta delta-v503.sql 'delta v5.03 ok'
 testa teste503.sql 8
+# v5.05: o Ateliê com 46 skins (8 fantasias novas no correal), as 12 de Natal em real (acima de R$ 10) e a marca grátis do Studio Houzi
+$P -f "$AQUI/semente505.sql"
+delta delta-v505.sql 'delta v5.05 ok'
+delta delta-v505.sql 'delta v5.05 ok'
+testa teste505.sql 13
 . "$AQUI/virada343.sh"
 if grep -q 'FALHOU\|ERROR' $D/saida; then echo "deu FALHOU ou erro (acima)"; exit 1; fi
 echo "tudo ok: $(grep -c '^ok:' $D/saida) checagens"

@@ -488,7 +488,7 @@
   const ICO = { studio: 'magia', houzi: 'houzi', horus: 'eye' };
   const SOBRE = {
     studio: 'Programa e posta no Instagram de cada marca que você toca. Uma rede social é de graça.',
-    houzi: 'Marca com conceito: naming, logo, cores, voz e o brandbook vivo. 30 dias de graça.',
+    houzi: 'Marca com conceito: naming, logo, cores, voz e o brandbook vivo. A primeira marca é de graça.',
     horus: 'O radar de clientes: caça, aquece e lembra de quem comprar de você. 30 dias de graça.'
   };
   /* dinheiro aqui é preço de vitrine: não esconde com o olho da grana (o C.money esconde) */
@@ -504,9 +504,25 @@
   const faltam = iso => Math.max(0, Math.ceil((Date.parse(iso) - Date.now()) / 864e5));
   const plano = prod => (C.acesso && C.acesso.planos && C.acesso.planos[prod]) || null;
   const noTeste = p => !!(p && p.teste_ate && Date.parse(p.teste_ate) > Date.now());
+  /* v5.05 · no Studio Houzi a primeira marca é de graça, pra sempre, e da segunda em diante é no plano (o Thales: "o
+     studio houzi a pessoa tem como fazer um branding na faixa só, o segundo pra frente ela paga"). Quem diz qual é a
+     grátis é o banco (corre_meu_acesso().houzi_gratis: null = ainda não fez; undefined = banco sem o delta v5.05, e aí
+     vale o jeito de antes, com os 30 dias). Apagar a grátis não dá outra */
+  const hzG = () => { const A = C.acesso; return A && 'houzi_gratis' in A ? (A.houzi_gratis || null) : undefined; };
+  const hzPlano = () => { const A = C.acesso; return !A || !!(A.fundador || A.dono || (A.acesso && A.acesso.houzi)); };
+  C.houziPlano = {
+    tem: hzPlano,
+    /* pode começar uma marca nova agora */
+    novo: () => { const g = hzG(); return hzPlano() || g === undefined || !g; },
+    /* pode mexer nessa marca (o resto dá pra ver, publicar, baixar e apagar) */
+    mexe: id => { const g = hzG(); return hzPlano() || g === undefined || !g || g.marca === id; },
+    /* a marca grátis (o id; '' quando ainda não fez) e se ela ainda existe */
+    gratis: () => { const g = hzG(); return g ? g.marca : ''; },
+    existe: () => { const g = hzG(); return !!(g && g.existe); }
+  };
   /* v3.72: a versão dos Termos de uso que a pessoa aceita ao assinar (a mesma do data-versao do termos.html; a função
      anota). Mudou algo importante nos termos, sobe as duas juntas */
-  const TERMOS_V = '2026-10-20';
+  const TERMOS_V = '2026-10-28';
   /* v4.13: as skins de Halloween em real (o Ateliê, no verso.js) aceitam a mesma versão */
   C.TERMOS_V = TERMOS_V;
   /* v3.72: o que dá pra desistir com devolução (o direito de arrependimento, 7 dias do primeiro pagamento). Quem diz é a
@@ -521,6 +537,7 @@
     if(A.fundador || A.dono) return { txt: A.fundador ? 'Fundador: liberado, sem pagar.' : 'Dono: liberado, sem pagar.', bts: [] };
     if(!p || (prod === 'studio' && !p.assinado && p.status !== 'cancelada')){
       if(prod === 'studio') return { txt: `Grátis: 1 rede social. Você usa ${A.usadas || 0}.`, bts: ['assinar'] };
+      if(prod === 'houzi' && hzG() !== undefined) return { txt: hzG() ? 'A tua marca grátis já tá feita. Pra criar a segunda, assina.' : 'A primeira marca é de graça, pra sempre. Da segunda em diante, é no plano.', bts: ['assinar'] };
       return { txt: 'Os 30 dias grátis começam no teu primeiro uso.', bts: ['assinar'] };
     }
     const tz = diaDe(p.teste_ate), fimPago = p.pago_ate || '', st = p.status;
@@ -555,18 +572,23 @@
     const A = C.acesso; if(!A || A.fundador || A.dono) return '';
     const p = plano(prod), preco = reais(PRECO[prod]);
     let txt = '', bt = '', forte = false;
-    if(!p) txt = `Os 30 dias grátis do ${NOME[prod]} começam no teu primeiro uso. Depois, ${preco} por mês.`;
+    const hz = prod === 'houzi' ? hzG() : undefined;
+    if(!p && hz !== undefined){ txt = hz ? `Tua marca grátis já tá feita. Da segunda em diante, ${preco} por mês, com quantas marcas quiser.` : `Tua primeira marca no Studio Houzi é de graça, pra sempre. Da segunda em diante, ${preco} por mês.`; bt = hz ? 'assinar' : ''; }
+    else if(!p) txt = `Os 30 dias grátis do ${NOME[prod]} começam no teu primeiro uso. Depois, ${preco} por mês.`;
     else if(!p.acesso){ forte = true; txt = p.status === 'teste' && !p.assinado ? `O teste grátis do ${NOME[prod]} acabou. Assina por ${preco} por mês pra seguir; o que você já fez continua aqui.` : `O ${NOME[prod]} tá parado: ${p.assinado && p.status !== 'cancelada' ? 'a fatura venceu' : 'o plano acabou'}. O que você já fez continua aqui.`; bt = p.assinado && p.status !== 'cancelada' ? 'pagar' : 'assinar'; }
     else if(p.status === 'teste' && !p.assinado && noTeste(p)){ const n = faltam(p.teste_ate); txt = `Teste grátis: ${n === 1 ? 'falta 1 dia' : `faltam ${n} dias`}. Depois, ${preco} por mês.`; bt = 'assinar'; }
     else if(p.status === 'atrasada'){ forte = true; txt = `A fatura do ${NOME[prod]} venceu. Paga até ${ddmm(mais(p.pago_ate || C.hojeBR(), 3))} pra não parar.`; bt = 'pagar'; }
+    if(forte && hz && hz.existe) txt += ' A tua marca grátis segue aberta pra mexer.';
     if(!txt) return '';
+    const icF = forte ? 'lock' : !p && hz !== undefined ? 'presente' : 'clock';
     /* v4.31: no app da loja, a faixa só diz como tá (sem preço nem botão de comprar) */
     if(C.naLoja && C.naLoja()){
+      if(!p && hz !== undefined) return `<div class="pl-faixa" role="status">${ico('presente')}<span>${esc(hz ? 'Tua marca grátis do Studio Houzi já tá feita.' : 'Tua primeira marca no Studio Houzi é de graça.')}</span><a class="btn sm ghost" href="#/planos">Planos</a></div>`;
       if(!p) return '';
       txt = !p.acesso ? `O ${NOME[prod]} tá parado. O que você já fez continua aqui.` : p.status === 'atrasada' ? `A fatura do ${NOME[prod]} venceu.` : `Teste grátis do ${NOME[prod]}: ${faltam(p.teste_ate) === 1 ? 'falta 1 dia' : `faltam ${faltam(p.teste_ate)} dias`}.`;
       return `<div class="pl-faixa${forte ? ' forte' : ''}" role="${forte ? 'alert' : 'status'}">${ico(forte ? 'lock' : 'clock')}<span>${esc(txt)}</span><a class="btn sm ghost" href="#/planos">Planos</a></div>`;
     }
-    return `<div class="pl-faixa${forte ? ' forte' : ''}" role="${forte ? 'alert' : 'status'}">${ico(forte ? 'lock' : 'clock')}<span>${esc(txt)}</span>${bt ? BOTAO[bt](prod) : '<a class="btn sm ghost" href="#/planos">Planos</a>'}</div>`;
+    return `<div class="pl-faixa${forte ? ' forte' : ''}" role="${forte ? 'alert' : 'status'}">${ico(icF)}<span>${esc(txt)}</span>${bt ? BOTAO[bt](prod) : '<a class="btn sm ghost" href="#/planos">Planos</a>'}</div>`;
   };
 
   /* ---------- a página ---------- */

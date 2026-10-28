@@ -144,9 +144,12 @@
   H.erroIA = erroIA;
 
   /* ---------- #/houzi: a casa do Studio ---------- */
+  /* v5.05: sem o plano, a marca grátis ganha o selo "grátis" e as outras "no plano" (abrem pra ver, não pra mexer) */
+  const hzP = () => C.houziPlano || { tem: () => true, novo: () => true, mexe: () => true, gratis: () => '', existe: () => false };
+  const seloPlano = m => { if(ehLocal(m) || hzP().tem() || !hzP().gratis()) return ''; return m.id === hzP().gratis() ? ' · grátis' : ' · no plano'; };
   const cartaoMarca = (m, i, meu) => `<a class="stz-card" href="#/${meu ? 'houzi/m/' + esc(m.id) : 'bb/' + esc(m.slug)}">
       <span class="stz-card-art" data-stz-logo data-i="${i}"></span>
-      <span class="stz-card-tx"><span class="stz-k">${esc(H.numero(m))}${meu ? ` · ${ehLocal(m) ? 'neste aparelho' : m.publica ? 'publicada' : 'rascunho'}` : ''}</span><b>${esc(m.nome)}</b><small>${esc((M.TERRITORIOS[m.spec && m.spec.territorio] || {}).n || '')}</small></span></a>`;
+      <span class="stz-card-tx"><span class="stz-k">${esc(H.numero(m))}${meu ? ` · ${ehLocal(m) ? 'neste aparelho' : m.publica ? 'publicada' : 'rascunho'}${seloPlano(m)}` : ''}</span><b>${esc(m.nome)}</b><small>${esc((M.TERRITORIOS[m.spec && m.spec.territorio] || {}).n || '')}</small></span></a>`;
   C.views.houzi = async function(app, resto){
     resto = String(resto || '');
     await H.ui();
@@ -225,7 +228,24 @@
   const respostas = () => ({ nome: W.nome.trim(), tagline: W.tagline.trim(), nicho: W.nicho || 'outro', pers: W.pers.slice(), cor: W.cor || '', manterCor: !!(W.cor && W.manterCor), letra: W.letra || '', cidade: W.cidade.trim(), desde: W.desde.trim(), palavras: W.palavras.trim(), descr: W.descr.trim(), modo: W.modo === 'rebranding' ? 'rebranding' : 'branding', refs: refsLimpas() });
   const chaveVitrine = (sp, i) => { const pk = sp.cores.fundo === 'ink' ? 'negativo' : sp.cores.fundo === 'p' ? 'cor' : 'principal'; const l = [pk, 'cor', 'negativo'].filter((k, j, a) => a.indexOf(k) === j); return l[i % l.length]; };
 
+  /* v5.05 · a marca grátis já foi usada e não tem o plano: em vez do caminho (que gasta IA pra no fim não salvar), a
+     porta do plano. Quem não entrou segue fazendo marca no aparelho, como antes */
+  function nova2(app){
+    const loja = !!(C.naLoja && C.naLoja()), id = hzP().gratis(), existe = hzP().existe(), preco = C.planos ? 'R$ ' + C.planos.preco('houzi').toFixed(2).replace('.', ',') : 'R$ 29,90';
+    document.title = 'Nova marca · Studio Houzi';
+    app.innerHTML = C.header('houzi') + `<main class="stz stz-wiz"><div class="stz-wtop"><a class="stz-voltar" href="#/houzi">${ico('prev')} Studio Houzi</a></div>
+      <section class="stz-paga" aria-labelledby="stz-paga-h">
+        <p class="stz-kick">Studio Houzi <span>·</span> a segunda marca</p>
+        <h1 class="stz-h1" id="stz-paga-h">Tua marca grátis já tá feita.</h1>
+        <p class="stz-paga-tx">No Studio Houzi a primeira marca é de graça, pra sempre. Da segunda em diante é no plano${loja ? '' : `: <b>${preco} por mês</b>, com quantas marcas quiser, e cancela quando quiser`}.</p>
+        <div class="stz-paga-bts">${loja ? '' : `<button type="button" class="stz-btn pri" data-act="pl-assinar" data-p="houzi">${ico('cartao')} Assinar o Studio Houzi</button>`}
+          ${existe && id ? `<a class="stz-btn" href="#/houzi/m/${esc(id)}">${ico('houzi')} Abrir a tua marca grátis</a>` : ''}</div>
+        <p class="fine">${loja ? 'Assinar não está disponível no app. ' : ''}${existe ? 'A marca grátis segue tua pra mexer, publicar e baixar o brandbook e o kit.' : 'A marca grátis foi apagada; apagar não devolve a vaga.'}</p>
+      </section></main>`;
+  }
   async function nova(app, resto){
+    if(C.uid() && C.acessoCarrega){ const rota = C.rota; await C.acessoCarrega(); if(rota !== C.rota) return; }
+    if(C.uid() && !hzP().novo()) return nova2(app);
     const q = new URLSearchParams(resto.split('?')[1] || ''), modo = PASSOS[q.get('m')] ? q.get('m') : '';
     if(!W) W = lerW();
     if(!W || (modo && W.modo !== modo)) W = novoW(modo || 'branding');
@@ -726,14 +746,16 @@
     if(rota !== C.rota) return;
     if(!m){ app.querySelector('.stz-banc').innerHTML = `<section class="stz-vazio"><h2>Essa marca não tá aqui.</h2><p>Pode ter sido apagada, ou é de outra pessoa.</p><a class="stz-btn" href="#/houzi">Voltar pro Studio</a></section>`; return; }
     if(!ehLocal(m) && m.dono !== C.uid()){ C.go('#/bb/' + m.slug); return; }
+    if(!ehLocal(m) && C.acessoCarrega){ await C.acessoCarrega(); if(rota !== C.rota) return; }
     m.spec = m.spec || {}; m.voz = m.voz && typeof m.voz === 'object' ? m.voz : {}; m.naming = m.naming && typeof m.naming === 'object' ? m.naming : {};
-    B = { m, versao: '', arranjo: '', aba: 'ideia', giro: 0, variante: 0, fontesTodas: null };
+    B = { m, versao: '', arranjo: '', aba: 'ideia', giro: 0, variante: 0, fontesTodas: null, trava: !ehLocal(m) && !hzP().mexe(m.id), gratis: !ehLocal(m) && !hzP().tem() && hzP().gratis() === m.id };
     const t = M.TERRITORIOS[m.spec.territorio] || {};
     document.title = m.nome + ' · Studio Houzi';
     app.querySelector('.stz-banc').innerHTML = `
       <header class="stz-bh"><a class="stz-voltar" href="#/houzi">${ico('prev')} Studio Houzi</a>
         <div class="stz-bh-t"><span class="stz-k" id="stz-bh-k">${esc(H.numero(m))} · ${esc(t.n || '')}</span><h1 id="stz-bh-n">${esc(m.nome)}</h1></div>
-        <span class="stz-salvo" id="stz-salvo" aria-live="polite">${ehLocal(m) ? 'Neste aparelho' : 'Salvo'}</span></header>
+        <span class="stz-salvo" id="stz-salvo" aria-live="polite">${ehLocal(m) ? 'Neste aparelho' : B.trava ? 'Só leitura' : 'Salvo'}</span></header>
+      ${B.trava ? `<div class="pl-faixa forte stz-trava" role="alert">${ico('lock')}<span>Essa marca é do plano: dá pra ver, publicar, baixar e apagar; mexer, só com o plano do Studio Houzi. A tua marca grátis é outra.</span>${C.naLoja && C.naLoja() ? '<a class="btn sm ghost" href="#/planos">Planos</a>' : `<button type="button" class="btn sm pri" data-act="pl-assinar" data-p="houzi">${ico('cartao')} Assinar</button>`}</div>` : ''}
       <div class="stz-maq" id="stz-maq" role="status" hidden></div>
       <div class="stz-bgrid">
         <section class="stz-palco" aria-label="O logo">
@@ -784,7 +806,10 @@
   let desenhaT = 0, salvaT = 0;
   const redesenha = () => { clearTimeout(desenhaT); desenhaT = setTimeout(desenhaTela, 60); };
   const salvaLogo = () => {
-    if(!B) return; const m = B.m, s = C.$('stz-salvo'); if(s) s.textContent = 'Salvando…';
+    if(!B) return; const m = B.m, s = C.$('stz-salvo');
+    /* v5.05: marca do plano sem o plano: mexe na tela, não grava (avisa uma vez) */
+    if(B.trava){ if(s) s.textContent = 'Não salva sem o plano'; if(!B.avisou){ B.avisou = 1; C.toast(C.errMsg({ code: 'houzi_assinatura' }), 5200); } return; }
+    if(s) s.textContent = 'Salvando…';
     clearTimeout(salvaT);
     salvaT = setTimeout(async () => {
       try{ await H.salvar(m, { nome: m.nome, spec: m.spec, voz: m.voz, naming: m.naming }); const s2 = C.$('stz-salvo'); if(s2) s2.textContent = ehLocal(m) ? 'Neste aparelho' : 'Salvo'; }
@@ -992,7 +1017,7 @@
     },
     'stz-apaga': async el => {
       if(!B) return;
-      if(!el.classList.contains('armed')){ el.classList.add('armed'); el.textContent = 'Toca de novo pra apagar'; setTimeout(() => { if(el.isConnected){ el.classList.remove('armed'); el.innerHTML = `${ico('trash')} Apagar`; } }, 4000); return; }
+      if(!el.classList.contains('armed')){ if(B.gratis) C.toast('Essa é a tua marca grátis: apagando, a próxima já é no plano.', 5200); el.classList.add('armed'); el.textContent = 'Toca de novo pra apagar'; setTimeout(() => { if(el.isConnected){ el.classList.remove('armed'); el.innerHTML = `${ico('trash')} Apagar`; } }, 4000); return; }
       try{ await H.apagar(B.m); B = null; C.toast('Marca apagada.'); C.go('#/houzi'); }catch(e){ C.toast(H.erroTxt(e)); }
     }
   });

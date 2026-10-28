@@ -1,8 +1,9 @@
 // CORRE · função "pagamento" (v3.60): os planos, cobrados pelo Asaas.
 //
 // Os planos (o Thales, 16/10/2026): Studio por redes sociais (1 de graça; 2 = R$ 59,90; 3 = R$ 69,90; 4 ou mais =
-// R$ 79,90), Studio Houzi R$ 29,90 e Hórus R$ 9,90 por mês, esses dois com 30 dias de graça. O preço mora AQUI (o app
-// só mostra); a pessoa nunca escolhe o valor.
+// R$ 79,90), Studio Houzi R$ 29,90 e Hórus R$ 9,90 por mês, esses dois com 30 dias de graça (v5.05: no Studio Houzi,
+// no lugar dos 30 dias, a primeira marca é de graça e o plano é da segunda em diante; quem diz é o banco). O preço mora
+// AQUI (o app só mostra); a pessoa nunca escolhe o valor.
 //
 //  1. acao "assinar" { produto, nivel?, nome?, doc? }: cria o cliente no Asaas (a primeira vez, com nome e CPF/CNPJ; o
 //     documento vai só pro Asaas, o Corre não guarda) e a assinatura mensal. O Asaas manda a fatura; a pessoa paga no
@@ -337,7 +338,7 @@ Deno.serve(async (req) => {
    correal e passam a ser vendidas só em real, pagamento único (não renova), no Pix ou no cartão (boleto fica de fora:
    leva dias pra cair, e a devolução dele pede a conta da pessoa). O preço mora no banco (corre_skin_real,
    delta-v413.sql); aqui só o nome que vai na fatura. O correal continua não sendo dinheiro: real nunca vira correal.
-     acao "skin-comprar" { skin, forma: pix|cartao, termos, nome?, doc? }: na época (1º/10 até Finados), cria a cobrança
+     acao "skin-comprar" { skin, forma: pix|cartao, termos, nome?, doc? }: na época da coleção, cria a cobrança
        avulsa e devolve o link da fatura. Já tem a skin: não cobra. Tem uma esperando pagamento na mesma forma: devolve a
        mesma fatura; noutra forma, apaga a de antes no Asaas (e se ela já foi paga, libera em vez de cobrar de novo).
      acao "skin-confere": olha no Asaas as que esperam pagamento (se o aviso não chegou, a skin chega assim).
@@ -345,9 +346,18 @@ Deno.serve(async (req) => {
        vez por compra; com "ver", só diz se pode e quanto volta.
    O aviso do Asaas (?asaas=aviso) libera quando paga e tira quando o dinheiro volta (externalReference "skin:"). */
 const SKIN_NOME: Record<string, string> = { abobora: 'Cabeça de Abóbora', saci: 'Saci', bruxa: 'Bruxa do Caldeirão', esqueleto: 'Esqueleto',
-  lobisomem: 'Lobisomem do Tibagi', lencol: 'Fantasma de Lençol', mortovivo: 'Morto-Vivo', gatopreto: 'Gato Preto' };
-/* a coleção de Halloween só vende na época dela: de 1º/10 até Finados (2/11), no dia de Brasília */
-const epocaHalloween = () => { const md = hojeBR().slice(5); return md >= '10-01' && md <= '11-02'; };
+  lobisomem: 'Lobisomem do Tibagi', lencol: 'Fantasma de Lençol', mortovivo: 'Morto-Vivo', gatopreto: 'Gato Preto',
+  /* v5.05: a coleção de Natal (o Thales: "adiciona um monte de natal e tudo acima de 10 reais"; o preço mora no banco) */
+  noel: 'Papai Noel', arvore: 'Árvore Dourada', noelverao: 'Noel de Bermuda', mamaenoel: 'Mamãe Noel', boneconeve: 'Boneco de Neve',
+  quebranozes: 'Quebra-Nozes', piscapisca: 'Pisca-Pisca', rena: 'Rena', duende: 'Duende da Fábrica', reimago: 'Rei Mago',
+  biscoito: 'Boneco de Gengibre', presente: 'Presente' };
+/* cada coleção só vende na época dela, no dia de Brasília: o Halloween de 1º/10 até Finados (2/11) e o Natal de 15/10
+   até o Dia de Reis (6/1), o mesmo calendário da decoração da cidade */
+const NATAL = new Set(['noel', 'arvore', 'noelverao', 'mamaenoel', 'boneconeve', 'quebranozes', 'piscapisca', 'rena', 'duende', 'reimago', 'biscoito', 'presente']);
+const naEpoca = (k: string) => {
+  const md = hojeBR().slice(5);
+  return NATAL.has(k) ? (md >= '10-15' || md <= '01-06') : (md >= '10-01' && md <= '11-02');
+};
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 /* chama uma função do banco (as do delta-v413.sql, só do servidor); erro vira { banco } */
 async function rpc(admin: any, f: string, a: Record<string, unknown>) {
@@ -396,7 +406,7 @@ async function skin(acao: string, body: any, user: any, admin: any) {
     const k = String(body?.skin || ''), forma = String(body?.forma || '');
     if (!SKIN_NOME[k]) return json({ erro: 'skin' }, 400);
     if (forma !== 'pix' && forma !== 'cartao') return json({ erro: 'forma' }, 400);
-    if (!epocaHalloween()) return json({ erro: 'epoca' }, 409);
+    if (!naEpoca(k)) return json({ erro: 'epoca' }, 409);
     const pode = await rpc(admin, 'corre_skin_pode', { p_dono: user.id, p_skin: k });
     const valor = Number(pode?.real) || 0;
     if (!(valor > 0)) return json({ erro: 'skin' }, 400);

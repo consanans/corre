@@ -574,3 +574,10 @@ body.em-bb #stickers,body.em-bb .halftone{display:none}
   .bb-gxm div{grid-template-columns:1fr;gap:6px}
 }
 @media (prefers-reduced-motion:reduce){ .bb-estrofes p{opacity:1;transform:none;transition:none} }
+
+/* v5.05 · a marca grátis do Studio Houzi: a porta da segunda marca (o plano) e a faixa da marca que é do plano */
+.stz-paga{max-width:640px;margin:clamp(20px,5vw,56px) 0}
+.stz-paga .stz-h1{font-size:clamp(36px,7vw,72px);max-width:14ch;margin-bottom:18px}
+.stz-paga-tx{font-size:17px;line-height:1.55;margin:0 0 22px;max-width:52ch}
+.stz-paga-bts{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px}
+.stz-trava{margin:0 0 14px}

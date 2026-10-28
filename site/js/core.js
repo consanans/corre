@@ -334,10 +334,10 @@
     const m = (e && (e.message || '')) + ' ' + (e && (e.hint || ''));
     if(e && e.code === 'off') return 'O Corre ainda não tá ligado neste endereço.';
     if(/plano_gratis/.test(m)) return 'Chegou no limite de redes sociais do teu plano.';
-    /* v3.60: acabou o teste grátis (o banco diz no hint; a função imagem, no código) */
+    /* v3.60: acabou o teste grátis (o banco diz no hint; a função imagem, no código). v5.05: no Studio Houzi, a marca grátis já foi usada */
     if(/horus_assinatura/.test(m) || (e && e.code === 'horus_assinatura')) return 'O teste grátis do Hórus acabou. Assina em Planos (R$ 9,90 por mês) pra seguir caçando; os leads que você tem continuam aqui.';
     if(/assinatura_ativa/.test(m)) return 'Tem plano pago rodando. Cancela em Financeiro › Planos antes de apagar o perfil.';
-    if(/houzi_assinatura/.test(m) || (e && e.code === 'houzi_assinatura')) return 'O teste grátis do Studio Houzi acabou. Assina em Planos (R$ 29,90 por mês) pra criar e mexer nas marcas; as que você fez continuam aqui.';
+    if(/houzi_assinatura/.test(m) || (e && e.code === 'houzi_assinatura')) return 'No Studio Houzi a primeira marca é de graça; da segunda em diante é no plano (R$ 29,90 por mês, em Planos). A tua marca grátis segue aberta pra mexer.';
     if(/limite de (\d+)/.test(m)) return `Chegou no limite (${RegExp.$1}).`;
     if(e && e.code === '23505') return 'Isso já tá aqui.';
     if(/quota|QuotaExceeded/i.test(m) || (e && e.name === 'QuotaExceededError')) return 'Sem espaço neste navegador pra mais imagens.';
@@ -909,15 +909,29 @@
       const a = d.t.corre_assinaturas.find(x => x.dono === u && x.produto === 'studio');
       return Math.max(Number(p.redes) || 1, 1, a && plAcesso(d, u, 'studio') ? (a.nivel >= 4 ? 999 : a.nivel) : 1);
     };
+    /* v5.05: o teste grátis de 30 dias é só do Hórus (no Studio Houzi a primeira marca é de graça: hzTrava) */
     const plGarante = (d, u, prod) => {
-      if(!u || !['houzi', 'horus'].includes(prod) || !d.t.corre_perfis.some(p => p.id === u) || d.t.corre_assinaturas.some(a => a.dono === u && a.produto === prod)) return;
+      if(!u || prod !== 'horus' || !d.t.corre_perfis.some(p => p.id === u) || d.t.corre_assinaturas.some(a => a.dono === u && a.produto === prod)) return;
       d.t.corre_assinaturas.push({ id: rid(), dono: u, produto: prod, nivel: 1, valor: prod === 'houzi' ? 29.90 : 9.90, status: 'teste', teste_ate: new Date(Date.now() + 30 * 864e5).toISOString(), pago_ate: null, asaas_assinatura: null, link: '', created_at: now(), updated_at: now() });
     };
     /* v3.66 · o preço de uma skin da loja no demo, em centavos (0 = não é da loja). A vitrine mora no verso.js */
     const skinPrecoDemo = k => { const x = ((C.verso && C.verso.SKINS_LOJA) || []).find(s => s[0] === k); return x ? centDe(x[2]) : 0; };
-    /* v4.13: os preços em real das 8 de Halloween (o mesmo do corre_skins_reais) */
-    const skinReaisDemo = () => ({ abobora: 14.90, saci: 14.90, bruxa: 9.90, esqueleto: 9.90, lobisomem: 9.90, lencol: 5.90, mortovivo: 5.90, gatopreto: 5.90 });
+    /* v4.13: os preços em real das 8 de Halloween (o mesmo do corre_skins_reais). v5.05: e as 12 de Natal */
+    const skinReaisDemo = () => ({ abobora: 14.90, saci: 14.90, bruxa: 9.90, esqueleto: 9.90, lobisomem: 9.90, lencol: 5.90, mortovivo: 5.90, gatopreto: 5.90,
+      noel: 24.90, arvore: 24.90, noelverao: 19.90, mamaenoel: 19.90, boneconeve: 19.90, quebranozes: 19.90, piscapisca: 19.90, rena: 14.90, duende: 14.90, reimago: 14.90, biscoito: 12.90, presente: 12.90 });
     const plTrava = (d, u, prod) => { plGarante(d, u, prod); if(!plAcesso(d, u, prod)) throw { message: 'o teste grátis acabou', hint: prod + '_assinatura', code: 'P0001' }; };
+    /* v5.05 · a marca grátis do Studio Houzi (o mesmo do corre_houzi_plano do delta-v505): a primeira que a pessoa cria
+       sem plano vira a grátis, pra sempre; quem já tinha marca ganha a mais antiga. Com o plano, quantas quiser */
+    const hzGratis = (d, u) => {
+      const g = d.hzGratis || (d.hzGratis = {});
+      if(u && !(u in g)){ const l = d.t.corre_houzi_marcas.filter(x => x.dono === u && !x.ex).sort((a, b) => String(a.created_at).localeCompare(String(b.created_at))); if(l.length) g[u] = l[0].id; }
+      return (u && g[u]) || null;
+    };
+    const hzTrava = (d, u, id, novo) => {
+      if(plAcesso(d, u, 'houzi')) return;
+      if(novo && !hzGratis(d, u)) d.hzGratis[u] = id;
+      if(hzGratis(d, u) !== id) throw { message: 'a marca grátis do Studio Houzi já foi usada', hint: 'houzi_assinatura', code: 'P0001' };
+    };
     /* v4.02 · a Lojinha no demo: as mesmas contas do corre_lojinha (delta-v402.sql), em cima das tabelas de mentira.
        Só os donos abrem (v4.04: o @consanans, o @jeydiaz e o @simonini.lucas0); o @consanans e o @corre ficam fora da
        conta de gente */
@@ -985,7 +999,9 @@
       const planos = {};
       d.t.corre_assinaturas.filter(a => a.dono === u).forEach(a => { planos[a.produto] = { status: a.status, nivel: a.nivel, valor: a.valor, teste_ate: a.teste_ate, pago_ate: a.pago_ate, link: a.link, assinado: !!a.asaas_assinatura, acesso: plAcesso(d, u, a.produto) }; });
       return { fundador: plFund(d, u), dono: plDono(d, u), redes: plRedes(d, u), usadas: d.t.corre_portfolio.filter(x => x.dono === u && x.rede).length, cliente: d.t.corre_asaas_clientes.some(c => c.dono === u),
-        planos, acesso: { studio: true, houzi: plAcesso(d, u, 'houzi'), horus: plAcesso(d, u, 'horus') } };
+        planos, acesso: { studio: true, houzi: plAcesso(d, u, 'houzi'), horus: plAcesso(d, u, 'horus') },
+        houzi_gratis: hzGratis(d, u) ? { marca: hzGratis(d, u), existe: d.t.corre_houzi_marcas.some(x => x.id === hzGratis(d, u)) } : null,
+        houzi_livre: plAcesso(d, u, 'houzi') || !hzGratis(d, u) || d.t.corre_houzi_marcas.some(x => x.id === hzGratis(d, u)) };
     };
     function rules(t, r, d, isNew){
       const uid = uidOf(d);
@@ -1635,7 +1651,7 @@
           const next = Object.assign({}, r, patch);
           if(t === 'corre_perfis'){ next.plano = r.plano; next.redes = r.redes; }
           if(t === 'corre_stories'){ next.expira_em = r.expira_em; next.created_at = r.created_at; }
-          if(t === 'corre_houzi_marcas'){ next.updated_at = now(); next.slug = r.slug; next.numero = r.numero; if(['nome', 'spec', 'voz', 'naming'].some(k => k in patch)) plTrava(d, uid, 'houzi'); }
+          if(t === 'corre_houzi_marcas'){ next.updated_at = now(); next.slug = r.slug; next.numero = r.numero; if(['nome', 'spec', 'voz', 'naming'].some(k => k in patch)) hzTrava(d, uid, r.id, false); }
           /* v4.17: a aprovação é do cliente (a dona só limpa) e mudar o que ele viu volta pra ele; o código do link não muda */
           if(t === 'corre_posts'){
             next.aprov_nota = r.aprov_nota || ''; next.aprov_quem = r.aprov_quem || ''; next.aprov_em = r.aprov_em || null;
@@ -2154,14 +2170,14 @@
           const nome = String(A.p_nome || '').trim(); if(nome.length < 1 || nome.length > 40) throw err('nome');
           const minhas = d.t.corre_houzi_marcas.filter(x => x.dono === u);
           if(minhas.length >= 30) throw err('limite_marcas');
-          plTrava(d, u, 'houzi'); write(d);
           if(minhas.filter(x => Date.now() - Date.parse(x.created_at) < 864e5).length >= 20) throw err('limite_dia');
+          const novoId = rid(); hzTrava(d, u, novoId, true); write(d);
           let base = nome.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
           if(base.length < 3) base = ('marca-' + base).replace(/-+$/, '');
           base = base.slice(0, 40).replace(/-+$/, '');
           let slug = base, i = 1; while(d.t.corre_houzi_marcas.some(x => x.slug === slug)){ i++; slug = base + '-' + i; }
           const numero = d.t.corre_houzi_marcas.reduce((m2, x) => Math.max(m2, x.numero || 0), 0) + 1, agora = now();
-          const r = { id: rid(), dono: u, numero, slug, nome, modo: A.p_modo === 'rebranding' ? 'rebranding' : 'branding', spec: A.p_spec || {}, voz: A.p_voz || {}, naming: A.p_naming || {}, publica: false, created_at: agora, updated_at: agora };
+          const r = { id: novoId, dono: u, numero, slug, nome, modo: A.p_modo === 'rebranding' ? 'rebranding' : 'branding', spec: A.p_spec || {}, voz: A.p_voz || {}, naming: A.p_naming || {}, publica: false, created_at: agora, updated_at: agora };
           d.t.corre_houzi_marcas.push(r); write(d); return Object.assign({}, r);
         }
         /* ---- v3.35: avisos no celular (mesmas regras do delta-v335.sql; a demonstração não manda aviso de verdade) ---- */
@@ -2303,7 +2319,9 @@
           if(!/^\d{4}-\d{2}-\d{2}$/.test(String(B.termos || ''))) throw { code: 'termos', status: 400 };
           const k = String(B.skin || ''); if(!R[k]) throw { code: 'skin', status: 400 };
           if(B.forma !== 'pix' && B.forma !== 'cartao') throw { code: 'forma', status: 400 };
-          if(C.verso && C.verso.halloween && !C.verso.halloween()) throw { code: 'epoca', status: 409 };
+          /* v5.05: cada coleção na época dela (o Natal pela cidade enfeitada, o Halloween até Finados), como a função */
+          const col = ((C.verso && C.verso.SKINS_LOJA) || []).find(x => x[0] === k), ep = col && C.verso[col[3]];
+          if(typeof ep === 'function' && !ep()) throw { code: 'epoca', status: 409 };
           if(d.t.corre_skins.some(x => x.dono === u && x.skin === k)) return { ok: true, ja: true, demo: true };
           if(!d.t.corre_asaas_clientes.some(c => c.dono === u)){
             if(String(B.nome || '').replace(/\s+/g, ' ').trim().length < 3) throw { code: 'nome', status: 400 };

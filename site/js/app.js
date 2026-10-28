@@ -691,7 +691,7 @@
       { k: 'manual', a: 'manual', t: 'Manual do Corre', i: 'manual', d: 'Como usar cada coisa', kw: 'ajuda duvida tutorial como funciona' },
       { k: 'doa', h: '#/linkbio', t: 'Dá um corre: doação pra entidade', i: 'heart', d: 'Uma entidade de Londrina no teu link na bio, com o Pix dela', kw: 'doar doacao doação entidade caridade causa ong ajudar solidario pix instituicao' },
       { k: 'google', h: '#/editar', t: 'Aparecer no Google', i: 'lupa', d: 'Teu trabalho na página aberta do teu ramo em Londrina', kw: 'google busca procurar seo londrina pagina publica aparecer achar cliente vitrine' },
-      { k: 'loja', a: 'cvr-loja', t: 'Ateliê: loja de skins', i: 'star', d: 'Skins pro teu avatar, pagas em correal', kw: 'skin skins loja roupa fantasia uniforme avatar comprar atelie' },
+      { k: 'loja', a: 'cvr-loja', t: 'Ateliê: loja de skins', i: 'star', d: 'Fantasias pro teu avatar, em correal ou em real', kw: 'skin skins loja roupa fantasia fantasias uniforme avatar comprar atelie natal papai noel' },
       { k: 'privacidade', h: 'privacidade.html', t: 'Privacidade', i: 'lock', d: 'O que o Corre guarda e por quê', kw: 'dados lgpd' },
       { k: 'termos', h: 'termos.html', t: 'Termos de uso', i: 'check', d: 'Planos, cobrança, cancelar e desistir em 7 dias', kw: 'termos contrato regras cancelar cancelamento desistir devolver reembolso estorno arrependimento cdc consumidor' }
     /* um atalho que é botão só aparece se o módulo dele carregou (sem o Grupos, nada de "Criar grupo") */

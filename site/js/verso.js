@@ -271,6 +271,15 @@
     ['mumia', 'Múmia', .3, 'estilo', 'Enrolada da cabeça aos pés, com o olho aceso.'],
     ['piloto', 'Piloto Turbo', .3, 'estilo', 'Macacão branco com faixa quadriculada e capacete rosa.'],
     ['rockeiro', 'Rockeiro', .3, 'estilo', 'Jaqueta de couro com tachas, bandana e a guitarra nas costas.'],
+    /* v5.05 · mais oito fantasias de correal */
+    ['robo', 'Robô de Lata', 1, 'lendaria', 'Cabeça de caixa, antena que pisca, luzes no peito e a chave de dar corda nas costas.'],
+    ['sereia', 'Sereia do Igapó', 1, 'lendaria', 'Cauda de escamas lilás que brilham, barbatana rosa e tiara de concha.'],
+    ['dino', 'Dino de Pelúcia', .6, 'rara', 'Macacão roxo com capuz de dentinho, espinhos amarelos e o rabo arrastando.'],
+    ['bailarina', 'Bailarina', .6, 'rara', 'Tutu rosa, meia-calça branca, sapatilha e tiara de prata.'],
+    ['mergulhador', 'Mergulhador', .6, 'rara', 'Roupa de neoprene, máscara, snorkel soltando bolha e o cilindro amarelo nas costas.'],
+    ['caipira', 'Caipira de Arraiá', .3, 'estilo', 'Chapéu de palha desfiado, camisa xadrez, lenço amarelo e o remendo na calça.'],
+    ['abelha', 'Abelha', .3, 'estilo', 'Listra amarela e preta, antena na cabeça e asinha transparente.'],
+    ['palhaco', 'Palhaço', .3, 'estilo', 'Peruca laranja, nariz vermelho, gola de babado e macacão de bolinha.'],
     /* v3.91 · a coleção de Halloween: só se compra de 1º/10 até Finados (halloween()); comprou, é tua pra sempre */
     ['abobora', 'Cabeça de Abóbora', 1, 'halloween', 'Abóbora entalhada com a vela acesa por dentro, gravata-borboleta e tênis laranja.'],
     ['saci', 'Saci', 1, 'halloween', 'Carapuça vermelha, cachimbo soltando fumaça e o redemoinho em volta. 31 de outubro também é o Dia do Saci.'],
@@ -279,12 +288,30 @@
     ['lobisomem', 'Lobisomem do Tibagi', .6, 'halloween', 'Orelha, focinho, olho amarelo e a camisa rasgada de quem virou na sexta de lua cheia.'],
     ['lencol', 'Fantasma de Lençol', .3, 'halloween', 'O lençol da cama com dois furos pros olhos. O tênis aparece embaixo.'],
     ['mortovivo', 'Morto-Vivo', .3, 'halloween', 'Roupa em farrapo, pele lilás, um olho arregalado e a costura no rosto.'],
-    ['gatopreto', 'Gato Preto', .3, 'halloween', 'Orelhinhas, coleira com sino e o rabo pra cima.']
+    ['gatopreto', 'Gato Preto', .3, 'halloween', 'Orelhinhas, coleira com sino e o rabo pra cima.'],
+    /* v5.05 · a coleção de Natal, em real: à venda de 15/10 até o Dia de Reis (natal()), como a cidade enfeitada. O preço
+       de verdade mora no banco (corre_skins_reais); o 1 aqui é só a reserva do correal, que ela não usa */
+    ['noel', 'Papai Noel', 1, 'natal', 'Roupa vermelha de pelo branco, cinto de fivela dourada, barba até o peito e o gorro caído.'],
+    ['arvore', 'Árvore Dourada', 1, 'natal', 'Um pinheirinho de ouro da cabeça aos pés, com as bolas, a fita e o pisca-pisca acendendo.'],
+    ['noelverao', 'Noel de Bermuda', 1, 'natal', 'O Natal daqui é calor: regata, bermuda de flor, chinelo, óculos escuros e o gorro.'],
+    ['mamaenoel', 'Mamãe Noel', 1, 'natal', 'Vestido vermelho de barra branca, avental, coque grisalho e óculos redondinho.'],
+    ['boneconeve', 'Boneco de Neve', 1, 'natal', 'A neve que nunca cai em Londrina: cartola, cachecol, nariz de cenoura e botão de carvão.'],
+    ['quebranozes', 'Quebra-Nozes', 1, 'natal', 'Casaca vermelha de dragona dourada, calça branca, chapéu alto e o bigodão.'],
+    ['piscapisca', 'Pisca-Pisca', 1, 'natal', 'Roupa preta enrolada no fio de luz: as lâmpadas acendem em onda, sem parar.'],
+    ['rena', 'Rena', 1, 'natal', 'Capuz de chifre, coleira de sino e o nariz vermelho que acende.'],
+    ['duende', 'Duende da Fábrica', 1, 'natal', 'Túnica listrada de vermelho e branco, meia de bengala e o gorro de sininho.'],
+    ['reimago', 'Rei Mago', 1, 'natal', 'Manto roxo de barra dourada, capa vinho, coroa de pedra e o presente na mão.'],
+    ['biscoito', 'Boneco de Gengibre', 1, 'natal', 'Biscoito de gengibre com glacê branco e os botões de bala rosa e azul.'],
+    ['presente', 'Presente', 1, 'natal', 'Uma caixa vermelha com fita dourada e o laço na cabeça.']
   ];
   const LOJA = {}; SKINS_LOJA.forEach(x => { LOJA[x[0]] = x; }); Object.setPrototypeOf(LOJA, null);
-  const RARIDADE = { lendaria: 'Lendária', rara: 'Rara', estilo: 'Estilo', halloween: 'Halloween' };
-  /* v3.91: a de Halloween fora da época não se compra (quem já tem segue vestindo) */
-  const foraDeEpoca = k => !!LOJA[k] && LOJA[k][3] === 'halloween' && !halloween();
+  const RARIDADE = { lendaria: 'Lendária', rara: 'Rara', estilo: 'Estilo', halloween: 'Halloween', natal: 'Natal' };
+  /* v3.91: a de Halloween fora da época não se compra (quem já tem segue vestindo). v5.05: cada coleção tem a época dela:
+     o Halloween de 1º/10 até Finados, o Natal de 15/10 até o Dia de Reis (a cidade enfeitada) */
+  const COLECAO = { halloween: { on: () => halloween(), ate: 'Finados (2/11)', volta: 'volta em outubro' }, natal: { on: () => natal(), ate: 'o Dia de Reis (6/1)', volta: 'volta no Natal' } };
+  Object.setPrototypeOf(COLECAO, null);
+  const colecaoDe = k => LOJA[k] && COLECAO[LOJA[k][3]] ? LOJA[k][3] : '';
+  const foraDeEpoca = k => { const c = colecaoDe(k); return !!c && !COLECAO[c].on(); };
   /* todas as skins que o avatar aceita (o desenho de quem passa na cidade também passa por aqui) */
   const SKINS_TODAS = SKINS.concat(SKINS_LOJA.map(x => [x[0], x[1]]));
   const SKIN = {};
@@ -762,6 +789,350 @@
         px(-4, hy - 3, 1, 1, INK); px(-4, hy - 2, 2, 2, INK); px(-3, hy - 2, 1, 1, ROSA); px(3, hy - 3, 1, 1, INK); px(2, hy - 2, 2, 2, INK); px(2, hy - 2, 1, 1, ROSA);
         if(o.costas) return;
         px(-1, hy + 5, 2, 1, ROSA); px(-6, hy + 5, 2, 1, BIG); px(4, hy + 5, 2, 1, BIG); px(-6, hy + 7, 2, 1, BIG); px(4, hy + 7, 2, 1, BIG);
+      } };
+    /* ---------- v5.05 · as fantasias novas (correal) e a coleção de Natal (em real) ----------
+       O Thales: "no ateliê separa o que é correal e o que é dinheiro de verdade, aumenta mais o número de fantasias e
+       adiciona um monte de natal, e tudo acima de 10 reais". Oito fantasias novas no correal (a de 1,00 tem o "fx" que
+       mexe) e doze de Natal vendidas em real, no mesmo jeito das de cima. Nada de verde, nem no Natal: a árvore é
+       dourada, o duende é vermelho e branco e a bala do biscoito é rosa e azul. MX(o, x, w) espelha o que tem lado
+       (o gorro caído, o snorkel) quando o boneco tá de costas */
+    const NV = '#D7262E', NV2 = '#A8141E', NEVE = '#F4F3EF', NEVE2 = '#D9DEE6', GRIS = '#D3D8E0', GRIS2 = '#AEB4BD', BOCHECHA = '#FF9FBF',
+      GENG = '#B8692E', GENG2 = '#8C4A1E', RENA = '#8C5A2E', RENA2 = '#5A3A1E', BARRIGA = '#C9A27A', CHIFRE = '#D9B98C',
+      LATA = '#B9C0C9', LATA2 = '#8F96A0', PAINEL = '#4A4E56', ESCAMA = '#C6A6FF', ESCAMA2 = '#9A7AE0', DINO = '#7E5BD6', DINO2 = '#5A3FA8',
+      TUTU = '#FFB3D1', TUTU2 = '#FFD3E4', NEOP = '#1B1D22', LENTE = '#7FD8F2', FIO = '#4A4E56', OURO3 = '#B8862E', ROXOREI = '#5A2E8A', ROXOREI2 = '#3E1E63';
+    const MX = (o, x, w) => o.costas ? -(x + w) : x;
+    /* o gorro do Noel: a ponta cai pro lado com o pompom; a aba de pelo cobre a testa */
+    const gorroNoel = (px, o, c) => {
+      const hy = o.hy;
+      if(o.lado){ px(-4, hy - 2, 8, 2, c); px(-5, hy - 3, 6, 1, c); px(-7, hy - 3, 2, 1, sombra(c, .8)); px(-9, hy - 3, 2, 2, NEVE); px(-4, hy, 8, 1, NEVE); px(-4, hy + 1, 8, 1, NEVE2); return; }
+      px(-4, hy - 2, 8, 2, c); px(MX(o, -3, 7), hy - 3, 7, 1, c); px(MX(o, 0, 4), hy - 4, 4, 1, c); px(MX(o, 4, 2), hy - 3, 2, 1, sombra(c, .8)); px(MX(o, 6, 2), hy - 3, 2, 2, NEVE);
+      px(-5, hy, 10, 1, NEVE); px(-5, hy + 1, 10, 1, NEVE2);
+    };
+    /* a barba branca (e o cabelo branco do lado e de trás) */
+    const barba = (px, o, c, c2) => {
+      const hy = o.hy;
+      if(o.costas){ px(-4, hy + 2, 8, 6, c); px(3, hy + 2, 1, 6, c2); return; }
+      if(o.lado){ px(-4, hy + 2, 3, 6, c); px(-1, hy + 4, 1, 4, c); px(1, hy + 6, 3, 1, c); px(-1, hy + 7, 5, 2, c); px(0, hy + 9, 3, 1, c2); return; }
+      px(-4, hy + 2, 1, 6, c); px(3, hy + 2, 1, 6, c2);
+      px(-3, hy + 6, 6, 1, c); px(-4, hy + 7, 8, 2, c); px(-3, hy + 9, 6, 1, c); px(-2, hy + 10, 4, 1, c2);
+    };
+    /* o pisca-pisca: lâmpadas que acendem e apagam em ondas (as cores das luzes da cidade, sem verde) */
+    const LUZ5 = ['#E2412E', '#F2D06B', '#5C8BFF', ROSA, '#FFFFFF'];
+    const piscaLuzes = (px, L, ms) => { const t = Math.floor(performance.now() / (ms || 260)); L.forEach((p, i) => { const c = LUZ5[(i + Math.floor(t / 3)) % LUZ5.length], on = (t + i) % 3 !== 0; px(p[0], p[1], 1, 1, on ? c : sombra(c, .45)); }); };
+
+    /* ===== as fantasias de correal ===== */
+    SKIN.robo = { R: LATA, L: LATA2, T: PAINEL, luva: LATA2, cobre: true, loja: true,
+      tronco: (px, o) => {
+        if(o.lado){ px(-2, -13, 3, 3, PAINEL); px(-1, -12, 1, 1, CIANO); px(-4, -12, 2, 1, OURO); px(-5, -13, 1, 3, OURO); cinto(px, o, LATA2); return; }
+        if(o.costas){ px(-3, -14, 6, 5, LATA2); px(-1, -12, 2, 1, OURO); px(-3, -13, 2, 3, OURO); px(1, -13, 2, 3, OURO); cinto(px, o, LATA2); return; }
+        px(-3, -14, 6, 4, PAINEL); px(-2, -11, 4, 1, LATA2); px(-4, -15, 1, 1, LATA2); px(3, -15, 1, 1, LATA2); cinto(px, o, LATA2, PAINEL);
+      },
+      cabeca: (px, o) => {
+        const hy = o.hy, VIS = '#1B2A5A';
+        px(-1, hy - 4, 1, 3, LATA2);
+        if(o.lado){ px(-4, hy - 1, 9, 9, LATA); px(4, hy - 1, 1, 9, LATA2); px(2, hy + 3, 3, 2, VIS); px(3, hy + 3, 1, 1, CIANO); px(-2, hy + 3, 2, 2, LATA2); px(1, hy + 6, 3, 1, LATA2); return; }
+        px(-5, hy - 1, 10, 9, LATA); px(4, hy - 1, 1, 9, LATA2); px(-6, hy + 3, 1, 2, LATA2); px(5, hy + 3, 1, 2, LATA2);
+        if(o.costas){ px(-3, hy + 2, 6, 3, LATA2); return; }
+        px(-3, hy + 3, 6, 2, VIS); px(-2, hy + 3, 1, 1, CIANO); px(1, hy + 3, 1, 1, CIANO);
+        px(-2, hy + 6, 4, 1, LATA2); px(-1, hy + 6, 1, 1, INK); px(1, hy + 6, 1, 1, INK);
+      },
+      /* a bolinha da antena pisca, e no peito as três luzes andam */
+      fx: (px, o) => {
+        const t = Math.floor(performance.now() / 300), hy = o.hy;
+        px(-2, hy - 6, 2, 2, t % 2 ? ROSA : '#FFB3D1');
+        if(!o.lado && !o.costas){ [ROSA, AMARELO, CIANO].forEach((c, i) => px(-2 + i * 2, -13, 1, 1, (t + i) % 3 ? c : sombra(c, .45))); }
+      } };
+    SKIN.sereia = { R: AZUL, L: ESCAMA, T: ESCAMA2, manga: 'curta', loja: true,
+      tronco: (px, o) => {
+        /* a cauda cobre as pernas até a barbatana (sentada, a cauda dobra pro lado) */
+        if(o.sentado){ if(o.lado){ px(-3, -8, 7, 3, ESCAMA); px(4, -7, 2, 2, ROSA); } else { px(-5, -8, 10, 3, ESCAMA); px(5, -8, 2, 3, ROSA); } }
+        else if(o.lado){ px(-3, -8, 5, 5, ESCAMA); px(1, -8, 1, 5, ESCAMA2); px(-2, -3, 3, 1, ESCAMA2); px(-5, -2, 8, 1, ROSA); px(-6, -1, 4, 1, ROSA); px(0, -1, 4, 1, ROSA); px(-1, -6, 1, 1, ESCAMA2); px(0, -4, 1, 1, ESCAMA2); }
+        else { px(-4, -8, 8, 5, ESCAMA); px(3, -8, 1, 5, ESCAMA2); px(-3, -3, 6, 1, ESCAMA2); px(-4, -3, 1, 1, ROSA); px(3, -3, 1, 1, ROSA); px(-6, -2, 12, 1, ROSA); px(-7, -1, 6, 1, ROSA); px(1, -1, 6, 1, ROSA); px(-1, -2, 2, 1, '#FF8FBF');
+          [[-3, -7], [0, -7], [2, -6], [-2, -5], [1, -4], [-1, -6]].forEach(p => px(p[0], p[1], 1, 1, ESCAMA2)); }
+        if(o.lado){ px(-1, -15, 2, 1, PAPEL); return; }
+        if(!o.costas){ px(-2, -15, 4, 1, PAPEL); px(-1, -14, 2, 1, ROSA); }
+      },
+      cabeca: (px, o) => {
+        const hy = o.hy;
+        if(o.lado){ px(-3, hy - 1, 5, 1, ROSA); px(0, hy - 2, 1, 1, AMARELO); return; }
+        px(-3, hy - 1, 6, 1, ROSA); px(-1, hy - 2, 2, 1, AMARELO); px(-2, hy - 1, 1, 1, '#FFB3D1'); px(1, hy - 1, 1, 1, '#FFB3D1');
+      },
+      fx: (px, o) => { if(o.sentado) return; brilho(px, o.lado ? [[-2, -7], [0, -5], [-3, -3]] : [[-3, -7], [2, -6], [-1, -4], [3, -8], [-6, -1], [5, -1]], '#FFB3D1'); } };
+    SKIN.dino = { R: DINO, L: DINO, T: DINO2, luva: DINO, cobre: true, loja: true,
+      atras: (px, o) => { if(o.lado){ px(-5, -7, 3, 2, DINO); px(-7, -6, 2, 2, DINO); px(-9, -5, 2, 1, DINO2); px(-6, -8, 1, 1, AMARELO); px(-8, -7, 1, 1, AMARELO); } },
+      tronco: (px, o) => {
+        if(o.costas){ [-15, -13, -11, -9].forEach(y => px(-1, y, 2, 1, AMARELO)); px(-2, -7, 4, 2, DINO); px(-1, -5, 2, 2, DINO2); return; }
+        if(o.lado){ px(0, -14, 2, 6, LILAS); return; }
+        px(-2, -14, 4, 6, LILAS); px(-2, -12, 4, 1, '#B08CF0'); px(-2, -10, 4, 1, '#B08CF0');
+      },
+      cabeca: (px, o) => {
+        const hy = o.hy;
+        if(o.lado){
+          px(-5, hy - 2, 9, 3, DINO); px(-5, hy + 1, 3, 7, DINO); px(3, hy - 1, 3, 2, DINO); px(5, hy - 1, 1, 1, DINO2);
+          px(1, hy + 1, 1, 1, PAPEL); px(3, hy + 1, 1, 1, PAPEL); px(0, hy - 3, 2, 2, PAPEL); px(1, hy - 3, 1, 1, INK);
+          px(-6, hy - 1, 1, 1, AMARELO); px(-6, hy + 2, 1, 1, AMARELO); px(-6, hy + 5, 1, 1, AMARELO); return;
+        }
+        if(o.costas){ px(-5, hy - 2, 10, 10, DINO); [hy - 3, hy, hy + 3, hy + 6].forEach(y => px(-1, y, 2, 1, AMARELO)); return; }
+        px(-5, hy - 2, 10, 3, DINO); px(-5, hy + 1, 1, 7, DINO); px(4, hy + 1, 1, 7, DINO2);
+        [-4, -2, 0, 2].forEach(x => px(x, hy + 1, 1, 1, PAPEL)); px(-2, hy - 1, 1, 1, DINO2); px(1, hy - 1, 1, 1, DINO2);
+        px(-4, hy - 4, 2, 2, PAPEL); px(2, hy - 4, 2, 2, PAPEL); px(-3, hy - 3, 1, 1, INK); px(2, hy - 3, 1, 1, INK);
+      } };
+    SKIN.bailarina = { R: TUTU, L: PAPEL, T: ROSA, manga: 'curta', loja: true,
+      tronco: (px, o) => {
+        if(o.lado){ px(-4, -9, 8, 2, TUTU); px(-5, -8, 10, 1, TUTU2); px(-1, -15, 2, 1, TUTU2); return; }
+        px(-6, -9, 12, 2, TUTU); px(-7, -8, 14, 1, TUTU2); px(-6, -7, 2, 1, TUTU); px(4, -7, 2, 1, TUTU);
+        if(o.costas){ px(-1, -12, 2, 1, ROSA); px(-2, -11, 1, 1, ROSA); px(1, -11, 1, 1, ROSA); return; }
+        px(-2, -15, 4, 1, TUTU2); px(-1, -13, 2, 1, '#FF8FBF');
+      },
+      cabeca: (px, o) => {
+        const hy = o.hy;
+        if(o.lado){ px(-3, hy - 1, 5, 1, PRATA); px(0, hy - 2, 1, 1, ROSA); return; }
+        px(-3, hy - 1, 6, 1, PRATA); px(-1, hy - 2, 2, 1, ROSA); px(-3, hy - 2, 1, 1, PRATA); px(2, hy - 2, 1, 1, PRATA);
+      } };
+    SKIN.mergulhador = { R: NEOP, L: NEOP, T: AMARELO, luva: NEOP, cobre: true, loja: true,
+      atras: (px, o) => { if(o.lado){ px(-5, -15, 3, 8, AMARELO); px(-4, -16, 1, 1, PRATA); } },
+      tronco: (px, o) => {
+        if(o.costas){ px(-3, -16, 6, 9, AMARELO); px(2, -16, 1, 9, '#D9C24A'); px(-1, -17, 2, 1, PRATA); px(-4, -14, 1, 4, INK); px(3, -14, 1, 4, INK); return; }
+        if(o.lado){ px(-2, -15, 1, 8, AZUL); return; }
+        px(-4, -15, 1, 8, AZUL); px(3, -15, 1, 8, AZUL); px(0, -15, 1, 7, PRATA); px(-7, -10, 3, 1, AZUL); px(4, -10, 3, 1, AZUL);
+      },
+      cabeca: (px, o) => {
+        const hy = o.hy;
+        if(o.lado){ px(-4, hy - 1, 8, 3, NEOP); px(-4, hy + 2, 3, 6, NEOP); px(1, hy + 3, 3, 3, AMARELO); px(2, hy + 3, 2, 2, LENTE); px(3, hy + 4, 1, 1, INK); px(-3, hy + 4, 2, 1, AMARELO); px(-2, hy - 3, 1, 5, LARANJA); return; }
+        px(-4, hy - 1, 8, 3, NEOP); px(-4, hy + 2, 1, 6, NEOP); px(3, hy + 2, 1, 6, NEOP);
+        if(o.costas){ px(-4, hy + 2, 8, 6, NEOP); px(-4, hy + 4, 8, 1, AMARELO); px(MX(o, 5, 1), hy - 3, 1, 9, LARANJA); return; }
+        px(-4, hy + 3, 8, 3, AMARELO); px(-3, hy + 3, 6, 2, LENTE); px(-2, hy + 4, 1, 1, INK); px(1, hy + 4, 1, 1, INK);
+        px(3, hy + 6, 2, 1, LARANJA); px(5, hy - 3, 1, 9, LARANJA);
+      },
+      /* as bolhas que sobem do snorkel */
+      fx: (px, o) => { const t = performance.now() / 1000, x = o.lado ? -2 : o.costas ? -6 : 5; for(let i = 0; i < 2; i++){ const f = (t * .5 + i / 2) % 1; px(x + Math.round(Math.sin(f * 6 + i) * .8), Math.round(o.hy - 4 - f * 6), 1, 1, f > .7 ? 'rgba(206,232,255,.45)' : 'rgba(206,232,255,.9)'); } } };
+    SKIN.caipira = { R: VERM, L: '#2E4A7A', T: COURO, loja: true,
+      tronco: (px, o) => {
+        const XB = '#F4F3EF', XC = '#B4152E';
+        if(o.lado){ px(-2, -14, 4, 1, XB); px(-2, -11, 4, 1, XB); px(0, -15, 1, 7, XB); px(1, -15, 1, 1, AMARELO); px(-1, -5, 2, 2, LARANJA); return; }
+        px(-4, -14, 8, 1, XB); px(-4, -11, 8, 1, XB); px(-2, -15, 1, 7, XB); px(1, -15, 1, 7, XB);
+        px(-2, -14, 1, 1, XC); px(1, -14, 1, 1, XC); px(-2, -11, 1, 1, XC); px(1, -11, 1, 1, XC);
+        if(!o.costas){ px(-2, -15, 4, 1, AMARELO); px(-1, -14, 2, 1, AMARELO); }
+        if(!o.sentado) px(o.costas ? 1 : -4, -5, 2, 2, LARANJA);
+      },
+      cabeca: (px, o) => {
+        const hy = o.hy, PA = PALHA, PA2 = '#B89A50';
+        if(o.lado){ px(-7, hy, 13, 1, PA); px(-4, hy - 3, 7, 3, PA); px(-4, hy - 1, 7, 1, VERM); px(-7, hy + 1, 1, 1, PA); px(5, hy + 1, 1, 1, PA); px(2, hy + 5, 1, 1, '#A0603A'); return; }
+        px(-7, hy, 14, 1, PA); px(-4, hy - 3, 8, 3, PA); px(3, hy - 3, 1, 3, PA2); px(-4, hy - 1, 8, 1, VERM);
+        [-7, -5, 4, 6].forEach(x => px(x, hy + 1, 1, 1, PA));
+        if(!o.costas){ px(-3, hy + 5, 1, 1, '#A0603A'); px(2, hy + 5, 1, 1, '#A0603A'); px(-2, hy + 6, 1, 1, '#A0603A'); }
+      } };
+    /* (o amarelo da abelha puxa pro laranja: o amarelo do Corre na sombra do 3D vira verde-oliva) */
+    SKIN.abelha = { R: '#F5C02E', L: INK, T: INK, luva: INK, loja: true,
+      atras: (px, o) => { if(o.costas) return; if(o.lado){ px(-5, -18, 3, 5, BOLHA); return; } px(-9, -18, 4, 5, BOLHA); px(5, -18, 4, 5, BOLHA); },
+      tronco: (px, o) => {
+        if(o.lado){ px(-2, -13, 4, 1, INK); px(-2, -10, 4, 1, INK); px(-3, -9, 1, 1, INK); return; }
+        px(-4, -13, 8, 1, INK); px(-4, -10, 8, 1, INK);
+        if(o.costas){ px(-5, -18, 4, 5, BOLHA); px(1, -18, 4, 5, BOLHA); px(-1, -8, 2, 1, INK); }
+      },
+      cabeca: (px, o) => {
+        const hy = o.hy;
+        px(-4, hy, 8, 1, INK);
+        if(o.lado){ px(0, hy - 2, 1, 2, INK); px(0, hy - 4, 2, 2, INK); return; }
+        px(-3, hy - 2, 1, 2, INK); px(2, hy - 2, 1, 2, INK); px(-4, hy - 4, 2, 2, INK); px(2, hy - 4, 2, 2, INK);
+      } };
+    SKIN.palhaco = { R: PAPEL, L: PAPEL, T: VERM, luva: PAPEL, cobre: true, loja: true,
+      tronco: (px, o) => {
+        if(o.lado){ px(-3, -15, 6, 2, AMARELO); px(-1, -12, 1, 1, ROSA); px(0, -10, 1, 1, AZUL); if(!o.sentado) px(-1, -5, 1, 1, ROSA); return; }
+        px(-5, -15, 10, 2, AMARELO); [-5, -3, -1, 1, 3].forEach(x => px(x, -14, 1, 1, '#E2D23A'));
+        [[-3, -12], [2, -11], [-2, -9], [1, -9]].forEach((p, i) => px(p[0], p[1], 1, 1, [ROSA, AZUL, AMARELO, ROSA][i]));
+        if(!o.costas){ px(0, -12, 1, 1, VERM); px(0, -10, 1, 1, VERM); }
+        if(!o.sentado){ px(-3, -5, 1, 1, AZUL); px(1, -4, 1, 1, ROSA); }
+      },
+      cabeca: (px, o) => {
+        const hy = o.hy;
+        if(o.lado){ px(-5, hy - 2, 9, 3, LARANJA); px(-6, hy + 1, 3, 4, LARANJA); px(3, hy + 5, 2, 2, VERM); px(1, hy + 7, 3, 1, VERM); px(-1, hy - 5, 2, 3, AZUL); px(-1, hy - 6, 2, 1, AMARELO); return; }
+        px(-5, hy - 2, 10, 3, LARANJA); px(-6, hy + 1, 2, 4, LARANJA); px(4, hy + 1, 2, 4, LARANJA); px(-1, hy - 5, 2, 3, AZUL); px(-1, hy - 6, 2, 1, AMARELO);
+        if(o.costas){ px(-6, hy + 1, 12, 4, LARANJA); return; }
+        px(-1, hy + 5, 2, 2, VERM); px(-3, hy + 6, 1, 1, VERM); px(2, hy + 6, 1, 1, VERM); px(-2, hy + 7, 4, 1, VERM);
+      } };
+
+    /* ===== a coleção de Natal (em real) ===== */
+    SKIN.noel = { R: NV, L: NV, T: INK, luva: NEVE, cobre: true, loja: true,
+      tronco: (px, o) => {
+        if(o.lado){ px(-2, -8, 4, 2, NV); px(-2, -6, 4, 1, NEVE); cinto(px, o, INK, OURO); px(1, -15, 1, 6, NEVE); return; }
+        px(-4, -8, 8, 2, NV); px(3, -8, 1, 2, NV2); px(-4, -6, 8, 1, NEVE); cinto(px, o, INK, OURO);
+        px(-7, -9, 3, 1, NEVE); px(4, -9, 3, 1, NEVE);
+        if(!o.costas) px(-1, -15, 2, 6, NEVE);
+      },
+      cabeca: (px, o) => { barba(px, o, NEVE, NEVE2); gorroNoel(px, o, NV); },
+      fx: (px, o) => brilho(px, o.lado ? [[-9, -27], [5, -20], [-6, -12]] : [[-10, -26], [9, -24], [-9, -14], [8, -12], [0, -29]], '#FFFFFF') };
+    SKIN.arvore = { R: OURO, L: '#8C5A2E', T: '#5A3A1E', cobre: true, loja: true,
+      tronco: (px, o) => {
+        /* o cone dourado cobre o corpo e os braços; as bolas e a fita por cima */
+        const w = o.lado ? .7 : 1, cone = (x, y, ww, h, c) => px(Math.round(x * w), y, Math.max(1, Math.round(ww * w)), h, c);
+        cone(-5, -16, 10, 2, OURO); cone(-6, -14, 12, 3, OURO); cone(-7, -11, 14, 3, OURO); cone(-8, -8, 16, 2, OURO); cone(-8, -6, 16, 1, OURO3);
+        cone(-6, -13, 4, 1, OURO2); cone(-2, -12, 4, 1, OURO2); cone(2, -11, 4, 1, OURO2); cone(-6, -9, 5, 1, OURO2); cone(0, -8, 5, 1, OURO2);
+        if(o.costas || o.lado) return;
+        [[-3, -14, NV], [2, -13, AZUL], [-5, -10, ROSA], [4, -10, NV], [0, -11, PAPEL], [-2, -8, AZUL], [5, -7, ROSA], [-6, -7, PAPEL]].forEach(p => px(p[0], p[1], 1, 1, p[2]));
+      },
+      cabeca: (px, o) => {
+        const hy = o.hy, ES = '#FFF2A8';
+        px(-1, hy - 6, 2, 2, OURO); px(-2, hy - 4, 4, 2, OURO); px(-3, hy - 2, 6, 2, OURO);
+        px(-1, hy - 8, 2, 2, ES); px(-2, hy - 7, 1, 1, ES); px(1, hy - 7, 1, 1, ES);
+        if(o.costas){ px(-5, hy, 10, 8, OURO); return; }
+        if(o.lado){ px(-5, hy, 2, 8, OURO); px(-3, hy - 2, 5, 2, OURO); return; }
+        px(-5, hy, 1, 8, OURO); px(4, hy, 1, 8, OURO3); px(-3, hy - 3, 1, 1, NV); px(2, hy - 1, 1, 1, AZUL);
+      },
+      fx: (px, o) => { if(o.costas || o.lado) return; piscaLuzes(px, [[-4, -15], [1, -14], [-6, -12], [3, -12], [-2, -10], [6, -9], [-7, -8], [2, -7], [-4, -7]], 300); } };
+    SKIN.noelverao = { R: NV, L: NV, T: AZUL, manga: 'curta', perna: 'bermuda', loja: true,
+      tronco: (px, o) => {
+        if(o.lado){ px(-2, -8, 4, 1, NEVE); px(-1, -15, 2, 1, NEVE); if(!o.sentado) px(-1, -6, 1, 1, AMARELO); return; }
+        px(-2, -15, 4, 1, NEVE); px(-4, -8, 8, 1, NEVE);
+        if(!o.sentado){ px(-3, -6, 1, 1, AMARELO); px(2, -6, 1, 1, AMARELO); px(-2, -5, 1, 1, ROSA); px(1, -5, 1, 1, ROSA); }
+      },
+      cabeca: (px, o) => {
+        const hy = o.hy;
+        barba(px, o, NEVE, NEVE2); gorroNoel(px, o, NV);
+        if(o.costas) return;
+        if(o.lado){ px(1, hy + 4, 3, 1, INK); return; }
+        px(-4, hy + 4, 8, 1, INK); px(-3, hy + 4, 1, 1, '#5A6070'); px(1, hy + 4, 1, 1, '#5A6070');
+      } };
+    SKIN.mamaenoel = { R: NV, L: NV, T: INK, luva: NEVE, cobre: true, loja: true,
+      tronco: (px, o) => {
+        saia(px, o, NV, NV2);
+        if(!o.sentado){ if(o.lado) px(-4, -2, 8, 1, NEVE); else px(-6, -2, 12, 1, NEVE); }
+        px(o.lado ? -2 : -4, -9, o.lado ? 4 : 8, 1, NEVE);
+        if(o.lado){ px(1, -12, 1, 3, PAPEL); if(!o.sentado) px(2, -8, 1, 5, PAPEL); return; }
+        px(-7, -9, 3, 1, NEVE); px(4, -9, 3, 1, NEVE);
+        if(o.costas){ px(-1, -10, 2, 1, NEVE); px(-2, -9, 1, 2, NEVE); px(1, -9, 1, 2, NEVE); return; }
+        px(-2, -13, 4, 3, PAPEL); px(-2, -13, 4, 1, BOCHECHA);
+        if(!o.sentado){ px(-3, -8, 6, 5, PAPEL); px(-3, -4, 6, 1, BOCHECHA); }
+      },
+      cabeca: (px, o) => {
+        const hy = o.hy;
+        if(o.lado){ px(-4, hy - 1, 8, 2, GRIS); px(-4, hy + 1, 4, 5, GRIS); px(-6, hy - 2, 3, 3, GRIS); px(-6, hy - 1, 3, 1, NV); px(1, hy + 3, 3, 1, OURO); px(1, hy + 4, 1, 1, OURO); return; }
+        px(-4, hy - 1, 8, 2, GRIS); px(-4, hy + 1, 1, 4, GRIS); px(3, hy + 1, 1, 4, GRIS2); px(-2, hy - 4, 4, 3, GRIS); px(-2, hy - 2, 4, 1, NV);
+        if(o.costas){ px(-4, hy + 1, 8, 6, GRIS); return; }
+        px(-4, hy + 4, 1, 1, OURO); px(-1, hy + 4, 2, 1, OURO); px(3, hy + 4, 1, 1, OURO); px(-3, hy + 3, 2, 1, OURO); px(1, hy + 3, 2, 1, OURO);
+        px(-3, hy + 5, 1, 1, BOCHECHA); px(2, hy + 5, 1, 1, BOCHECHA);
+      } };
+    SKIN.boneconeve = { R: NEVE, L: NEVE, T: NEVE2, luva: RENA2, cobre: true, loja: true,
+      tronco: (px, o) => {
+        /* a bola de baixo cobre as pernas; o cachecol vermelho e branco, os botões de carvão */
+        if(o.sentado){ if(o.lado) px(-3, -8, 6, 3, NEVE); else px(-5, -8, 10, 3, NEVE); }
+        else if(o.lado){ px(-3, -7, 6, 4, NEVE); px(2, -7, 1, 4, NEVE2); }
+        else { px(-5, -7, 10, 4, NEVE); px(4, -7, 1, 4, NEVE2); }
+        if(o.lado){ px(-2, -15, 4, 1, NV); px(-3, -14, 2, 4, NV); px(-3, -12, 2, 1, NEVE); px(1, -12, 1, 1, INK); px(1, -9, 1, 1, INK); return; }
+        px(-4, -15, 8, 1, NV); px(-3, -14, 6, 1, NV); px(-2, -15, 1, 1, NEVE); px(1, -15, 1, 1, NEVE);
+        if(o.costas){ px(-1, -14, 2, 4, NV); px(-1, -12, 2, 1, NEVE); return; }
+        px(MX(o, 2, 2), -14, 2, 4, NV); px(MX(o, 2, 2), -12, 2, 1, NEVE); px(MX(o, 2, 2), -10, 2, 1, NV2);
+        px(-1, -12, 2, 1, INK); px(-1, -9, 2, 1, INK); px(-1, -6, 2, 1, INK);
+        px(-8, -9, 1, 1, RENA2); px(7, -9, 1, 1, RENA2);
+      },
+      cabeca: (px, o) => {
+        const hy = o.hy;
+        if(o.lado){ px(-5, hy - 1, 9, 9, NEVE); px(3, hy, 1, 7, NEVE2); px(2, hy + 3, 1, 1, INK); px(4, hy + 4, 3, 1, LARANJA); px(4, hy + 5, 1, 1, '#D9580B'); px(1, hy + 6, 1, 1, INK); px(2, hy + 7, 1, 1, INK);
+          px(-5, hy - 1, 9, 1, INK); px(-3, hy - 6, 5, 5, INK); px(-3, hy - 2, 5, 1, NV); return; }
+        px(-5, hy - 1, 10, 9, NEVE); px(4, hy, 1, 7, NEVE2);
+        px(-6, hy - 1, 12, 1, INK); px(-3, hy - 6, 6, 5, INK); px(-3, hy - 2, 6, 1, NV);
+        if(o.costas) return;
+        px(-2, hy + 3, 1, 1, INK); px(1, hy + 3, 1, 1, INK); px(-1, hy + 4, 2, 1, LARANJA); px(0, hy + 5, 1, 1, '#D9580B');
+        px(-3, hy + 6, 1, 1, INK); px(-2, hy + 7, 1, 1, INK); px(0, hy + 7, 1, 1, INK); px(2, hy + 6, 1, 1, INK);
+      } };
+    SKIN.quebranozes = { R: NV, L: PAPEL, T: INK, luva: PAPEL, cobre: true, loja: true,
+      tronco: (px, o) => {
+        cinto(px, o, INK, OURO);
+        if(o.lado){ px(1, -14, 1, 1, OURO); px(1, -12, 1, 1, OURO); px(-2, -15, 3, 1, OURO); return; }
+        px(-7, -15, 3, 1, OURO); px(4, -15, 3, 1, OURO); px(-7, -14, 3, 1, OURO3); px(4, -14, 3, 1, OURO3);
+        if(o.costas) return;
+        [-14, -12].forEach(y => { px(-2, y, 1, 1, OURO); px(1, y, 1, 1, OURO); }); px(-1, -15, 2, 5, NV2);
+      },
+      cabeca: (px, o) => {
+        const hy = o.hy;
+        barba(px, o, PAPEL, NEVE2);
+        if(o.lado){ px(-4, hy - 6, 8, 6, INK); px(-4, hy - 1, 8, 1, OURO); px(0, hy - 8, 2, 2, PAPEL); px(1, hy - 4, 2, 2, OURO); return; }
+        px(-4, hy - 6, 8, 6, INK); px(3, hy - 6, 1, 6, '#2B2F38'); px(-4, hy - 1, 8, 1, OURO); px(-1, hy - 8, 2, 2, PAPEL);
+        if(o.costas) return;
+        px(-1, hy - 4, 2, 2, OURO); px(-3, hy + 3, 2, 1, PAPEL); px(1, hy + 3, 2, 1, PAPEL);
+      } };
+    SKIN.piscapisca = { R: INK, L: INK, T: INK, luva: INK, loja: true,
+      tronco: (px, o) => {
+        if(o.lado){ px(-2, -14, 1, 1, FIO); px(-1, -13, 1, 3, FIO); px(0, -10, 1, 3, FIO); return; }
+        px(-4, -14, 2, 1, FIO); px(-2, -13, 2, 1, FIO); px(0, -12, 2, 1, FIO); px(2, -11, 2, 1, FIO); px(-4, -10, 2, 1, FIO); px(-2, -9, 2, 1, FIO); px(0, -8, 2, 1, FIO);
+      },
+      cabeca: (px, o) => { const hy = o.hy; px(-4, hy - 1, 8, 2, INK); px(-1, hy - 3, 2, 2, INK); if(o.lado) px(-5, hy, 1, 1, INK); },
+      fx: (px, o) => {
+        const hy = o.hy;
+        if(o.lado){ piscaLuzes(px, [[-2, -14], [0, -12], [-1, -10], [0, -8], [-1, -5], [0, -3], [-3, hy - 1], [0, hy - 1], [2, hy]]); return; }
+        piscaLuzes(px, [[-3, -14], [0, -13], [3, -11], [-3, -10], [0, -8], [-6, -13], [5, -12], [-6, -10], [5, -9], [-3, -5], [2, -4], [-3, hy - 1], [0, hy - 1], [3, hy - 1], [-1, hy - 4]]);
+      } };
+    SKIN.rena = { R: RENA, L: RENA, T: RENA2, luva: RENA2, cobre: true, loja: true,
+      tronco: (px, o) => {
+        if(o.costas){ px(-4, -15, 8, 1, NV); px(-1, -9, 2, 1, NEVE); return; }
+        if(o.lado){ px(0, -14, 2, 6, BARRIGA); px(-2, -15, 4, 1, NV); px(1, -14, 1, 1, OURO); px(-3, -9, 1, 1, NEVE); return; }
+        px(-2, -14, 4, 6, BARRIGA); px(-4, -15, 8, 1, NV); px(-1, -14, 2, 1, OURO);
+      },
+      cabeca: (px, o) => {
+        const hy = o.hy, chifre = (x, s) => { px(x, hy - 4, 1, 3, CHIFRE); px(s > 0 ? x : x - 1, hy - 5, 2, 1, CHIFRE); px(x + s * 2, hy - 7, 1, 2, CHIFRE); px(x + s * 2, hy - 5, 1, 1, CHIFRE); px(x, hy - 6, 1, 1, CHIFRE); };
+        if(o.lado){ px(-4, hy - 1, 8, 3, RENA); px(-4, hy + 2, 3, 6, RENA); px(-6, hy + 1, 2, 1, RENA); chifre(-1, -1); px(3, hy + 5, 2, 1, NV); return; }
+        px(-4, hy - 1, 8, 3, RENA); px(-6, hy + 1, 2, 1, RENA); px(4, hy + 1, 2, 1, RENA); chifre(-3, -1); chifre(2, 1);
+        if(o.costas){ px(-4, hy + 2, 8, 6, RENA); return; }
+        px(-4, hy + 2, 1, 4, RENA); px(3, hy + 2, 1, 4, RENA2); px(-1, hy + 5, 2, 1, NV);
+      },
+      /* o nariz vermelho acende (e brilha em volta) */
+      fx: (px, o) => { if(o.costas || Math.floor(performance.now() / 420) % 2) return; const x = o.lado ? 3 : -1, y = o.hy + 5; px(x, y, 2, 1, '#FF6A6A'); px(x - 1, y, 1, 1, 'rgba(255,90,90,.35)'); px(x + 2, y, 1, 1, 'rgba(255,90,90,.35)'); px(x, y - 1, 2, 1, 'rgba(255,90,90,.35)'); } };
+    SKIN.duende = { R: NV, L: PAPEL, T: NV2, loja: true,
+      tronco: (px, o) => {
+        if(o.lado){ px(-2, -13, 4, 1, NEVE); px(-2, -11, 4, 1, NEVE); px(-2, -8, 4, 1, NEVE); px(1, -14, 1, 1, OURO); if(!o.sentado){ px(-2, -5, 4, 1, NV); px(-2, -3, 4, 1, NV); } return; }
+        px(-4, -13, 8, 1, NEVE); px(-4, -11, 8, 1, NEVE); px(-4, -8, 8, 1, NEVE); px(-4, -7, 2, 1, NV); px(0, -7, 2, 1, NV);
+        cinto(px, o, OURO); if(!o.costas) px(-1, -15, 2, 1, OURO);
+        if(!o.sentado){ px(-4, -5, 8, 1, NV); px(-4, -3, 8, 1, NV); }
+      },
+      cabeca: (px, o) => {
+        const hy = o.hy;
+        if(o.lado){ px(-4, hy - 1, 8, 2, NV); px(-3, hy - 3, 6, 2, NV); px(-3, hy - 5, 4, 2, NV); px(-6, hy - 6, 3, 1, NV); px(-7, hy - 6, 1, 2, OURO); px(-4, hy + 1, 8, 1, NEVE); return; }
+        px(-4, hy - 1, 8, 2, NV); px(-3, hy - 3, 6, 2, NV); px(-2, hy - 5, 4, 2, NV); px(MX(o, -1, 3), hy - 6, 3, 1, NV); px(MX(o, 2, 2), hy - 7, 2, 1, NV); px(MX(o, 4, 1), hy - 7, 1, 2, OURO);
+        px(-5, hy + 1, 10, 1, NEVE);
+      } };
+    SKIN.reimago = { R: ROXOREI, L: ROXOREI, T: OURO, loja: true,
+      atras: (px, o) => { if(o.costas) return; if(o.lado) px(-5, -16, 3, 14, VINHO); else px(-7, -16, 14, 14, VINHO); },
+      tronco: (px, o) => {
+        saia(px, o, ROXOREI, ROXOREI2);
+        if(o.costas){ px(-6, -16, 12, 14, VINHO); px(-6, -16, 12, 1, OURO); return; }
+        if(o.lado){ px(1, -15, 1, 13, OURO); px(1, -10, 3, 3, OURO); px(2, -10, 1, 3, NV); return; }
+        px(-1, -15, 2, 8, OURO); if(!o.sentado) px(-1, -8, 2, 6, OURO); cinto(px, o, OURO2, NV);
+        px(4, -10, 4, 3, OURO); px(5, -10, 1, 3, NV); px(4, -9, 4, 1, NV); px(5, -11, 2, 1, NV);
+      },
+      cabeca: (px, o) => {
+        const hy = o.hy;
+        px(-4, hy - 2, 8, 2, OURO); px(-4, hy - 4, 1, 2, OURO); px(-1, hy - 4, 2, 2, OURO); px(3, hy - 4, 1, 2, OURO);
+        if(o.lado) return;
+        if(!o.costas){ px(-3, hy - 1, 1, 1, NV); px(-1, hy - 1, 2, 1, AZUL); px(2, hy - 1, 1, 1, ROSA); }
+      },
+      fx: (px, o) => brilho(px, o.lado ? [[0, -27], [3, -9], [-4, -26]] : [[-4, -28], [3, -28], [6, -11], [0, -28], [7, -8]], OURO2) };
+    SKIN.biscoito = { R: GENG, L: GENG, T: GENG2, luva: GENG, cobre: true, loja: true,
+      tronco: (px, o) => {
+        if(o.lado){ px(1, -14, 1, 1, NV); px(1, -12, 1, 1, AZUL); px(1, -10, 1, 1, ROSA); if(!o.sentado) px(-2, -3, 3, 1, PAPEL); return; }
+        px(-7, -10, 3, 1, PAPEL); px(4, -10, 3, 1, PAPEL);
+        if(!o.sentado){ px(-4, -3, 4, 1, PAPEL); px(0, -3, 4, 1, PAPEL); }
+        if(o.costas) return;
+        px(-1, -14, 2, 1, NV); px(-1, -12, 2, 1, AZUL); px(-1, -10, 2, 1, ROSA);
+      },
+      cabeca: (px, o) => {
+        const hy = o.hy;
+        if(o.lado){ px(-4, hy - 1, 8, 1, GENG); px(-5, hy, 9, 7, GENG); px(-4, hy + 7, 8, 1, GENG); px(-4, hy - 1, 7, 1, PAPEL); px(2, hy + 3, 1, 1, INK); px(1, hy + 6, 3, 1, PAPEL); return; }
+        px(-4, hy - 1, 8, 1, GENG); px(-5, hy, 10, 7, GENG); px(-4, hy + 7, 8, 1, GENG); px(4, hy, 1, 7, GENG2);
+        if(o.costas) return;
+        [-4, -2, 0, 2].forEach(x => px(x, hy - 1, 1, 1, PAPEL));
+        px(-2, hy + 3, 1, 1, INK); px(1, hy + 3, 1, 1, INK); px(-3, hy + 5, 1, 1, PAPEL); px(2, hy + 5, 1, 1, PAPEL); px(-2, hy + 6, 4, 1, PAPEL);
+        px(-4, hy + 4, 1, 1, ROSA); px(3, hy + 4, 1, 1, ROSA);
+      } };
+    SKIN.presente = { R: NV, L: INK, T: OURO, loja: true,
+      tronco: (px, o) => {
+        /* a caixa de presente cobre o corpo e os braços: a fita dourada em cruz */
+        if(o.lado){ px(-4, -16, 8, 10, NV); px(3, -16, 1, 10, NV2); px(-1, -16, 2, 10, OURO); px(-4, -12, 8, 2, OURO); px(-4, -16, 8, 1, '#E85A62'); return; }
+        px(-6, -16, 12, 10, NV); px(4, -16, 2, 10, NV2); px(-1, -16, 2, 10, OURO); px(-6, -12, 12, 2, OURO); px(-6, -16, 12, 1, '#E85A62');
+      },
+      cabeca: (px, o) => {
+        const hy = o.hy;
+        if(o.lado){ px(-2, hy - 3, 4, 2, OURO); px(-1, hy - 2, 2, 1, OURO2); return; }
+        px(-4, hy - 3, 3, 2, OURO); px(1, hy - 3, 3, 2, OURO); px(-1, hy - 2, 2, 2, OURO2); px(-4, hy - 1, 1, 1, OURO3); px(3, hy - 1, 1, 1, OURO3);
       } };
   }
   const idx = (L, v, d) => Number.isInteger(v) && v >= 0 && v < L.length ? v : d;
@@ -8635,7 +9006,9 @@
   const LJ = { uid: '', minhas: new Set(), precos: {}, reais: {}, pedidos: [], realOk: false, ok: null, carregando: null };
   /* v4.13 · o preço em real: o que vale é o do banco (corre_skins_minhas → reais, o mesmo que a função cobra); este é
      só a reserva pra mostrar antes de ele responder (e os Termos de uso dizem o mesmo) */
-  const SKIN_REAL = { abobora: 14.90, saci: 14.90, bruxa: 9.90, esqueleto: 9.90, lobisomem: 9.90, lencol: 5.90, mortovivo: 5.90, gatopreto: 5.90 };
+  const SKIN_REAL = { abobora: 14.90, saci: 14.90, bruxa: 9.90, esqueleto: 9.90, lobisomem: 9.90, lencol: 5.90, mortovivo: 5.90, gatopreto: 5.90,
+    /* v5.05 · a coleção de Natal, toda acima de R$ 10 (o Thales: "tudo acima de 10 reais") */
+    noel: 24.90, arvore: 24.90, noelverao: 19.90, mamaenoel: 19.90, boneconeve: 19.90, quebranozes: 19.90, piscapisca: 19.90, rena: 14.90, duende: 14.90, reimago: 14.90, biscoito: 12.90, presente: 12.90 };
   const ehReal = k => !!SKIN_REAL[k] || Number(LJ.reais[k]) > 0;
   const precoReal = k => Number(LJ.reais[k]) > 0 ? Number(LJ.reais[k]) : SKIN_REAL[k] || 0;
   /* preço de loja: sempre à vista (o "esconder valores" do Corre é pra grana da pessoa, não pra etiqueta) */
@@ -8675,7 +9048,7 @@
     if(tenhoSkin(k)) return true;
     if(LJ.ok === false){ C.toast('O Ateliê ainda tá arrumando a vitrine. As skins chegam já, já.', 3800); return false; }
     /* v3.91: a de Halloween só na época; e a que o banco ainda não tem preço (o delta novo não rodou) espera */
-    if(foraDeEpoca(k)){ C.toast(`${x[1]} é da coleção de Halloween: volta pra vitrine em outubro.`, 4200); return false; }
+    if(foraDeEpoca(k)){ C.toast(`${x[1]} é da coleção de ${RARIDADE[colecaoDe(k)]}: ${COLECAO[colecaoDe(k)].volta}.`, 4200); return false; }
     if(semPreco(k)){ C.toast(`${x[1]} chega no Ateliê já, já.`, 3600); return false; }
     /* v4.13: a de real abre a folha de pagar (o correal não compra) */
     if(ehReal(k)){ if(C.naLoja && C.naLoja()) C.toast(`${x[1]} não está à venda no app.`, 3600); else if(LJ.realOk) skinRealSheet(k); else C.toast(`${x[1]} chega no Ateliê já, já.`, 3600); return false; }
@@ -8694,7 +9067,7 @@
     const av = C.st.me ? avLimpo(C.st.me.verso, C.st.me.id) : null, vestindo = !!av && !av.personagem && av.skin === k;
     if(LJ.ok === null) return '<span class="lj-msg">…</span>';
     if(LJ.ok === false && !tenhoSkin(k)) return `<span class="lj-preco">${ico('correal')} ${C.correalFmt(precoSkin(k))}</span><span class="lj-msg">em breve</span>`;
-    if(!tenhoSkin(k) && foraDeEpoca(k)) return '<span class="lj-msg">volta em outubro</span>';
+    if(!tenhoSkin(k) && foraDeEpoca(k)) return `<span class="lj-msg">${COLECAO[colecaoDe(k)].volta}</span>`;
     if(!tenhoSkin(k) && semPreco(k)) return `<span class="lj-preco">${ico('correal')} ${C.correalFmt(precoSkin(k))}</span><span class="lj-msg">em breve</span>`;
     /* v4.13: a de real: o preço em real, a fatura que espera pagamento, e (comprou há menos de 7 dias) o desistir */
     if(!tenhoSkin(k) && ehReal(k)){
@@ -8710,17 +9083,51 @@
     return `<button type="button" class="btn sm pri lj-compra" data-act="cvr-lj-compra" data-k="${k}" aria-label="Comprar ${esc(LOJA[k][1])} por ${C.correalTxt(precoSkin(k))}">${ico('correal')} ${C.correalFmt(precoSkin(k))}</button>`;
   }
   const pintaLoja = () => document.querySelectorAll('.lj-acao[data-k]').forEach(el => { el.innerHTML = acaoLoja(el.dataset.k); el.closest('.lj-card').classList.toggle('tua', tenhoSkin(el.dataset.k)); });
-  function lojaSheet(){
+  /* v5.05 · o Ateliê em duas abas (o Thales: "no ateliê separa o que é correal e o que é dinheiro de verdade"): Correal
+     (a moeda do Correverso, que se ganha no trampo) e Dinheiro de verdade (as coleções de época, em real, no Pix ou no
+     cartão). Cada aba tem o texto dela, e a escolha fica no aparelho. Sem escolha, abre no dinheiro de verdade quando tem
+     coleção na vitrine (a novidade), senão no correal. No app da Play a aba do real só mostra o que a pessoa já tem */
+  const LJ_ABA = 'corre-lj-aba';
+  const naVitrine = () => Object.keys(COLECAO).some(c => COLECAO[c].on());
+  async function lojaSheet(abaPedida){
     const me = C.st.me; if(!me){ C.toast('Entra no Corre pra abrir o Ateliê.'); return; }
-    const tenhoLoja = k => LJ.minhas.has(k);
+    const tenhoLoja = k => LJ.minhas.has(k), loja = !!(C.naLoja && C.naLoja());
+    /* coleção fora da vitrine (ou o app da loja) só mostra as que a pessoa tem: na primeira abertura, espera saber quais */
+    if(LJ.ok === null && (loja || Object.keys(COLECAO).some(c => !COLECAO[c].on()))) await carregaLoja();
     const card = x => `<li class="lj-card lj-${x[3]}"><canvas class="lj-cv" width="32" height="34" data-k="${x[0]}" aria-hidden="true"></canvas><div class="lj-tx"><span class="lj-rar">${RARIDADE[x[3]]}</span><b>${esc(x[1])}</b><small>${esc(x[4])}</small></div><div class="lj-acao" data-k="${x[0]}"></div></li>`;
-    const grupo = (r, t, so) => { const L = SKINS_LOJA.filter(x => x[3] === r && (!so || so(x[0]))); return L.length ? `<h3 class="lj-g lj-g-${r}">${t}</h3><ul class="lj-l">${L.map(card).join('')}</ul>` : ''; };
-    /* v3.91: na época, a coleção de Halloween vem primeiro; fora dela, só aparecem as que a pessoa já tem */
-    const hall = halloween() ? grupo('halloween', `${ico('star')} Halloween · em real, só até Finados (2/11)`) : grupo('halloween', 'Halloween · da tua coleção', tenhoLoja);
+    const doGrupo = (r, so) => SKINS_LOJA.filter(x => x[3] === r && (!so || so(x[0])));
+    const grupo = (r, t, so) => { const L = doGrupo(r, so); return L.length ? `<h3 class="lj-g lj-g-${r}">${t}</h3><ul class="lj-l">${L.map(card).join('')}</ul>` : ''; };
+    /* as coleções de época: na vitrine (e não no app da Play), todas; fora dela, só as que a pessoa tem. A que tá na vitrine vem primeiro */
+    const vende = c => COLECAO[c].on() && !loja, ord = ['natal', 'halloween'].sort((a, b) => vende(b) - vende(a));
+    const real = ord.map(c => vende(c) ? grupo(c, `${ico('star')} ${RARIDADE[c]} · na vitrine até ${COLECAO[c].ate}`) : grupo(c, `${RARIDADE[c]} · da tua coleção`, tenhoLoja)).join('');
+    const nReal = ord.reduce((n, c) => n + doGrupo(c, vende(c) ? null : tenhoLoja).length, 0), nCorreal = ['lendaria', 'rara', 'estilo'].reduce((n, r) => n + doGrupo(r).length, 0);
+    let aba = abaPedida === 'real' || abaPedida === 'correal' ? abaPedida : '';
+    if(!aba){ try{ aba = localStorage.getItem(LJ_ABA) || ''; }catch(e){} }
+    if(aba !== 'real' && aba !== 'correal') aba = naVitrine() && !loja ? 'real' : 'correal';
+    const tab = (k, ic, t, d, n) => `<button type="button" role="tab" id="lj-t-${k}" class="lj-aba lj-aba-${k}" aria-controls="lj-p-${k}" aria-selected="${aba === k}" tabindex="${aba === k ? 0 : -1}" data-aba="${k}">${ico(ic)}<span><b>${t}</b><small>${d}</small></span><i class="lj-n" aria-label="${n} skins">${n}</i></button>`;
     C.sheet(`<div class="form lj"><div class="sheet-head"><h2>${ico('star')} Ateliê do Corre</h2><button type="button" class="cbtn plain" data-close aria-label="Fechar">${ico('x')}</button></div>
-      <p class="lj-topo">Skins pra vestir na cidade e dentro das casas, desenhadas aqui. Paga uma vez e é tua pra sempre${halloween() ? ': as de Halloween em real (Pix ou cartão), as outras em correal' : ''}. Você tem <b class="num" data-correal-saldo>${C.correal.saldo == null ? '…' : C.correalFmt(C.correal.saldo)}</b> <span data-correal-unid>${C.correalUnid(C.correal.saldo || 0)}</span>.</p>
-      ${halloween() ? hall : ''}${grupo('lendaria', 'Lendárias · com brilho')}${grupo('rara', 'Raras')}${grupo('estilo', 'Estilo')}${halloween() ? '' : hall}
-      <p class="fine">Correal não é dinheiro: se ganha fazendo trampo no Correverso (até ${C.correalFmt(C.correal.teto)} por dia). O Ateliê sempre pergunta antes de descontar. Os 14 uniformes de antes seguem de graça, no teu avatar.${halloween() ? ' As de Halloween são pagas em real pelo Asaas, pagamento único: desistindo em até 7 dias, volta tudo. Veja os <a href="termos.html#skins" target="_blank" rel="noopener">Termos de uso</a>.' : ''}</p></div>`, 'wide lj-sheet');
+      <div class="lj-abas" role="tablist" aria-label="Como paga">${tab('correal', 'correal', 'Correal', 'a moeda do Correverso', nCorreal)}${tab('real', 'cartao', 'Dinheiro de verdade', 'Pix ou cartão', nReal)}</div>
+      <div class="lj-p" id="lj-p-correal" role="tabpanel" aria-labelledby="lj-t-correal"${aba === 'correal' ? '' : ' hidden'}>
+        <p class="lj-topo">Pagas com correal, a moeda que você ganha fazendo trampo no Correverso. Paga uma vez e é tua pra sempre. Você tem <b class="num" data-correal-saldo>${C.correal.saldo == null ? '…' : C.correalFmt(C.correal.saldo)}</b> <span data-correal-unid>${C.correalUnid(C.correal.saldo || 0)}</span>.</p>
+        ${grupo('lendaria', 'Lendárias · com brilho')}${grupo('rara', 'Raras')}${grupo('estilo', 'Estilo')}
+        <p class="fine">Correal não é dinheiro: se ganha fazendo trampo no Correverso (até ${C.correalFmt(C.correal.teto)} por dia) e não se compra com real. O Ateliê sempre pergunta antes de descontar. Os 14 uniformes de antes seguem de graça, no teu avatar.</p></div>
+      <div class="lj-p" id="lj-p-real" role="tabpanel" aria-labelledby="lj-t-real"${aba === 'real' ? '' : ' hidden'}>
+        <p class="lj-topo">${loja ? 'As skins em real não estão à venda no app. Aqui aparecem as que você já tem.' : 'Pagas em real, uma vez só, no Pix ou no cartão. Comprou, é tua pra sempre, o ano inteiro. Cada coleção fica na vitrine só na época dela.'}</p>
+        ${real || `<p class="lj-vazio">${loja ? 'Você ainda não tem skin comprada em real.' : 'As coleções em real chegam na época delas: o Halloween em outubro e o Natal de 15 de outubro até o Dia de Reis.'}</p>`}
+        ${loja ? '' : '<p class="fine">Pagamento único, pelo Asaas: não renova e não vira assinatura. Desistindo em até 7 dias do pagamento, volta tudo. Veja os <a href="termos.html#skins" target="_blank" rel="noopener">Termos de uso</a>.</p>'}</div></div>`, 'wide lj-sheet');
+    /* as abas: clique, setas, Home e End (o jeito de aba do leitor de tela) */
+    const abas = [...document.querySelectorAll('.lj-abas [role="tab"]')];
+    const vai = (k, foco) => {
+      abas.forEach(b => { const on = b.dataset.aba === k; b.setAttribute('aria-selected', on); b.tabIndex = on ? 0 : -1; const pn = C.$('lj-p-' + b.dataset.aba); if(pn) pn.hidden = !on; if(on && foco) b.focus(); });
+      try{ localStorage.setItem(LJ_ABA, k); }catch(e){}
+    };
+    abas.forEach((b, i) => {
+      b.addEventListener('click', () => vai(b.dataset.aba));
+      b.addEventListener('keydown', ev => {
+        const j = ev.key === 'ArrowRight' ? i + 1 : ev.key === 'ArrowLeft' ? i - 1 : ev.key === 'Home' ? 0 : ev.key === 'End' ? abas.length - 1 : null;
+        if(j == null) return; ev.preventDefault(); vai(abas[(j + abas.length) % abas.length].dataset.aba, true);
+      });
+    });
     pintaLoja();
     carregaLoja().then(pintaLoja); C.correalCarrega().catch(() => {});
     /* o provador: cada skin no teu boneco, girando devagar */
@@ -8744,7 +9151,7 @@
   const abaNova = () => { if(C.DEMO) return null; try{ return window.open('', '_blank'); }catch(e){ return null; } };
   const leva = (w, link) => { if(!w) return false; if(!link){ try{ w.close(); }catch(e){} return false; } try{ w.opener = null; w.location.href = link; return true; }catch(e){ return false; } };
   const ERRO_REAL = { termos: 'Marca que leu e aceita os Termos de uso pra comprar.', nome: 'Escreve teu nome completo (ou a razão social).', doc: 'Esse CPF ou CNPJ não confere.',
-    epoca: 'A coleção de Halloween saiu da vitrine: volta em outubro.', forma: 'Escolhe Pix ou cartão.', skin: 'Essa skin não tá à venda em real.',
+    epoca: 'Essa coleção saiu da vitrine: ela volta na época dela.', forma: 'Escolhe Pix ou cartão.', skin: 'Essa skin não tá à venda em real.',
     config: 'O pagamento das skins ainda não tá ligado. Tenta daqui a pouco.', banco: 'O pagamento das skins ainda não tá ligado. Tenta daqui a pouco.', nofn: 'O pagamento das skins ainda não tá ligado. Tenta daqui a pouco.',
     pix: 'O Pix ainda não tá liberado: a conta do Corre no Asaas tá em aprovação. Por enquanto, paga no cartão.' };
   /* v4.15: o Asaas recusou o Pix ("o Pix não está disponível... sua conta precisa estar aprovada"): o botão do Pix apaga e
@@ -8770,14 +9177,14 @@
     const A = C.acesso || {}, pend = pedidoAberto(k), v = precoReal(k);
     C.sheet(`<form class="form lj-pg" id="lj-pg" data-k="${k}"><div class="sheet-head"><h2>${ico('star')} ${esc(x[1])}</h2><button type="button" class="cbtn plain" data-close aria-label="Fechar">${ico('x')}</button></div>
       <div class="lj-pg-topo"><canvas class="lj-pg-cv" width="32" height="34" aria-hidden="true"></canvas><div><p class="lj-pg-preco"><b>${reais(v)}</b> <span>pagamento único</span></p><p class="note">${esc(x[4])}</p>
-        <p class="fine">Comprou, é tua pra sempre: veste na cidade e dentro das casas, o ano inteiro. Na vitrine ela fica só até Finados (2/11).</p></div></div>
+        <p class="fine">Comprou, é tua pra sempre: veste na cidade e dentro das casas, o ano inteiro.${colecaoDe(k) ? ` Na vitrine ela fica só até ${COLECAO[colecaoDe(k)].ate}.` : ''}</p></div></div>
       ${pend ? `<div class="lj-pg-aberta"><p><b>Tem uma fatura esperando pagamento</b> (${pend.forma === 'cartao' ? 'cartão' : 'Pix'}, ${reais(pend.valor || v)}).</p><div class="acts">${pend.link ? `<a class="btn sm pri" href="${esc(pend.link)}" target="_blank" rel="noopener">${ico('ext')} Abrir a fatura</a>` : ''}<button type="button" class="btn sm" data-act="cvr-lj-confere" data-k="${k}">Já paguei</button></div><p class="fine">Ou paga de outro jeito aqui embaixo (a fatura de antes é cancelada).</p></div>` : ''}
       ${A.cliente ? '' : `<div class="fld"><label for="lj-nome">Nome completo ou razão social</label><input class="inp" id="lj-nome" maxlength="100" autocomplete="name" required value="${esc(me.nome || '')}"></div>
       <div class="fld"><label for="lj-doc">CPF ou CNPJ</label><input class="inp" id="lj-doc" inputmode="numeric" maxlength="18" autocomplete="off" required aria-describedby="lj-doc-h"><span class="hint" id="lj-doc-h">Vai só pro Asaas, que emite a cobrança. O Corre não guarda.</span></div>`}
       <label class="pl-aceite"><input type="checkbox" id="lj-termos" required><span>Li e aceito os <a href="termos.html#skins" target="_blank" rel="noopener">Termos de uso</a>. Pagamento único, não renova; desistindo em até 7 dias do pagamento, recebo tudo de volta e a skin sai.</span></label>
       <p class="fine" id="lj-erro" role="alert" hidden></p>
       <div class="acts lj-pg-bts">${botoesPix()}</div>${pixOff() ? `<p class="fine">${esc(ERRO_REAL.pix)}</p>` : ''}
-      <p class="fine">O pagamento é pelo Asaas, numa aba nova. Pagou, a skin chega sozinha. <button type="button" class="lnk" data-act="cvr-loja">Voltar pro Ateliê</button></p>
+      <p class="fine">O pagamento é pelo Asaas, numa aba nova. Pagou, a skin chega sozinha. <button type="button" class="lnk" data-act="cvr-loja" data-aba="real">Voltar pro Ateliê</button></p>
     </form>`);
     giraPrevia(document.querySelector('.lj-pg-cv'), k);
     const f = C.$('lj-pg'); if(!f) return;
@@ -8789,7 +9196,7 @@
     const er = C.$('lj-erro'), mostra = t => { if(er){ er.textContent = t; er.hidden = false; } else C.toast(t); };
     /* o navegador não segura o "required" num botão comum: confere aqui */
     const tm = C.$('lj-termos'); if(tm && !tm.checked){ mostra(ERRO_REAL.termos); tm.focus(); return; }
-    const body = { acao: 'skin-comprar', skin: k, forma, termos: C.TERMOS_V || '2026-10-20' }, nm = C.$('lj-nome'), dc = C.$('lj-doc');
+    const body = { acao: 'skin-comprar', skin: k, forma, termos: C.TERMOS_V || '2026-10-28' }, nm = C.$('lj-nome'), dc = C.$('lj-doc');
     if(nm){ body.nome = nm.value.replace(/\s+/g, ' ').trim(); if(body.nome.length < 3){ mostra(ERRO_REAL.nome); nm.focus(); return; } }
     if(dc){ body.doc = C.docOk(dc.value); if(!body.doc){ mostra(ERRO_REAL.doc); dc.focus(); return; } }
     f.dataset.indo = '1'; f.querySelectorAll('[data-forma]').forEach(b => { b.disabled = true; });
@@ -8818,7 +9225,7 @@
         <p class="note">${abriu ? `A fatura abriu numa aba nova. Paga ${forma === 'cartao' ? 'no cartão' : 'no Pix'} por lá: a skin ${esc(x[1])} chega sozinha aqui.` : `Abre a fatura pra pagar ${forma === 'cartao' ? 'no cartão' : 'no Pix'}: a skin ${esc(x[1])} chega sozinha aqui.`}</p></div></div>
       <p class="lj-pg-st" id="lj-pg-st" role="status">${ico('clock')} Esperando o pagamento…</p>
       <div class="acts">${link ? `<a class="btn${abriu ? '' : ' pri'}" href="${esc(link)}" target="_blank" rel="noopener">${ico('ext')} ${abriu ? 'Abrir a fatura de novo' : 'Abrir a fatura'}</a>` : ''}<button type="button" class="btn${abriu ? ' pri' : ''}" data-act="cvr-lj-confere" data-k="${k}">Já paguei</button></div>
-      <p class="fine">A fatura também vai pro teu e-mail. Pode fechar aqui: pagou, a skin aparece no Ateliê e no teu avatar. <button type="button" class="lnk" data-act="cvr-loja">Voltar pro Ateliê</button></p>`;
+      <p class="fine">A fatura também vai pro teu e-mail. Pode fechar aqui: pagou, a skin aparece no Ateliê e no teu avatar. <button type="button" class="lnk" data-act="cvr-loja" data-aba="real">Voltar pro Ateliê</button></p>`;
     giraPrevia(f.querySelector('.lj-pg-cv'), k);
     ESP.k = k; ESP.ate = Date.now() + 15 * 60000; clearTimeout(ESP.t); ESP.t = setTimeout(() => confereReal(false), 8000);
   }
@@ -8842,7 +9249,7 @@
     const f = C.$('lj-pg');
     if(f){ f.innerHTML = `<div class="sheet-head"><h2>${ico('check')} É tua!</h2><button type="button" class="cbtn plain" data-close aria-label="Fechar">${ico('x')}</button></div>
       <div class="lj-pg-topo"><canvas class="lj-pg-cv" width="32" height="34" aria-hidden="true"></canvas><div><p class="lj-pg-preco"><b>${esc(x[1])}</b></p><p class="note">Pagamento confirmado${demo ? ' (demonstração: nada foi cobrado)' : ''}. Ela fica no teu armário pra sempre.</p></div></div>
-      <div class="acts"><button type="button" class="btn pri" data-act="cvr-lj-veste-fecha" data-k="${k}">${ico('star')} Vestir agora</button><button type="button" class="btn" data-act="cvr-loja">Voltar pro Ateliê</button></div>`;
+      <div class="acts"><button type="button" class="btn pri" data-act="cvr-lj-veste-fecha" data-k="${k}">${ico('star')} Vestir agora</button><button type="button" class="btn" data-act="cvr-loja" data-aba="real">Voltar pro Ateliê</button></div>`;
       giraPrevia(f.querySelector('.lj-pg-cv'), k); }
     C.toast(`Pagamento confirmado: a skin ${x[1]} é tua.`, 3600);
   }
@@ -8874,7 +9281,7 @@
       <div class="cvr-av-f">
         <div class="fld"><span class="lbl-s">Personagem</span>${ch('personagem', PERSONAGENS)}<small class="fine">Escolhe um e anda pela cidade como ele. "Você mesmo" usa o boneco montado aqui embaixo.</small></div>
         <div class="fld"><span class="lbl-s">Uniforme</span>${ch('skin', SKINS)}<small class="fine">Vai por cima do teu boneco (pele, cabelo e barba ficam). Na cidade e dentro das casas.</small></div>
-        <div class="fld cvr-av-loja"><span class="lbl-s">${ico('star')} Do Ateliê</span>${chLoja()}<small class="fine">Toca pra provar. A que tem cadeado se compra na hora de salvar (as de Halloween em real, as outras em correal). <button type="button" class="lnk" data-act="cvr-loja">Abrir o Ateliê</button></small></div>
+        <div class="fld cvr-av-loja"><span class="lbl-s">${ico('star')} Do Ateliê</span>${chLoja()}<small class="fine">Toca pra provar. A que tem cadeado se compra na hora de salvar (as de Natal e de Halloween em real, as outras em correal). <button type="button" class="lnk" data-act="cvr-loja">Abrir o Ateliê</button></small></div>
         <div class="fld"><span class="lbl-s">Pele</span>${sw('pele', PELES)}</div>
         <div class="fld"><span class="lbl-s">Cabelo</span>${ch('cabelo', CABELOS)}${sw('corCabelo', CAB_CORES)}</div>
         <div class="fld"><span class="lbl-s">Barba</span>${ch('barba', BARBAS)}</div>
@@ -8937,7 +9344,7 @@
     'cvr-uni': el => vesteUniforme(el.dataset.u || ''),
     'cvr-avatar': () => avatarSheet(false),
     /* v3.66: o Ateliê (a loja de skins) */
-    'cvr-loja': () => lojaSheet(),
+    'cvr-loja': el => lojaSheet(el && el.dataset ? el.dataset.aba : ''),
     /* v4.0 · a faixa do evento (ao vivo, leva até lá; antes, abre a agenda) e a agenda */
     'cvr-evento': el => { const ag = eventoAgora(); if(ag) vaiEvento(ag.e.k); else agendaSheet(); },
     'cvr-agenda': () => agendaSheet(),

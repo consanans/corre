@@ -3071,6 +3071,16 @@
   /* v3.91: a vela dentro da abóbora (a mesma tremida da cidade) */
   const brasa3 = () => { const f = Math.floor(performance.now() / 110) % 7; return f === 0 ? '#FFF2A8' : f < 4 ? '#FFD23F' : '#FFB02E'; };
   const brilho3 = (x, z, L) => { const t = Math.floor(performance.now() / 150); if(t % 4 === 3) return []; const p = L[(t * 3) % L.length]; return [B(x + p[0] - .025, p[1], z + p[2], .05, .05, .02, '#FFFFFF')]; };
+  /* v5.05: as cores e os pedaços das fantasias novas e do Natal em 3D (o gorro caído com o pompom, a barba branca com o
+     cabelo do lado, e as lâmpadas que acendem em onda, nas cores das luzes da cidade, sem verde) */
+  const NAT = { NV: '#D7262E', NV2: '#A8141E', NEVE: '#F4F3EF', NEVE2: '#D9DEE6', GRIS: '#D3D8E0', BOCHECHA: '#FF9FBF', GENG: '#B8692E', GENG2: '#8C4A1E', RENA: '#8C5A2E', RENA2: '#5A3A1E', BARRIGA: '#C9A27A',
+    CHIFRE: '#D9B98C', LATA: '#B9C0C9', LATA2: '#8F96A0', PAINEL: '#4A4E56', ESCAMA: '#C6A6FF', ESCAMA2: '#9A7AE0', DINO: '#7E5BD6', DINO2: '#5A3FA8', TUTU: '#FFB3D1', TUTU2: '#FFD3E4', NEOP: '#1B1D22',
+    LENTE: '#7FD8F2', FIO: '#4A4E56', OURO3: '#B8862E', ROXOREI: '#5A2E8A' };
+  const gorro3 = (x, z) => [B(x - .27, 1.36, z - .27, .54, .1, .54, NAT.NEVE), B(x - .23, 1.46, z - .23, .46, .12, .46, NAT.NV), B(x - .17, 1.58, z - .15, .34, .1, .32, NAT.NV), B(x - .08, 1.68, z - .08, .2, .08, .18, NAT.NV),
+    B(x + .1, 1.64, z - .06, .16, .06, .12, NAT.NV2), B(x + .24, 1.58, z - .07, .1, .1, .1, NAT.NEVE)];
+  const barba3 = (x, z, c) => [B(x - .24, .86, z + .2, .48, .22, .1, c), B(x - .16, 1.05, z + .25, .32, .05, .02, c), B(x - .265, .98, z - .26, .04, .4, .46, c), B(x + .225, .98, z - .26, .04, .4, .46, c)];
+  const LUZ3 = ['#E2412E', '#F2D06B', '#5C8BFF', ROSA, '#FFFFFF'];
+  const pisca3 = (x, z, L, ms) => { const t = Math.floor(performance.now() / (ms || 260)); return L.map((p, i) => { const c = LUZ3[(i + Math.floor(t / 3)) % LUZ3.length], on = (t + i) % 3 !== 0; return B(x + p[0] - .03, p[1], z + p[2] - .015, .06, .06, .03, on ? c : escurece(c, .45)); }); };
   const SKIN3D = {
     policial: { R: '#1F3D7A', L: '#1B1F27', T: INK, cobre: true, bl: (x, z) => [B(x - .27, 1.38, z - .27, .54, .12, .54, '#1F3D7A'), B(x - .2, 1.38, z + .27, .4, .04, .2, INK), B(x - .1, 1.44, z + .27, .2, .05, .005, OURO), B(x - .26, .44, z - .13, .52, .05, .26, INK), B(x - .04, .44, z + .13, .08, .05, .005, OURO), B(x - .2, .8, z + .12, .07, .07, .01, OURO)] },
     bombeiro: { R: '#E2412E', L: INK, T: INK, cobre: true, bl: (x, z) => [B(x - .3, 1.36, z - .3, .6, .2, .6, '#E2412E'), B(x - .35, 1.34, z - .35, .7, .04, .7, '#B4152E'), B(x - .3, 1.44, z - .3, .6, .04, .605, AMARELO), B(x - .25, .6, z + .12, .5, .05, .01, AMARELO), B(x - .25, .74, z + .12, .5, .05, .01, AMARELO), B(x - .25, .6, z - .13, .5, .05, .01, AMARELO), B(x - .25, .74, z - .13, .5, .05, .01, AMARELO)] },
@@ -3264,6 +3274,124 @@
       B(x - .04, 1.06, z + .25, .08, .05, .005, ROSA), B(x - .4, 1.06, z + .25, .16, .015, .005, '#2B2F38'), B(x + .24, 1.06, z + .25, .16, .015, .005, '#2B2F38'),
       B(x - .26, .9, z - .13, .52, .04, .26, ROSA), B(x - .04, .84, z + .13, .08, .07, .04, OURO),
       B(x - .03, .48, z - .32, .06, .06, .2, INK), B(x - .03, .5, z - .38, .06, .36, .06, INK), B(x - .03, .82, z - .34, .06, .06, .06, INK)
+    ] },
+    /* ---------- v5.05 · as fantasias novas e a coleção de Natal em 3D (os desenhos da cidade estão em verso.js, SKIN).
+       O robô pisca a antena, o pisca-pisca e a árvore acendem as lâmpadas em onda, a rena acende o nariz ---------- */
+    robo: { R: NAT.LATA, L: NAT.LATA2, T: NAT.PAINEL, luva: NAT.LATA2, cobre: true, semCabeca: true, bl: (x, z) => {
+      const t = Math.floor(performance.now() / 300);
+      return [B(x - .28, .94, z - .28, .56, .54, .56, NAT.LATA), B(x - .2, 1.14, z + .28, .4, .12, .01, '#1B2A5A'), B(x - .14, 1.17, z + .285, .07, .06, .005, '#38E1FF'), B(x + .07, 1.17, z + .285, .07, .06, .005, '#38E1FF'),
+        B(x - .12, 1.0, z + .28, .24, .04, .01, NAT.LATA2), B(x - .32, 1.1, z - .06, .04, .12, .12, NAT.LATA2), B(x + .28, 1.1, z - .06, .04, .12, .12, NAT.LATA2),
+        B(x - .02, 1.48, z - .02, .04, .18, .04, NAT.LATA2), B(x - .05, 1.66, z - .05, .1, .1, .1, t % 2 ? ROSA : '#FFB3D1'),
+        B(x - .18, .62, z + .12, .36, .24, .01, NAT.PAINEL), ...[ROSA, AMARELO, '#38E1FF'].map((c, i) => B(x - .13 + i * .1, .76, z + .125, .05, .05, .005, (t + i) % 3 ? c : escurece(c, .45))),
+        B(x - .26, .44, z - .13, .52, .05, .26, NAT.LATA2), B(x - .03, .66, z - .18, .06, .06, .08, OURO), B(x - .14, .62, z - .22, .28, .14, .03, OURO)];
+    } },
+    sereia: { R: AZUL, L: NAT.ESCAMA, T: NAT.ESCAMA2, manga: 'curta', bl: (x, z) => [
+      B(x - .27, .1, z - .15, .54, .36, .3, NAT.ESCAMA), B(x - .22, 0, z - .12, .44, .12, .24, NAT.ESCAMA2), B(x - .32, .02, z - .34, .64, .07, .2, ROSA),
+      B(x - .18, .32, z + .155, .05, .05, .005, NAT.ESCAMA2), B(x + .08, .24, z + .155, .05, .05, .005, NAT.ESCAMA2), B(x - .05, .16, z + .155, .05, .05, .005, NAT.ESCAMA2),
+      B(x - .12, .9, z + .12, .24, .03, .01, PAPEL), B(x - .2, 1.44, z + .1, .4, .04, .06, ROSA), B(x - .04, 1.48, z + .14, .08, .08, .02, AMARELO)
+    ].concat(brilho3(x, z, [[-.18, .3, .16], [.12, .2, .16], [0, .4, .16], [-.25, .05, -.25], [.25, .05, -.25]])) },
+    dino: { R: NAT.DINO, L: NAT.DINO, T: NAT.DINO2, luva: NAT.DINO, cobre: true, bl: (x, z) => [
+      B(x - .3, 1.36, z - .3, .6, .14, .6, NAT.DINO), B(x - .29, .98, z - .31, .58, .4, .06, NAT.DINO), B(x - .24, 1.32, z + .24, .48, .08, .12, NAT.DINO),
+      ...[-.2, -.09, .02, .13].map(dx => B(x + dx, 1.29, z + .35, .05, .04, .01, PAPEL)),
+      B(x - .2, 1.5, z + .08, .12, .1, .1, PAPEL), B(x + .08, 1.5, z + .08, .12, .1, .1, PAPEL), B(x - .16, 1.53, z + .18, .05, .05, .005, INK), B(x + .12, 1.53, z + .18, .05, .05, .005, INK),
+      B(x - .04, 1.5, z - .22, .08, .1, .08, AMARELO), B(x - .04, 1.2, z - .35, .08, .08, .06, AMARELO), B(x - .04, .84, z - .17, .08, .08, .06, AMARELO), B(x - .04, .64, z - .17, .08, .08, .06, AMARELO),
+      B(x - .08, .3, z - .3, .16, .16, .2, NAT.DINO), B(x - .06, .24, z - .48, .12, .12, .18, NAT.DINO2), B(x - .14, .5, z + .12, .28, .36, .01, LILAS)
+    ] },
+    bailarina: { R: NAT.TUTU, L: PAPEL, T: ROSA, manga: 'curta', bl: (x, z) => [
+      B(x - .38, .4, z - .24, .76, .08, .48, NAT.TUTU), B(x - .32, .46, z - .2, .64, .05, .4, NAT.TUTU2), B(x - .34, .36, z - .22, .68, .05, .44, NAT.TUTU),
+      B(x - .1, .9, z + .12, .2, .04, .01, NAT.TUTU2), B(x - .16, 1.44, z + .12, .32, .04, .04, '#DDE3EA'), B(x - .03, 1.48, z + .14, .06, .06, .02, ROSA)
+    ] },
+    mergulhador: { R: NAT.NEOP, L: NAT.NEOP, T: '#F5C02E', luva: NAT.NEOP, cobre: true, bl: (x, z) => {
+      const t = performance.now() / 1000, out = [B(x - .27, 1.3, z - .27, .54, .16, .54, NAT.NEOP), B(x - .27, .98, z - .29, .54, .34, .06, NAT.NEOP),
+        B(x - .22, 1.12, z + .25, .44, .16, .03, AMARELO), B(x - .18, 1.14, z + .28, .36, .12, .005, NAT.LENTE),
+        B(x + .26, 1.0, z + .1, .04, .6, .04, LARANJA), B(x + .1, 1.0, z + .25, .18, .04, .04, LARANJA),
+        B(x - .14, .46, z - .3, .28, .5, .18, '#F5C02E'), B(x - .03, .96, z - .24, .06, .08, .06, '#DDE3EA'),
+        B(x - .26, .44, z - .05, .01, .5, .1, AZUL), B(x + .25, .44, z - .05, .01, .5, .1, AZUL), B(x - .005, .5, z + .12, .01, .4, .01, '#DDE3EA')];
+      for(let i = 0; i < 2; i++){ const f = (t * .5 + i / 2) % 1; out.push(B(x + .26 + Math.sin(f * 6 + i) * .04, 1.6 + f * .6, z + .1, .05, .05, .05, '#CEE8FF')); }
+      return out;
+    } },
+    caipira: { R: VERM, L: '#2E4A7A', T: '#8C5A2E', bl: (x, z) => [
+      B(x - .42, 1.38, z - .42, .84, .03, .84, PALHA), B(x - .24, 1.41, z - .24, .48, .16, .48, PALHA), B(x - .245, 1.43, z - .245, .49, .04, .49, VERM),
+      B(x - .25, .82, z + .12, .5, .03, .01, '#F4F3EF'), B(x - .25, .64, z + .12, .5, .03, .01, '#F4F3EF'), B(x - .12, .44, z + .12, .03, .5, .01, '#F4F3EF'), B(x + .09, .44, z + .12, .03, .5, .01, '#F4F3EF'),
+      B(x - .25, .82, z - .13, .5, .03, .01, '#F4F3EF'), B(x - .25, .64, z - .13, .5, .03, .01, '#F4F3EF'), B(x - .1, .86, z + .12, .2, .08, .02, AMARELO)
+    ] },
+    abelha: { R: '#F5C02E', L: INK, T: INK, luva: INK, bl: (x, z) => [
+      B(x - .255, .78, z - .125, .51, .05, .25, INK), B(x - .255, .6, z - .125, .51, .05, .25, INK),
+      B(x - .34, .68, z - .2, .3, .32, .02, '#DCEBFF'), B(x + .04, .68, z - .2, .3, .32, .02, '#DCEBFF'),
+      B(x - .26, 1.42, z - .26, .52, .04, .52, INK), B(x - .14, 1.44, z + .04, .03, .16, .03, INK), B(x + .11, 1.44, z + .04, .03, .16, .03, INK),
+      B(x - .17, 1.6, z + .02, .08, .08, .08, INK), B(x + .09, 1.6, z + .02, .08, .08, .08, INK), B(x - .03, .44, z - .2, .06, .06, .1, INK)
+    ] },
+    palhaco: { R: PAPEL, L: PAPEL, T: VERM, luva: PAPEL, cobre: true, bl: (x, z) => [
+      B(x - .32, 1.32, z - .3, .64, .18, .6, LARANJA), B(x - .38, 1.06, z - .2, .1, .24, .36, LARANJA), B(x + .28, 1.06, z - .2, .1, .24, .36, LARANJA), B(x - .3, 1.02, z - .32, .6, .3, .08, LARANJA),
+      B(x - .05, 1.08, z + .25, .1, .1, .06, VERM), B(x - .12, .98, z + .25, .24, .03, .01, VERM),
+      B(x - .3, .88, z - .16, .6, .08, .32, AMARELO), B(x - .16, .72, z + .12, .05, .05, .01, ROSA), B(x + .08, .6, z + .12, .05, .05, .01, AZUL), B(x - .06, .5, z + .12, .05, .05, .01, AMARELO),
+      B(x - .06, 1.5, z - .06, .12, .14, .12, AZUL), B(x - .04, 1.64, z - .04, .08, .08, .08, AMARELO)
+    ] },
+    /* a coleção de Natal */
+    noel: { R: NAT.NV, L: NAT.NV, T: INK, luva: NAT.NEVE, cobre: true, bl: (x, z) => gorro3(x, z).concat(barba3(x, z, NAT.NEVE), [
+      B(x - .27, .3, z - .14, .54, .16, .28, NAT.NV), B(x - .27, .28, z - .14, .54, .04, .28, NAT.NEVE), B(x - .26, .48, z - .13, .52, .05, .26, INK), B(x - .05, .47, z + .13, .1, .07, .005, OURO),
+      B(x - .04, .54, z + .12, .08, .3, .01, NAT.NEVE)
+    ], brilho3(x, z, [[.3, 1.7, -.05], [-.3, 1.4, .1], [.25, .5, .14], [-.2, .8, .14]])) },
+    arvore: { R: OURO, L: '#8C5A2E', T: '#5A3A1E', cobre: true, bl: (x, z) => [
+      B(x - .42, .28, z - .42, .84, .24, .84, OURO), B(x - .34, .52, z - .34, .68, .24, .68, OURO), B(x - .27, .76, z - .27, .54, .2, .54, OURO),
+      B(x - .42, .26, z - .42, .84, .03, .84, NAT.OURO3), B(x - .35, .64, z + .345, .7, .03, .005, '#F2D06B'), B(x - .42, .4, z + .425, .84, .03, .005, '#F2D06B'),
+      B(x - .2, 1.44, z - .2, .4, .12, .4, OURO), B(x - .13, 1.56, z - .13, .26, .12, .26, OURO), B(x - .06, 1.68, z - .06, .12, .1, .12, OURO), B(x - .08, 1.78, z - .02, .16, .16, .04, '#FFF2A8')
+    ].concat(pisca3(x, z, [[-.2, .42, .43], [.12, .34, .43], [.3, .46, .43], [-.3, .3, .43], [-.14, .62, .35], [.16, .7, .35], [0, .86, .28], [-.18, .84, .28], [.2, .9, .28], [-.25, .4, -.47], [.2, .6, -.39]], 300)) },
+    noelverao: { R: NAT.NV, L: NAT.NV, T: AZUL, manga: 'curta', perna: 'bermuda', bl: (x, z) => gorro3(x, z).concat(barba3(x, z, NAT.NEVE), [
+      B(x - .22, 1.17, z + .25, .44, .1, .03, INK), B(x - .1, .9, z + .12, .2, .04, .01, NAT.NEVE), B(x - .25, .44, z + .12, .5, .04, .01, NAT.NEVE),
+      B(x - .2, .66, z + .12, .1, .14, .01, PAPEL), B(x + .06, .7, z + .12, .1, .14, .01, AMARELO)
+    ]) },
+    mamaenoel: { R: NAT.NV, L: NAT.NV, T: INK, luva: NAT.NEVE, cobre: true, bl: (x, z) => [
+      B(x - .29, .02, z - .17, .58, .44, .34, NAT.NV), B(x - .3, .02, z - .18, .6, .06, .36, NAT.NEVE), B(x - .18, .12, z + .175, .36, .38, .01, PAPEL), B(x - .12, .66, z + .12, .24, .2, .01, PAPEL),
+      B(x - .26, .5, z - .13, .52, .04, .26, NAT.NEVE),
+      B(x - .27, 1.32, z - .27, .54, .14, .54, NAT.GRIS), B(x - .27, .98, z - .29, .54, .36, .06, NAT.GRIS), B(x - .1, 1.44, z - .14, .2, .14, .2, NAT.GRIS), B(x - .11, 1.46, z - .15, .22, .04, .22, NAT.NV),
+      B(x - .22, 1.15, z + .255, .44, .02, .005, OURO), B(x - .22, 1.26, z + .255, .44, .02, .005, OURO), B(x - .2, 1.06, z + .255, .06, .05, .005, NAT.BOCHECHA), B(x + .14, 1.06, z + .255, .06, .05, .005, NAT.BOCHECHA)
+    ] },
+    boneconeve: { R: NAT.NEVE, L: NAT.NEVE, T: NAT.NEVE2, luva: NAT.RENA2, cobre: true, semCabeca: true, bl: (x, z) => [
+      B(x - .3, .94, z - .3, .6, .56, .6, NAT.NEVE), B(x - .16, 1.22, z + .3, .07, .07, .01, INK), B(x + .09, 1.22, z + .3, .07, .07, .01, INK), B(x - .03, 1.1, z + .3, .06, .06, .18, LARANJA),
+      ...[-.14, -.06, .02, .1].map((dx, i) => B(x + dx, i === 0 || i === 3 ? 1.02 : .98, z + .3, .04, .04, .005, INK)),
+      B(x - .34, 1.5, z - .34, .68, .04, .68, INK), B(x - .2, 1.54, z - .2, .4, .3, .4, INK), B(x - .205, 1.56, z - .205, .41, .06, .41, NAT.NV),
+      B(x - .27, .86, z - .14, .54, .08, .28, NAT.NV), B(x + .1, .62, z + .12, .1, .24, .03, NAT.NV), B(x + .1, .7, z + .125, .1, .04, .03, NAT.NEVE),
+      B(x - .32, .26, z - .24, .64, .4, .48, NAT.NEVE), B(x - .03, .8, z + .125, .06, .06, .005, INK), B(x - .03, .66, z + .125, .06, .06, .005, INK), B(x - .03, .48, z + .245, .06, .06, .005, INK)
+    ] },
+    quebranozes: { R: NAT.NV, L: PAPEL, T: INK, luva: PAPEL, cobre: true, bl: (x, z) => barba3(x, z, PAPEL).concat([
+      B(x - .24, 1.36, z - .24, .48, .4, .48, INK), B(x - .245, 1.38, z - .245, .49, .05, .49, OURO), B(x - .05, 1.56, z + .245, .1, .1, .01, OURO), B(x - .04, 1.76, z - .04, .08, .14, .08, PAPEL),
+      B(x - .4, .92, z - .1, .16, .04, .2, OURO), B(x + .24, .92, z - .1, .16, .04, .2, OURO),
+      ...[.8, .68].flatMap(y => [B(x - .12, y, z + .125, .04, .04, .005, OURO), B(x + .08, y, z + .125, .04, .04, .005, OURO)]),
+      B(x - .26, .48, z - .13, .52, .05, .26, INK), B(x - .05, .47, z + .13, .1, .07, .005, OURO)
+    ]) },
+    piscapisca: { R: INK, L: INK, T: INK, luva: INK, bl: (x, z) => [
+      B(x - .27, 1.38, z - .27, .54, .1, .54, INK), B(x - .2, .6, z + .12, .4, .02, .01, NAT.FIO), B(x - .2, .82, z + .12, .4, .02, .01, NAT.FIO), B(x - .2, .7, z - .13, .4, .02, .01, NAT.FIO)
+    ].concat(pisca3(x, z, [[-.18, .82, .13], [0, .78, .13], [.16, .82, .13], [-.16, .6, .13], [.06, .6, .13], [-.06, .7, -.15], [.12, .7, -.15], [-.4, .76, 0], [.34, .7, 0], [-.18, .3, .13], [.1, .2, .13], [-.2, 1.46, .2], [0, 1.48, .22], [.16, 1.46, .2]])) },
+    rena: { R: NAT.RENA, L: NAT.RENA, T: NAT.RENA2, luva: NAT.RENA2, cobre: true, bl: (x, z) => {
+      const C2 = NAT.CHIFRE, aceso = Math.floor(performance.now() / 420) % 2 === 0;
+      return [B(x - .27, 1.36, z - .27, .54, .1, .54, NAT.RENA), B(x - .27, .98, z - .29, .54, .4, .06, NAT.RENA), B(x - .37, 1.3, z - .04, .12, .06, .1, NAT.RENA), B(x + .25, 1.3, z - .04, .12, .06, .1, NAT.RENA),
+        B(x - .2, 1.46, z - .04, .04, .2, .04, C2), B(x - .3, 1.6, z - .04, .14, .04, .04, C2), B(x - .3, 1.64, z - .04, .04, .12, .04, C2), B(x - .16, 1.66, z - .04, .04, .1, .04, C2),
+        B(x + .16, 1.46, z - .04, .04, .2, .04, C2), B(x + .16, 1.6, z - .04, .14, .04, .04, C2), B(x + .26, 1.64, z - .04, .04, .12, .04, C2), B(x + .12, 1.66, z - .04, .04, .1, .04, C2),
+        B(x - .05, 1.06, z + .25, .1, .08, .06, aceso ? '#FF6A6A' : NAT.NV), B(x - .12, .5, z + .12, .24, .36, .01, NAT.BARRIGA), B(x - .26, .88, z - .13, .52, .05, .26, NAT.NV), B(x - .04, .82, z + .13, .08, .07, .04, OURO),
+        B(x - .05, .5, z - .18, .1, .08, .06, NAT.NEVE)];
+    } },
+    duende: { R: NAT.NV, L: PAPEL, T: NAT.NV2, bl: (x, z) => [
+      B(x - .28, 1.36, z - .28, .56, .04, .56, NAT.NEVE), B(x - .27, 1.38, z - .27, .54, .1, .54, NAT.NV), B(x - .2, 1.48, z - .2, .4, .12, .4, NAT.NV), B(x - .12, 1.6, z - .12, .24, .12, .24, NAT.NV),
+      B(x - .05, 1.72, z - .05, .12, .08, .12, NAT.NV), B(x + .06, 1.76, z - .04, .12, .05, .08, NAT.NV), B(x + .18, 1.7, z - .04, .06, .08, .06, OURO),
+      B(x - .255, .8, z - .125, .51, .04, .25, NAT.NEVE), B(x - .255, .66, z - .125, .51, .04, .25, NAT.NEVE), B(x - .27, .42, z - .14, .54, .06, .28, NAT.NEVE), B(x - .26, .5, z - .13, .52, .04, .26, OURO),
+      B(x - .04, .9, z + .125, .08, .04, .005, OURO)
+    ] },
+    reimago: { R: NAT.ROXOREI, L: NAT.ROXOREI, T: OURO, bl: (x, z) => [
+      B(x - .29, .02, z - .17, .58, .44, .34, NAT.ROXOREI), B(x - .04, .02, z + .175, .08, .44, .005, OURO), B(x - .04, .44, z + .12, .08, .5, .01, OURO), B(x - .32, .3, z - .18, .64, .66, .05, '#7A1F3D'),
+      B(x - .25, 1.44, z - .25, .5, .1, .5, OURO), B(x - .25, 1.54, z - .25, .09, .09, .09, OURO), B(x + .16, 1.54, z - .25, .09, .09, .09, OURO), B(x - .25, 1.54, z + .16, .09, .09, .09, OURO), B(x + .16, 1.54, z + .16, .09, .09, .09, OURO),
+      B(x - .04, 1.47, z + .25, .08, .05, .01, NAT.NV), B(x + .26, .34, z + .02, .18, .16, .18, OURO), B(x + .33, .34, z + .01, .04, .16, .2, NAT.NV), B(x + .26, .4, z + .01, .18, .04, .2, NAT.NV)
+    ].concat(brilho3(x, z, [[0, 1.6, .26], [.35, .52, .2], [-.2, 1.5, .26]])) },
+    biscoito: { R: NAT.GENG, L: NAT.GENG, T: NAT.GENG2, luva: NAT.GENG, cobre: true, semCabeca: true, bl: (x, z) => [
+      B(x - .28, .94, z - .28, .56, .54, .56, NAT.GENG), B(x - .26, 1.44, z + .2, .52, .03, .06, PAPEL),
+      B(x - .14, 1.22, z + .28, .06, .06, .005, INK), B(x + .08, 1.22, z + .28, .06, .06, .005, INK), B(x - .12, 1.04, z + .28, .24, .03, .005, PAPEL), B(x - .16, 1.07, z + .28, .04, .04, .005, PAPEL), B(x + .12, 1.07, z + .28, .04, .04, .005, PAPEL),
+      B(x - .22, 1.1, z + .28, .05, .05, .005, ROSA), B(x + .17, 1.1, z + .28, .05, .05, .005, ROSA),
+      B(x - .04, .8, z + .125, .08, .06, .01, NAT.NV), B(x - .04, .66, z + .125, .08, .06, .01, AZUL), B(x - .04, .52, z + .125, .08, .06, .01, ROSA)
+    ] },
+    presente: { R: NAT.NV, L: INK, T: OURO, bl: (x, z) => [
+      B(x - .36, .36, z - .24, .72, .58, .48, NAT.NV), B(x - .05, .36, z + .24, .1, .58, .005, OURO), B(x - .05, .36, z - .245, .1, .58, .005, OURO), B(x - .36, .6, z + .24, .72, .1, .005, OURO),
+      B(x - .365, .6, z - .24, .005, .1, .48, OURO), B(x + .36, .6, z - .24, .005, .1, .48, OURO), B(x - .38, .9, z - .26, .76, .05, .52, '#E85A62'),
+      B(x - .22, 1.44, z - .06, .16, .12, .12, OURO), B(x + .06, 1.44, z - .06, .16, .12, .12, OURO), B(x - .05, 1.46, z - .05, .1, .1, .1, '#F2D06B')
     ] }
   };
   /* v3.77: senta = sentado (no banco do Calçadão): a perna vai pra frente, na altura do assento, e a mão no joelho */

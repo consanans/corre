@@ -1,5 +1,19 @@
 # O que falta subir (28/10/2026)
 
+**O zip da 5.05** (`saida/corre-site.zip`): arrasta no Netlify, como sempre. O banco e a função de pagamento já estão prontos (o `delta-v505.sql` rodou hoje pelo conector e a `pagamento` v23 tá no ar). Leva a 5.04 junto, se ainda não subiu.
+
+O que a 5.05 traz:
+- **O Ateliê em duas abas:** "Correal" (a moeda do Correverso) e "Dinheiro de verdade" (Pix ou cartão). Na aba do correal entraram **8 fantasias novas**: Robô de Lata, Sereia do Igapó, Dino, Bailarina, Mergulhador, Caipira, Abelha e Palhaço.
+- **A coleção de Natal, em real, toda acima de R$ 10:** Papai Noel e Árvore Dourada R$ 24,90; Noel de Bermuda, Mamãe Noel, Boneco de Neve, Quebra-Nozes e Pisca-Pisca R$ 19,90; Rena, Duende da Fábrica e Rei Mago R$ 14,90; Boneco de Gengibre e Presente R$ 12,90. Fica à venda até o Dia de Reis (6/1). O Halloween segue como tava (R$ 5,90 a 14,90) até Finados.
+- **Studio Houzi: a primeira marca é de graça, pra sempre.** Da segunda em diante, é no plano (R$ 29,90 por mês). Saíram os 30 dias de teste do Studio Houzi (o Hórus segue com os dele). Quem já tinha marca: a mais antiga virou a grátis.
+- Os **Termos** ganharam os preços de Natal e a marca grátis (versão 28/10/2026).
+
+Pra conferir depois de subir: abre o Correverso › Ateliê (as duas abas, o Natal em cima); e o Studio Houzi (a faixa diz que a primeira marca é de graça).
+
+---
+
+## Antes (28/10/2026)
+
 **O zip da 5.04** (`saida/corre-site.zip`): arrasta no Netlify, como sempre. Sem banco nem função. A 5.03 já tá no ar.
 
 O que a 5.04 traz: o **Rolo 360** fica só no menu da Rede e nas **Tuas ferramentas** do Corre Studio (o player do lado do feed, no Início, saiu). Aberto pela Rede, ele é de dia; aberto pelo Studio, fica no Studio. E no menu da Rede a **carteira de correal subiu pra lista** e o **Correverso desceu**, logo antes da porta do Studio.
