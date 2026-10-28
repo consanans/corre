@@ -82,7 +82,9 @@
   /* v5.03 (o Thales: "banca do dia e do teu nicho são onde as pessoas buscam referência pra criar seus materiais, então
      tem que estar dentro do studio"): as duas vieram da Rede. O Rolo 360 fica na Rede (só o Thales tem, e ele quer à mão) */
   const STUDIO_K = ['dia', 'caderno', 'studio', 'horus', 'mural', 'atende', 'piloto', 'banca', 'refs', 'houzi', 'marcas', 'linkbio', 'corre', 'planos', 'lojinha'];
-  const NEUTRO = ['msg', 'avisos'];
+  /* v5.04: o Rolo 360 mora nas duas (o Thales: "deixa o rolo só na barra e ferramentas"): no menu da Rede e nas Tuas
+     ferramentas do Studio. Ele segue a parte de onde a pessoa veio, como as Mensagens */
+  const NEUTRO = ['msg', 'avisos', 'rolo'];
   const MODO = { ult: (() => { try{ return sessionStorage.getItem('corre-modo') || 'rede'; }catch(e){ return 'rede'; } })() };
   const modoDe = active => {
     let m = STUDIO_K.includes(active) || (!active && /^#\/(monta|clientes)\/?$/.test(location.hash)) ? 'studio' : NEUTRO.includes(active) ? MODO.ult : 'rede';
@@ -94,7 +96,7 @@
   /* v5.02: a luz pela rota, antes da página carregar os dados (o C.header confirma depois). É a mesma conta do script do
      começo do index.html: as páginas do Studio são de noite, as Mensagens seguem a parte de onde a pessoa veio */
   const ROTA_STUDIO = /^(dia|caderninho|studio|horus|mural|atendente|piloto|banca|refs|houzi|marcas?|linkbio|corre|vendas|grana|estilo|planos|lojinha|monta|clientes)(\/|$)/;
-  const noiteDaRota = h => !!st.user && (ROTA_STUDIO.test(h) || (/^msg(\/|$)/.test(h) && MODO.ult === 'studio'));
+  const noiteDaRota = h => !!st.user && (ROTA_STUDIO.test(h) || (/^(msg|rolo)(\/|$)/.test(h) && MODO.ult === 'studio'));
   /* a praça: o Correverso em destaque no meio do menu da Rede. (v3.70: a lista em grupos e a barra fixa do celular deram
      lugar à Comanda, aos Teus e ao Tudo; os grupos seguem dentro do Tudo e da gaveta. v5.01: o Mural foi pro Studio, e o
      Correverso ficou sozinho na praça, sem disputar o olho com ele) */
@@ -425,9 +427,11 @@
         <a class="lado-rb" href="#/msg" data-msg${idSe(true, 'msg-btn')} aria-label="Mensagens" title="Mensagens"${active === 'msg' ? ' aria-current="page"' : ''}>${ico('send')}<span class="msg-n num" hidden></span></a><button type="button" class="lado-rb" data-act="sino" data-sino${idSe(true, 'sino')} aria-label="Avisos e agenda" title="Avisos">${ico('bell')}<span class="sino-n num" hidden></span></button></div>`;
   const ladoConta = (me, active) => `<details class="me lado-conta"${idSe(true, 'me')}><summary class="lado-eu" aria-label="Tua conta" title="${esc(me.nome || '')} (@${esc(me.handle)})">${avatar(me, 's')}<span><b>${esc(me.nome || '')}</b><small>@${esc(me.handle)}</small></span>${ico('dots')}</summary>
         <div class="me-menu">${contaHTML(me, false, active)}</div></details>`;
-  /* a Rede: a lista no jeito do X (Início, Grupos, a Banca, os Salvos e o Perfil), a praça (o Correverso; v5.01: o Mural foi pro Studio), a
-     carteira e, embaixo, a porta do Corre Studio com o número da Comanda. O Postar e a conta no pé */
-  const LADO_REDE = ['inicio', 'grupos', 'rolo', 'salvos', 'perfil'];
+  /* a Rede: a lista no jeito do X (Início, Grupos, o Rolo, os Salvos, o Perfil e a carteira), a praça (o Correverso; v5.01: o
+     Mural foi pro Studio) e, embaixo, a porta do Corre Studio com o número da Comanda. O Postar e a conta no pé. v5.04 (o
+     Thales: "sobe a carteira correal que tá isolada e desce o correverso"): a carteira sozinha embaixo da praça parecia
+     solta; entrou na lista, e o Correverso desceu pra perto da porta do Studio */
+  const LADO_REDE = ['inicio', 'grupos', 'rolo', 'salvos', 'perfil', 'carteira'];
   const ladoRede = (active, me) => {
     const D = DEST(me), um = k => itemMenu(k, D[k][0], D[k][1], D[k][2], 'lado-i', k === active, true);
     return `<aside class="lado lado-rede" aria-label="Menu da Rede">
@@ -435,7 +439,6 @@
       <nav class="lado-nav" aria-label="Navegação">
         ${LADO_REDE.filter(tem).map(um).join('')}
         <div class="lado-praca">${PRACA.filter(tem).map(um).join('')}</div>
-        ${um('carteira')}
       </nav>
       <i class="lado-trilho" aria-hidden="true"></i>
       ${portaStudio('lado-cs')}
@@ -1313,7 +1316,6 @@
       <div class="feed-grid">
         <div class="feed-main" id="h-feed"></div>
         <aside class="feed-aside" aria-label="Na rede">
-          ${C.ehFundador() ? '<div class="feed-rolo" id="h-rolo"></div>' : ''}
           <div class="hgrid side">${cartoesHTML(cards)}</div>
           <h2 class="sec-t"><span class="hl" id="people-t">Gente no Corre</span></h2>
           <div id="people">${C.esqueleto('linha', 4)}</div>
@@ -1323,7 +1325,6 @@
     </main>`;
     if(C.estreia) C.estreia.passos($('h-passos'));
     C.storiesBar().then(h => { const el = $('h-stories'); if(el) el.innerHTML = h; C.guardado.poe('stories', h); });
-    if(C.rolo && $('h-rolo')) C.rolo.player($('h-rolo'));
     if(C.feed) C.feed.mount($('h-feed'));
     if(C.grupos) C.grupos.faixaHome($('h-grupos'));
     pintaCartoes(cards);
@@ -1348,6 +1349,7 @@
   const FERR_ST = [
     ['caderno', 'As tarefas do dia, com aviso na hora'], ['studio', 'O calendário de posts de cada marca'],
     ['banca', 'As manchetes do teu assunto, pra pauta'], ['refs', 'Referências e datas que vendem'],
+    ['rolo', 'Filmes que ninguém filmou: 5 frames por dia'],
     ['horus', 'Acha cliente no mapa e chama no WhatsApp'], ['mural', 'Pedidos de quem precisa: manda proposta'],
     ['corre', 'Do orçamento ao dinheiro na conta'],
     ['atende', 'A IA responde teu cliente 24h'], ['piloto', 'O que esfria vira tarefa sozinho'],

@@ -1,4 +1,12 @@
-# O que falta subir (27/10/2026)
+# O que falta subir (28/10/2026)
+
+**O zip da 5.04** (`saida/corre-site.zip`): arrasta no Netlify, como sempre. Sem banco nem função. A 5.03 já tá no ar.
+
+O que a 5.04 traz: o **Rolo 360** fica só no menu da Rede e nas **Tuas ferramentas** do Corre Studio (o player do lado do feed, no Início, saiu). Aberto pela Rede, ele é de dia; aberto pelo Studio, fica no Studio. E no menu da Rede a **carteira de correal subiu pra lista** e o **Correverso desceu**, logo antes da porta do Studio.
+
+---
+
+## Antes (27/10/2026)
 
 **O zip da 5.03** (`saida/corre-site.zip`): arrasta no Netlify, como sempre. O banco já tá pronto (o `delta-v500.sql` e o `delta-v503.sql` rodaram hoje pelo conector). Leva junto a 5.02, a 5.01, a 5.0, a 4.43 e o que vem antes, se ainda não subiu.
 
