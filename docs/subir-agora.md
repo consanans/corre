@@ -1,5 +1,21 @@
 # O que falta subir (28/10/2026)
 
+**O zip da 5.07** (`saida/corre-site.zip`): arrasta no Netlify, como sempre. Sem banco nem função. A 5.06 já tá no ar.
+
+O que a 5.07 traz: **o Ateliê diz tudo no cartão.**
+- As abas saíram: as duas partes ficam na mesma tela, uma embaixo da outra. Em cima, **Sem dinheiro: com correal** (amarela; explica que correal é a moeda do trampo e não é dinheiro, e quanto você tem). Embaixo, **Pago: com dinheiro de verdade** (laranja; Pix ou cartão, uma vez só, não é assinatura).
+- No alto, dois botões grudados ("Sem dinheiro" e "Pago", com quantas tem em cada) levam direto pra parte e acendem a que tá na tela.
+- Cada fantasia tem no cartão: a faixa de cima ("Sem dinheiro · é correal" ou "Pago · dinheiro de verdade"), o preço, como paga, até quando fica à venda e o que acontece depois de comprar (é tua pra sempre; nas pagas, 7 dias pra desistir).
+- O botão diz o que faz: "Comprar por 1,00 correal" (com quanto você tem e quanto falta), "Comprar por R$ 24,90", "Pagar a fatura", "Vestir", "Tirar". O que não dá pra comprar agora vem apagado com o porquê ("Em breve", "Volta no Natal").
+- No avatar, o preço do cadeado diz a unidade ("1,00 correal" ou "R$ 24,90").
+- De carona: o balão "Teu trabalho mora aqui" não aparece mais por cima do Correverso.
+
+Pra conferir depois de subir: abre o Correverso › Ateliê, rola até o Pago e volta pelo botão "Sem dinheiro" lá em cima.
+
+---
+
+## Antes (28/10/2026)
+
 **O zip da 5.06** (`saida/corre-site.zip`): arrasta no Netlify, como sempre. Sem banco nem função. Leva a 5.05 junto, se ainda não subiu (o banco e a função da 5.05 já estão prontos).
 
 O que a 5.06 traz: **o Correverso joga com controle de videogame.** Liga o controle de Xbox, de PlayStation ou o Pro do Switch no computador ou no celular (Bluetooth ou cabo), abre o Correverso e aperta qualquer botão: aparece o cartão com os botões.

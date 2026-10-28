@@ -543,6 +543,8 @@
   const DICA_CS = { feita: false };
   function dicaStudio(){
     if(DICA_CS.feita || MENU.modo === 'studio' || innerWidth > 900) return;
+    /* v5.07: na cidade a luminária fica embaixo do Correverso, e o balão boiava por cima dele (e do Ateliê) */
+    if(document.body.classList.contains('cvr-cheia') || /^#\/verso/.test(location.hash)) return;
     const b = document.querySelector('.hdr-cs'), sh = $('sheet'); if(!b || !b.getBoundingClientRect().width) return;
     if(sh && !sh.hidden){ setTimeout(dicaStudio, 2500); return; }
     let n = 0; try{ n = Number(localStorage.getItem('corre-cs-dica')) || 0; }catch(e){}

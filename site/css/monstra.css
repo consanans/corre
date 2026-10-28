@@ -5595,3 +5595,49 @@ html.embed .bio-pe,html.embed .bio-corre{display:none}
 @keyframes ctl-in{from{opacity:0;transform:translate(-50%,-8px)}}
 @media (max-height:540px){ .ctl-ajuda{top:calc(env(safe-area-inset-top,0px) + 8px);width:min(600px,calc(100% - 32px));padding:10px 14px} .ctl-ajuda ul{grid-template-columns:1fr 1fr;column-gap:14px} .ctl-ajuda li{grid-template-columns:70px 1fr;font-size:13px} }
 @media (prefers-reduced-motion:reduce){ .ctl-ajuda{animation:none} }
+/* v5.07 · o Ateliê: as duas partes na mesma folha (Sem dinheiro, com correal; Pago, com dinheiro de verdade), o atalho
+   grudado no alto, e cada cartão com a faixa de cima, a ficha e o botão que diz o que faz */
+.lj-nav{position:sticky;top:calc(-1 * clamp(16px,3vw,24px));z-index:4;display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:2px calc(-1 * clamp(16px,3vw,24px)) 14px;padding:10px clamp(16px,3vw,24px);background:var(--paper);border-bottom:2px solid var(--line)}
+.lj-nav .lj-aba{min-height:52px}
+.lj-aba[aria-current="true"]{box-shadow:4px 4px 0 var(--ink);color:var(--tinta)}
+.lj-aba-correal[aria-current="true"]{background:#F2EC54}
+.lj-aba-real[aria-current="true"]{background:#FF8A3D}
+.lj-aba[aria-current="true"] small{color:var(--tinta);opacity:.78}
+.lj-aba[aria-current="true"] .lj-n{border-color:var(--tinta);background:#FFFFFF;color:var(--tinta)}
+.lj-aba:not([aria-current="true"]):hover{background:var(--paper-2)}
+.escuro .lj-aba[aria-current="true"]{border-color:var(--tinta)}
+.lj-s{scroll-margin-top:86px;margin:0 0 26px}
+.lj-s-correal{--lj-s:#F2EC54}.lj-s-real{--lj-s:#FF8A3D}
+.lj-s-cab{display:flex;align-items:flex-start;gap:12px;margin:0 0 4px;padding:14px 16px;border:2.5px solid var(--ink);border-radius:18px;background:var(--lj-s);color:var(--tinta);box-shadow:4px 4px 0 var(--ink)}
+.escuro .lj-s-cab{border-color:var(--tinta)}
+.lj-s-ic{flex:none;display:grid;place-items:center;width:44px;height:44px;border:2px solid var(--tinta);border-radius:12px;background:#FFFFFF;color:var(--tinta)}
+.lj-s-ic .ic{width:24px;height:24px}
+.lj-s-cab h3{margin:0;font-family:var(--font-display);font-style:italic;font-weight:900;font-size:22px;line-height:1.15;color:var(--tinta)}
+.lj-s-cab p{margin:5px 0 0;font-size:14.5px;line-height:1.45;color:var(--tinta)}
+.lj-s .lj-g{font-size:12px}
+.lj-l{grid-template-columns:repeat(auto-fill,minmax(270px,1fr))}
+.lj-card{grid-template-columns:84px 1fr;grid-template-rows:auto auto auto 1fr;grid-template-areas:"fx fx" "cv tx" "fi fi" "ac ac";gap:10px 12px;padding:0 12px 12px}
+.lj-card .lj-cv{grid-area:cv;grid-row:auto;align-self:start}
+.lj-card .lj-tx{grid-area:tx}
+.lj-faixa{grid-area:fx;display:flex;align-items:center;gap:7px;margin:0 -12px;padding:8px 12px;border-bottom:2px solid var(--ink);font-family:var(--font-mono);font-size:11.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--tinta)}
+.lj-faixa .ic{width:16px;height:16px;flex:none}
+.lj-livre .lj-faixa{background:#F2EC54}
+.lj-pago .lj-faixa{background:#FF8A3D}
+.escuro .lj-faixa{border-color:var(--tinta)}
+.lj-ficha{grid-area:fi;display:grid;gap:5px;margin:0;padding:9px 11px;border:1.5px solid var(--line);border-radius:12px;background:var(--paper-2);font-size:13px;line-height:1.35}
+.lj-ficha div{display:grid;grid-template-columns:76px 1fr;gap:8px;align-items:baseline}
+.lj-ficha dt{font-family:var(--font-mono);font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+.lj-ficha dd{margin:0;font-weight:600;color:var(--ink)}
+.lj-ficha dd b{font-size:15px;font-weight:850;font-variant-numeric:tabular-nums}
+.lj-ficha dd .ic{width:14px;height:14px;vertical-align:-2px}
+.lj-card .lj-acao{grid-area:ac;align-self:end;display:flex;flex-direction:column;align-items:stretch;justify-content:flex-end;gap:7px;min-height:0}
+.lj-bt{width:100%;min-height:46px;padding:0 14px;font-size:15px;font-variant-numeric:tabular-nums;text-align:center}
+.lj-bt .ic{width:18px;height:18px;flex:none}
+.lj-bt[disabled]{opacity:1;cursor:default;background:var(--paper-2);border-style:dashed;color:var(--ink-2);box-shadow:none}
+.lj-dica{font-size:12.5px;line-height:1.35;color:var(--ink-2);text-align:center}
+.lj-card .lj-tua{justify-content:center;font-size:13.5px}
+.lj-espera{color:var(--ink)}
+.lj-card .lj-desiste{text-align:center;flex-basis:auto}
+@media (max-width:640px){ .lj-l{grid-template-columns:1fr} .lj-card{grid-template-columns:72px 1fr} .lj-s-cab h3{font-size:20px} }
+@media (max-width:420px){ .lj-nav{gap:8px} .lj-s-cab{padding:12px} .lj-s-ic{width:38px;height:38px} .lj-ficha div{grid-template-columns:68px 1fr} }
+@media (max-width:360px){ .lj-s-ic{display:none} }
