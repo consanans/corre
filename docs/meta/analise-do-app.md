@@ -2,6 +2,7 @@
 
 > **O app:** Corre Instagram · ID do app do Instagram **1763654311510527** (o painel também mostra, no topo, o "ID do app" da Meta, que é outro número) · produto "API do Instagram com login do Instagram" (Business Login for Instagram).
 > **O que pedir:** `instagram_business_basic` e `instagram_business_content_publish`, as duas em **Acesso avançado**. Mais nenhuma.
+> **Atualizado em 28/10/2026 (5.08):** o Studio que posta agora se chama **Studio Cria** e mora no **Corre Studio** (a luminária do menu; o endereço `#/studio` segue igual), os Termos de uso existem e o vídeo vai até 150 MB. Os botões do vídeo ("Saber mais", "Sou testador do app: conectar", "Um post", "Postar em", "Programar post", "Publicar direto", "Contas", "Desconectar") seguem com os mesmos nomes.
 > **De onde vem isto:** pesquisa de 13/10/2026 nas páginas oficiais da Meta, revisada no mesmo dia contra o código do Corre (`supabase/functions/instagram/index.ts`, `site/js/igcontas.js`, `studio.js`, `estudio.js`, `lote.js` e `supabase/delta-v340.sql`). As páginas da Meta não abriram direto nesta sessão (bloqueio de rede); li os trechos que a busca devolveu. O painel da Meta muda nome e lugar das coisas com frequência. Onde está escrito **conferir na tela da Meta**, vale o que o painel mostrar.
 
 ## Resumo: a ordem das coisas
@@ -69,7 +70,7 @@ A Meta exige a verificação de qualquer app com Acesso avançado, e só um **ad
 - [x] **E-mail de contato e responsável na política:** `contato@houzirecords.com.br`; Thales Malassise Luiz, CNPJ 28.415.207/0001-46. **Confira se a caixa `contato@houzirecords.com.br` existe e recebe e-mail** (a Meta e quem usa o Corre escrevem pra ela).
 
 **Só se o painel pedir:**
-- [ ] **Termos de uso:** o Corre não tem essa página. Se a Meta pedir na hora de enviar ou de publicar, o Claude faz um `termos.html`. **Conferir na tela da Meta.**
+- [x] **Termos de uso:** existe desde a 3.72 (`https://app.corresocial.com/termos.html`). Se o painel pedir, é esse.
 
 ### 1.4 Configurações básicas do app
 Caminho: developers.facebook.com/apps > **Corre Instagram** > **Configurações do app > Básico**.
@@ -78,7 +79,7 @@ Caminho: developers.facebook.com/apps > **Corre Instagram** > **Configurações 
 |---|---|
 | Ícone do app | `docs/meta/icone-1024.png` (1024x1024, 57 KB) |
 | URL da Política de Privacidade | `https://app.corresocial.com/privacidade.html` |
-| URL dos Termos de Serviço | só se pedir: `https://app.corresocial.com/termos.html` (depois de criado) |
+| URL dos Termos de Serviço | `https://app.corresocial.com/termos.html` |
 | Exclusão de dados do usuário | callback `https://jzjsqadcwphqzxfsxxyx.supabase.co/functions/v1/instagram?meta=apagar`. Se o campo só aceitar "URL de instruções", use `https://app.corresocial.com/privacidade.html#instagram` |
 | E-mail de contato | `contato@houzirecords.com.br` (o mesmo da política). Os avisos da Análise chegam nele |
 | Categoria | "Negócios e páginas" (Business and pages); se não tiver, "Utilidade e produtividade". **Conferir na tela da Meta** |
@@ -203,7 +204,7 @@ Step by step:
 
 1. The user connects their Instagram professional account through Instagram Business Login from Corre's Studio and grants instagram_business_content_publish on the Instagram consent screen. If the authorization response shows that the publish permission was not granted, Corre does not save the connection and asks the user to connect again.
 
-2. In Studio, the user creates a post ("Um post" / One post) and picks its format ("Feed", "Carrossel" / Carousel, "Story" or "Reels"): the image (designed in Corre's editor as a 1080x1350 JPEG, or 1080x1920 for Stories, optionally with a photo the user uploads), the carousel slides, or the video the user uploads (MP4 or MOV, up to 50 MB), all stored at public URLs so Instagram can fetch them; the caption ("Gancho" / Hook, "Corpo" / Body, "Chamada" / Call to action and "Hashtags") and the alt text ("Texto alternativo"). The user may optionally use Corre's AI assistant to draft the image or the caption, and reviews and edits it before saving. Users can also schedule several posts at once (uploading their own images, or with an AI-assisted monthly plan that they review first); every scheduled post appears in the Studio calendar, where it can be opened, edited or removed from the schedule before its time.
+2. In Studio, the user creates a post ("Um post" / One post) and picks its format ("Feed", "Carrossel" / Carousel, "Story" or "Reels"): the image (designed in Corre's editor as a 1080x1350 JPEG, or 1080x1920 for Stories, optionally with a photo the user uploads), the carousel slides, or the video the user uploads (MP4 or MOV, up to 150 MB), all stored at public URLs so Instagram can fetch them; the caption ("Gancho" / Hook, "Corpo" / Body, "Chamada" / Call to action and "Hashtags") and the alt text ("Texto alternativo"). The user may optionally use Corre's AI assistant to draft the image or the caption, and reviews and edits it before saving. Users can also schedule several posts at once (uploading their own images, or with an AI-assisted monthly plan that they review first); every scheduled post appears in the Studio calendar, where it can be opened, edited or removed from the schedule before its time.
 
 3. Under "Postar em" (Post to), the user picks the connected account. Then they either:
    a) keep "Programar" (Schedule) on, set "Data" / "Hora" (Date / Time, Brasília time) and click "Programar post" (Schedule post); or
@@ -234,7 +235,7 @@ Corre's interface is in Brazilian Portuguese only. Button labels are given below
 
 STEPS
 1. Open https://app.corresocial.com and click "Entrar com Google" (Sign in with Google). Sign in with the Google test account above. If a welcome guide opens, close it with the X at the top right.
-2. Click "Studio" in the menu (or open https://app.corresocial.com/#/studio).
+2. Open https://app.corresocial.com/#/studio (or click the lamp icon "Corre Studio" at the bottom of the menu, then "Studio Cria"). Corre Studio, the work area, has a dark theme; this is expected.
 3. Pre-launch notice: until this review is approved, Corre shows the line "Instagram: em breve" (Instagram: coming soon) on the Studio entrance, because only app testers can connect. Click "Saber mais" (Learn more), then "Sou testador do app: conectar" (I'm an app tester: connect). After approval this notice is removed and the button reads "Conectar o Instagram" (Connect Instagram), which opens the same login.
 4. Instagram opens (instagram.com/oauth/authorize). If the browser is already logged in to another Instagram account, log out first or use a private window. Log in with the Instagram test account and allow access, granting instagram_business_basic and instagram_business_content_publish.
 5. You return to Corre ("Conectando o Instagram…" / Connecting Instagram…). The "Contas do Instagram" (Instagram accounts) panel shows the connected account: username, name, profile picture and "Conectada" (Connected). This uses instagram_business_basic. Close the panel with the X.
@@ -366,8 +367,8 @@ Grave uma vez só e corte os dois no editor.
 - A Meta precisa ver: o caminho do deslogado ao logado.
 
 **4. O Studio**
-- Mostrar: menu > **Studio**. A porta, com a marca de teste e a linha **"Instagram: em breve"**.
-- Legenda: *"Studio: where users plan and schedule their Instagram posts. 'Instagram: em breve' = Instagram auto-posting coming soon (a pre-launch notice shown while this review is pending)."*
+- Mostrar: a luminária **"Corre Studio"** no pé do menu (a tela escurece: o Studio é de noite) > **"Studio Cria"**. A porta, com a marca de teste e a linha **"Instagram: em breve"**. Atalho: abrir direto `app.corresocial.com/#/studio`.
+- Legenda: *"Corre Studio > Studio Cria: where users plan and schedule their Instagram posts (Corre Studio uses a dark theme). 'Instagram: em breve' = Instagram auto-posting coming soon (a pre-launch notice shown while this review is pending)."*
 
 **5. Conectar**
 - Mostrar: **"Saber mais"**, a folha abrindo e **"Sou testador do app: conectar"**.

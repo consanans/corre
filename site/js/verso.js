@@ -302,10 +302,12 @@
     ['duende', 'Duende da Fábrica', 1, 'natal', 'Túnica listrada de vermelho e branco, meia de bengala e o gorro de sininho.'],
     ['reimago', 'Rei Mago', 1, 'natal', 'Manto roxo de barra dourada, capa vinho, coroa de pedra e o presente na mão.'],
     ['biscoito', 'Boneco de Gengibre', 1, 'natal', 'Biscoito de gengibre com glacê branco e os botões de bala rosa e azul.'],
-    ['presente', 'Presente', 1, 'natal', 'Uma caixa vermelha com fita dourada e o laço na cabeça.']
+    ['presente', 'Presente', 1, 'natal', 'Uma caixa vermelha com fita dourada e o laço na cabeça.'],
+    /* v5.08 · o super avatar de ouro, em real e à venda o ano inteiro (não é de coleção: colecaoDe dá vazio) */
+    ['midas', 'Midas', 1, 'ouro', 'O rei que virava ouro tudo que tocava: ouro da coroa à bota, rubi no peito, capa, e o reflexo que corre pelo corpo.']
   ];
   const LOJA = {}; SKINS_LOJA.forEach(x => { LOJA[x[0]] = x; }); Object.setPrototypeOf(LOJA, null);
-  const RARIDADE = { lendaria: 'Lendária', rara: 'Rara', estilo: 'Estilo', halloween: 'Halloween', natal: 'Natal' };
+  const RARIDADE = { lendaria: 'Lendária', rara: 'Rara', estilo: 'Estilo', halloween: 'Halloween', natal: 'Natal', ouro: 'Ouro' };
   /* v3.91: a de Halloween fora da época não se compra (quem já tem segue vestindo). v5.05: cada coleção tem a época dela:
      o Halloween de 1º/10 até Finados, o Natal de 15/10 até o Dia de Reis (a cidade enfeitada) */
   const COLECAO = { halloween: { on: () => halloween(), ate: 'Finados (2/11)', volta: 'volta em outubro' }, natal: { on: () => natal(), ate: 'o Dia de Reis (6/1)', volta: 'volta no Natal' } };
@@ -1133,6 +1135,54 @@
         const hy = o.hy;
         if(o.lado){ px(-2, hy - 3, 4, 2, OURO); px(-1, hy - 2, 2, 1, OURO2); return; }
         px(-4, hy - 3, 3, 2, OURO); px(1, hy - 3, 3, 2, OURO); px(-1, hy - 2, 2, 2, OURO2); px(-4, hy - 1, 1, 1, OURO3); px(3, hy - 1, 1, 1, OURO3);
+      } };
+    /* ---------- v5.08 · Midas, o super avatar de ouro (o Thales: "faz um super avatar de ouro e coloca 129,99 de valor").
+       O rei do mito, que virava ouro tudo que tocava: ele inteiro de ouro, da coroa à bota, com a capa, as ombreiras e o
+       rubi no peito. O "super" é o fx: um reflexo de luz que atravessa o corpo de tempos em tempos (só por dentro do
+       desenho), o pó de ouro subindo em volta e o brilho que pisca. Em real, à venda o ano inteiro (não é de coleção) */
+    const MD0 = '#6E4508', MD1 = '#A8740F', MD2 = '#D9A52B', MD3 = '#F2CC5B', MD4 = '#FFF0B3', RUBI = '#C8102E';
+    const coroaMidas = (px, o) => {
+      const hy = o.hy;
+      if(o.lado){ px(-5, hy - 1, 9, 2, MD3); px(-5, hy, 9, 1, MD1); px(-4, hy - 3, 1, 2, MD3); px(-1, hy - 4, 2, 3, MD3); px(2, hy - 3, 1, 2, MD3); px(0, hy - 3, 1, 1, RUBI); px(-1, hy - 4, 1, 1, MD4); return; }
+      px(-5, hy - 1, 10, 2, MD3); px(-5, hy, 10, 1, MD1);
+      px(-5, hy - 3, 1, 2, MD3); px(4, hy - 3, 1, 2, MD3); px(-3, hy - 2, 1, 1, MD3); px(2, hy - 2, 1, 1, MD3); px(-1, hy - 4, 2, 3, MD3);
+      if(!o.costas){ px(-1, hy - 3, 2, 1, RUBI); px(-1, hy - 4, 1, 1, MD4); px(-5, hy - 3, 1, 1, MD4); }
+    };
+    /* o reflexo que atravessa: uma linha inclinada que só acende onde tem corpo (a cabeça, o tronco com os braços, as pernas) */
+    const dentroMidas = (o, x, y) => { const lw = o.lado ? [-2, 1] : [-7, 6], pw = o.lado ? [-2, 1] : [-4, 3];
+      return (y >= o.hy - 1 && y <= o.hy + 7 && x >= -4 && x <= 3) || (y >= -16 && y <= -8 && x >= lw[0] && x <= lw[1]) || (!o.sentado && y >= -7 && y <= -2 && x >= pw[0] && x <= pw[1]); };
+    SKIN.midas = { R: MD2, L: MD2, T: MD1, luva: MD3, cobre: true, loja: true,
+      atras: (px, o) => { if(o.costas) return; if(o.lado){ px(-6, -16, 4, 12, MD1); px(-6, -16, 1, 12, MD0); } else { px(-8, -16, 16, 12, MD1); px(-8, -5, 16, 1, MD0); px(-8, -16, 1, 12, MD0); px(7, -16, 1, 12, MD0); } },
+      tronco: (px, o) => {
+        if(o.costas){
+          px(-7, -16, 14, 12, MD1); px(-7, -16, 14, 1, MD3); px(-7, -5, 14, 1, MD0); px(-4, -14, 1, 9, MD0); px(3, -14, 1, 9, MD0);
+          px(-2, -13, 4, 4, MD3); px(-1, -12, 2, 2, MD2); px(-8, -16, 3, 2, MD3); px(5, -16, 3, 2, MD3); return;
+        }
+        if(o.lado){ px(-2, -16, 4, 2, MD3); px(-2, -16, 4, 1, MD4); px(-1, -14, 3, 3, MD3); px(1, -13, 1, 1, RUBI); cinto(px, o, MD0, MD4); return; }
+        px(-8, -16, 4, 2, MD3); px(4, -16, 4, 2, MD3); px(-8, -16, 4, 1, MD4); px(4, -16, 4, 1, MD4);
+        px(-4, -15, 8, 1, MD3); px(-3, -14, 6, 3, MD3); px(-3, -14, 1, 3, MD4); px(2, -14, 1, 3, MD1);
+        px(-1, -13, 2, 2, RUBI); px(-1, -13, 1, 1, '#FF8FA3');
+        px(-2, -10, 4, 1, MD1); cinto(px, o, MD0, MD4);
+      },
+      cabeca: (px, o) => {
+        const hy = o.hy;
+        if(o.costas){ px(-4, hy, 8, 8, MD2); for(let r = 0; r < 6; r++) px(-4, hy + r, 8, 1, r % 2 ? MD2 : MD3); px(3, hy, 1, 8, MD1); coroaMidas(px, o); return; }
+        if(o.lado){ px(-4, hy, 8, 8, MD2); px(-4, hy, 4, 6, MD3); px(-4, hy + 1, 1, 5, MD1); px(2, hy + 3, 2, 1, MD1); px(2, hy + 4, 1, 1, MD4); px(3, hy + 4, 1, 1, MD0); px(3, hy + 6, 1, 1, MD1); coroaMidas(px, o); return; }
+        px(-4, hy, 8, 8, MD2); px(-4, hy, 1, 8, MD3); px(3, hy, 1, 8, MD1); px(-3, hy + 1, 2, 1, MD4);
+        px(-3, hy + 3, 2, 1, MD1); px(1, hy + 3, 2, 1, MD1);
+        px(-3, hy + 4, 1, 1, MD4); px(-2, hy + 4, 1, 1, MD0); px(1, hy + 4, 1, 1, MD0); px(2, hy + 4, 1, 1, MD4);
+        px(0, hy + 5, 1, 1, MD1); px(-1, hy + 6, 2, 1, MD1); px(-3, hy + 7, 6, 1, MD3);
+        coroaMidas(px, o);
+      },
+      fx: (px, o) => {
+        const ms = performance.now();
+        /* o pó de ouro subindo em volta */
+        const xs = o.lado ? [-6, 5, -7, 6, -4, 4] : [-10, 9, -11, 10, -7, 7];
+        for(let i = 0; i < xs.length; i++){ const f = (ms / 1500 + i / xs.length) % 1; if(f > .86) continue; px(xs[i], -3 - Math.round(f * 26), 1, 1, i % 2 ? MD4 : MD3); }
+        /* o reflexo: de 2,6 em 2,6 s, passa da esquerda pra direita em 0,7 s */
+        const c = ms % 2600;
+        if(c < 700){ const p = -12 + c / 700 * 24; for(let y = o.hy - 1; y <= -2; y++){ const x = Math.round(p + (y + 12) * .45); if(dentroMidas(o, x, y)) px(x, y, 1, 1, 'rgba(255,250,224,.92)'); if(dentroMidas(o, x + 1, y)) px(x + 1, y, 1, 1, 'rgba(255,240,179,.6)'); } }
+        brilho(px, o.lado ? [[-1, -14], [1, -10], [-1, -27], [2, -21], [0, -4]] : [[-3, -14], [2, -12], [-7, -16], [6, -16], [-1, -27], [-4, -20], [3, -5], [-3, -4]], MD4, 3);
       } };
   }
   const idx = (L, v, d) => Number.isInteger(v) && v >= 0 && v < L.length ? v : d;
@@ -9017,7 +9067,9 @@
      só a reserva pra mostrar antes de ele responder (e os Termos de uso dizem o mesmo) */
   const SKIN_REAL = { abobora: 14.90, saci: 14.90, bruxa: 9.90, esqueleto: 9.90, lobisomem: 9.90, lencol: 5.90, mortovivo: 5.90, gatopreto: 5.90,
     /* v5.05 · a coleção de Natal, toda acima de R$ 10 (o Thales: "tudo acima de 10 reais") */
-    noel: 24.90, arvore: 24.90, noelverao: 19.90, mamaenoel: 19.90, boneconeve: 19.90, quebranozes: 19.90, piscapisca: 19.90, rena: 14.90, duende: 14.90, reimago: 14.90, biscoito: 12.90, presente: 12.90 };
+    noel: 24.90, arvore: 24.90, noelverao: 19.90, mamaenoel: 19.90, boneconeve: 19.90, quebranozes: 19.90, piscapisca: 19.90, rena: 14.90, duende: 14.90, reimago: 14.90, biscoito: 12.90, presente: 12.90,
+    /* v5.08 · Midas, o super avatar de ouro (o Thales: "coloca 129,99 de valor") */
+    midas: 129.99 };
   const ehReal = k => !!SKIN_REAL[k] || Number(LJ.reais[k]) > 0;
   const precoReal = k => Number(LJ.reais[k]) > 0 ? Number(LJ.reais[k]) : SKIN_REAL[k] || 0;
   /* preço de loja: sempre à vista (o "esconder valores" do Corre é pra grana da pessoa, não pra etiqueta) */
@@ -9138,8 +9190,10 @@
     const grupo = (r, t, so) => { const L = doGrupo(r, so); return L.length ? `<h4 class="lj-g lj-g-${r}">${t}</h4><ul class="lj-l">${L.map(card).join('')}</ul>` : ''; };
     /* as coleções de época: na vitrine (e não no app da Play), todas; fora dela, só as que a pessoa tem. A que tá na vitrine vem primeiro */
     const vende = c => COLECAO[c].on() && !loja, ord = ['natal', 'halloween'].sort((a, b) => vende(b) - vende(a));
-    const real = ord.map(c => vende(c) ? grupo(c, `${ico('star')} ${RARIDADE[c]} · na vitrine até ${COLECAO[c].ate}`) : grupo(c, `${RARIDADE[c]} · da tua coleção`, tenhoLoja)).join('');
-    const nReal = ord.reduce((n, c) => n + doGrupo(c, vende(c) ? null : tenhoLoja).length, 0), nCorreal = ['lendaria', 'rara', 'estilo'].reduce((n, r) => n + doGrupo(r).length, 0);
+    /* v5.08: a edição de ouro (o Midas) vem antes das coleções e fica à venda o ano inteiro; no app da Play, só se for tua */
+    const real = (loja ? grupo('ouro', `${RARIDADE.ouro} · da tua coleção`, tenhoLoja) : grupo('ouro', `${ico('star')} Edição de ouro · à venda o ano inteiro`))
+      + ord.map(c => vende(c) ? grupo(c, `${ico('star')} ${RARIDADE[c]} · na vitrine até ${COLECAO[c].ate}`) : grupo(c, `${RARIDADE[c]} · da tua coleção`, tenhoLoja)).join('');
+    const nReal = doGrupo('ouro', loja ? tenhoLoja : null).length + ord.reduce((n, c) => n + doGrupo(c, vende(c) ? null : tenhoLoja).length, 0), nCorreal = ['lendaria', 'rara', 'estilo'].reduce((n, r) => n + doGrupo(r).length, 0);
     const salta = (k, ic, t, d, n) => `<button type="button" class="lj-aba lj-aba-${k}" data-vai="${k}" aria-current="false" aria-label="${t}, ${d}: ${n} fantasias">${ico(ic)}<span><b>${t}</b><small>${d}</small></span><i class="lj-n" aria-hidden="true">${n}</i></button>`;
     const secao = (k, ic, t, sub, corpo) => `<section class="lj-s lj-s-${k}" id="lj-s-${k}" aria-labelledby="lj-h-${k}"><header class="lj-s-cab"><span class="lj-s-ic">${ico(ic)}</span><div><h3 id="lj-h-${k}">${t}</h3><p>${sub}</p></div></header>${corpo}</section>`;
     C.sheet(`<div class="form lj"><div class="sheet-head"><h2>${ico('star')} Ateliê do Corre</h2><button type="button" class="cbtn plain" data-close aria-label="Fechar">${ico('x')}</button></div>
@@ -9147,7 +9201,7 @@
       ${secao('correal', 'correal', 'Sem dinheiro: com correal', `Correal é a moeda do Correverso: você ganha fazendo trampo na cidade (até ${C.correalFmt(C.correal.teto)} por dia). Não é dinheiro: não se compra e não vira real. Você tem <b class="num" data-correal-saldo>${C.correal.saldo == null ? '…' : C.correalFmt(C.correal.saldo)}</b> <span data-correal-unid>${C.correalUnid(C.correal.saldo || 0)}</span>.`,
         `${grupo('lendaria', 'Lendárias · com brilho')}${grupo('rara', 'Raras')}${grupo('estilo', 'Estilo')}
         <p class="fine">O Ateliê sempre pergunta antes de descontar o correal. Os 14 uniformes do teu avatar seguem de graça.</p>`)}
-      ${secao('real', 'cartao', 'Pago: com dinheiro de verdade', loja ? 'As fantasias pagas não estão à venda no app. Aqui aparecem as que você já tem.' : 'No Pix ou no cartão, uma vez só: não é assinatura e não renova. Comprou, é tua pra sempre, o ano inteiro. Cada coleção fica na vitrine só na época dela.',
+      ${secao('real', 'cartao', 'Pago: com dinheiro de verdade', loja ? 'As fantasias pagas não estão à venda no app. Aqui aparecem as que você já tem.' : 'No Pix ou no cartão, uma vez só: não é assinatura e não renova. Comprou, é tua pra sempre, o ano inteiro. A edição de ouro fica à venda o ano todo; as coleções, só na época delas.',
         `${real || `<p class="lj-vazio">${loja ? 'Você ainda não tem fantasia comprada em dinheiro.' : 'As coleções pagas chegam na época delas: o Halloween em outubro e o Natal de 15 de outubro até o Dia de Reis.'}</p>`}
         ${loja ? '' : '<p class="fine">Pagamento único, pelo Asaas. Desistindo em até 7 dias do pagamento, volta tudo e a fantasia sai. Veja os <a href="termos.html#skins" target="_blank" rel="noopener">Termos de uso</a>.</p>'}`)}</div>`, 'wide lj-sheet');
     /* o atalho grudado no alto: leva pra parte e acende a que tá na tela */

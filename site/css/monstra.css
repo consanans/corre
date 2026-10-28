@@ -5641,3 +5641,24 @@ html.embed .bio-pe,html.embed .bio-corre{display:none}
 @media (max-width:640px){ .lj-l{grid-template-columns:1fr} .lj-card{grid-template-columns:72px 1fr} .lj-s-cab h3{font-size:20px} }
 @media (max-width:420px){ .lj-nav{gap:8px} .lj-s-cab{padding:12px} .lj-s-ic{width:38px;height:38px} .lj-ficha div{grid-template-columns:68px 1fr} }
 @media (max-width:360px){ .lj-s-ic{display:none} }
+/* v5.08 · o cartão do Midas, a edição de ouro: dourado, com o brilho que passa (o das lendárias), na largura inteira
+   da vitrine (1 / -1: com uma coluna só, ocupa uma, sem criar coluna nova), e no computador com o boneco grande do
+   lado da ficha */
+.lj-g-ouro{--lj:#D9A52B}
+.lj-card.lj-ouro{--lj:#D9A52B;grid-column:1/-1;background:linear-gradient(150deg,#FFF8E1 0%,#FFEFC2 55%,#FFE29A 100%);border-color:var(--ink)}
+.lj-card.lj-ouro .lj-rar{background:linear-gradient(90deg,#B07A12,#F2CC5B 50%,#B07A12);color:var(--tinta);border-color:var(--tinta)}
+.lj-card.lj-ouro .lj-cv{background:radial-gradient(circle at 50% 40%,#FFF6D6,#E6C77A);border-color:#6E4508}
+.lj-card.lj-ouro .lj-tx b{font-size:20px}
+.lj-card.lj-ouro .lj-ficha{background:rgb(255 255 255 / 62%);border-color:#E6C77A}
+.lj-card.lj-ouro::after{content:'';position:absolute;inset:0;background:linear-gradient(115deg,transparent 35%,rgb(255 246 214 / 60%) 48%,transparent 60%) -120% 0/250% 100% no-repeat;animation:lj-brilho 2.6s ease-in-out infinite;pointer-events:none}
+.escuro .lj-card.lj-ouro{background:linear-gradient(150deg,var(--paper) 40%,#3A2A12)}
+.escuro .lj-card.lj-ouro .lj-ficha{background:var(--paper-2);border-color:var(--line)}
+.escuro .lj-card.lj-ouro .lj-cv{border-color:var(--tinta)}
+@media (min-width:641px){
+  .lj-card.lj-ouro{grid-template-columns:150px minmax(0,1fr);grid-template-areas:"fx fx" "cv tx" "cv fi" "cv ac";column-gap:20px}
+  .lj-card.lj-ouro .lj-tx,.lj-card.lj-ouro .lj-ficha,.lj-card.lj-ouro .lj-acao{width:100%;max-width:560px}
+  /* o grid-row:auto da v5.07 desfaz o "cv" das três linhas: aqui o boneco ocupa as três, sem abrir buraco embaixo do nome */
+  .lj-card.lj-ouro .lj-cv{width:150px;align-self:center;grid-row:2/span 3}
+}
+@media (max-width:640px){ .lj-card.lj-ouro{grid-template-columns:96px 1fr} .lj-card.lj-ouro .lj-cv{width:96px} }
+@media (prefers-reduced-motion:reduce){ .lj-card.lj-ouro::after{animation:none;display:none} }

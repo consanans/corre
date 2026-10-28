@@ -190,6 +190,10 @@ $P -f "$AQUI/semente505.sql"
 delta delta-v505.sql 'delta v5.05 ok'
 delta delta-v505.sql 'delta v5.05 ok'
 testa teste505.sql 13
+# v5.08: o Midas, o super avatar de ouro a R$ 129,99 (só em real)
+delta delta-v508.sql 'delta v5.08 ok'
+delta delta-v508.sql 'delta v5.08 ok'
+testa teste508.sql 5
 . "$AQUI/virada343.sh"
 if grep -q 'FALHOU\|ERROR' $D/saida; then echo "deu FALHOU ou erro (acima)"; exit 1; fi
 echo "tudo ok: $(grep -c '^ok:' $D/saida) checagens"

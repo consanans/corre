@@ -1,5 +1,20 @@
 # O que falta subir (28/10/2026)
 
+**O zip da 5.08** (`saida/corre-site.zip`): arrasta no Netlify, como sempre. O banco e a função de pagamento já estão no ar (conferidos hoje). Leva a 5.07 junto, se ainda não subiu.
+
+O que a 5.08 traz: **o Midas, o avatar de ouro, a R$ 129,99.**
+- Ouro da coroa à bota, rubi no peito, capa nas costas, pozinho de ouro subindo e um reflexo que passa pelo corpo. Na cidade e dentro das casas (3D).
+- No Ateliê, ele abre a parte **Pago**, num cartão dourado que ocupa a largura inteira, com a ficha: R$ 129,99, Pix ou cartão, uma vez só, à venda o ano inteiro, 7 dias pra desistir.
+- Diferente das coleções, ele não sai da vitrine: fica à venda o ano todo.
+- Termos e privacidade já falam dele (a versão dos Termos segue a de hoje).
+- No app da Play, como as outras pagas, não aparece pra vender.
+
+Pra conferir depois de subir: Correverso › Ateliê › Pago. O Midas é o primeiro.
+
+---
+
+## Antes (28/10/2026)
+
 **O zip da 5.07** (`saida/corre-site.zip`): arrasta no Netlify, como sempre. Sem banco nem função. A 5.06 já tá no ar.
 
 O que a 5.07 traz: **o Ateliê diz tudo no cartão.**

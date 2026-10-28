@@ -3394,7 +3394,32 @@
       B(x - .36, .36, z - .24, .72, .58, .48, NAT.NV), B(x - .05, .36, z + .24, .1, .58, .005, OURO), B(x - .05, .36, z - .245, .1, .58, .005, OURO), B(x - .36, .6, z + .24, .72, .1, .005, OURO),
       B(x - .365, .6, z - .24, .005, .1, .48, OURO), B(x + .36, .6, z - .24, .005, .1, .48, OURO), B(x - .38, .9, z - .26, .76, .05, .52, '#E85A62'),
       B(x - .22, 1.44, z - .06, .16, .12, .12, OURO), B(x + .06, 1.44, z - .06, .16, .12, .12, OURO), B(x - .05, 1.46, z - .05, .1, .1, .1, '#F2D06B')
-    ] }
+    ] },
+    /* v5.08 · Midas, o super avatar de ouro (o desenho da cidade tá em verso.js, SKIN.midas): a cabeça de ouro com a
+       coroa e o rubi, a capa, as ombreiras, o peitoral; o reflexo que passa pela frente de tempos em tempos e o pó de
+       ouro girando e subindo em volta */
+    midas: { R: '#D9A52B', L: '#D9A52B', T: '#A8740F', luva: '#F2CC5B', cobre: true, semCabeca: true, bl: (x, z) => {
+      const M0 = '#6E4508', M1 = '#A8740F', M2 = '#D9A52B', M3 = '#F2CC5B', M4 = '#FFF0B3', RB = '#C8102E', ms = performance.now();
+      const out = [
+        B(x - .26, .94, z - .26, .52, .52, .52, M2), B(x - .265, 1.0, z - .265, .53, .38, .2, M3),
+        B(x - .17, 1.27, z + .26, .12, .03, .01, M1), B(x + .05, 1.27, z + .26, .12, .03, .01, M1),
+        B(x - .16, 1.19, z + .26, .08, .06, .01, M0), B(x + .08, 1.19, z + .26, .08, .06, .01, M0), B(x - .15, 1.21, z + .265, .03, .03, .005, M4), B(x + .09, 1.21, z + .265, .03, .03, .005, M4),
+        B(x - .08, 1.04, z + .26, .16, .03, .01, M1),
+        B(x - .29, 1.42, z - .29, .58, .1, .58, M3), B(x - .29, 1.42, z - .29, .58, .03, .58, M1),
+        B(x - .29, 1.52, z - .29, .08, .1, .08, M3), B(x + .21, 1.52, z - .29, .08, .1, .08, M3), B(x - .29, 1.52, z + .21, .08, .1, .08, M3), B(x + .21, 1.52, z + .21, .08, .1, .08, M3),
+        B(x - .05, 1.52, z + .22, .1, .18, .06, M3), B(x - .04, 1.55, z + .285, .08, .07, .01, RB), B(x - .03, 1.7, z + .23, .06, .03, .04, M4),
+        B(x - .34, .3, z - .2, .68, .68, .06, M1), B(x - .34, .96, z - .21, .68, .03, .07, M3), B(x - .34, .3, z - .21, .68, .03, .07, M0),
+        B(x - .44, .86, z - .13, .2, .1, .26, M3), B(x + .24, .86, z - .13, .2, .1, .26, M3), B(x - .44, .94, z - .13, .2, .02, .26, M4), B(x + .24, .94, z - .13, .2, .02, .26, M4),
+        B(x - .2, .66, z + .12, .4, .24, .02, M3), B(x - .2, .66, z + .12, .05, .24, .025, M4), B(x - .05, .74, z + .14, .1, .1, .01, RB),
+        B(x - .26, .44, z - .13, .52, .05, .26, M0), B(x - .05, .43, z + .13, .1, .07, .005, M4)
+      ];
+      /* o reflexo: de 2,6 em 2,6 s uma faixa de luz atravessa a frente do corpo e da cabeça em 0,7 s */
+      const c = ms % 2600;
+      if(c < 700){ const dx = -.25 + c / 700 * .46; out.push(B(x + dx, .44, z + .132, .04, .5, .004, M4), B(x + dx * 1.04, .94, z + .262, .04, .52, .004, M4)); }
+      /* o pó de ouro girando e subindo */
+      for(let i = 0; i < 5; i++){ const f = (ms / 1600 + i / 5) % 1, a = i * 1.26 + ms / 900; if(f < .9) out.push(B(x + Math.cos(a) * .48 - .025, .1 + f * 1.7, z + Math.sin(a) * .48 - .025, .05, .05, .05, i % 2 ? M4 : M3)); }
+      return out.concat(brilho3(x, z, [[-.15, .8, .14], [.12, .7, .14], [-.38, .94, .1], [.36, .94, .1], [0, 1.74, .26], [-.2, 1.3, .27]]));
+    } }
   };
   /* v3.77: senta = sentado (no banco do Calçadão): a perna vai pra frente, na altura do assento, e a mão no joelho */
   function boneco(av, x, z, yaw, passo, andando, senta){

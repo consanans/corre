@@ -920,7 +920,9 @@
     const skinPrecoDemo = k => { const x = ((C.verso && C.verso.SKINS_LOJA) || []).find(s => s[0] === k); return x ? centDe(x[2]) : 0; };
     /* v4.13: os preços em real das 8 de Halloween (o mesmo do corre_skins_reais). v5.05: e as 12 de Natal */
     const skinReaisDemo = () => ({ abobora: 14.90, saci: 14.90, bruxa: 9.90, esqueleto: 9.90, lobisomem: 9.90, lencol: 5.90, mortovivo: 5.90, gatopreto: 5.90,
-      noel: 24.90, arvore: 24.90, noelverao: 19.90, mamaenoel: 19.90, boneconeve: 19.90, quebranozes: 19.90, piscapisca: 19.90, rena: 14.90, duende: 14.90, reimago: 14.90, biscoito: 12.90, presente: 12.90 });
+      noel: 24.90, arvore: 24.90, noelverao: 19.90, mamaenoel: 19.90, boneconeve: 19.90, quebranozes: 19.90, piscapisca: 19.90, rena: 14.90, duende: 14.90, reimago: 14.90, biscoito: 12.90, presente: 12.90,
+      /* v5.08: o Midas, o super avatar de ouro */
+      midas: 129.99 });
     const plTrava = (d, u, prod) => { plGarante(d, u, prod); if(!plAcesso(d, u, prod)) throw { message: 'o teste grátis acabou', hint: prod + '_assinatura', code: 'P0001' }; };
     /* v5.05 · a marca grátis do Studio Houzi (o mesmo do corre_houzi_plano do delta-v505): a primeira que a pessoa cria
        sem plano vira a grátis, pra sempre; quem já tinha marca ganha a mais antiga. Com o plano, quantas quiser */

@@ -350,11 +350,16 @@ const SKIN_NOME: Record<string, string> = { abobora: 'Cabeça de Abóbora', saci
   /* v5.05: a coleção de Natal (o Thales: "adiciona um monte de natal e tudo acima de 10 reais"; o preço mora no banco) */
   noel: 'Papai Noel', arvore: 'Árvore Dourada', noelverao: 'Noel de Bermuda', mamaenoel: 'Mamãe Noel', boneconeve: 'Boneco de Neve',
   quebranozes: 'Quebra-Nozes', piscapisca: 'Pisca-Pisca', rena: 'Rena', duende: 'Duende da Fábrica', reimago: 'Rei Mago',
-  biscoito: 'Boneco de Gengibre', presente: 'Presente' };
+  biscoito: 'Boneco de Gengibre', presente: 'Presente',
+  /* v5.08: o Midas, o super avatar de ouro (o Thales: "faz um super avatar de ouro e colocar 129,99 e valor") */
+  midas: 'Midas, o avatar de ouro' };
 /* cada coleção só vende na época dela, no dia de Brasília: o Halloween de 1º/10 até Finados (2/11) e o Natal de 15/10
    até o Dia de Reis (6/1), o mesmo calendário da decoração da cidade */
 const NATAL = new Set(['noel', 'arvore', 'noelverao', 'mamaenoel', 'boneconeve', 'quebranozes', 'piscapisca', 'rena', 'duende', 'reimago', 'biscoito', 'presente']);
+/* v5.08: a edição de ouro não é de época: fica à venda o ano inteiro */
+const SEMPRE = new Set(['midas']);
 const naEpoca = (k: string) => {
+  if (SEMPRE.has(k)) return true;
   const md = hojeBR().slice(5);
   return NATAL.has(k) ? (md >= '10-15' || md <= '01-06') : (md >= '10-01' && md <= '11-02');
 };
