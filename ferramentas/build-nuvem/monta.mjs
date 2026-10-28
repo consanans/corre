@@ -18,8 +18,9 @@ const JS = join(RAIZ, 'site', 'js');
 const CORRE = 'scene stickers core igcontas rolo-data rolo rolo-som banca grana estilo marcas vendas visitas estudio studio lote aprova manual stories feed insta mensagens grupos avisos push horus-presets horus horus-turbo horus-max horus-funil horus-limpa horus-mesa mural meucorre negocio refs doacao bio estreia denuncia lojinha bicho caderninho piloto trampo clientes monta fala atendente app'.split(' ');
 const HOUZI = 'lab-motor lab-qr lab lab-som lab-filme lab-post lab-livro'.split(' ');
 /* v4.0: o Correverso desce à parte, só quando alguém entra na cidade (C.versoCarrega no app.js). Roda depois do app.js,
-   então tudo do C.* já existe quando ele chega. A ordem de dentro é a de antes. */
-const VERSO = 'pad verso-som veiculos verso beats moveis casa'.split(' ');
+   então tudo do C.* já existe quando ele chega. A ordem de dentro é a de antes. v5.06: o controle de videogame
+   (controle.js) entra logo depois do controle da tela (pad.js). */
+const VERSO = 'pad controle verso-som veiculos verso beats moveis casa'.split(' ');
 
 function monta(lista, saida){
   const junto = lista.map(n => `try{\n${readFileSync(join(JS, n + '.js'), 'utf8')}\n}catch(e){try{console.error("[corre] ${n}.js",e)}catch(_){}}\n`).join('');

@@ -91,6 +91,8 @@
   const I = {
     houzi: '<circle cx="12" cy="5.2" r="1.9"/><path d="M11 7l-5.5 14M13 7l5.5 14M8 15.5h8"/>',
     cel: '<rect x="6.5" y="2.5" width="11" height="19" rx="2.2"/><path d="M10.5 18.5h3"/>',
+    /* v5.06: o controle de videogame (o Correverso joga com ele) */
+    controle: '<path d="M7.5 7.5h9a4.5 4.5 0 0 1 4.4 3.6l1 5a2.6 2.6 0 0 1-4.6 2.1L15.6 16H8.4l-1.7 2.2a2.6 2.6 0 0 1-4.6-2.1l1-5a4.5 4.5 0 0 1 4.4-3.6z"/><path d="M8 10.5v3M6.5 12h3"/><circle cx="15.5" cy="11" r=".7"/><circle cx="17.5" cy="13" r=".7"/>',
     /* v4.37: o computador (os avisos no computador) */
     pc: '<rect x="3" y="4" width="18" height="12" rx="1.6"/><path d="M8.5 20h7M12 16v4"/>',
     vistas: '<path d="M4 20V13M9.3 20V8M14.7 20v-9M20 20V4"/>',

@@ -6065,6 +6065,9 @@
     /* o direcional da tela (celular): a direção e a força */
     let fator = 1; const pdv = V.pad && !BC.aberto ? V.pad.vetor() : null;
     if(pdv && pdv.m && !kx && !ky){ kx = pdv.x; ky = pdv.y; fator = Math.min(1, .35 + pdv.m * .8); }
+    /* v5.06: o analógico esquerdo do controle de videogame (o direcional dele chega como as setas do teclado) */
+    const cdv = !kx && !ky && C.controle ? C.controle.vetor() : null;
+    if(cdv && cdv.m){ kx = cdv.x; ky = cdv.y; fator = Math.min(1, .35 + cdv.m * .8); }
     V.fatorAnda = fator;
     if(V.voo){ kx = ky = 0; V.alvo = null; }
     if(e.sit && (kx || ky || V.alvo)){ e.sit = false; e.pesca = null; portaUI(); enviaPos(true); }
@@ -6603,6 +6606,7 @@
     olha(e, r.x - e.x, r.y - e.y); e.empurrou = agora;
     derruba(r, e.x, e.y, 1); derrubou(r);
     if(C.versoSom && C.versoSom.gta) C.versoSom.gta('empurra');
+    if(C.controle) C.controle.treme(90, .45);
     procura(1, `empurrou ${r.nome || 'alguém'}`);
     brigaUI();
   }
@@ -6611,6 +6615,7 @@
     const e = V.eu, dx = e.x - fx, dy = e.y - fy, d = Math.hypot(dx, dy) || 1, agora = Date.now();
     e.tonto = agora + 900 * forca; e.empurrao = { vx: dx / d * 220 * forca, vy: dy / d * 150 * forca, t0: agora }; V.alvo = null;
     if(C.versoSom && C.versoSom.gta) C.versoSom.gta('empurra');
+    if(C.controle) C.controle.treme(260, Math.min(1, .5 + forca * .4));
   }
   function brigaUI(){
     const b = C.$('cvr-briga'); if(!b) return;
@@ -6720,6 +6725,7 @@
   }
   function bateu(k, fx, fy){
     if(C.versoSom && C.versoSom.gta) C.versoSom.gta('batida', k === 'parede' ? .5 : 1);
+    if(C.controle) C.controle.treme(k === 'parede' ? 110 : 220, k === 'parede' ? .45 : .9);
     if(k === 'carro') derrubaEu(fx, fy, .55);
     const T = V.tarefa; if(T && T.def.missao && T.def.bateu) T.def.bateu(T, k);
   }
@@ -8057,6 +8063,8 @@
     /* v3.40: o controle de videogame na tela (celular), a música e os sons da cidade */
     V.voo = null; V.passoN = 0;
     if(C.pad && C.pad.toque()){ V.pad = C.pad.cria(st, { pula: () => { if(!mjAperta() && !rioAperta()) pula(); }, soltou: () => { mjHold(false); rioSolta(); } }); st.classList.add('toque'); padRotulo(); }
+    /* v5.06: o controle de videogame passa a valer (e para quando a cidade fecha) */
+    if(C.controle) C.controle.liga();
     if(C.versoSom) C.versoSom.entra(C.$('cvr-som'), () => ({ voz: [...V.peers.values()].some(p => p.estado === 'aovivo'), pausa: !!V.jogo, casa: !!(C.casa && C.casa.aberta()), balcao: !!BC.aberto }));
     /* v3.90: o Correverso é tela cheia do começo ao fim (a do navegador já foi pedida no C.views.verso, ainda no toque) */
     /* v4.05: no celular em pé, primeiro o "vira o celular de lado"; o balão do Sair vem depois */
@@ -8204,6 +8212,7 @@
     tenta(() => fechaPola());
     tenta(() => giraFecha(null));
     tenta(() => { if(V.pad){ V.pad.destroi(); V.pad = null; } });
+    tenta(() => { if(C.controle) C.controle.desliga(); });
     tenta(() => { if(C.versoSom) C.versoSom.sai(); });
     /* saiu no meio do voo: chega no destino (o voo tava pago) */
     if(V.voo){ const d = V.voo.ate; if(V.eu && d){ V.eu.x = d.x; V.eu.y = d.y; } V.voo = null; }
@@ -8596,7 +8605,7 @@
     if(R.fase === 'lanca'){ if(agora - R.t0 > 650){ R.fase = 'espera'; R.t0 = agora; R.morde = agora + (R.corre ? 1800 : 2600) + Math.random() * (R.corre ? 3600 : 5600); R.bel = []; const nb = Math.floor(Math.random() * 3); for(let i = 0; i < nb; i++) R.bel.push(agora + 900 + Math.random() * Math.max(400, R.morde - agora - 1700)); somRio('plop'); portaUI(); rioUI(true); } return; }
     if(R.fase === 'espera'){
       const bel = R.bel.some(t0 => agora > t0 && agora < t0 + 420); if(bel && !R.beliscando) somRio('belisca'); R.beliscando = bel;
-      if(agora >= R.morde){ R.fase = 'fisgou'; R.t0 = agora; R.beliscando = false; R.peixe = sorteiaPeixe(R.corre); somRio('fisga'); try{ if(navigator.vibrate) navigator.vibrate(70); }catch(err){} portaUI(); rioUI(true); }
+      if(agora >= R.morde){ R.fase = 'fisgou'; R.t0 = agora; R.beliscando = false; R.peixe = sorteiaPeixe(R.corre); somRio('fisga'); try{ if(navigator.vibrate) navigator.vibrate(70); }catch(err){} if(C.controle) C.controle.treme(160, .8); portaUI(); rioUI(true); }
       return;
     }
     if(R.fase === 'fisgou'){ if(agora - R.t0 > 1000) perdeRio('Demorou: ela levou a isca. Joga de novo.'); return; }

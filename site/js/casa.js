@@ -1624,6 +1624,7 @@
     n.caiu = { t0: agora, ate: agora + 2400, vx: dx / d * 2.2, vz: dz / d * 2.2, volta }; n.y = 0; n.fala = null; n.olha = 0; n.paraAte = 0; n.cantaAte = 0; n.volta = null;
     if(n.grupo && n.grupo.papo) n.grupo.papo = null;
     if(C.versoSom && C.versoSom.gta) C.versoSom.gta('empurra');
+    if(C.controle) C.controle.treme(90, .45);
     if(C.verso.procura) C.verso.procura(1, 'empurrou ' + n.nome);
     /* empurrou demais: as moedas */
     const q = C.verso.apanhou ? C.verso.apanhou(n) : 0;
@@ -1639,6 +1640,7 @@
     const dx = e.x - fx, dz = e.z - fz, d = Math.hypot(dx, dz) || 1;
     e.tonto = Date.now() + 900; e.empurrao = { vx: dx / d * 2, vz: dz / d * 2, t0: Date.now() }; S.alvo = null; S.acao = null; S.rota = [];
     if(C.versoSom && C.versoSom.gta) C.versoSom.gta('empurra');
+    if(C.controle) C.controle.treme(260, .85);
   }
   /* um quadro de quem tá no chão: escorrega 0,3 s girando, senta e fica tonto; levantou, fica bravo e volta pro lugar */
   function caidoCalc(n, dt){
@@ -4331,7 +4333,9 @@
      e o chão vão a cada quadro (corrida), os golpes de uma vez (somFx) e a música entra na contagem, com a entrada
      terminando no "vai" */
   const somV = () => C.versoSom && C.versoSom.corrida ? C.versoSom : null;
-  const somFx = (k, x) => { const V = somV(); if(V) try{ V.corridaFx(k, x); }catch(e){} };
+  /* v5.06: o controle de videogame treme junto nos golpes da corrida (a duração em ms e a força) */
+  const TREME_K = { batida: [220, .9], rodou: [380, .8], cone: [140, .55], oleo: [180, .4], pouso: [90, .35], turbo: [220, .3], mini: [120, .35], perfeita: [220, .5], chiclete: [160, .5], grave: [280, .75], chegada: [320, .6] };
+  const somFx = (k, x) => { const V = somV(); if(V) try{ V.corridaFx(k, x); }catch(e){} const t = TREME_K[k]; if(t && C.controle) C.controle.treme(t[0], t[1]); };
   function somPara(){ const V = somV(); if(V) try{ V.corrida(null); V.corridaMusica(false); }catch(e){} }
   function somKart(R, P, agora, o){
     const V = somV(); if(!V) return; const e = S.eu, falta = R.larga - agora;
@@ -4420,8 +4424,11 @@
     let ac = 0, vi = 0;
     if(k.has('w') || k.has('ArrowUp')) ac += 1; if(k.has('s') || k.has('ArrowDown')) ac -= 1;
     if(k.has('d') || k.has('ArrowRight')) vi += 1; if(k.has('a') || k.has('ArrowLeft')) vi -= 1;
-    const pv = S.pad && S.pad.vetor ? S.pad.vetor() : null;
+    const pv = vetorJunto();
     if(pv && pv.m && !ac && !vi){ ac = Math.max(-1, Math.min(1, -pv.y * 1.4)); vi = Math.max(-1, Math.min(1, pv.x * 1.4)); }
+    /* v5.06: no controle de videogame, RT acelera e LT freia (dá ré), com a força do gatilho; o analógico segue virando */
+    const gt = C.controle ? C.controle.gatilhos() : null;
+    if(gt && (gt.r || gt.l) && !['w', 'ArrowUp', 's', 'ArrowDown'].some(t => k.has(t))) ac = Math.max(-1, Math.min(1, gt.r - gt.l));
     if(S.pad && S.pad.segura) R.segura = R.segura || S.pad.segura();
     S.alvo = null; S.rota = []; S.acao = null;
     /* a largada: segurar o acelerador na hora certa */
@@ -4796,7 +4803,7 @@
     const P = S.pesca, agora = Date.now(), e = S.eu;
     if(P){
       if(!e || S.alvo || S.teclas.size || Math.hypot(e.x - P.sp.x, e.z - P.sp.z) > .5) paraPesca();
-      else if(P.fase === 'espera' && agora > P.ate){ P.fase = 'morde'; P.ate = agora + 1200; try{ if(navigator.vibrate) navigator.vibrate(60); }catch(_){} painelPesca(true); }
+      else if(P.fase === 'espera' && agora > P.ate){ P.fase = 'morde'; P.ate = agora + 1200; try{ if(navigator.vibrate) navigator.vibrate(60); }catch(_){} if(C.controle) C.controle.treme(160, .8); painelPesca(true); }
       else if(P.fase === 'morde' && agora > P.ate){ P.fase = 'espera'; P.ate = agora + 2600 + Math.random() * 3800; C.toast('Escapou…', 1200); painelPesca(true); }
     }
     painelPesca();
@@ -5094,7 +5101,7 @@
       if(!S.corrida && S.kartVivo && S.kartVivo.rivais){ const KV = S.kartVivo; if(Date.now() - KV.visto > 5000) KV.rivais.length = 0; KV.rivais.forEach(o => { if(Date.now() - KV.visto > 2500) o.v = 0; o.s += o.v * dt; o.s += (o.sAlvo - o.s) * Math.min(1, dt * 4); }); }
       /* celular fraco (quadro lento): o boneco anda em passos de até 50 ms, pra a velocidade não depender do quadro
          (e sem atravessar parede num passo grande) */
-      if(!parado){ const np = Math.max(1, Math.ceil(dt / .05 - 1e-9)); for(let i = 0; i < np && S.aberta && S.eu; i++) passo(dt / np); }
+      if(!parado){ const np = Math.max(1, Math.ceil(dt / .05 - 1e-9)); for(let i = 0; i < np && S.aberta && S.eu; i++) passo(dt / np); if(!S.corrida && !S.desafio) camControle(dt); }
       andamGente(dt); if(S.calc) calcPasso(dt); sincronizaDisco();
       if(!S.portaT || t - S.portaT > .2){ S.portaT = t; portaCasa(); if(S.calc) brigaCalcUI(); else { const bg = C.$('cs-briga'); if(bg && !bg.hidden){ bg.hidden = true; bg.dataset.txt = ''; } } }
       if(C.verso.enviaPos) C.verso.enviaPos(false);
@@ -5105,12 +5112,24 @@
     }
     S.raf = requestAnimationFrame(laco);
   }
+  /* v5.06: o direcional da tela (celular) ou o analógico do controle de videogame, o que estiver sendo mexido. A base
+     da câmera trava do mesmo jeito enquanto o analógico tá empurrado (o padTh) */
+  function vetorJunto(){ const a = S.pad && S.pad.vetor ? S.pad.vetor() : null; if(a && a.m) return a; const b = C.controle ? C.controle.vetor() : null; return b && b.m ? b : a; }
+  /* v5.06: o analógico direito gira a câmera (pros lados) e sobe ou desce ela (pra cima olha pro alto, como nos jogos);
+     conta como arrastar, então a câmera não volta sozinha pra trás do boneco por uns segundos */
+  function camControle(dt){
+    const d = C.controle ? C.controle.direito() : null; if(!d || (!d.x && !d.y)) return;
+    const c = S.cam, giro = d.x * dt * 2.6;
+    c.th -= giro; if(S.padTh != null) S.padTh -= giro;
+    c.ph = Math.max(PL.phMin || .25, Math.min(1.35, c.ph + d.y * dt * 1.2));
+    S.arrastou = Date.now();
+  }
   function passo(dt){
     const e = S.eu; if(!e) return;
     if(S.corrida){ passoVeiculo(dt); return; }
-    if(S.desafio){ const pv0 = S.pad && S.pad.vetor ? S.pad.vetor() : null; if(S.teclas.size || S.alvo || (pv0 && pv0.m)) paraDesafio('Saiu do desafio.'); else { camDesafio(dt); return; } }
+    if(S.desafio){ const pv0 = vetorJunto(); if(S.teclas.size || S.alvo || (pv0 && pv0.m)) paraDesafio('Saiu do desafio.'); else { camDesafio(dt); return; } }
     /* v3.77: sentado no banco: só levanta quando você mexe (tecla de andar, o direcional ou um toque no chão) */
-    if(e.sit){ const pv1 = S.pad && S.modo === 'andar' ? S.pad.vetor() : null, anda = ['w', 'a', 's', 'd', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].some(k => S.teclas.has(k));
+    if(e.sit){ const pv1 = S.modo === 'andar' ? vetorJunto() : null, anda = ['w', 'a', 's', 'd', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].some(k => S.teclas.has(k));
       if(anda || S.alvo || (pv1 && pv1.m)){ levanta(); portaCasa(); } else { e.andando = false; const c = S.cam, f = Math.min(1, dt * 6); c.tx += (e.x - c.tx) * f; c.tz += (e.z - c.tz) * f; c.ty += (e.y + 1.1 - c.ty) * f; return; } }
     /* v4.12: levou um empurrão: escorrega uns palmos e fica uns instantes sem andar */
     if((e.tonto || 0) > Date.now()){ const em = e.empurrao; if(em && Date.now() - em.t0 < 260) mover(e, em.vx * dt, em.vz * dt); e.andando = false; S.alvo = null; S.acao = null; S.rota = [];
@@ -5123,7 +5142,7 @@
     if(k.has('d') || k.has('ArrowRight')){ dx += rx; dz += rz; } if(k.has('a') || k.has('ArrowLeft')){ dx -= rx; dz -= rz; }
     /* v3.40: o direcional da tela. A base (frente da câmera) trava enquanto o dedo tá no controle, pra o boneco não andar
        em círculo quando a câmera vai girando pra trás dele */
-    const pv = S.pad && S.modo === 'andar' ? S.pad.vetor() : null;
+    const pv = S.modo === 'andar' ? vetorJunto() : null;
     if(pv && pv.m && !(dx || dz)){
       if(S.padTh == null) S.padTh = th;
       const t0 = S.padTh, f0x = -Math.sin(t0), f0z = -Math.cos(t0), r0x = Math.cos(t0), r0z = -Math.sin(t0), fator = Math.min(1, .35 + pv.m * .8);
@@ -5380,6 +5399,10 @@
   const TECLAS = new Set(['w', 'a', 's', 'd', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']);
   function tecla(e){
     if(!S.aberta) return;
+    /* v5.06: a tecla que abriu este lugar (o Enter na porta da cidade) não vale aqui dentro. O ouvinte da casa fica ligado
+       depois da primeira vez, e o lugar abre na hora (sem esperar o banco): o mesmo Enter chegava aqui com o boneco na
+       porta e virava "Sair pra rua", e o lugar fechava assim que abria */
+    if(e.type === 'keydown' && e.timeStamp && e.timeStamp <= (S.abriuT || 0)) return;
     const bc = C.verso && C.verso.balcao && C.verso.balcao().aberto; if(bc){ S.teclas.clear(); return; }
     const alvo = e.target, digitando = alvo && (alvo.tagName === 'INPUT' || alvo.tagName === 'TEXTAREA' || alvo.tagName === 'SELECT' || alvo.isContentEditable);
     const sh = C.$('sheet'); if(digitando || (sh && !sh.hidden)){ S.teclas.clear(); return; }
@@ -5629,6 +5652,7 @@
   const comTempo = (p, ms) => Promise.race([p, new Promise(r => setTimeout(r, ms))]);
   async function abrirMesmo(o){
     o = o || {}; if(S.aberta) fechar(true, true);
+    S.abriuT = performance.now();
     if(!C.st.me || !C.verso) return;
     /* v3.45: um lugar (a Casa do Hórus) não é de ninguém: o "dono" é o próprio lugar, e a sala da presença leva o nome dele */
     const L = o.lugar && LUGARES[o.lugar] ? LUGARES[o.lugar] : null;

@@ -4,7 +4,8 @@
    do Pular, pro mesmo dedão. Serve pra cidade e pra dentro das casas. No computador continua o teclado: setas ou W A S D,
    espaço pula, E ou Enter faz a ação.
    C.pad = { cria(host, { pula, soltou, rotulo }), toque() } → { vetor(), segura(), mostra(on), solta(), rotulo(html), destroi() }
-   v3.53: o botão também avisa quando o dedo sai (soltou) e diz se tá apertado (segura): no kart, segurar é derrapar */
+   v3.53: o botão também avisa quando o dedo sai (soltou) e diz se tá apertado (segura): no kart, segurar é derrapar
+   v5.06: com controle de videogame em uso (controle.js), este some (body.ctl-on) e volta no primeiro toque na tela */
 (function(){
   'use strict';
   const C = window.Corre; if(!C) return;

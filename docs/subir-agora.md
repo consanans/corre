@@ -1,5 +1,25 @@
 # O que falta subir (28/10/2026)
 
+**O zip da 5.06** (`saida/corre-site.zip`): arrasta no Netlify, como sempre. Sem banco nem função. Leva a 5.05 junto, se ainda não subiu (o banco e a função da 5.05 já estão prontos).
+
+O que a 5.06 traz: **o Correverso joga com controle de videogame.** Liga o controle de Xbox, de PlayStation ou o Pro do Switch no computador ou no celular (Bluetooth ou cabo), abre o Correverso e aperta qualquer botão: aparece o cartão com os botões.
+- O analógico esquerdo anda (devagar ou correndo); o direcional também.
+- **A** (✕ no PlayStation) pula, pesca e derrapa no kart; **X** (□) é o botão amarelo (entrar, trocar ideia, sentar); **Y** (△) empurra e, no kart, usa o item; **B** (○) volta e fecha.
+- No 3D, **LB/RB** e o analógico direito giram a câmera; na cidade, mudam o zoom. Nas corridas, **RT** acelera e **LT** freia.
+- **Menu** abre o Mapa; **View** mostra os botões de novo.
+- Numa folha (a porta, o Mapa, o Ateliê, a pergunta), o direcional anda entre os botões, A aperta e B fecha.
+- Nos jogos da cidade (Elo Perdido, De Boa, Coringa, Geada...), o controle vira as setas e o espaço; **View** sai do jogo. O Gude e o Spray seguem no dedo ou no mouse.
+- O controle treme quando bate, quando o peixe fisga e no empurrão (nos controles que têm motor).
+- No celular, o controle desenhado na tela some enquanto o de verdade tá em uso e volta no primeiro toque.
+
+**De carona, um conserto:** quem já tinha entrado num lugar 3D (a casa, o Calçadão) e depois entrava noutro pelo **Enter** do teclado (o Autódromo, o Sebo, o Torneio de Pesca) via o lugar abrir e fechar na hora. Agora fica.
+
+Pra conferir depois de subir: liga o controle, abre o Correverso e aperta um botão.
+
+---
+
+## Antes (28/10/2026)
+
 **O zip da 5.05** (`saida/corre-site.zip`): arrasta no Netlify, como sempre. O banco e a função de pagamento já estão prontos (o `delta-v505.sql` rodou hoje pelo conector e a `pagamento` v23 tá no ar). Leva a 5.04 junto, se ainda não subiu.
 
 O que a 5.05 traz:
