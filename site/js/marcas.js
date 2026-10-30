@@ -263,7 +263,9 @@
       marcaDentro(false); document.body.classList.remove('em-studio');
       /* no balcão da barraca do Studio Cria, sair é voltar pra rua do Correverso */
       if(C.EMBED){ C.pai('fechar'); return; }
-      C.toast('Saiu do Studio Cria.'); C.go(C.st.me ? '#/@' + C.st.me.handle : '#/');
+      /* v5.09: sair do Studio Cria volta pro Corre Studio (pra página de onde a pessoa entrou, ou O teu dia), e não pro
+         perfil, que é da Rede (o Thales: "ele volta pra rede ao invés de voltar pra página do studio mesmo") */
+      C.toast('Saiu do Studio Cria.'); C.go(C.voltaPra ? C.voltaPra(/^#\/studio(\/|$)/) : '#/dia');
     },
     'mk-nova': () => form(null),
     'mk-edit': async el => { if(!M.list.length) try{ await carregar(); }catch(e){} form(M.list.find(m => m.id === el.dataset.id)); },

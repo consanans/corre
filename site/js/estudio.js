@@ -283,7 +283,7 @@
     $r('er-cap').innerHTML = `<span class="mono">${esc(stageLabel(p, L))} · post ${pad(n)} de ${pad(L.length)}${p.tema ? ' · ' + esc(p.tema) : ''}</span>
       <h3 class="er-title">${esc(p.titulo || 'Sem título')}</h3>
       <div class="er-when">${p.data ? `<b class="num">${esc(longo(p))}</b>` : '<b>Sem data</b>'}${pill(s)}${fmtTag(p)}${aprovTag(p)}</div>
-      ${p.aprov === 'ajuste' && p.aprov_nota ? `<p class="apr-nota"><b>${esc(p.aprov_quem || 'O cliente')} pediu:</b> ${esc(p.aprov_nota)}</p>` : p.aprov === '' && p.aprov_nota ? `<p class="apr-nota velha"><b>Ajuste pedido antes:</b> ${esc(p.aprov_nota)}</p>` : ''}
+      ${p.aprov === 'aprovado' ? '' : C.aprovNota(p)}
       <div class="er-box">${leg ? `<p class="er-legenda">${capHTML(leg)}</p>` : `<p class="note">Sem legenda ainda. No editor, a IA escreve uma olhando a arte.</p>`}</div>
       <div class="acts er-acts">
         <button type="button" class="btn pri" data-act="er-postar">${I_UP} Postar</button>
@@ -402,7 +402,13 @@
   }
   /* o selo do formato e o da aprovação do cliente (o Studio e a sala da marca usam) */
   const fmtTag = p => { const f = fmtDe(p); if(f === 'feed') return ''; const n = f === 'carrossel' ? midiasDe(p).length : 0; return `<i class="fmt-tag f-${f}" title="${NOME_F[f]}">${ico(f === 'carrossel' ? 'img' : f === 'reels' ? 'film' : 'play')}${f === 'carrossel' && n ? `<b class="num">${n}</b>` : `<b>${NOME_F[f]}</b>`}</i>`; };
-  const aprovTag = p => p.aprov === 'aprovado' ? `<i class="apr-tag ok" title="Aprovado pelo cliente">${ico('check')}<b>aprovado</b></i>` : p.aprov === 'ajuste' ? `<i class="apr-tag aj" title="O cliente pediu ajuste">${ico('edit')}<b>ajuste</b></i>` : '';
+  /* v5.09 (o Thales: "entre ser aprovada ela passa pelo retorno/atenção, que é quando precisa de alteração"): o ajuste
+     aparece como Atenção, com o que o cliente marcou pra mudar */
+  const aprovTag = p => p.aprov === 'aprovado' ? `<i class="apr-tag ok" title="Aprovado pelo cliente">${ico('check')}<b>aprovado</b></i>` : p.aprov === 'ajuste' ? `<i class="apr-tag aj" title="Atenção: o cliente pediu pra mudar${(p.aprov_itens || []).length && C.igPrevia ? ' ' + esc(C.igPrevia.itensTxt(p.aprov_itens)) : ''}">${ico('edit')}<b>atenção</b></i>` : '';
+  C.aprovNota = p => { const its = Array.isArray(p.aprov_itens) && C.igPrevia ? C.igPrevia.itensTxt(p.aprov_itens) : '';
+    return p.aprov === 'ajuste' ? `<p class="apr-nota"><b>Atenção: ${esc(p.aprov_quem || 'o cliente')} pediu pra mudar${its ? ' ' + esc(its) : ''}.</b>${p.aprov_nota ? ` ${esc(p.aprov_nota)}` : ''}</p>`
+      : p.aprov === 'aprovado' ? `<p class="apr-nota ok"><b>Aprovado</b>${p.aprov_quem ? ` por ${esc(p.aprov_quem)}` : ''}.</p>`
+      : p.aprov_nota || its ? `<p class="apr-nota velha"><b>Ajuste pedido antes${its ? ' (' + esc(its) + ')' : ''}:</b> ${esc(p.aprov_nota || '')}</p>` : ''; };
   /* a mídia do post pra ver: o carrossel desliza, o vídeo toca com a capa */
   const midiaHTML = (p, k) => {
     const f = fmtDe(p), M = midiasDe(p);
@@ -1024,6 +1030,10 @@
         const prog = !!(a && a.checked), d = C.$('es-d').value, h = C.$('es-hr').value; C.closeSheet();
         const ct = C.ig && C.ig.porId(p && p.ig_conta);
         C.toast(prog ? (studio ? `Programado: ${short(d)} às ${h}.${ct ? ` Sai sozinho no @${ct.username}.` : ' Sem conta: vira lembrete pra postar à mão.'}` : `Post salvo e programado: sai ${short(d)} às ${h} no Instagram.`) : studio ? 'Rascunho salvo.' : 'Post salvo.', 4600);
+        /* v5.09 (o Thales: "logo que terminar, a plataforma deve mostrar uma prévia do post do instagram"): salvou com arte,
+           abre a prévia, a mesma que o cliente vê no link de aprovação */
+        const q = E.posts.find(x => x.id === (p && p.id)) || p;
+        if(C.igPrevia && q && q.midia_url) C.igPrevia.folha(q, { nome: mk.marca, rede: mk.rede, logo: mk.logo_url, cor: mk.cor }, { marcaId: mk.id, editar: true });
       }
     });
     /* v4.17: no carrossel baixa todos os slides (num .zip, na ordem); no vídeo, o vídeo */

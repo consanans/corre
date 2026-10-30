@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<script>/* v4.0 · o Link na bio: app.corresocial.com/@nome (o _redirects manda pra cá) vira #/bio/nome antes de qualquer arquivo carregar, pra css/ e js/ acharem a pasta certa */(function(){var m=location.pathname.match(/^\/@([A-Za-z0-9_.]{3,24})\/?$/);if(m)history.replaceState(null,"","/"+location.search+"#/bio/"+m[1].toLowerCase());else if(/^\/clientes\/?$/.test(location.pathname))history.replaceState(null,"","/"+location.search+"#/clientes");else if(/^\/studio\/?$/.test(location.pathname))history.replaceState(null,"","/"+location.search+"#/dia");})();</script>
+<script>/* v4.0 · o Link na bio: app.corresocial.com/@nome (o _redirects manda pra cá) vira #/bio/nome antes de qualquer arquivo carregar, pra css/ e js/ acharem a pasta certa */(function(){var m=location.pathname.match(/^\/@([A-Za-z0-9_.]{3,24})\/?$/);if(m)history.replaceState(null,"","/"+location.search+"#/bio/"+m[1].toLowerCase());else if(/^\/clientes\/?$/.test(location.pathname))history.replaceState(null,"","/"+location.search+"#/clientes");else if(/^\/studio\/?$/.test(location.pathname))history.replaceState(null,"","/"+location.search+"#/dia");else if(/^\/muralzim\/?$/.test(location.pathname))history.replaceState(null,"","/"+location.search+"#/muralzim");})();</script>
 <script>/* v5.02 · a Rede é dia e o Corre Studio é noite: a página já nasce na luz da parte da rota (sem piscar). Só quem tem login guardado vê a noite (quem não entrou cai no login, que é de dia); as Mensagens e o Rolo 360 seguem a parte de onde a pessoa veio, e a primeira página sem endereço é o Studio pra quem fixou "abrir direto aqui". O app.js confirma depois */(function(){try{var h=location.hash.replace(/^#\/?/,""),ls=localStorage,lg=false,i,k;for(i=0;i<ls.length;i++){k=ls.key(i);if(/^sb-.+-auth-token$/.test(k)){lg=true;break;}}if(!lg){k=ls.getItem("corre-demo-v2");lg=!!k&&k.indexOf('"user":{"id"')>-1;}var n=lg&&(/^(dia|caderninho|studio|horus|mural|atendente|piloto|banca|refs|houzi|marcas?|linkbio|corre|vendas|grana|estilo|planos|lojinha|monta|clientes)(\/|$)/.test(h)||(/^(msg|rolo)(\/|$)/.test(h)&&sessionStorage.getItem("corre-modo")==="studio")||(!h&&!!ls.getItem("corre-abre-studio")));if(n)document.documentElement.classList.add("escuro");}catch(e){}})();</script>
 <title>Corre</title>
 <meta name="description" content="Corre: a rede de quem faz o corre nas redes. Perfil, clientes, referências e quanto o trampo tá rendendo.">
@@ -27,7 +27,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Bagel+Fat+One&family=Big+Shoulders+Display:wght@800;900&family=Cormorant+Garamond:ital,wght@1,500;1,600&family=IBM+Plex+Mono:wght@500;600&family=Playfair+Display:ital,wght@1,800;1,900&family=Silkscreen:wght@400;700&display=swap">
 <!-- css:inicio -->
-<link rel="stylesheet" href="css/corre.min.css?v=5.08">
+<link rel="stylesheet" href="css/corre.min.css?v=5.09">
 <!-- css:fim -->
 </head>
 <body>
@@ -1114,9 +1114,9 @@
 <div id="app"><div class="boot"><span>Abrindo o Corre…</span></div></div>
 <div class="sheet" id="sheet" hidden></div>
 <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
-<script src="config.js?v=5.08"></script>
+<script src="config.js?v=5.09"></script>
 <!-- js:inicio -->
-<script src="js/corre.min.js?v=5.08"></script>
+<script src="js/corre.min.js?v=5.09"></script>
 <!-- js:fim -->
 </body>
 </html>

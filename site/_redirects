@@ -4,6 +4,8 @@
 /clientes  /index.html  200
 # v4.41 · a casa do Corre Studio: app.corresocial.com/studio (o começo do index.html troca pra #/dia)
 /studio  /index.html  200
+# v5.09 · o Muralzim, a agenda de eventos de Londrina: app.corresocial.com/muralzim (o começo do index.html troca pra #/muralzim)
+/muralzim  /index.html  200
 # v4.31 · o app da Google Play: o Android confere que o app é do site lendo o /.well-known/assetlinks.json. O arquivo
 # mora em well-known/ (sem o ponto: pasta que começa com ponto pode ficar de fora do zip ou do deploy).
 /.well-known/assetlinks.json  /well-known/assetlinks.json  200

@@ -191,6 +191,8 @@
     piloto: '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="2.2"/><path d="M3.6 10.5l6.3 1M14.1 11.5l6.3-1M12 14.2v6.3"/>',
     /* v4.41: a luminária de mesa (a porta do Corre Studio: a maleta já é do Portfólio) e o sol (O teu dia) */
     luminaria: '<path d="M3.5 20.5h9"/><path d="M8 20.5 5.6 13.6l6.2-7.5"/><circle cx="5.6" cy="13.6" r="1.2"/><path d="M12.8 10.4a4.6 4.6 0 0 1 6.5-6.5z"/><path d="M17.9 9.6l1.7 1.7M15.6 11.6l.8 2.1M19.9 7.6l2.1.8"/>',
+    /* v5.09 · o ingresso do Muralzim (o canhoto picotado) */
+    ingresso: '<path d="M3.5 7.5a1.5 1.5 0 0 1 1.5-1.5h14a1.5 1.5 0 0 1 1.5 1.5V10a2 2 0 0 0 0 4v2.5a1.5 1.5 0 0 1-1.5 1.5H5a1.5 1.5 0 0 1-1.5-1.5V14a2 2 0 0 0 0-4z"/><path d="M14.5 6v2M14.5 11v2M14.5 16v2"/>',
     sol: '<circle cx="12" cy="12" r="4"/><path d="M12 2.5v2.2M12 19.3v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6"/>'
   };
   const ico = (k, cls) => `<svg class="ic${cls ? ' ' + cls : ''}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${I[k] || ''}</svg>`;
@@ -339,6 +341,8 @@
     /* v3.60: acabou o teste grátis (o banco diz no hint; a função imagem, no código). v5.05: no Studio Houzi, a marca grátis já foi usada */
     if(/horus_assinatura/.test(m) || (e && e.code === 'horus_assinatura')) return 'O teste grátis do Hórus acabou. Assina em Planos (R$ 9,90 por mês) pra seguir caçando; os leads que você tem continuam aqui.';
     if(/assinatura_ativa/.test(m)) return 'Tem plano pago rodando. Cancela em Financeiro › Planos antes de apagar o perfil.';
+    /* v5.09: quem tem evento com ingresso vendido pela frente cancela o evento antes (o dinheiro volta pra quem comprou) */
+    if(/eventos_vendidos/.test(m)) return 'Tem evento teu com ingresso vendido pela frente. Cancela ele no Muralzim (o dinheiro volta pra quem comprou) antes de apagar a conta.';
     if(/houzi_assinatura/.test(m) || (e && e.code === 'houzi_assinatura')) return 'No Studio Houzi a primeira marca é de graça; da segunda em diante é no plano (R$ 29,90 por mês, em Planos). A tua marca grátis segue aberta pra mexer.';
     if(/limite de (\d+)/.test(m)) return `Chegou no limite (${RegExp.$1}).`;
     if(e && e.code === '23505') return 'Isso já tá aqui.';
@@ -654,8 +658,8 @@
   const HOUZI_EX = {"spec":{"v":1,"territorio":"editorial","amostra":1,"nome":"Grão Torto","tagline":"café de esquina","nicho":"cafe","cidade":"Londrina, PR","desde":"2021","pers":[0.35,0.55,0.55,0.35,0.2],"modo":"branding","campos":["cafe","rua"],"logo":{"arranjo":"wordmark","caixa":"titulo","track":0.005,"efeito":"","gesto":"troca","tagline":true,"corTexto":"texto","trocaPor":"ideia"},"simbolo":{"tipo":"ideia","icone":"xicara","ideia":"grao","estilo":"linha","seed":84829},"tipo":{"display":"lora-bolditalic","texto":"lora-regular"},"cores":{"p":"#2B2B2E","s":"#D8D4CB","a":"#B8913A","ink":"#161618","paper":"#F6F2EA","fundo":"paper","esquema":"receita","receita":"Grafite e Ouro"},"textura":"papel","aplic":["revista","sacola","cartao","instagram","copo","fachada"],"seed":273184829,"descr":"Café de bairro, torra própria"},"voz":{"conceito":"Grão Torto é o café que trata cada detalhe como página de revista.","manifesto":"Grão Torto acredita que pressa é inimiga do bom. Por isso cada café é pensado como uma página de revista: com respiro, com ritmo, com intenção. É pra quem acorda cedo que repara. Que lê a legenda inteira. Que volta pela segunda vez.","taglines":["Grão Torto. Pra ler devagar.","A pausa boa do dia, com tempo.","O detalhe é a história.","Feito com atenção em Londrina.","Menos, e melhor."],"e":["calma","precisa","elegante"],"nao_e":["barulhenta","apressada","exagerada"],"fala":["Pensado com calma, feito pra durar.","Nem tudo precisa ser pra ontem.","A pausa boa do dia, no detalhe."],"nao_fala":["IMPERDÍVEL!!!","Só hoje, corre!","O melhor do Brasil."],"bio":"café de esquina · Café em Londrina. Chama no direct.","wa":"Olá, que bom ter você aqui. Aqui é o Grão Torto. Me conta o que procura e eu te ajudo com calma.","ia":false}};
   function demoApi(){
     const KEY = 'corre-demo-v2', mem = {};
-    const T = ['corre_perfis', 'corre_portfolio', 'corre_destaques', 'corre_stories', 'corre_insta', 'corre_contas', 'corre_lancamentos', 'corre_rolo_salvos', 'corre_leads', 'corre_posts', 'corre_feed', 'corre_curtidas', 'corre_comentarios', 'corre_seguindo', 'corre_story_curtidas', 'corre_visitas', 'corre_estilo', 'corre_produtos', 'corre_mural', 'corre_mural_propostas', 'corre_vendas', 'corre_refs', 'corre_lead_fotos', 'corre_mural_chat', 'corre_verso_bloq', 'corre_votos', 'corre_salvos', 'corre_recomendacoes', 'corre_feed_vistas', 'corre_avisos_lidos', 'corre_conversas', 'corre_conversa_membros', 'corre_mensagens', 'corre_push', 'corre_push_pref', 'corre_grupos', 'corre_grupo_membros', 'corre_houzi_marcas', 'corre_correal', 'corre_correal_log', 'corre_tarefa_vez', 'corre_ig_contas', 'corre_houzi_privado', 'corre_assinaturas', 'corre_asaas_clientes', 'corre_skins', 'corre_bio_conta', 'corre_convites', 'corre_ativo_dia', 'corre_skin_pedidos', 'corre_aprovacoes', 'corre_caderno', 'corre_atendente', 'corre_atende_conversas', 'corre_piloto', 'corre_piloto_log', 'corre_entidades', 'corre_doacao_conta'];
-    const PRIV = ['corre_contas', 'corre_lancamentos', 'corre_rolo_salvos', 'corre_leads', 'corre_posts', 'corre_visitas', 'corre_estilo', 'corre_produtos', 'corre_mural', 'corre_mural_propostas', 'corre_vendas', 'corre_refs', 'corre_lead_fotos', 'corre_verso_bloq', 'corre_votos', 'corre_salvos', 'corre_feed_vistas', 'corre_avisos_lidos', 'corre_push', 'corre_push_pref', 'corre_correal', 'corre_correal_log', 'corre_tarefa_vez', 'corre_ig_contas', 'corre_houzi_privado', 'corre_assinaturas', 'corre_asaas_clientes', 'corre_skins', 'corre_bio_conta', 'corre_convites', 'corre_ativo_dia', 'corre_skin_pedidos', 'corre_aprovacoes', 'corre_caderno', 'corre_atendente', 'corre_atende_conversas', 'corre_piloto', 'corre_piloto_log'];
+    const T = ['corre_perfis', 'corre_portfolio', 'corre_destaques', 'corre_stories', 'corre_insta', 'corre_contas', 'corre_lancamentos', 'corre_rolo_salvos', 'corre_leads', 'corre_posts', 'corre_feed', 'corre_curtidas', 'corre_comentarios', 'corre_seguindo', 'corre_story_curtidas', 'corre_visitas', 'corre_estilo', 'corre_produtos', 'corre_mural', 'corre_mural_propostas', 'corre_vendas', 'corre_refs', 'corre_lead_fotos', 'corre_mural_chat', 'corre_verso_bloq', 'corre_votos', 'corre_salvos', 'corre_recomendacoes', 'corre_feed_vistas', 'corre_avisos_lidos', 'corre_conversas', 'corre_conversa_membros', 'corre_mensagens', 'corre_push', 'corre_push_pref', 'corre_grupos', 'corre_grupo_membros', 'corre_houzi_marcas', 'corre_correal', 'corre_correal_log', 'corre_tarefa_vez', 'corre_ig_contas', 'corre_houzi_privado', 'corre_assinaturas', 'corre_asaas_clientes', 'corre_skins', 'corre_bio_conta', 'corre_convites', 'corre_ativo_dia', 'corre_skin_pedidos', 'corre_aprovacoes', 'corre_caderno', 'corre_atendente', 'corre_atende_conversas', 'corre_piloto', 'corre_piloto_log', 'corre_entidades', 'corre_doacao_conta', 'corre_nascimento'];
+    const PRIV = ['corre_contas', 'corre_lancamentos', 'corre_rolo_salvos', 'corre_leads', 'corre_posts', 'corre_visitas', 'corre_estilo', 'corre_produtos', 'corre_mural', 'corre_mural_propostas', 'corre_vendas', 'corre_refs', 'corre_lead_fotos', 'corre_verso_bloq', 'corre_votos', 'corre_salvos', 'corre_feed_vistas', 'corre_avisos_lidos', 'corre_push', 'corre_push_pref', 'corre_correal', 'corre_correal_log', 'corre_tarefa_vez', 'corre_ig_contas', 'corre_houzi_privado', 'corre_assinaturas', 'corre_asaas_clientes', 'corre_skins', 'corre_bio_conta', 'corre_convites', 'corre_ativo_dia', 'corre_skin_pedidos', 'corre_aprovacoes', 'corre_caderno', 'corre_atendente', 'corre_atende_conversas', 'corre_piloto', 'corre_piloto_log', 'corre_nascimento'];
     const now = () => new Date().toISOString();
     const inH = h => new Date(Date.now() + h * 36e5).toISOString();
     /* o mesmo do corre_tarefa_valor (delta-v338 + delta-v3391: 3 tarefas por uniforme) */
@@ -815,6 +819,189 @@
       });
       p.rodou_em = now();
       return out;
+    }
+    /* v5.09 · o Muralzim do demo: as mesmas regras do delta (a lista aberta, divulgar, a conta de recebimento, a taxa de
+       10% com mínimo de R$ 2, a reserva, a portaria). Os cartazes de exemplo são de mentira, em lugares de Londrina, e a
+       "compra" sai paga quando a pessoa toca em "Já paguei" (nada é cobrado) */
+    const MZ_FUND = 'd1e9f6ac-f5d7-4723-8b02-eb0d1d7137b0', MZ_ALFA = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    const mzTaxa = p => Math.max(Math.round(Number(p) * 10 + 1e-7) / 100, 2);
+    function mzBanco(d){
+      if(d.t.corre_eventos) return d;
+      Object.assign(d.t, { corre_eventos: [], corre_evento_lotes: [], corre_organizadores: [], corre_ingresso_pedidos: [], corre_ingressos: [], corre_evento_denuncias: [] });
+      const dia = n => hojeBR(new Date(Date.now() + n * 864e5));
+      const E = (dono, titulo, categoria, classif, n, inicio, fim, local, bairro, entrada, preco, preco_obs, descricao, lotes) => {
+        const id = rid(); d.t.corre_eventos.push({ id, dono, titulo, categoria, classif, dia: dia(n), inicio, fim, local, endereco: '', bairro, cidade: 'Londrina', entrada, preco, preco_obs, descricao, link: '', organizador: '', status: 'ativo', oculto: false, mudou_em: null, criado_em: now(), exemplo: true });
+        (lotes || []).forEach((l, i) => d.t.corre_evento_lotes.push({ id: rid(), evento: id, nome: l[0], preco: l[1], qtd: l[2], meia: !!l[3], ativo: true, ordem: i + 1 }));
+      };
+      if(d.t.corre_perfis.some(p => p.id === 'ex2')){
+        d.t.corre_organizadores.push({ dono: 'ex2', tipo: 'propria', wallet: '00000000-0000-4000-8000-0000000000e2', status: 'aprovada', email: '', nome: '' }, { dono: 'ex3', tipo: 'sub', wallet: '00000000-0000-4000-8000-0000000000e3', status: 'aprovada', email: 'ex3@exemplo.com', nome: '' });
+        E('ex2', 'Rolê de Skate no Zerão', 'esporte', 'L', 2, '15:00', '19:00', 'Pista do Zerão', 'Centro', 'gratis', 0, 'Leva teu shape', 'Sessão aberta na pista, com campeonato de melhor manobra no fim da tarde. Som ligado e água de graça.');
+        E('ex3', 'Noite do Vinil na Concha', 'musica', '16', 3, '21:00', '02:00', 'Concha Acústica', 'Centro', 'corre', 0, '', 'Quatro DJs só de vinil: samba-rock, boogie e MPB dos anos 70. Feirinha de discos usados na entrada.', [['Inteira', 40, 120], ['Meia-entrada', 20, 60, true]]);
+        E('ex1', 'Feira de Quintal', 'comida', 'L', 4, '10:00', '17:00', 'Praça do Bosque', 'Centro', 'gratis', 0, 'Leva tua caneca', 'Barracas de comida caseira, doces e café de produtor da região. Roda de choro às 14h.');
+        E('ex3', 'Oficina de Lambe-lambe', 'oficina', '12', 6, '19:00', '22:00', 'Ateliê da Higienópolis', 'Higienópolis', 'corre', 0, 'Material incluso', 'Composição com tipos de madeira, tinta e tiragem. Cada pessoa leva três cartazes que imprimiu. Não precisa de experiência.', [['Vaga', 60, 15]]);
+        E('ex2', 'Curta no Ouro Verde', 'cinema', '14', 8, '20:00', '22:00', 'Cine Teatro Ouro Verde', 'Centro', 'porta', 10, 'Meia R$ 5', 'Sessão de curtas feitos em Londrina, com conversa com os diretores no fim.');
+      }
+      /* guarda já: os ids dos cartazes de exemplo têm que ser os mesmos na próxima leitura */
+      write(d);
+      return d;
+    }
+    const mzRestam = (d, lid) => { const l = d.t.corre_evento_lotes.find(x => x.id === lid); if(!l) return 0;
+      return Math.max(0, l.qtd - d.t.corre_ingressos.filter(i => i.lote === lid && (i.status === 'valido' || i.status === 'usado' || (i.status === 'pendente' && (d.t.corre_ingresso_pedidos.find(p => p.id === i.pedido) || {}).status === 'pendente'))).length); };
+    const mzPode = (d, dono) => dono === MZ_FUND || d.t.corre_organizadores.some(o => o.dono === dono && o.status === 'aprovada');
+    function mzJson(d, e, completo, eu){
+      const pf = d.t.corre_perfis.find(p => p.id === e.dono) || {};
+      const ls = e.entrada === 'corre' ? d.t.corre_evento_lotes.filter(l => l.evento === e.id && l.ativo).sort((a, b) => a.ordem - b.ordem).map(l => ({ id: l.id, nome: l.nome, preco: l.preco, taxa: mzTaxa(l.preco), meia: l.meia, restam: mzRestam(d, l.id) })) : [];
+      return { id: e.id, titulo: e.titulo, categoria: e.categoria, classif: e.classif, dia: e.dia, inicio: e.inicio, fim: e.fim || '', local: e.local, endereco: e.endereco, bairro: e.bairro, cidade: e.cidade,
+        entrada: e.entrada, preco: e.preco, preco_obs: e.preco_obs, link: e.link, organizador: e.organizador, status: e.status, oculto: e.oculto, mudou_em: e.mudou_em, descricao: completo ? e.descricao : '',
+        vende: e.entrada === 'corre' && e.status === 'ativo' && mzPode(d, e.dono), desde: ls.length ? Math.min(...ls.map(l => l.preco)) : null, varios: ls.length > 1, esgotado: e.entrada === 'corre' && ls.reduce((s, l) => s + l.restam, 0) <= 0,
+        lotes: completo ? ls : [], meu: !!eu && eu === e.dono, exemplo: !!e.exemplo, quem: { handle: pf.handle || '', nome: pf.nome || '', avatar: pf.avatar_url || '' } };
+    }
+    const mzErro = h => { const e = new Error(h); e.hint = h; e.code = 'P0001'; return e; };
+    function demoMz(d, n, a){
+      mzBanco(d);
+      const eu = uidOf(d), hj = hojeBR();
+      if(n === 'corre_eventos_lista') return d.t.corre_eventos.filter(e => e.status !== 'apagado' && !e.oculto && e.dia >= hojeBR(new Date(Date.now() - 30 * 864e5))).sort((x, y) => (x.dia + x.inicio).localeCompare(y.dia + y.inicio)).map(e => mzJson(d, e, false, eu));
+      if(n === 'corre_evento_ver'){ const e = d.t.corre_eventos.find(x => x.id === a.p_id && x.status !== 'apagado'); return e && (!e.oculto || e.dono === eu) ? mzJson(d, e, true, eu) : null; }
+      if(n === 'corre_org_meu'){ if(!eu) return null; if(eu === MZ_FUND) return { houzi: true, pode: true, status: 'aprovada', tipo: 'houzi' }; const o = d.t.corre_organizadores.find(x => x.dono === eu); return o ? { pode: o.status === 'aprovada', status: o.status, tipo: o.tipo, email: o.email, nome: o.nome, docs: o.docs || '', wallet_fim: String(o.wallet).slice(-4) } : { pode: false, status: '', tipo: '' }; }
+      if(n === 'corre_evento_salva'){
+        if(!eu) throw mzErro('login');
+        const p = a.p || {}, ent = p.entrada || 'gratis';
+        if(String(p.titulo || '').trim().length < 3) throw mzErro('titulo');
+        if(!/^\d{4}-\d{2}-\d{2}$/.test(p.dia || '')) throw mzErro('dia');
+        if(!/^\d{2}:\d{2}/.test(p.inicio || '')) throw mzErro('inicio');
+        if(String(p.local || '').trim().length < 2) throw mzErro('local');
+        if(ent === 'porta' && !(Number(p.preco) > 0)) throw mzErro('preco');
+        let e = p.id ? d.t.corre_eventos.find(x => x.id === p.id && x.dono === eu && x.status !== 'apagado') : null;
+        if(p.id && !e) throw mzErro('nao_achou');
+        const vend = e ? d.t.corre_ingressos.filter(i => i.evento === e.id && (i.status === 'valido' || i.status === 'usado')).length : 0;
+        if(e && vend && ent !== 'corre') throw mzErro('tem_vendidos');
+        if(!e && p.dia < hj) throw mzErro('dia_passou');
+        if(ent === 'corre'){
+          if(!mzPode(d, eu)) throw mzErro('org');
+          if(!(p.lotes || []).length || p.lotes.length > 8) throw mzErro('lotes');
+          if(p.lotes.some(l => String(l.nome || '').trim().length < 2)) throw mzErro('lote_nome');
+          if(p.lotes.some(l => !(Number(l.preco) >= 5 && Number(l.preco) <= 2000))) throw mzErro('lote_preco');
+          if(p.lotes.some(l => !(Number(l.qtd) >= 1 && Number(l.qtd) <= 5000))) throw mzErro('lote_qtd');
+        }
+        const muda = !!(e && vend && (e.dia !== p.dia || e.inicio !== p.inicio || e.local !== p.local));
+        const campos = { titulo: String(p.titulo).trim().slice(0, 80), categoria: p.categoria || 'musica', classif: p.classif || 'L', dia: p.dia, inicio: String(p.inicio).slice(0, 5), fim: p.fim ? String(p.fim).slice(0, 5) : '',
+          local: String(p.local).trim().slice(0, 80), endereco: p.endereco || '', bairro: p.bairro || '', cidade: p.cidade || 'Londrina', entrada: ent, preco: ent === 'porta' ? Number(p.preco) : 0, preco_obs: p.preco_obs || '',
+          descricao: String(p.descricao || '').slice(0, 1200), link: p.link || '', organizador: p.organizador || '' };
+        if(e){ Object.assign(e, campos); if(muda) e.mudou_em = now(); }
+        else { e = Object.assign({ id: rid(), dono: eu, status: 'ativo', oculto: false, mudou_em: null, criado_em: now() }, campos); d.t.corre_eventos.push(e); }
+        const vistos = [];
+        if(ent === 'corre') p.lotes.forEach((l, i) => { let x = l.id && d.t.corre_evento_lotes.find(y => y.id === l.id && y.evento === e.id);
+          if(x) Object.assign(x, { nome: l.nome, preco: Number(l.preco), qtd: Number(l.qtd), meia: !!l.meia, ativo: true, ordem: i + 1 });
+          else { x = { id: rid(), evento: e.id, nome: l.nome, preco: Number(l.preco), qtd: Number(l.qtd), meia: !!l.meia, ativo: true, ordem: i + 1 }; d.t.corre_evento_lotes.push(x); }
+          vistos.push(x.id); });
+        d.t.corre_evento_lotes.filter(l => l.evento === e.id && !vistos.includes(l.id)).forEach(l => { l.ativo = false; });
+        write(d); return { ok: true, id: e.id, mudou: muda };
+      }
+      if(n === 'corre_evento_status'){
+        const e = d.t.corre_eventos.find(x => x.id === a.p_id && x.dono === eu && x.status !== 'apagado'); if(!e) throw mzErro('nao_achou');
+        if(a.p_status !== 'ativo' && d.t.corre_ingressos.some(i => i.evento === e.id && (i.status === 'valido' || i.status === 'usado'))) throw mzErro('tem_vendidos');
+        e.status = a.p_status; write(d); return { ok: true, status: a.p_status };
+      }
+      if(n === 'corre_eventos_meus') return d.t.corre_eventos.filter(e => e.dono === eu && e.status !== 'apagado').sort((x, y) => (y.dia + y.inicio).localeCompare(x.dia + x.inicio)).map(e => {
+        const ing = d.t.corre_ingressos.filter(i => i.evento === e.id && (i.status === 'valido' || i.status === 'usado'));
+        return Object.assign(mzJson(d, e, true, eu), { vendidos: ing.length, usados: ing.filter(i => i.status === 'usado').length, receita: ing.reduce((s, i) => s + i.preco, 0), denuncias: d.t.corre_evento_denuncias.filter(x => x.evento === e.id).length }); });
+      if(n === 'corre_evento_vendas'){
+        const e = d.t.corre_eventos.find(x => x.id === a.p_evento && x.dono === eu && x.status !== 'apagado'); if(!e) return null;
+        const ing = d.t.corre_ingressos.filter(i => i.evento === e.id && ['valido', 'usado', 'estornado'].includes(i.status));
+        return { evento: mzJson(d, e, true, eu), lotes: d.t.corre_evento_lotes.filter(l => l.evento === e.id).map(l => ({ id: l.id, nome: l.nome, preco: l.preco, qtd: l.qtd, meia: l.meia, ativo: l.ativo,
+          vendidos: ing.filter(i => i.lote === l.id && i.status !== 'estornado').length, usados: ing.filter(i => i.lote === l.id && i.status === 'usado').length })),
+          ingressos: ing.map(i => ({ codigo: i.codigo, portador: i.portador, lote: i.nome_lote, meia: i.meia, status: i.status, usado_em: i.usado_em || null, quem: (d.t.corre_perfis.find(p => p.id === i.comprador) || {}).handle || '' })),
+          pendentes: d.t.corre_ingresso_pedidos.filter(p => p.evento === e.id && p.status === 'pendente').length };
+      }
+      if(n === 'corre_evento_oculta') throw mzErro('so_dono');
+      if(n === 'corre_evento_denuncia'){ if(!eu) return { ok: false, motivo: 'login' }; d.t.corre_evento_denuncias = d.t.corre_evento_denuncias.filter(x => !(x.evento === a.p_evento && x.quem === eu)); d.t.corre_evento_denuncias.push({ evento: a.p_evento, quem: eu, motivo: a.p_motivo, texto: a.p_texto || '', em: now() }); write(d); return { ok: true }; }
+      if(n === 'corre_ingressos_meus') return d.t.corre_ingresso_pedidos.filter(p => p.comprador === eu && p.status !== 'cancelado').map(p => {
+        const e = d.t.corre_eventos.find(x => x.id === p.evento) || {};
+        return Object.assign({}, p, { evento: { id: e.id, titulo: e.titulo, categoria: e.categoria, dia: e.dia, inicio: e.inicio, local: e.local, endereco: e.endereco, bairro: e.bairro, cidade: e.cidade, status: e.status, mudou_em: e.mudou_em },
+          ingressos: d.t.corre_ingressos.filter(i => i.pedido === p.id).map(i => ({ codigo: i.codigo, portador: i.portador, lote: i.nome_lote, meia: i.meia, preco: i.preco, status: i.status, usado_em: i.usado_em || null })) }); })
+        .sort((x, y) => String(y.evento.dia).localeCompare(String(x.evento.dia)));
+      if(n === 'corre_ingresso_ver'){
+        const c = String(a.p_codigo || '').toUpperCase(), i = d.t.corre_ingressos.find(x => x.codigo === c); if(!i) return null;
+        const e = d.t.corre_eventos.find(x => x.id === i.evento) || {}, meu = !!eu && eu === i.comprador, org = !!eu && eu === e.dono;
+        return { codigo: i.codigo, lote: i.nome_lote, meia: i.meia, status: i.status, usado_em: i.usado_em || null, portador: meu || org ? i.portador : String(i.portador).split(' ')[0], meu, organizador: org,
+          evento: { id: e.id, titulo: e.titulo, categoria: e.categoria, dia: e.dia, inicio: e.inicio, local: e.local, endereco: e.endereco, bairro: e.bairro, cidade: e.cidade, status: e.status, classif: e.classif } };
+      }
+      if(n === 'corre_ingresso_valida'){
+        const c = String(a.p_codigo || '').toUpperCase().replace(/[^A-Z0-9]/g, ''), i = d.t.corre_ingressos.find(x => x.codigo === c);
+        if(!/^[A-HJ-NP-Z2-9]{12}$/.test(c)) return { ok: false, motivo: 'codigo' };
+        if(!i) return { ok: false, motivo: 'nao_achou' };
+        const e = d.t.corre_eventos.find(x => x.id === i.evento) || {}; if(e.dono !== eu) return { ok: false, motivo: 'outro_evento' };
+        if(a.p_desfaz){ if(i.status === 'usado' && Date.parse(i.usado_em) > Date.now() - 15 * 60e3){ i.status = 'valido'; i.usado_em = null; write(d); return { ok: true, desfez: true, portador: i.portador }; } return { ok: false, motivo: 'desfaz' }; }
+        if(i.status === 'usado') return { ok: false, motivo: 'usado', usado_em: i.usado_em, portador: i.portador, lote: i.nome_lote };
+        if(i.status !== 'valido') return { ok: false, motivo: i.status, portador: i.portador };
+        i.status = 'usado'; i.usado_em = now(); write(d); return { ok: true, portador: i.portador, lote: i.nome_lote, meia: i.meia, evento: i.evento };
+      }
+      return undefined;
+    }
+    /* as ações da função "pagamento" do Muralzim no demo (sem Asaas: a conta aprova na hora e o "Já paguei" paga) */
+    function demoMzFn(d, u, B){
+      mzBanco(d);
+      const ac = String(B.acao || '');
+      if(ac === 'org-ver'){ if(u === MZ_FUND) return { ok: true, conta: { houzi: true, status: 'aprovada', pode: true } }; const o = d.t.corre_organizadores.find(x => x.dono === u); if(o && o.status !== 'aprovada' && B.agora){ o.status = 'aprovada'; o.docs = ''; write(d); } return { ok: true, conta: o ? { tipo: o.tipo, status: o.status, pode: o.status === 'aprovada', email: o.email, nome: o.nome, docs: o.docs || '', wallet_fim: String(o.wallet).slice(-4) } : null }; }
+      if(ac === 'org-conta' || ac === 'org-carteira'){
+        if(!/^\d{4}-\d{2}-\d{2}$/.test(String(B.termos || ''))) throw { code: 'termos', status: 400 };
+        if(ac === 'org-carteira' && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(B.wallet || ''))) throw { code: 'wallet', status: 400 };
+        if(ac === 'org-conta' && !C.docOk(B.doc)) throw { code: 'campo', campo: 'doc', status: 400 };
+        d.t.corre_organizadores = d.t.corre_organizadores.filter(o => o.dono !== u);
+        d.t.corre_organizadores.push({ dono: u, tipo: ac === 'org-conta' ? 'sub' : 'propria', wallet: ac === 'org-carteira' ? B.wallet : rid(), status: ac === 'org-conta' ? 'pendente' : 'aprovada', email: B.email || '', nome: B.nome || '', docs: ac === 'org-conta' ? 'https://www.asaas.com/onboarding/exemplo' : '' });
+        write(d); return { ok: true, status: ac === 'org-conta' ? 'pendente' : 'aprovada', email: B.email || '' };
+      }
+      if(ac === 'ingresso-comprar'){
+        if(!/^\d{4}-\d{2}-\d{2}$/.test(String(B.termos || ''))) throw { code: 'termos', status: 400 };
+        if(B.forma !== 'pix' && B.forma !== 'cartao') throw { code: 'forma', status: 400 };
+        const e = d.t.corre_eventos.find(x => x.id === B.evento && x.status === 'ativo' && x.entrada === 'corre'); if(!e) throw { code: 'evento', status: 409 };
+        if(!mzPode(d, e.dono)) throw { code: 'org', status: 409 };
+        if(!d.t.corre_asaas_clientes.some(c => c.dono === u)){
+          if(String(B.nome || '').replace(/\s+/g, ' ').trim().length < 3) throw { code: 'nome', status: 400 };
+          if(!C.docOk(B.doc)) throw { code: 'doc', status: 400 };
+          d.t.corre_asaas_clientes.push({ dono: u, cliente: 'cus_demo_' + rid().slice(0, 8), created_at: now() });
+        }
+        /* a reserva aberta da mesma pessoa nesse evento cai (como no banco) */
+        d.t.corre_ingresso_pedidos.filter(p => p.comprador === u && p.evento === e.id && p.status === 'pendente').forEach(p => { p.status = 'cancelado'; d.t.corre_ingressos.filter(i => i.pedido === p.id).forEach(i => { i.status = 'cancelado'; }); });
+        let tot = 0, valor = 0, taxa = 0; const itens = [];
+        for(const it of (B.itens || [])){
+          const l = d.t.corre_evento_lotes.find(x => x.id === it.lote && x.evento === e.id && x.ativo), q = Math.round(Number(it.qtd) || 0); if(!q) continue;
+          if(!l) throw { code: 'lote', status: 409 };
+          if(mzRestam(d, l.id) < q) throw { code: 'esgotou', lote: l.nome, status: 409 };
+          tot += q; valor += l.preco * q; taxa += mzTaxa(l.preco) * q; itens.push({ l, q });
+        }
+        if(!tot) throw { code: 'itens', status: 400 };
+        if(tot > 10) throw { code: 'qtd', status: 409 };
+        const me = d.t.corre_perfis.find(p => p.id === u) || {}, port = String(B.portador || me.nome || '').trim().slice(0, 80);
+        const p = { id: rid(), comprador: u, evento: e.id, qtd: tot, valor, taxa, total: Math.round((valor + taxa) * 100) / 100, forma: B.forma, status: 'pendente', link: '', reserva_ate: new Date(Date.now() + 20 * 60e3).toISOString(), criado_em: now(), pago_em: null };
+        d.t.corre_ingresso_pedidos.push(p);
+        itens.forEach(({ l, q }) => { for(let k = 0; k < q; k++){ let c = ''; for(let j = 0; j < 12; j++) c += MZ_ALFA[Math.floor(Math.random() * 32)];
+          d.t.corre_ingressos.push({ id: rid(), pedido: p.id, evento: e.id, lote: l.id, comprador: u, codigo: c, nome_lote: l.nome, portador: port, meia: l.meia, preco: l.preco, status: 'pendente', usado_em: null }); } });
+        write(d);
+        /* o QR de mentira (um quadradinho), pra demonstração */
+        const qr = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
+        return { ok: true, pedido: p.id, total: p.total, taxa, valor, qtd: tot, forma: p.forma, link: '', pix: p.forma === 'pix' ? { img: qr, copia: '00020126580014br.gov.bcb.pix0136demo-corre-muralzim5204000053039865802BR6304DEMO', vence: '' } : null, demo: true };
+      }
+      if(ac === 'ingresso-demo-paga'){ const p = d.t.corre_ingresso_pedidos.find(x => x.id === B.pedido && x.comprador === u && x.status === 'pendente'); if(p){ p.status = 'pago'; p.pago_em = now(); d.t.corre_ingressos.filter(i => i.pedido === p.id).forEach(i => { i.status = 'valido'; }); write(d); } return { ok: true }; }
+      if(ac === 'ingresso-confere'){ const pagos = d.t.corre_ingresso_pedidos.filter(p => p.comprador === u && p.status === 'pago' && p.pago_em && Date.now() - Date.parse(p.pago_em) < 120e3).map(p => p.id); return { ok: true, pagos, devolvidos: [] }; }
+      if(ac === 'ingresso-pix'){ const p = d.t.corre_ingresso_pedidos.find(x => x.id === B.pedido && x.comprador === u && x.status === 'pendente'); if(!p) throw { code: 'pedido', status: 404 }; return { ok: true, pix: { img: '', copia: '00020126demo', vence: '' }, total: p.total, link: '' }; }
+      if(ac === 'ingresso-desistir'){
+        const p = d.t.corre_ingresso_pedidos.find(x => x.id === B.pedido && x.comprador === u), nao = motivo => ({ ok: true, pode: false, motivo });
+        if(!p || p.status !== 'pago') return nao(p && p.status === 'estornado' ? 'devolvido' : 'sem_pagamento');
+        const ing = d.t.corre_ingressos.filter(i => i.pedido === p.id); if(ing.some(i => i.status === 'usado')) return nao('usado');
+        const e = d.t.corre_eventos.find(x => x.id === p.evento) || {}, comeca = Date.parse(e.dia + 'T' + e.inicio + ':00-03:00'), pago = Date.parse(p.pago_em);
+        const mudou = !!(e.mudou_em && Date.parse(e.mudou_em) > pago), ate = mudou ? comeca : Math.min(pago + 7 * 864e5, comeca - 48 * 36e5);
+        if(Date.now() > ate) return nao('prazo');
+        if(B.ver) return { ok: true, pode: true, valor: p.total, ate: new Date(ate).toISOString(), mudou };
+        p.status = 'estornado'; p.desistiu_em = now(); ing.forEach(i => { i.status = 'estornado'; }); write(d); return { ok: true, devolvido: p.total };
+      }
+      if(ac === 'evento-cancelar'){
+        const e = d.t.corre_eventos.find(x => x.id === B.evento && x.dono === u); if(!e) throw { code: 'evento', status: 404 };
+        e.status = 'cancelado'; let n = 0;
+        d.t.corre_ingresso_pedidos.filter(p => p.evento === e.id).forEach(p => { if(p.status === 'pago'){ p.status = 'estornado'; n++; } else if(p.status === 'pendente') p.status = 'cancelado'; d.t.corre_ingressos.filter(i => i.pedido === p.id).forEach(i => { i.status = p.status === 'estornado' ? 'estornado' : 'cancelado'; }); });
+        write(d); return { ok: true, devolvidos: n, falhas: 0, faltam: 0 };
+      }
+      throw { code: 'acao', status: 400 };
     }
     /* v4.34 · o Atendente do demo: a conversa (com a chave), o limite de 30 por conversa e o cliente na Entrada do Hórus */
     function demoAtende(b){
@@ -1833,6 +2020,19 @@
             w.saldo = fim.saldo; w.ganho = real(centDe(w.ganho) + ganhou); w.updated_at = now(); write(d);
             return Object.assign(fim, { ok: true });
           }
+          /* v5.09: a multa de quem é preso (delta-v509.sql): 0,02 por estrela, uma por prisão (60 s), até 0,30 por dia,
+             nunca mais do que tem */
+          if(n === 'corre_correal_multa'){
+            const k = Math.min(5, Math.max(1, Math.round(Number(a.p_estrelas) || 1))), mine = d.t.corre_correal_log.filter(l => l.dono === eu && /^multa:/.test(l.motivo));
+            const ult = mine.reduce((x, l) => Math.max(x, Date.parse(l.created_at)), 0);
+            if(ult && Date.now() - ult < 6e4) return { ok: false, motivo: 'ja' };
+            const ja = mine.filter(l => Date.parse(l.created_at) >= ini).reduce((x, l) => x - centDe(l.valor), 0), w = cart(), sal = centDe(w.saldo);
+            const perdeu = Math.max(0, Math.min(k * 2, 30 - ja, sal));
+            if(!perdeu) return { ok: true, perdeu: 0, saldo: real(sal), multas: real(ja), teto: .3, motivo: sal <= 0 ? 'liso' : 'teto' };
+            d.t.corre_correal_log.push({ id: rid(), dono: eu, valor: real(-perdeu), motivo: 'multa:preso', created_at: now() });
+            w.saldo = real(sal - perdeu); w.gasto = real(centDe(w.gasto) + perdeu); w.updated_at = now(); write(d);
+            return { ok: true, perdeu: real(perdeu), saldo: w.saldo, multas: real(ja + perdeu), teto: .3 };
+          }
           if(n === 'corre_correal_gasta'){
             /* tipo que o banco não conhece não tem preço: não mexe em nada (e o saldo volta 0, como lá) */
             const p = centDe(CORREAL_PRECO[a.p_tipo]); if(!p) return { ok: false, saldo: 0, preco: null };
@@ -1895,6 +2095,18 @@
         if(n === 'corre_avisos_visto'){
           if(!uidR) return null; d.t.corre_avisos_lidos = (d.t.corre_avisos_lidos || []).filter(l => l.dono !== uidR); const t = now(); d.t.corre_avisos_lidos.push({ dono: uidR, em: t }); write(d); return t;
         }
+        /* v5.09: a data de nascimento (delta-v509.sql): a data inteira só a pessoa lê; o perfil guarda só o dia e o mês */
+        if(n === 'corre_nascimento_salva'){
+          const eu = uidOf(d); if(!eu) return { ok: false, motivo: 'login' };
+          const dia = a.p_dia || null, m = a.p_mostra !== false;
+          if(dia && (dia < '1900-01-01' || dia > hojeBR())) return { ok: false, motivo: 'data' };
+          const r = d.t.corre_nascimento.find(x => x.dono === eu);
+          if(r) Object.assign(r, { nasceu: dia, mostra: m, mexido: now() }); else d.t.corre_nascimento.push({ dono: eu, nasceu: dia, mostra: m, mexido: now() });
+          const an = dia && m ? dia.slice(5) : '', p = d.t.corre_perfis.find(x => x.id === eu); if(p) p.aniver = an;
+          write(d); return { ok: true, aniver: an };
+        }
+        /* v5.09: o Muralzim (os eventos, a conta de recebimento, os ingressos e a portaria) */
+        if(/^corre_(eventos?_|org_meu$|ingressos?_)/.test(n)){ const r = demoMz(d, n, a || {}); if(r !== undefined) return r; }
         if(n === 'corre_handle_livre') return !d.t.corre_perfis.some(p => p.handle === String(a.h).toLowerCase());
         if(n === 'corre_grana_publica'){
           const p = d.t.corre_perfis.find(x => x.id === a.p);
@@ -2037,7 +2249,7 @@
           write(d); return { ok: true, st: 'fechado' };
         }
         /* ---- v4.17: o link de aprovação do Studio (as mesmas regras do delta-v417.sql) ---- */
-        if(n === 'corre_aprov_ver' || n === 'corre_aprov_responder' || n === 'corre_aprov_fim'){
+        if(n === 'corre_aprov_ver' || n === 'corre_aprov_responder' || n === 'corre_aprov_fim' || n === 'corre_aprov_ajuste'){
           const L = (d.t.corre_aprovacoes || []).find(x => x.codigo === String((a && a.p_codigo) || '').trim().toLowerCase() && x.ativo);
           if(!L) throw { message: 'link', hint: 'link' };
           const doLink = () => d.t.corre_posts.filter(p => p.dono === L.dono && p.marca_id === L.marca_id && p.data && p.data >= L.de && p.data <= L.ate && p.midia_url)
@@ -2048,15 +2260,24 @@
             const m = d.t.corre_portfolio.find(x => x.id === L.marca_id) || {}, f = d.t.corre_perfis.find(x => x.id === L.dono) || {};
             return { marca: { nome: m.marca || '', rede: m.rede || '', cor: m.cor || '', logo: m.logo_url || '' }, de: L.de, ate: L.ate, msg: L.msg || '', respondido_em: L.respondido_em,
               quem: { nome: f.nome || '', handle: f.handle || '', avatar: f.avatar_url || '' },
-              posts: doLink().map(p => ({ id: p.id, data: p.data, hora: p.hora || '', formato: p.formato || 'feed', titulo: p.titulo || '', legenda: p.legenda || '', alt: p.alt || '', midia: p.midia_url, midias: p.midias || [], aprov: p.aprov || '', nota: p.aprov_nota || '', quem: p.aprov_quem || '', em: p.aprov_em || null, publicado: p.ig_status === 'publicado' || p.status === 'postado' })) };
+              posts: doLink().map(p => ({ id: p.id, data: p.data, hora: p.hora || '', formato: p.formato || 'feed', titulo: p.titulo || '', legenda: p.legenda || '', alt: p.alt || '', midia: p.midia_url, midias: p.midias || [], aprov: p.aprov || '', nota: p.aprov_nota || '', itens: p.aprov_itens || [], quem: p.aprov_quem || '', em: p.aprov_em || null, publicado: p.ig_status === 'publicado' || p.status === 'postado' })) };
           }
           if(n === 'corre_aprov_responder'){
             const v = (a && a.p_aprov) || '', nota = String((a && a.p_nota) || '').trim().slice(0, 600);
             if(!['', 'aprovado', 'ajuste'].includes(v)) throw { message: 'aprov', hint: 'aprov' };
             if(v === 'ajuste' && !nota) throw { message: 'nota', hint: 'nota' };
             const p = doLink().find(x => x.id === (a && a.p_post)); if(!p) throw { message: 'post', hint: 'post' };
-            Object.assign(p, { aprov: v, aprov_nota: v ? nota : '', aprov_quem: v ? nome(a.p_quem) : '', aprov_em: v ? now() : null }); write(d);
+            Object.assign(p, { aprov: v, aprov_nota: v ? nota : '', aprov_itens: [], aprov_quem: v ? nome(a.p_quem) : '', aprov_em: v ? now() : null }); write(d);
             return { ok: true, aprov: v };
+          }
+          /* v5.09: o ajuste com o que mudar marcado (delta-v509.sql): os itens que valem, sem repetir, e o recado */
+          if(n === 'corre_aprov_ajuste'){
+            const ok = k => /^slide:([1-9]|1[0-9]|20)$/.test(k) || ['arte', 'texto', 'legenda', 'hashtags', 'capa', 'video', 'data', 'ordem', 'cores', 'logo', 'outro'].includes(k);
+            const its = [...new Set(((a && a.p_itens) || []).map(String).filter(ok))].slice(0, 24), nota = String((a && a.p_nota) || '').trim().slice(0, 600);
+            if(!its.length && !nota) throw { message: 'nota', hint: 'nota' };
+            const p = doLink().find(x => x.id === (a && a.p_post)); if(!p) throw { message: 'post', hint: 'post' };
+            Object.assign(p, { aprov: 'ajuste', aprov_nota: nota, aprov_itens: its, aprov_quem: nome(a.p_quem), aprov_em: now() }); write(d);
+            return { ok: true, aprov: 'ajuste', itens: its };
           }
           L.respondido_em = now(); L.quem = nome(a && a.p_quem); write(d);
           const ps = doLink();
@@ -2337,6 +2558,8 @@
           d.t.corre_skin_pedidos.push(p); d.t.corre_skins.push({ dono: u, skin: k, preco: 0, pago_real: R[k], pedido: p.id, created_at: now() });
           write(d); return { ok: true, ja: true, pedido: p.id, valor: R[k], link: '', demo: true };
         }
+        /* v5.09: o Muralzim (a conta de recebimento e o ingresso) */
+        if(/^(org-|ingresso-|evento-cancelar$)/.test(String(B.acao || ''))) return demoMzFn(d, u, B);
         if(!['studio', 'houzi', 'horus'].includes(prod)) throw { code: 'produto', status: 400 };
         let a = d.t.corre_assinaturas.find(x => x.dono === u && x.produto === prod);
         if(B.acao === 'link'){ if(!a || !a.asaas_assinatura) throw { code: 'sem_assinatura', status: 404 }; return { ok: true, link: '', vence: '', demo: true }; }

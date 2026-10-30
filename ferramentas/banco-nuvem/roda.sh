@@ -194,6 +194,12 @@ testa teste505.sql 13
 delta delta-v508.sql 'delta v5.08 ok'
 delta delta-v508.sql 'delta v5.08 ok'
 testa teste508.sql 5
+# v5.09: o link e o aniversário no perfil (a data inteira só a pessoa lê) e a multa de quem é preso no Correverso
+delta delta-v509.sql 'delta v5.09 ok'
+delta delta-v509.sql 'delta v5.09 ok'
+testa teste509.sql 14
+# v5.09: o Muralzim (eventos, vender ingresso com a conta de recebimento aprovada, a taxa, a reserva, a portaria)
+testa teste509mz.sql 11
 . "$AQUI/virada343.sh"
 if grep -q 'FALHOU\|ERROR' $D/saida; then echo "deu FALHOU ou erro (acima)"; exit 1; fi
 echo "tudo ok: $(grep -c '^ok:' $D/saida) checagens"

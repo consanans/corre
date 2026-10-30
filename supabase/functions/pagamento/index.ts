@@ -23,11 +23,18 @@
 //     "ver", só diz se pode e quanto volta. Pix e cartão o Asaas devolve sozinho; boleto, ele dá um link pra pessoa dizer
 //     a conta onde recebe. Pelo app, uma vez por plano (corre_assinaturas.desistiu_em); depois, pelo e-mail.
 //  7. v4.13: as 8 skins de Halloween em real (acao "skin-comprar", "skin-confere" e "skin-desistir"; ver o bloco das skins).
+//  8. v5.09: o Muralzim, o ingresso vendido de verdade com a divisão do Asaas (a parte do organizador cai na conta Asaas
+//     dele, a taxa do Corre fica na Houzi). acao "org-conta", "org-carteira", "org-ver", "ingresso-comprar",
+//     "ingresso-pix", "ingresso-confere", "ingresso-desistir" e "evento-cancelar" (ver o bloco do Muralzim).
 //
 // Segredos (Supabase > Edge Functions > Secrets):
 //   ASAAS_API_KEY        a chave da API do Asaas (Asaas > Integrações > Chave de API). É o único obrigatório.
 //   ASAAS_AMBIENTE       opcional: "sandbox" ou "producao". Sem ele, vale o que a chave diz ($aact_hmlg_ é o sandbox)
 //   ASAAS_WEBHOOK_TOKEN  opcional: o token do aviso. Sem ele, sai da própria chave (HMAC), sempre igual pra mesma chave
+//   ASAAS_COFRE          opcional (v5.09): a chave que cifra a chave da subconta de cada organizador. Sem ela, vale a
+//                        IG_CHAVE (a mesma do cofre do Instagram) ou uma derivada da chave de serviço. Não trocar depois:
+//                        as chaves guardadas param de abrir (o organizador segue vendendo; só a conferência da situação
+//                        da conta dele no Asaas deixa de funcionar)
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
 const CORS = {
@@ -172,6 +179,15 @@ async function aviso(req: Request, admin: any) {
       : tipo === 'PAYMENT_OVERDUE' || tipo === 'PAYMENT_DELETED' ? ['corre_skin_cai', { p_cobranca: String(pg.id) }] : null;
     if (f) { const { error } = await admin.rpc(f[0], f[1]); if (error) { console.error('aviso/skin:', error.message); return json({ erro: 'banco' }, 500); } }
   }
+  /* v5.09: o ingresso do Muralzim (externalReference "ing:pedido"): pagou, os ingressos valem (ou, se o lugar acabou
+     ou o evento foi cancelado, o dinheiro volta); o dinheiro voltou, deixam de valer; venceu sem pagar, os lugares voltam */
+  if (pg?.id && !subId && /^ing:/.test(String(pg.externalReference || ''))) {
+    try {
+      if (tipo === 'PAYMENT_CONFIRMED' || tipo === 'PAYMENT_RECEIVED') await pagouIngresso(admin, String(pg.id), Number(pg.value) || 0);
+      else if (['PAYMENT_REFUNDED', 'PAYMENT_CHARGEBACK_REQUESTED', 'PAYMENT_CHARGEBACK_DISPUTE'].includes(tipo)) await rpc(admin, 'corre_ingresso_volta', { p_cobranca: String(pg.id), p_desistiu: false });
+      else if (tipo === 'PAYMENT_OVERDUE' || tipo === 'PAYMENT_DELETED') await rpc(admin, 'corre_ingresso_cai', { p_pedido: null, p_cobranca: String(pg.id) });
+    } catch (e: any) { console.error('aviso/ingresso:', e?.banco || e?.msg || e); return json({ erro: 'banco' }, 500); }
+  }
   /* aviso de cobrança avulsa ou de assinatura que não é do Corre: anota e segue (o Asaas não pode travar a fila) */
   const { data: a } = subId ? await admin.from('corre_assinaturas').select('*').eq('asaas_assinatura', subId).maybeSingle() : { data: null };
   if (a) {
@@ -221,6 +237,11 @@ Deno.serve(async (req) => {
   const acao = String(body?.acao || ''), produto = String(body?.produto || '');
   if (acao === 'asaas') return await ligaAsaas(user, SB_URL);
   if (acao.startsWith('skin-')) { if (!env('ASAAS_API_KEY')) return json({ erro: 'config' }, 503); return await skin(acao, body, user, admin); }
+  /* v5.09: o Muralzim (a conta de recebimento de quem vende e o ingresso) */
+  if (acao.startsWith('org-') || acao.startsWith('ingresso-') || acao === 'evento-cancelar') {
+    if (!env('ASAAS_API_KEY')) return json({ erro: 'config' }, 503);
+    return await muralzim(acao, body, user, admin);
+  }
   if (!PRODUTOS[produto]) return json({ erro: 'produto' }, 400);
   if (!env('ASAAS_API_KEY')) return json({ erro: 'config' }, 503);
   const { data: a } = await admin.from('corre_assinaturas').select('*').eq('dono', user.id).eq('produto', produto).maybeSingle();
@@ -466,5 +487,279 @@ async function ligaAsaas(user: any, SB_URL: string) {
   } catch (e: any) {
     if (e && e.msg) { console.error('asaas/ligar:', e.status, e.msg); return json({ erro: 'asaas', detalhe: e.msg, ambiente: amb }, 502); }
     return json({ erro: 'rede', ambiente: amb }, 502);
+  }
+}
+
+/* ---------- v5.09 · o Muralzim: o ingresso vendido de verdade ----------
+   O Thales: "o muralzim de verdade deve cobrar através da chave do asaas de verdade". Escolheu: o Asaas divide na hora (a
+   parte do organizador cai na conta Asaas dele, pelo split com valor fixo, e a taxa do Corre fica na Houzi; a Houzi só
+   fatura a taxa) e o Corre fica com 10% pago por quem compra, no mínimo R$ 2 por ingresso (a conta mora no banco:
+   corre_ing_taxa). As taxas do Asaas saem da parte do Corre: o organizador recebe o preço do ingresso inteiro.
+     A conta de recebimento de quem vende:
+       acao "org-conta" { tipo: pf|pj, nome, email, doc, nascimento?, empresa?, celular, cep, endereco, numero,
+         complemento?, bairro, renda, termos }: abre a subconta no Asaas (POST /accounts; só conta-mãe com CNPJ abre, e a
+         Houzi tem). O Asaas manda um e-mail pra pessoa criar a senha e pede os documentos; até aprovar, não vende. A
+         chave da subconta volta só nessa hora: vai cifrada pro banco (o app nunca vê) e serve pra conferir a situação.
+       acao "org-carteira" { wallet, termos }: quem já tem conta no Asaas cola o Wallet ID (Asaas › Integrações). Vale na
+         hora; se o código não for de uma carteira de verdade, o Asaas recusa a primeira venda e a pessoa arruma.
+       acao "org-ver": a situação (de minuto em minuto no máximo, pela chave da subconta: aprovada, em análise, pendente
+         com o link pra mandar os documentos, recusada).
+     O ingresso:
+       acao "ingresso-comprar" { evento, itens: [{ lote, qtd }], forma: pix|cartao, termos, portador?, nome?, doc? }: o
+         banco reserva os lugares por 20 minutos e diz os valores; aqui a cobrança nasce com o split. No Pix, o QR e o
+         copia e cola voltam pro app (paga sem sair do Corre); no cartão, o link da fatura.
+       acao "ingresso-pix" { pedido }: o QR de novo. acao "ingresso-confere": olha as que esperam pagamento (se o aviso
+         não chegou, o ingresso chega assim).
+       acao "ingresso-desistir" { pedido, ver? }: até 7 dias da compra e até 48 horas antes do evento, o dinheiro volta
+         todo (a taxa junto). Se o evento mudou de dia, hora ou lugar depois da compra, vale até a hora dele. Ingresso
+         usado não volta.
+       acao "evento-cancelar" { evento } (o dono do evento): o evento fica cancelado e o dinheiro de cada pedido pago volta
+         (de 30 em 30: o app chama até acabar); as cobranças abertas saem do Asaas.
+   O aviso do Asaas (?asaas=aviso) libera, devolve e cai pela externalReference "ing:". Pagou e vale: o celular de quem
+   vendeu e de quem comprou apita (a função "push", corre_ingresso_alvos). */
+let COFRE: CryptoKey | null = null;
+const encT = new TextEncoder(), decT = new TextDecoder();
+const b64e = (u: Uint8Array) => { let s = ''; for (const x of u) s += String.fromCharCode(x); return btoa(s); };
+const b64d = (s: string) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
+async function cofre() {
+  if (COFRE) return COFRE;
+  const base = env('ASAAS_COFRE') || env('IG_CHAVE') || (env('SUPABASE_SERVICE_ROLE_KEY') ? 'corre-ig:' + env('SUPABASE_SERVICE_ROLE_KEY') : '');
+  if (base.length < 24) throw { msg: 'Falta a chave do cofre.' };
+  /* o rótulo deixa esta chave diferente da do cofre do Instagram, mesmo vindo da mesma base */
+  const h = await crypto.subtle.digest('SHA-256', encT.encode('corre · subconta do asaas · ' + base));
+  COFRE = await crypto.subtle.importKey('raw', h, 'AES-GCM', false, ['encrypt', 'decrypt']);
+  return COFRE;
+}
+async function cifraChave(t: string) {
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const c = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, await cofre(), encT.encode(t)));
+  return `v1.${b64e(iv)}.${b64e(c)}`;
+}
+async function abreChave(s: string) {
+  const [v, iv, c] = String(s || '').split('.');
+  if (v !== 'v1' || !iv || !c) return '';
+  try { return decT.decode(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: b64d(iv) }, await cofre(), b64d(c))); } catch (_) { return ''; }
+}
+/* o Asaas com a chave de uma subconta (a situação e os documentos dela) */
+async function asaasCom(chaveSub: string, caminho: string) {
+  const r = await fetch(ASAAS() + caminho, { headers: { access_token: chaveSub, 'User-Agent': 'Corre (app.corresocial.com)' } });
+  const o: any = await r.json().catch(() => null);
+  if (!r.ok) throw { status: r.status, msg: String(o?.errors?.[0]?.description || `Asaas respondeu ${r.status}`).slice(0, 300) };
+  return o;
+}
+const realBR = (v: number) => 'R$ ' + (Math.round(v * 100) / 100).toFixed(2).replace('.', ',');
+const EMAIL = /^[^\s@]{1,64}@[^\s@]{1,180}\.[a-z]{2,}$/i;
+/* pagou: o banco decide se vale; se o lugar acabou ou o evento foi cancelado, o dinheiro volta na hora. Valeu: o celular
+   de quem vendeu e de quem comprou apita (a função "push", sem esperar ela) */
+async function pagouIngresso(admin: any, cobranca: string, valor: number) {
+  const r = await rpc(admin, 'corre_ingresso_paga', { p_cobranca: cobranca, p_valor: valor });
+  if (r?.devolver) {
+    await asaas(`/payments/${encodeURIComponent(cobranca)}/refund`, 'POST', { description: r.motivo === 'evento' ? 'O evento foi cancelado' : 'Os ingressos esgotaram antes do pagamento' })
+      .catch((e: any) => { console.error('ingresso/devolver:', e?.status, e?.msg); throw e; });
+    await rpc(admin, 'corre_ingresso_volta', { p_cobranca: cobranca, p_desistiu: false });
+    return { devolvido: true };
+  }
+  if (r?.ok && !r.ja) avisaCelular();
+  return r;
+}
+function avisaCelular() {
+  const u = env('SUPABASE_URL'), k = env('SUPABASE_ANON_KEY');
+  if (!u) return;
+  fetch(u.replace(/\/+$/, '') + '/functions/v1/push', {
+    method: 'POST', headers: { 'Content-Type': 'application/json', ...(k ? { apikey: k, Authorization: 'Bearer ' + k } : {}) },
+    body: JSON.stringify({ acao: 'pedidos' }), signal: AbortSignal.timeout(5000),
+  }).catch(() => null);
+}
+const SIT: Record<string, string> = { APPROVED: 'aprovada', REJECTED: 'recusada', AWAITING_APPROVAL: 'analise', PENDING: 'pendente' };
+
+async function muralzim(acao: string, body: any, user: any, admin: any) {
+  try {
+    /* ---- a conta de recebimento ---- */
+    if (acao === 'org-ver') {
+      if (user.id === FUNDADOR) return json({ ok: true, conta: { houzi: true, status: 'aprovada', pode: true } });
+      const o = await rpc(admin, 'corre_org_conta', { p_dono: user.id });
+      if (!o) return json({ ok: true, conta: null });
+      let status = String(o.status || 'pendente'), docs = String(o.docs || '');
+      const velho = !o.conferido_em || Date.now() - Date.parse(o.conferido_em) > 60e3;
+      if (o.tipo === 'sub' && status !== 'aprovada' && o.chave && (velho || body?.agora)) {
+        const k = await abreChave(o.chave);
+        if (k) {
+          const st = await asaasCom(k, '/myAccount/status').catch(() => null);
+          if (st?.general) {
+            status = SIT[String(st.general)] || 'pendente';
+            if (status === 'pendente') {
+              const d = await asaasCom(k, '/myAccount/documents').catch(() => null);
+              const x = (d?.data || []).find((y: any) => y?.onboardingUrl && ['NOT_SENT', 'REJECTED', 'PENDING'].includes(String(y.status)));
+              docs = x ? String(x.onboardingUrl) : docs;
+            } else docs = '';
+            await rpc(admin, 'corre_org_situacao', { p_dono: user.id, p_status: status, p_docs: docs });
+          }
+        }
+      }
+      return json({ ok: true, conta: { tipo: o.tipo, status, pode: status === 'aprovada', email: o.email, nome: o.nome, docs, wallet_fim: String(o.wallet || '').slice(-4) } });
+    }
+
+    if (acao === 'org-carteira') {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(String(body?.termos || ''))) return json({ erro: 'termos' }, 400);
+      const w = String(body?.wallet || '').trim().toLowerCase();
+      if (!UUID.test(w)) return json({ erro: 'wallet' }, 400);
+      /* a carteira da própria Houzi não vale (o Asaas não divide pra quem cobra) */
+      const minha = await asaas('/wallets').catch(() => null);
+      if ((minha?.data || []).some((x: any) => String(x?.id || '').toLowerCase() === w)) return json({ erro: 'wallet_houzi' }, 400);
+      const ja = await rpc(admin, 'corre_org_conta', { p_dono: user.id });
+      if (ja?.tipo === 'sub' && ja.status !== 'recusada') return json({ erro: 'ja_tem' }, 409);
+      await rpc(admin, 'corre_org_salva', { p_dono: user.id, p: { tipo: 'propria', wallet: w, status: 'aprovada', email: user.email || '', termos: String(body.termos) } });
+      return json({ ok: true, status: 'aprovada' });
+    }
+
+    if (acao === 'org-conta') {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(String(body?.termos || ''))) return json({ erro: 'termos' }, 400);
+      const ja = await rpc(admin, 'corre_org_conta', { p_dono: user.id });
+      if (ja && ja.status !== 'recusada') return json({ ok: true, ja: true, status: ja.status });
+      const tipo = String(body?.tipo || ''), nome = String(body?.nome || '').replace(/\s+/g, ' ').trim().slice(0, 100);
+      const email = String(body?.email || '').trim().toLowerCase(), doc = docOk(body?.doc);
+      const cel = String(body?.celular || '').replace(/\D/g, '').replace(/^55(?=\d{10,11}$)/, ''), cep = String(body?.cep || '').replace(/\D/g, '');
+      const end = String(body?.endereco || '').trim().slice(0, 120), num = String(body?.numero || '').trim().slice(0, 12);
+      const bairro = String(body?.bairro || '').trim().slice(0, 60), comp = String(body?.complemento || '').trim().slice(0, 60);
+      const renda = Math.round(Number(String(body?.renda || '').replace(/\./g, '').replace(',', '.')) || 0);
+      const ruim = (campo: string) => json({ erro: 'campo', campo }, 400);
+      if (tipo !== 'pf' && tipo !== 'pj') return ruim('tipo');
+      if (nome.length < 3) return ruim('nome');
+      if (!EMAIL.test(email)) return ruim('email');
+      if (!doc || (tipo === 'pf' ? doc.length !== 11 : doc.length !== 14)) return ruim('doc');
+      let nasc = '';
+      if (tipo === 'pf') {
+        nasc = String(body?.nascimento || '');
+        const n = Date.parse(nasc + 'T12:00:00Z');
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(nasc) || !n || n > Date.now() - 18 * 365.25 * 864e5 || n < Date.parse('1900-01-01')) return ruim('nascimento');
+      }
+      const empresa = String(body?.empresa || '');
+      if (tipo === 'pj' && !['MEI', 'LIMITED', 'INDIVIDUAL', 'ASSOCIATION'].includes(empresa)) return ruim('empresa');
+      if (!/^\d{10,11}$/.test(cel)) return ruim('celular');
+      if (!/^\d{8}$/.test(cep)) return ruim('cep');
+      if (end.length < 3) return ruim('endereco');
+      if (!num) return ruim('numero');
+      if (bairro.length < 2) return ruim('bairro');
+      if (!(renda > 0)) return ruim('renda');
+      const c = await asaas('/accounts', 'POST', {
+        name: nome, email, cpfCnpj: doc, ...(tipo === 'pf' ? { birthDate: nasc } : { companyType: empresa }), mobilePhone: cel,
+        incomeValue: renda, address: end, addressNumber: num, ...(comp ? { complement: comp } : {}), province: bairro, postalCode: cep,
+      });
+      const wallet = String(c?.walletId || ''), conta = String(c?.id || ''), apiKey = String(c?.apiKey || '');
+      if (!UUID.test(wallet)) return json({ erro: 'asaas', detalhe: 'O Asaas não devolveu a carteira da conta.' }, 502);
+      await rpc(admin, 'corre_org_salva', { p_dono: user.id, p: { tipo: 'sub', asaas_id: conta, wallet, status: 'pendente', nome, email, chave: apiKey ? await cifraChave(apiKey) : '', termos: String(body.termos) } });
+      return json({ ok: true, status: 'pendente', email });
+    }
+
+    /* ---- o ingresso ---- */
+    if (acao === 'ingresso-comprar') {
+      const termos = String(body?.termos || ''), forma = String(body?.forma || ''), ev = String(body?.evento || '');
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(termos)) return json({ erro: 'termos' }, 400);
+      if (forma !== 'pix' && forma !== 'cartao') return json({ erro: 'forma' }, 400);
+      if (!UUID.test(ev)) return json({ erro: 'evento' }, 400);
+      const itens = (Array.isArray(body?.itens) ? body.itens : []).slice(0, 8).map((x: any) => ({ lote: String(x?.lote || ''), qtd: Math.round(Number(x?.qtd) || 0) }))
+        .filter((x: any) => UUID.test(x.lote) && x.qtd > 0);
+      if (!itens.length) return json({ erro: 'itens' }, 400);
+      /* o cliente no Asaas antes da reserva (a primeira vez pede nome e CPF): sem ele, nada fica preso */
+      const cliente = await clienteDe(admin, user, body);
+      if (cliente instanceof Response) return cliente;
+      const r = await rpc(admin, 'corre_ingresso_reserva', { p_comprador: user.id, p_evento: ev, p_itens: itens, p_forma: forma, p_termos: termos, p_portador: String(body?.portador || '').slice(0, 80) });
+      /* as reservas que caíram (venceram, ou a pessoa trocou a compra): a cobrança delas sai do Asaas */
+      for (const v of (r?.velhos || [])) await asaas(`/payments/${encodeURIComponent(v.cobranca)}`, 'DELETE').catch(() => null);
+      if (!r?.ok) return json({ erro: r?.motivo || 'reserva', lote: r?.lote || '' }, 409);
+      const total = Number(r.total), taxa = Number(r.taxa), valor = Number(r.valor), [a, m, d] = String(r.dia).split('-');
+      let pg: any;
+      try {
+        pg = await asaas('/payments', 'POST', {
+          customer: cliente, billingType: forma === 'pix' ? 'PIX' : 'CREDIT_CARD', value: total, dueDate: hojeBR(),
+          description: `Corre · Muralzim: ${r.qtd} ${r.qtd === 1 ? 'ingresso' : 'ingressos'} pra ${r.titulo} (${d}/${m}/${a} às ${r.inicio}, ${r.local}). Taxa de serviço de ${realBR(taxa)} inclusa.`.slice(0, 480),
+          externalReference: `ing:${r.pedido}`,
+          ...(r.wallet ? { split: [{ walletId: String(r.wallet), fixedValue: valor }] } : {}),
+        });
+      } catch (e: any) {
+        await rpc(admin, 'corre_ingresso_cai', { p_pedido: r.pedido, p_cobranca: null }).catch(() => null);
+        /* a carteira do organizador que o Asaas não conhece: quem compra fica sabendo que é do lado de lá */
+        if (e?.msg && /wallet|carteira/i.test(e.msg)) return json({ erro: 'org' }, 409);
+        throw e;
+      }
+      const cob = String(pg?.id || ''), link = String(pg?.invoiceUrl || '');
+      if (!cob) { await rpc(admin, 'corre_ingresso_cai', { p_pedido: r.pedido, p_cobranca: null }).catch(() => null); return json({ erro: 'asaas', detalhe: 'O Asaas não devolveu a cobrança.' }, 502); }
+      const g = await admin.rpc('corre_ingresso_cobranca', { p_pedido: r.pedido, p_cobranca: cob, p_link: link });
+      if (g.error || !g.data?.ok) {
+        /* o banco não guardou: a cobrança que acabou de nascer sai do Asaas e os lugares voltam */
+        console.error('ingresso/banco:', g.error?.message || 'reserva perdida');
+        await asaas(`/payments/${encodeURIComponent(cob)}`, 'DELETE').catch(() => null);
+        await rpc(admin, 'corre_ingresso_cai', { p_pedido: r.pedido, p_cobranca: null }).catch(() => null);
+        return json({ erro: 'banco' }, 500);
+      }
+      let pix: any = null;
+      if (forma === 'pix') {
+        const q = await asaas(`/payments/${encodeURIComponent(cob)}/pixQrCode`).catch(() => null);
+        if (q?.payload) pix = { img: String(q.encodedImage || ''), copia: String(q.payload), vence: String(q.expirationDate || '') };
+      }
+      return json({ ok: true, pedido: r.pedido, total, taxa, valor, qtd: r.qtd, forma, link, pix, reserva: new Date(Date.now() + 20 * 60e3).toISOString() });
+    }
+
+    if (acao === 'ingresso-pix') {
+      const id = String(body?.pedido || '');
+      if (!UUID.test(id)) return json({ erro: 'pedido' }, 400);
+      const p = await rpc(admin, 'corre_ingresso_pedido', { p_comprador: user.id, p_pedido: id });
+      if (!p || p.status !== 'pendente' || !p.asaas_cobranca) return json({ erro: 'pedido' }, 404);
+      const q = await asaas(`/payments/${encodeURIComponent(p.asaas_cobranca)}/pixQrCode`);
+      return json({ ok: true, pix: { img: String(q?.encodedImage || ''), copia: String(q?.payload || ''), vence: String(q?.expirationDate || '') }, total: Number(p.total), link: p.link || '' });
+    }
+
+    if (acao === 'ingresso-confere') {
+      const L = (await rpc(admin, 'corre_ingresso_abertos', { p_comprador: user.id })) || [], pagos: string[] = [], devolvidos: string[] = [];
+      for (const p of L.slice(0, 10)) {
+        const c = await asaas(`/payments/${encodeURIComponent(p.cobranca)}`).catch(() => null);
+        if (!c) continue;
+        if (PAGO.includes(c.status)) { const r = await pagouIngresso(admin, String(p.cobranca), Number(c.value) || 0); if (r?.devolvido) devolvidos.push(p.id); else if (r?.ok) pagos.push(p.id); }
+        else if (DEVOLVIDO.includes(c.status)) await rpc(admin, 'corre_ingresso_volta', { p_cobranca: String(p.cobranca), p_desistiu: false });
+        else if (c.deleted || c.status === 'OVERDUE') await rpc(admin, 'corre_ingresso_cai', { p_pedido: null, p_cobranca: String(p.cobranca) });
+      }
+      return json({ ok: true, pagos, devolvidos });
+    }
+
+    if (acao === 'ingresso-desistir') {
+      const nao = (motivo: string) => json({ ok: true, pode: false, motivo });
+      const id = String(body?.pedido || '');
+      if (!UUID.test(id)) return json({ erro: 'pedido' }, 400);
+      const p = await rpc(admin, 'corre_ingresso_pedido', { p_comprador: user.id, p_pedido: id });
+      if (!p || p.status !== 'pago') return nao(p?.status === 'estornado' ? 'devolvido' : 'sem_pagamento');
+      if (Number(p.usados) > 0) return nao('usado');
+      const comeca = Date.parse(p.comeca), pago = Date.parse(p.pago_em || p.criado_em);
+      const mudou = !!(p.mudou_em && Date.parse(p.mudou_em) > pago);
+      /* a regra: 7 dias da compra e até 48 horas antes; o evento que mudou depois da compra, até a hora dele */
+      const ate = mudou ? comeca : Math.min(pago + PRAZO_DESISTE * 864e5, comeca - 48 * 3600e3);
+      if (Date.now() > ate) return nao('prazo');
+      if (body?.ver) return json({ ok: true, pode: true, valor: Number(p.total), ate: new Date(ate).toISOString(), mudou });
+      /* primeiro o dinheiro (o Asaas desfaz a divisão junto); se ele recusar, nada muda */
+      await asaas(`/payments/${encodeURIComponent(p.asaas_cobranca)}/refund`, 'POST', { description: mudou ? 'O evento mudou depois da compra: devolução' : 'Desistência da compra (CDC, art. 49)' });
+      await rpc(admin, 'corre_ingresso_volta', { p_cobranca: String(p.asaas_cobranca), p_desistiu: true });
+      return json({ ok: true, devolvido: Number(p.total) });
+    }
+
+    if (acao === 'evento-cancelar') {
+      const id = String(body?.evento || '');
+      if (!UUID.test(id)) return json({ erro: 'evento' }, 400);
+      const r = await rpc(admin, 'corre_evento_cancela', { p_dono: user.id, p_evento: id });
+      if (!r?.ok) return json({ erro: 'evento' }, 404);
+      for (const a of (r.abertos || [])) await asaas(`/payments/${encodeURIComponent(a.cobranca)}`, 'DELETE').catch(() => null);
+      let devolvidos = 0, falhas = 0, detalhe = '';
+      for (const p of (r.pagos || [])) {
+        try {
+          await asaas(`/payments/${encodeURIComponent(p.cobranca)}/refund`, 'POST', { description: `O evento ${String(r.titulo || '').slice(0, 60)} foi cancelado` });
+          await rpc(admin, 'corre_ingresso_volta', { p_cobranca: String(p.cobranca), p_desistiu: false });
+          devolvidos++;
+        } catch (e: any) { falhas++; detalhe = e?.msg || detalhe; console.error('cancelar/devolver:', e?.status, e?.msg || e?.banco); }
+      }
+      return json({ ok: true, devolvidos, falhas, detalhe, faltam: Math.max(0, Number(r.faltam || 0) - devolvidos) });
+    }
+    return json({ erro: 'acao' }, 400);
+  } catch (e: any) {
+    if (e && e.banco) { console.error('muralzim/banco:', e.banco); return json({ erro: 'banco' }, 503); }
+    if (e && e.msg) { console.error('asaas/muralzim:', e.status, e.msg); return json({ erro: 'asaas', detalhe: e.msg }, 502); }
+    console.error('muralzim:', e?.message || e); return json({ erro: 'rede' }, 502);
   }
 }

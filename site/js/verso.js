@@ -4359,7 +4359,9 @@
     const L = quemFaz(q), n = lojasDaCidade().length;
     if(!n) return '<p class="fine">Nenhuma loja aberta na cidade ainda. A tua pode ser a primeira: toca na porta da tua casa.</p>';
     if(!L.length) return `<p class="fine">Ninguém com "${esc(q)}" por aqui ainda. Chama quem faz pro Corre: cada perfil novo ganha casa e loja na cidade.</p>`;
-    return `<div class="cvr-lojas">${L.slice(0, 18).map(o => `<button type="button" class="cvr-loja-b" data-act="cvr-ir-loja" data-id="${esc(o.h.id)}" style="--lj:${o.lj.c};--ljt:${o.lj.tx}"><b>${esc(o.lj.t)}</b><small>@${esc(o.h.handle)} · ${esc(bairroDe(o.h))}</small></button>`).join('')}</div>${L.length > 18 ? `<p class="fine">E mais ${L.length - 18}. Escreve mais pra achar.</p>` : ''}`;
+    /* v5.09 (o Thales: "em dois cliques a pessoa tem acesso ao orçamento com a pessoa"): cada loja tem dois caminhos, ir
+       até a porta andando pela cidade ou "Ver a loja" na hora (o link na bio dela, com o Pedir orçamento, por cima da cidade) */
+    return `<div class="cvr-lojas">${L.slice(0, 18).map(o => `<div class="cvr-loja-l" style="--lj:${o.lj.c};--ljt:${o.lj.tx}"><button type="button" class="cvr-loja-b" data-act="cvr-ir-loja" data-id="${esc(o.h.id)}" title="Ir até a porta"><b>${esc(o.lj.t)}</b><small>@${esc(o.h.handle)} · ${esc(bairroDe(o.h))}</small></button><button type="button" class="btn sm cvr-loja-v" data-act="cvr-loja-ver" data-h="${esc(o.h.handle)}" data-cor="${esc(o.lj.c)}">Ver a loja</button></div>`).join('')}</div>${L.length > 18 ? `<p class="fine">E mais ${L.length - 18}. Escreve mais pra achar.</p>` : ''}`;
   }
 
   Object.assign(C.acts, {
@@ -4453,21 +4455,29 @@
          dos outros (bolhas de cor com contorno preto, o brilho e o escorrido), o tag riscado, as latas no chão e a placa
          SPRAY em cima. Cada muro tem as cores dele (d.sd); nada de verde */
       case 'muroSpray': {
-        const w = d.w, h = 44, x0 = d.x - w / 2, y = d.y, q = rng(d.sd + 7), CORES = [ROSA, AMARELO, LARANJA, AZUL, LILAS, '#E2563A', '#38E1FF'];
+        const w = d.w, h = 44, x0 = d.x - w / 2, y = d.y, q = rng(d.sd + 7);
         ctx.fillStyle = 'rgba(15,18,24,.22)'; ctx.fillRect(x0 - 3, y - 2, w + 6, 6);
         ctx.fillStyle = '#BDB4A6'; ctx.fillRect(x0, y - h, w, h);
         ctx.fillStyle = 'rgba(80,70,60,.2)'; for(let k = 0; k < 5; k++){ const yy = y - h + k * 9; ctx.fillRect(x0, yy, w, u); for(let xx = x0 + (k % 2 ? 10 : 0); xx < x0 + w; xx += 20) ctx.fillRect(xx, yy, u, 9); }
         for(let px = x0; px <= x0 + w + 1; px += w / 3){ ctx.fillStyle = '#A9A093'; ctx.fillRect(px - 4, y - h - 2, 8, h + 2); }
         ctx.fillStyle = '#8E877C'; ctx.fillRect(x0 - 4, y - h - 6, w + 8, 5);
-        for(let i = 0; i < 3; i++){
-          const cx = x0 + w * (i + .5) / 3 + (q() - .5) * 14, cy = y - h / 2 + (q() - .5) * 6, c1 = CORES[Math.floor(q() * CORES.length)], n = 3 + Math.floor(q() * 3), pw = 22 + q() * 12;
-          const bs = []; for(let k = 0; k < n; k++) bs.push([cx - pw / 2 + (k + .5) * pw / n, cy + (q() - .5) * 6, pw / n * .75 + 2, 7 + q() * 4]);
-          ctx.fillStyle = INK; bs.forEach(([bx, by, rx, ry]) => { ctx.beginPath(); ctx.ellipse(bx, by, rx + 1.6, ry + 1.6, 0, 0, Math.PI * 2); ctx.fill(); });
-          ctx.fillStyle = c1; bs.forEach(([bx, by, rx, ry]) => { ctx.beginPath(); ctx.ellipse(bx, by, rx, ry, 0, 0, Math.PI * 2); ctx.fill(); });
-          ctx.fillStyle = 'rgba(255,255,255,.7)'; bs.forEach(([bx, by, rx, ry]) => ctx.fillRect(bx - rx * .5, by - ry * .6, Math.max(u, 2), Math.max(u, 2)));
-          ctx.fillStyle = c1; for(let k = 0; k < 3; k++){ const dx = cx - pw / 2 + q() * pw; ctx.fillRect(dx, cy + 8, Math.max(u, 1.2), 4 + q() * 9); }
+        /* v5.09 (o Thales mandou a foto da tag dele: "colocar esse graffiti nos muros do jogo de graffiti invés daqueles
+           coloridos sem sentido"): no lugar das três bolhas coloridas, a tag dele, uma em cada vão entre os pilares, como
+           tag de verdade na rua: a do meio maior e firme, as dos lados um pouco tortas e uma mais apagada (a mais velha).
+           A imagem é a foto recortada (img/tag-muro.png, a tinta preta com o fundo tirado); enquanto não carrega, o muro
+           fica liso */
+        const tg = tagMuro();
+        if(tg){
+          const ar = tg.naturalWidth / tg.naturalHeight, velha = Math.floor(q() * 3);
+          ctx.save(); ctx.imageSmoothingEnabled = true;
+          for(let i = 0; i < 3; i++){
+            const meio = i === 1, th = (meio ? h - 9 : h - 15) - q() * 3, tw = Math.min(th * ar, w / 3 - 8), hh = tw / ar;
+            const cx = x0 + w * (i + .5) / 3 + (q() - .5) * 6, cy = y - h / 2 + (q() - .5) * 4 + (meio ? 0 : 2);
+            ctx.save(); ctx.translate(cx, cy); ctx.rotate((q() - .5) * (meio ? .03 : .09));
+            ctx.globalAlpha = i === velha && !meio ? .5 : .92; ctx.drawImage(tg, -tw / 2, -hh / 2, tw, hh); ctx.restore();
+          }
+          ctx.restore();
         }
-        ctx.strokeStyle = INK; ctx.lineWidth = Math.max(1.2, 1 / V.k); ctx.beginPath(); { const tx = x0 + 8 + q() * (w - 50), ty = y - 8; ctx.moveTo(tx, ty); for(let k = 1; k < 7; k++) ctx.lineTo(tx + k * 5, ty - (k % 2 ? 7 : 1) - q() * 2); } ctx.stroke();
         [[w - 26, ROSA], [w - 19, AMARELO], [w - 12, AZUL]].forEach(([dx, c], k) => { const lx = x0 + dx, ly = y + 6 + (k % 2) * 3; ctx.beginPath(); ctx.rect(lx, ly - 9, 5, 9); forma(ctx, c, 1); ctx.fillStyle = INK; ctx.fillRect(lx + 1, ly - 11, 3, 2); });
         ctx.fillStyle = INK; ctx.fillRect(x0 + 10, y - h - 20, 3, 15);
         pixPlaca(ctx, 'SPRAY', x0 + 11, y - h - 24, { fundo: ROSA, cor: INK });
@@ -4617,6 +4627,12 @@
   /* v3.57 · os símbolos do Londrina Red Sharks (o time de beisebol da ACEL), que o Thales mandou: o escudo (o tubarão
      sobre o escudo, vai pintado no meio do campo) e o monograma RS (vai no uniforme). Os arquivos estão em site/img, com
      o fundo tirado; enquanto não carregam, devolve null e quem desenha pula */
+  /* v5.09 · a tag do Thales, pros muros de grafite (a foto recortada, só a tinta) */
+  let TAG = null;
+  function tagMuro(){
+    if(!TAG){ TAG = new Image(); TAG.decoding = 'async'; TAG.src = 'img/tag-muro.png?v=5.09'; }
+    return TAG.complete && TAG.naturalWidth ? TAG : null;
+  }
   const SHARKS = Object.create(null);
   function logoSharks(k){
     k = k === 'rs' ? 'rs' : 'escudo'; let im = SHARKS[k];
@@ -5627,7 +5643,7 @@
      - a chuva: a cada 2 horas o céu sorteia (o mesmo sorteio em todo aparelho) sol, garoa ou chuva, com mais água de
        outubro a março, como em Londrina. Entra e sai devagar (15 minutos), escurece um pouco e tem o som;
      - os eventos: o Som na Concha (12h30 e 20h, meia hora: luz de palco, plateia, o MC Garoa e a música "Concha ao Vivo")
-       e os Fogos no Igapó (21h, 5 minutos). A faixa AO VIVO no alto leva até lá; a Agenda da cidade fica no Mapa.
+       e os Fogos no Igapó (21h, 5 minutos). A faixa AO VIVO no alto leva até lá; a Agenda da cidade fica no Mapa (v5.09: o botão virou Muralzim).
      &hora=21.5 e &clima=chuva no endereço forçam a hora e o tempo (C.verso.hora e C.verso.clima, pros testes) */
   let horaForca = (() => { const m = /[?&]hora=(\d{1,2}(?:\.\d+)?)/.exec(location.search); return m ? Math.min(23.99, +m[1]) : null; })();
   let climaForca = (() => { const m = /[?&]clima=(sol|garoa|chuva)\b/.exec(location.search); return m ? m[1] : null; })();
@@ -5792,7 +5808,9 @@
   }
   function agendaSheet(){
     const h = horaBR(), ag = eventoAgora(h), L = EVENTOS.flatMap(e => e.ini.map(i => ({ e, i }))).sort((a, b) => a.i - b.i);
+    /* (v5.09: o botão do Mapa virou o Muralzim, os eventos de verdade; esta é a agenda do jogo, que a faixa AO VIVO abre) */
     C.sheet(`<div class="form cvr-agenda"><div class="sheet-head"><h2>Agenda da cidade</h2><button type="button" class="cbtn plain" data-close aria-label="Fechar">${ico('x')}</button></div>
+      <p class="cvr-mz-k">Os eventos de verdade de Londrina, com ingresso, moram no <button type="button" class="cvr-mz-l" data-act="cvr-muralzim">Muralzim</button>.</p>
       <p class="fine">Todo dia, pelo relógio de Brasília. Agora: <b>${hhmm(h)}</b>, ${esc(ceuNome())}.</p>
       <ul class="cvr-ag">${L.map(({ e, i }) => { const vivo = !!ag && ag.e === e && ag.i === i, foi = !vivo && h >= i + e.dur, em = ((i - h) % 24 + 24) % 24;
         return `<li class="${vivo ? 'vivo' : foi ? 'foi' : ''}"><b class="cvr-ag-h num">${hhmm(i)}</b><span class="cvr-ag-t"><b>${esc(e.nome)}</b><small>${esc(e.diz)}</small></span>
@@ -5960,7 +5978,7 @@
     C.sheet(`<div class="form cvr-mapa"><div class="sheet-head"><h2>Mapa</h2><button type="button" class="cbtn plain" data-close aria-label="Fechar">${ico('x')}</button></div>
       <canvas id="cvr-mapa-cv" width="${mw}" height="${mh}" aria-label="Mapa da cidade. Toca num lugar pra ir direto pra lá."></canvas>
       <p class="fine">Londrina com o norte pra cima: toca no mapa pra ir direto pra lá, ou escolhe um lugar (em ordem de A a Z). Você é o quadradinho rosa; os brancos são quem tá na cidade.</p>
-      <button type="button" class="btn sm cvr-ag-bt" data-act="cvr-agenda">${ico('cal')} Agenda da cidade${eventoAgora() ? ` <b class="cvr-ag-vivo">AO VIVO: ${esc(eventoAgora().e.nome)}</b>` : ''}</button>
+      <button type="button" class="btn sm cvr-ag-bt" data-act="cvr-muralzim">${ico('ingresso')} Muralzim<small class="cvr-ag-s">eventos e ingressos</small></button>${eventoAgora() ? `<button type="button" class="btn sm cvr-ag-bt" data-act="cvr-agenda"><b class="cvr-ag-vivo">AO VIVO: ${esc(eventoAgora().e.nome)}</b></button>` : ''}
       <div class="cvr-qf-w"><p class="lbl-s">Quem faz na cidade: toca na loja e vai até a porta</p>
         <input type="search" class="cvr-qf" id="cvr-qf" placeholder="bolo, tatuagem, design, DJ…" aria-label="Procurar quem faz na cidade" autocomplete="off" enterkeyhint="search">
         <div id="cvr-qf-l" aria-live="polite">${quemFazHTML('')}</div></div>
@@ -6600,6 +6618,21 @@
     const d = portaCivica('delegacia'), p = d && pertoLivre(d.x, d.y + 26);
     if(p) teleporta(p.x, p.y, true);
     C.toast(`Perdeu! A polícia te levou pra Delegacia. ${missao ? 'A missão ficou pelo caminho.' : 'Liberado, mas fica esperto.'}`, 4200);
+    multaPreso(tinha);
+  }
+  /* v5.09 (o Thales: "quando vai preso perde correal"): a prisão cobra a multa no banco (corre_correal_multa, delta-v509):
+     0,02 por estrela, uma por prisão, até 0,30 por dia, e nunca mais do que tem na carteira. O carimbo PRESO! diz quanto
+     foi. Sem o delta (ou sem login), a prisão segue sem multa, calada */
+  async function multaPreso(estrelas){
+    let r = null; try{ r = await C.api.rpc('corre_correal_multa', { p_estrelas: Math.max(1, Math.min(5, estrelas || 1)) }); }catch(e){ return; }
+    if(!r || !r.ok) return;
+    C.correalLe({ saldo: r.saldo }); correalUI(true);
+    const el = C.$('cvr-preso');
+    if(+r.perdeu > 0){
+      if(el && !el.hidden){ const sp = document.createElement('small'); sp.className = 'cvr-preso-multa'; sp.textContent = `multa: −${C.correalTxt(r.perdeu)}`; el.appendChild(sp); }
+      setTimeout(() => C.toast(`Multa da prisão: −${C.correalTxt(r.perdeu)}. Na carteira: ${C.correalTxt(r.saldo)}.`, 3800), 1400);
+    }
+    else if(r.motivo === 'liso') setTimeout(() => C.toast('Tava liso: a multa da prisão ficou pra lá.', 3000), 1400);
   }
   /* v4.15 (o Thales: "quero que fica aparecendo na tela as 5 estrelas quando bate muito nos NPC; até ser preso, as
      estrelas vão diminuindo"): as 5 estrelas ficam no canto de cima à direita, grandes, do primeiro empurrão até ser
@@ -7683,6 +7716,8 @@
     if(tipo === 'skin'){ const sk = LOJA[a]; return sk ? `Ateliê: ${sk[1]}` : 'Ateliê'; }
     /* v4.12: a moeda que caiu na rua; e o convite da 4.0, que também caía no "IA" */
     if(tipo === 'achado') return 'Achado na rua';
+    /* v5.09: a multa de quem foi preso na cidade */
+    if(tipo === 'multa') return 'Multa: foi preso';
     /* v4.29: o trampo de verdade, feito nas ferramentas */
     if(tipo === 'trampo') return { caderno: 'Trampo: tarefa do Caderninho', post: 'Trampo: post no Studio Cria', lead: 'Trampo: cliente chamado no Hórus' }[a] || 'Trampo';
     if(tipo === 'convite') return a === 'trouxe' ? 'Convite: chamou alguém' : 'Convite: chegou pelo link';
@@ -9438,6 +9473,8 @@
     /* v4.0 · a faixa do evento (ao vivo, leva até lá; antes, abre a agenda) e a agenda */
     'cvr-evento': el => { const ag = eventoAgora(); if(ag) vaiEvento(ag.e.k); else agendaSheet(); },
     'cvr-agenda': () => agendaSheet(),
+    /* v5.09: o Muralzim (os eventos de Londrina e os ingressos) abre no balcão, por cima da cidade */
+    'cvr-muralzim': () => { C.closeSheet(); abreBalcao({ id: 'muralzim', titulo: 'Muralzim', rota: '#/muralzim', cor: ROSA }); },
     'cvr-ev-ir': el => vaiEvento(el.dataset.k),
     'cvr-lj-compra': async el => { const k = el.dataset.k; el.disabled = true; try{ if(await compraSkin(k)){ await vesteSkin(k); C.toast(`${LOJA[k][1]} é tua e já tá vestindo.`, 3600); } }catch(e){ C.toast(C.errMsg(e, 'Não deu pra vestir agora.')); }finally{ pintaLoja(); } },
     'cvr-lj-veste': async el => { el.disabled = true; try{ await vesteSkin(el.dataset.k); }catch(e){ C.toast(C.errMsg(e, 'Não deu pra vestir agora.')); } pintaLoja(); },

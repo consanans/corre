@@ -15,37 +15,50 @@
   const maisDias = (iso, n) => new Date(Date.parse(iso + 'T12:00:00Z') + n * 864e5).toISOString().slice(0, 10);
   const linkDe = cod => `${location.origin}${location.pathname}#/aprova/${cod}`;
   const NOME_F = { feed: 'Feed', carrossel: 'Carrossel', story: 'Story', reels: 'Reels' };
-  const capHTML = t => esc(t).replace(/(^|\s)(#[\p{L}\p{N}_]+)/gu, '$1<span class="h">$2</span>').replace(/\n/g, '<br>');
   const ERRO = { link: 'Esse link não vale mais.', limite: 'Muita gente abrindo daqui agora. Espera um minuto e tenta de novo.', nota: 'Diz o que precisa mudar.', post: 'Esse post saiu do período do link.' };
   const msgDe = (e, fb) => (e && (ERRO[e.hint] || ERRO[e.code] || ERRO[e.message])) || C.errMsg(e, fb);
 
   /* ---------------- a página do cliente (sem login) ---------------- */
   const A = { cod: '', d: null, nome: '' };
   const nomeK = cod => 'corre-aprov-nome:' + cod;
-  /* a mídia do post: o carrossel desliza, o vídeo toca com a capa, o story fica em pé */
-  function midia(p){
-    const M = (Array.isArray(p.midias) && p.midias.length && p.formato !== 'feed') ? p.midias : [{ u: p.midia, t: 'img' }];
-    if(p.formato === 'carrossel') return `<div class="ap-car" tabindex="0" aria-label="Carrossel com ${M.length} slides: desliza pro lado">${M.map((m, i) => m.t === 'video' ? `<video src="${esc(m.u)}" controls playsinline preload="metadata" aria-label="Slide ${i + 1}, vídeo"></video>` : `<img src="${esc(m.u)}" alt="Slide ${i + 1}${i === 0 && p.alt ? ': ' + esc(p.alt) : ''}" loading="lazy" decoding="async">`).join('')}</div><span class="ap-car-n mono">${M.length} slides · desliza</span>`;
-    if(M[0].t === 'video') return `<video src="${esc(M[0].u)}"${p.midia ? ` poster="${esc(p.midia)}"` : ''} controls playsinline preload="metadata" aria-label="${esc(p.titulo || 'Vídeo do post')}"></video>`;
-    return `<img src="${esc(M[0].u)}" alt="${esc(p.alt || p.titulo || 'Arte do post')}" loading="lazy" decoding="async">`;
-  }
+  /* v5.09 · a mesma prévia do Instagram que o Studio Cria mostra (igprevia.js), e o ajuste com o que mudar marcado:
+     tocando na prévia (a foto, o slide, a legenda, a capa) ou na lista embaixo, e o recado se quiser */
+  const marcaIg = () => { const m = (A.d && A.d.marca) || {}; return { nome: m.nome, rede: m.rede, logo: m.logo, cor: m.cor }; };
   function cartao(p, i){
+    const its = Array.isArray(p.itens) ? p.itens : [], IP = C.igPrevia;
     const est = p.aprov === 'aprovado' ? `<p class="ap-st ok">${ico('check')} Aprovado${p.quem ? ` por ${esc(p.quem)}` : ''}</p>`
-      : p.aprov === 'ajuste' ? `<p class="ap-st aj">${ico('edit')} Pediu ajuste: <span>${esc(p.nota)}</span></p>` : '';
+      : p.aprov === 'ajuste' ? `<p class="ap-st aj">${ico('edit')} Atenção: pediu pra mudar${its.length ? ' ' + esc(IP.itensTxt(its)) : ''}${p.nota ? `: <span>${esc(p.nota)}</span>` : ''}</p>` : '';
+    const ch = IP.itensDe(p).map(([k, n]) => `<label class="ap-it"><input type="checkbox" name="ap-it" value="${esc(k)}"${p.aprov === 'ajuste' && its.includes(k) ? ' checked' : ''}><span>${esc(n)}</span></label>`).join('');
     return `<article class="ap-post f-${esc(p.formato || 'feed')}${p.aprov ? ' a-' + esc(p.aprov) : ''}" id="ap-p-${esc(p.id)}" aria-labelledby="ap-t-${i}">
       <header class="ap-ph"><span class="mono num">${pad(i + 1)}</span><h2 id="ap-t-${i}">${esc(diaLongo(p.data, p.hora))}</h2><span class="ap-fmt">${esc(NOME_F[p.formato] || 'Feed')}</span>${p.publicado ? '<span class="ap-ja">já postado</span>' : ''}</header>
-      <figure class="ap-mid">${midia(p)}</figure>
-      ${p.titulo && p.formato !== 'story' ? `<h3 class="ap-tt">${esc(p.titulo)}</h3>` : ''}
-      ${p.legenda ? `<div class="ap-leg">${capHTML(p.legenda)}</div>` : p.formato === 'story' ? '' : '<p class="note">Sem legenda.</p>'}
+      <div class="ap-ig">${IP.html(p, marcaIg())}</div>
       ${est}
       <div class="ap-acts" data-id="${esc(p.id)}">
         ${p.aprov === 'aprovado' ? `<button type="button" class="btn sm ghost" data-ap="limpa">Desfazer</button><button type="button" class="btn sm" data-ap="ajuste">${ico('edit')} Pedir ajuste</button>`
           : p.aprov === 'ajuste' ? `<button type="button" class="btn sm" data-ap="ajuste">${ico('edit')} Mudar o pedido</button><button type="button" class="btn sm pri" data-ap="aprovado">${ico('check')} Aprovar assim mesmo</button>`
           : `<button type="button" class="btn pri" data-ap="aprovado">${ico('check')} Aprovar</button><button type="button" class="btn" data-ap="ajuste">${ico('edit')} Pedir ajuste</button>`}
       </div>
-      <form class="ap-aj" hidden><label for="ap-n-${i}">O que precisa mudar?</label><textarea class="inp" id="ap-n-${i}" rows="3" maxlength="600" placeholder="Ex.: troca a foto do segundo slide, o preço é R$ 34,90">${esc(p.aprov === 'ajuste' ? p.nota : '')}</textarea>
+      <form class="ap-aj" hidden><p class="ap-aj-k"><b>O que precisa mudar?</b> Toca na prévia ou marca aqui:</p>
+        <div class="ap-its" role="group" aria-label="O que precisa mudar">${ch}</div>
+        <label for="ap-n-${i}">Conta como quer <small>(se já marcou acima, é opcional)</small></label><textarea class="inp" id="ap-n-${i}" rows="3" maxlength="600" placeholder="Ex.: troca a foto do segundo slide, o preço é R$ 34,90">${esc(p.aprov === 'ajuste' ? p.nota : '')}</textarea>
         <div class="acts"><button type="submit" class="btn pri">Mandar o ajuste</button><button type="button" class="btn ghost" data-ap="fecha">Cancelar</button></div></form>
     </article>`;
+  }
+  /* marcou na lista, acende na prévia (e o contrário) */
+  function sincroniza(card){
+    const on = new Set([...card.querySelectorAll('input[name="ap-it"]:checked')].map(x => x.value));
+    card.querySelectorAll('.igp [data-mudar]').forEach(el => { const k = el.dataset.mudar, v = on.has(k); el.classList.toggle('on', v); el.setAttribute('aria-pressed', String(v)); });
+  }
+  function modoEscolhe(card, liga){
+    const ig = card.querySelector('.igp'); if(!ig) return;
+    ig.classList.toggle('igp-escolhe', liga);
+    ig.querySelectorAll('[data-mudar]').forEach(el => { if(liga){ el.setAttribute('role', 'button'); el.setAttribute('tabindex', '0'); el.setAttribute('aria-label', 'Mudar ' + C.igPrevia.nomeItem(el.dataset.mudar)); } else { el.removeAttribute('role'); el.removeAttribute('tabindex'); el.removeAttribute('aria-label'); el.removeAttribute('aria-pressed'); el.classList.remove('on'); } });
+    if(liga){ ig.querySelectorAll('video').forEach(v => v.pause()); sincroniza(card); }
+  }
+  function alterna(el){
+    const card = el.closest('.ap-post'), k = el.dataset.mudar; if(!card || !k) return;
+    const cx = [...card.querySelectorAll('input[name="ap-it"]')].find(x => x.value === k); if(!cx) return;
+    cx.checked = !cx.checked; sincroniza(card);
   }
   const conta = () => { const P = (A.d && A.d.posts) || []; return { n: P.length, ok: P.filter(p => p.aprov === 'aprovado').length, aj: P.filter(p => p.aprov === 'ajuste').length }; };
   function placar(){
@@ -63,7 +76,7 @@
       <section class="card ap-topo">
         <div class="ap-marca">${m.logo ? `<img src="${esc(m.logo)}" alt="">` : `<span class="ap-ini" aria-hidden="true">${esc(String(m.nome || '?').slice(0, 1).toUpperCase())}</span>`}<div><span class="mono">Aprovação de posts${m.rede ? ' · @' + esc(m.rede) : ''}</span><h1>${esc(m.nome || 'Posts')}</h1><p>De ${dm(d.de)} a ${dm(d.ate)} · ${d.posts.length === 1 ? '1 post' : d.posts.length + ' posts'}</p></div></div>
         <div class="ap-de">${C.avatar({ nome: q.nome, avatar_url: q.avatar }, 's')}<p>${d.msg ? `<b>${esc(q.nome || 'Quem cuida da marca')}:</b> ${esc(d.msg)}` : `<b>${esc(q.nome || 'Quem cuida da marca')}</b> mandou esses posts pra você aprovar.`}</p></div>
-        <ol class="ap-como"><li>Olha cada post (o carrossel desliza pro lado).</li><li>Aprova, ou pede ajuste dizendo o que mudar.</li><li>No fim, toca em <b>Pronto</b>: ${esc(primeiro())} recebe o aviso.</li></ol>
+        <ol class="ap-como"><li>Olha cada post do jeito que vai ficar no Instagram (o carrossel desliza pro lado).</li><li>Aprova, ou toca em Pedir ajuste e marca o que mudar.</li><li>No fim, toca em <b>Pronto</b>: ${esc(primeiro())} recebe o aviso.</li></ol>
         <div class="fld ap-nome"><label for="ap-nome">Teu nome</label><input class="inp" id="ap-nome" maxlength="60" autocomplete="name" value="${esc(A.nome)}" placeholder="Pra saberem quem aprovou"></div>
         ${d.respondido_em ? `<p class="fine">Já respondido em ${dm(String(d.respondido_em).slice(0, 10))}. Dá pra mudar e tocar em Pronto de novo.</p>` : ''}
       </section>
@@ -84,23 +97,39 @@
     await pinta(app);
   };
   /* aprovar, pedir ajuste, desfazer e o Pronto (a página do cliente) */
-  async function responde(id, v, nota){
+  /* v5.09: o ajuste vai pelo corre_aprov_ajuste (com os itens marcados); num banco sem ele (sem o delta-v509), pelo
+     responder de antes, com o que foi marcado escrito no recado */
+  const semFuncao = e => !!e && (e.code === 'PGRST202' || /could not find the function|corre_aprov_ajuste/i.test(String(e.message || '')));
+  async function responde(id, v, nota, itens){
     const nome = (C.$('ap-nome') && C.$('ap-nome').value.trim()) || A.nome;
     if(nome !== A.nome){ A.nome = nome; try{ localStorage.setItem(nomeK(A.cod), nome); }catch(e){} }
-    await C.api.rpc('corre_aprov_responder', { p_codigo: A.cod, p_post: id, p_aprov: v, p_nota: nota || '', p_quem: nome });
+    let its = v === 'ajuste' ? (itens || []) : [];
+    if(v === 'ajuste'){
+      try{ await C.api.rpc('corre_aprov_ajuste', { p_codigo: A.cod, p_post: id, p_itens: its, p_nota: nota || '', p_quem: nome }); }
+      catch(e){
+        if(!semFuncao(e)) throw e;
+        const txt = its.length ? `Mudar ${C.igPrevia.itensTxt(its)}.${nota ? ' ' + nota : ''}` : nota;
+        await C.api.rpc('corre_aprov_responder', { p_codigo: A.cod, p_post: id, p_aprov: v, p_nota: txt.slice(0, 600), p_quem: nome });
+        nota = txt; its = [];
+      }
+    }
+    else await C.api.rpc('corre_aprov_responder', { p_codigo: A.cod, p_post: id, p_aprov: v, p_nota: nota || '', p_quem: nome });
     const p = A.d.posts.find(x => x.id === id); if(!p) return;
-    Object.assign(p, { aprov: v, nota: v ? (nota || '') : '', quem: v ? nome : '' });
+    Object.assign(p, { aprov: v, nota: v ? (nota || '') : '', itens: its, quem: v ? nome : '' });
     const el = C.$('ap-p-' + id), i = A.d.posts.indexOf(p);
     if(el){ el.outerHTML = cartao(p, i); const nv = C.$('ap-p-' + id); const b = nv && nv.querySelector('.ap-acts button'); if(b) b.focus({ preventScroll: true }); }
     placar();
   }
   document.addEventListener('click', async e => {
     if(!document.querySelector('.ap-pub')) return;
+    /* v5.09: no modo de pedir ajuste, tocar num pedaço da prévia marca ele */
+    const alvo = e.target.closest('.igp-escolhe [data-mudar]');
+    if(alvo){ e.preventDefault(); alterna(alvo); return; }
     const b = e.target.closest('[data-ap]');
     if(b){
       const card = b.closest('.ap-post'), id = card && card.id.replace(/^ap-p-/, ''), k = b.dataset.ap, f = card && card.querySelector('.ap-aj');
-      if(k === 'ajuste'){ f.hidden = false; f.querySelector('textarea').focus(); return; }
-      if(k === 'fecha'){ f.hidden = true; return; }
+      if(k === 'ajuste'){ f.hidden = false; modoEscolhe(card, true); const pr = f.querySelector('input[name="ap-it"]'); (pr || f.querySelector('textarea')).focus(); return; }
+      if(k === 'fecha'){ f.hidden = true; modoEscolhe(card, false); return; }
       b.disabled = true;
       try{ await responde(id, k === 'limpa' ? '' : 'aprovado', ''); if(k === 'aprovado') C.toast('Aprovado.', 1800); }
       catch(err){ b.disabled = false; C.toast(msgDe(err, 'Não deu pra salvar agora. Tenta de novo.')); }
@@ -118,13 +147,20 @@
       }catch(err){ fb.disabled = false; C.toast(msgDe(err, 'Não deu pra avisar agora. Tenta de novo.')); }
     }
   });
+  document.addEventListener('keydown', e => {
+    if(e.key !== 'Enter' && e.key !== ' ') return;
+    const alvo = e.target.closest && e.target.closest('.igp-escolhe [data-mudar]'); if(!alvo) return;
+    e.preventDefault(); alterna(alvo);
+  });
+  document.addEventListener('change', e => { if(e.target && e.target.name === 'ap-it'){ const card = e.target.closest('.ap-post'); if(card) sincroniza(card); } });
   document.addEventListener('submit', async e => {
     const f = e.target.closest('.ap-aj'); if(!f) return;
     e.preventDefault();
     const nota = f.querySelector('textarea').value.trim(), id = f.closest('.ap-post').id.replace(/^ap-p-/, '');
-    if(!nota){ C.toast(ERRO.nota); f.querySelector('textarea').focus(); return; }
+    const itens = [...f.querySelectorAll('input[name="ap-it"]:checked')].map(x => x.value);
+    if(!nota && !itens.length){ C.toast('Marca o que precisa mudar, ou escreve o quê.'); (f.querySelector('input[name="ap-it"]') || f.querySelector('textarea')).focus(); return; }
     const b = f.querySelector('[type=submit]'); b.disabled = true;
-    try{ await responde(id, 'ajuste', nota); C.toast('Ajuste mandado.', 1800); }
+    try{ await responde(id, 'ajuste', nota, itens); C.toast('Ajuste mandado.', 1800); }
     catch(err){ b.disabled = false; C.toast(msgDe(err, 'Não deu pra mandar agora. Tenta de novo.')); }
   });
 

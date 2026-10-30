@@ -12,7 +12,7 @@
   const DOW3 = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'], DOWL = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'];
   const MES = C.MESES_L;
   const SEL_K = 'corre-studio-marca', VISTA_K = 'corre-studio-vista';
-  const ST = { el: null, com: [], sem: [], sel: 'todas', posts: [], vista: 'mes', mes: '', semana: 0, contas: null, contasErro: '', contasEm: 0, filaEm: 0, timer: 0, aberto: '', arq: null, migrou: false };
+  const ST = { el: null, com: [], sem: [], sel: 'todas', posts: [], links: [], vista: 'status', mes: '', semana: 0, contas: null, contasErro: '', contasEm: 0, filaEm: 0, timer: 0, aberto: '', arq: null, migrou: false };
 
   /* ---------- datas (Brasília é UTC−3 o ano todo) ---------- */
   const hoje = () => C.hojeBR();
@@ -83,8 +83,10 @@
   /* ---------- dados ---------- */
   async function carregar(){
     const ids = new Set(ST.com.concat(ST.sem).map(m => m.id));
-    const ps = await C.api.q('corre_posts', { eq: { dono: C.uid() }, order: ['data', true], limit: 2000 });
-    ST.posts = ps.filter(p => ids.has(p.marca_id));
+    const [ps, ls] = await Promise.all([C.api.q('corre_posts', { eq: { dono: C.uid() }, order: ['data', true], limit: 2000 }),
+      /* v5.09: os links de aprovação ligados (o post que tá num deles e ninguém respondeu tá "com o cliente") */
+      C.api.q('corre_aprovacoes', { eq: { dono: C.uid(), ativo: true }, limit: 300 }).catch(() => [])]);
+    ST.posts = ps.filter(p => ids.has(p.marca_id)); ST.links = ls || [];
     migra();
   }
   /* o que entrou na agenda antes da v3.38 sem "programar" (dia, hora e arte, pra frente) passa a ser programado:
@@ -124,8 +126,8 @@
   /* ---------- a tela ---------- */
   function mount(el, o){
     ST.el = el; ST.com = o.com || []; ST.sem = o.sem || []; ST.aberto = ''; ST.migrou = false; ST.hora = '';
-    let guardada = ''; try{ guardada = localStorage.getItem(SEL_K) || ''; ST.vista = localStorage.getItem(VISTA_K) || 'mes'; }catch(e){}
-    if(!['mes', 'semana', 'lista'].includes(ST.vista)) ST.vista = 'mes';
+    let guardada = ''; try{ guardada = localStorage.getItem(SEL_K) || ''; ST.vista = localStorage.getItem(VISTA_K) || 'status'; }catch(e){}
+    if(!VISTAS.some(([k]) => k === ST.vista)) ST.vista = 'status';
     const id = o.id || '';
     ST.sel = id === 'todas' ? 'todas' : ST.com.some(m => m.id === id) ? id : (!id && ST.com.some(m => m.id === guardada)) ? guardada : 'todas';
     if(id && id !== ST.sel) history.replaceState(null, '', '#/studio');
@@ -180,8 +182,8 @@
       </section>
       ${ST.com.length ? `<section class="card sd-cal" aria-label="Agenda">
         <div class="sd-bar">
-          <div class="sd-vistas" role="tablist" aria-label="Ver por">${[['mes', 'Mês'], ['semana', 'Semana'], ['lista', 'Lista']].map(([k, n]) => `<button type="button" role="tab" data-act="sd-vista" data-v="${k}" aria-selected="${ST.vista === k}">${n}</button>`).join('')}</div>
-          <div class="sd-nav"><button type="button" class="rnd" data-act="sd-ir" data-d="-1" aria-label="Anterior">${ico('prev')}</button><h2 id="sd-per"></h2><button type="button" class="rnd" data-act="sd-ir" data-d="1" aria-label="Próximo">${ico('next')}</button><button type="button" class="btn sm" data-act="sd-hoje">Hoje</button></div>
+          <div class="sd-vistas" role="tablist" aria-label="Ver por">${VISTAS.map(([k, n]) => `<button type="button" role="tab" data-act="sd-vista" data-v="${k}" aria-selected="${ST.vista === k}">${n}</button>`).join('')}</div>
+          <div class="sd-nav"${ST.vista === 'status' ? ' hidden' : ''}><button type="button" class="rnd" data-act="sd-ir" data-d="-1" aria-label="Anterior">${ico('prev')}</button><h2 id="sd-per"></h2><button type="button" class="rnd" data-act="sd-ir" data-d="1" aria-label="Próximo">${ico('next')}</button><button type="button" class="btn sm" data-act="sd-hoje">Hoje</button></div>
         </div>
         <div class="sd-nums" id="sd-nums"></div>
         <div id="sd-corpo"></div>
@@ -193,6 +195,8 @@
     if(!vivo()) return;
     const box = C.$('sd-corpo');
     let L, per;
+    const nav = document.querySelector('.sd-cal .sd-nav'); if(nav) nav.hidden = ST.vista === 'status';
+    if(ST.vista === 'status'){ quadro(box); return; }
     if(ST.vista === 'semana'){
       const a = isoUTC(ST.semana), b = isoUTC(ST.semana + 6 * DAY), pa = parts(a), pb = parts(b);
       per = `${pad(pa.d)}/${pad(pa.m)} a ${pad(pb.d)}/${pad(pb.m)}`;
@@ -210,6 +214,54 @@
     C.$('sd-nums').innerHTML = [['prog', c.prog, c.prog === 1 ? 'programado' : 'programados'], ['pub', c.pub, c.pub === 1 ? 'publicado' : 'publicados'], ['atras', c.atras, c.atras === 1 ? 'atrasado' : 'atrasados'], ['erro', c.erro, 'com erro'], ['ideia', c.ideia + rasc, c.ideia + rasc === 1 ? 'rascunho' : 'rascunhos']]
       .filter(([k, n]) => n || k === 'prog' || k === 'pub').map(([k, n, t]) => `<span class="sd-n ${k}"><b class="num">${n}</b> ${t}</span>`).join('')
       + (!L.length && !rasc ? `<span class="sd-n-dica">Mês vazio: o <b>Mês com IA</b> monta e programa ele inteiro.</span>` : '');
+  }
+  /* ---------- v5.09 · por status (o Thales: "talvez teremos que separar os posts por status e não dia"; "veja o que acha
+     melhor"): o quadro com as etapas do post, da arte ao Instagram. O calendário segue a um toque (Mês, Semana, Lista);
+     o Studio Cria abre no quadro, e o aparelho lembra a vista escolhida. A etapa sai do que o post já tem: publicado,
+     o que pede atenção (o cliente pediu ajuste, passou da hora, deu erro), aprovado, com o cliente (num link de
+     aprovação ligado, sem resposta), programado e rascunho ---------- */
+  const VISTAS = [['status', 'Status'], ['mes', 'Mês'], ['semana', 'Semana'], ['lista', 'Lista']];
+  const FASES = [
+    ['rasc', 'Rascunho', 'Falta arte, dia ou hora'], ['cli', 'Com o cliente', 'No link de aprovação, esperando resposta'],
+    ['aten', 'Atenção', 'Pediu ajuste, atrasou ou deu erro'], ['apr', 'Aprovado', 'O cliente aprovou: falta programar'],
+    ['prog', 'Programado', 'Sai no dia e na hora'], ['ar', 'No ar', 'Já tá no Instagram (30 dias)']
+  ];
+  const noLink = p => !!p.midia_url && !!p.data && ST.links.some(l => l.marca_id === p.marca_id && p.data >= l.de && p.data <= l.ate);
+  /* a ordem importa: o que tá no ar não volta; o que pede atenção vem antes de tudo; o que tá com o cliente (e ninguém
+     respondeu) fica lá mesmo programado (o cartão mostra a hora); aprovado e programado vai pro Programado, aprovado sem
+     hora espera no Aprovado */
+  function fase(p){
+    const s = estado(p);
+    if(s === 'pub' || s === 'indo') return 'ar';
+    if(p.aprov === 'ajuste' || s === 'atras' || s === 'erro') return 'aten';
+    if(!p.aprov && noLink(p)) return 'cli';
+    if(s === 'prog') return 'prog';
+    if(p.aprov === 'aprovado') return 'apr';
+    return 'rasc';
+  }
+  /* por que tá em Atenção (o cartão diz) */
+  const porque = p => { const s = estado(p); if(p.aprov === 'ajuste'){ const its = Array.isArray(p.aprov_itens) && C.igPrevia ? C.igPrevia.itensTxt(p.aprov_itens) : ''; return `Mudar${its ? ' ' + its : ''}${p.aprov_nota ? ': ' + p.aprov_nota : ''}`; } return s === 'atras' ? 'Passou da hora' : s === 'erro' ? 'Não foi pro Instagram' : ''; };
+  function cardSt(p, f){
+    const m = marcaDe(p), s = estado(p), pq = f === 'aten' ? porque(p) : '';
+    return `<button type="button" class="sd-sc ${s}" data-act="sd-post" data-id="${p.id}" style="--c:${esc((m && m.cor) || '#FFE800')}" aria-label="${esc(rot(p))}">
+      <span class="sd-th">${p.midia_url ? `<img src="${esc(p.midia_url)}" alt="" loading="lazy" decoding="async">` : `<span class="sd-noart">${ico('img')}</span>`}</span>
+      <span class="sd-cx"><span class="sd-mk">${m ? C.marcaLogo(m, 's') : ''}<b>${esc(m ? m.marca : 'Marca')}</b></span>
+        <b class="num sd-hr">${p.data ? esc(curto(p.data)) + (p.hora ? ' · ' + esc(p.hora) : '') : 'sem dia'}</b><span class="sd-tt">${esc(p.titulo || 'Sem título')}</span>
+        ${pq ? `<span class="sd-pq">${esc(pq.length > 90 ? pq.slice(0, 88) + '…' : pq)}</span>` : ''}<span class="sd-tags">${tags(p)}</span></span>
+    </button>`;
+  }
+  function quadro(box){
+    const t30 = isoUTC(Date.now() - 30 * DAY), G = {};
+    FASES.forEach(([k]) => { G[k] = []; });
+    visiveis().forEach(p => { const f = fase(p); if(f === 'ar' && p.data && p.data < t30) return; G[f].push(p); });
+    G.ar = ordena(G.ar).reverse(); ['rasc', 'cli', 'aten', 'apr', 'prog'].forEach(k => { G[k] = ordena(G[k]); });
+    C.$('sd-per').textContent = 'Por status';
+    box.innerHTML = `<div class="sd-st" role="list">${FASES.map(([k, n, d]) => `<section class="sd-sx f-${k}" role="listitem" aria-label="${esc(n)}: ${G[k].length}">
+        <h3><span>${esc(n)}</span><b class="num">${G[k].length}</b></h3><p class="sd-sx-d">${esc(d)}</p>
+        <div class="sd-sx-l">${G[k].length ? G[k].map(p => cardSt(p, k)).join('') : `<p class="sd-sx-vz">${k === 'cli' ? (C.aprova ? 'Ninguém esperando o cliente. O <b>Link de aprovação</b> manda os posts pra ele.' : 'Nada aqui.') : k === 'aten' ? 'Nada pedindo atenção.' : 'Nada aqui.'}</p>`}
+          ${k === 'rasc' ? `<button type="button" class="sd-add-l" data-act="sd-novo">${ico('plus')} post</button>` : ''}</div>
+      </section>`).join('')}</div>`;
+    C.$('sd-nums').innerHTML = FASES.filter(([k]) => G[k].length).map(([k, n]) => `<span class="sd-n f-${k}"><b class="num">${G[k].length}</b> ${esc(n.toLowerCase())}</span>`).join('') || '<span class="sd-n-dica">Nenhum post ainda: o <b>Mês com IA</b> monta e programa o mês inteiro.</span>';
   }
   /* v4.17: o formato (carrossel, story, reels) e a resposta do cliente no link de aprovação aparecem nos cartões */
   const ES = () => C.estudio || {};
@@ -294,7 +346,8 @@
         <div class="sd-pp-tx">
           ${ST.hora === id && !fim ? horaFaixa(p, s) : ''}
           <div class="sd-pp-q">${pill(s)}<b class="num">${esc(longo(p))}</b>${fim && foi ? C.ig.chip(foi) : ''}${tags(p)}</div>
-          ${p.aprov === 'ajuste' ? `<p class="apr-nota"><b>${esc(p.aprov_quem || 'O cliente')} pediu ajuste:</b> ${esc(p.aprov_nota || '')}</p>` : p.aprov === 'aprovado' ? `<p class="apr-nota ok"><b>Aprovado</b>${p.aprov_quem ? ` por ${esc(p.aprov_quem)}` : ''}${p.aprov_em ? ` em ${esc(curto(String(p.aprov_em).slice(0, 10)))}` : ''}.</p>` : p.aprov_nota ? `<p class="apr-nota velha"><b>Ajuste pedido antes:</b> ${esc(p.aprov_nota)}</p>` : ''}
+          ${p.aprov === 'aprovado' ? `<p class="apr-nota ok"><b>Aprovado</b>${p.aprov_quem ? ` por ${esc(p.aprov_quem)}` : ''}${p.aprov_em ? ` em ${esc(curto(String(p.aprov_em).slice(0, 10)))}` : ''}.</p>` : C.aprovNota ? C.aprovNota(p) : ''}
+          ${p.midia_url && C.igPrevia ? `<button type="button" class="btn sm ghost sd-igp" data-act="sd-igp" data-id="${p.id}">${ico('ig')} Prévia no Instagram</button>` : ''}
           <p class="fine">${linhaEstado(p, s, m, conta)}</p>
           ${!fim && C.ig && !muitos(p) ? `<div class="sd-pp-conta">${C.ig.seletor('sd-pc', p.ig_conta || '', m)}</div>` : ''}
           ${s === 'erro' && p.ig_erro ? `<p class="sd-pp-erro">${esc(p.ig_erro)}</p>` : ''}
@@ -434,6 +487,8 @@
         ${past ? '' : `<div class="acts"><button type="button" class="btn pri" data-act="sd-novo" data-dia="${iso}">${ico('plus')} Novo post nesse dia</button></div>`}</div>`);
     },
     'sd-post': el => painel(el.dataset.id),
+    /* v5.09: a prévia do post no Instagram (a mesma que o cliente vê no link de aprovação) */
+    'sd-igp': el => { const p = ST.posts.find(x => x.id === el.dataset.id); if(!p || !C.igPrevia) return; const m = marcaDe(p) || {}; C.igPrevia.folha(p, { nome: m.marca, rede: m.rede, logo: m.logo_url, cor: m.cor }, { marcaId: m.id }); },
     'sd-editar': el => { const p = ST.posts.find(x => x.id === el.dataset.id), m = p && marcaDe(p); if(p && m) abrirEditor(m, p); },
     'sd-copiar': el => { const p = ST.posts.find(x => x.id === el.dataset.id); if(p && p.legenda) C.copy(p.legenda, 'Legenda copiada.'); },
     'sd-baixar': async el => { const p = ST.posts.find(x => x.id === el.dataset.id); if(!p) return; if(fmtDe(p) !== 'feed' && ES().entregar){ const m = marcaDe(p); return ES().entregar(p, { marca: m && m.marca, depois: () => depois(p.id) }); } await baixar(p); },

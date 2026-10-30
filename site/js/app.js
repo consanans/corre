@@ -56,8 +56,41 @@
     /* v4.34 · o Atendente 24h (atendente.js) e o Piloto automático (piloto.js) */
     atende: ['#/atendente', 'Atendente 24h', 'atende'], piloto: ['#/piloto', 'Piloto automático', 'piloto'],
     /* v4.41 · a casa do Corre Studio: o teu dia e as ferramentas de trabalho */
-    dia: ['#/dia', 'O teu dia', 'sol']
+    dia: ['#/dia', 'O teu dia', 'sol'],
+    /* v5.09 · o Muralzim (muralzim.js): os eventos de Londrina e o ingresso vendido aqui */
+    muralzim: ['#/muralzim', 'Muralzim', 'ingresso']
   });
+  /* v5.09 · o que cada nome próprio faz, em poucas palavras (o Thales, depois de ouvir que "Hórus" sozinho ninguém
+     adivinha): vai embaixo do nome no menu, na gaveta e no Tudo, e no title de onde só cabe o ícone. Nome que já diz o
+     que é (Início, Mensagens, Planos...) não ganha */
+  const DIZ = {
+    studio: 'posta no Instagram', houzi: 'cria tua marca', horus: 'acha clientes', mural: 'pedidos de serviço',
+    caderno: 'tuas tarefas', verso: 'a cidade-jogo', rolo: 'filmes em 5 frames', banca: 'manchetes do dia',
+    refs: 'datas que vendem', atende: 'IA responde cliente', piloto: 'vira tarefa sozinho', carteira: 'a moeda do jogo',
+    lojinha: 'os números do Corre', dia: 'o que fazer hoje', muralzim: 'eventos e ingressos'
+  };
+  C.diz = k => DIZ[k] || '';
+  const dzHTML = k => DIZ[k] ? `<small class="dz">${DIZ[k]}</small>` : '';
+  const dzTit = (k, l) => DIZ[k] ? `${l} · ${DIZ[k]}` : l;
+  /* v5.09 · o aniversário no perfil (só o dia e o mês, quando a pessoa deixa mostrar). No dia, a etiqueta acende */
+  const MES_N = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+  const anivTag = p => {
+    const m = /^(\d\d)-(\d\d)$/.exec((p && p.aniver) || ''); if(!m) return '';
+    const hoje = C.hojeBR().slice(5) === p.aniver;
+    return `<span class="tag pf-aniv${hoje ? ' hoje' : ''}">${ico('presente')} ${hoje ? 'Faz aniversário hoje' : `Aniversário: ${+m[2]} de ${MES_N[+m[1] - 1]}`}</span>`;
+  };
+  /* v5.09 · o link do perfil. "teusite.com.br" e "http://" viram https; o resto que não abre devolve null. A mesma regra
+     da corre_perfis_link_ck (delta-v509.sql): só https, domínio com ponto, sem espaço nem aspas, até 300 letras */
+  const LINK_OK = /^https:\/\/[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}(:[0-9]{2,5})?([/?#][^\s<>"'\\]*)?$/;
+  C.linkOk = u => typeof u === 'string' && u.length <= 300 && LINK_OK.test(u);
+  C.arrumaLink = u => {
+    u = String(u || '').trim(); if(!u) return '';
+    if(/^http:\/\//i.test(u)) u = 'https://' + u.slice(7); else if(!/^https:\/\//i.test(u)) u = 'https://' + u.replace(/^\/+/, '');
+    let h; try{ const x = new URL(u); if(x.protocol !== 'https:' || x.username || x.password) return null; h = x.href; }catch(e){ return null; }
+    return C.linkOk(h) ? h : null;
+  };
+  /* o link como aparece no perfil: sem https e sem www, curto */
+  C.linkCurto = u => { try{ const x = new URL(u); const t = (x.hostname.replace(/^www\./, '') + (x.pathname === '/' ? '' : x.pathname) + x.search).replace(/\/$/, ''); return t.length > 38 ? t.slice(0, 36) + '…' : t; }catch(e){ return ''; } };
   /* os grupos: [nome, ícone, o que mora dentro]. No computador cada um abre ali mesmo, no menu; no celular a gaveta
      da tua foto já mostra eles abertos. v3.44 (o Thales pediu pra juntar o tanto que der): a Rede junta o Início, as
      Mensagens, os Grupos e os Avisos; o Hórus e o Portfólio vão pro Laboratório; o Perfil e os Salvos ficam juntos.
@@ -68,7 +101,7 @@
   /* v5.01 (o Thales: "o mural fica no studio também, ali ele está competindo demais com o correverso"): o Mural é pedido
      de serviço, trabalho; saiu da Rede (da praça, da barra e da gaveta) e mora no Corre Studio, do lado do Hórus */
   const GRUPOS_REDE = {
-    rede: ['Rede', 'chat', ['inicio', 'msg', 'grupos', 'avisos', 'rolo']],
+    rede: ['Rede', 'chat', ['inicio', 'msg', 'grupos', 'muralzim', 'avisos', 'rolo']],
     verso: ['Correverso', 'verso', ['verso', 'carteira']],
     eu: ['Perfil', 'eu', ['perfil', 'salvos', 'convite']]
   };
@@ -108,6 +141,44 @@
   const DONO = { vendas: 'corre', grana: 'corre', estilo: 'corre', 'studio-dentro': 'studio', editar: 'perfil' };
   /* (v3.44: o Hórus e o Portfólio moram no Laboratório, e o grupo aberto no menu já diz onde você tá: sem migalha) */
   const VOLTA = { estilo: ['#/corre', 'Vendas e Grana'], salvos: ['perfil', 'Perfil'] };
+  /* v5.09 · o Voltar de toda página (o Thales: "tem que ter sempre um botão de voltar"; e "quando você fecha algo do
+     studio cria, ele volta pra rede ao invés de voltar pra página do studio"). A pilha das páginas desta aba
+     (sessionStorage, fora do balcão da cidade): o Voltar leva pra página de onde a pessoa veio; sem ela (abriu direto
+     pelo link ou pelo aviso), pra casa da parte (o Início na Rede, O teu dia no Studio) */
+  const PILHA_K = 'corre-pilha';
+  const pilha = () => { try{ const p = JSON.parse(sessionStorage.getItem(PILHA_K) || '[]'); return Array.isArray(p) ? p.filter(x => typeof x === 'string') : []; }catch(e){ return []; } };
+  function pilhaAnda(hash){
+    const p = pilha();
+    /* foi pra página de antes (o Voltar, o voltar do navegador): sai a de cima; senão entra a nova */
+    if(p.length > 1 && p[p.length - 2] === hash) p.pop(); else if(p[p.length - 1] !== hash) p.push(hash);
+    try{ sessionStorage.setItem(PILHA_K, JSON.stringify(p.slice(-30))); }catch(e){}
+  }
+  const parteDe = hash => { const h = String(hash || '').replace(/^#\/?/, ''); return ROTA_STUDIO.test(h) ? 'studio' : /^(msg|rolo|avisos)(\/|$)/.test(h) ? 'neutro' : 'rede'; };
+  /* pra onde o Voltar leva. "fora": um padrão de página que não vale como destino (o Sair do Studio Cria não volta pra
+     porta dele) */
+  C.voltaPra = function(fora){
+    const p = pilha(), aqui = '#/' + location.hash.replace(/^#\/?/, '');
+    const parte = parteDe(aqui) === 'neutro' ? MODO.ult : parteDe(aqui), casa = parte === 'studio' ? '#/dia' : '#/';
+    for(let i = p.length - 1; i >= 0; i--){
+      const x = p[i];
+      if(x === aqui || (fora && fora.test(x))) continue;
+      /* o Sair do Studio Cria fica no Studio: se antes dele era a Rede, cai em O teu dia */
+      return fora && parteDe(x) === 'rede' ? casa : x;
+    }
+    return casa;
+  };
+  const NOME_VOLTA = { inicio: 'Início', dia: 'O teu dia', caderninho: 'Caderninho', studio: 'Studio Cria', horus: 'Hórus', mural: 'Mural',
+    atendente: 'Atendente 24h', piloto: 'Piloto automático', banca: 'Banca do dia', refs: 'Do teu nicho', houzi: 'Studio Houzi', marcas: 'Portfólio',
+    marca: 'Painel da marca', linkbio: 'Link na bio', corre: 'Vendas e Grana', planos: 'Planos', lojinha: 'Lojinha', grupos: 'Grupos', g: 'Grupo',
+    salvos: 'Salvos', msg: 'Mensagens', rolo: 'Rolo 360', editar: 'Editar perfil', p: 'Post', muralzim: 'Muralzim', estilo: 'Estilo de vida' };
+  const nomeVolta = hash => {
+    const h = String(hash || '').replace(/^#\/?/, '');
+    if(!h) return 'Início';
+    if(h[0] === '@') return st.me && h.slice(1).toLowerCase() === st.me.handle ? 'Teu perfil' : C.decURI(h);
+    return NOME_VOLTA[h.split('/')[0]] || '';
+  };
+  /* as casas das partes e as páginas que já têm o próprio jeito de sair (a cidade, o Studio Cria por dentro) */
+  const SEM_VOLTA = ['inicio', 'dia', 'verso', 'studio-dentro'];
   /* onde o Postar redondo do celular aparece: no Início, no teu perfil e nas páginas de ler (Banca do dia e Do teu
      nicho), como até a v3.42, quando elas eram do Início. O Editar perfil acende o Perfil, mas ali ninguém posta */
   const POSTAR = ['inicio', 'perfil'];
@@ -249,8 +320,8 @@
   C.sinaisCarrega = forca => sinaisCarrega(forca).then(v => { pintaSinais(); return v; });
   C.sinaisDia = () => ({ pronto: SN.pronto, prox: SN.prox, lista: praHoje().map(k => ({ k, txt: SN.v[k].diz, nivel: SN.v[k].nivel, ir: SN.v[k].ir || SN_IR[k][0], i: SN_IR[k][1] })) });
   /* um item sem enfeite (o Mais e a gaveta). O da página aberta ganha aria-current; a carteira avisa que abre por cima */
-  const itemSimples = ([k, h, l, i], cls, ativo) => h ? `<a${cls ? ` class="${cls}-${k}"` : ''} href="${esc(h)}"${cls ? ' role="menuitem"' : ''}${ativo ? ' aria-current="page"' : ''}>${ico(i)}${l}${sinalHTML(k)}</a>`
-    : `<button type="button"${cls ? ` class="${cls}-${k}" role="menuitem"` : ''} data-act="${k === 'avisos' ? 'sino' : k}"${k === 'carteira' ? ' aria-haspopup="dialog"' : ''}>${ico(i)}${l}${sinalHTML(k)}</button>`;
+  const itemSimples = ([k, h, l, i], cls, ativo) => h ? `<a${cls ? ` class="${cls}-${k}"` : ''} href="${esc(h)}"${cls ? ' role="menuitem"' : ''}${ativo ? ' aria-current="page"' : ''}>${ico(i)}<span class="gv-t">${l}${dzHTML(k)}</span>${sinalHTML(k)}</a>`
+    : `<button type="button"${cls ? ` class="${cls}-${k}" role="menuitem"` : ''} data-act="${k === 'avisos' ? 'sino' : k}"${k === 'carteira' ? ' aria-haspopup="dialog"' : ''}>${ico(i)}<span class="gv-t">${l}${dzHTML(k)}</span>${sinalHTML(k)}</button>`;
   /* o sino, as mensagens e a conta aparecem duas vezes (no computador e no celular): o id fica com o que tá na tela */
   const MQ = matchMedia('(min-width: 901px)');
   const idSe = (desk, id) => (MQ.matches === desk ? ` id="${id}"` : '');
@@ -266,8 +337,9 @@
     /* a praça: o Correverso é a noite com estrela, o Mural é a cortiça (a mesma forma, cada um com a sua cara) */
     const ic = k === 'verso' ? `<span class="tb-bola">${ico(i)}</span>` : k === 'mural' ? `<span class="tb-bola tb-cortica">${ico(i)}</span>` : `<span class="mi-ic">${ico(i)}${n}</span>`, c = `${cls} ${desk ? 'lado' : 'tb'}-${k}`;
     const sn = k === 'avisos' || k === 'msg' ? '' : sinalHTML(k);
-    return h ? `<a class="${c}" href="${esc(h)}" title="${l}" aria-label="${l}"${dados}${ativo ? ' aria-current="page"' : ''}>${ic}<span class="mi-t">${l}</span>${sn}</a>`
-      : `<button type="button" class="${c}" data-act="${k === 'avisos' ? 'sino' : k}" title="${l}" aria-label="${l}"${dados}>${ic}<span class="mi-t">${l}</span>${sn}</button>`;
+    const dz = desk ? dzHTML(k) : '', ti = dzTit(k, l);
+    return h ? `<a class="${c}" href="${esc(h)}" title="${ti}" aria-label="${l}"${dados}${ativo ? ' aria-current="page"' : ''}>${ic}<span class="mi-t">${l}${dz}</span>${sn}</a>`
+      : `<button type="button" class="${c}" data-act="${k === 'avisos' ? 'sino' : k}" title="${ti}" aria-label="${l}"${dados}>${ic}<span class="mi-t">${l}${dz}</span>${sn}</button>`;
   };
   /* ---------------- v3.70 · a Comanda ----------------
      O Thales viu a 3.69 e disse: "ce ficou 2h pra me entregar o mesmo menu?" (os sinais só aparecem com pendência; o resto
@@ -312,8 +384,8 @@
   /* um bloco dos Teus. O número do sinal fica no canto; as palavras, na Comanda */
   const blocoHTML = (k, D, active) => {
     const [h, l, i] = D[k], m = k === 'msg';
-    const dentro = `<span class="tl-ic">${ico(i)}${m ? '<span class="msg-n num" hidden></span>' : ''}</span><span class="tl-t">${l}</span>${m ? '' : sinalHTML(k, true)}`;
-    return h ? `<a class="tl tl-${k}" href="${esc(h)}" title="${l}" aria-label="${l}"${m ? ' data-msg' : ''}${k === active ? ' aria-current="page"' : ''}>${dentro}</a>`
+    const dentro = `<span class="tl-ic">${ico(i)}${m ? '<span class="msg-n num" hidden></span>' : ''}</span><span class="tl-t">${l}${dzHTML(k)}</span>${m ? '' : sinalHTML(k, true)}`;
+    return h ? `<a class="tl tl-${k}" href="${esc(h)}" title="${dzTit(k, l)}" aria-label="${l}"${m ? ' data-msg' : ''}${k === active ? ' aria-current="page"' : ''}>${dentro}</a>`
       : `<button type="button" class="tl tl-${k}" data-act="${k}" title="${l}" aria-label="${l}" aria-haspopup="dialog">${dentro}</button>`;
   };
   /* a página aberta que não tá à vista no menu aparece tracejada, com o "fixar": um toque e ela entra nos Teus */
@@ -346,8 +418,8 @@
   const tudoItem = (k, D, active, vis) => {
     const [h, l, i] = D[k], dados = k === 'avisos' ? ' data-sino' : k === 'msg' ? ' data-msg' : '';
     const n = k === 'avisos' ? '<span class="sino-n num" hidden></span>' : k === 'msg' ? '<span class="msg-n num" hidden></span>' : vis.includes(k) ? '' : sinalHTML(k, true);
-    return h ? `<a class="tudo-i" href="${esc(h)}"${dados}${k === active ? ' aria-current="page"' : ''}><span class="tudo-ic">${ico(i)}${k === 'msg' ? n : ''}</span><span class="tudo-t">${l}</span>${k === 'msg' ? '' : n}</a>`
-      : `<button type="button" class="tudo-i" data-act="${k === 'avisos' ? 'sino' : k}"${dados} aria-haspopup="dialog"><span class="tudo-ic">${ico(i)}${k === 'avisos' ? n : ''}</span><span class="tudo-t">${l}</span>${k === 'avisos' ? '' : n}</button>`;
+    return h ? `<a class="tudo-i" href="${esc(h)}"${dados}${k === active ? ' aria-current="page"' : ''}><span class="tudo-ic">${ico(i)}${k === 'msg' ? n : ''}</span><span class="tudo-t">${l}${dzHTML(k)}</span>${k === 'msg' ? '' : n}</a>`
+      : `<button type="button" class="tudo-i" data-act="${k === 'avisos' ? 'sino' : k}"${dados} aria-haspopup="dialog"><span class="tudo-ic">${ico(i)}${k === 'avisos' ? n : ''}</span><span class="tudo-t">${l}${dzHTML(k)}</span>${k === 'avisos' ? '' : n}</button>`;
   };
   const tudoHTML = (D, active) => {
     const vis = blocosLado().concat(['dia']);
@@ -431,7 +503,8 @@
      Mural foi pro Studio) e, embaixo, a porta do Corre Studio com o número da Comanda. O Postar e a conta no pé. v5.04 (o
      Thales: "sobe a carteira correal que tá isolada e desce o correverso"): a carteira sozinha embaixo da praça parecia
      solta; entrou na lista, e o Correverso desceu pra perto da porta do Studio */
-  const LADO_REDE = ['inicio', 'grupos', 'rolo', 'salvos', 'perfil', 'carteira'];
+  /* v5.09: o Muralzim (a agenda de eventos de Londrina, com ingresso) logo depois dos Grupos */
+  const LADO_REDE = ['inicio', 'grupos', 'muralzim', 'rolo', 'salvos', 'perfil', 'carteira'];
   const ladoRede = (active, me) => {
     const D = DEST(me), um = k => itemMenu(k, D[k][0], D[k][1], D[k][2], 'lado-i', k === active, true);
     return `<aside class="lado lado-rede" aria-label="Menu da Rede">
@@ -597,7 +670,10 @@
     if(logged && !studio && !C.EMBED) setTimeout(dicaStudio, 3200);
     /* em tela baixa a lista do menu rola: o item aceso aparece (depois de a página ir pra tela) */
     if(logged) setTimeout(() => { aVista(document.querySelector('.lado-nav [aria-current="page"]')); sinalRola(); }, 0);
-    const v = logged && VOLTA[cru], volta = v ? (v[0] === 'perfil' ? ['#/@' + me.handle, 'Perfil'] : v) : null;
+    const v = logged && VOLTA[cru];
+    /* v5.09: toda página que não é a casa da parte ganha o Voltar (o de cima mapeado, ou o da pilha da aba) */
+    let volta = v ? (v[0] === 'perfil' ? ['#/@' + me.handle, 'Perfil'] : v) : null;
+    if(logged && !volta && !SEM_VOLTA.includes(cru) && !C.EMBED){ const pra = C.voltaPra(); volta = [pra, nomeVolta(pra)]; }
     return `<header class="hdr">
       ${logged ? `<details class="me hdr-eu"${idSe(false, 'me')}><summary aria-label="Abrir o menu${studio ? ' do Corre Studio' : ''}: teu perfil e o teu corre${studio && filaN().n ? `. Na comanda: ${filaN().n}` : ''}">${avatar(me, 's')}${studio ? filaNum('eu-n') : ''}</summary>
         <div class="gv-scrim" data-act="gaveta-x" aria-hidden="true"></div><div class="me-menu gaveta" aria-label="Teu menu">${contaHTML(me, true, active)}</div></details>` : ''}
@@ -614,7 +690,7 @@
         <div class="me-menu"><a href="privacidade.html">Privacidade</a><a href="termos.html">Termos de uso</a><button type="button" data-act="sair">Sair</button></div>
       </details>` : ''}
     </header>
-    ${volta ? `<nav class="migalha" aria-label="Voltar"><a href="${esc(volta[0])}">${ico('prev')} ${esc(volta[1])}</a></nav>` : ''}
+    ${volta ? `<nav class="migalha" aria-label="Voltar"><a href="${esc(volta[0])}" data-volta>${ico('prev')} Voltar${volta[1] ? `<span class="mg-pra"> · ${esc(volta[1])}</span>` : ''}</a></nav>` : ''}
     ${logged ? lado(active, me) : ''}
     ${logged ? tabbarHTML(me, active, cru) : ''}`;
   };
@@ -662,6 +738,7 @@
       ['marcas', 'Teus trabalhos e a vitrine do que você vende', 'portfolio catalogo vitrine trabalhos produtos loja'],
       ['verso', 'A cidade do Corre', 'cidade jogo game mapa pixel'],
       ['mural', 'Pedidos de serviço: quem faz o quê', 'pedido pedidos servico freela trabalho quem faz contratar'],
+      ['muralzim', 'Os eventos de Londrina e o ingresso vendido aqui', 'evento eventos agenda show shows festa balada teatro rolê role ingresso ingressos ticket feira oficina londrina o que fazer'],
       ['corre', 'Do orçamento ao dinheiro na conta', 'vendas venda grana dinheiro financeiro caixa receita despesa orcamento lucro'],
       ['carteira', 'Teu saldo de correal', 'correal saldo moeda'],
       ['planos', 'Assinaturas e faturas', 'assinatura assinar pagar pagamento fatura plano preco pix boleto cartao'],
@@ -681,6 +758,10 @@
       /* v4.16: as abas do Hórus (o funil de vendas e quem chegou sozinho) */
       /* v4.29: o Monta meu Corre e a página aberta dos clientes */
       { k: 'monta', h: '#/monta', t: 'Monta meu Corre com IA', i: 'magia', d: 'Uma frase e o Corre monta link na bio, o mês no Studio Cria, clientes e a semana', kw: 'montar monta comecar começar ia configurar inicio setup onboarding automatico' },
+      /* v5.09: o Muralzim por dentro (os ingressos de quem comprou, divulgar e a conta de quem vende) */
+      { k: 'mz-ingressos', h: '#/muralzim/ingressos', t: 'Meus ingressos', i: 'ingresso', d: 'Os ingressos que você comprou no Muralzim, com o QR', kw: 'ingresso ingressos ticket qr entrada show evento comprei' },
+      { k: 'mz-divulgar', h: '#/muralzim/divulgar', t: 'Divulgar evento no Muralzim', i: 'plus', d: 'Teu cartaz no muro de Londrina, de graça; ingresso vendido aqui', kw: 'divulgar evento cartaz vender ingresso festa show produtor organizador' },
+      { k: 'mz-conta', h: '#/muralzim/conta', t: 'Conta de recebimento (ingressos)', i: 'cartao', d: 'Onde cai o dinheiro do ingresso que você vende', kw: 'conta recebimento asaas wallet receber dinheiro ingresso vender organizador' },
       { k: 'clientes', h: '#/clientes', t: 'Quantos clientes tem pra você', i: 'eye', d: 'Conta as empresas da tua cidade no mapa, por ramo', kw: 'clientes quantos empresas bairro cidade mapa mercado prospectar leads potencial' },
       ...(C.ferr('horus') ? [{ k: 'hz-funil', h: '#/horus/funil', t: 'Funil de vendas', i: 'grafico', d: 'Hórus: arrasta o cliente até o fechou', kw: 'funil crm pipeline negociacao negocios vendas previsao etapa proposta fechou kanban rd station' },
         { k: 'hz-entrada', h: '#/horus/entrada', t: 'Pedidos que chegaram', i: 'chat', d: 'Hórus: orçamento, Mural e mensagem que viraram cliente', kw: 'entrada pedido pedidos orcamento leads chegou cliente novo inbound caixa' }] : []),
@@ -1025,6 +1106,10 @@
   const dentroDeApp = () => /Instagram|FBAN|FBAV|FB_IAB|FBIOS|Line\/|WhatsApp|musical_ly|TikTok|BytedanceWebview|; wv\)/i.test(navigator.userAgent || '');
   /* chegou pelo link de alguém (story do Instagram, link copiado): mostra quem chamou */
   const conviteLogin = () => { const c = C.insta && C.insta.convite(); return c ? `<p class="cv-login">${ico('raio')}<span><b>@${esc(c.h)}</b> te chamou pro Corre. Entra e já sai seguindo.</span></p>` : ''; };
+  /* v5.09 · a frase do que o Corre faz por você, a primeira coisa do cartão (o Thales). "Posta tua semana sozinho" só é
+     verdade pra todo mundo quando a Meta aprovar o app (IG_ABERTO: true no config.js); até lá, a frase diz o que já vale */
+  const fraseLogin = () => C.CFG.IG_ABERTO !== false ? 'Conecta teu Instagram e o Corre posta tua semana sozinho.'
+    : 'Programa a semana do teu Instagram, acha cliente e recebe: o teu corre num lugar só.';
   function viewLogin(){
     document.body.classList.remove('com-lado');
     setStickers('login');
@@ -1033,8 +1118,9 @@
       <h1 class="mega">Corre</h1>
       <p class="tagline"><span class="hl">Mostra teu corre.</span></p>
       <section class="login-card" id="entrar" aria-label="Entrar no Corre">
+        <p class="login-frase">${esc(fraseLogin())}</p>
         <p class="lead">Pra quem vende serviço ou produto, de qualquer segmento: acha cliente, manda orçamento, recebe e vê quanto o corre tá rendendo. Você mostra o que quiser; o resto fica só contigo.</p>
-        <div class="chips" aria-label="O que tem no Corre"><span class="chip">Link na bio</span><span class="chip">Studio Cria</span><span class="chip">Hórus</span><span class="chip">Mural</span><span class="chip">Correverso</span><span class="chip">Vendas e Grana</span></div>
+        <div class="chips" aria-label="O que tem no Corre">${[['Studio Cria', 'posta no Instagram'], ['Hórus', 'acha clientes'], ['Link na bio', 'tua página'], ['Mural', 'pedidos de serviço'], ['Vendas e Grana', 'teu dinheiro'], ['Correverso', 'a cidade-jogo']].map(([n, d]) => `<span class="chip">${n}<small>${d}</small></span>`).join('')}</div>
         ${conviteLogin()}<div class="g-oficial" id="g-oficial" hidden></div><button type="button" class="btn-google" id="btn-google" data-act="google">${G_LOGO}<span>Entrar com Google</span></button><button type="button" class="lnk g-outro" id="g-outro" data-act="google" hidden><span>Não abriu? Entra pelo outro jeito</span></button><button type="button" class="btn-face" id="btn-face" data-act="facebook"${C.DEMO ? '' : ' hidden'}>${FACE_LOGO}<span>Entrar com o Facebook</span></button><button type="button" class="btn-apple" id="btn-apple" data-act="apple"${C.CFG.APPLE_LOGIN || C.DEMO ? '' : ' hidden'}>${APPLE_LOGO}<span>Continuar com a Apple</span></button>
         ${dentroDeApp() ? `<div class="iab-aviso"><b>Abriu pelo Instagram ou WhatsApp?</b><p>O Google às vezes não deixa entrar por aqui. Se travar, abre o Corre no navegador${/Android/i.test(navigator.userAgent) ? '' : ' (no menu ••• , "Abrir no navegador")'}.</p><div class="acts">${/Android/i.test(navigator.userAgent) ? `<a class="btn sm pri" href="${esc(C.insta ? C.insta.intentUrl() : `intent://${location.host + location.pathname}#Intent;scheme=https;package=com.android.chrome;end`)}">Abrir no Chrome</a>` : ''}<button type="button" class="btn sm" data-act="iab-copia">Copiar o link</button></div></div>` : ''}
         <a class="cl-porta" href="#/clientes">${ico('eye')}<span><b>Quantos clientes tem pra você na tua cidade?</b><small>Descobre agora, sem cadastro</small></span>${ico('next')}</a>
@@ -1096,6 +1182,11 @@
         <div class="fld"><label for="f-cidade">Cidade</label><input class="inp" id="f-cidade" name="cidade" maxlength="60" value="${esc(v.cidade)}" placeholder="Londrina, PR" autocomplete="address-level2"></div>
         <div class="fld"><label for="f-ig">Teu Instagram</label><div class="at"><input class="inp" id="f-ig" name="instagram" maxlength="30" value="${esc(v.instagram)}" autocapitalize="none" spellcheck="false" placeholder="seu.perfil"></div><span class="hint">Os posts que você escolher entram no teu perfil, na vitrine do Instagram.</span></div>
       </div>
+      <div class="row2">
+        <div class="fld"><label for="f-link">Link</label><input class="inp" id="f-link" name="link" type="url" inputmode="url" maxlength="300" value="${esc(v.link || '')}" autocapitalize="none" autocomplete="url" spellcheck="false" placeholder="teusite.com.br" aria-describedby="h-link"><span class="hint" id="h-link">Teu site, portfólio ou loja. Aparece no teu perfil.</span></div>
+        <div class="fld"><label for="f-nasc">Data de nascimento</label><input class="inp" id="f-nasc" name="nasc" type="date" min="1900-01-01" max="${C.hojeBR()}" autocomplete="bday" aria-describedby="h-nasc"><span class="hint" id="h-nasc">Só você vê a data inteira.</span></div>
+      </div>
+      <label class="switch pf-aniv-sw"><input type="checkbox" name="aniv" id="f-aniv" checked><span class="sw" aria-hidden="true"></span><span><b>Mostrar meu aniversário no perfil</b><small>Só o dia e o mês. O ano nunca aparece.</small></span></label>
       ${C.meuCorre ? C.meuCorre.campos(v) : ''}
       <fieldset class="fld"><legend>Teu corre fica</legend>
         <div class="vis">
@@ -1224,6 +1315,13 @@
     }
     if(isNew) checkHandle();
     if(C.meuCorre) C.meuCorre.bind();
+    /* v5.09 · a data de nascimento mora à parte (corre_nascimento: só a dona lê); o perfil guarda só o dia e o mês */
+    const NASC = { tinha: false, dia: '', mostra: true };
+    if(!isNew) api.one('corre_nascimento', { eq: { dono: st.user.id } }).then(r => {
+      if(!r) return; const fi = $('f-nasc'), ch = $('f-aniv'); if(!fi || !fi.isConnected) return;
+      Object.assign(NASC, { tinha: !!r.nasceu, dia: r.nasceu || '', mostra: r.mostra !== false });
+      if(!fi.value) fi.value = NASC.dia; if(ch) ch.checked = NASC.mostra;
+    }).catch(() => {});
     f.addEventListener('submit', async e => {
       e.preventDefault();
       const fd = new FormData(f);
@@ -1241,6 +1339,12 @@
       if(!p.nome){ toast('Coloca teu nome.'); $('f-nome').focus(); return; }
       if(!HANDLE_RE.test(p.handle)){ toast('Ajusta o teu @.'); hIn.focus(); return; }
       if(!IG_RE.test(p.instagram)){ toast('O @ do Instagram só aceita letras, números, ponto e _.'); $('f-ig').focus(); return; }
+      /* v5.09 · o link do perfil: "teusite.com.br" ganha https; o que não abre não salva */
+      const lk = C.arrumaLink(String(fd.get('link') || ''));
+      if(lk === null){ toast('Esse link não abre. Confere o endereço (ex.: teusite.com.br).', 4200); $('f-link').focus(); return; }
+      if(lk || (st.me && 'link' in st.me)) p.link = lk;
+      const nasc = String(fd.get('nasc') || ''), aniv = fd.get('aniv') === 'on';
+      if(nasc && (nasc < '1900-01-01' || nasc > C.hojeBR())){ toast('Confere a data de nascimento.'); $('f-nasc').focus(); return; }
       const mc = C.meuCorre ? C.meuCorre.ler() : null;
       if(mc){
         if(!C.meuCorre.whatsOk(mc.whats_publico)){ toast('Confere o WhatsApp com DDD, ou deixa em branco.'); $('f-wa').focus(); return; }
@@ -1253,11 +1357,12 @@
       /* o Desbaratinado só vai quando o banco já tem a coluna (delta-v356) ou quando a pessoa escolheu; sem o delta, salva o resto */
       const querDesb = fd.get('desbaratinado') === '1';
       if(querDesb || (st.me && 'desbaratinado' in st.me)) p.desbaratinado = querDesb;
-      const semColuna = e => /desbaratinado|no_google/i.test(String((e && e.message) || '') + String((e && e.hint) || '') + String((e && e.details) || ''));
+      const semColuna = e => /desbaratinado|no_google|'link'/i.test(String((e && e.message) || '') + String((e && e.hint) || '') + String((e && e.details) || ''));
       /* tira do pedido a coluna que o banco ainda não tem e diz qual ficou de fora */
       const semEssa = e => { const m = String((e && e.message) || '') + String((e && e.hint) || '') + String((e && e.details) || ''), fora = [];
         if('desbaratinado' in p && /desbaratinado/i.test(m)){ delete p.desbaratinado; fora.push('O Desbaratinado'); }
         if('no_google' in p && /no_google/i.test(m)){ delete p.no_google; fora.push('O Aparecer no Google'); }
+        if('link' in p && /'link'/i.test(m)){ delete p.link; fora.push('O link do perfil'); }
         return fora.length ? fora.join(' e ') + ' ainda não tá ligado no Corre.' : ''; };
       const b = $('pf-ok'); b.disabled = true;
       try{
@@ -1279,6 +1384,14 @@
           catch(e2){ if(!semColuna(e2)) throw e2; const fora = semEssa(e2); if(!fora) throw e2; await C.saveMe(p); toast(fora + ' O resto foi salvo.', 4200); }
         }
         if(mc && C.meuCorre) await C.meuCorre.aplicar(antes, mc.orc);
+        /* v5.09 · a data de nascimento: só quando mudou (ou a pessoa apagou a que tinha) */
+        if((nasc || NASC.tinha) && (nasc !== NASC.dia || aniv !== NASC.mostra)){
+          try{
+            const r = await api.rpc('corre_nascimento_salva', { p_dia: nasc || null, p_mostra: aniv });
+            if(r && r.ok){ st.me.aniver = r.aniver || ''; Object.assign(NASC, { tinha: !!nasc, dia: nasc, mostra: aniv }); }
+            else if(r && r.motivo === 'data') toast('A data de nascimento não entrou: confere o dia.', 4200);
+          }catch(e){ toast('A data de nascimento ainda não tá ligada no Corre. O resto foi salvo.', 4200); }
+        }
         st.loadedFor = st.user.id;
         /* entrou pelo link de alguém: já segue quem chamou */
         const chamou = isNew && C.insta ? await C.insta.segueQuemChamou(st.me) : null;
@@ -1298,9 +1411,11 @@
   /* ---------------- início ---------------- */
   /* os cartões do canto (cada módulo põe o dele no C.home). v4.41: os do trabalho (Hórus, Vendas, Grana e Portfólio) moram
      na casa do Corre Studio; os da Rede (visitas, Banca e Do teu nicho) ficam no Início. v5.01: o do Mural foi pro Studio */
-  const CARTOES_STUDIO = ['horus', 'mural', 'vendas', 'grana', 'marcas', 'banca', 'datas'];
+  /* v5.09: a Banca e as datas saíram de baixo (os links ficam no alto, junto do "ver meu perfil" do bom dia) */
+  const CARTOES_STUDIO = ['horus', 'mural', 'vendas', 'grana', 'marcas'];
+  const CARTOES_FORA = ['banca', 'datas'];
   const NOME_CARTAO = { visitas: 'Visitas', horus: 'Hórus', mural: 'Mural', vendas: 'Vendas', banca: 'Banca do dia', grana: 'Grana', marcas: 'Portfólio', datas: 'Do teu nicho' };
-  const cartoesDe = studio => C.home.slice().filter(c => CARTOES_STUDIO.includes(c.k) === studio).sort((a, b) => a.o - b.o);
+  const cartoesDe = studio => C.home.slice().filter(c => !CARTOES_FORA.includes(c.k) && CARTOES_STUDIO.includes(c.k) === studio).sort((a, b) => a.o - b.o);
   const cartoesHTML = cards => cards.map(c => `<div class="hslot" id="hc-${c.k}"><div class="hcard ghost"><span class="hc-name">${NOME_CARTAO[c.k] || ''}</span></div></div>`).join('');
   function pintaCartoes(cards){
     const STK = { horus: 'olho', rolo: 'camera', banca: 'hype', grana: 'grana', marcas: 'trampo' };
@@ -1349,13 +1464,12 @@
      Fala com o Corre e os cartões do que tá esperando), as ferramentas em blocos com o número do sinal, o corre do mês
      e os cartões do trabalho, e o "do teu jeito" (abrir o Corre direto aqui, o Hórus ligado, ajeitar o menu) */
   const FERR_ST = [
-    ['caderno', 'As tarefas do dia, com aviso na hora'], ['studio', 'O calendário de posts de cada marca'],
-    ['banca', 'As manchetes do teu assunto, pra pauta'], ['refs', 'Referências e datas que vendem'],
+    ['caderno', 'As tarefas do dia, com aviso na hora'], ['studio', 'Posta no Instagram: o calendário de cada marca'],
     ['rolo', 'Filmes que ninguém filmou: 5 frames por dia'],
     ['horus', 'Acha cliente no mapa e chama no WhatsApp'], ['mural', 'Pedidos de quem precisa: manda proposta'],
     ['corre', 'Do orçamento ao dinheiro na conta'],
     ['atende', 'A IA responde teu cliente 24h'], ['piloto', 'O que esfria vira tarefa sozinho'],
-    ['houzi', 'Marca, logo e brandbook'], ['marcas', 'Teus trabalhos e o que você vende'],
+    ['houzi', 'Cria tua marca: logo e brandbook'], ['marcas', 'Teus trabalhos e o que você vende'],
     ['linkbio', 'Tua página pra bio do Instagram'], ['planos', 'Assinaturas e faturas'], ['lojinha', 'Os números do Corre']
   ];
   /* abrir o Corre direto no Studio: guardado no aparelho, por login (quem divide o aparelho não herda) */
@@ -1472,7 +1586,7 @@
           <div class="who"><span class="nm">${esc(p.nome)}</span><span class="hd">@${esc(p.handle)}</span></div>
           ${p.faz ? `<p class="pf-faz">${esc(p.faz)}</p>` : mine ? `<p class="fine pf-gdica">Diz o que você vende em <a href="#/editar">Editar perfil</a>: o Corre monta teu Hórus, teu Mural e tua vitrine por isso.</p>` : ''}
           ${p.bio ? `<p class="pf-bio">${esc(p.bio)}</p>` : ''}
-          <div class="meta">${p.aberto ? '<span class="tag trampo">Aberto pra trampo</span>' : ''}${catN && p.categoria !== 'outros' ? `<span class="tag cat">${esc(catN)}</span>` : ''}${p.cidade ? `<span class="tag">${esc(p.cidade)}</span>` : ''}${vit && vit.escolhido ? `<span class="tag">escolhido ${vit.escolhido}x no Mural</span>` : ''}${p.instagram ? `<a class="tag" href="https://www.instagram.com/${encodeURIComponent(p.instagram)}/" target="_blank" rel="noopener">${ico('ig')} @${esc(p.instagram)}</a>` : ''}${gtxt ? `<span class="tag grana">${esc(gtxt)}</span>` : ''}${p.ex ? '<span class="tag">Perfil de exemplo</span>' : ''}${mine && p.visibilidade === 'mocado' ? '<span class="tag moc">Mocado: só você vê</span>' : ''}</div>
+          <div class="meta">${p.aberto ? '<span class="tag trampo">Aberto pra trampo</span>' : ''}${catN && p.categoria !== 'outros' ? `<span class="tag cat">${esc(catN)}</span>` : ''}${p.cidade ? `<span class="tag">${esc(p.cidade)}</span>` : ''}${vit && vit.escolhido ? `<span class="tag">escolhido ${vit.escolhido}x no Mural</span>` : ''}${p.instagram ? `<a class="tag" href="https://www.instagram.com/${encodeURIComponent(p.instagram)}/" target="_blank" rel="noopener">${ico('ig')} @${esc(p.instagram)}</a>` : ''}${C.linkOk(p.link) ? `<a class="tag pf-link" href="${esc(p.link)}" target="_blank" rel="noopener nofollow ugc">${ico('link')} ${esc(C.linkCurto(p.link))}</a>` : ''}${anivTag(p)}${gtxt ? `<span class="tag grana">${esc(gtxt)}</span>` : ''}${p.ex ? '<span class="tag">Perfil de exemplo</span>' : ''}${mine && p.visibilidade === 'mocado' ? '<span class="tag moc">Mocado: só você vê</span>' : ''}</div>
           ${cta}
           ${metaHTML}
           ${gdica ? `<p class="fine pf-gdica">${gdica}</p>` : ''}
@@ -1542,7 +1656,7 @@
     app.innerHTML = C.header('horus') + `<main class="wrap"><section class="card ferr-off">
       <span class="mono">${ico('eye')} Hórus</span><h1>O Hórus tá desligado.</h1>
       <p>Ele é o teu radar de clientes: caça empresa no mapa, monta a abordagem e acompanha quem tá quente. Liga quando quiser; teus leads ficam guardados.</p>
-      <div class="acts"><button type="button" class="btn pri" data-act="ferr-horus" data-liga="1">${ico('eye')} Ligar o Hórus</button><a class="btn" href="#/@${esc(st.me.handle)}">Voltar pro perfil</a></div></section></main>`;
+      <div class="acts"><button type="button" class="btn pri" data-act="ferr-horus" data-liga="1">${ico('eye')} Ligar o Hórus</button><a class="btn" href="${esc(C.voltaPra())}">${ico('prev')} Voltar</a></div></section></main>`;
   }
   /* no balcão do Correverso (iframe), cada página aberta avisa a cidade (tira o "abrindo…") */
   async function route(){
@@ -1556,6 +1670,8 @@
     C.closeSheet();
     document.body.classList.remove('em-bb', 'em-bio');
     const h = location.hash.replace(/^#\/?/, '');
+    /* v5.09: a pilha do Voltar (o balcão da cidade é outra janela: não entra) */
+    if(!C.EMBED) pilhaAnda('#/' + h);
     /* v5.02: a luz do lugar novo já na troca (a página fala com o banco antes de desenhar). A primeira página sem
        endereço fica como o index.html deixou: quem fixou "abrir direto no Studio" cai lá logo abaixo */
     if(C.tema && (h || ABRIU.ja)) C.tema.poe(noiteDaRota(h));
@@ -1578,6 +1694,8 @@
     }
     /* Mural: o mural, o pedido e a página de quem pediu abrem sem login */
     if((h === 'mural' || h.startsWith('mural/')) && C.views.mural){ if(st.user) await loadMe(); window.scrollTo(0, 0); return C.views.mural(app, h.slice(6)); }
+    /* v5.09 · o Muralzim: o muro, o evento e o ingresso abrem sem login (comprar e divulgar pedem) */
+    if((h === 'muralzim' || h.startsWith('muralzim/')) && C.views.muralzim){ if(st.user) await loadMe(); window.scrollTo(0, 0); return C.views.muralzim(app, h.slice(9)); }
     /* Feed: a conversa de um post (#/p/ID) abre sem login, pra dar pra mandar o link */
     if(h.startsWith('p/') && C.views.post){ if(await precisaPerfil(location.hash)) return; window.scrollTo(0, 0); return C.views.post(app, C.decURI(h.slice(2))); }
     /* Grupos (v3.36): a vitrine e a página do grupo abrem sem login (grupo aberto mostra os posts; fechado, só a capa) */
@@ -1605,7 +1723,7 @@
     if(!st.me) return st.meErro ? viewSemRede() : viewOnboarding();
     /* voltou do login do Google: leva pra onde a pessoa tava (ex.: o pedido do Mural) */
     let volta = ''; try{ volta = localStorage.getItem('corre-volta') || ''; if(volta) localStorage.removeItem('corre-volta'); }catch(e){}
-    if(volta && /^#\/((mural|p|msg|g|houzi)\/|@[a-z0-9_.]{3,24}$|grupos$|houzi$|dia$)/.test(volta) && volta !== location.hash){ location.hash = volta; return; }
+    if(volta && /^#\/((mural|muralzim|p|msg|g|houzi)\/|@[a-z0-9_.]{3,24}$|grupos$|houzi$|dia$)/.test(volta) && volta !== location.hash){ location.hash = volta; return; }
     /* v4.29: entrou pelo "levar pro meu Hórus" da página dos clientes: volta pra ela, que leva sozinha */
     if(C.clientes && C.clientes.leva() && h !== 'monta'){ location.hash = '#/clientes'; return; }
     /* já tem perfil: convite de link não vale mais (só quem acabou de entrar segue quem chamou) */

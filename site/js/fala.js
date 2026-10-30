@@ -375,11 +375,13 @@
       <div class="dia-sug">${[['magia', 'Programar um post', '#/studio'], ['caderno', 'Anotar uma tarefa', ''], C.ferr('horus') ? ['eye', 'Chamar um cliente', '#/horus'] : ['tacha', 'Ver o Mural', '#/mural']].map(([i, t, h]) => h ? `<a class="chip" href="${h}">${ico(i)} ${t}</a>` : `<button type="button" class="chip" data-act="fala-abre" data-q="me lembra de ">${ico(i)} ${t}</button>`).join('')}</div></div>`;
     return `<div class="dia-cs">${cs.join('')}</div>`;
   }
+  /* v5.09 (o Thales): a Banca do dia e o Do teu nicho moram aqui em cima, do lado do "ver meu perfil" (eram blocos e
+     cartões embaixo, na casa do Studio): é onde a pessoa olha primeiro pra achar pauta */
   function dia(el){
     if(!el || !st.me) return;
     const ja = diaLe();
     const voz = temVoz() ? `<button type="button" class="fala-mic" data-act="fala-voz" aria-label="Falar com o Corre (ditar)" aria-pressed="false">${ico('mic')}</button>` : '';
-    el.innerHTML = `<div class="dia-top"><h1><span class="hl">${saudacao()}, ${esc(C.firstName(st.me.nome))}.</span></h1><p class="dia-data">${esc(dataLonga())} · <a href="#/@${esc(st.me.handle)}">ver meu perfil</a></p></div>
+    el.innerHTML = `<div class="dia-top"><h1><span class="hl">${saudacao()}, ${esc(C.firstName(st.me.nome))}.</span></h1><p class="dia-data">${esc(dataLonga())} · <a href="#/@${esc(st.me.handle)}">ver meu perfil</a> · <a href="#/banca">Banca do dia</a> · <a href="#/refs">Do teu nicho</a></p></div>
       <div class="fala-bar"><button type="button" class="fala-campo" data-act="fala-abre">${ico('magia', 'fala-ic')}<span class="fala-ph"><b>Fala com o Corre</b><span class="fala-roda" aria-hidden="true">"${esc(EXEMPLOS[0])}"</span></span></button>${voz}</div>
       <div id="dia-cards" aria-live="polite">${cartoesHTML(ja)}</div>`;
     rodaExemplos(el);

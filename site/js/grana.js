@@ -522,7 +522,7 @@
   };
   /* v3.72: a versão dos Termos de uso que a pessoa aceita ao assinar (a mesma do data-versao do termos.html; a função
      anota). Mudou algo importante nos termos, sobe as duas juntas */
-  const TERMOS_V = '2026-10-28';
+  const TERMOS_V = '2026-10-29';
   /* v4.13: as skins de Halloween em real (o Ateliê, no verso.js) aceitam a mesma versão */
   C.TERMOS_V = TERMOS_V;
   /* v3.72: o que dá pra desistir com devolução (o direito de arrependimento, 7 dias do primeiro pagamento). Quem diz é a

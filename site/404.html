@@ -6,8 +6,8 @@
 <title>Corre</title>
 <meta name="theme-color" content="#0C0A0F">
 <!-- v4.0 · reserva do Link na bio: se a regra do _redirects não pegar o /@nome, o Netlify mostra esta página e ela leva
-     pro lugar certo (v4.29: o /clientes também; v4.41: o /studio, a casa do Corre Studio). Qualquer outro endereço que não existe vai pro começo do Corre. -->
-<script>(function(){var m=location.pathname.match(/^\/@([A-Za-z0-9_.]{3,24})\/?$/);location.replace("/"+(m?location.search+"#/bio/"+m[1].toLowerCase():/^\/clientes\/?$/.test(location.pathname)?location.search+"#/clientes":/^\/studio\/?$/.test(location.pathname)?location.search+"#/dia":""));})();</script>
+     pro lugar certo (v4.29: o /clientes também; v4.41: o /studio, a casa do Corre Studio; v5.09: o /muralzim, a agenda de eventos). Qualquer outro endereço que não existe vai pro começo do Corre. -->
+<script>(function(){var m=location.pathname.match(/^\/@([A-Za-z0-9_.]{3,24})\/?$/);location.replace("/"+(m?location.search+"#/bio/"+m[1].toLowerCase():/^\/clientes\/?$/.test(location.pathname)?location.search+"#/clientes":/^\/studio\/?$/.test(location.pathname)?location.search+"#/dia":/^\/muralzim\/?$/.test(location.pathname)?location.search+"#/muralzim":""));})();</script>
 <style>
   :root{color-scheme:dark}
   body{margin:0;min-height:100vh;display:grid;place-items:center;background:#0C0A0F;color:#F7F5EF;font:600 16px/1.4 system-ui,-apple-system,"Segoe UI",sans-serif;padding:16px;box-sizing:border-box;text-align:center}

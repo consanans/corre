@@ -17,7 +17,9 @@
 //     por pedido, gravado antes de sair). Desde a v4.17, também o cliente que terminou de responder o link de aprovação
 //     do Studio (corre_aprov_alvos, do mesmo jeito). Desde a v4.31, também a denúncia que acabou de chegar, pros donos
 //     do Corre (corre_denuncia_alvos: as dos últimos 10 minutos, um aviso por denúncia e por dono). Desde a v4.34, também o
-//     cliente que deixou o WhatsApp pro Atendente 24h (corre_atende_alvos, um aviso por conversa).
+//     cliente que deixou o WhatsApp pro Atendente 24h (corre_atende_alvos, um aviso por conversa). Desde a v5.09, também
+//     o ingresso do Muralzim que acabou de ser pago (corre_ingresso_alvos: quem vendeu e quem comprou, uma vez cada; a
+//     função "pagamento" chama logo depois do aviso do Asaas).
 //   acao "postar" (v4.18, SEM login): o relógio do banco olha de minuto em minuto e, só quando tem post na hora, chama;
 //     a função entrega o que o corre_postar_alvos devolve: "Hora de postar" (o post programado que não sai sozinho, sem
 //     conta conectada) e "Não saiu no Instagram" (o que o Instagram recusou). Cada post avisa uma vez por horário,
@@ -219,6 +221,10 @@ Deno.serve(async (req) => {
     const { data: atd, error: et } = await admin.rpc('corre_atende_alvos', {});
     if (et) { if (!/corre_atende_alvos/.test(et.message || '')) console.warn('[push] atende', et.message); }
     else if (Array.isArray(atd)) L.push(...atd);
+    /* v5.09: e o ingresso do Muralzim que acabou de ser pago: quem vendeu e quem comprou (sem o delta da 5.09, nada) */
+    const { data: ing, error: eg } = await admin.rpc('corre_ingresso_alvos', {});
+    if (eg) { if (!/corre_ingresso_alvos/.test(eg.message || '')) console.warn('[push] ingresso', eg.message); }
+    else if (Array.isArray(ing)) L.push(...ing);
     if (!L.length) return json({ ok: true, pessoas: 0, entregues: 0 });
     const r = await manda(admin, v, lista(L, 'high'));
     console.log('[push] pedidos', JSON.stringify({ pessoas: L.length, entregues: r.ok, saiu: r.mortos }));
