@@ -1,6 +1,9 @@
 # O que falta subir (30/10/2026)
 
-**O zip da 5.10** (`saida/corre-site.zip`): arrasta no Netlify, como sempre. O banco e as funções (pagamento e instagram) já estão no ar.
+**O zip da 5.11** (`saida/corre-site.zip`): arrasta no Netlify, como sempre. Ele leva a 5.10 junto (se ainda não subiu a 5.10, é só subir este). O banco e as funções da 5.10 já estão no ar.
+
+O que a 5.11 traz:
+- **A pista de skate 3D do Zerão gigante:** quase 3x maior, com a rampa grande de 2,8 m no fundo, rampas nas laterais e na frente, escadaria com corrimão de descida e hubba pra grind, caixote, rampa de pulo com vão, bordas, barras, manual pad, arquibancada, alambrado e grafite.
 
 O que a 5.10 traz:
 - **Studio Cria por rede:** R$ 59,90 com 2 redes, R$ 10 por rede a mais e R$ 5 da 21ª em diante, até 100. Na folha de assinar, um contador com − e + mostra o preço na hora. Os Termos foram atualizados (versão de 30/10).
