@@ -983,7 +983,7 @@
     { k: 'suv', nome: 'Palhano', sub: 'SUV: o mais rápido na reta; na curva, segura.', P: Object.assign({}, PISTA_MOTO, { veic: 'suv', rk: 'ms', tv: 4, carro: true, vmax: 13.6, acel: 6.2, giro: 2.1, costela: .8 }) },
     { k: 'picape', nome: 'Cafeeira', sub: 'Picape: a mais lenta, mas passa nas costelas sem tirar o pé.', P: Object.assign({}, PISTA_MOTO, { veic: 'picape', rk: 'mp', tv: 5, carro: true, vmax: 12.4, acel: 5.8, giro: 1.9, costela: .95 }) }
   ];
-  const VEIC_TV = { moto: 1, patinete: 2, hatch: 3, suv: 4, picape: 5 }, TV_VEIC = { 1: 'moto', 2: 'patinete', 3: 'hatch', 4: 'suv', 5: 'picape' };
+  const VEIC_TV = { moto: 1, patinete: 2, hatch: 3, suv: 4, picape: 5 }, TV_VEIC = { 1: 'moto', 2: 'patinete', 3: 'hatch', 4: 'suv', 5: 'picape', 6: 'skate' };
 
   /* ---------- v3.77 · o Calçadão de Londrina em 3D ----------
      O Thales pediu o Calçadão "com referência correta do padrão de piso, luminárias etc., pra ser um espaço onde as
@@ -2572,6 +2572,105 @@
       { x: 0, z: 0, y: 3.6, bl: lustre(30.5, 3.4, 5.4, .5, 1) }
     ]
   };
+  /* ---------- v5.09 · a pista de skate do Zerão em 3D ----------
+     O Thales: "torne a pista de skate 3d" e "espaço pula e os outros botões de seta direcionam pra onde ele gira nas
+     manobras". A pista da cidade (v3.76) ganhou a porta pra versão 3D: 32 x 38 m de concreto, a rampa grande no fundo e
+     duas menores nas laterais, o caixote com rampa dos dois lados, a rampa de pulo, a borda e o corrimão. Aqui dentro
+     todo mundo anda de skate. A rampa (quarter pipe) é um arco de círculo: subir s metros por ela é o ângulo s/R, a
+     altura R(1 - cos) e o quanto ela entra, R sen. Tudo que é da pista é "piso" (não marca a grade): quem bate em quê
+     é a física do skate, lá embaixo (passoSkate) */
+  const SK3_QP = [
+    { o: [4, 7], t: [1, 0], n: [0, 1], L: 24, R: 2.7, H: 2.2 },
+    { o: [4.6, 12], t: [0, 1], n: [1, 0], L: 14, R: 2.2, H: 1.5 },
+    { o: [27.4, 12], t: [0, 1], n: [-1, 0], L: 14, R: 2.2, H: 1.5 }
+  ].map(q => { const dTop = Math.sqrt(q.R * q.R - (q.R - q.H) ** 2), fTop = Math.asin(dTop / q.R); return Object.assign(q, { dTop, fTop, sTop: fTop * q.R }); });
+  /* o caixote: sobe de zA pra zB, o tampo até zC e desce até zD (quem vem da entrada encontra a subida primeiro) */
+  const SK3_CX = { x0: 13, x1: 19, zA: 25, zB: 23, zC: 19.5, zD: 17.5, h: .65 };
+  /* a rampa de pulo: sobe de z0 (chão) até z1, e lá a beira cai reto */
+  const SK3_PULO = { x0: 8, x1: 11, z0: 33, z1: 31, h: .8 };
+  const SK3_BORDA = { x0: 8.2, x1: 8.8, z0: 15, z1: 27, h: .45 };
+  const SK3_CORR = { x: 24.5, z0: 16, z1: 28, h: .56 };
+  /* onde dá grind: a quina de cima da borda, o cano do corrimão e as duas beiras do tampo do caixote */
+  const SK3_GRIND = [{ a: [8.5, 15.1], b: [8.5, 26.9], h: .45 }, { a: [24.5, 16.1], b: [24.5, 27.9], h: .56 }, { a: [13, 19.6], b: [13, 22.9], h: .65 }, { a: [19, 19.6], b: [19, 22.9], h: .65 }];
+  const SK3_CONC = '#C3C8CF', SK3_CONC2 = '#B4BAC2', SK3_BASE = '#8E949C', SK3_FERRO = '#9AA3AD';
+  /* a rampa em fatias: cada fatia é uma laje inclinada na corda do arco, com o "degrau" de concreto por baixo; em cima,
+     a cantoneira de ferro e o deck até a parede */
+  function skQpBlocos(q, W, D){
+    const N = 9, th = .14, bl = [], ex = q.t[0] !== 0;
+    for(let i = 0; i < N; i++){
+      const fa = q.fTop * i / N, fb = q.fTop * (i + 1) / N, da = q.R * Math.sin(fa), ya = q.R * (1 - Math.cos(fa)), db = q.R * Math.sin(fb), yb = q.R * (1 - Math.cos(fb));
+      const c = Math.hypot(db - da, yb - ya) + .03, al = Math.atan2(yb - ya, db - da), cor = i % 2 ? SK3_CONC : SK3_CONC2;
+      if(ex){ const zA = q.o[1] - da; bl.push(Object.assign(B(q.o[0], ya - th, zA - c, q.L, th, c, cor), { pitch: al, piv: [q.o[0], ya, zA] })); if(ya > .02) bl.push(B(q.o[0], 0, q.o[1] - db, q.L, ya - .01, db - da, SK3_BASE)); }
+      else if(q.n[0] > 0){ const xA = q.o[0] - da; bl.push(Object.assign(B(xA - c, ya - th, q.o[1], c, th, q.L, cor), { roll: -al, piv: [xA, ya, q.o[1]] })); if(ya > .02) bl.push(B(q.o[0] - db, 0, q.o[1], db - da, ya - .01, q.L, SK3_BASE)); }
+      else { const xA = q.o[0] + da; bl.push(Object.assign(B(xA, ya - th, q.o[1], c, th, q.L, cor), { roll: al, piv: [xA, ya, q.o[1]] })); if(ya > .02) bl.push(B(q.o[0] + da, 0, q.o[1], db - da, ya - .01, q.L, SK3_BASE)); }
+    }
+    if(ex){ const zc = q.o[1] - q.dTop; bl.push(B(q.o[0], q.H - .05, zc - .05, q.L, .09, .09, SK3_FERRO), B(q.o[0], 0, .15, q.L, q.H - .06, zc - .2, SK3_BASE), B(q.o[0], q.H - .06, .15, q.L, .06, zc - .2, '#A9AEB6')); }
+    else if(q.n[0] > 0){ const xc = q.o[0] - q.dTop; bl.push(B(xc - .05, q.H - .05, q.o[1], .09, .09, q.L, SK3_FERRO), B(.15, 0, q.o[1], xc - .2, q.H - .06, q.L, SK3_BASE), B(.15, q.H - .06, q.o[1], xc - .2, .06, q.L, '#A9AEB6')); }
+    else { const xc = q.o[0] + q.dTop; bl.push(B(xc - .04, q.H - .05, q.o[1], .09, .09, q.L, SK3_FERRO), B(xc + .05, 0, q.o[1], W - .15 - xc - .05, q.H - .06, q.L, SK3_BASE), B(xc + .05, q.H - .06, q.o[1], W - .15 - xc - .05, .06, q.L, '#A9AEB6')); }
+    return bl;
+  }
+  /* uma rampa reta (laje inclinada) do chão até a altura h, subindo pro lado de z menor (sobe = -1) ou maior (sobe = 1) */
+  function skRampaReta(x0, x1, zBaixo, zAlto, h, cor){
+    const L = Math.abs(zAlto - zBaixo), c = Math.hypot(L, h) + .02, al = Math.atan2(h, L), th = .12, out = [];
+    if(zAlto < zBaixo) out.push(Object.assign(B(x0, -th, zBaixo - c, x1 - x0, th, c, cor), { pitch: al, piv: [x0, 0, zBaixo] }));
+    else out.push(Object.assign(B(x0, -th, zBaixo, x1 - x0, th, c, cor), { pitch: -al, piv: [x0, 0, zBaixo] }));
+    /* o recheio em degrau por baixo */
+    for(let k = 1; k < 4; k++){ const f0 = k / 4, za = zBaixo + (zAlto - zBaixo) * f0, zb = zBaixo + (zAlto - zBaixo) * Math.min(1, f0 + .25); out.push(B(x0 + .02, 0, Math.min(za, zb), x1 - x0 - .04, Math.max(.01, h * f0 - .1), Math.abs(zb - za), SK3_BASE)); }
+    return out;
+  }
+  function skPistaBlocos(){
+    const F = SK3_CX, K = SK3_PULO, Bd = SK3_BORDA, Cr = SK3_CORR, bl = [];
+    /* o caixote: subida, tampo (com a pichação CORRE do lado), descida e a cantoneira das duas beiras */
+    bl.push(...skRampaReta(F.x0, F.x1, F.zA, F.zB, F.h, SK3_CONC2), ...skRampaReta(F.x0, F.x1, F.zD, F.zC, F.h, SK3_CONC2));
+    bl.push(B(F.x0, 0, F.zC, F.x1 - F.x0, F.h, F.zB - F.zC, SK3_CONC), B(F.x0 - .03, F.h - .04, F.zC, .07, .07, F.zB - F.zC, SK3_FERRO), B(F.x1 - .04, F.h - .04, F.zC, .07, .07, F.zB - F.zC, SK3_FERRO));
+    [F.x0 - .01, F.x1].forEach(x => bl.push(B(x, .16, F.zC + .3, .01, .3, F.zB - F.zC - .6, ROSA), B(x, .2, F.zC + .5, .012, .08, F.zB - F.zC - 1, AMARELO)));
+    /* a rampa de pulo, com a beira de ferro e a frente fechada */
+    bl.push(...skRampaReta(K.x0, K.x1, K.z0, K.z1, K.h, '#C9A23E'), B(K.x0, 0, K.z1 - .06, K.x1 - K.x0, K.h, .06, SK3_BASE), B(K.x0, K.h - .04, K.z1 - .06, K.x1 - K.x0, .06, .08, SK3_FERRO));
+    /* a borda (o banco de concreto baixo com a quina de ferro) */
+    bl.push(B(Bd.x0, 0, Bd.z0, Bd.x1 - Bd.x0, Bd.h - .03, Bd.z1 - Bd.z0, '#9AA0A8'), B(Bd.x0, Bd.h - .03, Bd.z0, Bd.x1 - Bd.x0, .03, Bd.z1 - Bd.z0, '#C9CED6'), B(Bd.x0 - .02, Bd.h - .05, Bd.z0, .04, .05, Bd.z1 - Bd.z0, SK3_FERRO), B(Bd.x1 - .02, Bd.h - .05, Bd.z0, .04, .05, Bd.z1 - Bd.z0, SK3_FERRO));
+    /* o corrimão: três pés e o cano */
+    [Cr.z0 + .3, (Cr.z0 + Cr.z1) / 2, Cr.z1 - .3].forEach(z => bl.push(B(Cr.x - .04, 0, z - .04, .08, Cr.h - .06, .08, INK)));
+    bl.push(B(Cr.x - .035, Cr.h - .07, Cr.z0, .07, .07, Cr.z1 - Cr.z0, '#D6D9DE'));
+    return bl;
+  }
+  /* o grafite do muro e a placa do fundo (desenhados uma vez, num canvas) */
+  function skGrafite(g, w, h){
+    g.fillStyle = '#3A3E45'; g.fillRect(0, 0, w, h);
+    for(let i = 0; i < 40; i++){ g.fillStyle = `rgba(255,255,255,${.02 + (i % 5) * .01})`; g.fillRect((i * 97) % w, (i * 53) % h, 30 + (i % 7) * 9, 3); }
+    const t = 'ZERÃO', fs = Math.round(h * .62); g.font = `900 ${fs}px system-ui, sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.lineJoin = 'round'; g.fillStyle = INK; g.fillText(t, w / 2 + 10, h / 2 + 12);
+    g.lineWidth = fs * .16; g.strokeStyle = AMARELO; g.strokeText(t, w / 2, h / 2);
+    const gr = g.createLinearGradient(0, h * .2, 0, h * .8); gr.addColorStop(0, '#FF7DB8'); gr.addColorStop(1, ROSA); g.fillStyle = gr; g.fillText(t, w / 2, h / 2);
+    g.fillStyle = ROSA; for(let i = 0; i < 9; i++){ const x = w * (.18 + i * .08), y0 = h * .72; g.fillRect(x, y0, 6, 18 + (i * 13) % 34); g.beginPath(); g.arc(x + 3, y0 + 18 + (i * 13) % 34, 5, 0, Math.PI * 2); g.fill(); }
+    g.font = `800 ${Math.round(h * .1)}px system-ui, sans-serif`; g.fillStyle = PAPEL; g.fillText('o corre não para', w * .72, h * .14);
+  }
+  function skPlaca(g, w, h){
+    g.fillStyle = INK; g.fillRect(0, 0, w, h); g.fillStyle = AMARELO; g.fillRect(0, h * .82, w, h * .18);
+    letreiro(g, 'PISTA DE SKATE DO ZERÃO', w / 2, h * .42, w * .9, h * .46, PAPEL, 900);
+    g.fillStyle = ROSA; g.fillRect(w * .08, h * .7, w * .84, 4);
+  }
+  const PLANTA_SKATE = (() => {
+    const W = 32, D = 38, decor = [], chao = [ret(0, 0, W, D, '#B4B9C0')];
+    /* as juntas do concreto, de 4 em 4 metros */
+    for(let x = 4; x < W; x += 4) chao.push(ret(x - .02, 0, x + .02, D, '#9EA4AC'));
+    for(let z = 4; z < D; z += 4) chao.push(ret(0, z - .02, W, z + .02, '#9EA4AC'));
+    /* a faixa de aviso amarela no pé das rampas grandes */
+    SK3_QP.forEach(q => { const a = [q.o[0] + q.n[0] * .3, q.o[1] + q.n[1] * .3], b = [q.o[0] + q.t[0] * q.L + q.n[0] * .45, q.o[1] + q.t[1] * q.L + q.n[1] * .45]; chao.push(ret(Math.min(a[0], b[0]), Math.min(a[1], b[1]), Math.max(a[0], b[0]) + (q.t[0] ? 0 : .01), Math.max(a[1], b[1]) + (q.t[1] ? 0 : .01), AMARELO)); });
+    SK3_QP.forEach(q => decor.push({ x: 0, z: 0, piso: true, bl: skQpBlocos(q, W, D) }));
+    decor.push({ x: 0, z: 0, piso: true, bl: skPistaBlocos() });
+    /* a arquibancada perto da entrada (a turma olhando) e os postes de luz nos cantos */
+    decor.push({ x: 22.6, z: 34.4, bl: torcida(8.4, 3, [ROSA, AZUL, AMARELO, PAPEL, LARANJA, LILAS]) });
+    const poste = [B(-.08, 0, -.08, .16, 4.6, .16, INK), B(-.5, 4.5, -.15, 1, .12, .3, INK), Object.assign(B(-.4, 4.38, -.1, .8, .1, .2, '#FFF6CF'), { cru: true })];
+    [[1.2, 10], [30.8, 10], [1.2, 30], [30.8, 30]].forEach(([x, z]) => decor.push({ x, z, bl: poste }));
+    const luzes = [[1.2, 10], [30.8, 10], [1.2, 30], [30.8, 30], [16, 21]].map(([x, z]) => ({ mancha: [x, .004, z, 5.5, 5.5, .16, 0, '255,236,190'] }));
+    return { k: 'lugar-skate', W, D, ALT: 3.6, longe: 48, cam: { ph: .34, dist: 6.4 }, skate: true,
+      comodos: [{ k: 'pista', nome: 'Pista de skate', x0: 0, z0: 0, x1: W, z1: D, piso: '#B4B9C0' }],
+      paredes: [{ a: [0, D], b: [W, D], ext: [0, 1], portas: [[W / 2 - .7, W / 2 + .7]], entrada: true, cor: '#7F858D', alt: 1.2 }, { a: [W, 0], b: [W, D], ext: [1, 0], cor: '#7F858D', alt: 2.4 },
+        { a: [0, 0], b: [0, D], ext: [-1, 0], cor: '#7F858D', alt: 2.4 }, { a: [0, 0], b: [W, 0], ext: [0, -1], cor: '#7F858D', alt: 3.6 }],
+      imgs: [{ P4: faceP4('x', .17, 27.5, 36.8, .25, 2.25, 1), n: [1, 0, 0], img: () => calcImg('skGrafite', 560, 120, skGrafite), cor: '#3A3E45' },
+        { P4: faceP4('z', .17, 7, 25, 2.4, 3.4, 1), n: [0, 0, 1], img: () => calcImg('skPlaca', 720, 40, skPlaca), cor: INK }],
+      entrada: { x: W / 2, z: D }, chao, luzes, padrao: [], decor };
+  })();
   const LUGARES = {
     horus: { titulo: 'Casa do Hórus', planta: PLANTA_HORUS, ola: 'Casa do Hórus. O radar é o altar do meio: chega e toca.',
       estacoes: () => [{ id: 'radar', liga: 'horus', titulo: 'Radar do Hórus', rota: '#/horus', cor: INK, x: 5.6, z: 5, w: 2.8, d: 2.8, bl: RADAR, tag: [1.4, 1.75, 1.4], y: 0 }] },
@@ -2628,6 +2727,8 @@
     /* v3.77: o Calçadão de Londrina (a porta é no Calçadão da cidade) */
     calcadao: { titulo: 'Calçadão de Londrina', sai: 'Sair pra rua', planta: PLANTA_CALCADAO, calc: true, ola: 'O Calçadão de Londrina, desde 1977. Senta num banco que o povo puxa assunto; arrasta pra cima e olha o Relojão: ele marca a hora de verdade.', estacoes: () => [],
       itens: [['orelhao', 9.5, 14.6, 1, 0, 0], ['orelhao', 25.5, 52, 3, 0, 0], ['lixeira_rua', 9.6, 27, 0, 0, 0], ['lixeira_rua', 25.9, 9.5, 0, 0, 0], ['lixeira_rua', 9.6, 56, 0, 0, 0], ['lixeira_rua', 25.9, 68, 0, 0, 0], ['ponto_onibus', 28.6, 85.2, 0, 0, 0]] },
+    /* v5.09: a pista de skate do Zerão em 3D (a porta é a placa da pista na cidade) */
+    skate: { titulo: 'Pista de skate do Zerão', sai: 'Sair pra rua', planta: PLANTA_SKATE, ola: 'Pista de skate do Zerão. Seta pra cima empurra, Espaço pula; no ar, as setas fazem a manobra: pros lados gira, pra cima kickflip, pra baixo heelflip.', estacoes: () => [] },
     beisebol: { titulo: 'ACEL · Beisebol', sai: 'Sair pra rua', planta: PLANTA_BEISEBOL, ola: 'ACEL, o campo de beisebol. No suporte dos tacos, toca em "Desafio de rebatida": 10 arremessos. Rebate quando a bola chegar na base: home run vale 4.', estacoes: () => [], desafio: DESAFIOS.beisebol }
   };
   /* a estação que é só do fundador aparece na casa do fundador (pra ele e pra quem visita) */
@@ -4235,7 +4336,9 @@
     /* v3.62: os carros da garagem na versão de pista (faixa branca, número na porta). Quem dirige fica atrás do vidro escuro */
     hatch: { alt: 0, bl: c => carroBl(c, { L: 3.6, W: 1.6, base: .24, corpo: .5, cab0: -1.3, cab1: .5, teto: .5, rodas: [1.08, -1.18], asa: true }) },
     suv: { alt: 0, bl: c => carroBl(c, { L: 3.9, W: 1.72, base: .3, corpo: .6, cab0: -1.62, cab1: .55, teto: .56, rodas: [1.2, -1.3], rack: true, clad: true }) },
-    picape: { alt: 0, bl: c => carroBl(c, { L: 4.3, W: 1.72, base: .3, corpo: .55, cab0: -.35, cab1: .85, teto: .54, rodas: [1.38, -1.4], cacamba: true }) }
+    picape: { alt: 0, bl: c => carroBl(c, { L: 4.3, W: 1.72, base: .3, corpo: .55, cab0: -.35, cab1: .85, teto: .54, rodas: [1.38, -1.4], cacamba: true }) },
+    /* v5.09: quem anda na pista de skate 3D (a presença manda mt 6 e o corpo de lado: o shape vai no x) */
+    skate: { alt: .13, bl: () => skShapeBl() }
   };
   /* um carro de caixas, de frente pro z+ e centrado no meio: rodas, o corpo, a cabine com os vidros, a faixa e as luzes */
   function carroBl(c, o){
@@ -4999,7 +5102,7 @@
     const rivsS = S.corrida && S.corrida.kart ? S.corrida.rivais : PL && PL.kart && S.kartVivo ? S.kartVivo.rivais || [] : [];
     if(rivsS.length){ const c = PL.kart.c; rivsS.forEach(r => { const p = naLinha(c, r.s, r.lat); out.push({ mancha: [p[0], .004, p[1], .3, .7, .3, p[2]] }); }); }
     /* v3.52: quem mais tá aqui também faz sombra */
-    gente().forEach(r => { if((r.hyv || 0) > .1) return; const v = r.hmt; out.push({ mancha: [r.hxv, .004, r.hzv, v ? (v >= 3 ? 1 : v === 1 ? .42 : .3) : .36, v ? (v >= 3 ? 2 : v === 1 ? .95 : .7) : .28, .3, r.hyaw || 0] }); });
+    gente().forEach(r => { if((r.hyv || 0) > .1) return; const v = r.hmt === 6 ? 2 : r.hmt; out.push({ mancha: [r.hxv, .004, r.hzv, v ? (v >= 3 ? 1 : v === 1 ? .42 : .3) : .36, v ? (v >= 3 ? 2 : v === 1 ? .95 : .7) : .28, .3, r.hyaw || 0] }); });
     return out;
   }
 
@@ -5071,7 +5174,8 @@
     const yv = S.eu ? S.eu.yaw + (RK ? RK.yawVis + ((RK.rodouAte || 0) > Date.now() ? (Date.now() - RK.rodouT0) / 1000 * 9 : 0) : 0) : 0;
     const bichoEu = comBicho() && bichoOk(S.kartBicho) ? S.kartBicho : null, avEu = bichoEu != null ? avBicho(bichoEu) : S.eu && S.eu.av;
     if(mv) solidos.push(...veiculo3d(mv, S.eu.x, S.eu.y, S.eu.z, yv, RK ? (RK.P.def.corEu || (bichoEu != null ? BICHOS_K[bichoEu].cor : corVeic(mv, S.eu.av))) : corVeic(mv, S.eu.av), 'eu'));
-    if(S.eu && !ehCarro(mv)) solidos.push(...sobe(boneco(avEu, S.eu.x, S.eu.z, yv, S.eu.passo, mv ? false : S.eu.andando, !!S.eu.sit), S.eu.y + (mv ? VEIC_3D[mv].alt : puloCasa(S.eu) * PULO_ALT)));
+    if(S.eu && S.sk3) solidos.push(...skDesenha());
+    else if(S.eu && !ehCarro(mv)) solidos.push(...sobe(boneco(avEu, S.eu.x, S.eu.z, yv, S.eu.passo, mv ? false : S.eu.andando, !!S.eu.sit), S.eu.y + (mv ? VEIC_3D[mv].alt : puloCasa(S.eu) * PULO_ALT)));
     const fracoG = embaixoDoMezanino();
     gente().forEach(r => { const rv = TV_VEIC[r.hmt] || '', bk = comBicho() && bichoOk(r.kp) ? r.kp : null;
       if(rv) solidos.push(...veiculo3d(rv, r.hxv, r.hyv || 0, r.hzv, r.hyaw || 0, bk != null ? BICHOS_K[bk].cor : corVeic(rv, r.av), 'gente:' + r.sid));
@@ -5152,6 +5256,8 @@
   function passo(dt){
     const e = S.eu; if(!e) return;
     if(S.corrida){ passoVeiculo(dt); return; }
+    /* v5.09: na pista de skate, o boneco anda de skate (a física é outra) */
+    if(S.sk3){ passoSkate(dt); return; }
     if(S.desafio){ const pv0 = vetorJunto(); if(S.teclas.size || S.alvo || (pv0 && pv0.m)) paraDesafio('Saiu do desafio.'); else { camDesafio(dt); return; } }
     /* v3.77: sentado no banco: só levanta quando você mexe (tecla de andar, o direcional ou um toque no chão) */
     if(e.sit){ const pv1 = S.modo === 'andar' ? vetorJunto() : null, anda = ['w', 'a', 's', 'd', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].some(k => S.teclas.has(k));
@@ -5387,7 +5493,7 @@
     S.alvo = rota.shift(); S.rota = rota;
   }
   /* sair: anda até a porta (pela escada, se tiver em cima) e a casa fecha */
-  function vaiSair(){ if(!S.eu) return; const rota = tracaRota(ENTRADA.x, ENTRADA.z - .9, 0); S.alvo = rota.shift(); S.rota = rota; S.acao = { t: 'saida' }; }
+  function vaiSair(){ if(!S.eu) return; if(S.sk3){ fechar(); return; } const rota = tracaRota(ENTRADA.x, ENTRADA.z - .9, 0); S.alvo = rota.shift(); S.rota = rota; S.acao = { t: 'saida' }; }
   function vaiNaEstacao(e){
     const cx = e.x + e.w / 2, cz = e.z + e.d / 2, n = e.y > 1.5 ? 1 : 0;
     if(S.eu && nivelDe(S.eu.y) === n && Math.hypot(S.eu.x - cx, S.eu.z - cz) < 2.2){ abreEstacao(e); return; }
@@ -5432,8 +5538,11 @@
     const alvo = e.target, digitando = alvo && (alvo.tagName === 'INPUT' || alvo.tagName === 'TEXTAREA' || alvo.tagName === 'SELECT' || alvo.isContentEditable);
     const sh = C.$('sheet'); if(digitando || (sh && !sh.hidden)){ S.teclas.clear(); return; }
     const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
-    if(TECLAS.has(k)){ e.preventDefault(); if(e.type === 'keydown') S.teclas.add(k); else S.teclas.delete(k); return; }
-    if(k === ' '){ e.preventDefault(); if(S.corrida && S.corrida.kart){ if(!e.repeat) pulaKart(e.type === 'keydown'); return; } if(e.type === 'keydown' && !e.repeat){ if(S.pesca) puxa(); else if(S.desafio) dispara(); else if(!S.corrida) pulaCasa(); } return; }
+    if(TECLAS.has(k)){ e.preventDefault(); if(e.type === 'keydown') S.teclas.add(k); else S.teclas.delete(k);
+      /* v5.09: na pista de skate, o toque rápido na seta de cima ou de baixo vale na hora (entre dois quadros ele se perdia) */
+      if(S.sk3 && e.type === 'keydown' && !e.repeat) skTeclaFlip(k === 'w' || k === 'ArrowUp' ? 1 : k === 's' || k === 'ArrowDown' ? -1 : 0);
+      return; }
+    if(k === ' '){ e.preventDefault(); if(S.sk3){ if(e.type === 'keydown' && !e.repeat) pulaSkate(); return; } if(S.corrida && S.corrida.kart){ if(!e.repeat) pulaKart(e.type === 'keydown'); return; } if(e.type === 'keydown' && !e.repeat){ if(S.pesca) puxa(); else if(S.desafio) dispara(); else if(!S.corrida) pulaCasa(); } return; }
     if(k === 'f' && S.corrida && S.corrida.kart){ e.preventDefault(); if(e.type === 'keydown' && !e.repeat) usaItem(); return; }
     /* v4.12: F empurra no Calçadão (como na cidade) */
     if(k === 'f' && S.calc){ e.preventDefault(); if(e.type === 'keydown' && !e.repeat) empurraCalc(); return; }
@@ -5626,6 +5735,317 @@
     try{ await C.saveMe({ casa: serial() }); }catch(e){ S.sujo = true; C.toast(C.errMsg(e, 'Não deu pra guardar a casa agora.')); }
   }
 
+  /* ---------- v5.09 · o skate na pista 3D ----------
+     Seta pra cima empurra, pra baixo freia, pros lados vira; Espaço (o Pular do celular, o A do controle) é o ollie.
+     No ar, as setas são a manobra (o pedido do Thales): pros lados o corpo gira (soltou, ele completa até o 180 mais
+     perto), pra cima é kickflip e pra baixo heelflip (cada toque, um giro do shape; dois toques, double). Chegou no chão
+     torto ou com o shape no meio do giro: cai e o combo zera. Na rampa grande, quem chega na beira com velocidade sobe
+     reto (air) e volta pra mesma rampa; sem girar, volta de costas (fakie), e no chão o skatista se ajeita sozinho.
+     Caiu em cima da borda, do corrimão ou da beira do caixote: grind (o shape ao longo é 50-50; atravessado,
+     boardslide). Manobra emendada em menos de 2,2 s entra no combo: a soma vezes quantas (até x8). O que vale é o
+     aparelho: a sessão, o melhor do dia e o maior combo ficam no corre-skate3d. Não vale correal */
+  const SK3_K = 'corre-skate3d', SKG = 9.8, SK3_VMAX = 9, SK3_EMP = 4.8, SK3_FREIO = 7, SK3_ATRITO = .3, SK3_GIRO = 2.7, SK3_OLLIE = 3.6, SK3_SPIN = 6.6, SK3_FLIP = Math.PI * 2 / .36;
+  const angN = a => Math.atan2(Math.sin(a), Math.cos(a));
+  const qpLocal = (q, x, z) => { const px = x - q.o[0], pz = z - q.o[1]; return { u: px * q.t[0] + pz * q.t[1], d: -(px * q.n[0] + pz * q.n[1]) }; };
+  /* a rampa (a parte curva) em que um ponto tá, se tiver */
+  function skQpEm(x, z){ for(const q of SK3_QP){ const l = qpLocal(q, x, z); if(l.u >= 0 && l.u <= q.L && l.d > 0 && l.d < q.dTop) return { q, l }; } return null; }
+  /* a altura do chão da pista num ponto */
+  function skAltura(x, z){
+    let h = 0; const F = SK3_CX, K = SK3_PULO, L = SK3_BORDA;
+    if(x >= F.x0 && x <= F.x1){ if(z <= F.zA && z >= F.zB) h = F.h * (F.zA - z) / (F.zA - F.zB); else if(z < F.zB && z >= F.zC) h = F.h; else if(z < F.zC && z >= F.zD) h = F.h * (z - F.zD) / (F.zC - F.zD); }
+    if(x >= K.x0 && x <= K.x1 && z <= K.z0 && z >= K.z1) h = Math.max(h, K.h * (K.z0 - z) / (K.z0 - K.z1));
+    if(x >= L.x0 && x <= L.x1 && z >= L.z0 && z <= L.z1) h = Math.max(h, L.h);
+    for(const q of SK3_QP){ const l = qpLocal(q, x, z); if(l.u >= 0 && l.u <= q.L && l.d > 0) h = Math.max(h, l.d <= q.dTop ? q.R - Math.sqrt(q.R * q.R - l.d * l.d) : q.H); }
+    return h;
+  }
+  /* o corrimão não é chão: é obstáculo pra quem passa por baixo da altura dele */
+  const skBateCorr = (x, z, y) => { const c = SK3_CORR; return y < c.h - .04 && Math.abs(x - c.x) < .3 && z > c.z0 - .1 && z < c.z1 + .1; };
+  function skNovo(){ return { modo: 'chao', v: 0, vyc: 0, fakie: false, fakieT: 0, rev: 0, tilt: 0, eixo: [1, 0, 0], ar: null, qp: null, gr: null, caiu: 0, combo: null, pts: 0, upAnt: false, dnAnt: false, upT: 0, dnT: 0, popT: 0 }; }
+  function skEntrada(){
+    const k = S.teclas; let ac = 0, vi = 0;
+    if(k.has('w') || k.has('ArrowUp')) ac += 1; if(k.has('s') || k.has('ArrowDown')) ac -= 1;
+    if(k.has('d') || k.has('ArrowRight')) vi += 1; if(k.has('a') || k.has('ArrowLeft')) vi -= 1;
+    const pv = vetorJunto(); if(pv && pv.m && !ac && !vi){ ac = Math.max(-1, Math.min(1, -pv.y * 1.4)); vi = Math.max(-1, Math.min(1, pv.x * 1.4)); }
+    return { ac, vi };
+  }
+  const skSomV = () => (C.versoSom ? C.versoSom : null);
+  function passoSkate(dt){
+    const e = S.eu, K = S.sk3, agora = performance.now(), { ac, vi } = skEntrada();
+    S.alvo = null; S.rota = []; S.acao = null;
+    const up = ac > .55, dn = ac < -.55, subiu = up && !K.upAnt, desceu = dn && !K.dnAnt;
+    if(subiu) K.upT = agora; if(desceu) K.dnT = agora; K.upAnt = up; K.dnAnt = dn;
+    if(K.modo === 'caido'){ if(agora - K.caiu > 1300){ K.modo = 'chao'; K.v = 0; K.fakie = false; K.rev = 0; } }
+    else if(K.modo === 'chao') skChao(dt, ac, vi, agora);
+    else if(K.modo === 'qp') skQp(dt, vi, agora);
+    else if(K.modo === 'ar') skAr(dt, vi, subiu, desceu, agora);
+    else if(K.modo === 'grind') skGrind(dt, agora);
+    if(K.rev){ const p = Math.min(Math.abs(K.rev), dt * 9); K.rev -= Math.sign(K.rev) * p; }
+    /* a inclinação do corpo acompanha a curva da rampa (no ar ele vai se endireitando) */
+    const tAlvo = K.modo === 'qp' ? K.qp.s / K.qp.q.R : 0; K.tilt += (tAlvo - K.tilt) * Math.min(1, dt * (K.modo === 'qp' ? 20 : 7));
+    if(K.combo && (K.modo === 'chao' || K.modo === 'qp') && agora > K.combo.ate) skFechaCombo();
+    e.andando = K.v > .3 || K.modo !== 'chao';
+    skCamera(dt); skSomRola(agora); painelSkate();
+  }
+  /* no chão (e nas rampas retas): empurra, freia, vira; a ladeira acelera ou segura; beira que some joga pro ar */
+  function skChao(dt, ac, vi, agora){
+    const K = S.sk3, e = S.eu; let v = K.v;
+    if(ac > 0){ if(v < SK3_VMAX) v = Math.min(SK3_VMAX, v + SK3_EMP * ac * dt); }
+    else if(ac < 0) v = Math.max(0, v - SK3_FREIO * -ac * dt);
+    v = Math.max(0, v - SK3_ATRITO * dt);
+    const sx = Math.sin(e.yaw), sz = Math.cos(e.yaw), sl = (skAltura(e.x + sx * .3, e.z + sz * .3) - skAltura(e.x - sx * .3, e.z - sz * .3)) / .6;
+    if(Math.abs(sl) < 1.5) v -= SKG * sl / Math.sqrt(1 + sl * sl) * dt;
+    /* parou na subida e voltou: desce de costas (o shape não gira) */
+    if(v < 0){ e.yaw = angN(e.yaw + Math.PI); v = -v; K.fakie = !K.fakie; }
+    e.yaw = angN(e.yaw - vi * SK3_GIRO * dt * (v < 1 ? .8 : 1));
+    /* de costas no plano, o skatista se ajeita sozinho (revert) */
+    if(K.fakie && Math.abs(sl) < .05){ K.fakieT += dt; if(K.fakieT > .4){ K.fakie = false; K.fakieT = 0; K.rev = angN(K.rev + Math.PI); } } else K.fakieT = 0;
+    const nx = e.x + Math.sin(e.yaw) * v * dt, nz = e.z + Math.cos(e.yaw) * v * dt;
+    /* entrou na curva de uma rampa grande */
+    const lq = skQpEm(nx, nz);
+    if(lq){ const q = lq.q, vx = Math.sin(e.yaw) * v, vz = Math.cos(e.yaw) * v, vn = -(vx * q.n[0] + vz * q.n[1]);
+      if(vn > 0){ K.qp = { q, s: q.R * Math.asin(Math.min(1, lq.l.d / q.R)), vs: vn, u: lq.l.u, vu: vx * q.t[0] + vz * q.t[1] }; K.subia = true; K.modo = 'qp'; K.v = v; skPoeQp(); return; } }
+    if(bate(nx, nz, 0) || skBateCorr(nx, nz, e.y)){ skBatida(); return; }
+    const h1 = skAltura(nx, nz);
+    if(h1 - e.y > .3){ skBatida(); return; }
+    const yb = e.y + K.vyc * dt - .5 * SKG * dt * dt;
+    e.x = nx; e.z = nz; K.v = v;
+    /* a subida acabou e o chão não acompanha quem vem rápido: voa (a beira da rampa de pulo, o tampo do caixote) */
+    if(K.vyc > .4 && yb > h1 + .015){ skDecola(K.vyc, agora, null); return; }
+    if(e.y - h1 > .2){ skDecola(0, agora, null); return; }
+    K.vyc = (h1 - e.y) / Math.max(dt, 1e-3); e.y = h1;
+  }
+  function skBatida(){
+    const K = S.sk3, e = S.eu;
+    if(K.v > 2.2){ const V = skSomV(); if(V) try{ V.cai(.6); }catch(x){} if(C.controle) C.controle.treme(160, .5); }
+    e.yaw = angN(e.yaw + Math.PI); K.fakie = !K.fakie; K.v *= .3;
+  }
+  /* sai do chão: o rumo de agora vira a velocidade no ar; o toque de flip logo antes do pulo vale (cima + pular junto) */
+  function skDecola(vy, agora, vert){
+    const K = S.sk3, e = S.eu;
+    K.ar = { t0: agora, vx: Math.sin(e.yaw) * K.v, vz: Math.cos(e.yaw) * K.v, vy, giro: 0, w: 0, flip: 0, flipAlvo: 0, flips: [], vert, y0: e.y, yMax: e.y, ollie: !vert && vy >= SK3_OLLIE * .88, yaw0: e.yaw, fakie0: K.fakie, rev0: K.rev };
+    K.rev = 0; K.modo = 'ar';
+    if(agora - K.upT < 170) skFlip(1); else if(agora - K.dnT < 170) skFlip(-1);
+  }
+  function skTeclaFlip(d){ const K = S.sk3; if(!K || !d) return; const agora = performance.now(); if(d > 0){ K.upT = agora; K.upAnt = true; } else { K.dnT = agora; K.dnAnt = true; } if(K.modo === 'ar') skFlip(d); }
+  function skFlip(s){ const A = S.sk3 && S.sk3.ar; if(!A || A.flips.length >= 3) return; A.flipAlvo += s * Math.PI * 2; A.flips.push(s > 0 ? 'k' : 'h'); const V = skSomV(); if(V) try{ V.passo('madeira', .7); }catch(x){} }
+  /* Espaço: ollie no chão, pula fora do grind */
+  function pulaSkate(){
+    const K = S.sk3; if(!K) return; const agora = performance.now();
+    if(K.modo === 'chao'){ skDecola(Math.max(0, K.vyc) + SK3_OLLIE, agora, null); const V = skSomV(); if(V) try{ V.pulo('skate'); }catch(x){} }
+    else if(K.modo === 'grind') skSaiGrind(true, agora);
+  }
+  /* na curva da rampa: a gravidade puxa pelo arco; as setas dos lados levam pro lado (de quem olha pra rampa) */
+  function skQp(dt, vi, agora){
+    const K = S.sk3, Q = K.qp, q = Q.q, f = Q.s / q.R;
+    /* a gravidade na curva é a de jogo (80%): a rampa devolve mais do que a de verdade, pro air ficar alto */
+    Q.vs -= SKG * .8 * Math.sin(f) * dt;
+    const sp = Math.hypot(Q.vs, Q.vu); if(sp > 0){ const n = Math.max(0, sp - SK3_ATRITO * .6 * dt); Q.vs *= n / sp; Q.vu *= n / sp; }
+    if(vi && sp > .3){ const sg = q.n[1] * q.t[0] - q.n[0] * q.t[1], s2 = Math.hypot(Q.vs, Q.vu); let vu = Math.max(-s2, Math.min(s2, Q.vu + vi * sg * 4.5 * dt)); Q.vs = (Q.vs < 0 ? -1 : 1) * Math.sqrt(Math.max(0, s2 * s2 - vu * vu)); Q.vu = vu; }
+    Q.s += Q.vs * dt; Q.u += Q.vu * dt;
+    if(Q.u < .3){ Q.u = .3; Q.vu = Math.max(0, Q.vu); } if(Q.u > q.L - .3){ Q.u = q.L - .3; Q.vu = Math.min(0, Q.vu); }
+    /* parou antes da beira e voltou: desce de costas */
+    const sobe = Q.vs > 0; if(K.subia && !sobe) K.fakie = !K.fakie; K.subia = sobe;
+    if(Q.s >= q.sTop){ skVert(agora); return; }
+    if(Q.s <= 0){ const e = S.eu, vx = q.n[0] * -Q.vs + q.t[0] * Q.vu, vz = q.n[1] * -Q.vs + q.t[1] * Q.vu; K.v = Math.hypot(vx, vz); if(K.v > .05) e.yaw = Math.atan2(vx, vz);
+      e.x = q.o[0] + q.t[0] * Q.u + q.n[0] * .02; e.z = q.o[1] + q.t[1] * Q.u + q.n[1] * .02; e.y = 0; K.vyc = 0; K.qp = null; K.modo = 'chao'; return; }
+    skPoeQp();
+  }
+  function skPoeQp(){
+    const K = S.sk3, e = S.eu, Q = K.qp, q = Q.q, f = Q.s / q.R, d = q.R * Math.sin(f), c = Math.cos(f);
+    e.x = q.o[0] + q.t[0] * Q.u - q.n[0] * d; e.z = q.o[1] + q.t[1] * Q.u - q.n[1] * d; e.y = q.R * (1 - c);
+    const hx = -q.n[0] * Q.vs * c + q.t[0] * Q.vu, hz = -q.n[1] * Q.vs * c + q.t[1] * Q.vu;
+    if(Math.hypot(hx, hz) > .05) e.yaw = Math.atan2(hx, hz);
+    const L = Math.hypot(q.n[1], q.n[0]) || 1; K.eixo = [q.n[1] / L, 0, -q.n[0] / L];
+  }
+  /* chegou na beira com velocidade: sobe reto (o que ia pra parede vira pra cima) e volta pra mesma rampa */
+  function skVert(agora){
+    const K = S.sk3, e = S.eu, Q = K.qp, q = Q.q, d = q.dTop - .04;
+    e.x = q.o[0] + q.t[0] * Q.u - q.n[0] * d; e.z = q.o[1] + q.t[1] * Q.u - q.n[1] * d; e.y = q.H - .01;
+    e.yaw = Math.atan2(-q.n[0], -q.n[1]); K.v = 0; K.qp = null;
+    skDecola(Q.vs * Math.sin(q.fTop), agora, q);
+    K.ar.vx = q.t[0] * Q.vu + q.n[0] * .08; K.ar.vz = q.t[1] * Q.vu + q.n[1] * .08;
+  }
+  function skAr(dt, vi, subiu, desceu, agora){
+    const K = S.sk3, e = S.eu, A = K.ar;
+    /* o giro: segurando pro lado gira; soltou, completa até o 180 mais perto */
+    if(Math.abs(vi) > .3) A.w = -Math.sign(vi) * SK3_SPIN * Math.min(1, Math.abs(vi));
+    else { const alvo = Math.round(A.giro / Math.PI) * Math.PI; A.w = Math.max(-SK3_SPIN, Math.min(SK3_SPIN, (alvo - A.giro) * 10)); }
+    A.giro += A.w * dt;
+    if(subiu) skFlip(1); else if(desceu) skFlip(-1);
+    const rf = A.flipAlvo - A.flip; if(rf) A.flip += Math.sign(rf) * Math.min(Math.abs(rf), SK3_FLIP * dt);
+    A.vy -= SKG * dt;
+    if(A.vert){ const q = A.vert, l = qpLocal(q, e.x + A.vx * dt, e.z + A.vz * dt); if(l.u < .3 || l.u > q.L - .3){ const vt = A.vx * q.t[0] + A.vz * q.t[1]; A.vx -= q.t[0] * vt; A.vz -= q.t[1] * vt; } }
+    let nx = e.x + A.vx * dt, nz = e.z + A.vz * dt; const ny = e.y + A.vy * dt;
+    /* em cima de um trilho, descendo: grind */
+    if(A.vy < 0 && !A.vert){ const g = skAchaGrind(e, nx, nz, ny); if(g){ skComecaGrind(g, agora); return; } }
+    const lq = skQpEm(nx, nz);
+    if(bate(nx, nz, 0) || skBateCorr(nx, nz, ny) || (!lq && !A.vert && skAltura(nx, nz) > e.y + .08)){ A.vx = 0; A.vz = 0; nx = e.x; nz = e.z; }
+    e.x = nx; e.z = nz; e.y = ny; if(ny > A.yMax) A.yMax = ny;
+    const h = skAltura(e.x, e.z);
+    if(A.vy < 0 && e.y <= h){ e.y = h; skPousa(agora, skQpEm(e.x, e.z)); }
+  }
+  /* chegou no chão: o shape terminou de girar e o corpo chegou alinhado (de frente ou de costas)? */
+  function skPousa(agora, lq){
+    const K = S.sk3, e = S.eu, A = K.ar; K.ar = null; K.vyc = 0;
+    const resto = Math.abs(A.flipAlvo - A.flip), torto = Math.abs(angN(A.giro - Math.round(A.giro / Math.PI) * Math.PI));
+    if(resto > Math.PI * .5 || torto > .62){ skCai(lq, A); return; }
+    let rumo;
+    if(lq){ const q = lq.q, f = Math.asin(Math.min(1, lq.l.d / q.R)), dentro = -(A.vx * q.n[0] + A.vz * q.n[1]), vs = dentro * Math.cos(f) + A.vy * Math.sin(f);
+      K.qp = { q, s: f * q.R, vs, u: lq.l.u, vu: A.vx * q.t[0] + A.vz * q.t[1] }; K.subia = vs > 0; K.modo = 'qp'; rumo = vs > 0 ? Math.atan2(-q.n[0], -q.n[1]) : Math.atan2(q.n[0], q.n[1]); }
+    else { const hv = Math.hypot(A.vx, A.vz); K.v = hv; K.modo = 'chao'; rumo = hv > .3 ? Math.atan2(A.vx, A.vz) : A.yaw0; }
+    const shape = A.yaw0 + (A.fakie0 ? Math.PI : 0) + A.giro, rel = angN(shape - rumo);
+    K.fakie = Math.abs(rel) > Math.PI / 2; e.yaw = rumo; K.rev = angN(shape - rumo - (K.fakie ? Math.PI : 0));
+    if(lq) skPoeQp();
+    const V = skSomV(); if(V) try{ V.cai(.55); }catch(x){}
+    const tr = skNomeia(A, K.fakie); if(tr) skTruque(tr.nome, tr.pts, agora);
+  }
+  function skNomeia(A, fakie){
+    const meias = Math.round(Math.abs(A.giro) / Math.PI), lado = A.giro < 0 ? 'Frontside' : 'Backside';
+    const k = A.flips.filter(x => x === 'k').length, hh = A.flips.length - k, dobra = n => ['', '', 'Double ', 'Triple '][n] || '';
+    const flip = [k ? dobra(k) + 'Kickflip' : '', hh ? dobra(hh) + 'Heelflip' : ''].filter(Boolean).join(' + ');
+    const giro = meias ? (meias === 1 ? lado + ' 180' : meias * 180 + '') : '', alto = Math.max(0, A.yMax - A.y0);
+    let nome, pts;
+    if(A.vert){ nome = flip ? [giro, flip].filter(Boolean).join(' ') : meias === 1 ? lado + ' Air' : meias ? `${meias * 180} Air` : fakie ? 'Air to fakie' : 'Air'; pts = 150 + Math.round(alto * 60); }
+    else if(!flip && !meias){ if(alto < .25) return null; nome = A.ollie ? 'Ollie' : 'Air'; pts = A.ollie ? 50 : 70 + Math.round(alto * 40); }
+    else { nome = [giro, flip].filter(Boolean).join(' '); pts = 60 + Math.round(alto * 40); }
+    return { nome, pts: pts + meias * 140 + A.flips.length * 180 };
+  }
+  const skFmt = n => Math.round(n).toLocaleString('pt-BR');
+  function skTruque(nome, pts, agora){
+    const K = S.sk3; if(!K.combo) K.combo = { itens: [], soma: 0 };
+    K.combo.itens.push(nome); K.combo.soma += pts; K.combo.ate = agora + 2200;
+    const n = Math.min(8, K.combo.itens.length);
+    skPop(nome, `+${skFmt(pts)}${n > 1 ? ' · combo x' + n : ''}`, '');
+    const V = skSomV(); if(V && V.acerto) try{ V.acerto(); }catch(x){}
+    if(C.verso && C.verso.anunciar && n >= 3) C.verso.anunciar();
+  }
+  function skFechaCombo(){
+    const K = S.sk3, c = K.combo; K.combo = null; if(!c) return;
+    const n = Math.min(8, c.itens.length), tot = c.soma * n; K.pts += tot;
+    const r = skRec(), recorde = tot > (r.combo || 0);
+    if(n > 1 || recorde) skPop(recorde ? 'Recorde de combo!' : `Combo x${n}!`, `+${skFmt(tot)} pontos`, 'banca');
+    K.comboUlt = tot; skGuarda();
+  }
+  function skCai(lq, A){
+    const K = S.sk3, e = S.eu, agora = performance.now();
+    K.combo = null; K.modo = 'caido'; K.caiu = agora; K.v = 0; K.qp = null; K.gr = null; K.fakie = false; K.rev = 0; K.vyc = 0;
+    /* na rampa, escorrega até o pé dela */
+    if(lq){ const q = lq.q; e.x = q.o[0] + q.t[0] * lq.l.u + q.n[0] * .7; e.z = q.o[1] + q.t[1] * lq.l.u + q.n[1] * .7; }
+    e.y = skAltura(e.x, e.z); if(A) e.yaw = A.yaw0;
+    skPop('Caiu!', 'O combo zerou.', 'caiu');
+    const V = skSomV(); if(V) try{ V.cai(1); if(V.erro) V.erro(); }catch(x){} if(C.controle) C.controle.treme(260, .7);
+  }
+  /* o grind: descendo em cima de um trilho, na linha dele e indo junto com ele */
+  function skAchaGrind(e, nx, nz, ny){
+    const A = S.sk3.ar, sp = Math.hypot(A.vx, A.vz); if(sp < 1.2) return null;
+    for(const g of SK3_GRIND){
+      if(e.y < g.h - .02 || ny > g.h + .06) continue;
+      const ax = g.b[0] - g.a[0], az = g.b[1] - g.a[1], L = Math.hypot(ax, az), tx = ax / L, tz = az / L;
+      const t = ((nx - g.a[0]) * tx + (nz - g.a[1]) * tz) / L; if(t < .02 || t > .98) continue;
+      if(Math.abs((nx - g.a[0]) * -tz + (nz - g.a[1]) * tx) > .4) continue;
+      const vl = A.vx * tx + A.vz * tz; if(Math.abs(vl) < sp * .5) continue;
+      return { g, t, L, tx, tz, v: vl };
+    }
+    return null;
+  }
+  function skComecaGrind(G, agora){
+    const K = S.sk3, e = S.eu, A = K.ar;
+    if(Math.abs(A.flipAlvo - A.flip) > Math.PI * .5){ skCai(null, A); return; }
+    const tr = skNomeia(A, false); if(tr) skTruque(tr.nome, tr.pts, agora);
+    const rumo = Math.atan2(G.tx * Math.sign(G.v), G.tz * Math.sign(G.v)), shape = A.yaw0 + (A.fakie0 ? Math.PI : 0) + A.giro, rel = angN(shape - rumo);
+    /* o jeito do grind: o shape ao longo do trilho é 50-50, atravessado é boardslide */
+    const atravessado = Math.abs(Math.sin(rel)) > .5, off = atravessado ? (Math.sin(rel) > 0 ? Math.PI / 2 : -Math.PI / 2) : (Math.cos(rel) < 0 ? Math.PI : 0);
+    K.gr = { g: G.g, t: G.t, L: G.L, tx: G.tx, tz: G.tz, v: G.v, off, nome: atravessado ? 'Boardslide' : '50-50 grind', t0: agora, somT: 0 };
+    K.ar = null; K.modo = 'grind'; e.y = G.g.h; e.yaw = rumo; K.rev = 0;
+    skPop(K.gr.nome, 'segura…', 'grind');
+  }
+  function skGrind(dt, agora){
+    const K = S.sk3, e = S.eu, G = K.gr;
+    G.v -= Math.sign(G.v) * .7 * dt; G.t += G.v * dt / G.L;
+    const g = G.g; e.x = g.a[0] + (g.b[0] - g.a[0]) * G.t; e.z = g.a[1] + (g.b[1] - g.a[1]) * G.t; e.y = g.h;
+    if(agora - G.somT > 75){ G.somT = agora; const V = skSomV(); if(V && V.grind) try{ V.grind(); }catch(x){} }
+    if(G.t <= 0 || G.t >= 1 || Math.abs(G.v) < .6) skSaiGrind(false, agora);
+  }
+  /* saiu do trilho (na ponta, devagar ou pulando): conta o grind e o shape volta pro rumo */
+  function skSaiGrind(pop, agora){
+    const K = S.sk3, e = S.eu, G = K.gr; if(!G) return; K.gr = null;
+    const seg = (agora - G.t0) / 1000;
+    K.v = Math.abs(G.v); e.yaw = Math.atan2(G.tx * Math.sign(G.v), G.tz * Math.sign(G.v));
+    K.fakie = Math.abs(G.off) > Math.PI * .75; K.rev = angN(G.off - (K.fakie ? Math.PI : 0));
+    skTruque(G.nome, 60 + Math.round(seg * 220), agora);
+    skDecola(pop ? SK3_OLLIE * .9 : .4, agora, null);
+    if(pop){ const V = skSomV(); if(V) try{ V.pulo('skate'); }catch(x){} }
+  }
+  /* a câmera: no chão, atrás de quem anda; na rampa e no air dela, olhando pra rampa; no ar do chão, fica onde tava */
+  function skCamera(dt){
+    const K = S.sk3, e = S.eu, cm = S.cam, f = Math.min(1, dt * 6);
+    cm.tx += (e.x - cm.tx) * f; cm.tz += (e.z - cm.tz) * f; cm.ty += (e.y * .75 + 1.1 - cm.ty) * f;
+    if(Date.now() - (S.arrastou || 0) < 3000) return;
+    let alvo = null;
+    if(K.modo === 'qp' || (K.modo === 'ar' && K.ar.vert)){ const q = K.qp ? K.qp.q : K.ar.vert; alvo = Math.atan2(q.n[0], q.n[1]); }
+    else if((K.modo === 'chao' && K.v > .4) || K.modo === 'grind') alvo = e.yaw + Math.PI;
+    if(alvo != null){ const d = angN(alvo - cm.th); cm.th += d * Math.min(1, dt * (K.modo === 'qp' ? 2 : 3)); }
+    cm.ph += (.32 - cm.ph) * Math.min(1, dt * 2); cm.dist += (6.4 - cm.dist) * Math.min(1, dt * 2);
+  }
+  function skSomRola(agora){
+    const V = skSomV(); if(!V || !V.motor) return; const K = S.sk3;
+    if(agora - (K.somT || 0) < 90) return; K.somT = agora;
+    try{ V.motor((K.modo === 'chao' && K.v > .3) || K.modo === 'qp' ? 'skate' : null, Math.min(1, (K.modo === 'qp' ? Math.hypot(K.qp.vs, K.qp.vu) : K.v) / SK3_VMAX + .1)); }catch(x){}
+  }
+  /* o nome da manobra no meio da tela, que pula e some */
+  function skPop(t, s, cls){
+    if(!S.el) return; let el = S.el.querySelector('.cs-sk3');
+    if(!el){ el = document.createElement('div'); el.className = 'cs-sk3'; el.setAttribute('aria-live', 'polite'); S.el.appendChild(el); }
+    el.innerHTML = `<b>${esc(t)}</b><span>${esc(s)}</span>`; el.className = 'cs-sk3 ' + (cls || ''); void el.offsetWidth; el.classList.add('on');
+    clearTimeout(S.skPopT); S.skPopT = setTimeout(() => { if(el) el.classList.remove('on'); }, cls === 'grind' ? 4000 : 1400);
+  }
+  function skRec(){ try{ const o = JSON.parse(localStorage.getItem(SK3_K) || 'null'); return o && typeof o === 'object' ? o : {}; }catch(e){ return {}; } }
+  function skGuarda(){
+    const K = S.sk3; if(!K) return; const o = skRec(), hoje = diaBR(); if(o.dia !== hoje){ o.dia = hoje; o.pts = 0; }
+    if(K.pts > (o.pts || 0)) o.pts = K.pts; if(K.pts > (o.max || 0)) o.max = K.pts; if((K.comboUlt || 0) > (o.combo || 0)) o.combo = K.comboUlt;
+    try{ localStorage.setItem(SK3_K, JSON.stringify(o)); }catch(e){}
+  }
+  /* saiu da pista: o combo que tava no ar conta, a sessão vai pro recorde e o barulho das rodinhas para */
+  function skFim(){
+    const K = S.sk3; if(!K) return; if(K.combo && K.modo !== 'caido') skFechaCombo();
+    const o = skRec(), dia = K.pts > 0 && K.pts >= (o.pts || 0), vida = K.pts > 0 && K.pts >= (o.max || 0); skGuarda();
+    if(K.pts > 0) C.toast(`Sessão de skate: ${skFmt(K.pts)} pontos.${vida ? ' O teu recorde de todos os tempos!' : dia ? ' O teu recorde de hoje!' : ''}`, 4200);
+    const V = skSomV(); if(V && V.motor) try{ V.motor(null); }catch(x){}
+    S.sk3 = null; const el = S.el && S.el.querySelector('.cs-sk3'); if(el) el.classList.remove('on');
+  }
+  function painelSkate(){
+    const el = C.$('cs-pesca'); if(!el) return; const agora = performance.now(); if(agora - (S.skPainelT || 0) < 150) return; S.skPainelT = agora;
+    const K = S.sk3, r = skRec(), hoje = r.dia === diaBR() ? r.pts || 0 : 0, toque = !!S.pad;
+    const combo = K.combo ? `${K.combo.itens.slice(-3).map(esc).join(' + ')}${K.combo.itens.length > 3 ? ' …' : ''}: ${skFmt(K.combo.soma)} x${Math.min(8, K.combo.itens.length)}` : K.modo === 'grind' ? 'Grind…' : K.modo === 'caido' ? 'Caiu! Levanta e vai de novo.' : 'Emenda manobra pra fazer combo.';
+    /* a explicação dos controles só até a primeira manobra (depois o placar fica enxuto) */
+    const dica = toque ? 'Direcional: pra cima empurra, pros lados vira. Pular: ollie. No ar, o direcional faz a manobra: pros lados gira, pra cima kickflip, pra baixo heelflip.' : '↑ empurra, ↓ freia, ← → vira, Espaço pula. No ar: ← → gira, ↑ kickflip, ↓ heelflip. Cai em cima da borda, do corrimão ou da beira do caixote: grind.';
+    const html = `<b class="cs-pesca-t">${ico('raio')} Pista de skate · ${skFmt(K.pts)} pontos</b><p class="cs-sk3-c">${combo}</p><small>${K.pts || K.combo ? '' : dica + ' '}Hoje: ${skFmt(Math.max(K.pts, hoje))}. Maior combo: ${skFmt(r.combo || 0)}.</small>`;
+    el.hidden = false; el.classList.add('kart');
+    if(el.dataset.h !== html){ el.dataset.h = html; el.innerHTML = html; }
+  }
+  /* ---------- o desenho do skatista: o boneco de lado em cima do shape, o shape que vira no flip, o corpo que gira e
+     que deita na curva da rampa ---------- */
+  const SK3_SHAPE = '#2B2F38';
+  const rotX = (p, a, py) => { const c = Math.cos(a), s = Math.sin(a), y = p[1] - py; return [p[0], py + y * c - p[2] * s, y * s + p[2] * c]; };
+  const rotY = (p, a) => { const c = Math.cos(a), s = Math.sin(a); return [p[0] * c + p[2] * s, p[1], -p[0] * s + p[2] * c]; };
+  const rotEixo = (p, k, a) => { const c = Math.cos(a), s = Math.sin(a), d = k[0] * p[0] + k[1] * p[1] + k[2] * p[2], x = [k[1] * p[2] - k[2] * p[1], k[2] * p[0] - k[0] * p[2], k[0] * p[1] - k[1] * p[0]];
+    return [p[0] * c + x[0] * s + k[0] * d * (1 - c), p[1] * c + x[1] * s + k[1] * d * (1 - c), p[2] * c + x[2] * s + k[2] * d * (1 - c)]; };
+  function skMexe(lista, fn){ lista.forEach(s => { s.v = s.v.map(fn); let cx = 0, cy = 0, cz = 0; s.v.forEach(p => { cx += p[0]; cy += p[1]; cz += p[2]; }); s.cx = cx / 8; s.cy = cy / 8; s.cz = cz / 8; }); return lista; }
+  /* o shape de lado (o nariz é o x+), centrado nos pés: lixa em cima, a arte rosa embaixo (aparece no flip), trucks e rodinhas */
+  const skShapeBl = () => [B(-.42, .1, -.11, .84, .03, .22, SK3_SHAPE), B(-.4, .13, -.105, .8, .004, .21, '#16181D'), B(-.38, .096, -.1, .76, .005, .2, ROSA), B(-.2, .097, -.06, .4, .004, .12, AMARELO),
+    B(-.3, .055, -.08, .07, .045, .16, SK3_FERRO), B(.23, .055, -.08, .07, .045, .16, SK3_FERRO), ...[[-.31, -.13], [-.31, .08], [.22, -.13], [.22, .08]].map(([x, z]) => B(x, 0, z, .09, .07, .05, BRANCO))];
+  function skDesenha(){
+    const K = S.sk3, e = S.eu, A = K.ar, G = K.gr, deitado = K.modo === 'caido';
+    const shapeYaw = A ? A.yaw0 + (A.fakie0 ? Math.PI : 0) + A.giro + A.rev0 * Math.max(0, 1 - (performance.now() - A.t0) / 250) : G ? e.yaw + G.off : e.yaw + (K.fakie ? Math.PI : 0) + K.rev;
+    const psi = shapeYaw - Math.PI / 2, flip = A ? A.flip : 0, tilt = K.tilt, eixo = K.eixo, X = e.x, Y = e.y, Z = e.z;
+    const vaiPro = p => { let q = rotY(p, psi); if(Math.abs(tilt) > .01) q = rotEixo(q, eixo, tilt); return [q[0] + X, q[1] + Y, q[2] + Z]; };
+    const corpo = skMexe(boneco(e.av, 0, 0, 0, 0, false, false), p => vaiPro(deitado ? rotX([p[0], p[1] + .1, p[2]], -Math.PI / 2, .12) : [p[0], p[1] + .13 + (A ? .05 : 0), p[2]]));
+    const shape = skMexe(skShapeBl().map(b => solido(b, null, b.c, 'eu', {})), p => vaiPro(deitado ? rotX([p[0] + .1, p[1], p[2] + .7], Math.PI, .07) : flip ? rotX(p, flip, .115) : p));
+    return corpo.concat(shape);
+  }
+  /* pra quem vê de fora (a presença): o corpo de lado, do jeito que o shape aponta */
+  const skYawCorpo = () => { const K = S.sk3, e = S.eu; if(!K || !e) return e ? e.yaw : 0; const A = K.ar; return (A ? A.yaw0 + (A.fakie0 ? Math.PI : 0) + A.giro : K.gr ? e.yaw + K.gr.off : e.yaw + (K.fakie ? Math.PI : 0) + K.rev) - Math.PI / 2; };
+
   /* ---------- abrir e fechar ---------- */
   function monta(){
     const el = document.createElement('div'); el.className = 'cs-casa'; el.id = 'cs-casa';
@@ -5636,7 +6056,7 @@
       <button type="button" class="cs-porta" id="cs-porta" data-act="cs-porta" hidden></button><button type="button" class="cs-briga" id="cs-briga" data-act="cs-briga" hidden></button><div class="cs-pesca" id="cs-pesca" aria-live="polite" hidden></div>`;
     document.body.appendChild(el); S.el = el; S.cv = C.$('cs-cv'); S.ctx = S.cv.getContext('2d');
     /* v3.40: no celular, o controle de videogame (direcional + pular); o botão de som é o mesmo da cidade */
-    if(C.pad && C.pad.toque()){ S.pad = C.pad.cria(el, { pula: () => (S.pesca ? puxa() : S.desafio ? dispara() : S.corrida ? (S.corrida.kart ? pulaKart(true) : null) : pulaCasa()), soltou: () => { if(S.corrida && S.corrida.kart) pulaKart(false); } }); el.classList.add('toque'); }
+    if(C.pad && C.pad.toque()){ S.pad = C.pad.cria(el, { pula: () => (S.sk3 ? pulaSkate() : S.pesca ? puxa() : S.desafio ? dispara() : S.corrida ? (S.corrida.kart ? pulaKart(true) : null) : pulaCasa()), soltou: () => { if(S.corrida && S.corrida.kart) pulaKart(false); } }); el.classList.add('toque'); }
     if(C.versoSom && C.versoSom.botao) C.versoSom.botao(C.$('cs-som'));
     S.cv.addEventListener('pointerdown', pointerDown); S.cv.addEventListener('pointermove', pointerMove); S.cv.addEventListener('pointerup', pointerUp); S.cv.addEventListener('pointercancel', pointerUp);
     S.cv.addEventListener('wheel', roda, { passive: false });
@@ -5703,6 +6123,7 @@
     const nasce = livrePerto(ENTRADA.x, ENTRADA.z - 1.1, 0);
     S.eu = { x: nasce[0], z: nasce[1], y: 0, yaw: Math.PI, passo: 0, andando: false, av };
     S.calc = L && L.calc ? calcCria() : null;
+    S.sk3 = L && PL.skate ? skNovo() : null;
     if(!S.el || !S.el.isConnected) monta(); else { S.el.hidden = false; C.$('cs-tags').innerHTML = ''; tamanho(); if(C.versoSom && C.versoSom.botao) C.versoSom.botao(C.$('cs-som')); }
     const pc = C.$('cs-porta'); if(pc){ pc.hidden = true; pc.dataset.txt = ''; } const pb = C.$('cs-briga'); if(pb){ pb.hidden = true; pb.dataset.txt = ''; }
     const nomeC = L ? L.titulo : meu ? 'Tua casa' : 'Casa de @' + (dono.handle || '');
@@ -5725,6 +6146,7 @@
     if(!fica) T.tira('3d');
     const dc = C.$('cs-dica'); if(dc){ clearTimeout(S.dicaT); dc.hidden = true; } if(S.el) S.el.classList.remove('dica-on');
     if(S.modo === 'colocar') cancelaGhost();
+    if(S.sk3) skFim();
     S.aberta = false; S.lugar = ''; cancelAnimationFrame(S.raf); S.raf = 0; S.teclas.clear(); S.padTh = null; S.perto = null; if(S.pad) S.pad.solta();
     S.disco = null; S.discoAtual = ''; S.ouvindo = ''; S.pesca = null; if(S.corrida) somPara(); S.corrida = null; S.desafio = null; S.bsb = null; S.distPesca = null; S.kartVivo = null; S.calc = null; if(C.beats) C.beats.para();
     const pq = C.$('cs-pesca'); if(pq) pq.hidden = true;
@@ -5816,7 +6238,7 @@
     camisa: () => camisaSharks(),
     placar: () => (S.aberta && S.lugar === 'pesca' && S.placar && S.placar.r === rodadaAgora() ? { c: Math.round(S.placar.kg * 100), r: S.placar.r % 1e6 } : null), quadra: () => { const Q = quadraAqui(); if(!Q) return null; return { qp: melhorQuadra(Q), qd: diaBR() % 1e5 }; },
     corrida: () => { const P = pistaAqui(); if(!P) return null; const m = melhorHoje(P); return { tc: m ? Math.round(m / 10) : 0, td: diaBR() % 1e5, tv: P.tv || 0 }; },
-    pos: () => (S.aberta && S.eu ? Object.assign({ x: S.eu.x, y: S.eu.y || 0, z: S.eu.z, yaw: S.eu.yaw, sit: S.eu.sit ? 1 : 0, andando: !!(S.eu.andando || (S.corrida && Math.abs(S.eu.vel || 0) > .3)), mt: S.corrida ? VEIC_TV[S.corrida.P.veic] || 0 : 0 }, kartPos()) : null), gente,
+    pos: () => (S.aberta && S.eu ? Object.assign({ x: S.eu.x, y: S.eu.y || 0, z: S.eu.z, yaw: S.sk3 ? skYawCorpo() : S.eu.yaw, sit: S.eu.sit ? 1 : 0, andando: !!(S.eu.andando || (S.corrida && Math.abs(S.eu.vel || 0) > .3)), mt: S.corrida ? VEIC_TV[S.corrida.P.veic] || 0 : S.sk3 ? 6 : 0 }, kartPos()) : null), gente,
     /* v3.53: a corrida ao vivo (o bicho na presença, os eventos da sala) */
     kartMeta: () => (S.aberta && comBicho() && bichoOk(S.kartBicho) ? { kp: S.kartBicho, kpt: S.kartBichoT || 0 } : null), kartEvento };
   /* o que vai no movimento durante a corrida ao vivo: o bicho, quanto andou e a chegada */

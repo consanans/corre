@@ -6068,3 +6068,16 @@ html.embed .bio-pe,html.embed .bio-corre{display:none}
 @keyframes tv-astro-sobe{0%,8%{opacity:0;transform:translateY(26px)}32%,100%{opacity:1;transform:none}}
 @keyframes tv-nome{0%,12%{opacity:0;letter-spacing:.5em}36%,100%{opacity:1;letter-spacing:.14em}}
 @media (prefers-reduced-motion:reduce){ .tema-veu{display:none} }
+
+/* v5.09 · a pista de skate 3D: o nome da manobra no meio da tela (pula e some) e a linha do combo no placar de cima */
+.cs-sk3{position:absolute;left:50%;top:24%;z-index:6;transform:translate(-50%,-50%) scale(.6);opacity:0;pointer-events:none;display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center;max-width:min(92vw,560px);transition:opacity .25s,transform .25s}
+.cs-sk3.on{opacity:1;transform:translate(-50%,-50%) scale(1);animation:sk3-pula .42s cubic-bezier(.2,1.6,.4,1)}
+.cs-sk3 b{font-weight:900;font-size:clamp(22px,4.6vw,40px);line-height:1.05;letter-spacing:.01em;text-transform:uppercase;color:#FFF;-webkit-text-stroke:2px #0F1218;paint-order:stroke fill;text-shadow:3px 3px 0 #FF4F9A}
+.cs-sk3 span{font-weight:800;font-size:clamp(14px,2.6vw,19px);color:#0F1218;background:#F2EC54;border:2px solid #0F1218;border-radius:999px;padding:3px 12px}
+.cs-sk3.caiu b{text-shadow:3px 3px 0 #FF8A3D}
+.cs-sk3.caiu span{background:#FFFFFF}
+.cs-sk3.banca b{color:#F2EC54}
+.cs-sk3.grind b{text-shadow:3px 3px 0 #2E5BFF}
+@keyframes sk3-pula{0%{transform:translate(-50%,-50%) scale(.5) rotate(-6deg)}100%{transform:translate(-50%,-50%) scale(1) rotate(0)}}
+.cs-pesca .cs-sk3-c{margin:4px 0;font-weight:800;font-size:13px;line-height:1.3}
+@media (prefers-reduced-motion:reduce){ .cs-sk3.on{animation:none} }
