@@ -204,6 +204,11 @@ testa teste509mz.sql 11
 delta delta-v510.sql 'delta v5.10 ok'
 delta delta-v510.sql 'delta v5.10 ok'
 testa teste510.sql 6
+# v5.12: a Sala do Cliente (o link fixo por marca, o material, os pedidos que viram tarefa, o entregue e a cobrança)
+$P -f "$AQUI/semente512.sql"
+delta delta-v512.sql 'delta v5.12 ok'
+delta delta-v512.sql 'delta v5.12 ok'
+testa teste512.sql 13
 . "$AQUI/virada343.sh"
 if grep -q 'FALHOU\|ERROR' $D/saida; then echo "deu FALHOU ou erro (acima)"; exit 1; fi
 echo "tudo ok: $(grep -c '^ok:' $D/saida) checagens"

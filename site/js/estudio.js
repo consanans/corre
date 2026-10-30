@@ -516,6 +516,8 @@
     /* v3.40: em qual conta sai (post novo: a conta conectada com o @ da marca, à vista; a pessoa troca se quiser) */
     const contaIni = p ? (p.ig_conta || '') : ((C.ig && C.ig.daMarca(mk)) || {}).id || '';
     let fotoFile = null, dirty = true, timer = 0;
+    /* v5.12: a foto que o cliente mandou pela Sala do Cliente entra no post do jeito que veio */
+    if(pre && pre.foto instanceof Blob){ fotoFile = pre.foto; art.foto = URL.createObjectURL(pre.foto); art.modelo = 'subida'; }
     C.sheet(`<div class="form es-ed"><div class="sheet-head"><h2>${novo ? 'Novo post' : 'Editar post'} · ${esc(mk.marca)}</h2><button type="button" class="cbtn plain" data-close aria-label="Fechar">${ico('x')}</button></div>
       <div class="es-cols">
         <div class="es-art">

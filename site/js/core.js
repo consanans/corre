@@ -613,6 +613,31 @@
         async link(path){ const r = need(await sb.storage.from('corre-anexos').createSignedUrl(path, 3600)); return r && r.signedUrl; },
         async tira(path){ try{ await sb.storage.from('corre-anexos').remove([path]); }catch(e){} }
       },
+      /* v5.12: a Sala do Cliente. O cliente manda o material sem login pra pasta PRIVADA corre-sala (na pasta com o código
+         da sala; o banco confere); quem cuida da marca abre com link assinado de 1 hora e apaga. O grande sobe em pedaços. */
+      sala: {
+        async sobe(path, file, onProg){
+          const tipo = file.type || 'application/octet-stream';
+          if(file.size > TUS_PEDACO){
+            try{
+              const u = new URL(CFG.SUPABASE_URL), m = /^([a-z0-9]+)\.supabase\.co$/.exec(u.host);
+              await sobeTus({ endpoint: (m ? `https://${m[1]}.storage.supabase.co` : u.origin) + '/storage/v1/upload/resumable',
+                cabecalho: async () => { const s = (await sb.auth.getSession()).data.session; return { authorization: `Bearer ${s ? s.access_token : CFG.SUPABASE_ANON_KEY}`, apikey: CFG.SUPABASE_ANON_KEY }; },
+                pasta: 'corre-sala', caminho: path, file, tipo, onProg });
+              return path;
+            }catch(e){
+              if(e && e.grande) throw { corre: true, grande: true, message: 'Esse arquivo passou de 150 MB. Manda mais leve.' };
+              if(!(e && e.tus === 'cria')) throw { corre: true, message: 'A internet caiu no meio e o arquivo não terminou de subir. Tenta de novo.' };
+            }
+          }
+          const r = await sb.storage.from('corre-sala').upload(path, file, { contentType: tipo, upsert: false });
+          if(r.error && /Payload too large|exceeded the maximum|413/i.test((r.error.message || '') + ' ' + (r.error.statusCode || ''))) throw { corre: true, grande: true, message: 'Esse arquivo passou de 150 MB. Manda mais leve.' };
+          need(r); if(onProg) onProg(1);
+          return path;
+        },
+        async link(path, baixar){ const r = need(await sb.storage.from('corre-sala').createSignedUrl(path, 3600, baixar ? { download: baixar } : undefined)); return r && r.signedUrl; },
+        async tira(paths){ for(let i = 0; i < (paths || []).length; i += 100){ try{ await sb.storage.from('corre-sala').remove(paths.slice(i, i + 100)); }catch(e){} } }
+      },
       async unlink(url){ const m = /\/object\/public\/(corre|corre-video)\/(.+)$/.exec(url || ''); if(m) try{ await sb.storage.from(m[1]).remove([decodeURIComponent(m[2])]); }catch(e){} limpa(); },
       /* v4.31: apagar a conta leva junto as fotos, os vídeos e os arquivos que a pessoa subiu (cada pasta é do login
          dela). A lista sai antes de apagar a conta; o "tira" vem depois, ainda com o login da sessão. */
@@ -627,6 +652,8 @@
           }
           if(paths.length) out.push({ b, paths });
         }
+        /* v5.12: o material que os clientes mandaram pra Sala (mora na pasta do código da sala, não na do login) */
+        try{ const r = need(await sb.from('corre_sala_material').select('caminho').eq('dono', uid).limit(5000)); if(r && r.length) out.push({ b: 'corre-sala', paths: r.map(x => x.caminho) }); }catch(e){}
         return out;
       },
       async tiraPastas(L){
@@ -659,8 +686,8 @@
   const HOUZI_EX = {"spec":{"v":1,"territorio":"editorial","amostra":1,"nome":"Grão Torto","tagline":"café de esquina","nicho":"cafe","cidade":"Londrina, PR","desde":"2021","pers":[0.35,0.55,0.55,0.35,0.2],"modo":"branding","campos":["cafe","rua"],"logo":{"arranjo":"wordmark","caixa":"titulo","track":0.005,"efeito":"","gesto":"troca","tagline":true,"corTexto":"texto","trocaPor":"ideia"},"simbolo":{"tipo":"ideia","icone":"xicara","ideia":"grao","estilo":"linha","seed":84829},"tipo":{"display":"lora-bolditalic","texto":"lora-regular"},"cores":{"p":"#2B2B2E","s":"#D8D4CB","a":"#B8913A","ink":"#161618","paper":"#F6F2EA","fundo":"paper","esquema":"receita","receita":"Grafite e Ouro"},"textura":"papel","aplic":["revista","sacola","cartao","instagram","copo","fachada"],"seed":273184829,"descr":"Café de bairro, torra própria"},"voz":{"conceito":"Grão Torto é o café que trata cada detalhe como página de revista.","manifesto":"Grão Torto acredita que pressa é inimiga do bom. Por isso cada café é pensado como uma página de revista: com respiro, com ritmo, com intenção. É pra quem acorda cedo que repara. Que lê a legenda inteira. Que volta pela segunda vez.","taglines":["Grão Torto. Pra ler devagar.","A pausa boa do dia, com tempo.","O detalhe é a história.","Feito com atenção em Londrina.","Menos, e melhor."],"e":["calma","precisa","elegante"],"nao_e":["barulhenta","apressada","exagerada"],"fala":["Pensado com calma, feito pra durar.","Nem tudo precisa ser pra ontem.","A pausa boa do dia, no detalhe."],"nao_fala":["IMPERDÍVEL!!!","Só hoje, corre!","O melhor do Brasil."],"bio":"café de esquina · Café em Londrina. Chama no direct.","wa":"Olá, que bom ter você aqui. Aqui é o Grão Torto. Me conta o que procura e eu te ajudo com calma.","ia":false}};
   function demoApi(){
     const KEY = 'corre-demo-v2', mem = {};
-    const T = ['corre_perfis', 'corre_portfolio', 'corre_destaques', 'corre_stories', 'corre_insta', 'corre_contas', 'corre_lancamentos', 'corre_rolo_salvos', 'corre_leads', 'corre_posts', 'corre_feed', 'corre_curtidas', 'corre_comentarios', 'corre_seguindo', 'corre_story_curtidas', 'corre_visitas', 'corre_estilo', 'corre_produtos', 'corre_mural', 'corre_mural_propostas', 'corre_vendas', 'corre_refs', 'corre_lead_fotos', 'corre_mural_chat', 'corre_verso_bloq', 'corre_votos', 'corre_salvos', 'corre_recomendacoes', 'corre_feed_vistas', 'corre_avisos_lidos', 'corre_conversas', 'corre_conversa_membros', 'corre_mensagens', 'corre_push', 'corre_push_pref', 'corre_grupos', 'corre_grupo_membros', 'corre_houzi_marcas', 'corre_correal', 'corre_correal_log', 'corre_tarefa_vez', 'corre_ig_contas', 'corre_houzi_privado', 'corre_assinaturas', 'corre_asaas_clientes', 'corre_skins', 'corre_bio_conta', 'corre_convites', 'corre_ativo_dia', 'corre_skin_pedidos', 'corre_aprovacoes', 'corre_caderno', 'corre_atendente', 'corre_atende_conversas', 'corre_piloto', 'corre_piloto_log', 'corre_entidades', 'corre_doacao_conta', 'corre_nascimento'];
-    const PRIV = ['corre_contas', 'corre_lancamentos', 'corre_rolo_salvos', 'corre_leads', 'corre_posts', 'corre_visitas', 'corre_estilo', 'corre_produtos', 'corre_mural', 'corre_mural_propostas', 'corre_vendas', 'corre_refs', 'corre_lead_fotos', 'corre_verso_bloq', 'corre_votos', 'corre_salvos', 'corre_feed_vistas', 'corre_avisos_lidos', 'corre_push', 'corre_push_pref', 'corre_correal', 'corre_correal_log', 'corre_tarefa_vez', 'corre_ig_contas', 'corre_houzi_privado', 'corre_assinaturas', 'corre_asaas_clientes', 'corre_skins', 'corre_bio_conta', 'corre_convites', 'corre_ativo_dia', 'corre_skin_pedidos', 'corre_aprovacoes', 'corre_caderno', 'corre_atendente', 'corre_atende_conversas', 'corre_piloto', 'corre_piloto_log', 'corre_nascimento'];
+    const T = ['corre_perfis', 'corre_portfolio', 'corre_destaques', 'corre_stories', 'corre_insta', 'corre_contas', 'corre_lancamentos', 'corre_rolo_salvos', 'corre_leads', 'corre_posts', 'corre_feed', 'corre_curtidas', 'corre_comentarios', 'corre_seguindo', 'corre_story_curtidas', 'corre_visitas', 'corre_estilo', 'corre_produtos', 'corre_mural', 'corre_mural_propostas', 'corre_vendas', 'corre_refs', 'corre_lead_fotos', 'corre_mural_chat', 'corre_verso_bloq', 'corre_votos', 'corre_salvos', 'corre_recomendacoes', 'corre_feed_vistas', 'corre_avisos_lidos', 'corre_conversas', 'corre_conversa_membros', 'corre_mensagens', 'corre_push', 'corre_push_pref', 'corre_grupos', 'corre_grupo_membros', 'corre_houzi_marcas', 'corre_correal', 'corre_correal_log', 'corre_tarefa_vez', 'corre_ig_contas', 'corre_houzi_privado', 'corre_assinaturas', 'corre_asaas_clientes', 'corre_skins', 'corre_bio_conta', 'corre_convites', 'corre_ativo_dia', 'corre_skin_pedidos', 'corre_aprovacoes', 'corre_caderno', 'corre_atendente', 'corre_atende_conversas', 'corre_piloto', 'corre_piloto_log', 'corre_entidades', 'corre_doacao_conta', 'corre_nascimento', 'corre_sala_material', 'corre_sala_pedidos'];
+    const PRIV = ['corre_contas', 'corre_lancamentos', 'corre_rolo_salvos', 'corre_leads', 'corre_posts', 'corre_visitas', 'corre_estilo', 'corre_produtos', 'corre_mural', 'corre_mural_propostas', 'corre_vendas', 'corre_refs', 'corre_lead_fotos', 'corre_verso_bloq', 'corre_votos', 'corre_salvos', 'corre_feed_vistas', 'corre_avisos_lidos', 'corre_push', 'corre_push_pref', 'corre_correal', 'corre_correal_log', 'corre_tarefa_vez', 'corre_ig_contas', 'corre_houzi_privado', 'corre_assinaturas', 'corre_asaas_clientes', 'corre_skins', 'corre_bio_conta', 'corre_convites', 'corre_ativo_dia', 'corre_skin_pedidos', 'corre_aprovacoes', 'corre_caderno', 'corre_atendente', 'corre_atende_conversas', 'corre_piloto', 'corre_piloto_log', 'corre_nascimento', 'corre_sala_material', 'corre_sala_pedidos'];
     const now = () => new Date().toISOString();
     const inH = h => new Date(Date.now() + h * 36e5).toISOString();
     /* o mesmo do corre_tarefa_valor (delta-v338 + delta-v3391: 3 tarefas por uniforme) */
@@ -1229,6 +1256,9 @@
       if(t === 'corre_aprovacoes'){
         if(!(d.t.corre_portfolio || []).some(m => m.id === r.marca_id && m.dono === (r.dono || uid))) throw { message: 'marca de outra pessoa', code: '42501' };
         if(!r.de || !r.ate || r.ate < r.de || (Date.parse(r.ate) - Date.parse(r.de)) / 864e5 > 92) throw { message: 'periodo', hint: 'periodo' };
+        /* v5.12: uma sala ligada por marca (o índice corre_aprovacoes_sala_key) */
+        r.sala = !!r.sala; r.vendas = Array.isArray(r.vendas) ? r.vendas.slice(0, 8) : [];
+        if(r.sala && r.ativo !== false && d.t.corre_aprovacoes.some(x => x.id !== r.id && x.sala && x.ativo && x.marca_id === r.marca_id)) throw { message: 'duplicate key value violates unique constraint "corre_aprovacoes_sala_key"', code: '23505' };
       }
       if(t === 'corre_vendas'){
         let tot = 0, cus = 0;
@@ -2286,6 +2316,50 @@
           const ps = doLink();
           return { ok: true, aprovados: ps.filter(p => p.aprov === 'aprovado').length, ajustes: ps.filter(p => p.aprov === 'ajuste').length, faltam: ps.filter(p => !p.aprov).length };
         }
+        /* ---- v5.12: a Sala do Cliente (as mesmas regras do delta-v512.sql) ---- */
+        if(n === 'corre_sala_ver' || n === 'corre_sala_pede' || n === 'corre_sala_material_poe'){
+          const L = (d.t.corre_aprovacoes || []).find(x => x.codigo === String((a && a.p_codigo) || '').trim().toLowerCase() && x.ativo && x.sala);
+          if(!L) throw { message: 'link', hint: 'link' };
+          const hj = hojeBR(), mais = (iso, k) => new Date(Date.parse(iso + 'T12:00:00Z') + k * 864e5).toISOString().slice(0, 10);
+          L.de = mais(hj, -7); L.ate = mais(hj, 85);
+          const nome = q => String(q || '').replace(/\s+/g, ' ').trim().slice(0, 60), m = d.t.corre_portfolio.find(x => x.id === L.marca_id) || {};
+          const saiu = p => p.ig_status === 'publicado' || p.status === 'postado';
+          if(n === 'corre_sala_ver'){
+            L.aberto_em = now(); write(d);
+            const f = d.t.corre_perfis.find(x => x.id === L.dono) || {}, mes = hj.slice(0, 8) + '01', prox = mais(mes, 40).slice(0, 8) + '01';
+            const da = d.t.corre_posts.filter(p => p.dono === L.dono && p.marca_id === L.marca_id && p.data && p.midia_url)
+              .sort((x, y) => String(x.data).localeCompare(String(y.data)) || String(x.hora || '').localeCompare(String(y.hora || '')));
+            const doMes = da.filter(p => p.data >= mes && p.data < prox), ap = doMes.filter(p => p.aprov === 'aprovado' && p.aprov_em);
+            const ant = ap.length ? Math.round(ap.reduce((t, p) => t + (Date.parse(p.data + 'T12:00:00Z') - Date.parse(String(p.aprov_em).slice(0, 10) + 'T12:00:00Z')) / 864e5, 0) / ap.length * 10) / 10 : null;
+            return { marca: { nome: m.marca || '', rede: m.rede || '', cor: m.cor || '', logo: m.logo_url || '' }, de: L.de, ate: L.ate, msg: L.msg || '', respondido_em: L.respondido_em, hoje: hj, mes,
+              quem: { nome: f.nome || '', handle: f.handle || '', avatar: f.avatar_url || '', whats: f.whats_publico || '' },
+              posts: da.filter(p => p.data >= L.de && p.data <= L.ate && !saiu(p)).map(p => ({ id: p.id, data: p.data, hora: p.hora || '', formato: p.formato || 'feed', titulo: p.titulo || '', legenda: p.legenda || '', alt: p.alt || '', midia: p.midia_url, midias: p.midias || [], aprov: p.aprov || '', nota: p.aprov_nota || '', itens: p.aprov_itens || [], quem: p.aprov_quem || '', em: p.aprov_em || null, publicado: false })),
+              entregue: doMes.filter(p => p.data <= hj && saiu(p)).reverse().map(p => ({ id: p.id, data: p.data, formato: p.formato || 'feed', titulo: p.titulo || '', midia: p.midia_url, link: /^https:\/\//.test(p.ig_link || '') ? p.ig_link : '' })),
+              conta: { aprovados: doMes.filter(p => p.aprov === 'aprovado').length, ajustes: doMes.filter(p => p.aprov === 'ajuste').length, antecedencia: ant },
+              materiais: d.t.corre_sala_material.filter(x => x.aprov_id === L.id).sort((x, y) => String(y.em).localeCompare(String(x.em))).slice(0, 40).map(x => ({ nome: x.nome, tipo: x.tipo, tam: x.tam, quem: x.quem, msg: x.msg, em: x.em, usado: !!x.usado_em })),
+              pedidos: d.t.corre_sala_pedidos.filter(x => x.aprov_id === L.id).sort((x, y) => String(y.em).localeCompare(String(x.em))).slice(0, 30).map(x => { const t = d.t.corre_caderno.find(c => c.id === x.tarefa); return { id: x.id, tipo: x.tipo, dia: x.dia, texto: x.texto, quem: x.quem, em: x.em, feito: !!(t && t.feito) }; }),
+              vendas: d.t.corre_vendas.filter(v => (L.vendas || []).includes(v.id) && v.dono === L.dono && (['orcamento', 'fechado'].includes(v.st) || (v.st === 'pago' && String(v.pago_em || '') >= mais(hj, -60))))
+                .map(v => ({ codigo: v.codigo, total: v.total, st: v.st, vence: v.vence || null, validade: v.validade || null, pago_em: v.pago_em || null, recorrente: !!v.recorrente, sinal: v.sinal || 0, sinal_em: v.sinal_em || null, resumo: (v.itens || []).map(e => e.n).join(', ').slice(0, 120) })) };
+          }
+          if(n === 'corre_sala_pede'){
+            const tipo = a && a.p_tipo, tx = String((a && a.p_texto) || '').replace(/[\u0000-\u001f]+/g, ' ').trim().slice(0, 500), dia = (a && a.p_dia) || null;
+            if(!['data', 'pedido'].includes(tipo)) throw { message: 'tipo', hint: 'tipo' };
+            if(tx.length < 3) throw { message: 'texto', hint: 'texto' };
+            if(tipo === 'data' && (!dia || dia < hj || dia > mais(hj, 400))) throw { message: 'dia', hint: 'dia' };
+            if(d.t.corre_sala_pedidos.filter(x => x.aprov_id === L.id && Date.now() - Date.parse(x.em) < 864e5).length >= 20) throw { message: 'cheio', hint: 'cheio' };
+            const q = nome(a.p_quem), dt = tipo === 'data' ? (mais(dia, -5) > hj ? mais(dia, -5) : hj) : hj, tid = rid();
+            d.t.corre_caderno.push({ id: tid, dono: L.dono, titulo: `${m.marca || 'Cliente'}: ${tx}`.slice(0, 300), nota: `${tipo === 'data' ? `Data importante: ${dia.slice(8, 10)}/${dia.slice(5, 7)}. Bom post pra preparar.` : 'Pedido do cliente.'}\nVeio pela Sala do Cliente${q ? ', de ' + q : ''}.`, lista: 'Sala do Cliente', dia: dt, hora: null, prio: tipo === 'pedido' ? 2 : 3, repete: '', cada: 1, avisa: true, feito: false, feito_em: null, pai: null, ordem: Date.now(), endereco: '', anexos: [], feitas: [], antes: [], created_at: now(), updated_at: now() });
+            const id = rid(); d.t.corre_sala_pedidos.push({ id, aprov_id: L.id, dono: L.dono, marca_id: L.marca_id, tipo, dia: tipo === 'data' ? dia : null, texto: tx, quem: q, em: now(), tarefa: tid, visto: false });
+            write(d); return { id, tarefa_dia: dt };
+          }
+          const cam = String((a && a.p_caminho) || ''), tp = String((a && a.p_tipo) || '');
+          if(!new RegExp('^' + L.codigo + '/[a-z0-9-]{8,60}\\.[a-z0-9]{2,5}$').test(cam)) throw { message: 'caminho', hint: 'caminho' };
+          if(!/^(image\/(jpeg|png|webp|gif|heic|heif)|video\/(mp4|quicktime)|application\/pdf)$/.test(tp)) throw { message: 'tipo', hint: 'tipo' };
+          if(!(a.p_tam >= 1 && a.p_tam <= 157286400)) throw { message: 'tam', hint: 'tam' };
+          if(d.t.corre_sala_material.some(x => x.caminho === cam)) return { id: null };
+          const id = rid(); d.t.corre_sala_material.push({ id, aprov_id: L.id, dono: L.dono, marca_id: L.marca_id, caminho: cam, nome: String(a.p_nome || '').trim().slice(0, 120), tipo: tp, tam: a.p_tam, quem: nome(a.p_quem), msg: String(a.p_msg || '').trim().slice(0, 300), em: now(), visto: false, usado_em: null });
+          write(d); return { id };
+        }
         /* ---- v4.0: o Link na bio e o convite (as mesmas regras do delta-v400.sql) ---- */
         if(n === 'corre_bio_marca'){
           const p = d.t.corre_perfis.find(x => x.handle === String((a && a.p_handle) || '').toLowerCase().trim()), k = String((a && a.p_chave) || '');
@@ -2513,6 +2587,8 @@
       async videoLimite(){ return window.CORRE_DEMO_VLIM || 150 * 1048576; },
       /* v4.21: no demo o arquivo fica no aparelho (vale até recarregar a página) */
       anexo: { L: {}, async sobe(file){ const p = `${uidOf(read()) || 'demo'}/${Date.now().toString(36)}-${String(file.name || 'arquivo').replace(/[^A-Za-z0-9._-]+/g, '-').slice(-60)}`; this.L[p] = URL.createObjectURL(file); return p; }, async link(p){ return this.L[p] || ''; }, async tira(p){ delete this.L[p]; } },
+      /* v5.12: no demo o material da Sala fica no aparelho (um endereço blob: que vale até recarregar a página) */
+      sala: { L: {}, async sobe(path, file, onProg){ if(onProg){ for(let i = 1; i <= 4; i++){ onProg(i / 4); await new Promise(ok => setTimeout(ok, 30)); } } this.L[path] = URL.createObjectURL(file); return path; }, async link(p){ return this.L[p] || ''; }, async tira(L){ (L || []).forEach(p => { delete this.L[p]; }); } },
       async unlink(){},
       /* v3.60: a função "pagamento" de mentira: as mesmas regras e respostas, sem Asaas e sem cobrar. Assinou fora do
          teste grátis, já conta como pago (pra dar pra ver o plano funcionando) */

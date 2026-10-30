@@ -188,6 +188,10 @@
     let post = '';
     const mp = /^postar\/([0-9a-f-]{36})$/i.exec(id);
     if(mp){ post = mp[1]; id = 'entrar'; history.replaceState(null, '', '#/studio'); }
+    /* v5.12: o aviso da Sala do Cliente chega em #/studio/sala/MARCA: entra no Studio Cria dessa marca e abre a sala */
+    let sala = '';
+    const ms = /^sala\/([0-9a-f-]{36})$/i.exec(id);
+    if(ms){ sala = ms[1]; id = ms[1]; history.replaceState(null, '', '#/studio/' + id); }
     if(!id && dentro()) id = 'entrar';
     if(!id) return porta(app);
     marcaDentro(true);
@@ -198,6 +202,7 @@
     const mk = M.list.find(x => x.id === id);
     if(mk && foraDoPlano(mk)){ C.$('sd').outerHTML = foraHTML(mk); return; }
     if(C.studio) C.studio.mount(C.$('sd'), { com: noPlano(), sem: M.list.filter(m => !m.rede), id: id === 'entrar' ? '' : id, post });
+    if(sala && mk && C.sala) setTimeout(() => C.sala.abre(mk), 400);
   };
   async function porta(app){
     app.innerHTML = C.header('studio') + '<main class="wrap st-porta-w"><section class="card"><p>Abrindo a porta do Studio Cria…</p></section></main>';

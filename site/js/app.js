@@ -1712,6 +1712,8 @@
     /* v4.29 · "Quantos clientes tem pra você" (app.corresocial.com/clientes): abre sem login */
     if(h === 'clientes' && C.views.clientes){ if(await precisaPerfil(location.hash)) return; window.scrollTo(0, 0); return C.views.clientes(app); }
     /* v4.17 · o link de aprovação do Studio: o cliente abre sem login */
+    /* v5.12 · a Sala do Cliente: o link fixo da marca, sem login */
+    if(h.startsWith('sala/') && C.views.sala){ if(st.user) await loadMe(); window.scrollTo(0, 0); return C.views.sala(app, C.decURI(h.slice(5))); }
     if(h.startsWith('aprova/') && C.views.aprova){ if(st.user) await loadMe(); window.scrollTo(0, 0); return C.views.aprova(app, C.decURI(h.slice(7))); }
     /* Vendas: o orçamento que o cliente recebe abre sem login */
     if(h.startsWith('o/') && C.views.orcamentoVenda){ if(st.user) await loadMe(); window.scrollTo(0, 0); return C.views.orcamentoVenda(app, C.decURI(h.slice(2))); }
@@ -1829,11 +1831,14 @@
       try{
         if(C.push) await C.push.sair();
         const pastas = api.minhasPastas ? await api.minhasPastas().catch(() => []) : [];
+        /* v5.12: o material da Sala do Cliente sai antes (quem apaga é a dona, pela linha dele no banco, que vai junto com a conta) */
+        const sala = pastas.filter(x => x.b === 'corre-sala');
+        if(sala.length && api.tiraPastas) await api.tiraPastas(sala).catch(() => {});
         let conta = false;
         try{ const r = await api.rpc('corre_apaga_minha_conta', {}); conta = !!(r && r.ok); }
         catch(e){ if(!(e && (e.code === 'PGRST202' || e.code === '42883' || /Could not find the function|does not exist/i.test(e.message || '')))) throw e; }
         if(!conta) await api.del('corre_perfis', { id: st.user.id });
-        if(api.tiraPastas) await api.tiraPastas(pastas).catch(() => {});
+        if(api.tiraPastas) await api.tiraPastas(pastas.filter(x => x.b !== 'corre-sala')).catch(() => {});
         toast(conta ? 'Conta apagada. Valeu por ter passado pelo Corre.' : 'Perfil apagado.', 4200);
         await api.logout(); st.user = null; st.me = null; st.loadedFor = null; go('#/');
       }
