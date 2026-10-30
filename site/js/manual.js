@@ -6,21 +6,21 @@
   'use strict';
   const C = window.Corre, { esc, ico } = C;
   /* sobe esse número a cada atualização: quem já viu recebe de novo, abrindo nas novidades */
-  const VERSAO = '5.06';
+  const VERSAO = '5.09';
   const K = 'corre-manual-visto';
 
   /* O que tem de novo: só o que é super relevante pra galera (o Thales, v3.67). No máximo 8, o mais novo em cima, uma ou
      duas frases cada, no jeito de quem conta pro amigo. Conserto, acabamento e detalhe técnico não entram aqui (moram no
      CLAUDE.md); novidade grande que chega empurra a mais velha pra fora */
   const NOVIDADES = [
+    ['ingresso', 'Muralzim: os eventos de Londrina, com ingresso', 'O Mapa do Correverso ganhou o Muralzim, o mural de lambe-lambe dos eventos da cidade. Quem organiza divulga de graça e pode vender ingresso pelo Corre: o dinheiro cai na conta dele na hora, e quem compra recebe o ingresso com QR no celular.'],
+    ['raio', 'Pista de skate do Zerão em 3D', 'Na placa SKATE do Zerão, a pista agora tem versão 3D: rampa grande, caixote, borda e corrimão. Espaço pula; no ar, as setas fazem a manobra (pros lados gira, pra cima kickflip, pra baixo heelflip) e dá pra emendar combo.'],
+    ['eye', 'O post do jeito que vai sair no Instagram', 'No Studio Cria, o post aparece do jeito que fica no feed do Instagram, e o cliente vê a mesma prévia no link de aprovação, com um campo pra dizer o que mudar.'],
     ['controle', 'Joga o Correverso com controle', 'Liga o controle de Xbox, de PlayStation ou o Pro do Switch (Bluetooth ou cabo) e aperta qualquer botão com o Correverso aberto: o analógico anda, A pula, X entra e troca ideia, Y empurra, B volta, os gatilhos aceleram e freiam nas corridas e Menu abre o Mapa. Vale na cidade, nos lugares 3D, nas corridas e nos jogos; nas folhas, o direcional escolhe e A aperta.'],
     ['houzi', 'A primeira marca no Studio Houzi é de graça', 'Faz tua marca no Studio Houzi sem pagar nada: o nome, o logo, as cores, a voz, o brandbook vivo e o kit pra baixar, e ela é tua pra sempre. Da segunda marca em diante, é no plano do Studio Houzi.'],
     ['star', 'Ateliê: sem dinheiro ou pago', 'O Ateliê separa as fantasias sem dinheiro, que se pagam com correal (8 novas, do Robô de Lata à Sereia do Igapó), das pagas em dinheiro de verdade, no Pix ou no cartão. Cada fantasia diz no cartão o preço, como paga e até quando fica à venda. Chegou a coleção de Natal: Papai Noel, Árvore Dourada, Rena, Boneco de Neve e mais 8, à venda até o Dia de Reis. E o Midas, o avatar de ouro, à venda o ano inteiro.'],
     ['heart', 'Dá um Corre: doação no link na bio', 'No editor do link na bio, escolhe uma entidade de Londrina conferida pelo Corre e ela ganha um cartão na tua página: quem passa toca em "Dá um corre", copia o Pix e doa o quanto quiser, direto pra entidade. O Corre não fica com nada. E a Banca do dia e o Do teu nicho foram pro Corre Studio, do lado de onde você cria.'],
     ['lua', 'A Rede é dia, o Studio é noite', 'Agora dá pra sentir em que parte você tá: a Rede (o feed, os stories, os grupos) é de dia, no céu azul, e o Corre Studio, onde mora o trabalho, é de noite, com o Igapó escuro e a lua. Entrou no Studio, a luz apaga; voltou pra Rede, o sol volta. Não tem mais o que ligar: é o lugar que manda. E o Studio que programa e posta agora se chama Studio Cria, pra não confundir com o Corre Studio e o Studio Houzi.'],
-    ['lupa', 'Corre 5.0: Londrina no Google', 'O Corre ganhou páginas abertas de quem faz cada coisa em Londrina (app.corresocial.com/londrina): social media, design, foto, reforma, festa, aula e mais. Quem procura no Google acha, vê o teu trabalho e fixa o pedido sem cadastro. Pra aparecer, liga "Aparecer no Google" no Editar perfil.'],
-    ['luminaria', 'O Corre em três partes', 'Abriu, caiu na Rede: o feed, os stories, as mensagens e os grupos, limpo. O trabalho todo (Studio Cria, Banca do dia, Do teu nicho, Hórus, Mural, Vendas e Grana, Caderninho, Atendente e Piloto) mora no Corre Studio: entra pela luminária amarela do alto, pelo botão do teu perfil ou por app.corresocial.com/studio, e lá dentro dá pra fazer o Corre abrir direto nele. E o Correverso segue sendo o jogo.'],
-    ['cartao', 'Tua casa no Correverso virou loja', 'Toda casa da cidade agora tem toldo com o letreiro do que a pessoa faz: tocou na porta, abre o link na bio dela, com orçamento, WhatsApp e o que vende. Na tua porta você muda o letreiro e a cor e posta no Instagram o story "Meu corre tá no mapa". E no Mapa, "Quem faz na cidade" acha a loja pelo que você procura.'],
   ];
   /* cada página: o que é, pra que serve no teu dia, e o botão que leva lá */
   const PAGINAS = [
