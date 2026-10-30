@@ -296,7 +296,8 @@
      escolher, só pra perceber que mudou de ambiente mesmo"). O escuro da v4.43 deixou de ser escolha: quem decide é a
      parte do Corre onde a pessoa tá (o app.js chama o C.tema.poe a cada página). O script do começo do index.html já
      adivinha pela rota, pra página nascer na luz certa sem piscar. A escolha que ficou guardada (corre-tema) não vale
-     mais e sai do aparelho. Trocar de parte depois de aberto passa um véu na cor do lugar novo, com a lua ou o sol */
+     mais e sai do aparelho. Trocar de parte depois de aberto passa um véu na cor do lugar novo, com a lua ou o sol (v5.09: o
+     céu que desce ou sobe como cortina, no lugar da íris redonda) */
   try{ localStorage.removeItem('corre-tema'); }catch(e){}
   const quieto = () => !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
   const veuTema = on => {
@@ -306,7 +307,7 @@
     v.setAttribute('aria-hidden', 'true');
     v.innerHTML = C.ico(on ? 'lua' : 'sol', 'tv-i') + `<span class="tv-t">${on ? 'Corre Studio' : 'Rede'}</span>`;
     document.body.appendChild(v);
-    setTimeout(() => v.remove(), 900);
+    setTimeout(() => v.remove(), 1000);
   };
   C.tema = {
     escuro: () => document.documentElement.classList.contains('escuro'),
