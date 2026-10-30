@@ -106,7 +106,8 @@
   }
   function plusSheet(){
     /* v3.60: com os planos no banco, mais redes é assinar o Studio Cria (o próximo degrau já vem marcado) */
-    if(C.acesso && C.planos){ const l = lim(); C.planos.assinar('studio', l === Infinity ? 4 : Math.min(4, l + 1)); return; }
+    /* v5.10: o plano vai até 100 redes e cobra por rede: o degrau é uma a mais que as marcas com rede (ou que o plano) */
+    if(C.acesso && C.planos){ const l = lim(); C.planos.assinar('studio', Math.min(100, Math.max(2, (l === Infinity ? 1 : l) + 1, comRede().length + 1))); return; }
     const ja = C.st.me && C.st.me.quer_plus;
     C.sheet(`<div class="form"><div class="sheet-head"><h2>Mais marcas no Corre</h2><button type="button" class="cbtn plain" data-close aria-label="Fechar">${ico('x')}</button></div>
       <p>No teu plano o Corre acompanha <b>${nRedes(lim())}</b>. A marca sem rede continua no portfólio e aparece no teu perfil normalmente; o que ela não ganha é o painel.</p>

@@ -58,15 +58,23 @@ async function tokenAviso() {
   const sig = new Uint8Array(await crypto.subtle.sign('HMAC', ck, new TextEncoder().encode('corre · aviso do asaas')));
   return 'corre' + Array.from(sig, b => b.toString(16).padStart(2, '0')).join('');
 }
-const PRODUTOS: Record<string, string> = { studio: 'Studio', houzi: 'Studio Houzi', horus: 'Hórus' };
+const PRODUTOS: Record<string, string> = { studio: 'Studio Cria', houzi: 'Studio Houzi', horus: 'Hórus' };
 /* o preço de cada plano (o Studio pelo nível: quantas redes) */
+/* v5.10 · o Studio por rede (o Thales, 30/10/2026): R$ 59,90 com 2 redes, R$ 10 por rede a mais até a 20ª e R$ 5 da 21ª
+   em diante, até 100 (antes: 2, 3 e "4 ou mais" a 79,90, que pra quem toca 30 clientes saía de graça) */
+const REDES_MAX = 100;
+const precoStudio = (n: number) => {
+  n = Math.max(2, Math.min(REDES_MAX, Math.round(n) || 2));
+  return Math.round((59.9 + 10 * (Math.min(n, 20) - 2) + 5 * Math.max(0, n - 20)) * 100) / 100;
+};
 const preco = (produto: string, nivel: number) =>
-  produto === 'houzi' ? 29.9 : produto === 'horus' ? 9.9 : nivel >= 4 ? 79.9 : nivel === 3 ? 69.9 : nivel === 2 ? 59.9 : 0;
+  produto === 'houzi' ? 29.9 : produto === 'horus' ? 9.9 : nivel >= 2 ? precoStudio(nivel) : 0;
 /* v3.61: o nível do Studio que vale é o do valor que foi PAGO (trocar de plano só libera mais redes quando a fatura
    com o valor novo é paga; antes, subir pro "4 ou mais" liberava na hora e dava pra voltar sem pagar) */
-const nivelDoValor = (v: number, antes: number) => v >= 79.89 ? 4 : v >= 69.89 ? 3 : v >= 59.89 ? 2 : antes;
+const nivelDoValor = (v: number, antes: number) => v < 59.89 ? antes
+  : v >= 239.89 ? Math.min(REDES_MAX, 20 + Math.floor((v - 239.9 + 0.02) / 5)) : 2 + Math.floor((v - 59.9 + 0.02) / 10);
 const descricao = (produto: string, nivel: number) =>
-  produto === 'studio' ? `Corre · Studio, ${nivel >= 4 ? '4 ou mais redes sociais' : `${nivel} redes sociais`}` : `Corre · ${PRODUTOS[produto]}`;
+  produto === 'studio' ? `Corre · Studio Cria, ${nivel} redes sociais` : `Corre · ${PRODUTOS[produto]}`;
 /* v3.72: a desistência em 7 dias (CDC, art. 49) e o que conta como pago no Asaas */
 const PRAZO_DESISTE = 7;
 const PAGO = ['CONFIRMED', 'RECEIVED', 'RECEIVED_IN_CASH'];
@@ -303,7 +311,7 @@ Deno.serve(async (req) => {
     /* v3.72: sem o "Li e aceito os Termos de uso" não tem assinatura (o app manda a versão que a pessoa viu) */
     const termos = String(body?.termos || '');
     if (!/^\d{4}-\d{2}-\d{2}$/.test(termos)) return json({ erro: 'termos' }, 400);
-    const nivel = produto === 'studio' ? Math.max(2, Math.min(4, Math.round(Number(body?.nivel) || 2))) : 1;
+    const nivel = produto === 'studio' ? Math.max(2, Math.min(REDES_MAX, Math.round(Number(body?.nivel) || 2))) : 1;
     const valor = preco(produto, nivel);
 
     /* já assinou e segue valendo: no Studio, outro nível troca o valor; senão, devolve a fatura em aberto */

@@ -1108,7 +1108,7 @@
   const conviteLogin = () => { const c = C.insta && C.insta.convite(); return c ? `<p class="cv-login">${ico('raio')}<span><b>@${esc(c.h)}</b> te chamou pro Corre. Entra e já sai seguindo.</span></p>` : ''; };
   /* v5.09 · a frase do que o Corre faz por você, a primeira coisa do cartão (o Thales). "Posta tua semana sozinho" só é
      verdade pra todo mundo quando a Meta aprovar o app (IG_ABERTO: true no config.js); até lá, a frase diz o que já vale */
-  const fraseLogin = () => C.CFG.IG_ABERTO !== false ? 'Conecta teu Instagram e o Corre posta tua semana sozinho.'
+  const fraseLogin = () => (C.ig ? C.ig.aberto() : C.CFG.IG_ABERTO !== false) ? 'Conecta teu Instagram e o Corre posta tua semana sozinho.'
     : 'Programa a semana do teu Instagram, acha cliente e recebe: o teu corre num lugar só.';
   function viewLogin(){
     document.body.classList.remove('com-lado');
@@ -1945,6 +1945,8 @@
       if(changed){ st.loadedFor = null; st.me = null; route(); }
     });
     route().then(() => C.pai('pronto'), () => C.pai('pronto'));
+    /* v5.10: os interruptores do banco (o Instagram aberto pra todo mundo); mudou, quem mostra o Instagram redesenha */
+    C.flagsCarrega().then(() => { if(C.ig && C.ig.flagsMudou) C.ig.flagsMudou(); });
     if(erroLogin && !st.user) setTimeout(() => toast(msgErroLogin(erroLogin), 9000), 300);
     /* v4.33 · o service worker guarda o app no aparelho: da segunda vez abre na hora, até com o sinal ruim (antes ele
        só existia pra quem ligava os avisos). Só no endereço de verdade (https): no computador de teste (localhost) os

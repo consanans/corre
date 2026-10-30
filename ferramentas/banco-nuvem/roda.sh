@@ -200,6 +200,10 @@ delta delta-v509.sql 'delta v5.09 ok'
 testa teste509.sql 14
 # v5.09: o Muralzim (eventos, vender ingresso com a conta de recebimento aprovada, a taxa, a reserva, a portaria)
 testa teste509mz.sql 11
+# v5.10: o Studio Cria por rede (até 100) e o interruptor do Instagram no banco
+delta delta-v510.sql 'delta v5.10 ok'
+delta delta-v510.sql 'delta v5.10 ok'
+testa teste510.sql 6
 . "$AQUI/virada343.sh"
 if grep -q 'FALHOU\|ERROR' $D/saida; then echo "deu FALHOU ou erro (acima)"; exit 1; fi
 echo "tudo ok: $(grep -c '^ok:' $D/saida) checagens"

@@ -1097,7 +1097,7 @@
       const p = d.t.corre_perfis.find(x => x.id === u) || {};
       if(plDono(d, u) || p.plano === 'pro') return 999;
       const a = d.t.corre_assinaturas.find(x => x.dono === u && x.produto === 'studio');
-      return Math.max(Number(p.redes) || 1, 1, a && plAcesso(d, u, 'studio') ? (a.nivel >= 4 ? 999 : a.nivel) : 1);
+      return Math.max(Number(p.redes) || 1, 1, a && plAcesso(d, u, 'studio') ? Math.min(100, a.nivel) : 1);
     };
     /* v5.05: o teste grátis de 30 dias é só do Hórus (no Studio Houzi a primeira marca é de graça: hzTrava) */
     const plGarante = (d, u, prod) => {
@@ -1889,6 +1889,8 @@
       /* v4.34: o Piloto automático do demo (as mesmas quatro receitas e o mesmo tempo de espera do delta-v434.sql) */
       async rpc(n, a){
         const d = read();
+        /* v5.10: os interruptores do banco; na demonstração, window.CORRE_DEMO_FLAGS troca (sem ele, vale o config.js) */
+        if(n === 'corre_flags') return Object.assign({}, window.CORRE_DEMO_FLAGS || {});
         /* ---- v3.66: a loja de skins (mesma conta do delta-v366.sql: o preço é o da vitrine, o cadeado é o da carteira,
            comprar de novo não cobra, saldo curto não mexe em nada) ---- */
         if(n === 'corre_skins_minhas' || n === 'corre_skin_compra'){
@@ -2579,8 +2581,9 @@
         }
         if(B.acao !== 'assinar') throw { code: 'acao', status: 400 };
         if(!/^\d{4}-\d{2}-\d{2}$/.test(String(B.termos || ''))) throw { code: 'termos', status: 400 };
-        const nivel = prod === 'studio' ? Math.max(2, Math.min(4, Math.round(Number(B.nivel) || 2))) : 1;
-        const valor = prod === 'houzi' ? 29.90 : prod === 'horus' ? 9.90 : { 2: 59.90, 3: 69.90, 4: 79.90 }[nivel];
+        /* v5.10: o Studio por rede, como a função (59,90 com 2, + 10 por rede até a 20ª, + 5 da 21ª, até 100) */
+        const nivel = prod === 'studio' ? Math.max(2, Math.min(100, Math.round(Number(B.nivel) || 2))) : 1;
+        const valor = prod === 'houzi' ? 29.90 : prod === 'horus' ? 9.90 : Math.round((59.9 + 10 * (Math.min(nivel, 20) - 2) + 5 * Math.max(0, nivel - 20)) * 100) / 100;
         if(a && a.asaas_assinatura && a.status !== 'cancelada'){ const trocou = prod === 'studio' && nivel !== a.nivel; Object.assign(a, { nivel, valor, updated_at: now() }); write(d); return { ok: true, link: '', trocou, demo: true }; }
         if(!d.t.corre_asaas_clientes.some(c => c.dono === u)){
           if(String(B.nome || '').replace(/\s+/g, ' ').trim().length < 3) throw { code: 'nome', status: 400 };
@@ -2703,6 +2706,18 @@
     if(!C.uid()){ C.acesso = null; return null; }
     try{ C.acesso = (await C.api.rpc('corre_meu_acesso', {})) || null; }catch(e){ C.acesso = null; }
     return C.acesso;
+  };
+  /* v5.10 · os interruptores que valem pra todo mundo e mudam sem zip (corre_flags no banco). O primeiro é o ig_aberto:
+     no dia que a Meta aprovar o app, liga no banco e todo mundo vê o Conectar o Instagram. Fica guardado no aparelho
+     (a próxima abertura já sabe) e o banco confere por baixo; sem o delta v5.10, vale o que o config.js diz */
+  const FLAGS_K = 'corre-flags';
+  C.flags = (() => { try{ const f = JSON.parse(localStorage.getItem(FLAGS_K) || 'null'); return f && typeof f === 'object' ? f : null; }catch(e){ return null; } })();
+  C.flagsCarrega = async () => {
+    try{
+      const f = await C.api.rpc('corre_flags', {});
+      if(f && typeof f === 'object' && !Array.isArray(f)){ C.flags = f; try{ localStorage.setItem(FLAGS_K, JSON.stringify(f)); }catch(e){} }
+    }catch(e){}
+    return C.flags;
   };
   /* começa os 30 dias grátis (Hórus e Studio Houzi; só uma vez por pessoa). O banco também começa sozinho no
      primeiro lead ou na primeira marca; aqui é pra quem entrou e quer ver a faixa certa */

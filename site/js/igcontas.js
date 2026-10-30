@@ -64,7 +64,10 @@
   /* v3.42 · ENQUANTO A META NÃO LIBERA. Com o app da Meta em teste, só quem é testador conecta; o resto bate na tela da
      Meta "função de desenvolvedor insuficiente". Com IG_ABERTO: false no config.js, o Corre avisa que chega em breve e
      deixa o testador seguir. Sem a chave (ou true), é o caminho de sempre. */
-  const aberto = () => C.CFG.IG_ABERTO !== false;
+  /* v5.10: quem manda é o banco (corre_flags.ig_aberto, liga no dia que a Meta aprovar, sem zip); sem a resposta dele, o config.js */
+  const aberto = () => C.flags && typeof C.flags.ig_aberto === 'boolean' ? C.flags.ig_aberto : C.CFG.IG_ABERTO !== false;
+  let abertoAntes = aberto();
+  const flagsMudou = () => { const a = aberto(); if(abertoAntes !== null && a !== abertoAntes) muda(); abertoAntes = a; };
   function emBreve(o){
     C.sheet(`<div class="form ig-contas"><div class="sheet-head"><h2>${ico('ig')} Instagram: em breve</h2><button type="button" class="cbtn plain" data-close aria-label="Fechar">${ico('x')}</button></div>
       <p class="lt-lead">A postagem automática no Instagram tá em liberação pela Meta e chega em breve pra todo mundo.</p>
@@ -75,7 +78,7 @@
   const ERRO = {
     sem_app: 'O login do Instagram ainda não foi ligado no Corre (falta o IG_APP_ID e o IG_APP_SECRET na função "instagram").',
     sem_publicar: 'Faltou a permissão de publicar. Conecta de novo e deixa a opção de publicar marcada.',
-    limite_contas: 'Chegou no limite de 20 contas conectadas. Desconecta uma pra conectar outra.',
+    limite_contas: 'Chegou no limite de 100 contas conectadas. Desconecta uma pra conectar outra.',
     redirect: 'O endereço de volta não bate com o que tá cadastrado no app da Meta (tem que ser …/ig.html).',
     config: 'A função "instagram" ainda não tá pronta no Supabase (falta segredo).', rede: 'Sem conexão com o Instagram agora. Tenta de novo daqui a pouco.',
     sem_funcao: 'A função "instagram" nova ainda não foi publicada no Supabase.', fn: 'A função "instagram" nova ainda não foi publicada no Supabase.', login: 'Entra no Corre de novo e conecta.'
@@ -317,5 +320,5 @@
     'ig-diag': () => diag()
   });
 
-  C.ig = { carrega, contas, conectadas, porId, daMarca, ok, foto, chip, naMarca, selo, seloTx, selos, conectar, volta, sheet, seletor, lido, msgErro, ultima, falhou, quando, quadroFalha, diagnostico, linha, linhas, aberto, onMuda: f => { if(typeof f === 'function' && !IG.onMuda.includes(f)) IG.onMuda.push(f); }, esquece: () => { IG.lista = null; IG.em = 0; } };
+  C.ig = { flagsMudou, carrega, contas, conectadas, porId, daMarca, ok, foto, chip, naMarca, selo, seloTx, selos, conectar, volta, sheet, seletor, lido, msgErro, ultima, falhou, quando, quadroFalha, diagnostico, linha, linhas, aberto, onMuda: f => { if(typeof f === 'function' && !IG.onMuda.includes(f)) IG.onMuda.push(f); }, esquece: () => { IG.lista = null; IG.em = 0; } };
 })();

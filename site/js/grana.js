@@ -484,7 +484,11 @@
   'use strict';
   const C = window.Corre, ico = C.ico, esc = C.esc;
   const NOME = { studio: 'Studio Cria', houzi: 'Studio Houzi', horus: 'Hórus' };
-  const PRECO = { houzi: 29.90, horus: 9.90 }, STUDIO = { 2: 59.90, 3: 69.90, 4: 79.90 };
+  const PRECO = { houzi: 29.90, horus: 9.90 };
+  /* v5.10 · o Studio Cria por rede (o Thales, 30/10/2026): R$ 59,90 com 2 redes, R$ 10 por rede a mais até a 20ª e R$ 5
+     da 21ª em diante, até 100. A mesma conta da função "pagamento" (é ela que cobra; aqui é a vitrine) */
+  const REDES_MAX = 100;
+  const studioPreco = n => { n = Math.max(2, Math.min(REDES_MAX, Math.round(n) || 2)); return Math.round((59.9 + 10 * (Math.min(n, 20) - 2) + 5 * Math.max(0, n - 20)) * 100) / 100; };
   const ICO = { studio: 'magia', houzi: 'houzi', horus: 'eye' };
   const SOBRE = {
     studio: 'Programa e posta no Instagram de cada marca que você toca. Uma rede social é de graça.',
@@ -493,10 +497,10 @@
   };
   /* dinheiro aqui é preço de vitrine: não esconde com o olho da grana (o C.money esconde) */
   const reais = v => 'R$ ' + Number(v).toFixed(2).replace('.', ',');
-  const nivelNome = n => n >= 4 ? '4 ou mais redes' : n === 1 ? '1 rede' : n + ' redes';
+  const nivelNome = n => n === 1 ? '1 rede' : n + ' redes';
   /* o nível pelo valor (a mesma conta da função: o que vale é o preço) */
-  const nivelDoValor = (v, antes) => { v = Number(v) || 0; return v >= 79.89 ? 4 : v >= 69.89 ? 3 : v >= 59.89 ? 2 : antes; };
-  const precoDe = (prod, nivel) => prod === 'studio' ? STUDIO[Math.max(2, Math.min(4, nivel || 2))] : PRECO[prod];
+  const nivelDoValor = (v, antes) => { v = Number(v) || 0; return v < 59.89 ? antes : v >= 239.89 ? Math.min(REDES_MAX, 20 + Math.floor((v - 239.9 + .02) / 5)) : 2 + Math.floor((v - 59.9 + .02) / 10); };
+  const precoDe = (prod, nivel) => prod === 'studio' ? studioPreco(nivel || 2) : PRECO[prod];
   /* datas: o teste é um instante (timestamptz), o pago é um dia; tudo na hora de Brasília */
   const diaDe = iso => iso ? C.hojeBR(new Date(iso)) : '';
   const ddmm = d => d ? d.slice(8, 10) + '/' + d.slice(5, 7) : '';
@@ -522,7 +526,7 @@
   };
   /* v3.72: a versão dos Termos de uso que a pessoa aceita ao assinar (a mesma do data-versao do termos.html; a função
      anota). Mudou algo importante nos termos, sobe as duas juntas */
-  const TERMOS_V = '2026-10-29';
+  const TERMOS_V = '2026-10-30';
   /* v4.13: as skins de Halloween em real (o Ateliê, no verso.js) aceitam a mesma versão */
   C.TERMOS_V = TERMOS_V;
   /* v3.72: o que dá pra desistir com devolução (o direito de arrependimento, 7 dias do primeiro pagamento). Quem diz é a
@@ -596,7 +600,7 @@
     const p = plano(prod), e = estado(prod), loja = !!(C.naLoja && C.naLoja());
     const nv = prod === 'studio' ? (p && p.assinado && p.acesso ? p.nivel : 1) : 0;
     e.bts = e.bts.filter(btLoja);
-    const escada = loja ? '' : prod === 'studio' ? `<ul class="pl-escada">${[[1, 'Grátis'], [2, reais(STUDIO[2])], [3, reais(STUDIO[3])], [4, reais(STUDIO[4])]].map(([n, v]) => `<li${n === nv ? ' class="eu"' : ''}><span>${nivelNome(n)}</span><b>${v}</b></li>`).join('')}</ul><p class="pl-mes">por mês</p>`
+    const escada = loja ? '' : prod === 'studio' ? `<ul class="pl-escada">${[1, 2, 3, 4, 5, 6].concat(nv > 6 ? [nv] : []).map(n => `<li${n === nv ? ' class="eu"' : ''}><span>${nivelNome(n)}</span><b>${n === 1 ? 'Grátis' : reais(studioPreco(n))}</b></li>`).join('')}</ul><p class="pl-mes">por mês · cada rede a mais, + R$ 10; da 21ª em diante, + R$ 5</p>`
       : `<p class="pl-preco"><b>${reais(PRECO[prod])}</b> por mês</p>`;
     return `<article class="pl-card${e.fora ? ' fora' : ''}" id="pl-${prod}">
       <header><span class="pl-ico">${ico(ICO[prod])}</span><div><h2>${NOME[prod]}</h2><p>${esc(SOBRE[prod])}</p></div></header>
@@ -660,15 +664,24 @@
   const abaNova = () => { if(C.DEMO) return null; try{ return window.open('', '_blank'); }catch(e){ return null; } };
   const leva = (w, link) => { if(!w) return false; if(!link){ try{ w.close(); }catch(e){} return false; } try{ w.opener = null; w.location.href = link; return true; }catch(e){ return false; } };
 
+  /* v5.10 · quantas redes, no passo a passo da folha (o − e o +, os atalhos e o número digitado) */
+  const qtdLida = () => { const el = C.$('pl-n'); return Math.max(2, Math.min(REDES_MAX, Math.round(Number(el && el.value) || 2))); };
+  const totalTx = (n, atual) => `<b>${reais(studioPreco(n))}</b> por mês com ${n} redes${n === atual ? ' (o teu hoje)' : ''}`;
+  function qtd(el){
+    const i = C.$('pl-n'); if(!i) return;
+    const n = el && el.dataset.n ? Number(el.dataset.n) : qtdLida() + (Number(el && el.dataset.d) || 0);
+    i.value = Math.max(2, Math.min(REDES_MAX, n));
+    const t = C.$('pl-total'); if(t) t.innerHTML = totalTx(qtdLida(), Number(i.dataset.atual) || 0);
+  }
   function assinarSheet(prod, nivelPedido){
     const A = C.acesso;
     if(!A){ C.toast('Os planos chegam em breve. Por enquanto tá tudo liberado.'); return; }
     const p = plano(prod), ja = !!(p && p.assinado && p.status !== 'cancelada'), teste = noTeste(p);
-    const nAtual = ja && prod === 'studio' ? nivelDoValor(p.valor, p.nivel) : 0, nIni = Math.max(2, Math.min(4, nivelPedido || (nAtual ? nAtual : 2)));
+    const nAtual = ja && prod === 'studio' ? nivelDoValor(p.valor, p.nivel) : 0, nIni = Math.max(2, Math.min(REDES_MAX, nivelPedido || (nAtual ? nAtual : 2)));
     const quando = teste ? `Você tá no teste grátis até ${ddmm(diaDe(p.teste_ate))}: a primeira cobrança vence nesse dia, e nada sai antes.`
       : ja ? 'Muda o valor da próxima fatura em diante.' : 'A primeira fatura vence hoje: ela abre numa aba nova pra pagar no Pix, boleto ou cartão. Pagou, o plano liga sozinho.';
     C.sheet(`<form class="form pl-form" id="pl-f"><div class="sheet-head"><h2>${ja ? 'Trocar de plano' : 'Assinar o ' + NOME[prod]}</h2><button type="button" class="cbtn plain" data-close aria-label="Fechar">${ico('x')}</button></div>
-      ${prod === 'studio' ? `<fieldset class="fld pl-niveis"><legend>Quantas redes sociais o Corre acompanha</legend>${[2, 3, 4].map(n => `<label class="pl-nivel"><input type="radio" name="pl-n" value="${n}"${n === nIni ? ' checked' : ''}><span>${nivelNome(n)}${n === nAtual ? ' <small>(o teu hoje)</small>' : ''}</span><b>${reais(STUDIO[n])}</b></label>`).join('')}<small class="hint">A primeira rede social segue de graça; o plano é o total. Por mês.</small></fieldset>`
+      ${prod === 'studio' ? `<fieldset class="fld pl-niveis"><legend>Quantas redes sociais o Corre acompanha</legend><div class="pl-qtd"><button type="button" class="cbtn" data-act="pl-qtd" data-d="-1" aria-label="Uma rede a menos">−</button><input class="inp" id="pl-n" type="number" inputmode="numeric" min="2" max="${REDES_MAX}" step="1" value="${nIni}" aria-describedby="pl-total"><button type="button" class="cbtn" data-act="pl-qtd" data-d="1" aria-label="Uma rede a mais">+</button><span class="pl-qtd-k">redes</span></div><div class="chips pl-atalho">${[2, 5, 10, 20, 30].map(n => `<button type="button" class="chip" data-act="pl-qtd" data-n="${n}">${n}</button>`).join('')}</div><p class="pl-total" id="pl-total" aria-live="polite">${totalTx(nIni, nAtual)}</p><small class="hint">R$ 59,90 com 2 redes e R$ 10 por rede a mais; da 21ª em diante, R$ 5 cada. Até ${REDES_MAX}. A primeira rede social segue de graça; o plano é o total. Por mês.</small></fieldset>`
         : `<p class="pl-preco"><b>${reais(PRECO[prod])}</b> por mês</p>`}
       <p class="note">${esc(quando)}</p>
       ${A.cliente || ja ? '' : `<div class="fld"><label for="pl-nome">Nome completo ou razão social</label><input class="inp" id="pl-nome" maxlength="100" autocomplete="name" required value="${esc((C.st.me && C.st.me.nome) || '')}"></div>
@@ -678,12 +691,14 @@
       <div class="acts"><button type="submit" class="btn pri">${ja ? 'Trocar' : teste ? 'Assinar (sem cobrar agora)' : 'Assinar e pagar'}</button><button type="button" class="btn ghost" data-close>Agora não</button></div>
       <p class="fine">Cancela quando quiser, em Financeiro › Planos.</p>
     </form>`);
+    /* v5.10: o número digitado acerta o total na hora (o − e o + passam pelo pl-qtd) */
+    { const i = C.$('pl-n'); if(i){ i.dataset.atual = nAtual || ''; i.addEventListener('input', () => { const t = C.$('pl-total'); if(t) t.innerHTML = totalTx(qtdLida(), nAtual); }); } }
     C.umaVez(C.$('pl-f'), async () => {
       const er = C.$('pl-erro'), mostra = t => { if(er){ er.textContent = t; er.hidden = false; } else C.toast(t); };
       const body = { acao: 'assinar', produto: prod, termos: TERMOS_V };
       /* o navegador já segura (required), mas a folha refeita ou um leitor de tela podem passar: confere aqui também */
       const tm = C.$('pl-termos'); if(tm && !tm.checked){ mostra(ERRO.termos); tm.focus(); return; }
-      if(prod === 'studio') body.nivel = Number((document.querySelector('input[name="pl-n"]:checked') || {}).value) || 2;
+      if(prod === 'studio') body.nivel = qtdLida();
       if(prod === 'studio' && ja && body.nivel === nAtual){ C.closeSheet(); return; }
       const nm = C.$('pl-nome'), dc = C.$('pl-doc');
       if(nm){ body.nome = nm.value.replace(/\s+/g, ' ').trim(); if(body.nome.length < 3){ mostra(ERRO.nome); nm.focus(); return; } }
@@ -732,6 +747,7 @@
         diz(e && e.code === 'config' ? 'Falta a chave: Supabase › Edge Functions › Secrets › ASAAS_API_KEY.' : e && e.code === 'asaas' ? 'O Asaas respondeu: ' + (e.detalhe || 'erro') : e && (e.code === 'nofn' || e.status === 404) ? 'A função pagamento ainda não tá no ar.' : erroTxt(e), true);
       }finally{ if(el.isConnected) el.disabled = false; }
     },
+    'pl-qtd': el => qtd(el),
     'pl-assinar': el => { if(C.naLoja && C.naLoja()){ C.toast('Assinar não está disponível no app.', 3600); return; } assinarSheet(el.dataset.p, Number(el.dataset.n) || 0); },
     'pl-pagar': async el => {
       if(C.naLoja && C.naLoja()){ C.toast('Pagar não está disponível no app.', 3600); return; }

@@ -31,7 +31,7 @@
     const precos = P ? `<div class="es-precos">
         <div class="es-pc"><h3>De graça</h3><ul><li>Perfil, rede e mensagens</li><li>Link na bio</li><li>Mural e Correverso</li><li>Vendas e Grana</li><li>Studio Cria com 1 rede social</li><li>A 1ª marca no Studio Houzi</li></ul></div>
         <div class="es-pc es-pc-pago"><h3>Quando precisar de mais</h3><ul>
-          <li><span>Studio Cria com 2 redes</span><b class="num">${r(P.preco('studio', 2))}</b></li><li><span>Studio Cria com 3 redes</span><b class="num">${r(P.preco('studio', 3))}</b></li><li><span>Studio Cria com 4 ou mais</span><b class="num">${r(P.preco('studio', 4))}</b></li>
+          <li><span>Studio Cria com 2 redes</span><b class="num">${r(P.preco('studio', 2))}</b></li><li><span>Cada rede a mais (até a 20ª)</span><b class="num">+ R$ 10,00</b></li><li><span>Studio Cria com 10 redes</span><b class="num">${r(P.preco('studio', 10))}</b></li>
           <li><span>Studio Houzi <small>a 1ª marca é de graça</small></span><b class="num">${r(P.preco('houzi'))}</b></li><li><span>Hórus <small>30 dias de graça</small></span><b class="num">${r(P.preco('horus'))}</b></li></ul>
           <p class="fine">Por mês, renova sozinho e cancela quando quiser. Desistiu em até 7 dias do primeiro pagamento, volta tudo. <a href="termos.html">Termos de uso</a></p></div>
       </div>` : '';

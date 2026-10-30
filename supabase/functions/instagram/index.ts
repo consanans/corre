@@ -36,7 +36,8 @@ const APP_ID = env('IG_APP_ID'), APP_SECRET = env('IG_APP_SECRET');
 const REDIRECT = env('IG_REDIRECT', 'https://app.corresocial.com/ig.html');
 const SITE = env('SITE_URL', 'https://app.corresocial.com');
 const LIMITE = Math.max(1, Number(env('IG_LIMITE_DIA', '10')) || 10);
-const MAX_CONTAS = 20;
+/* v5.10: 100 (era 20): o Studio Cria cobra por rede até 100, e quem paga por 30 contas tem que conseguir ligar as 30 */
+const MAX_CONTAS = 100;
 const TIPOS: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
 const MAX = 5 * 1024 * 1024;
 

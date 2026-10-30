@@ -6087,3 +6087,12 @@ html.embed .bio-pe,html.embed .bio-corre{display:none}
 .mm-liga p{flex:1 1 260px;margin:0;line-height:1.45}
 .mm-liga p b{display:flex;align-items:center;gap:8px;margin-bottom:4px;font-size:1.05rem}
 .mm-liga p b svg{width:20px;height:20px}
+/* v5.10 · quantas redes no plano do Studio Cria: o − e o +, o número no meio e o total na hora */
+.pl-qtd{display:flex;align-items:center;gap:10px;margin:6px 0 10px}
+.pl-qtd .cbtn{width:48px;height:48px;font-size:24px;font-weight:900;flex:none}
+.pl-qtd .inp{width:96px;text-align:center;font-size:22px;font-weight:900;padding:10px 8px;-moz-appearance:textfield}
+.pl-qtd .inp::-webkit-outer-spin-button,.pl-qtd .inp::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.pl-qtd-k{font-weight:800;color:var(--muted)}
+.pl-atalho{margin:0 0 10px}
+.pl-total{margin:0 0 6px;font-size:16px}
+.pl-total b{font-size:22px;font-weight:900;color:var(--ink)}
