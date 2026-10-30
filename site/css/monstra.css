@@ -6081,3 +6081,9 @@ html.embed .bio-pe,html.embed .bio-corre{display:none}
 @keyframes sk3-pula{0%{transform:translate(-50%,-50%) scale(.5) rotate(-6deg)}100%{transform:translate(-50%,-50%) scale(1) rotate(0)}}
 .cs-pesca .cs-sk3-c{margin:4px 0;font-weight:800;font-size:13px;line-height:1.3}
 @media (prefers-reduced-motion:reduce){ .cs-sk3.on{animation:none} }
+
+/* v5.10 · o fim do Monta meu Corre: o cartão que pede o último toque (conectar o Instagram da marca) */
+.mm-liga{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin:0 0 14px;border-color:var(--pink)}
+.mm-liga p{flex:1 1 260px;margin:0;line-height:1.45}
+.mm-liga p b{display:flex;align-items:center;gap:8px;margin-bottom:4px;font-size:1.05rem}
+.mm-liga p b svg{width:20px;height:20px}

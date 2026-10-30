@@ -159,9 +159,34 @@
       const c = r && r.conta;
       guardaUltima({ ok: true, username: c ? c.username : '' });
       await carrega(true); muda();
-      C.toast(c ? `@${c.username} conectado: o que você programar pra ele sai sozinho.` : 'Instagram conectado.', 5600);
+      const cc = c && porId(c.id);
+      await depoisDeConectar(cc || c, c ? `@${c.username} conectado: o que você programar pra ele sai sozinho.` : 'Instagram conectado.');
       sheet(c && c.id);
     }catch(e){ erro(e && e.code || 'fn', msgErro(e)); }
+  }
+
+  /* v5.10 · o post que já tava programado pega a conta que acabou de chegar. O Monta meu Corre e o Mês com IA programam
+     antes de a pessoa conectar o Instagram (com a Meta em teste, nem dava): sem isto, os 12 posts do mês seguiam lembrete
+     depois de conectar, e a linha do Studio dizia que saíam sozinhos. Pega só os da marca com o mesmo @, sem conta, que
+     ainda não saíram e não passaram da hora; o carrossel acima de 10 fica de fora (a Meta não posta sozinha) */
+  async function ligaProgramados(c){
+    if(!c || !ok(c) || !c.username) return 0;
+    let marcas = [], posts = [];
+    try{ marcas = (await C.api.q('corre_portfolio', { eq: { dono: C.uid() } })).filter(m => redeDe(m) === c.username); }catch(e){ return 0; }
+    if(!marcas.length) return 0;
+    try{ posts = await C.api.q('corre_posts', { eq: { dono: C.uid(), ig_status: 'agendado' }, in: { marca_id: marcas.map(m => m.id) }, gte: { ig_quando: new Date().toISOString() }, is: { ig_conta: null }, limit: 500 }); }catch(e){ return 0; }
+    let n = 0;
+    for(const p of posts){
+      if(p.ig_conta || p.status === 'postado' || p.ig_media_id || (C.soMao && C.soMao(p))) continue;
+      try{ await C.api.upd('corre_posts', { id: p.id }, { ig_conta: c.id }); n++; }catch(e){}
+    }
+    return n;
+  }
+  /* depois de conectar: liga os programados e conta no aviso (quem tá no Studio redesenha pelo muda) */
+  async function depoisDeConectar(c, msg){
+    const n = await ligaProgramados(c);
+    if(n) muda();
+    C.toast(n ? `${msg} ${n === 1 ? 'O post que já tava programado agora sai' : `Os ${n} posts que já tavam programados agora saem`} sozinho${n === 1 ? '' : 's'} nele.` : msg, n ? 7000 : 5600);
   }
 
   /* ---------- v3.41 · conferir a ligação ----------
@@ -239,7 +264,7 @@
       else await C.api.ins('corre_ig_contas', { ig_id: String(17841400000000 + (C.hash(u) % 1e8)), app_uid: '', username: u, nome: '', foto: '', tipo: 'BUSINESS', status: 'ok', erro: '', expira_em: new Date(Date.now() + 60 * 864e5).toISOString(), conectada_em: new Date().toISOString(), updated_at: new Date().toISOString() });
       await carrega(true); muda();
       const c = contas().find(x => x.username === u);
-      C.toast(`@${u} conectado (demonstração).`, 3600);
+      await depoisDeConectar(c, `@${u} conectado (demonstração).`);
       sheet(c && c.id);
     }catch(e){ C.toast(C.errMsg(e, 'Não deu pra conectar.')); }
   }
@@ -286,7 +311,7 @@
 
   Object.assign(C.acts, {
     'ig-contas': () => sheet(),
-    'ig-conectar': el => conectar({ trocar: !!(el && el.dataset && el.dataset.trocar), rede: el && el.dataset && el.dataset.rede, testador: !!(el && el.dataset && el.dataset.testador) }),
+    'ig-conectar': el => conectar({ trocar: !!(el && el.dataset && el.dataset.trocar), rede: el && el.dataset && el.dataset.rede, testador: !!(el && el.dataset && el.dataset.testador), volta: el && el.dataset && el.dataset.volta }),
     'ig-desconectar': el => desconectar(el),
     'ig-demo-ok': () => demoOk(),
     'ig-diag': () => diag()

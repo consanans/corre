@@ -68,11 +68,21 @@
     return `<main class="wrap mm" id="mm"><div class="hello mm-hero"><p class="mm-olho">${ico('magia')} Monta meu Corre</p>
       <h1 class="mm-t"><span class="hl">${M.fim ? 'Teu Corre tá montado.' : 'Montando teu Corre…'}</span></h1>
       <p class="mm-lead">${M.fim ? 'Daqui pra frente é contigo: cada tarefa feita, post programado e cliente chamado rende correal e a placa na frente da tua casa no Correverso.' : 'Pode ficar aqui: cada linha acende quando fica pronta.'}</p></div>
+      ${M.fim ? liga() : ''}
       <ol class="card mm-prog" aria-live="polite">${Object.keys(L).map(k => { const x = L[k], P = PASSOS[k];
         return `<li class="mm-p ${x.s}"><span class="mm-pi" aria-hidden="true">${x.s === 'ok' ? ico('check') : x.s === 'erro' ? ico('x') : x.s === 'pulou' ? '–' : ico(P[0])}</span>
           <span class="mm-ptx"><b>${esc(P[1])}</b><small>${esc(x.txt || (x.s === 'fila' ? 'Na fila' : x.s === 'indo' ? 'Fazendo…' : ''))}</small></span>${x.s === 'ok' || (k === 'studio' && x.s === 'indo' && x.job) ? `<a class="btn sm" href="${x.ir || P[2]}">Ver</a>` : ''}</li>`; }).join('')}</ol>
       ${M.fim ? `<div class="acts mm-acts">${M.it.horus && M.it.horus.s === 'ok' && M.it.horus.n ? `<a class="btn pri" href="#/horus">${ico('eye')} Chamar os primeiros clientes</a>` : `<a class="btn pri" href="#/caderninho">${ico('caderno')} Ver a semana</a>`}<a class="btn" href="#/">Ir pro Início</a></div>` : ''}
     </main>`;
+  }
+  /* v5.10 · o último passo que faz o mês sair sozinho: conectar o Instagram da marca. Sem ele os 12 posts viram lembrete;
+     com a Meta liberada, é o botão que mais importa nessa tela. A volta do login cai no Studio Cria da marca (não aqui:
+     esta tela não sobrevive à ida pro Instagram), e lá os posts já programados pegam a conta */
+  function liga(){
+    const x = M.it.studio;
+    if(!x || x.s !== 'ok' || !x.rede || !C.ig || !C.ig.aberto() || (C.ig.conectadas() || []).some(c => c.username === x.rede)) return '';
+    return `<div class="card mm-liga"><p><b>${ico('ig')} Falta 1 toque pra eles saírem sozinhos</b>Conecta o @${esc(x.rede)} (login na própria conta do Instagram) e os posts do mês saem no dia e na hora, sem você abrir nada. Sem conectar, na hora de cada um o Corre te avisa pra postar à mão.</p>
+      <button type="button" class="btn pri" data-act="ig-conectar" data-rede="${esc(x.rede)}" data-volta="${esc(x.ir || '#/studio')}">${ico('ig')} Conectar o @${esc(x.rede)}</button></div>`;
   }
   const pinta = () => { const a = $('app'); if(!a || !$('mm')) return; const y = window.scrollY; a.querySelector('#mm').outerHTML = progresso(); window.scrollTo(0, y); };
   const marca = (k, s, txt, extra) => { Object.assign(M.it[k], { s, txt }, extra || {}); pinta(); };
@@ -118,12 +128,13 @@
     marca('studio', 'indo', `A IA tá fazendo a pauta da ${mk.marca}…`);
     const job = await C.lote.mesAuto(mk, { n: 12, assunto: o.q });
     if(!job){ marca('studio', 'pulou', 'O Studio Cria já tava fazendo um mês agora. Confere no calendário.'); return; }
-    M.it.studio.job = job; M.it.studio.ir = '#/studio/' + mk.id;
+    M.it.studio.job = job; M.it.studio.ir = '#/studio/' + mk.id; M.it.studio.rede = String(mk.rede || '').toLowerCase();
     /* acompanha o trabalho (ele segue mesmo se a pessoa sair daqui) */
     await new Promise(ok => {
       const passo = () => {
         const n = job.itens.length;
-        if(job.fim){ marca('studio', job.feitos ? 'ok' : 'erro', job.feitos ? `${job.feitos} posts programados pra ${mk.marca}, de ${C.ddmm(job.itens[0].data)} a ${C.ddmm(job.itens[n - 1].data)}.` : 'Não deu pra criar os posts agora. Tenta pelo "Mês com IA" do Studio Cria.'); ok(); return; }
+        if(job.fim){ if(C.ig) C.ig.carrega(true).then(pinta, () => {});
+          marca('studio', job.feitos ? 'ok' : 'erro', job.feitos ? `${job.feitos} posts programados pra ${mk.marca}, de ${C.ddmm(job.itens[0].data)} a ${C.ddmm(job.itens[n - 1].data)}.` : 'Não deu pra criar os posts agora. Tenta pelo "Mês com IA" do Studio Cria.'); ok(); return; }
         marca('studio', 'indo', `Fazendo os posts: ${job.feitos} de ${n}…`);
         M.t = setTimeout(passo, 900);
       };
