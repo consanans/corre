@@ -794,9 +794,10 @@
     /* v4.14: a barragem do Igapó 1, onde o lago vira o ribeirão que desce até o Arthur Thomas */
     ['Barragem do Igapó', 'verso', 'Onde o lago vira ribeirão, rumo ao Arthur Thomas', 'barragem represa ribeirao cambezinho vertedouro igapo'],
     /* v5.17: as saídas da cidade (a estrada pela roça até a cancela EM BREVE) */
-    ['Saída pra Cambé', 'carro', 'A estrada pro oeste: em obra, logo chega lá', 'cambe saida estrada rodovia br 369 oeste'],
-    ['Saída pra Ibiporã', 'carro', 'A estrada pro leste: em obra, logo chega lá', 'ibipora saida estrada rodovia br 369 leste'],
+    ['Saída pra Cambé', 'carro', 'A estrada pro oeste e os lotes em obra', 'cambe obra lote loteamento pedreiro saida estrada rodovia br 369 oeste'],
+    ['Saída pra Ibiporã', 'carro', 'A estrada pro leste e os lotes em obra', 'ibipora obra lote loteamento pedreiro saida estrada rodovia br 369 leste'],
     ['Saída pra São Paulo', 'carro', 'Uns 540 km pela BR-369: em obra', 'sao paulo sp saida estrada rodovia br 369 capital'],
+    ['Saída pra Curitiba', 'carro', 'Desce até o Tibagi: a ponte tá em obra', 'curitiba saida estrada rodovia pr 445 br 376 ponte sul'],
     ['Porto do Tibagi', 'peixe', 'Barquinho e pesca da piapara no rio', 'rio tibagi barco barquinho pesca pescar piapara peixe porto'],
     ['Prainha do Tibagi', 'verso', 'Areia, guarda-sol e o outro píer do rio', 'prainha praia areia rio tibagi'],
     /* v4.05 */

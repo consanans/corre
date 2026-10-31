@@ -5259,8 +5259,9 @@
     const pisos = pisosDaCasa(), extras = [];
     /* v3.77: a luz dos postes e das vitrines no chão (e as sombras de quem mora no lugar) */
     if(PL.luzes) pisos.push(...PL.luzes); if(S.calc) pisos.push(...calcManchas(t));
+    if(S.skg) S.skg.forEach(n => pisos.push({ mancha: [n.x, .004, n.z, .32, .7, .26, n.yaw] }));
     pisos.push(...sombras(extras));
-    let solidos = [...solidosParedes(cam), ...solidosAndares(), ...solidosFixos(), ...solidosItens(), ...solidosAnimados(t), ...extras, ...solidosDisco(t), ...solidosPesca(t), ...solidosDesafio(), ...solidosKart(t), ...solidosPaineis(), ...solidosImgs(cam), ...calcSolidos(t)];
+    let solidos = [...solidosParedes(cam), ...solidosAndares(), ...solidosFixos(), ...solidosItens(), ...solidosAnimados(t), ...extras, ...solidosDisco(t), ...solidosPesca(t), ...solidosDesafio(), ...solidosKart(t), ...solidosPaineis(), ...solidosImgs(cam), ...calcSolidos(t), ...(S.skg ? skgSolidos() : [])];
     const mv = S.corrida && S.eu ? S.corrida.P.veic : '', RK = S.corrida && S.corrida.kart ? S.corrida : null;
     const yv = S.eu ? S.eu.yaw + (RK ? RK.yawVis + ((RK.rodouAte || 0) > Date.now() ? (Date.now() - RK.rodouT0) / 1000 * 9 : 0) : 0) : 0;
     const bichoEu = comBicho() && bichoOk(S.kartBicho) ? S.kartBicho : null, avEu = bichoEu != null ? avBicho(bichoEu) : S.eu && S.eu.av;
@@ -5300,6 +5301,8 @@
     const peers = C.verso.peers ? C.verso.peers() : new Map();
     gente().forEach(r => { const p = peers.get(r.sid), vivo = p && p.estado === 'aovivo'; poe('gente:' + r.sid, [r.hxv, (r.hyv || 0) + 1.78, r.hzv], (r.handle ? '@' + r.handle : r.nome || 'visitante') + (vivo ? ' · ao vivo' : r.mic ? ' · mic' : ''), vivo ? 'gente vivo' : 'gente'); });
     if(S.calc) calcFalas(poe);
+    /* v5.17: o nome da galera da pista (ou a fala, quando tem) */
+    if(S.skg){ const agora = Date.now(); S.skg.forEach(n => { const p = [n.x, n.y + VEIC_3D.skate.alt + 1.9, n.z]; if(n.fala && n.fala.ate > agora) poe('skg:' + n.i, p, n.fala.t, 'fala'); else poe('skg:' + n.i, p, n.d.nome, 'gente'); }); }
     S.tags.forEach((el, k) => { if(!usadas.has(k) && !el.hidden){ el.hidden = true; } });
     if(S.tags.size > 60) S.tags.forEach((el, k) => { if(!usadas.has(k)){ el.remove(); S.tags.delete(k); } });
     /* a conversa da casa: mic e quem tá ao vivo */
@@ -5322,7 +5325,7 @@
       /* celular fraco (quadro lento): o boneco anda em passos de até 50 ms, pra a velocidade não depender do quadro
          (e sem atravessar parede num passo grande) */
       if(!parado){ const np = Math.max(1, Math.ceil(dt / .05 - 1e-9)); for(let i = 0; i < np && S.aberta && S.eu; i++) passo(dt / np); if(!S.corrida && !S.desafio) camControle(dt); }
-      andamGente(dt); if(S.calc) calcPasso(dt); sincronizaDisco();
+      andamGente(dt); if(S.calc) calcPasso(dt); if(S.skg) skgPasso(dt); sincronizaDisco();
       if(!S.portaT || t - S.portaT > .2){ S.portaT = t; portaCasa(); if(S.calc) brigaCalcUI(); else { const bg = C.$('cs-briga'); if(bg && !bg.hidden){ bg.hidden = true; bg.dataset.txt = ''; } } }
       if(C.verso.enviaPos) C.verso.enviaPos(false);
       if(!bc && !(C.verso.jogo && C.verso.jogo())){ const t0 = performance.now(); quadro(t); S.msQuadro = (S.msQuadro || 0) * .9 + (performance.now() - t0) * .1; if(!parado) ajustaRes(dt, t0); }
@@ -5859,6 +5862,50 @@
     return { ac, vi };
   }
   const skSomV = () => (C.versoSom ? C.versoSom : null);
+  /* ---------- v5.17 · a galera da pista (o Thales: "dentro da pista de skate deixa sempre os NPC Brown, Soneca, Castanha, Maradona") ----------
+     Os quatro andam sempre na pista 3D, cada um na linha dele (vai e volta no chão liso, longe dos obstáculos): embalam,
+     freiam e viram na ponta, dão ollie de vez em quando (às vezes um 360 no ar). O nome vai em cima de cada um e, com
+     você perto, de tempo em tempo um solta uma fala. São do aparelho de cada um (não vão pra rede) */
+  const SK_GALERA = [
+    { nome: 'Brown', a: [40, 78], b: [40, 53], v: 5.2, cor: '#1F2228', av: { pele: 5, cabelo: 'black', corCabelo: 0, topo: 'bonetras', roupa: 'camiseta', corRoupa: 0, perna: 'bermuda', corCalca: 0, tenis: 0 },
+      falas: ['Fala, chegado. A pista é nossa, mas tem espaço pra você.', 'Ollie é igual rima: tem que cair no tempo.', 'Daqui do meio dá pra embalar até o caixote.'] },
+    { nome: 'Soneca', a: [60.5, 21], b: [60.5, 38], v: 3.6, cor: LILAS, av: { pele: 2, cabelo: 'longo', corCabelo: 1, topo: 'gorro', roupa: 'moletom', corRoupa: 5, corCalca: 3 },
+      falas: ['Acordei agora. São que horas?', 'Ando devagar porque já tive pressa.', 'Se eu cair, não me acorda.'] },
+    { nome: 'Castanha', a: [30, 16.5], b: [50, 16.5], v: 4.6, cor: '#8E5B33', av: { pele: 3, cabelo: 'cacheado', corCabelo: 1, roupa: 'regata', corRoupa: 4, perna: 'bermuda', corCalca: 1 },
+      falas: ['Shape lixado e tênis furado: tô pronto.', 'Tô treinando o kickflip faz três anos. Ele tá quase.', 'Aqui no fundo a rampa grande assusta. Por isso eu fico na frente dela.'] },
+    { nome: 'Maradona', a: [30, 57.5], b: [52, 57.5], v: 5.6, cor: AZUL, av: { pele: 4, cabelo: 'cacheado', corCabelo: 0, roupa: 'camiseta', corRoupa: 3, estampa: 'listras', corCalca: 0 },
+      falas: ['Com a mão não vale, viu.', 'Me chamam de Maradona porque eu driblo os cones.', 'Dez na camisa, dez no ollie.'] }
+  ];
+  function skgCria(){
+    if(!C.verso || !C.verso.avLimpo) return null;
+    const agora = Date.now();
+    return SK_GALERA.map((d, i) => { const L = Math.hypot(d.b[0] - d.a[0], d.b[1] - d.a[1]); return { i, d, L, u: L * (.2 + .6 * Math.random()), dir: i % 2 ? 1 : -1, v: d.v * .6, x: d.a[0], z: d.a[1], y: 0, yaw: 0, giro: 0, ar: null, pula: agora + 2000 + Math.random() * 5000, fala: null, falaT: agora + 4000 + i * 3500, av: C.verso.avLimpo(d.av, 'skg' + i) }; });
+  }
+  function skgPasso(dt){
+    const e = S.eu, agora = Date.now();
+    for(const n of S.skg){
+      const d = n.d, ux = (d.b[0] - d.a[0]) / n.L, uz = (d.b[1] - d.a[1]) / n.L, ponta = n.dir > 0 ? n.L - n.u : n.u;
+      /* embala no meio, freia chegando na ponta e vira (a curva leva meio segundo) */
+      const alvo = ponta < 2.6 ? Math.max(.9, d.v * ponta / 2.6) : d.v; n.v += (alvo - n.v) * Math.min(1, dt * 2.2);
+      n.u += n.dir * n.v * dt; if(n.u > n.L){ n.u = n.L; n.dir = -1; } else if(n.u < 0){ n.u = 0; n.dir = 1; }
+      n.x = d.a[0] + ux * n.u; n.z = d.a[1] + uz * n.u;
+      const yAlvo = Math.atan2(ux * n.dir, uz * n.dir); let dy = yAlvo - n.yaw; while(dy > Math.PI) dy -= 2 * Math.PI; while(dy < -Math.PI) dy += 2 * Math.PI; n.yaw += dy * Math.min(1, dt * 6);
+      /* o ollie (e de vez em quando o 360): só longe da ponta */
+      if(!n.ar && agora > n.pula && ponta > 4){ n.ar = { t0: agora, dur: 620, h: .5 + Math.random() * .2, gira: Math.random() < .25 ? 2 * Math.PI * (Math.random() < .5 ? 1 : -1) : 0 };
+        if(e && Math.hypot(n.x - e.x, n.z - e.z) < 12){ const V = skSomV(); if(V) try{ V.pulo('skate'); }catch(x){} } }
+      if(n.ar){ const f = (agora - n.ar.t0) / n.ar.dur; if(f >= 1){ n.ar = null; n.y = 0; n.giro = 0; n.pula = agora + 3500 + Math.random() * 6000; } else { n.y = n.ar.h * 4 * f * (1 - f); n.giro = n.ar.gira * f; } }
+      /* fala de tempo em tempo, se você tá perto */
+      if(e && agora > n.falaT && Math.hypot(n.x - e.x, n.z - e.z) < 10){ const t = n.d.falas[Math.floor(Math.random() * n.d.falas.length)]; n.fala = { t, ate: agora + 1900 + t.length * 58 }; n.falaT = agora + 14000 + Math.random() * 12000;
+        if(C.versoSom && C.versoSom.papo) C.versoSom.papo(Math.min(40, t.length), 160 + n.i * 40); }
+    }
+  }
+  function skgSolidos(){
+    const out = [], cx = S.cam.tx, cz = S.cam.tz;
+    for(const n of S.skg){ if(Math.hypot(n.x - cx, n.z - cz) > 60) continue; const dono = 'skg:' + n.i, yw = n.yaw + n.giro;
+      out.push(...veiculo3d('skate', n.x, n.y, n.z, yw, n.d.cor, dono));
+      out.push(...sobe(boneco(n.av, n.x, n.z, yw, 0, false, false).map(b => { b.dono = dono; return b; }), n.y + VEIC_3D.skate.alt)); }
+    return out;
+  }
   function passoSkate(dt){
     const e = S.eu, K = S.sk3, agora = performance.now(), { ac, vi } = skEntrada();
     S.alvo = null; S.rota = []; S.acao = null;
@@ -6218,6 +6265,7 @@
     S.eu = { x: nasce[0], z: nasce[1], y: 0, yaw: Math.PI, passo: 0, andando: false, av };
     S.calc = L && L.calc ? calcCria() : null;
     S.sk3 = L && PL.skate ? skNovo() : null;
+    S.skg = L && PL.skate ? skgCria() : null;
     if(!S.el || !S.el.isConnected) monta(); else { S.el.hidden = false; C.$('cs-tags').innerHTML = ''; tamanho(); if(C.versoSom && C.versoSom.botao) C.versoSom.botao(C.$('cs-som')); }
     const pc = C.$('cs-porta'); if(pc){ pc.hidden = true; pc.dataset.txt = ''; } const pb = C.$('cs-briga'); if(pb){ pb.hidden = true; pb.dataset.txt = ''; }
     const nomeC = L ? L.titulo : meu ? 'Tua casa' : 'Casa de @' + (dono.handle || '');
@@ -6242,7 +6290,7 @@
     if(S.modo === 'colocar') cancelaGhost();
     if(S.sk3) skFim();
     S.aberta = false; S.lugar = ''; cancelAnimationFrame(S.raf); S.raf = 0; S.teclas.clear(); S.padTh = null; S.perto = null; if(S.pad) S.pad.solta();
-    S.disco = null; S.discoAtual = ''; S.ouvindo = ''; S.pesca = null; if(S.corrida) somPara(); S.corrida = null; S.desafio = null; S.bsb = null; S.distPesca = null; S.kartVivo = null; S.calc = null; if(C.beats) C.beats.para();
+    S.disco = null; S.discoAtual = ''; S.ouvindo = ''; S.pesca = null; if(S.corrida) somPara(); S.corrida = null; S.desafio = null; S.bsb = null; S.distPesca = null; S.kartVivo = null; S.calc = null; S.skg = null; if(C.beats) C.beats.para();
     const pq = C.$('cs-pesca'); if(pq) pq.hidden = true;
     clearTimeout(S.salvaT); if(S.sujo) salva();
     if(S.el){ S.el.hidden = true; }
