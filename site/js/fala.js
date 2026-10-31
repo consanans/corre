@@ -1,6 +1,6 @@
 /* CORRE · FALA COM O CORRE (v4.33)
    O Thales pediu o Corre "mais smart, moderno, inteligente". A busca (a lupa, o "/" e o Ctrl+K) passou a entender
-   pedido: "me lembra de ligar pro contador amanhã 15h", "agenda post da GP Burger sexta 18h", "põe o Bar do Zé no
+   pedido: "me lembra de ligar pro contador amanhã 15h", "agenda post da Padaria Sol sexta 18h", "põe o Bar do Zé no
    Hórus 43 99999-1234", "cobrar 1500 do João dia 30", "manda mensagem pro @fulano", "abre o funil", "quanto entrou
    esse mês?". Duas camadas: a primeira entende no próprio aparelho, na hora e sem mandar nada pra fora; o que ela não
    entende vai pra IA (a função imagem, acao "fala"), que só escolhe a ação e preenche os campos. Quem faz é sempre o
@@ -25,7 +25,7 @@
   /* dia e hora pelo jeito do Caderninho (o mesmo "amanhã 15h" que a pessoa já usa lá) */
   const tempo = s => C.caderno && C.caderno.entende ? C.caderno.entende(horasFaladas(s)) : { titulo: s, dia: null, hora: null, repete: '', cada: 1, antes: [] };
 
-  /* ---------- as marcas da pessoa (pro "post da GP Burger"), lidas uma vez por abertura da busca ---------- */
+  /* ---------- as marcas da pessoa (pro "post da Padaria Sol"), lidas uma vez por abertura da busca ---------- */
   const MK = { uid: '', L: [], em: 0 };
   function marcas(){
     const u = C.uid() || '';

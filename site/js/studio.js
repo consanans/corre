@@ -141,7 +141,7 @@
     carregar().then(async () => {
       corpo();
       if(o.post) abreDoAviso(o.post);
-      /* v4.33: o "Fala com o Corre" pediu um post (agenda post da GP Burger sexta 18h): o editor abre já começado */
+      /* v4.33: o "Fala com o Corre" pediu um post (agenda post da Padaria Sol sexta 18h): o editor abre já começado */
       else if(C.fala && C.fala.pega){ const pd = C.fala.pega('post'); if(pd) daFala(pd); }
       if(await fila()){ try{ await carregar(); }catch(e){} corpo(); }
       relogio();
