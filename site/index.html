@@ -9,15 +9,29 @@
 <meta name="description" content="Corre: a rede de quem faz o corre nas redes. Perfil, clientes, referências e quanto o trampo tá rendendo.">
 <meta name="google-site-verification" content="dmCf4V910X0KKi-XUpEE2sOAZG8M_BIBrBdXc1KRem0">
 <meta name="theme-color" content="#141216">
-<link rel="icon" href="favicon.ico?v=1" sizes="32x32">
-<link rel="icon" href="favicon.svg?v=1" type="image/svg+xml">
-<link rel="apple-touch-icon" href="apple-touch-icon.png?v=1">
+<link rel="icon" href="favicon.ico?v=2" sizes="16x16 32x32 48x48">
+<link rel="icon" href="favicon.svg?v=2" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png?v=2">
 <link rel="manifest" href="site.webmanifest">
 <!-- no iPhone, o Corre na Tela de Início abre como app (e só assim recebe aviso no celular) -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Corre">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<!-- v5.16 · o que o iPhone mostra enquanto o app da tela abre (sem isso, um branco): o primeiro quadro da abertura, um por tamanho de tela -->
+<link rel="apple-touch-startup-image" media="(device-width: 440px) and (device-height: 956px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="img/abre/abre-1320x2868.png">
+<link rel="apple-touch-startup-image" media="(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="img/abre/abre-1290x2796.png">
+<link rel="apple-touch-startup-image" media="(device-width: 420px) and (device-height: 912px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="img/abre/abre-1260x2736.png">
+<link rel="apple-touch-startup-image" media="(device-width: 402px) and (device-height: 874px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="img/abre/abre-1206x2622.png">
+<link rel="apple-touch-startup-image" media="(device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="img/abre/abre-1179x2556.png">
+<link rel="apple-touch-startup-image" media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="img/abre/abre-1170x2532.png">
+<link rel="apple-touch-startup-image" media="(device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="img/abre/abre-1284x2778.png">
+<link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="img/abre/abre-1125x2436.png">
+<link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="img/abre/abre-1242x2688.png">
+<link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" href="img/abre/abre-828x1792.png">
+<link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" href="img/abre/abre-750x1334.png">
+<link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 736px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="img/abre/abre-1242x2208.png">
+<link rel="apple-touch-startup-image" media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" href="img/abre/abre-640x1136.png">
 <meta property="og:title" content="Corre">
 <meta property="og:description" content="Mostra teu corre. Você mostra o que quiser; o resto fica mocado.">
 <!-- o que o app pede logo ao abrir: o banco e a biblioteca dele começam a conectar/baixar junto com a página -->
@@ -28,10 +42,37 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Bagel+Fat+One&family=Big+Shoulders+Display:wght@800;900&family=Cormorant+Garamond:ital,wght@1,500;1,600&family=IBM+Plex+Mono:wght@500;600&family=Playfair+Display:ital,wght@1,800;1,900&family=Silkscreen:wght@400;700&display=swap">
 <!-- css:inicio -->
-<link rel="stylesheet" href="css/corre.min.css?v=5.13">
+<link rel="stylesheet" href="css/corre.min.css?v=5.16">
 <!-- css:fim -->
+<!-- v5.16 · a abertura: quem abre o Corre pelo ícone da tela do celular (o app instalado) vê o C do ícone pular, a sombra rosa sair de trás e a tela mergulhar no buraco do C até o app. Uma vez por abertura (voltar do fundo não repete), nunca no balcão; ?abertura força, pra ver no navegador. O azul é o mesmo da tela que o Android mostra antes (background_color do site.webmanifest) e da imagem que o iPhone mostra (img/abre/) -->
+<script>(function(){try{if(window.top!==window)return;var f=/[?&]abertura\b/.test(location.search),s=navigator.standalone===true||matchMedia("(display-mode: standalone)").matches||matchMedia("(display-mode: fullscreen)").matches;if(f||(s&&!sessionStorage.getItem("corre-abriu"))){document.documentElement.classList.add("abre");sessionStorage.setItem("corre-abriu","1");}}catch(e){}})();</script>
+<style>
+#abre{display:none}
+.abre #abre{display:grid;place-items:center;position:fixed;inset:0;z-index:2147483000;background:#1A68CC;overflow:hidden;pointer-events:none}
+#abre .ab-luz{position:absolute;inset:0;background:radial-gradient(circle at 50% 50%,#4FA3EE 0,rgba(79,163,238,0) 62%);opacity:0;animation:ab-luz .9s .1s ease-out forwards}
+/* a origem do mergulho fica dentro do buraco do C branco e do rosa: a 110x, a tela vira o buraco */
+#abre .ab-c{width:132px;height:132px;transform-origin:50.4% 50%;animation:ab-pula .62s .08s cubic-bezier(.3,1.6,.5,1) both}
+#abre svg{display:block;width:100%;height:100%;overflow:visible}
+#abre .ab-s{transform:translate(26px,18px);animation:ab-sombra .5s .22s cubic-bezier(.3,1.7,.5,1) both}
+#abre .ab-p{position:absolute;bottom:calc(64px + env(safe-area-inset-bottom));display:flex;gap:7px;opacity:0;transition:opacity .3s}
+#abre .ab-p i{width:7px;height:7px;border-radius:50%;background:#fff;animation:ab-ponto 1s infinite}
+#abre .ab-p i:nth-child(2){animation-delay:.15s}#abre .ab-p i:nth-child(3){animation-delay:.3s}
+#abre.ab-demora .ab-p{opacity:.85}
+#abre.ab-vai{animation:ab-some .5s .12s ease-in forwards}
+#abre.ab-vai .ab-c{animation:ab-mergulha .62s cubic-bezier(.55,0,.85,.35) forwards}
+#abre.ab-vai .ab-p{opacity:0}
+@keyframes ab-luz{to{opacity:.75}}
+@keyframes ab-pula{0%{transform:scale(.86)}45%{transform:scale(1.12) rotate(-4deg)}100%{transform:scale(1)}}
+@keyframes ab-sombra{from{transform:translate(0,0)}to{transform:translate(26px,18px)}}
+@keyframes ab-ponto{0%,100%{transform:translateY(0);opacity:.5}40%{transform:translateY(-6px);opacity:1}}
+@keyframes ab-mergulha{0%{transform:scale(1)}18%{transform:scale(.9)}70%{opacity:1}100%{transform:scale(110);opacity:0}}
+@keyframes ab-some{to{background-color:rgba(26,104,204,0)}}
+@media (prefers-reduced-motion:reduce){#abre .ab-c,#abre .ab-s,#abre .ab-luz,#abre.ab-vai .ab-c{animation:none}#abre.ab-vai{animation:none;opacity:0;transition:opacity .3s}}
+</style>
 </head>
 <body>
+<div id="abre" aria-hidden="true"><div class="ab-luz"></div><div class="ab-c"><svg viewBox="0 0 512 512"><path class="ab-s" d="M242.2 67.0 L259.4 67.0 L270.5 68.0 L281.6 70.0 L296.8 74.6 L308.4 80.1 L315.5 84.7 L320.5 88.7 L330.6 99.3 L338.7 111.4 L343.7 121.5 L349.3 136.2 L352.3 147.3 L357.4 178.1 L358.9 201.8 L358.9 215.9 L270.5 215.9 L269.0 176.1 L267.0 164.4 L262.9 154.9 L256.9 148.8 L249.3 146.3 L242.7 146.3 L238.2 147.3 L231.6 150.8 L227.1 156.4 L223.6 165.0 L222.0 172.0 L220.5 189.2 L220.5 303.8 L221.5 316.4 L223.6 328.0 L228.1 338.6 L234.2 344.7 L238.7 346.7 L244.3 347.7 L249.8 347.7 L256.9 345.7 L259.9 343.7 L264.0 339.1 L267.0 333.1 L269.5 324.5 L271.5 309.4 L272.5 280.1 L305.4 280.1 L358.9 280.1 L358.4 304.3 L355.8 328.5 L352.3 346.7 L346.3 365.9 L339.7 380.0 L332.1 391.7 L321.5 403.3 L308.4 412.9 L295.8 418.9 L280.6 423.5 L269.0 425.5 L257.9 426.5 L239.2 426.5 L214.5 423.0 L194.8 416.4 L186.7 412.4 L176.1 405.3 L161.5 391.2 L155.4 383.1 L148.3 371.0 L138.7 347.2 L132.7 322.5 L128.6 294.2 L126.6 262.9 L126.6 231.6 L128.1 205.8 L131.2 182.1 L134.7 164.4 L141.8 141.2 L150.9 121.5 L157.9 110.4 L163.5 103.4 L180.1 87.7 L191.2 80.6 L205.9 74.1 L225.1 69.0 Z" fill="#FF48B0"/><path d="M242.2 67.0 L259.4 67.0 L270.5 68.0 L281.6 70.0 L296.8 74.6 L308.4 80.1 L315.5 84.7 L320.5 88.7 L330.6 99.3 L338.7 111.4 L343.7 121.5 L349.3 136.2 L352.3 147.3 L357.4 178.1 L358.9 201.8 L358.9 215.9 L270.5 215.9 L269.0 176.1 L267.0 164.4 L262.9 154.9 L256.9 148.8 L249.3 146.3 L242.7 146.3 L238.2 147.3 L231.6 150.8 L227.1 156.4 L223.6 165.0 L222.0 172.0 L220.5 189.2 L220.5 303.8 L221.5 316.4 L223.6 328.0 L228.1 338.6 L234.2 344.7 L238.7 346.7 L244.3 347.7 L249.8 347.7 L256.9 345.7 L259.9 343.7 L264.0 339.1 L267.0 333.1 L269.5 324.5 L271.5 309.4 L272.5 280.1 L305.4 280.1 L358.9 280.1 L358.4 304.3 L355.8 328.5 L352.3 346.7 L346.3 365.9 L339.7 380.0 L332.1 391.7 L321.5 403.3 L308.4 412.9 L295.8 418.9 L280.6 423.5 L269.0 425.5 L257.9 426.5 L239.2 426.5 L214.5 423.0 L194.8 416.4 L186.7 412.4 L176.1 405.3 L161.5 391.2 L155.4 383.1 L148.3 371.0 L138.7 347.2 L132.7 322.5 L128.6 294.2 L126.6 262.9 L126.6 231.6 L128.1 205.8 L131.2 182.1 L134.7 164.4 L141.8 141.2 L150.9 121.5 L157.9 110.4 L163.5 103.4 L180.1 87.7 L191.2 80.6 L205.9 74.1 L225.1 69.0 Z" fill="#fff"/></svg></div><div class="ab-p"><i></i><i></i><i></i></div></div>
+<script>/* a abertura sai quando o app desenhou a primeira tela (o "Abrindo o Corre…" sumiu), e nunca antes de 1,1 s (o pulo inteiro); demorou 2,4 s, aparecem os pontinhos; 9 s, sai de qualquer jeito */(function(){var d=document,h=d.documentElement;if(!h.classList.contains("abre"))return;var a=d.getElementById("abre"),t0=Date.now(),fim=false,sai=function(){if(fim)return;fim=true;a.classList.add("ab-vai");setTimeout(function(){h.classList.remove("abre");a.remove();},900);},v=setInterval(function(){var dt=Date.now()-t0,ap=d.getElementById("app");if(dt>2400)a.classList.add("ab-demora");if(dt>9000||(dt>1100&&ap&&!ap.querySelector(".boot"))){clearInterval(v);sai();}},60);})();</script>
 <div class="scene" aria-hidden="true">
   <svg id="scene-svg" viewBox="860 0 1510 1000" preserveAspectRatio="xMinYMin slice" focusable="false">
     <defs>
@@ -1115,9 +1156,9 @@
 <div id="app"><div class="boot"><span>Abrindo o Corre…</span></div></div>
 <div class="sheet" id="sheet" hidden></div>
 <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
-<script src="config.js?v=5.13"></script>
+<script src="config.js?v=5.16"></script>
 <!-- js:inicio -->
-<script src="js/corre.min.js?v=5.13"></script>
+<script src="js/corre.min.js?v=5.16"></script>
 <!-- js:fim -->
 </body>
 </html>

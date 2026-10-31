@@ -2580,46 +2580,55 @@
      degraus com o corrimão de descida e a hubba (a borda que desce junto da escada), o caixote, a rampa de pulo com a
      mesa do outro lado do vão, duas bordas, duas barras baixas e o manual pad. A rampa (quarter pipe) é um arco de
      círculo: subir s metros por ela é o ângulo s/R, a altura R(1 - cos) e o quanto ela entra, R sen. Tudo que é da
-     pista é "piso" (não marca a grade): quem bate em quê é a física do skate, lá embaixo (passoSkate) */
+     pista é "piso" (não marca a grade): quem bate em quê é a física do skate, lá embaixo (passoSkate).
+     v5.14 (o Thales: "os obstáculos estão muito perto uns dos outros ainda, e principalmente do limite da pista"): no
+     embalo (9 m/s) o skate precisa de uns 6,7 m pra dar meia-volta, e tinha obstáculo a 1 m do outro e a 5 m da rampa.
+     A pista foi pra 80 x 92 m com os obstáculos do mesmo tamanho, e a regra agora é 8 m livres, no mínimo, entre
+     quaisquer dois e entre eles e as rampas e os muros. Ficaram em linhas que emendam: a da direita (pulo, pulo com a
+     mesa, o corredor entre a barra e a borda, a rampa do fundo), a do meio (a pracinha da entrada até o caixote) e a da
+     esquerda (a escadaria, o manual pad, a borda) */
   const SK3_QP = [
-    { o: [8, 8], t: [1, 0], n: [0, 1], L: 40, R: 3.4, H: 2.8 },
-    { o: [5.4, 14], t: [0, 1], n: [1, 0], L: 22, R: 2.4, H: 1.7 },
-    { o: [50.6, 14], t: [0, 1], n: [-1, 0], L: 22, R: 2.4, H: 1.7 },
-    { o: [6, 58.5], t: [1, 0], n: [0, -1], L: 14, R: 2.2, H: 1.5 },
-    { o: [36, 58.5], t: [1, 0], n: [0, -1], L: 14, R: 2.2, H: 1.5 }
+    { o: [10, 9], t: [1, 0], n: [0, 1], L: 60, R: 3.4, H: 2.8 },
+    { o: [5.4, 18], t: [0, 1], n: [1, 0], L: 36, R: 2.4, H: 1.7 },
+    { o: [74.6, 18], t: [0, 1], n: [-1, 0], L: 36, R: 2.4, H: 1.7 },
+    { o: [6, 84], t: [1, 0], n: [0, -1], L: 20, R: 2.2, H: 1.5 },
+    { o: [54, 84], t: [1, 0], n: [0, -1], L: 20, R: 2.2, H: 1.5 }
   ].map(q => { const dTop = Math.sqrt(q.R * q.R - (q.R - q.H) ** 2), fTop = Math.asin(dTop / q.R); return Object.assign(q, { dTop, fTop, sTop: fTop * q.R }); });
   /* o chão que sobe: cada peça é um plano ao longo de z, de hb (em zb) até ha (em za). Rampa é de 0 até h; caixote,
      borda, mesa e degrau são planos retos (hb = ha); a hubba é a borda inclinada */
   const skSup = (x0, x1, zb, za, hb, ha, tipo) => ({ x0, x1, zb, za, hb, ha, z0: Math.min(zb, za), z1: Math.max(zb, za), tipo });
   /* a escadaria: o patamar (.96 m), a rampa que leva até ele vindo da frente, três degraus de 32 cm descendo pro fundo */
-  const SK3_ESC = { x0: 10, x1: 20, zP: 42, zF: 47.5, zR: 52, h: .96, deg: [[41.1, 42, .64], [40.2, 41.1, .32]] };
+  const SK3_ESC = { x0: 16, x1: 26, zP: 62, zF: 67.5, zR: 72, h: .96, deg: [[61.1, 62, .64], [60.2, 61.1, .32]] };
+  /* o caixote: sobe de z1 até zt1, o tampo até zt0 e desce até z0. O manual pad e as duas bordas (bancos de concreto
+     baixos com a quina de ferro): x0 a x1, z0 a z1 */
+  const SK3_CX = { x0: 36, x1: 44, z0: 40, zt0: 42.5, zt1: 47, z1: 49.5, h: .7 };
+  const SK3_PAD = { x0: 18, x1: 24, z0: 42, z1: 48 };
+  const SK3_BORDAS = [{ x0: 16, x1: 16.6, z0: 20, z1: 34 }, { x0: 65, x1: 65.6, z0: 18, z1: 32 }];
   const SK3_SUP = [
-    /* o caixote do meio: sobe de 40 pra 37,5, o tampo até 33 e desce até 30,5 */
-    skSup(24, 32, 40, 37.5, 0, .7, 'rampa'), skSup(24, 32, 37.5, 33, .7, .7, 'caixa'), skSup(24, 32, 30.5, 33, 0, .7, 'rampa'),
-    /* a rampa de pulo (sobe até 30) e, do outro lado do vão de 3 m, a mesa e a descida dela */
-    skSup(38, 41, 32, 30, 0, .8, 'pulo'), skSup(38, 41, 27, 25.5, .8, .8, 'caixa'), skSup(38, 41, 23, 25.5, 0, .8, 'rampa'),
-    /* a outra rampa de pulo, perto da frente */
-    skSup(44, 47, 51, 49, 0, .7, 'pulo'),
-    /* as bordas (bancos de concreto baixos com a quina de ferro) e o manual pad */
-    skSup(12, 12.6, 18, 32, .45, .45, 'borda'), skSup(44.5, 45.1, 16, 32, .45, .45, 'borda'), skSup(38, 44, 42, 48, .22, .22, 'pad'),
-    /* a escadaria: a rampa, o patamar, os degraus e a hubba */
+    skSup(SK3_CX.x0, SK3_CX.x1, SK3_CX.z1, SK3_CX.zt1, 0, SK3_CX.h, 'rampa'), skSup(SK3_CX.x0, SK3_CX.x1, SK3_CX.zt1, SK3_CX.zt0, SK3_CX.h, SK3_CX.h, 'caixa'), skSup(SK3_CX.x0, SK3_CX.x1, SK3_CX.z0, SK3_CX.zt0, 0, SK3_CX.h, 'rampa'),
+    /* a rampa de pulo (sobe até 45) e, do outro lado do vão de 3 m, a mesa e a descida dela */
+    skSup(56, 59, 47, 45, 0, .8, 'pulo'), skSup(56, 59, 42, 40.5, .8, .8, 'caixa'), skSup(56, 59, 38, 40.5, 0, .8, 'rampa'),
+    /* a outra rampa de pulo, na frente, na mesma linha: cai no embalo da primeira */
+    skSup(56, 59, 68, 66, 0, .7, 'pulo'),
+    ...SK3_BORDAS.map(b => skSup(b.x0, b.x1, b.z0, b.z1, .45, .45, 'borda')), skSup(SK3_PAD.x0, SK3_PAD.x1, SK3_PAD.z0, SK3_PAD.z1, .22, .22, 'pad'),
+    /* a escadaria: a rampa, o patamar, os degraus, a hubba e o muro da lateral */
     skSup(SK3_ESC.x0, SK3_ESC.x1, SK3_ESC.zR, SK3_ESC.zF, 0, SK3_ESC.h, 'rampa'), skSup(SK3_ESC.x0, SK3_ESC.x1, SK3_ESC.zF, SK3_ESC.zP, SK3_ESC.h, SK3_ESC.h, 'patamar'),
     ...SK3_ESC.deg.map(([a, b, h]) => skSup(SK3_ESC.x0, SK3_ESC.x1 - .8, a, b, h, h, 'degrau')),
-    skSup(19.3, 20, 39.3, 42, .4, 1.36, 'hubba'), skSup(9.8, 10, 39.3, 52, 1.06, 1.06, 'muro')
+    skSup(SK3_ESC.x1 - .7, SK3_ESC.x1, SK3_ESC.zP - 2.7, SK3_ESC.zP, .4, 1.36, 'hubba'), skSup(SK3_ESC.x0 - .2, SK3_ESC.x0, SK3_ESC.zP - 2.7, SK3_ESC.zR, 1.06, 1.06, 'muro')
   ];
   /* os canos (corrimão e barras): são obstáculo pra quem passa por baixo da altura deles; ha em a, hb em b */
   const SK3_CANOS = [
-    { a: [15, 42.6], b: [15, 39], ha: 1.5, hb: .22, nome: 'no corrimão', mais: 120 },
-    { a: [19, 18], b: [19, 28], ha: .35, hb: .35, nome: '' },
-    { a: [35.5, 16], b: [35.5, 26], ha: .35, hb: .35, nome: '' }
+    { a: [SK3_ESC.x0 + 5, SK3_ESC.zP + .6], b: [SK3_ESC.x0 + 5, SK3_ESC.zP - 3], ha: 1.5, hb: .22, nome: 'no corrimão', mais: 120 },
+    { a: [26, 20], b: [26, 30], ha: .35, hb: .35, nome: '' },
+    { a: [54, 18], b: [54, 28], ha: .35, hb: .35, nome: '' }
   ];
   /* onde dá grind: os canos, o meio das bordas, a quina da hubba, as beiras do tampo do caixote e do manual pad */
   const SK3_GRIND = [
     ...SK3_CANOS.map(c => ({ a: [c.a[0], c.a[1] + Math.sign(c.b[1] - c.a[1]) * .1], b: [c.b[0], c.b[1] - Math.sign(c.b[1] - c.a[1]) * .1], ha: c.ha + (c.hb - c.ha) * .1 / Math.abs(c.b[1] - c.a[1]), hb: c.hb - (c.hb - c.ha) * .1 / Math.abs(c.b[1] - c.a[1]), nome: c.nome, mais: c.mais || 0 })),
-    { a: [12.3, 18.1], b: [12.3, 31.9], ha: .45, hb: .45 }, { a: [44.8, 16.1], b: [44.8, 31.9], ha: .45, hb: .45 },
-    { a: [19.65, 41.9], b: [19.65, 39.4], ha: 1.36 - .036, hb: .4 + .036, nome: 'na hubba', mais: 100 },
-    { a: [24, 33.1], b: [24, 37.4], ha: .7, hb: .7 }, { a: [32, 33.1], b: [32, 37.4], ha: .7, hb: .7 },
-    { a: [38, 42.1], b: [38, 47.9], ha: .22, hb: .22 }, { a: [44, 42.1], b: [44, 47.9], ha: .22, hb: .22 }
+    ...SK3_BORDAS.map(b => ({ a: [(b.x0 + b.x1) / 2, b.z0 + .1], b: [(b.x0 + b.x1) / 2, b.z1 - .1], ha: .45, hb: .45 })),
+    { a: [SK3_ESC.x1 - .35, SK3_ESC.zP - .1], b: [SK3_ESC.x1 - .35, SK3_ESC.zP - 2.6], ha: 1.36 - .036, hb: .4 + .036, nome: 'na hubba', mais: 100 },
+    ...[SK3_CX.x0, SK3_CX.x1].map(x => ({ a: [x, SK3_CX.zt0 + .1], b: [x, SK3_CX.zt1 - .1], ha: SK3_CX.h, hb: SK3_CX.h })),
+    ...[SK3_PAD.x0, SK3_PAD.x1].map(x => ({ a: [x, SK3_PAD.z0 + .1], b: [x, SK3_PAD.z1 - .1], ha: .22, hb: .22 }))
   ].map(g => Object.assign(g, { L: Math.hypot(g.b[0] - g.a[0], g.b[1] - g.a[1]) }));
   const skAltG = (g, t) => g.ha + (g.hb - g.ha) * t;
   const SK3_CONC = '#C3C8CF', SK3_CONC2 = '#B4BAC2', SK3_BASE = '#8E949C', SK3_FERRO = '#9AA3AD', SK3_PISO = '#B4B9C0';
@@ -2677,8 +2686,9 @@
     });
     /* as cantoneiras do tampo do caixote e a pichação CORRE do lado; em cada degrau, o espelho mais escuro e a faixa
        amarela gasta na quina (é o que faz a escada ler como escada de longe) */
-    bl.push(B(23.97, .66, 33, .07, .07, 4.5, SK3_FERRO), B(31.96, .66, 33, .07, .07, 4.5, SK3_FERRO));
-    [23.99, 32].forEach(x => bl.push(B(x, .16, 33.3, .01, .3, 3.9, ROSA)));
+    const X = SK3_CX, lt = X.zt1 - X.zt0;
+    bl.push(B(X.x0 - .03, X.h - .04, X.zt0, .07, .07, lt, SK3_FERRO), B(X.x1 - .04, X.h - .04, X.zt0, .07, .07, lt, SK3_FERRO));
+    [X.x0 - .01, X.x1].forEach(x => bl.push(B(x, .16, X.zt0 + .3, .01, .3, lt - .6, ROSA)));
     [[E.zP, E.h], ...E.deg.map(d => [d[0], d[2]])].forEach(([z, h]) => bl.push(B(E.x0, h - .03, z - .02, E.x1 - .8 - E.x0, .04, .07, '#D9B23A'), B(E.x0, 0, z - .02, E.x1 - .8 - E.x0, h - .03, .02, '#8E949C')));
     /* a parede de concreto do patamar que dá pra fora (a lateral da escadaria) */
     bl.push(B(E.x0 - .2, 0, E.zP - 2.7, .2, E.h + .1, E.zR - E.zP + 2.7, SK3_BASE), B(E.x0 - .22, E.h + .08, E.zP - 2.7, .24, .04, E.zR - E.zP + 2.7, '#C9CED6'));
@@ -2708,48 +2718,48 @@
     g.fillStyle = ROSA; g.fillRect(w * .08, h * .7, w * .84, 4);
   }
   const PLANTA_SKATE = (() => {
-    const W = 56, D = 66, decor = [], chao = [ret(0, 0, W, D, SK3_PISO)];
+    const W = 80, D = 92, decor = [], chao = [ret(0, 0, W, D, SK3_PISO)];
     /* o concreto em placas de 4 m, cada uma num tom (concreto de verdade não é de uma cor só), e as juntas */
     for(let x = 0; x < W; x += 4) for(let z = 0; z < D; z += 4){ const s = sorte(x * 7 + z * 13); if(s > .55) chao.push(ret(x + .03, z + .03, Math.min(W, x + 4) - .03, Math.min(D, z + 4) - .03, s > .8 ? '#ADB2BA' : '#BBC0C7')); }
     for(let x = 4; x < W; x += 4) chao.push(ret(x - .02, 0, x + .02, D, '#9EA4AC'));
     for(let z = 4; z < D; z += 4) chao.push(ret(0, z - .02, W, z + .02, '#9EA4AC'));
     /* as manchas de chuva e de pneu de skate, e os ralos */
     for(let i = 0; i < 12; i++){ const x = 6 + sorte(i * 3.1) * (W - 12), z = 10 + sorte(i * 5.7) * (D - 20); chao.push({ pts: ovalPts(x, z, .6 + sorte(i) * 1.4, .4 + sorte(i * 2) * .8, 7), c: i % 3 ? '#A8ADB5' : '#A2A7AF' }); }
-    [[22, 12], [34, 12], [28, 46], [8, 40], [48, 40]].forEach(([x, z]) => chao.push(ret(x - .3, z - .3, x + .3, z + .3, '#5F656D'), ret(x - .2, z - .22, x + .2, z + .22, '#3A3E45')));
+    [[30, 13], [50, 13], [40, 58], [9, 60], [71, 60]].forEach(([x, z]) => chao.push(ret(x - .3, z - .3, x + .3, z + .3, '#5F656D'), ret(x - .2, z - .22, x + .2, z + .22, '#3A3E45')));
     /* a faixa de aviso amarela no pé das rampas grandes */
     SK3_QP.forEach(q => { const a = [q.o[0] + q.n[0] * .3, q.o[1] + q.n[1] * .3], b = [q.o[0] + q.t[0] * q.L + q.n[0] * .45, q.o[1] + q.t[1] * q.L + q.n[1] * .45]; chao.push(ret(Math.min(a[0], b[0]), Math.min(a[1], b[1]), Math.max(a[0], b[0]) + (q.t[0] ? 0 : .01), Math.max(a[1], b[1]) + (q.t[1] ? 0 : .01), '#F5C02E')); });
     SK3_QP.forEach(q => decor.push({ x: 0, z: 0, piso: true, bl: skQpBlocos(q, W, D) }));
     decor.push({ x: 0, z: 0, piso: true, bl: skPistaBlocos() });
     /* a galera: a arquibancada dos dois lados da entrada, gente em pé no deck do fundo e nos das laterais */
     const cores = [ROSA, AZUL, '#F5C02E', PAPEL, LARANJA, LILAS, INK];
-    decor.push({ x: 20.6, z: 63.2, bl: skArq(6.2, 4, cores) }, { x: 29.2, z: 63.2, bl: skArq(6.2, 4, cores) });
-    [[14, 2.4, ROSA], [17, 1.8, AZUL], [31, 2.2, PAPEL], [40.5, 2.6, LARANJA]].forEach(([x, z, c], i) => decor.push({ x, z, y: 2.8, bl: skGente(c, i % 2 ? INK : '#3A4A6E', ['#C68642', '#8E5B33', '#F0C9A0', '#5A3A22'][i], i !== 1) }));
-    [[1.6, 22, LILAS], [54.4, 28, '#F5C02E']].forEach(([x, z, c], i) => decor.push({ x, z, y: 1.7, bl: skGente(c, INK, ['#8E5B33', '#F0C9A0'][i], true) }));
+    decor.push({ x: W / 2 - 7.4, z: D - 2.8, bl: skArq(6.2, 4, cores) }, { x: W / 2 + 1.2, z: D - 2.8, bl: skArq(6.2, 4, cores) });
+    [[18, 2.4, ROSA], [23, 1.8, AZUL], [44, 2.2, PAPEL], [58, 2.6, LARANJA]].forEach(([x, z, c], i) => decor.push({ x, z, y: 2.8, bl: skGente(c, i % 2 ? INK : '#3A4A6E', ['#C68642', '#8E5B33', '#F0C9A0', '#5A3A22'][i], i !== 1) }));
+    [[1.6, 30, LILAS], [W - 1.6, 42, '#F5C02E']].forEach(([x, z, c], i) => decor.push({ x, z, y: 1.7, bl: skGente(c, INK, ['#8E5B33', '#F0C9A0'][i], true) }));
     /* os cantos do fundo: canteiro com ipê (amarelo e rosa) e banco */
     const canteiro = c => [B(-1.1, 0, -1.1, 2.2, .45, 2.2, '#8E949C'), B(-1, .45, -1, 2, .02, 2, '#6B4A2E'), ...ipe(c, 1.6).map(b => Object.assign({}, b, { x: b.x - .6, z: b.z - .6, y: b.y + .45 }))];
-    decor.push({ x: 3, z: 3, bl: canteiro('#F5C02E') }, { x: 53, z: 3, bl: canteiro(ROSA) });
-    [[2.6, 9], [53.4, 9]].forEach(([x, z]) => decor.push({ x, z, bl: [B(-.3, 0, -1.1, .6, .4, 2.2, SK3_BASE), B(-.32, .4, -1.12, .64, .06, 2.24, '#C9CED6')] }));
+    decor.push({ x: 3, z: 3, bl: canteiro('#F5C02E') }, { x: W - 3, z: 3, bl: canteiro(ROSA) });
+    [[2.6, 10], [W - 2.6, 10]].forEach(([x, z]) => decor.push({ x, z, bl: [B(-.3, 0, -1.1, .6, .4, 2.2, SK3_BASE), B(-.32, .4, -1.12, .64, .06, 2.24, '#C9CED6')] }));
     /* na praça da entrada: bancos, a lixeira e o bebedouro */
-    [[21.4, 55.6], [34.6, 55.6]].forEach(([x, z]) => decor.push({ x, z, bl: bancoConcreto() }));
-    decor.push({ x: 25.6, z: 61.6, bl: [B(-.25, 0, -.25, .5, .8, .5, INK), B(-.28, .8, -.28, .56, .06, .56, '#F5C02E')] }, { x: 30.4, z: 61.6, bl: [B(-.2, 0, -.2, .4, .9, .4, '#C9CED6'), B(-.24, .9, -.24, .48, .08, .48, SK3_FERRO), B(-.05, .98, -.05, .1, .08, .1, AZUL)] });
+    [[W / 2 - 6.6, D - 10.4], [W / 2 + 6.6, D - 10.4]].forEach(([x, z]) => decor.push({ x, z, bl: bancoConcreto() }));
+    decor.push({ x: W / 2 - 2.4, z: D - 4.4, bl: [B(-.25, 0, -.25, .5, .8, .5, INK), B(-.28, .8, -.28, .56, .06, .56, '#F5C02E')] }, { x: W / 2 + 2.4, z: D - 4.4, bl: [B(-.2, 0, -.2, .4, .9, .4, '#C9CED6'), B(-.24, .9, -.24, .48, .08, .48, SK3_FERRO), B(-.05, .98, -.05, .1, .08, .1, AZUL)] });
     /* o alambrado em cima dos muros: os postes, o arame de cima e o do meio */
     const tela = [];
     for(let x = 0; x <= W; x += 7) tela.push(B(Math.min(W - .06, x) - .03, 4.4, .02, .06, 1.6, .06, '#5F656D'));
     for(let z = 0; z <= D - 2; z += 7){ tela.push(B(.02, 2.6, Math.min(D, z) - .03, .06, 1.8, .06, '#5F656D'), B(W - .08, 2.6, Math.min(D, z) - .03, .06, 1.8, .06, '#5F656D')); }
     tela.push(B(0, 5.96, .02, W, .04, .04, '#7E848C'), B(0, 5.2, .02, W, .02, .02, '#7E848C'), B(.02, 4.36, 0, .04, .04, D - 2, '#7E848C'), B(.02, 3.5, 0, .02, .02, D - 2, '#7E848C'), B(W - .06, 4.36, 0, .04, .04, D - 2, '#7E848C'), B(W - .06, 3.5, 0, .02, .02, D - 2, '#7E848C'));
     decor.push({ x: 0, z: 0, piso: true, bl: tela });
-    /* os postes de luz (pela beira, de 12 em 12 m) */
+    /* os postes de luz (pela beira, de 14 em 14 m; em cima do deck das rampas, na altura dele) */
     const poste = [B(-.1, 0, -.1, .2, 6.4, .2, INK), B(-.6, 6.3, -.18, 1.2, .14, .36, INK), Object.assign(B(-.5, 6.18, -.12, 1, .12, .24, '#FFF6CF'), { cru: true })];
-    const postes = [[.9, 14], [.9, 26], [.9, 38], [.9, 50], [55.1, 14], [55.1, 26], [55.1, 38], [55.1, 50], [20.5, .9], [35.5, .9]];
-    postes.forEach(([x, z]) => decor.push({ x, z, y: x < 2 || x > 54 ? (z > 13 && z < 37 ? 1.7 : 0) : 2.8, bl: poste }));
-    const luzes = [...postes.map(([x, z]) => [x < 2 ? x + 3 : x > 54 ? x - 3 : x, z < 2 ? z + 4 : z]), [28, 35], [15, 44], [41, 28], [28, 56]].map(([x, z]) => ({ mancha: [x, .004, z, 7, 7, .16, 0, '255,236,190'] }));
-    return { k: 'lugar-skate', W, D, ALT: 4.4, longe: 62, cam: { ph: .34, dist: 6.4 }, skate: true,
+    const postes = [...[14, 28, 42, 56, 70].flatMap(z => [[.9, z], [W - .9, z]]), [30, .9], [50, .9]];
+    postes.forEach(([x, z]) => decor.push({ x, z, y: x < 2 || x > W - 2 ? (z > 17 && z < 55 ? 1.7 : 0) : 2.8, bl: poste }));
+    const luzes = [...postes.map(([x, z]) => [x < 2 ? x + 3 : x > W - 2 ? x - 3 : x, z < 2 ? z + 4 : z]), [40, 45], [21, 64], [57, 43], [21, 30], [60, 25], [40, 76]].map(([x, z]) => ({ mancha: [x, .004, z, 7, 7, .16, 0, '255,236,190'] }));
+    return { k: 'lugar-skate', W, D, ALT: 4.4, longe: 72, cam: { ph: .34, dist: 6.4 }, skate: true,
       comodos: [{ k: 'pista', nome: 'Pista de skate', x0: 0, z0: 0, x1: W, z1: D, piso: SK3_PISO }],
       paredes: [{ a: [0, D], b: [W, D], ext: [0, 1], portas: [[W / 2 - .7, W / 2 + .7]], entrada: true, cor: '#7F858D', alt: 2.2 }, { a: [W, 0], b: [W, D], ext: [1, 0], cor: '#7F858D', alt: 2.6 },
         { a: [0, 0], b: [0, D], ext: [-1, 0], cor: '#7F858D', alt: 2.6 }, { a: [0, 0], b: [W, 0], ext: [0, -1], cor: '#7F858D', alt: 4.4 }],
-      imgs: [{ P4: faceP4('x', .17, 38, 55, .25, 2.45, 1), n: [1, 0, 0], img: () => calcImg('skGrafite', 760, 120, skGrafite('ZERÃO', ROSA, AMARELO, 'o corre não para')), cor: '#3A3E45' },
-        { P4: faceP4('x', W - .17, 38, 55, .25, 2.45, -1), n: [-1, 0, 0], img: () => calcImg('skGrafite2', 760, 120, skGrafite('LONDRINA', AZUL, '#F5C02E', 'pé vermelho de skate')), cor: '#3A3E45' },
-        { P4: faceP4('z', .17, 14, 42, 3.05, 4.25, 1), n: [0, 0, 1], img: () => calcImg('skPlaca', 940, 40, skPlaca), cor: INK }],
+      imgs: [{ P4: faceP4('x', .17, 60, 77, .25, 2.45, 1), n: [1, 0, 0], img: () => calcImg('skGrafite', 760, 120, skGrafite('ZERÃO', ROSA, AMARELO, 'o corre não para')), cor: '#3A3E45' },
+        { P4: faceP4('x', W - .17, 60, 77, .25, 2.45, -1), n: [-1, 0, 0], img: () => calcImg('skGrafite2', 760, 120, skGrafite('LONDRINA', AZUL, '#F5C02E', 'pé vermelho de skate')), cor: '#3A3E45' },
+        { P4: faceP4('z', .17, 26, 54, 3.05, 4.25, 1), n: [0, 0, 1], img: () => calcImg('skPlaca', 940, 40, skPlaca), cor: INK }],
       entrada: { x: W / 2, z: D }, chao, luzes, padrao: [], decor };
   })();
   const LUGARES = {

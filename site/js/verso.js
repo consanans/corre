@@ -52,8 +52,9 @@
     return natalVisto.v;
   }
   /* v3.91 · o Halloween (o Thales: "adiciona opções de skin de halloween e faz algumas decorações em algumas casas"): de
-     1º de outubro até Finados (2/11), pelo dia de Brasília. Nessa época o Ateliê vende a coleção de Halloween e algumas
-     casas se enfeitam; o resto do ano a coleção some da vitrine (quem comprou continua vestindo) e as casas voltam.
+     1º de outubro até Finados (2/11), pelo dia de Brasília. Nessa época o Ateliê vende a coleção de Halloween; o resto do
+     ano ela some da vitrine (quem comprou continua vestindo). As casas enfeitadas de Halloween saíram na v5.15 (o Thales:
+     "remove a decoração de halloween e capricha na de natal").
      &halloween=1 ou 0 no endereço força, como o Natal */
   let hallForca = null, hallVisto = { t: 0, v: false };
   try{ const q = new URLSearchParams(location.search).get('halloween'); if(q === '1' || q === '0') hallForca = q === '1'; }catch(e){}
@@ -3614,7 +3615,8 @@
   function lampada(ctx, x, y, i){
     if((Math.floor(NT * 2.6) + i * 3) % 7 === 0) return;
     luz(x, y, 13, .85);
-    const u = 1 / V.k; ctx.fillStyle = LUZES[(i + Math.floor(NT * .5)) % LUZES.length]; ctx.fillRect(sn(x), sn(y), u, u);
+    /* v5.15: dois pontos de tela (com um só, o festão sumia no celular) */
+    const u = 2 / V.k; ctx.fillStyle = LUZES[(i + Math.floor(NT * .5)) % LUZES.length]; ctx.fillRect(sn(x - u / 2), sn(y - u / 2), u, u);
   }
   function lacoNatal(ctx, x, y){
     ctx.fillStyle = VERM_N; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x - 8, y - 5); ctx.lineTo(x - 8, y + 5); ctx.closePath(); ctx.moveTo(x, y); ctx.lineTo(x + 8, y - 5); ctx.lineTo(x + 8, y + 5); ctx.closePath(); ctx.fill();
@@ -3998,111 +4000,163 @@
     ctx.fillStyle = OURO_N; for(let i = 0; i < 6; i++){ const a = i / 6 * Math.PI * 2 + .3; ctx.fillRect(x + Math.cos(a) * 8 - 1, y + Math.sin(a) * 8 - 1, 2, 2); }
     ctx.fillStyle = OURO_N; ctx.beginPath(); ctx.moveTo(x, y + 8); ctx.lineTo(x - 5, y + 4); ctx.lineTo(x - 5, y + 12); ctx.closePath(); ctx.moveTo(x, y + 8); ctx.lineTo(x + 5, y + 4); ctx.lineTo(x + 5, y + 12); ctx.closePath(); ctx.fill();
   }
-  /* ---------- v3.91 · o Halloween nas casas (o Thales: "faz algumas decorações em algumas casas") ----------
-     Umas 4 em cada 10 casas se enfeitam, sempre as mesmas (o sorteio é pelo id, igual em todo aparelho), de 1º/10 até
-     Finados (halloween()). Toda casa enfeitada tem abóbora de vela acesa do lado da porta; o sorteio ainda dá umas
-     coisas a mais: teia no canto do térreo com a aranha subindo e descendo, fantasminha de lençol pendurado balançando,
-     morcegos voando em volta, lápides no jardim, varal de luzinha laranja e roxa e o caldeirão borbulhando. Convive com
-     o Natal (a guirlanda da porta fica). Nada de verde: o talo da abóbora é marrom e a poção do caldeirão é roxa */
-  const HW_LUZ = ['#FF7A1A', '#9B6BFF', '#FFB02E', '#C6A6FF'], HW_ABO = '#FF7A1A', HW_ABO2 = '#D9580B', HW_TALO = '#6B4A32';
-  const hwBrasa = (t, i) => { const f = Math.floor(t * 9 + i * 3) % 7; return f === 0 ? '#FFF2A8' : f < 4 ? '#FFD23F' : '#FFB02E'; };
-  function halloweenDe(h){
-    if(h.hw !== undefined) return h.hw;
-    const r = rng(hash('halloween:' + h.id));
-    if(r() > .42){ h.hw = null; return null; }
-    const lado = h.portaX > h.x + h.w / 2 ? 1 : -1, o = { ab: 1 + Math.floor(r() * 3), teia: r() < .55, fant: r() < .45, morc: r() < .6, lap: r() < .5, luz: r() < .45, cald: r() < .3, lado, sd: r() * 10 };
-    /* pelo menos duas coisas além das abóboras (uma casa só com abóbora passa batido) */
-    const extras = ['teia', 'fant', 'morc', 'lap', 'luz', 'cald']; let n = extras.filter(k => o[k]).length, i = Math.floor(r() * extras.length);
-    while(n < 2){ if(!o[extras[i % extras.length]]){ o[extras[i % extras.length]] = true; n++; } i++; }
-    const altura = 74 + 58 * ((h.tier || 0) >= 3 ? 2 : 1);
-    o.topo = h.base - altura;
-    /* o caldeirão do outro lado das abóboras; as lápides no jardim, fora do caminho da porta e longe do caldeirão */
-    o.cx = h.portaX - lado * 60; if(o.cx < h.x + 14 || o.cx > h.x + h.w - 14) o.cx = h.portaX + lado * 60;
-    o.lapides = [h.x + 16, h.x + h.w * .5, h.x + h.w - 16].filter(x => Math.abs(x - h.portaX) > 30 && (!o.cald || Math.abs(x - o.cx) > 26)).slice(0, 2 + (r() < .5 ? 1 : 0)).map((x, j) => ({ x: x + (r() - .5) * 8, y: h.base + 15 + j * 3, inc: (r() - .5) * .12 }));
-    h.hw = o; return o;
-  }
-  /* a abóbora de vela acesa (pixel por pixel, numa grade de 9 x 7), com a luz no chão */
-  function aboboraChao(ctx, x, y, p, t, i){
-    const b = hwBrasa(t, i), w = 9 * p, h = 7 * p; luz(x, y - 6, 34 * p, .85);
-    const g = ctx.createRadialGradient(x, y - h * .5, 1, x, y - h * .5, 30 * p / 1.6); g.addColorStop(0, 'rgba(255,176,46,.3)'); g.addColorStop(1, 'rgba(255,176,46,0)'); ctx.fillStyle = g; ctx.fillRect(x - 30, y - h - 24, 60, 50);
-    ctx.fillStyle = 'rgba(15,18,24,.3)'; ctx.fillRect(x - w / 2 - 1, y - 1, w + 2, 3);
-    const P = (gx, gy, gw, gh, c) => { ctx.fillStyle = c; ctx.fillRect(x + (gx - 4.5) * p, y - (7 - gy) * p, gw * p, gh * p); };
-    ctx.fillStyle = INK; ctx.fillRect(x - w / 2 - .8, y - h + p - .8, w + 1.6, h - p + 1.6); ctx.fillRect(x - w / 2 + p - .8, y - h - .8, w - 2 * p + 1.6, h + 1.6);
-    P(1, 0, 7, 1, HW_ABO); P(0, 1, 9, 5, HW_ABO); P(1, 6, 7, 1, HW_ABO2); P(3, 0, 1, 7, HW_ABO2); P(5, 0, 1, 7, HW_ABO2); P(8, 1, 1, 5, HW_ABO2);
-    P(4, -1, 1, 1, HW_TALO); P(4, -2, 2, 1, HW_TALO);
-    P(1, 2, 2, 1, b); P(2, 1.5, 1, .5, b); P(6, 2, 2, 1, b); P(6, 1.5, 1, .5, b); P(4, 3, 1, 1, b); P(2, 4, 5, 1, b); P(3, 5, 1, 1, b); P(5, 5, 1, 1, b);
-  }
-  /* a teia no canto, com a aranha no fio (sobe e desce devagar) */
-  function teia(ctx, cx, cy, dir, t, sd){
-    const R = 24, u = 1 / V.k; ctx.strokeStyle = 'rgba(238,235,228,.85)'; ctx.lineWidth = Math.max(u, .7);
-    const ang = j => Math.PI / 2 * (j / 4);
-    ctx.beginPath(); for(let j = 0; j <= 4; j++){ const a = ang(j); ctx.moveTo(cx, cy); ctx.lineTo(cx + dir * Math.cos(a) * R, cy + Math.sin(a) * R); } ctx.stroke();
-    [.35, .65, .95].forEach(f => { ctx.beginPath(); for(let j = 0; j <= 4; j++){ const a = ang(j), px = cx + dir * Math.cos(a) * R * f, py = cy + Math.sin(a) * R * f; if(j) ctx.quadraticCurveTo(cx + dir * Math.cos(a - Math.PI / 16) * R * f * .86, cy + Math.sin(a - Math.PI / 16) * R * f * .86, px, py); else ctx.moveTo(px, py); } ctx.stroke(); });
-    const ax = cx + dir * 12, ay = cy + 16 + (Math.sin(t * .9 + sd) * .5 + .5) * 22;
-    ctx.beginPath(); ctx.moveTo(ax, cy + 9); ctx.lineTo(ax, ay); ctx.stroke();
-    ctx.fillStyle = INK; ctx.fillRect(ax - 2.5, ay, 5, 4); ctx.fillRect(ax - 1.5, ay - 2, 3, 2);
-    ctx.fillRect(ax - 5, ay + 1, 2.5, 1); ctx.fillRect(ax + 2.5, ay + 1, 2.5, 1); ctx.fillRect(ax - 5, ay + 3, 2.5, 1); ctx.fillRect(ax + 2.5, ay + 3, 2.5, 1);
-    ctx.fillStyle = '#FF4A4A'; ctx.fillRect(ax - 1.5, ay + .5, 1, 1); ctx.fillRect(ax + .5, ay + .5, 1, 1);
-  }
-  /* o fantasminha de lençol pendurado no beiral, balançando */
-  function fantasmaPendurado(ctx, x, y, t, sd){
-    const u = 1 / V.k; ctx.save(); ctx.translate(x, y); ctx.rotate(Math.sin(t * 1.6 + sd) * .16);
-    ctx.fillStyle = '#9AA0A8'; ctx.fillRect(-u / 2, 0, u, 10);
-    ctx.fillStyle = INK; ctx.fillRect(-7.5, 9, 15, 17); ctx.fillStyle = PAPEL; ctx.fillRect(-6.5, 10, 13, 15); ctx.fillRect(-5, 9.5, 10, 1);
-    ctx.fillStyle = '#D9DEE6'; ctx.fillRect(4, 11, 2.5, 14);
-    ctx.fillStyle = PAPEL; const o = Math.sin(t * 5 + sd) > 0 ? 1 : 0; for(let i = 0; i < 4; i++) ctx.fillRect(-6.5 + i * 3.5, 25, 2.5, 2 + ((i + o) % 2) * 1.5);
-    ctx.fillStyle = INK; ctx.fillRect(-4, 14, 2.5, 3.5); ctx.fillRect(1.5, 14, 2.5, 3.5); ctx.fillRect(-1.5, 19.5, 3, 2);
-    ctx.restore();
-  }
-  /* os morcegos: voam em oito em volta do alto da casa, batendo a asa */
-  function morcegos(ctx, h, o, t){
-    const cx = h.x + h.w / 2, cy = o.topo - 18;
-    for(let i = 0; i < 3; i++){
-      const a = t * 1.3 + i * 2.1 + o.sd, x = cx + Math.cos(a) * h.w * .42, y = cy + Math.sin(a * 2) * 16 - i * 6, sobe = Math.sin(t * 13 + i * 2) > 0;
-      ctx.fillStyle = INK; ctx.fillRect(x - 1.5, y - 1.5, 3, 4); ctx.fillRect(x - 1.5, y - 3, 1, 1.5); ctx.fillRect(x + .5, y - 3, 1, 1.5);
-      if(sobe){ ctx.fillRect(x - 6, y - 4, 4.5, 2); ctx.fillRect(x - 8, y - 6, 3, 2); ctx.fillRect(x + 1.5, y - 4, 4.5, 2); ctx.fillRect(x + 5, y - 6, 3, 2); }
-      else { ctx.fillRect(x - 6, y, 4.5, 2); ctx.fillRect(x - 8, y + 2, 3, 2); ctx.fillRect(x + 1.5, y, 4.5, 2); ctx.fillRect(x + 5, y + 2, 3, 2); }
-      ctx.fillStyle = '#FFD23F'; ctx.fillRect(x - 1, y - .8, .9, .9); ctx.fillRect(x + .1, y - .8, .9, .9);
+  /* ---------- v5.15 · o Natal nas casas (o Thales: "remove a decoração de halloween e capricha na de natal") ----------
+     A decoração de Halloween das casas (v3.91: abóbora, teia, morcego, lápide, caldeirão) saiu; as skins de Halloween do
+     Ateliê seguem até Finados. No Natal (natal()) toda casa se enfeita. Na casa de desenho padrão (spriteCasa) o
+     pisca-pisca contorna o volume de cima e a beira do térreo; o resto vem do sorteio pelo id (sempre o mesmo em todo
+     aparelho): a estrela no alto, o Papai Noel subindo na corda pela sacada (o de pendurar, como em tanta casa de
+     Londrina) ou o laço que embrulha a casa inteira de presente; no chão, os presentes do lado da porta, a arvorezinha
+     dourada e, no jardim, as renas de luz ou o presépio. Casa de fachada própria (as mansões) e a de blocos não têm o
+     desenho padrão: ganham só o chão. Nada de verde: a árvore é dourada e o pisca-pisca é das cores do LUZES */
+  const NT_PELE = '#F0C9A0', NT_MADEIRA = '#8A5A33', NT_PALHA = '#E2B65A', NT_RENA = '#FFE7A0';
+  function natalDe(h){
+    if(h.nt !== undefined) return h.nt;
+    const r = rng(hash('natal:' + h.id)), lado = h.portaX > h.x + h.w / 2 ? 1 : -1, padrao = !h.estilo && !h.blocos, w = h.w;
+    const o = { lado, sd: r() * 10, padrao, pres: 2 + Math.floor(r() * 2) };
+    /* a geometria da casa padrão é a mesma conta do spriteCasa (o volume de cima em balanço pro lado da porta) */
+    if(padrao){
+      const tier = h.tier || 0, andares = tier >= 3 ? 3 : 2, uw = Math.round(w * .84);
+      Object.assign(o, { ux: h.x + (w - uw) / 2 + Math.round(w * .1) * lado, uw, uy: h.base - 74 - 58 * (andares - 1), uh: 58 * (andares - 1),
+        teto: (tier === 2 || tier === 4 ? 22 : 0) + (tier === 4 ? 46 : 0) });
+      const q = r(); o.noel = q < .4; o.laco = !o.noel && q < .62; o.estrela = !o.laco;
     }
+    const dentro = (x, m) => x > h.x + m && x < h.x + w - m;
+    /* os presentes colados na porta, do lado de fora; a arvorezinha depois deles (a placa do trampo é do outro lado) */
+    o.px = dentro(h.portaX + lado * 26, 10) ? h.portaX + lado * 26 : h.portaX - lado * 26;
+    if(r() < .6 && dentro(h.portaX + lado * 50, 14)) o.arv = h.portaX + lado * 50;
+    /* o jardim (renas ou presépio): do outro lado, longe da porta, da placa e do cavalete da loja */
+    const jx = [h.portaX - lado * 104, h.x + w / 2, h.portaX + lado * 96].find(x => dentro(x, 28) && Math.abs(x - h.portaX) >= 80 && (!o.arv || Math.abs(x - o.arv) > 46));
+    if(jx != null && r() < .75) o.jardim = { x: jx, k: r() < .62 ? 'renas' : 'presepio' };
+    h.nt = o; return o;
   }
-  /* a lápide no jardim (pedra cinza com a cruz riscada e o musgo... roxo) */
-  function lapide(ctx, l){
-    ctx.save(); ctx.translate(l.x, l.y); ctx.rotate(l.inc);
-    ctx.fillStyle = 'rgba(15,18,24,.28)'; ctx.fillRect(-8, -1, 16, 3);
-    ctx.fillStyle = INK; ctx.fillRect(-7, -15, 14, 15); ctx.fillRect(-5, -18, 10, 3);
-    ctx.fillStyle = '#9AA0A8'; ctx.fillRect(-6, -14, 12, 14); ctx.fillRect(-4, -17, 8, 3); ctx.fillStyle = '#7B818A'; ctx.fillRect(4, -14, 2, 14);
-    ctx.fillStyle = '#5A6070'; ctx.fillRect(-.75, -14, 1.5, 9); ctx.fillRect(-3.5, -11.5, 7, 1.5);
-    ctx.fillStyle = '#8A6BB5'; ctx.fillRect(-6, -2, 5, 2); ctx.fillRect(2, -1.5, 4, 1.5);
-    ctx.restore();
+  /* uma lâmpada do pisca-pisca das casas (maior que a do festão da rua): o soquete, o bulbo e o brilho. Pisca no seu
+     tempo e a cor anda pela fileira; de noite, uma em cada três acende a calçada */
+  function bulbo(ctx, x, y, i){
+    const apaga = (Math.floor(NT * 2.2) + i * 5) % 9 === 0;
+    ctx.fillStyle = INK; ctx.fillRect(x - .5, y - 1.4, 1, 1.2);
+    ctx.fillStyle = apaga ? '#5A5048' : LUZES[(i + Math.floor(NT * .7)) % LUZES.length]; ctx.fillRect(x - 1.2, y - .4, 2.4, 3);
+    if(apaga) return;
+    ctx.fillStyle = 'rgba(255,255,255,.75)'; ctx.fillRect(x - .9, y - .1, .8, 1);
+    if(i % 2 === 0) luz(x, y + 1, 19, .85);
   }
-  /* o varal de luzinha embaixo do balanço do térreo, piscando em laranja e roxo */
-  function varalHw(ctx, h, t){
-    const x1 = h.x + 6, x2 = h.x + h.w - 6, y0 = h.base - 70, n = Math.max(3, Math.floor((x2 - x1) / 10)), u = 1 / V.k;
-    ctx.strokeStyle = INK; ctx.lineWidth = Math.max(u, .8); ctx.beginPath(); ctx.moveTo(x1, y0); ctx.quadraticCurveTo((x1 + x2) / 2, y0 + 12, x2, y0); ctx.stroke();
-    for(let i = 0; i <= n; i++){ const f = i / n, m = 1 - f, x = m * m * x1 + 2 * m * f * (x1 + x2) / 2 + f * f * x2, y = m * m * y0 + 2 * m * f * (y0 + 12) + f * f * y0, on = (i + Math.floor(t * 2.5)) % 4 !== 0;
-      ctx.fillStyle = on ? HW_LUZ[i % 4] : '#3B2D22'; ctx.fillRect(x - 1.5, y + .5, 3, 3.5); if(on){ ctx.fillStyle = 'rgba(255,190,90,.22)'; ctx.fillRect(x - 3.5, y - 1, 7, 7); } }
+  /* o fio de luz de (x1, y1) a (x2, y2): na horizontal ele cai entre os ganchos (de 18 em 18), na vertical desce reto */
+  function fioLuz(ctx, x1, y1, x2, y2, i0){
+    const L = Math.hypot(x2 - x1, y2 - y1); if(L < 8) return;
+    const deitado = Math.abs(y2 - y1) < Math.abs(x2 - x1), vaos = Math.max(1, Math.round(L / 18)), u = 1 / V.k;
+    ctx.strokeStyle = 'rgba(20,22,28,.75)'; ctx.lineWidth = Math.max(u, .7); ctx.beginPath(); ctx.moveTo(x1, y1);
+    for(let j = 1; j <= vaos; j++){ const f0 = (j - 1) / vaos, f1 = j / vaos, mx = x1 + (x2 - x1) * (f0 + f1) / 2, my = y1 + (y2 - y1) * (f0 + f1) / 2; ctx.quadraticCurveTo(mx, my + (deitado ? 6 : 0), x1 + (x2 - x1) * f1, y1 + (y2 - y1) * f1); }
+    ctx.stroke();
+    for(let j = 0; j < vaos; j++) for(const s of [.25, .5, .75]){ const f = (j + s) / vaos, cai = deitado ? 6 * 2 * s * (1 - s) * 2 : 0; bulbo(ctx, x1 + (x2 - x1) * f, y1 + (y2 - y1) * f + cai, i0 + j * 3 + Math.round(s * 4)); }
   }
-  /* o caldeirão: o fogo embaixo, a poção roxa e as bolhas subindo */
-  function caldeirao(ctx, x, y, t, sd){
-    const g = ctx.createRadialGradient(x, y - 14, 2, x, y - 14, 30); g.addColorStop(0, 'rgba(155,107,255,.3)'); g.addColorStop(1, 'rgba(155,107,255,0)'); ctx.fillStyle = g; ctx.fillRect(x - 30, y - 44, 60, 50);
-    ctx.fillStyle = 'rgba(15,18,24,.3)'; ctx.fillRect(x - 11, y - 1, 22, 3);
-    for(let i = 0; i < 3; i++){ const hh = 4 + ((Math.floor(t * 10) + i) % 3) * 1.5; ctx.fillStyle = i === 1 ? '#FFD23F' : '#FF7A1A'; ctx.fillRect(x - 6 + i * 4, y - hh, 3, hh); }
-    ctx.fillStyle = INK; ctx.fillRect(x - 11, y - 18, 22, 12); ctx.fillRect(x - 9, y - 6, 18, 2); ctx.fillRect(x - 12, y - 20, 24, 3); ctx.fillRect(x - 9, y - 3, 2, 3); ctx.fillRect(x + 7, y - 3, 2, 3);
-    ctx.fillStyle = '#2B2F38'; ctx.fillRect(x - 9, y - 16, 4, 8); ctx.fillStyle = '#9B6BFF'; ctx.fillRect(x - 10, y - 20, 20, 2);
-    for(let i = 0; i < 4; i++){ const f = (t * .6 + i / 4 + sd) % 1, bx = x - 6 + i * 4 + Math.sin(f * 9 + i) * 1.5, by = y - 21 - f * 18; ctx.fillStyle = f > .7 ? 'rgba(198,166,255,.5)' : '#C6A6FF'; const r = f > .5 ? 1.5 : 2.5; ctx.fillRect(bx - r / 2, by - r / 2, r, r); }
+  /* o contorno de luz da casa padrão: a beira do telhado, os dois lados do volume de cima e o pedaço do térreo que sobra */
+  function luzesCasa(ctx, h, o){
+    const x1 = o.ux - 3, x2 = o.ux + o.uw + 3, yt = o.uy - 6, yb = o.uy + o.uh, i = Math.floor(o.sd * 7);
+    fioLuz(ctx, x1, yt, x2, yt, i); fioLuz(ctx, x1, yt + 3, x1, yb, i + 40); fioLuz(ctx, x2, yt + 3, x2, yb, i + 60);
+    const yr = h.base - 74; if(x1 - h.x > 12) fioLuz(ctx, h.x + 1, yr, x1 - 2, yr, i + 80); if(h.x + h.w - x2 > 12) fioLuz(ctx, x2 + 2, yr, h.x + h.w - 1, yr, i + 90);
   }
-  function hwNaFila(L, ctx, h, o, t, vis){
+  /* o Papai Noel subindo pela corda da sacada (sobe e escorrega devagar, as mãos trocando na corda) */
+  function noelSobe(ctx, x, y0, y1, t, sd){
+    const y = y0 + (y1 - y0) * (.42 + Math.sin(t * .6 + sd) * .14), m = Math.sin(t * 3.2 + sd) > 0 ? 1 : 0;
+    ctx.fillStyle = '#C9A06A'; ctx.fillRect(x - .6, y0, 1.2, y1 - y0); for(let yy = y0 + 6; yy < y1 - 2; yy += 8) ctx.fillRect(x - 1.4, yy, 2.8, 1.2);
+    ctx.fillStyle = INK; ctx.fillRect(x - 3.2, y0 - 2, 6.4, 3);
+    /* o saco de presentes nas costas, saindo do lado */
+    ctx.fillStyle = INK; ctx.fillRect(x + 3, y - 1, 8, 10); ctx.fillStyle = '#B8862A'; ctx.fillRect(x + 4, y, 6, 8); ctx.fillStyle = ROSA; ctx.fillRect(x + 5, y - 2, 3, 3);
+    /* o corpo, o cinto e a barra branca */
+    ctx.fillStyle = INK; ctx.fillRect(x - 6, y - 1, 12, 17); ctx.fillStyle = VERM_N; ctx.fillRect(x - 5, y, 10, 15);
+    ctx.fillStyle = PAPEL; ctx.fillRect(x - 1, y, 2, 8); ctx.fillRect(x - 5, y + 13, 10, 2);
+    ctx.fillStyle = '#121419'; ctx.fillRect(x - 5, y + 8, 10, 2); ctx.fillStyle = OURO_N; ctx.fillRect(x - 1.5, y + 8, 3, 2);
+    /* as pernas abraçando a corda e as botas */
+    ctx.fillStyle = INK; ctx.fillRect(x - 5, y + 15, 4, 6); ctx.fillRect(x + 1, y + 15, 4, 6);
+    ctx.fillStyle = VERM_N; ctx.fillRect(x - 4, y + 15, 2.5, 3); ctx.fillRect(x + 1.5, y + 15, 2.5, 3);
+    /* os braços pra cima na corda, um mais alto que o outro */
+    ctx.fillStyle = INK; ctx.fillRect(x - 6.5, y - 8 + m * 3, 4, 9); ctx.fillRect(x + 2.5, y - 5 - m * 3, 4, 9);
+    ctx.fillStyle = VERM_N; ctx.fillRect(x - 5.5, y - 6 + m * 3, 2.5, 7); ctx.fillRect(x + 3, y - 3 - m * 3, 2.5, 7);
+    ctx.fillStyle = PAPEL; ctx.fillRect(x - 5.5, y - 8 + m * 3, 2.5, 2); ctx.fillRect(x + 3, y - 5 - m * 3, 2.5, 2);
+    /* a cabeça: o rosto, a barba, o gorro caído com o pompom */
+    ctx.fillStyle = INK; ctx.fillRect(x - 4.5, y - 11, 9, 11);
+    ctx.fillStyle = NT_PELE; ctx.fillRect(x - 3.5, y - 8, 7, 4); ctx.fillStyle = INK; ctx.fillRect(x - 2, y - 7, 1, 1); ctx.fillRect(x + 1, y - 7, 1, 1);
+    ctx.fillStyle = PAPEL; ctx.fillRect(x - 3.5, y - 4, 7, 4); ctx.fillRect(x - 4, y - 9, 8, 1.5);
+    ctx.fillStyle = VERM_N; ctx.fillRect(x - 3.5, y - 12, 7, 3); ctx.fillRect(x + 2, y - 13, 3, 2.5); ctx.fillStyle = PAPEL; ctx.fillRect(x + 4.5, y - 13, 2, 2);
+  }
+  /* a estrela no alto da casa, num mastrinho fincado na beira do telhado (de noite ela acende o telhado) */
+  function estrelaTopo(ctx, x, y){
+    ctx.fillStyle = INK; ctx.fillRect(x - 1.5, y - 13, 3, 13); ctx.fillStyle = '#9AA3AD'; ctx.fillRect(x - .5, y - 13, 1, 13);
+    estrela(ctx, x, y - 19, 8); luz(x, y - 19, 30, .8);
+  }
+  /* o laço que embrulha a casa: a fita em cruz no volume de cima e o laço grande em cima do telhado */
+  function lacoCasa(ctx, o, t){
+    const cx = Math.round(o.ux + o.uw / 2), yt = o.uy - 6, yb = o.uy + o.uh, my = Math.round(o.uy + o.uh * .5);
+    ctx.fillStyle = INK; ctx.fillRect(cx - 5, yt, 10, yb - yt); ctx.fillRect(o.ux, my - 4, o.uw, 8);
+    ctx.fillStyle = VERM_N; ctx.fillRect(cx - 4, yt, 8, yb - yt); ctx.fillRect(o.ux, my - 3, o.uw, 6);
+    ctx.fillStyle = OURO_N; ctx.fillRect(cx - 4, yt, 1, yb - yt); ctx.fillRect(cx + 3, yt, 1, yb - yt); ctx.fillRect(o.ux, my - 3, o.uw, 1); ctx.fillRect(o.ux, my + 2, o.uw, 1);
+    const bx = cx, by = yt - o.teto - 2, a = Math.sin(t * 1.4) * .6;
+    ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(bx - 16, by - 11 + a); ctx.lineTo(bx - 18, by + 3); ctx.closePath(); ctx.moveTo(bx, by); ctx.lineTo(bx + 16, by - 11 - a); ctx.lineTo(bx + 18, by + 3); ctx.closePath(); forma(ctx, VERM_N, 1.6);
+    ctx.beginPath(); ctx.moveTo(bx - 2, by + 2); ctx.lineTo(bx - 9, by + 16); ctx.lineTo(bx - 4, by + 14); ctx.lineTo(bx + 1, by + 3); ctx.moveTo(bx + 2, by + 2); ctx.lineTo(bx + 9, by + 15); ctx.lineTo(bx + 4, by + 13); ctx.lineTo(bx - 1, by + 3); forma(ctx, VERM_N, 1.4);
+    ctx.beginPath(); ctx.rect(bx - 4, by - 4, 8, 8); forma(ctx, OURO_N, 1.4);
+  }
+  /* a pilha de presentes do lado da porta */
+  function presentes(ctx, x, y, n){
+    const P = [[-9, 0, 11, 9, ROSA, PAPEL], [3, 0, 9, 11, AZUL, OURO_N], [-5, -9, 8, 7, OURO_N, VERM_N], [-14, 0, 6, 6, VERM_N, OURO_N]].slice(0, n + 1);
+    ctx.fillStyle = 'rgba(15,18,24,.28)'; ctx.fillRect(x - 16, y - 1, 30, 3);
+    P.forEach(([dx, dy, w, hh, c, f]) => { const bx = x + dx, by = y + dy - hh; ctx.beginPath(); ctx.rect(bx, by, w, hh); forma(ctx, c, 1.2); ctx.fillStyle = f; ctx.fillRect(bx + w / 2 - .8, by, 1.6, hh); ctx.fillRect(bx, by + hh / 2 - .8, w, 1.6); ctx.fillRect(bx + w / 2 - 2.5, by - 1.5, 2, 2); ctx.fillRect(bx + w / 2 + .5, by - 1.5, 2, 2); });
+  }
+  /* a arvorezinha de Natal dourada do lado da porta (a irmã pequena da das pracinhas), com o pisca-pisca e a estrela */
+  function arvMini(ctx, x, y, i){
+    ctx.fillStyle = 'rgba(15,18,24,.25)'; ctx.fillRect(x - 13, y - 1, 26, 3);
+    ctx.beginPath(); ctx.rect(x - 6, y - 7, 12, 7); forma(ctx, VERM_N, 1.2); ctx.fillStyle = '#5A3A22'; ctx.fillRect(x - 2, y - 10, 4, 3);
+    [[26, 0], [20, 10], [13, 19]].forEach(([w, dy]) => { const yb = y - 10 - dy; ctx.beginPath(); ctx.moveTo(x - w / 2, yb); ctx.lineTo(x + w / 2, yb); ctx.lineTo(x + w * .18, yb - 13); ctx.lineTo(x - w * .18, yb - 13); ctx.closePath(); forma(ctx, '#D9A93A', 1.2); ctx.fillStyle = '#F2D27A'; ctx.fillRect(x - w * .18 + 1, yb - 12, w * .14, 2); });
+    [[-8, -12, VERM_N], [6, -15, ROSA], [-3, -23, AZUL], [4, -31, VERM_N]].forEach(([dx, dy, c]) => { ctx.fillStyle = INK; ctx.fillRect(x + dx - 1.8, y + dy - 1.8, 3.6, 3.6); ctx.fillStyle = c; ctx.fillRect(x + dx - 1.2, y + dy - 1.2, 2.4, 2.4); });
+    for(let j = 0; j < 7; j++){ const f = j / 7; bulbo(ctx, x + Math.sin(j * 2.3) * (11 - f * 8), y - 12 - f * 26, i + j); }
+    estrela(ctx, x, y - 46, 4.5);
+  }
+  /* uma rena de luz (o arame dourado com as lâmpadas): o corpo, as pernas, o pescoço, a cabeça e a galhada. A que pasta
+     abaixa a cabeça devagar */
+  function renaLuz(ctx, x, y, dir, pasta, t, i){
+    const u = 1 / V.k, cab = pasta ? (Math.sin(t * .8 + i) * .5 + .5) * 7 : 0, X = dx => x + dx * dir;
+    ctx.strokeStyle = NT_RENA; ctx.lineWidth = Math.max(u * 1.4, 1); ctx.lineCap = 'round'; ctx.beginPath();
+    ctx.moveTo(X(-9), y - 12); ctx.lineTo(X(7), y - 12); ctx.lineTo(X(8), y - 18); ctx.lineTo(X(-9), y - 18); ctx.closePath();
+    [[-8, -12, -9, 0], [-5, -12, -4, 0], [5, -12, 4, 0], [7, -12, 8, 0]].forEach(([a, b, c, d]) => { ctx.moveTo(X(a), y + b); ctx.lineTo(X(c), y + d); });
+    ctx.moveTo(X(-9), y - 17); ctx.lineTo(X(-12), y - 14);
+    const hx = 12, hy = -28 + cab; ctx.moveTo(X(6), y - 18); ctx.lineTo(X(hx - 2), y + hy + 3); ctx.lineTo(X(hx + 4), y + hy + 5); ctx.lineTo(X(hx + 1), y + hy);
+    ctx.moveTo(X(hx - 1), y + hy); ctx.lineTo(X(hx - 4), y + hy - 7); ctx.lineTo(X(hx - 7), y + hy - 9); ctx.moveTo(X(hx - 4), y + hy - 7); ctx.lineTo(X(hx - 2), y + hy - 11);
+    ctx.moveTo(X(hx + 1), y + hy); ctx.lineTo(X(hx + 3), y + hy - 7); ctx.lineTo(X(hx + 6), y + hy - 9);
+    ctx.stroke(); ctx.lineCap = 'butt';
+    [[-9, -18], [8, -18], [-9, -12], [7, -12], [-9, 0], [8, 0], [hx + 4, hy + 5], [hx - 7, hy - 9], [hx + 6, hy - 9], [-1, -18]].forEach(([a, b], j) => bulbo(ctx, X(a), y + b - 1, i + j * 2));
+  }
+  /* o presépio no jardim: a cabaninha de madeira com o telhado de palha, a manjedoura, Maria, José e a estrela em cima */
+  function presepio(ctx, x, y, t){
+    ctx.fillStyle = 'rgba(15,18,24,.28)'; ctx.fillRect(x - 22, y - 1, 44, 4);
+    ctx.fillStyle = INK; ctx.fillRect(x - 19, y - 26, 3, 26); ctx.fillRect(x + 16, y - 26, 3, 26);
+    ctx.fillStyle = NT_MADEIRA; ctx.fillRect(x - 18, y - 26, 1.5, 26); ctx.fillRect(x + 17, y - 26, 1.5, 26);
+    ctx.beginPath(); ctx.moveTo(x - 24, y - 24); ctx.lineTo(x, y - 36); ctx.lineTo(x + 24, y - 24); ctx.lineTo(x + 24, y - 21); ctx.lineTo(x - 24, y - 21); ctx.closePath(); forma(ctx, NT_PALHA, 1.4);
+    ctx.fillStyle = '#B8862A'; for(let i = -20; i < 22; i += 5) ctx.fillRect(x + i, y - 24 + Math.abs(i) * .02, 1, 3);
+    ctx.fillStyle = NT_PALHA; ctx.fillRect(x - 14, y - 3, 28, 3);
+    /* a manjedoura com o menino */
+    ctx.fillStyle = INK; ctx.fillRect(x - 6, y - 8, 12, 6); ctx.fillStyle = NT_MADEIRA; ctx.fillRect(x - 5, y - 7, 10, 4); ctx.fillStyle = NT_PALHA; ctx.fillRect(x - 5, y - 9, 10, 2);
+    ctx.fillStyle = PAPEL; ctx.fillRect(x - 3, y - 11, 6, 3); ctx.fillStyle = NT_PELE; ctx.fillRect(x + 1, y - 12, 2.5, 2.5);
+    /* Maria de manto azul (ajoelhada) e José de marrom com o cajado */
+    ctx.fillStyle = INK; ctx.fillRect(x - 16, y - 15, 8, 14); ctx.fillStyle = AZUL; ctx.fillRect(x - 15, y - 14, 6, 13); ctx.fillStyle = NT_PELE; ctx.fillRect(x - 13, y - 12, 3, 3);
+    ctx.fillStyle = INK; ctx.fillRect(x + 8, y - 19, 8, 18); ctx.fillStyle = NT_MADEIRA; ctx.fillRect(x + 9, y - 18, 6, 17); ctx.fillStyle = NT_PELE; ctx.fillRect(x + 10, y - 17, 3, 3);
+    ctx.fillStyle = '#5A3A22'; ctx.fillRect(x + 16, y - 22, 1.5, 22);
+    /* a estrela guia, com a luz caindo no menino */
+    estrela(ctx, x, y - 44, 5); luz(x, y - 10, 34, .8);
+  }
+  function natalNaFila(L, ctx, h, o, t){
     const yb = h.base;
-    if(o.luz) L.push({ y: yb + .6, f: () => varalHw(ctx, h, t) });
-    if(o.teia) L.push({ y: yb + .6, f: () => teia(ctx, o.lado > 0 ? h.x + 3 : h.x + h.w - 3, yb - 73, o.lado > 0 ? 1 : -1, t, o.sd) });
-    if(o.fant) L.push({ y: yb + .6, f: () => fantasmaPendurado(ctx, o.lado > 0 ? h.x + h.w * .22 : h.x + h.w * .78, yb - 74, t, o.sd) });
-    if(o.morc && vis(h.x + h.w / 2, o.topo, 120)) L.push({ y: yb + .6, f: () => morcegos(ctx, h, o, t) });
-    [24, -24, 38].slice(0, o.ab).forEach((dx, i) => L.push({ y: yb + 1, f: () => aboboraChao(ctx, h.portaX + dx * o.lado, yb + 2, i === 2 ? 1.25 : 1.6, t, i + o.sd) }));
-    if(o.lap) o.lapides.forEach(l => L.push({ y: l.y, f: () => lapide(ctx, l) }));
-    if(o.cald) L.push({ y: yb + 12, f: () => caldeirao(ctx, o.cx, yb + 12, t, o.sd) });
+    if(o.padrao){
+      L.push({ y: yb + .6, f: () => luzesCasa(ctx, h, o) });
+      if(o.estrela) L.push({ y: yb + .6, f: () => estrelaTopo(ctx, o.ux + o.uw / 2, o.uy - 6 - o.teto) });
+      if(o.laco) L.push({ y: yb + .6, f: () => lacoCasa(ctx, o, t) });
+      if(o.noel){ const nx = o.lado > 0 ? o.ux + o.uw * .2 : o.ux + o.uw * .8; L.push({ y: yb + .7, f: () => noelSobe(ctx, nx, o.uy - 6, o.uy + o.uh - 4, t, o.sd) }); }
+    }
+    L.push({ y: yb + 2, f: () => presentes(ctx, o.px, yb + 3, o.pres) });
+    if(o.arv) L.push({ y: yb + 3, f: () => arvMini(ctx, o.arv, yb + 4, Math.floor(o.sd * 11)) });
+    const j = o.jardim;
+    if(j && j.k === 'renas') L.push({ y: yb + 14, f: () => { renaLuz(ctx, j.x - 10, yb + 16, -o.lado, false, t, 3); renaLuz(ctx, j.x + 14, yb + 20, -o.lado, true, t, 9); } });
+    else if(j) L.push({ y: yb + 16, f: () => presepio(ctx, j.x, yb + 18, t) });
   }
   /* v4.29 · a placa do trampo: os dias seguidos de trabalho de verdade (Caderninho, Studio, Hórus) fincados na frente da casa,
-     do lado de lá da porta (o lado de cá é das abóboras do Halloween). O material sobe com a sequência: madeira (2+), prata
+     do lado de lá da porta (o lado de cá é dos presentes do Natal). O material sobe com a sequência: madeira (2+), prata
      (7+), ouro (14+) e o rosa da lenda (30+), com a chaminha em cima da estaca. Nada de verde */
   const PLACA_T = { madeira: ['#C08A55', '#5A3A1E', '#2A1A0C'], prata: ['#E3E8EF', '#6B7380', '#1B1F26'], ouro: ['#FFD23F', '#8A6A12', '#2A1F05'], lenda: ['#FF48B0', '#5A1240', '#FFFFFF'] };
   function placaTrampo(ctx, h, n, t){
@@ -5716,6 +5770,42 @@
     const lx = V.cid.W * .7, ly = topo - 330;
     if(lx > vx - 60 && lx < vx + vw + 60 && ly > vy - 60){ ctx.fillStyle = `rgba(255,244,214,${a.toFixed(2)})`; ctx.beginPath(); ctx.arc(lx, ly, 22, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = `rgba(52,44,96,${(a * .92).toFixed(2)})`; ctx.beginPath(); ctx.arc(lx + 10, ly - 6, 19, 0, Math.PI * 2); ctx.fill(); }
   }
+  /* v5.15 · o trenó do Papai Noel: no Natal, de noite, ele cruza o céu por cima da cidade a cada 40 s (uns 10 s pra
+     atravessar a tela, cada vez pra um lado), com as nove renas (a da frente de nariz vermelho aceso), o Noel acenando e
+     o rastro de pó dourado. Vem depois da noite, então brilha por conta própria (a luz() desse quadro já foi desenhada) */
+  function trenoNoel(ctx, t, vx, vy, vw, vh){
+    const c = V.ceu; if(!c || c.escuro < .45) return;
+    const T = t + 13, n = Math.floor(T / 40), f = (T % 40) / 10; if(f > 1) return;
+    const dir = n % 2 ? 1 : -1, a = clamp((c.escuro - .45) / .3, 0, 1), s = 1.25;
+    const x = dir > 0 ? vx - 200 + f * (vw + 400) : vx + vw + 200 - f * (vw + 400), y = vy + vh * (.14 + .05 * (n % 3)) + Math.sin(f * 7) * 10 - f * 24;
+    ctx.save(); ctx.globalAlpha = a; ctx.translate(x, y); ctx.scale(dir * s, s);
+    /* o rastro: pó dourado que vai ficando pra trás e apagando */
+    for(let i = 0; i < 26; i++){ const d = 18 + i * 7, yy = -Math.sin(f * 7 - i * .12) * 10 / s + (frac(i * .618) - .5) * 6, tw = (Math.floor(t * 9) + i) % 3 ? 1 : 1.8;
+      ctx.fillStyle = `rgba(255,${210 + (i % 3) * 15},120,${(.85 * (1 - i / 26)).toFixed(2)})`; ctx.fillRect(-d, yy, tw, tw); }
+    /* o brilho em volta */
+    const g = ctx.createRadialGradient(-30, -2, 2, -30, -2, 70); g.addColorStop(0, 'rgba(255,214,130,.28)'); g.addColorStop(1, 'rgba(255,214,130,0)'); ctx.fillStyle = g; ctx.fillRect(-100, -60, 140, 110);
+    /* o trenó: o patim dourado, a caixa vermelha e o Noel acenando, com o saco */
+    ctx.fillStyle = OURO_N; ctx.fillRect(-20, 6, 26, 1.6); ctx.fillRect(4, 3, 1.6, 4.6); ctx.fillRect(-16, 3, 1.6, 4.6); ctx.fillRect(6, 4, 3, 1.4);
+    ctx.fillStyle = INK; ctx.fillRect(-21, -5, 25, 9); ctx.fillStyle = VERM_N; ctx.fillRect(-20, -4, 23, 7); ctx.fillStyle = OURO_N; ctx.fillRect(-20, -4, 23, 1.2);
+    ctx.fillStyle = INK; ctx.fillRect(-19, -13, 9, 9); ctx.fillStyle = '#B8862A'; ctx.fillRect(-18, -12, 7, 7); ctx.fillStyle = ROSA; ctx.fillRect(-16, -15, 3, 3);
+    ctx.fillStyle = INK; ctx.fillRect(-9, -14, 8, 10); ctx.fillStyle = VERM_N; ctx.fillRect(-8, -13, 6, 9);
+    ctx.fillStyle = NT_PELE; ctx.fillRect(-7, -19, 4, 3); ctx.fillStyle = PAPEL; ctx.fillRect(-7.5, -16.5, 5, 3); ctx.fillStyle = VERM_N; ctx.fillRect(-7.5, -22, 5, 3); ctx.fillStyle = PAPEL; ctx.fillRect(-3, -23, 2, 2);
+    const ac = Math.sin(t * 8) > 0 ? -3 : 0; ctx.fillStyle = VERM_N; ctx.fillRect(-2, -15 + ac, 2, 5); ctx.fillStyle = PAPEL; ctx.fillRect(-2, -16 + ac, 2, 1.5);
+    /* as rédeas e as nove renas em fila (de dois em dois, a da frente sozinha), as pernas galopando */
+    ctx.strokeStyle = OURO_N; ctx.lineWidth = .7; ctx.beginPath(); ctx.moveTo(4, -6); ctx.lineTo(82, -8); ctx.stroke();
+    for(let i = 0; i < 5; i++){ const rx = 16 + i * 15, ry = -8 + Math.sin(t * 6 + i * .9) * 1.4, p = Math.floor(t * 8 + i) % 2;
+      for(const off of i === 4 ? [0] : [-1.5, 1.5]){ const yy = ry + off;
+        ctx.fillStyle = '#5A3A22'; ctx.fillRect(rx - 5, yy - 2, 10, 4); ctx.fillRect(rx + 4, yy - 5, 2, 3); ctx.fillRect(rx + 5, yy - 7, 3, 3);
+        ctx.fillStyle = '#7A5232'; ctx.fillRect(rx - 4, yy - 2, 8, 1.4);
+        ctx.fillStyle = '#3B2616'; ctx.fillRect(rx - 4, yy + 2, 1.2, 3 - p); ctx.fillRect(rx - 2, yy + 2, 1.2, 2 + p); ctx.fillRect(rx + 2, yy + 2, 1.2, 3 - p); ctx.fillRect(rx + 3.8, yy + 2, 1.2, 2 + p);
+        ctx.fillStyle = '#E8D3A8'; ctx.fillRect(rx + 5, yy - 10, 1, 3); ctx.fillRect(rx + 7, yy - 10, 1, 3); ctx.fillRect(rx + 4, yy - 10, 4, 1);
+        ctx.fillStyle = OURO_N; ctx.fillRect(rx - 1, yy - 2, 1, 4); }
+    }
+    /* o nariz vermelho aceso da rena da frente */
+    const nx = 16 + 4 * 15 + 8, ny = -8 + Math.sin(t * 6 + 3.6) * 1.4 - 6, gn = ctx.createRadialGradient(nx, ny, 0, nx, ny, 9); gn.addColorStop(0, 'rgba(255,74,74,.85)'); gn.addColorStop(1, 'rgba(255,74,74,0)');
+    ctx.fillStyle = gn; ctx.fillRect(nx - 9, ny - 9, 18, 18); ctx.fillStyle = '#FF4A4A'; ctx.fillRect(nx - 1, ny - 1, 2.4, 2.4);
+    ctx.restore();
+  }
   /* a chuva na tela (sem guardar gota nenhuma: cada uma sai da conta com o tempo) */
   function chuvaDesenha(ctx, t){
     const c = V.ceu; if(!c || c.clima.f <= 0) return;
@@ -5897,11 +5987,11 @@
     if(V.placas) c.casas.concat(c.dois ? [c.dois] : []).forEach(h => { const n = V.placas[h.id]; if(n >= 2 && vis(h.portaX, h.base, 90)) L.push({ y: h.base + 10, f: () => placaTrampo(ctx, h, n, t) }); });
     /* v4.40: a loja de cada casa (o toldo com o letreiro; o cavalete nas de fachada própria) */
     c.casas.concat(c.dois ? [c.dois] : []).forEach(h => { const lj = lojaH(h); if(lj && vis(h.x + h.w / 2, h.base, Math.max(200, h.w))) L.push({ y: h.blocos || h.estilo ? h.base + 16 : h.base + .4, f: () => lojaPinta(ctx, h, lj, t) }); });
-    /* v3.91: o Halloween nas casas sorteadas */
-    if(halloween()) c.casas.concat(c.dois ? [c.dois] : []).forEach(h => { const o = halloweenDe(h); if(o && vis(h.x + h.w / 2, h.base, Math.max(240, h.w))) hwNaFila(L, ctx, h, o, t, vis); });
+    /* v5.15: o Natal em toda casa (no lugar do Halloween das casas da v3.91) */
+    if(natal()) c.casas.concat(c.dois ? [c.dois] : []).forEach(h => { if(vis(h.x + h.w / 2, h.base, Math.max(240, h.w))) natalNaFila(L, ctx, h, natalDe(h), t); });
     L.sort((a, b) => a.y - b.y).forEach(o => o.f());
     /* v4.0: a noite (e a nuvem) por cima de tudo, com os buracos de luz; depois o que brilha: estrelas, palco, fogos e a chuva */
-    noiteDesenha(ctx, k, ox, oy); estrelas(ctx, t, vx, vy, vw); palcoLuzes(ctx, t); fogosDesenha(ctx, t); chuvaDesenha(ctx, t);
+    noiteDesenha(ctx, k, ox, oy); estrelas(ctx, t, vx, vy, vw); if(natal()) trenoNoel(ctx, t, vx, vy, vw, vh); palcoLuzes(ctx, t); fogosDesenha(ctx, t); chuvaDesenha(ctx, t);
     if(V.rio && V.rio.fase === 'salto') saltoPeixe(ctx, t);
     if(V.alvo){ ctx.strokeStyle = ROSA; ctx.lineWidth = Math.max(2, 1.05 / k0); ctx.beginPath(); ctx.ellipse(V.alvo.x, V.alvo.y, 10 + Math.sin(t * 6) * 2, 4, 0, 0, Math.PI * 2); ctx.stroke(); }
     if(V.porta && !(V.eu && V.eu.sit)){ const p = V.porta; ctx.save(); ctx.translate(p.x, p.y - (p.tipo === 'banco' ? 34 : p.tipo === 'morador' ? 48 / V.k : 4) + Math.round(Math.sin(t * 4) * 2)); ctx.beginPath(); ctx.moveTo(-8, -12); ctx.lineTo(8, -12); ctx.lineTo(0, 0); ctx.closePath(); forma(ctx, AMARELO, 2); ctx.restore(); }
@@ -9532,7 +9622,7 @@
     fotoNoel, tiraPola, fechaPola, retratoNoel, pola:() => ({ on: PO.on, aces: PO.aces, leg: PO.leg, gente: PO.gente.map(p => p.h), foto: !!PO.foto, card: PO.card ? [PO.card.width, PO.card.height] : null }), noelFoto: () => (V.cid && V.cid.lago && V.cid.lago.noel && V.cid.lago.noel.foto) || null,
     /* v4.0 · o céu e os eventos (pros testes: hora(21.5), clima('chuva'), null volta pro relógio e pro sorteio) */
     hora: v => { if(v !== undefined){ horaForca = v; V.ceu = null; } return horaBR(); }, clima: v => { if(v !== undefined){ climaForca = v; V.ceu = null; } return climaDe(); },
-    ceu: () => ceuAgora(), evento: () => { const a = eventoAgora(); return a ? { k: a.e.k, nome: a.e.nome, seg: a.seg } : null; }, luzes: () => (V.luz || []).length / 4, palco: () => V.palco, agenda: agendaSheet, EVENTOS, halloween: v => { if(v !== undefined){ hallForca = v; hallVisto.t = 0; } return halloween(); }, halloweenDe, loja: lojaSheet, compraSkin, vesteSkin, carregaLoja, skinsMinhas: () => [...LJ.minhas],
+    ceu: () => ceuAgora(), evento: () => { const a = eventoAgora(); return a ? { k: a.e.k, nome: a.e.nome, seg: a.seg } : null; }, luzes: () => (V.luz || []).length / 4, palco: () => V.palco, agenda: agendaSheet, EVENTOS, halloween: v => { if(v !== undefined){ hallForca = v; hallVisto.t = 0; } return halloween(); }, natalDe, loja: lojaSheet, compraSkin, vesteSkin, carregaLoja, skinsMinhas: () => [...LJ.minhas],
     /* v3.65 · a busca do Corre leva direto pra um lugar da cidade (o mesmo "ir pra lá" do Mapa, de graça). false = a cidade
        ainda não tá pronta (ou você tá dentro de um lugar 3D); null = esse lugar não existe aqui (ex.: sem casa ainda) */
     irPara: nome => {
