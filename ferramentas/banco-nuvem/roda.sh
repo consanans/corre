@@ -209,6 +209,10 @@ $P -f "$AQUI/semente512.sql"
 delta delta-v512.sql 'delta v5.12 ok'
 delta delta-v512.sql 'delta v5.12 ok'
 testa teste512.sql 13
+# v5.13: o link de aprovação e a Sala abrem sem o app mandar o dono (o padrão é o login)
+delta delta-v513.sql 'delta v5.13 ok'
+delta delta-v513.sql 'delta v5.13 ok'
+testa teste513.sql 4
 . "$AQUI/virada343.sh"
 if grep -q 'FALHOU\|ERROR' $D/saida; then echo "deu FALHOU ou erro (acima)"; exit 1; fi
 echo "tudo ok: $(grep -c '^ok:' $D/saida) checagens"
