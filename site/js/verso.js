@@ -129,7 +129,8 @@
     Q: '010101101110011', R: '110101110101101', S: '011100010001110', T: '111010010010010', U: '101101101101111', V: '101101101101010', W: '101101111111101', X: '101101010101101',
     Y: '101101010010010', Z: '111001010100111', 0: '111101101101111', 1: '010110010010111', 2: '110001010100111', 3: '110001010001110', 4: '101101111001001', 5: '111100110001110',
     6: '011100111101111', 7: '111001010010010', 8: '111101111101111', 9: '111101111001110', '@': '011101111100011', '.': '000000000000010', '_': '000000000000111', '-': '000000111000000',
-    ' ': '000000000000000', ':': '000010000010000', '!': '010010010000010', '?': '110001010000010', '/': '001001010100100', '+': '000010111010000', ',': '000000000010100', "'": '010010000000000'
+    ' ': '000000000000000', ':': '000010000010000', '!': '010010010000010', '?': '110001010000010', '/': '001001010100100', '+': '000010111010000', ',': '000000000010100', "'": '010010000000000',
+    '<': '001010100010001', '>': '100010001010100'
   };
   /* M, N, V e W ficam mais largas pra não virar borrão */
   Object.assign(FONTE, { $: '01110|10100|01110|00101|01110', M: '10001|11011|10101|10001|10001', N: '1001|1101|1011|1001|1001', W: '10001|10001|10101|11011|10001', V: '10001|10001|10001|01010|00100' });
@@ -2181,6 +2182,16 @@
   }
   /* v4.26 · os nomes dos sítios do café na porteira (inventados, no jeito do norte do Paraná) */
   const SITIOS = ['SITIO BOA VISTA', 'SITIO SANTA RITA', 'SITIO SAO JOAO', 'SITIO TRES IRMAOS', 'SITIO AGUA BOA', 'SITIO CAFEZAL', 'SITIO SAO PEDRO', 'SITIO PAU-D\'ALHO'];
+  /* v5.17 · as saídas da cidade (o Thales: "uma estradinha pro lado de Ibiporã, de Cambé e de São Paulo, com uma plaquinha,
+     como se logo a gente fosse expandir pra lá"): a rua deitada s continua pela roça até a beira do mapa, do lado de cada
+     cidade (Cambé a oeste; Ibiporã e São Paulo a leste, pela BR-369), com a placa azul na entrada e a cancela EM BREVE no
+     fim. A placa é sem verde (a de estrada de verdade é verde) */
+  const SAIDAS = [
+    { k: 'cambe', nome: 'Cambé', placa: 'CAMBE', km: 12, s: 4, lado: -1, txt: 'Cambé fica a uns 12 km daqui, pela BR-369. A estrada ainda tá em obra: logo o Correverso chega lá.' },
+    { k: 'ibipora', nome: 'Ibiporã', placa: 'IBIPORA', km: 15, s: 6, lado: 1, txt: 'Ibiporã fica a uns 15 km daqui, pela BR-369. A estrada ainda tá em obra: logo o Correverso chega lá.' },
+    { k: 'sp', nome: 'São Paulo', placa: 'SAO PAULO', km: 540, s: 8, lado: 1, txt: 'São Paulo fica a uns 540 km daqui, pela BR-369 até Ourinhos e depois pelas rodovias de lá. Ainda tá longe, mas o Correverso vai.' }
+  ];
+  const AZUL_PLACA = '#1D4E9E';
   const arvRua = (K, o, q, p) => [0, 1].forEach(lado => { if(q() < (p || .55)) K.arv.push({ x: o.x + (lado ? LW - 18 : 18), y: o.y + LH + 6, cor: pega(IPES, q) }); });
 
   function montaCidade(perfis){
@@ -2299,6 +2310,23 @@
       if(q() < .45) K.arv.push({ x: Math.round(o.x + 40 + q() * (LW - 80)), y: Math.round(o.y + 50 + q() * (LH - 80)), cor: pega(IPES, q), mata: true, roca: true });
       if(q() < .14) K.decor.push({ tipo: 'silo', x: Math.round(o.x + 70 + q() * (LW - 140)), y: Math.round(o.y + 120 + q() * (LH - 150)) });
     }
+    /* v5.17 · as saídas: o pedaço da rua s que é roça, da beira do mapa até a cidade, vira estrada; a cancela fica a
+       70 da beira (bate) e a placa azul na entrada, do lado de cima */
+    const estradas = [];
+    SAIDAS.forEach(d => {
+      const y = ruaY(d.s), dentro = x => naArea(x, y, ehRoca);
+      let x0 = 0, x1 = W;
+      if(d.lado < 0){ x1 = 0; while(x1 < W && dentro(x1)) x1 += 4; } else { x0 = W; while(x0 > 0 && dentro(x0 - 1)) x0 -= 4; }
+      const e = Object.assign({ x0, x1, y0: y - RUA / 2, y1: y + RUA / 2, y }, d), bx = d.lado < 0 ? 70 : W - 70, ent = d.lado < 0 ? x1 - 46 : x0 + 46;
+      e.bx = bx; estradas.push(e);
+      K.decor.push({ tipo: 'saida', x: ent, y: e.y0 + 6, e });
+      K.decor.push({ tipo: 'placa2', x: bx - d.lado * 64, y: e.y0 + 4, txt: 'EM BREVE', s: 2, fundo: AMARELO, h: 30 });
+      [0, 1, 2].forEach(i => K.decor.push({ tipo: 'cancela', x: bx, y: e.y0 + 26 + i * 30, i }));
+      [[-1, 34], [1, 66]].forEach(([q, dy]) => K.decor.push({ tipo: 'cone', x: bx - d.lado * (40 + q * 6), y: e.y0 + dy }));
+      K.sol.push({ x: bx - 16, y: e.y0, w: 32, h: RUA });
+      K.zonas.push({ nome: 'Estrada pra ' + d.nome, x: Math.min(x0, x1 - 1), y: e.y0 - 20, w: Math.max(1, x1 - x0), h: RUA + 40 });
+      K.lugares.push({ nome: 'Saída pra ' + d.nome, x: bx - d.lado * 90, y });
+    });
     /* ruas onde passa carro: os trechos de rua deitada sem lugar grande nem roça dos dois lados (o carro vai até a ponta e volta) */
     const trechos = [];
     for(let s = 0; s <= rows; s++){
@@ -2310,7 +2338,7 @@
         if(fecha && ini >= 0){ if(i - ini >= 3) trechos.push({ s, x0: ruaX(ini) + 20, x1: ruaX(i) - 20, n: i - ini }); ini = -1; }
       }
     }
-    return { W, H, rows, grade, ehRoca, rocaI, casas, dois, vazios, enche, muros, sitios, praca, centro, regs, lago, zerao, bosque, gleba: glebaR.torres, glebaR, estadio, feira, aeroporto, acel, arthur, rio, trechos,
+    return { W, H, rows, grade, ehRoca, rocaI, casas, dois, vazios, enche, muros, sitios, estradas, praca, centro, regs, lago, zerao, bosque, gleba: glebaR.torres, glebaR, estadio, feira, aeroporto, acel, arthur, rio, trechos,
       arv: K.arv, bancos: K.bancos, zonas: K.zonas, sol: K.sol, lugares: K.lugares, torneio: K.torneio, decor: K.decor, quiosques: K.quiosques, trucks: K.trucks, barracas: K.barracas, postes: K.postes };
   }
   /* v4.14: as lavouras da roça */
@@ -2811,7 +2839,8 @@
   const zonaDe = (x, y) => { const c = V.cid, z = c.zonas.find(z => x >= z.x && x <= z.x + z.w && y >= z.y && y <= z.y + z.h); if(z) return z.nome; return bairro(clamp(Math.floor((x - RUA / 2) / (LW + RUA)), 0, COLS - 1), clamp(Math.floor((y - TOPO + RUA / 2) / (LH + RUA)), 0, c.rows - 1)); };
   /* v4.14: na roça ninguém anda (a rua da beira, sim; a do meio de dois quarteirões de roça, não). A beira do Tibagi
      (embaixo da última rua) não é roça */
-  const naRoca = (x, y) => { const c = V.cid; return !!c && !!c.ehRoca && y < (c.rio ? c.rio.y0 : c.H) && naArea(x, y, c.ehRoca); };
+  const naEstrada = (x, y) => (V.cid.estradas || []).some(e => y >= e.y0 && y < e.y1 && x >= e.x0 - 2 && x < e.x1 + 2);
+  const naRoca = (x, y) => { const c = V.cid; return !!c && !!c.ehRoca && y < (c.rio ? c.rio.y0 : c.H) && naArea(x, y, c.ehRoca) && !naEstrada(x, y); };
   /* o lugar grande num ponto (pelo quarteirão; a rua em volta conta como dele) */
   const regDe = (x, y) => { const c = V.cid, cc = clamp(Math.floor((x - RUA / 2) / PQ), 0, COLS - 1), rr = clamp(Math.floor((y - TOPO + RUA / 2) / QQ), 0, c.rows - 1), g = c.grade[rr] && c.grade[rr][cc]; return g && g.t === 'reg' ? g.R : null; };
   const naAgua = (x, y) => { const l = V.cid.lago; if(!l || x < l.x0 || x >= l.x1) return false; const c = l.cols[Math.floor((x - l.x0) / l.B)]; if(!c || y <= c.t + 6 || y >= c.b - 2) return false; for(const s of l.secos) if(x > s.x + 4 && x < s.x + s.w - 4 && y > s.y && y < s.y + s.h) return false; return true; };
@@ -2858,6 +2887,8 @@
     /* v4.08: no parquinho do Zerão, o Gude (a porta é na risca, embaixo do círculo) */
     (c.muros || []).forEach(m => P.push({ x: m.x, y: m.y + 20, tipo: 'jogo', jogo: 'spray' }));
     (c.sitios || []).forEach(d => P.push({ x: d.x, y: d.y + 24, tipo: 'jogo', jogo: 'geada' }));
+    /* v5.17: na cancela de cada saída, ler a placa */
+    (c.estradas || []).forEach(e => P.push({ x: e.bx - e.lado * 44, y: e.y + 4, tipo: 'placa', titulo: 'Saída pra ' + e.nome, txt: e.txt }));
     if(c.zerao && c.zerao.gude) P.push({ x: c.zerao.gude.x, y: c.zerao.gude.y + 20, tipo: 'jogo', jogo: 'gude' });
     /* o aquário: na porta, o jogo */
     if(c.centro.aquario) P.push({ x: c.centro.aquario.x + LW / 2, y: c.centro.aquario.base + 8, tipo: 'aquario', jogo: 'killer' });
@@ -3004,6 +3035,7 @@
     }
     /* v4.14: a roça (por cima da rua que fica entre dois quarteirões dela) */
     chaoRoca(ctx, c0, r0, c1, r1, vx, vy, vw, vh);
+    chaoEstradas(ctx, vx, vy, vw, vh);
     c.regs.forEach(R => { if(R.x - CALC > vx + vw || R.x + R.w + CALC < vx || R.y - CALC > vy + vh || R.y + R.h + CALC < vy) return; ctx.fillStyle = pad(ctx, 'calcada');
       /* o lago é quarteirão por quarteirão (a calçada vai em volta de cada pedaço do parque) */
       if(R.tem) blocosDe(R.tem, R.c0, R.r0, R.c1, R.r1, (x, y, w, h) => ctx.fillRect(x - CALC, y - CALC, w + CALC * 2, h + CALC * 2)); else ctx.fillRect(R.x - CALC, R.y - CALC, R.w + CALC * 2, R.h + CALC * 2);
@@ -3039,6 +3071,23 @@
         ctx.fillStyle = '#5A3A22'; if(w){ ctx.fillRect(x, y + (i === 1 ? -6 : 3), w, u); for(let px = x + 6; px < x + w; px += 24) ctx.fillRect(px, y + (i === 1 ? -11 : 0), 3, 9); }
         else { ctx.fillRect(x + (i === 3 ? -6 : 4), y, u, h); for(let py = y + 6; py < y + h; py += 24) ctx.fillRect(x + (i === 3 ? -7 : 3), py, 3, 9); } });
     }
+  }
+  /* v5.17 · a estradinha pela roça: o asfalto mais estreito que a rua da cidade, o acostamento de terra roxa, a faixa
+     amarela no meio (no mesmo passo da cidade, pra emendar) e a cerca de arame dos dois lados; depois da cancela, ela
+     segue até a beira do mapa */
+  function chaoEstradas(ctx, vx, vy, vw, vh){
+    const u = 1 / V.k, t = Math.max(3, 1.05 / V.k);
+    (V.cid.estradas || []).forEach(e => {
+      const a = Math.max(e.x0, vx - 10), b = Math.min(e.x1, vx + vw + 10); if(a >= b || e.y1 < vy - 20 || e.y0 > vy + vh + 20) return;
+      ctx.fillStyle = pad(ctx, 'terra'); ctx.fillRect(a, e.y0, b - a, RUA);
+      ctx.fillStyle = pad(ctx, 'rua'); ctx.fillRect(a, e.y0 + 16, b - a, RUA - 32);
+      ctx.fillStyle = 'rgba(255,255,255,.55)'; ctx.fillRect(a, e.y0 + 18, b - a, Math.max(1, u * 1.5)); ctx.fillRect(a, e.y1 - 18 - Math.max(1, u * 1.5), b - a, Math.max(1, u * 1.5));
+      ctx.fillStyle = 'rgba(242,236,84,.85)'; for(let x = Math.floor(a / 36) * 36; x < b; x += 36) ctx.fillRect(x, e.y - t / 2, 18, t);
+      /* as pedrinhas do acostamento */
+      const q = rng(hash('estrada' + e.k)); ctx.fillStyle = 'rgba(40,12,6,.4)'; for(let i = 0; i < (e.x1 - e.x0) / 6; i++){ const px = e.x0 + q() * (e.x1 - e.x0), py = q() < .5 ? e.y0 + 2 + q() * 12 : e.y1 - 14 + q() * 12; if(px > a && px < b) ctx.fillRect(sn(px), sn(py), u * 2, u * 2); }
+      /* a cerca de arame, nas duas beiras */
+      ctx.fillStyle = '#5A3A22'; [e.y0, e.y1].forEach((y, i) => { ctx.fillRect(a, y + (i ? -6 : 3), b - a, u); for(let px = Math.ceil(a / 24) * 24 + 6; px < b; px += 24) ctx.fillRect(px, y + (i ? -11 : 0), 3, 9); });
+    });
   }
   function chaoLote(ctx, g, o, vx, vy, vw, vh){
     const t = g ? g.t : '', R = { x: o.x, y: o.y, w: LW, h: LH }, cx = o.x + LW / 2, cy = o.y + LH / 2;
@@ -4443,6 +4492,22 @@
   function decor(ctx, d, t){
     const u = 1 / V.k;
     switch(d.tipo){
+      /* v5.17 · a placa azul da saída: o nome da cidade, os km e a seta pro lado dela */
+      case 'saida': { const e = d.e, h = 44, l2 = e.km + ' KM', a1 = pixLarg(e.placa, 2), a2 = pixLarg(l2, 1), bw = Math.max(a1, a2 + 14) + 12, bh = 27;
+        ctx.fillStyle = '#5E646C'; ctx.fillRect(d.x - 20, d.y - h, 4, h); ctx.fillRect(d.x + 16, d.y - h, 4, h); ctx.fillStyle = 'rgba(15,18,24,.22)'; ctx.fillRect(d.x - 24, d.y - 2, 48, 4);
+        const pb = ptBase(ctx, d.x, d.y - h); ctx.save(); naBase(ctx);
+        const x0 = pb[0] - Math.floor(bw / 2), y0 = pb[1] - bh;
+        ctx.fillStyle = INK; ctx.fillRect(x0 - 3, y0 - 3, bw + 6, bh + 6); ctx.fillStyle = PAPEL; ctx.fillRect(x0 - 2, y0 - 2, bw + 4, bh + 4); ctx.fillStyle = AZUL_PLACA; ctx.fillRect(x0, y0, bw, bh);
+        ctx.restore();
+        pixTxt(ctx, e.placa, d.x, d.y - h - (bh - 8) * u, 2, PAPEL);
+        pixTxt(ctx, (e.lado < 0 ? '< ' : '') + l2 + (e.lado > 0 ? ' >' : ''), d.x, d.y - h - 7 * u, 1, PAPEL);
+        luz(d.x, d.y - h - 14, 46, .3); break; }
+      /* v5.17 · a cancela no fim da estrada: o cavalete listrado com o pisca laranja (de noite acende o chão) */
+      case 'cancela': { ctx.fillStyle = 'rgba(15,18,24,.22)'; ctx.fillRect(d.x - 16, d.y - 2, 32, 4); ctx.fillStyle = '#2B2F38'; ctx.fillRect(d.x - 13, d.y - 16, 3, 16); ctx.fillRect(d.x + 10, d.y - 16, 3, 16);
+        for(let i = 0; i < 6; i++){ ctx.fillStyle = (i + d.i) % 2 ? PAPEL : LARANJA; ctx.fillRect(d.x - 15 + i * 5, d.y - 20, 5, 7); }
+        ctx.fillStyle = INK; ctx.fillRect(d.x - 15, d.y - 20, 30, u); ctx.fillRect(d.x - 15, d.y - 13, 30, u);
+        const on = Math.floor(t * 1.6 + d.i * .5) % 2 === 0; ctx.fillStyle = on ? '#FFB23D' : '#7A4A1E'; ctx.fillRect(d.x - 3, d.y - 25, 6, 5); if(on) luz(d.x, d.y - 22, 34, .55); break; }
+      case 'cone': { ctx.fillStyle = 'rgba(15,18,24,.22)'; ctx.fillRect(d.x - 7, d.y - 2, 14, 3); ctx.fillStyle = LARANJA; ctx.fillRect(d.x - 6, d.y - 4, 12, 4); ctx.fillRect(d.x - 4, d.y - 9, 8, 5); ctx.fillRect(d.x - 2, d.y - 15, 4, 6); ctx.fillStyle = PAPEL; ctx.fillRect(d.x - 4, d.y - 8, 8, 2); break; }
       case 'placa': case 'placa2': { const s = d.s || 1, h = d.h || 30; ctx.fillStyle = INK; if(d.tipo === 'placa2'){ ctx.fillRect(d.x - 44, d.y - h, 5, h); ctx.fillRect(d.x + 40, d.y - h, 5, h); } else ctx.fillRect(d.x - 2, d.y - h, 4, h); pixPlaca(ctx, d.txt, d.x, d.y - h - (5 * s + 6) / 2 * u, { fundo: d.fundo || PAPEL, s, cor: d.cor }); break; }
       /* v4.14 · o silo da cooperativa no meio da roça (o norte do Paraná é isso: lavoura até onde a vista alcança e o silo lá no meio) */
       case 'silo': {
@@ -6015,7 +6080,9 @@
     const COR_E = { predio: '#A4A8AE', loja: '#F2D8A7', pracinha: '#D9C27F', bosquinho: '#C9A95E', quadra: '#3D6FB6', feira: '#FF8A3D' };
     /* v4.14: a roça em volta (a cidade aparece no formato dela), cada lavoura na cor dela */
     if(c.ehRoca){ const COR_R = { arado: '#7E4330', trigo: '#BE9D55', palhada: '#AE9562', milho: '#9C7D4A' };
-      blocosDe(c.ehRoca, 0, 0, COLS - 1, c.rows - 1, (x, y, w, h, cc, rr) => { ctx.fillStyle = COR_R[rocaDe(c, cc, rr).t] || '#AE9562'; ctx.fillRect(X(x), Y(y), Math.ceil(w / S), Math.ceil(h / S)); }); }
+      blocosDe(c.ehRoca, 0, 0, COLS - 1, c.rows - 1, (x, y, w, h, cc, rr) => { ctx.fillStyle = COR_R[rocaDe(c, cc, rr).t] || '#AE9562'; ctx.fillRect(X(x), Y(y), Math.ceil(w / S), Math.ceil(h / S)); });
+      /* v5.17: as estradas das saídas, e o laranja da cancela na ponta */
+      (c.estradas || []).forEach(e => { ctx.fillStyle = '#2B2F38'; ctx.fillRect(X(e.x0), Y(e.y0 + 16), Math.max(1, Math.ceil((e.x1 - e.x0) / S)), Math.max(2, Math.round((RUA - 32) / S))); ctx.fillStyle = LARANJA; ctx.fillRect(X(e.bx) - 1, Y(e.y0), 3, Math.max(3, Math.round(RUA / S))); }); }
     for(let r = 0; r < c.rows; r++) for(let cc = 0; cc < COLS; cc++){
       const g = c.grade[r][cc]; if(g && (g.t === 'reg' || g.t === 'roca')) continue; const o = lotXY(cc, r); let cor = '#E6DECD';
       if(g && g.t === 'casa'){ const a = (CASA[g.h.cat] || CASA.outros).a; cor = a === INK ? '#FFFFFF' : a; }
@@ -6045,7 +6112,9 @@
     ctx.fillStyle = '#7F8A96'; c.gleba.forEach(g => ctx.fillRect(X(g.x), Y(g.base - 40), Math.max(2, Math.round(g.w / S)), 3));
     /* v4.14: as pontes do lago (a Av. Higienópolis e a barragem aparecem) */
     ctx.fillStyle = '#2B2F38'; l.secos.forEach(s => { if(s.rua || s.barragem) ctx.fillRect(X(s.x), Y(s.y), Math.max(2, Math.round(s.w / S)), Math.max(2, Math.round(s.h / S))); });
-    const rot = [['LAGO IGAPO', l.rotulo ? l.rotulo.x : l.x + l.w / 2, l.rotulo ? l.rotulo.y : l.y + l.h / 2], ['ZERAO', z.cx, z.cy], ['BOSQUE', c.bosque.cx, c.bosque.cy], ['CENTRO', c.centro.catedral.x + LW + RUA / 2, c.centro.arte.y + LH / 2], ['ESTADIO', c.estadio.campo.x + c.estadio.campo.w / 2, c.estadio.campo.y + c.estadio.campo.h / 2], ['GLEBA', c.glebaR.R.x + c.glebaR.R.w / 2, c.glebaR.R.y + LH / 2]].concat(c.feira ? [['FEIRA', c.feira.R.x + c.feira.R.w / 2, c.feira.R.y + c.feira.R.h + 30]] : []).concat(c.aeroporto ? [['AEROPORTO', c.aeroporto.R.x + c.aeroporto.R.w / 2, c.aeroporto.R.y + 120]] : []).concat(c.acel ? [['ACEL', c.acel.hp.x, c.acel.hp.y - 250]] : []).concat(c.arthur ? [['ARTHUR THOMAS', c.arthur.R.x + c.arthur.R.w / 2, c.arthur.R.y + 300]] : []).concat(rio ? [['RIO TIBAGI', c.W * .55, rio.cyF(c.W * .55)]] : []);
+    const rot = [['LAGO IGAPO', l.rotulo ? l.rotulo.x : l.x + l.w / 2, l.rotulo ? l.rotulo.y : l.y + l.h / 2], ['ZERAO', z.cx, z.cy], ['BOSQUE', c.bosque.cx, c.bosque.cy], ['CENTRO', c.centro.catedral.x + LW + RUA / 2, c.centro.arte.y + LH / 2], ['ESTADIO', c.estadio.campo.x + c.estadio.campo.w / 2, c.estadio.campo.y + c.estadio.campo.h / 2], ['GLEBA', c.glebaR.R.x + c.glebaR.R.w / 2, c.glebaR.R.y + LH / 2]].concat(c.feira ? [['FEIRA', c.feira.R.x + c.feira.R.w / 2, c.feira.R.y + c.feira.R.h + 30]] : []).concat(c.aeroporto ? [['AEROPORTO', c.aeroporto.R.x + c.aeroporto.R.w / 2, c.aeroporto.R.y + 120]] : []).concat(c.acel ? [['ACEL', c.acel.hp.x, c.acel.hp.y - 250]] : []).concat(c.arthur ? [['ARTHUR THOMAS', c.arthur.R.x + c.arthur.R.w / 2, c.arthur.R.y + 300]] : []).concat(rio ? [['RIO TIBAGI', c.W * .55, rio.cyF(c.W * .55)]] : [])
+      /* v5.17: o nome de cada saída na beira, em cima da estrada, com a seta pra fora */
+      .concat((c.estradas || []).map(e => { const tx = e.lado < 0 ? '< ' + e.placa : e.placa + ' >', m = (pixLarg(tx, 1) / 2 + 4) * S; return [tx, e.lado < 0 ? m : c.W - m, e.y - 11 * S]; }));
     /* v4.14: os nomes dos bairros (letra escura miúda) só onde não encostam no nome de um lugar */
     mapaBairros(ctx, c, X, Y, rot.map(([t, x, y]) => ({ x: X(x), y: Y(y), w: pixLarg(t, 1) + 8, h: 11 })).concat(c.regs.filter(R => !R.tem).map(R => ({ x: X(R.x + R.w / 2), y: Y(R.y + R.h / 2), w: R.w / S + 4, h: R.h / S + 4 }))));
     rot.forEach(([t, x, y]) => pixPlaca(ctx, t, X(x), Y(y), { fundo: PAPEL }));
