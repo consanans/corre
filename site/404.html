@@ -3,19 +3,303 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Corre</title>
-<meta name="theme-color" content="#0C0A0F">
+<title>Página não encontrada · Corre</title>
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#1A68CC">
+<link rel="icon" href="/favicon.svg?v=2" type="image/svg+xml">
 <!-- v4.0 · reserva do Link na bio: se a regra do _redirects não pegar o /@nome, o Netlify mostra esta página e ela leva
-     pro lugar certo (v4.29: o /clientes também; v4.41: o /studio, a casa do Corre Studio; v5.09: o /muralzim, a agenda de eventos). Qualquer outro endereço que não existe vai pro começo do Corre. -->
-<script>(function(){var m=location.pathname.match(/^\/@([A-Za-z0-9_.]{3,24})\/?$/);location.replace("/"+(m?location.search+"#/bio/"+m[1].toLowerCase():/^\/clientes\/?$/.test(location.pathname)?location.search+"#/clientes":/^\/studio\/?$/.test(location.pathname)?location.search+"#/dia":/^\/muralzim\/?$/.test(location.pathname)?location.search+"#/muralzim":""));})();</script>
+     pro lugar certo (v4.29: o /clientes também; v4.41: o /studio, a casa do Corre Studio; v5.09: o /muralzim, a agenda de
+     eventos). v5.19: qualquer outro endereço que não existe fica aqui, no 404 do Corre (antes ia direto pro começo) -->
+<script>(function(){var p=location.pathname,m=p.match(/^\/@([A-Za-z0-9_.]{3,24})\/?$/),s=location.search,d=m?s+"#/bio/"+m[1].toLowerCase():/^\/clientes\/?$/.test(p)?s+"#/clientes":/^\/studio\/?$/.test(p)?s+"#/dia":/^\/muralzim\/?$/.test(p)?s+"#/muralzim":null;if(d!==null){document.documentElement.className="vai";location.replace("/"+d);}})();</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;900&family=Bagel+Fat+One&display=swap">
 <style>
-  :root{color-scheme:dark}
-  body{margin:0;min-height:100vh;display:grid;place-items:center;background:#0C0A0F;color:#F7F5EF;font:600 16px/1.4 system-ui,-apple-system,"Segoe UI",sans-serif;padding:16px;box-sizing:border-box;text-align:center}
-  a{color:#0C0A0F;background:#FFE800;padding:12px 18px;border-radius:14px;text-decoration:none;display:inline-block;margin-top:12px;font-weight:800}
-  b{font-size:40px;display:block;letter-spacing:-.02em}
+  /* v5.19 · o 404 do Corre (o Thales: "faz uma page not found absurda pro Corre"): o céu do Corre, o 404 cai do céu
+     (o zero é a Monstra) e dá pra pegar e jogar os números, as desculpas de onde a página foi parar e o "Procurar a
+     página", a folha que voa e foge. Nada de verde. Nada do app carrega aqui: é uma página só */
+  :root{--ink:#141216;--rosa:#FF48B0;--amarelo:#FFE800;--azul:#1A68CC;--ceu2:#4FA3EE;--papel:#FFFFFF}
+  *{box-sizing:border-box}
+  html.vai body{visibility:hidden}
+  html,body{margin:0;min-height:100%}
+  html{background:#B2E0FF}
+  body{background:linear-gradient(180deg,var(--azul) 0%,var(--ceu2) 58%,#B2E0FF 100%) fixed;color:var(--ink);font:500 16px/1.45 Archivo,system-ui,-apple-system,"Segoe UI",sans-serif;overflow-x:hidden;min-height:100vh;min-height:100dvh}
+  body::before{content:"";position:fixed;inset:0;background:radial-gradient(circle,rgba(255,255,255,.16) 1.6px,transparent 1.8px) 0 0/16px 16px;pointer-events:none}
+  .nuvem{position:fixed;width:180px;height:56px;background:var(--papel);border:5px solid var(--ink);border-radius:60px;opacity:.92;pointer-events:none;animation:anda 46s linear infinite}
+  .nuvem::before,.nuvem::after{content:"";position:absolute;background:var(--papel);border:5px solid var(--ink);border-bottom:0;border-radius:60px 60px 0 0}
+  .nuvem::before{width:70px;height:46px;left:26px;top:-34px}.nuvem::after{width:56px;height:38px;left:86px;top:-26px}
+  .n1{top:12%;left:-200px}.n2{top:30%;left:-200px;transform:scale(.7);animation-duration:62s;animation-delay:-20s}.n3{top:6%;left:-200px;transform:scale(.5);animation-duration:80s;animation-delay:-50s}
+  @keyframes anda{to{left:110%}}
+  main{position:relative;max-width:720px;margin:0 auto;padding:calc(18px + env(safe-area-inset-top)) 16px calc(28px + env(safe-area-inset-bottom));display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center}
+  .marca{align-self:flex-start;font:400 26px/1 "Bagel Fat One",Archivo,sans-serif;color:var(--papel);text-decoration:none;-webkit-text-stroke:2px var(--ink);text-shadow:3px 3px 0 var(--ink)}
+  /* o palco: onde o 404 cai e quica */
+  .palco{position:relative;width:100%;height:clamp(220px,52vw,330px);touch-action:none;user-select:none;-webkit-user-select:none}
+  .chao{position:absolute;left:0;right:0;bottom:0;height:10px;background:var(--ink);border-radius:6px}
+  .corpo{position:absolute;left:0;top:0;cursor:grab;will-change:transform;touch-action:none}
+  .corpo:active{cursor:grabbing}
+  .dig{font:400 clamp(110px,30vw,200px)/.82 "Bagel Fat One",Archivo,sans-serif;color:var(--amarelo);-webkit-text-stroke:clamp(5px,1.4vw,9px) var(--ink);paint-order:stroke fill;text-shadow:clamp(5px,1.4vw,9px) clamp(5px,1.4vw,9px) 0 var(--ink);padding:0 .02em}
+  .monstra{width:clamp(108px,29vw,190px);height:clamp(118px,32vw,208px)}
+  .monstra svg{width:100%;height:100%;display:block;overflow:visible}
+  .balao{position:absolute;left:50%;bottom:calc(100% + 6px);transform:translateX(-50%);background:var(--papel);border:3px solid var(--ink);border-radius:14px;padding:6px 10px;font:700 13px/1.25 Archivo,sans-serif;white-space:nowrap;box-shadow:3px 3px 0 var(--ink);opacity:0;transition:opacity .2s;pointer-events:none}
+  .balao.on{opacity:1}
+  h1{margin:4px 0 0;font:400 clamp(28px,7vw,46px)/1.02 "Bagel Fat One",Archivo,sans-serif;color:var(--papel);-webkit-text-stroke:2px var(--ink);paint-order:stroke fill;text-shadow:3px 3px 0 var(--ink);text-wrap:balance}
+  .cartao{background:var(--papel);border:3px solid var(--ink);border-radius:20px;box-shadow:6px 6px 0 var(--ink);padding:16px 18px;width:100%;max-width:560px}
+  .onde{margin:0 0 8px;font-size:14px;color:#4A4650;word-break:break-all}
+  .onde code{background:#FFF3A6;border:2px solid var(--ink);border-radius:8px;padding:1px 6px;font:700 13px/1.4 ui-monospace,Menlo,monospace;color:var(--ink)}
+  .desculpa{margin:0;font:700 clamp(17px,4.4vw,21px)/1.3 Archivo,sans-serif;min-height:2.6em;display:flex;align-items:center;justify-content:center}
+  .desculpa span{transition:opacity .2s,transform .2s}
+  .desculpa span.troca{opacity:0;transform:translateY(6px)}
+  .botoes{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:12px}
+  .bt{appearance:none;border:3px solid var(--ink);border-radius:14px;padding:11px 16px;font:800 15px/1.1 Archivo,sans-serif;color:var(--ink);background:var(--papel);box-shadow:4px 4px 0 var(--ink);text-decoration:none;cursor:pointer;min-height:46px;display:inline-flex;align-items:center;gap:8px;transition:transform .08s,box-shadow .08s}
+  .bt:active{transform:translate(3px,3px);box-shadow:1px 1px 0 var(--ink)}
+  .bt:focus-visible{outline:3px solid var(--papel);outline-offset:3px}
+  .bt.amarelo{background:var(--amarelo)}.bt.rosa{background:var(--rosa)}
+  .dica{margin:2px 0 0;font-size:13px;color:var(--papel);text-shadow:0 1px 0 var(--ink);font-weight:700}
+  /* o "Procurar a página": a folha que voa e foge */
+  .folha{position:fixed;left:0;top:0;width:58px;height:74px;z-index:20;cursor:pointer;display:none;touch-action:none}
+  .folha.on{display:block}
+  .folha svg{width:100%;height:100%;display:block;filter:drop-shadow(3px 3px 0 var(--ink))}
+  .placar{position:fixed;left:50%;top:calc(12px + env(safe-area-inset-top));transform:translateX(-50%);z-index:21;background:var(--ink);color:var(--amarelo);border-radius:999px;padding:8px 16px;font:800 15px/1 Archivo,sans-serif;display:none;box-shadow:3px 3px 0 rgba(0,0,0,.25)}
+  .placar.on{display:block}
+  canvas.festa{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:30}
+  .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  @media (prefers-reduced-motion:reduce){.nuvem{animation:none;left:8%}.n2{left:60%}.n3{left:35%}.desculpa span{transition:none}}
 </style>
 </head>
 <body>
-<main><b>Corre</b><p>Abrindo…</p><a href="/">Ir pro Corre</a></main>
+<div class="nuvem n1" aria-hidden="true"></div><div class="nuvem n2" aria-hidden="true"></div><div class="nuvem n3" aria-hidden="true"></div>
+<main>
+  <a class="marca" href="/">corre</a>
+  <div class="palco" id="palco" aria-hidden="true">
+    <div class="corpo dig" data-k="4a">4</div>
+    <div class="corpo monstra" data-k="0" id="monstra">
+      <span class="balao" id="balao"></span>
+      <svg viewBox="0 0 260 290">
+        <path d="M58 70 Q40 30 74 10 Q80 46 92 62Z" fill="#FFE800" stroke="#141216" stroke-width="8" stroke-linejoin="round"/>
+        <path d="M202 70 Q220 30 186 10 Q180 46 168 62Z" fill="#FFE800" stroke="#141216" stroke-width="8" stroke-linejoin="round"/>
+        <path d="M18 286 C10 130 60 46 130 46 C200 46 250 130 242 286Z" fill="#FF48B0" stroke="#141216" stroke-width="9" stroke-linejoin="round"/>
+        <path d="M200 90 C226 130 236 196 234 280 L210 280 C212 200 204 138 186 100Z" fill="#B8237A" opacity=".45"/>
+        <ellipse cx="74" cy="100" rx="20" ry="10" transform="rotate(-38 74 100)" fill="#fff" opacity=".45"/>
+        <circle cx="58" cy="170" r="12" fill="#FFE800" stroke="#141216" stroke-width="5"/><circle cx="210" cy="214" r="9" fill="#FFE800" stroke="#141216" stroke-width="5"/>
+        <ellipse cx="96" cy="140" rx="30" ry="36" fill="#fff" stroke="#141216" stroke-width="8"/>
+        <ellipse cx="164" cy="140" rx="30" ry="36" fill="#fff" stroke="#141216" stroke-width="8"/>
+        <circle class="pupila" cx="96" cy="146" r="14" fill="#141216"/><circle class="pupila" cx="164" cy="146" r="14" fill="#141216"/>
+        <path d="M68 92 Q94 78 122 94M138 94 Q166 78 192 92" fill="none" stroke="#141216" stroke-width="8" stroke-linecap="round"/>
+        <path id="boca" d="M98 206 Q130 236 162 206 Q130 218 98 206Z" fill="#141216" stroke="#141216" stroke-width="6" stroke-linejoin="round"/>
+        <ellipse cx="62" cy="196" rx="14" ry="8" fill="#FFB3DA"/><ellipse cx="198" cy="196" rx="14" ry="8" fill="#FFB3DA"/>
+      </svg>
+    </div>
+    <div class="corpo dig" data-k="4b">4</div>
+    <div class="chao"></div>
+  </div>
+  <h1>Essa página saiu pro corre e não voltou.</h1>
+  <p class="dica" id="dica">Pega os números e joga. Eles aguentam.</p>
+  <section class="cartao" aria-labelledby="t-onde">
+    <h2 class="sr" id="t-onde">Página não encontrada (erro 404)</h2>
+    <p class="onde">O endereço <code id="caminho">/</code> não existe no Corre.</p>
+    <p class="desculpa" aria-live="polite"><span id="desculpa">Foi buscar pão e virou sócio da padaria.</span></p>
+    <div class="botoes">
+      <button class="bt" type="button" id="outra">Outra desculpa</button>
+      <button class="bt rosa" type="button" id="procura">Procurar a página</button>
+    </div>
+    <div class="botoes">
+      <a class="bt amarelo" href="/">Voltar pro Corre</a>
+      <a class="bt" href="/#/verso">Ir pro Correverso</a>
+      <a class="bt" href="/londrina/">Quem faz em Londrina</a>
+    </div>
+  </section>
+</main>
+<div class="placar" id="placar" role="status"></div>
+<div class="folha" id="folha" role="button" aria-label="A página perdida: toca pra pegar" tabindex="0">
+  <svg viewBox="0 0 58 74"><path d="M4 4 H40 L54 18 V70 H4Z" fill="#fff" stroke="#141216" stroke-width="4" stroke-linejoin="round"/><path d="M40 4 V18 H54" fill="#E8E4DA" stroke="#141216" stroke-width="4" stroke-linejoin="round"/><path d="M12 30 H46 M12 40 H46 M12 50 H34" stroke="#C9C3B6" stroke-width="4" stroke-linecap="round"/><text x="29" y="66" text-anchor="middle" font-family="Archivo,sans-serif" font-weight="900" font-size="11" fill="#FF48B0">404</text></svg>
+</div>
+<script>
+(function(){
+  'use strict';
+  if(document.documentElement.className === 'vai') return;
+  var calmo = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var $ = function(id){ return document.getElementById(id); };
+  $('caminho').textContent = decodeURIComponent(location.pathname).slice(0, 80) || '/';
+
+  /* ---------- as desculpas (de onde a página foi parar) ---------- */
+  var DESCULPAS = [
+    'Foi buscar pão e virou sócia da padaria.',
+    'Pegou um patinete JET no Calçadão e não devolveu.',
+    'Tá na fila do pastel da Feira desde terça.',
+    'Foi pescar piapara no Tibagi. Disse que a de 4,850 tava mordendo.',
+    'Virou NPC do Correverso e agora só fala de correal.',
+    'Ficou presa no trânsito da Higienópolis.',
+    'Foi no Zerão dar uma volta e tá na 37ª.',
+    'Pegou a geada de 75. Ainda tá descongelando.',
+    'Saiu no lambe-lambe do Muralzim e ninguém viu.',
+    'Tá no Igapó tirando foto com o Papai Noel.',
+    'Foi pra Cambé. A estrada ainda tá em obra.',
+    'O macaco do Arthur Thomas levou junto com o pastel.',
+    'Foi fazer um rebranding no Studio Houzi e voltou outra.',
+    'Tá esperando o cliente aprovar. Desde o mês passado.',
+    'Entrou no modo Desbaratinado. Só mostra pra quem segue.',
+    'O Hórus achou ela, mas era fixo, não celular.'
+  ];
+  var di = Math.floor(Math.random() * DESCULPAS.length);
+  function desculpa(){
+    var el = $('desculpa'); di = (di + 1 + Math.floor(Math.random() * (DESCULPAS.length - 1))) % DESCULPAS.length;
+    if(calmo){ el.textContent = DESCULPAS[di]; return; }
+    el.classList.add('troca'); setTimeout(function(){ el.textContent = DESCULPAS[di]; el.classList.remove('troca'); }, 200);
+  }
+  $('desculpa').textContent = DESCULPAS[di];
+  $('outra').addEventListener('click', desculpa);
+
+  /* ---------- o 404 que cai do céu: cada pedaço é um corpo com peso, que quica, encosta no outro e dá pra jogar ---------- */
+  var palco = $('palco'), corpos = [].slice.call(palco.querySelectorAll('.corpo')).map(function(el, i){
+    return { el: el, x: 0, y: 0, vx: 0, vy: 0, w: 0, h: 0, a: 0, va: 0, preso: false, i: i };
+  });
+  var W = 0, H = 0, G = 2600, CHAO = 10, arrastado = null, toques = 0;
+  function mede(){
+    W = palco.clientWidth; H = palco.clientHeight;
+    corpos.forEach(function(c){ c.w = c.el.offsetWidth; c.h = c.el.offsetHeight; });
+  }
+  function arruma(doCeu){
+    mede();
+    var total = corpos.reduce(function(s, c){ return s + c.w; }, 0), gap = Math.max(4, (W - total) / 4), x = gap;
+    corpos.forEach(function(c, i){
+      c.x = x; x += c.w + gap * .5;
+      c.y = doCeu && !calmo ? -c.h - 60 - i * 140 - Math.random() * 60 : H - CHAO - c.h;
+      c.vx = 0; c.vy = 0; c.a = doCeu && !calmo ? (Math.random() - .5) * 40 : 0; c.va = 0;
+    });
+    var meio = (W - (x - gap * .5 + gap)) / 2; corpos.forEach(function(c){ c.x += Math.max(0, meio); });
+  }
+  function pinta(){ corpos.forEach(function(c){ c.el.style.transform = 'translate(' + c.x.toFixed(1) + 'px,' + c.y.toFixed(1) + 'px) rotate(' + c.a.toFixed(1) + 'deg)'; }); }
+  function passo(dt){
+    corpos.forEach(function(c){
+      if(c.preso) return;
+      c.vy += G * dt; c.x += c.vx * dt; c.y += c.vy * dt; c.a += c.va * dt;
+      var chao = H - CHAO - c.h;
+      if(c.y > chao){ c.y = chao; if(Math.abs(c.vy) > 260){ c.vy = -c.vy * .42; c.va = -c.va * .6 + c.vx * .08; quica(c); } else { c.vy = 0; } c.vx *= .86; c.va *= .8; }
+      if(c.x < 0){ c.x = 0; c.vx = Math.abs(c.vx) * .55; c.va = -c.va; }
+      if(c.x + c.w > W){ c.x = W - c.w; c.vx = -Math.abs(c.vx) * .55; c.va = -c.va; }
+      /* parou (no chão ou em cima de outro), vai ficando em pé de novo; no ar, o giro perde força devagar */
+      if(Math.abs(c.vy) < 60 && Math.abs(c.vx) < 60){ c.va *= Math.pow(.002, dt); c.a *= Math.pow(.02, dt); } else c.va *= Math.pow(.5, dt);
+    });
+    /* um encosta no outro: separa pelo lado de menor sobra e troca um pouco do embalo */
+    for(var i = 0; i < corpos.length; i++) for(var j = i + 1; j < corpos.length; j++){
+      var a = corpos[i], b = corpos[j], ox = Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x), oy = Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y);
+      if(ox <= 0 || oy <= 0) continue;
+      if(ox < oy){ var s = a.x < b.x ? -1 : 1, m = ox / 2; if(!a.preso) a.x += s * m; if(!b.preso) b.x -= s * m; var t = (a.vx + b.vx) / 2; a.vx = t + s * 60; b.vx = t - s * 60; }
+      else { var s2 = a.y < b.y ? -1 : 1, m2 = oy / 2; if(!a.preso) a.y += s2 * m2; if(!b.preso) b.y -= s2 * m2; var t2 = (a.vy + b.vy) / 2; a.vy = t2; b.vy = t2; }
+    }
+  }
+  /* o som do quique: um tum curtinho, sintetizado (só depois que a pessoa mexeu, que o navegador exige) */
+  var AC = null;
+  function tum(f, v){
+    try{ if(!AC) return; var o = AC.createOscillator(), g = AC.createGain(), t = AC.currentTime; o.type = 'triangle'; o.frequency.setValueAtTime(f, t); o.frequency.exponentialRampToValueAtTime(f * .45, t + .16);
+      g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(.0001, t + .2); o.connect(g); g.connect(AC.destination); o.start(t); o.stop(t + .22); }catch(e){}
+  }
+  function quica(c){ tum(c.el.dataset.k === '0' ? 150 : 110 + c.i * 30, Math.min(.25, Math.abs(c.vy) / 9000)); if(c.el.dataset.k === '0' && Math.abs(c.vy) > 500) fala(['Ai!', 'Opa!', 'Devagar!', 'Tô bem.'][Math.floor(Math.random() * 4)]); }
+
+  /* pegar e jogar (dedo ou mouse): o corpo segue o ponteiro e sai com o embalo da mão */
+  var ult = null;
+  palco.addEventListener('pointerdown', function(e){
+    var el = e.target.closest('.corpo'); if(!el) return;
+    if(!AC){ try{ AC = new (window.AudioContext || window.webkitAudioContext)(); }catch(x){} }
+    var c = corpos.filter(function(q){ return q.el === el; })[0]; if(!c) return;
+    e.preventDefault(); el.setPointerCapture(e.pointerId);
+    var r = palco.getBoundingClientRect();
+    arrastado = { c: c, dx: e.clientX - r.left - c.x, dy: e.clientY - r.top - c.y, id: e.pointerId };
+    c.preso = true; c.vx = c.vy = 0; ult = { x: e.clientX, y: e.clientY, t: performance.now() };
+    if(c.el.dataset.k === '0') fala(['Me solta!', 'Eu sou o zero!', 'Cadê a página?', 'Tô voando!'][Math.floor(Math.random() * 4)]);
+    toques++; if(toques === 3) $('dica').textContent = 'Isso. Agora joga a Monstra no 4.';
+    if(toques === 9) $('dica').textContent = 'Ok, a página não tá embaixo dos números.';
+  });
+  palco.addEventListener('pointermove', function(e){
+    if(!arrastado || e.pointerId !== arrastado.id) return;
+    var r = palco.getBoundingClientRect(), c = arrastado.c, agora = performance.now(), dt = Math.max(.008, (agora - ult.t) / 1000);
+    c.x = Math.max(0, Math.min(W - c.w, e.clientX - r.left - arrastado.dx)); c.y = Math.min(H - CHAO - c.h, e.clientY - r.top - arrastado.dy);
+    c.vx = (e.clientX - ult.x) / dt; c.vy = (e.clientY - ult.y) / dt; c.va = c.vx * .05; ult = { x: e.clientX, y: e.clientY, t: agora };
+  });
+  function solta(e){
+    if(!arrastado || (e && e.pointerId !== arrastado.id)) return;
+    var c = arrastado.c; c.preso = false; c.vx = Math.max(-2400, Math.min(2400, c.vx)); c.vy = Math.max(-2600, Math.min(2400, c.vy)); arrastado = null;
+  }
+  palco.addEventListener('pointerup', solta); palco.addEventListener('pointercancel', solta);
+
+  /* a Monstra: os olhos seguem o dedo ou o mouse; tocou sem arrastar, ela fala */
+  var pupilas = [].slice.call(document.querySelectorAll('.pupila')), mon = $('monstra'), balao = $('balao'), falaT = 0;
+  function olha(px, py){
+    var r = mon.getBoundingClientRect(); if(!r.width) return;
+    pupilas.forEach(function(p, k){ var cx = r.left + r.width * (k ? .63 : .37), cy = r.top + r.height * .5, dx = px - cx, dy = py - cy, d = Math.hypot(dx, dy) || 1, m = Math.min(10, d / 20);
+      p.setAttribute('cx', (k ? 164 : 96) + dx / d * m); p.setAttribute('cy', 140 + dy / d * m); });
+  }
+  window.addEventListener('pointermove', function(e){ olha(e.clientX, e.clientY); });
+  function fala(t){ balao.textContent = t; balao.classList.add('on'); clearTimeout(falaT); falaT = setTimeout(function(){ balao.classList.remove('on'); }, 1700); }
+
+  /* ---------- "Procurar a página": a folha voa pela tela e foge do dedo; pegou em 12 s, festa ---------- */
+  var folha = $('folha'), placar = $('placar'), caca = null, tentativas = 0;
+  function procura(){
+    if(caca) return;
+    if(!AC){ try{ AC = new (window.AudioContext || window.webkitAudioContext)(); }catch(x){} }
+    tentativas++;
+    var vw = innerWidth, vh = innerHeight;
+    caca = { x: vw * .5, y: vh * .4, vx: 220, vy: -160, t0: performance.now(), dur: 12000, fx: 0, fy: 0 };
+    folha.classList.add('on'); placar.classList.add('on'); folha.focus({ preventScroll: true });
+    fala('Lá vai ela!');
+  }
+  function acabou(pegou){
+    folha.classList.remove('on'); caca = null;
+    if(pegou){
+      placar.textContent = 'ACHOU!'; festa(); tum(523, .2); setTimeout(function(){ tum(784, .2); }, 120);
+      $('desculpa').textContent = tentativas > 1 ? 'Achou na ' + tentativas + 'ª tentativa. Ela tava em branco: alguém esqueceu de escrever.' : 'Achou! Mas ela tava em branco: alguém esqueceu de escrever.';
+      fala('Era só um papel?!');
+    } else {
+      placar.textContent = 'ELA FUGIU'; $('desculpa').textContent = 'Fugiu de novo. Disse que volta depois do horário de pico.'; fala('Corre atrás!');
+    }
+    setTimeout(function(){ placar.classList.remove('on'); }, 2200);
+  }
+  folha.addEventListener('pointerdown', function(e){ e.preventDefault(); if(caca) acabou(true); });
+  folha.addEventListener('keydown', function(e){ if(caca && (e.key === 'Enter' || e.key === ' ')){ e.preventDefault(); acabou(true); } });
+  /* o dedo chegando perto empurra a folha (ela foge, mas não sempre: senão ninguém pega) */
+  window.addEventListener('pointermove', function(e){ if(caca){ caca.fx = e.clientX; caca.fy = e.clientY; } });
+  $('procura').addEventListener('click', procura);
+  function passoFolha(dt, agora){
+    if(!caca) return;
+    var vw = innerWidth, vh = innerHeight, c = caca, resta = Math.max(0, c.dur - (agora - c.t0));
+    placar.textContent = 'Pega a página! ' + Math.ceil(resta / 1000) + ' s';
+    if(resta <= 0){ acabou(false); return; }
+    /* vento: muda de direção de leve; o dedo perto assusta */
+    c.vx += (Math.sin(agora / 430) * 260 + (Math.random() - .5) * 400) * dt; c.vy += (Math.cos(agora / 610) * 220 + (Math.random() - .5) * 400) * dt;
+    var dx = c.x - c.fx, dy = c.y - c.fy, d = Math.hypot(dx, dy);
+    if(d < 140 && d > 1 && Math.sin(agora / 900) > -.3){ c.vx += dx / d * 1400 * dt; c.vy += dy / d * 1400 * dt; }
+    var v = Math.hypot(c.vx, c.vy), max = calmo ? 140 : 380; if(v > max){ c.vx *= max / v; c.vy *= max / v; }
+    c.x += c.vx * dt; c.y += c.vy * dt;
+    if(c.x < 10){ c.x = 10; c.vx = Math.abs(c.vx); } if(c.x > vw - 68){ c.x = vw - 68; c.vx = -Math.abs(c.vx); }
+    if(c.y < 60){ c.y = 60; c.vy = Math.abs(c.vy); } if(c.y > vh - 84){ c.y = vh - 84; c.vy = -Math.abs(c.vy); }
+    folha.style.transform = 'translate(' + c.x.toFixed(1) + 'px,' + c.y.toFixed(1) + 'px) rotate(' + (Math.sin(agora / 180) * 18).toFixed(1) + 'deg)';
+  }
+
+  /* a festa: confete nas cores do Corre (amarelo, rosa, azul, branco e lilás; nada de verde) */
+  function festa(){
+    if(calmo) return;
+    var cv = document.createElement('canvas'), x = cv.getContext('2d'), dpr = Math.min(2, devicePixelRatio || 1), CORES = ['#FFE800', '#FF48B0', '#1A68CC', '#FFFFFF', '#C6A6FF', '#FF8A3D'], P = [], t0 = performance.now();
+    cv.className = 'festa'; cv.width = innerWidth * dpr; cv.height = innerHeight * dpr; document.body.appendChild(cv); x.scale(dpr, dpr);
+    for(var i = 0; i < 160; i++) P.push({ x: innerWidth / 2, y: innerHeight * .45, vx: (Math.random() - .5) * 900, vy: -Math.random() * 900 - 200, a: Math.random() * 6, va: (Math.random() - .5) * 12, c: CORES[i % CORES.length], w: 6 + Math.random() * 6 });
+    (function anima(){
+      var t = (performance.now() - t0) / 1000; x.clearRect(0, 0, innerWidth, innerHeight);
+      P.forEach(function(p){ p.vy += 900 / 60; p.x += p.vx / 60; p.y += p.vy / 60; p.vx *= .99; p.a += p.va / 60; x.save(); x.translate(p.x, p.y); x.rotate(p.a); x.fillStyle = p.c; x.fillRect(-p.w / 2, -p.w / 4, p.w, p.w / 2); x.restore(); });
+      if(t < 3.2) requestAnimationFrame(anima); else cv.remove();
+    })();
+  }
+
+  /* o laço */
+  var antes = performance.now();
+  function laco(agora){
+    var dt = Math.min(.033, (agora - antes) / 1000); antes = agora;
+    passo(dt); pinta(); passoFolha(dt, agora);
+    requestAnimationFrame(laco);
+  }
+  function comeca(){ arruma(true); pinta(); requestAnimationFrame(function(t){ antes = t; laco(t); }); }
+  /* espera a letra chegar (senão o 4 nasce no tamanho da letra de reserva) */
+  if(document.fonts && document.fonts.load) Promise.race([document.fonts.load('400 120px "Bagel Fat One"'), new Promise(function(r){ setTimeout(r, 1200); })]).then(comeca); else comeca();
+  var rt = 0; window.addEventListener('resize', function(){ clearTimeout(rt); rt = setTimeout(function(){ arruma(false); }, 150); });
+})();
+</script>
 </body>
 </html>
