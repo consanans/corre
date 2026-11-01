@@ -181,9 +181,12 @@
     if(!real() || P.semFuncao) return;
     Promise.resolve().then(() => C.api.fn('push', { tipo, id }, true)).catch(e => { if(e && (e.status === 404 || e.code === 'nofn')) P.semFuncao = true; });
   }
-  /* o número no ícone do app (mensagens não lidas + pedidos) */
-  function badge(n){
+  /* o número no ícone do app: as mensagens não lidas e os pedidos (parte 'msg') e, desde a v5.18, os avisos novos do
+     sino (parte 'av'); a mesma conta que a função push manda junto com o aviso, pra o número bater com o app fechado */
+  const ICONE = { msg: 0, av: 0 };
+  function badge(n, parte){
     try{
+      ICONE[parte === 'av' ? 'av' : 'msg'] = Math.max(0, Number(n) || 0); n = ICONE.msg + ICONE.av;
       if(!('setAppBadge' in navigator)) return;
       const p = n > 0 ? navigator.setAppBadge(Math.min(n, 999)) : navigator.clearAppBadge();
       if(p && p.catch) p.catch(() => {});

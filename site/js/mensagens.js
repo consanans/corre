@@ -54,7 +54,7 @@
       b.setAttribute('aria-label', 'Mensagens' + (ps.length ? ': ' + ps.join(', ') : ''));
     });
     /* o número no ícone do app (celular com o Corre instalado) acompanha */
-    if(C.push) C.push.badge(n + p);
+    if(C.push) C.push.badge(n + p, 'msg');
   }
   async function sync(forca){
     if(!uid() || !C.st.me){ esquece(); return; }

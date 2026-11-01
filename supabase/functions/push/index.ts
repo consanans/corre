@@ -27,6 +27,8 @@
 //     chegaram na hora (corre_caderno_alvos, do mesmo jeito; o relógio é um só). Desde a v4.30, o bom dia de manhã
 //     (corre_bomdia_alvos: na hora que cada um escolheu, com o que tem no dia; um por dia, urgência normal).
 // Aparelho que o serviço diz que sumiu (404/410) sai do banco (corre_push_mortos).
+// v5.18: todo aviso leva "n", o número do ícone do app pra quem recebe (corre_icone_n, delta-v518: mensagens não lidas,
+// pedidos de conversa e avisos novos do sino); o sw.js põe ele no ícone mesmo com o Corre fechado.
 //
 // A cifra é a do padrão (RFC 8291, aes128gcm) e a assinatura do Corre é a VAPID (RFC 8292), tudo com o WebCrypto do
 // Deno: nenhuma biblioteca de fora mexe nas chaves.
@@ -165,8 +167,20 @@ async function manda(admin: any, v: Vapid, lista: [Aparelho, Uint8Array, string]
   return { ok, mortos: mortos.length };
 }
 
-/* o que o banco devolve ([{ payload, subs }]) vira a lista de entrega: cada aparelho da pessoa com o aviso dela */
-function lista(L: any[], urg: string) {
+/* v5.18: o número no ícone do app (mensagens não lidas, pedidos de conversa e avisos novos do sino) vai junto, por
+   pessoa (o sw.js põe ele no ícone mesmo com o Corre fechado). Sem o delta-v518, vai sem número, como antes */
+async function comNumero(admin: any, L: any[]) {
+  const donos = [...new Set(L.map(x => x && x.para).filter((p: unknown) => typeof p === 'string' && UUID.test(p)))].slice(0, 200);
+  if (!donos.length) return;
+  try {
+    const { data, error } = await admin.rpc('corre_icone_n', { p_donos: donos });
+    if (error || !data || typeof data !== 'object') return;
+    for (const x of L) if (x && x.payload && typeof x.payload === 'object' && typeof data[x.para] === 'number') x.payload.n = data[x.para];
+  } catch (_) { /* vai sem número */ }
+}
+/* o que o banco devolve ([{ para, payload, subs }]) vira a lista de entrega: cada aparelho da pessoa com o aviso dela */
+async function lista(admin: any, L: any[], urg: string) {
+  await comNumero(admin, L);
   const P: [Aparelho, Uint8Array, string][] = [];
   for (const x of L) {
     if (!x || typeof x.payload !== 'object' || !Array.isArray(x.subs)) continue;
@@ -195,7 +209,7 @@ Deno.serve(async (req) => {
     const { data: alvos, error } = await admin.rpc('corre_lembretes_alvos', {});
     if (error) { console.warn('[push] lembretes', error.message); return json({ erro: 'banco' }, 503); }
     const L = Array.isArray(alvos) ? alvos : [];
-    const r = await manda(admin, v, lista(L, 'normal'));
+    const r = await manda(admin, v, await lista(admin, L, 'normal'));
     console.log('[push] lembretes', JSON.stringify({ pessoas: L.length, entregues: r.ok, saiu: r.mortos }));
     return json({ ok: true, pessoas: L.length, entregues: r.ok, saiu: r.mortos });
   }
@@ -226,7 +240,7 @@ Deno.serve(async (req) => {
     if (eg) { if (!/corre_ingresso_alvos/.test(eg.message || '')) console.warn('[push] ingresso', eg.message); }
     else if (Array.isArray(ing)) L.push(...ing);
     if (!L.length) return json({ ok: true, pessoas: 0, entregues: 0 });
-    const r = await manda(admin, v, lista(L, 'high'));
+    const r = await manda(admin, v, await lista(admin, L, 'high'));
     console.log('[push] pedidos', JSON.stringify({ pessoas: L.length, entregues: r.ok, saiu: r.mortos }));
     return json({ ok: true, pessoas: L.length, entregues: r.ok, saiu: r.mortos });
   }
@@ -249,7 +263,7 @@ Deno.serve(async (req) => {
     if (eb) { if (!/corre_bomdia_alvos/.test(eb.message || '')) console.warn('[push] bomdia', eb.message); }
     const B = !eb && Array.isArray(bd) ? bd : [];
     if (!L.length && !B.length) return json({ ok: true, avisos: 0, entregues: 0 });
-    const r = await manda(admin, v, lista(L, 'high').concat(lista(B, 'normal')));
+    const r = await manda(admin, v, (await lista(admin, L, 'high')).concat(await lista(admin, B, 'normal')));
     console.log('[push] postar', JSON.stringify({ avisos: L.length, bomdia: B.length, entregues: r.ok, saiu: r.mortos }));
     return json({ ok: true, avisos: L.length, bomdia: B.length, entregues: r.ok, saiu: r.mortos });
   }
@@ -292,7 +306,7 @@ Deno.serve(async (req) => {
     if (error) { console.warn('[push] lembrete-teste', error.message); return json({ erro: 'banco' }, 503); }
     const L = Array.isArray(alvos) ? alvos : [];
     if (!L.length) return json({ erro: 'sem_aparelho' }, 404);
-    const r = await manda(admin, v, lista(L, 'high'));
+    const r = await manda(admin, v, await lista(admin, L, 'high'));
     return json({ ok: r.ok > 0, tipo: String(L[0]?.tipo || ''), entregues: r.ok, saiu: r.mortos });
   }
 
@@ -304,7 +318,7 @@ Deno.serve(async (req) => {
   const L = Array.isArray(alvos) ? alvos : [];
   /* mensagem chega na hora; o resto pode esperar o celular acordar */
   const urg = tipo === 'msg' || tipo === 'grupo-aceito' ? 'high' : 'normal';
-  const P = lista(L, urg);
+  const P = await lista(admin, L, urg);
   if (!P.length) return json({ ok: true, pessoas: 0, entregues: 0 });
   const r = await manda(admin, v, P);
   return json({ ok: true, pessoas: L.length, entregues: r.ok, saiu: r.mortos });

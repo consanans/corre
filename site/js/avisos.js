@@ -12,6 +12,8 @@
     if(!forca && Date.now() - A.at < 60e3) return;
     A.at = Date.now();
     try{ A.n = Number(await C.api.rpc('corre_avisos_n', {})) || 0; }catch(e){ return; }
+    /* v5.18: os avisos novos entram no número do ícone do app */
+    if(C.push && C.push.badge) C.push.badge(A.n, 'av');
     if(C.visitas && C.visitas.pintaSino) C.visitas.pintaSino();
   }
 
@@ -66,7 +68,7 @@
     box.innerHTML = vis.length ? `<ul class="av-lista">${agrupa(vis).map(itemHTML).join('')}</ul>`
       : `<p class="note">${A.aba === 'mencoes' ? `Ninguém te mencionou ainda. Quando alguém escrever @${esc((C.st.me || {}).handle || '')}, aparece aqui.` : 'Nada por aqui ainda. Posta, responde e segue a galera: curtida, resposta e seguidor novo aparecem aqui.'}</p>`;
     /* abriu, viu: zera o número do sino (o destaque dos novos fica nesta abertura) */
-    if(L.some(e => e.novo) || A.n){ try{ await C.api.rpc('corre_avisos_visto', {}); }catch(e){} A.n = 0; if(C.visitas && C.visitas.pintaSino) C.visitas.pintaSino(); }
+    if(L.some(e => e.novo) || A.n){ try{ await C.api.rpc('corre_avisos_visto', {}); }catch(e){} A.n = 0; if(C.push && C.push.badge) C.push.badge(0, 'av'); if(C.visitas && C.visitas.pintaSino) C.visitas.pintaSino(); }
   }
   /* tocar no aviso abre o post (ou o perfil de quem te seguiu) */
   document.addEventListener('click', e => {
