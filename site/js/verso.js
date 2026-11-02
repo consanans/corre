@@ -2347,7 +2347,7 @@
        A porta é na rua, na frente da porteira; o quarteirão do sítio não ganha ipê nem silo (é cafezal). v5.19: só os de
        Londrina (a roça de Cambé não entra no sorteio, pros sítios de antes não mudarem de lugar) */
     const sitios = [], candS = [];
-    for(let r = 0; r < rows - 1; r++) for(let c = OESTE; c < COLS; c++){ const g = grade[r + 1][c]; if(roca[r][c] && g && g.t !== 'roca' && g.t !== 'reg') candS.push({ c, r }); }
+    for(let r = 0; r < rows - 1; r++) for(let c = OESTE; c < OESTE + LONDRINA_C; c++){ const g = grade[r + 1][c]; if(roca[r][c] && g && g.t !== 'roca' && g.t !== 'reg') candS.push({ c, r }); }
     candS.sort((a, b) => hash('sitio' + ck(a.c, a.r)) - hash('sitio' + ck(b.c, b.r)));
     for(const s of candS){
       if(sitios.length >= 4) break; if(sitios.some(o => Math.abs(o.c - s.c) + Math.abs(o.r - s.r) < 4)) continue;
@@ -3110,7 +3110,7 @@
   const naRio = (x, y) => { const r = V.cid && V.cid.rio; if(!r || y < r.y0 + 20) return false; const q = r.colEm(x); if(y <= q.t + 6) return false;
     /* v5.21: a água acaba na outra margem (lá quem barra é o naSul) e a ponte pronta é chão */
     if(y >= q.b - 6) return false;
-    const e = (V.cid.estradas || []).find(o => o.eixo === 'v' && o.ponte && o.ponte.pronta); if(e && Math.abs(x - e.ponte.x) < 38) return false;
+    const e = (V.cid.estradas || []).find(o => o.eixo === 'v' && o.ponte && o.ponte.pronta); if(e && Math.abs(x - e.ponte.x) < RUA / 2 - 4) return false;
     for(const p of r.piers) if(x > p.x + 4 && x < p.x + p.w - 4 && y > p.y && y < p.y + p.h) return false; return true; };
   const zonaDe = (x, y) => { const c = V.cid, z = c.zonas.find(z => x >= z.x && x <= z.x + z.w && y >= z.y && y <= z.y + z.h); if(z) return z.nome; return bairro(clamp(Math.floor((x - RUA / 2) / (LW + RUA)), 0, COLS - 1), clamp(Math.floor((y - TOPO + RUA / 2) / (LH + RUA)), 0, c.rows - 1)); };
   /* v4.14: na roça ninguém anda (a rua da beira, sim; a do meio de dois quarteirões de roça, não). A beira do Tibagi
@@ -3403,20 +3403,17 @@
     (c.estradas || []).forEach(e => {
       if(e.eixo === 'v'){
         const a = Math.max(e.y0, vy - 10), b = Math.min(e.y1, vy + vh + 10); if(a >= b || e.x1 < vx - 20 || e.x0 > vx + vw + 20) return;
-        ctx.fillStyle = pad(ctx, 'terra'); ctx.fillRect(e.x0, a, RUA, b - a);
-        ctx.fillStyle = pad(ctx, 'rua'); ctx.fillRect(e.x0 + 16, a, RUA - 32, b - a);
-        ctx.fillStyle = 'rgba(255,255,255,.55)'; ctx.fillRect(e.x0 + 18, a, L, b - a); ctx.fillRect(e.x1 - 18 - L, a, L, b - a);
+        /* v5.21: a estrada tem a largura da rua da cidade (o Thales: "deixa a largura das ruas que vão pras cidades igual à da cidade") */
+        ctx.fillStyle = pad(ctx, 'rua'); ctx.fillRect(e.x0, a, RUA, b - a);
+        ctx.fillStyle = 'rgba(255,255,255,.55)'; ctx.fillRect(e.x0 + 4, a, L, b - a); ctx.fillRect(e.x1 - 4 - L, a, L, b - a);
         ctx.fillStyle = 'rgba(242,236,84,.85)'; for(let y = Math.floor(a / 36) * 36; y < b; y += 36) ctx.fillRect(e.x - t / 2, y, t, 18);
         ctx.fillStyle = '#5A3A22'; [e.x0, e.x1].forEach((x, i) => { ctx.fillRect(x + (i ? -6 : 4), a, u, b - a); for(let py = Math.ceil(a / 24) * 24 + 6; py < b; py += 24) ctx.fillRect(x + (i ? -7 : 3), py, 3, 9); });
         return;
       }
       const a = Math.max(e.x0, vx - 10), b = Math.min(e.x1, vx + vw + 10); if(a >= b || e.y1 < vy - 20 || e.y0 > vy + vh + 20) return;
-      ctx.fillStyle = pad(ctx, 'terra'); ctx.fillRect(a, e.y0, b - a, RUA);
-      ctx.fillStyle = pad(ctx, 'rua'); ctx.fillRect(a, e.y0 + 16, b - a, RUA - 32);
-      ctx.fillStyle = 'rgba(255,255,255,.55)'; ctx.fillRect(a, e.y0 + 18, b - a, L); ctx.fillRect(a, e.y1 - 18 - L, b - a, L);
+      ctx.fillStyle = pad(ctx, 'rua'); ctx.fillRect(a, e.y0, b - a, RUA);
+      ctx.fillStyle = 'rgba(255,255,255,.55)'; ctx.fillRect(a, e.y0 + 4, b - a, L); ctx.fillRect(a, e.y1 - 4 - L, b - a, L);
       ctx.fillStyle = 'rgba(242,236,84,.85)'; for(let x = Math.floor(a / 36) * 36; x < b; x += 36) ctx.fillRect(x, e.y - t / 2, 18, t);
-      /* as pedrinhas do acostamento */
-      const q = rng(hash('estrada' + e.k)); ctx.fillStyle = 'rgba(40,12,6,.4)'; for(let i = 0; i < (e.x1 - e.x0) / 6; i++){ const px = e.x0 + q() * (e.x1 - e.x0), py = q() < .5 ? e.y0 + 2 + q() * 12 : e.y1 - 14 + q() * 12; if(px > a && px < b) ctx.fillRect(sn(px), sn(py), u * 2, u * 2); }
       /* a cerca de arame, nas duas beiras (a frente da obra fica aberta) */
       ctx.fillStyle = '#5A3A22'; [e.y0, e.y1].forEach((y, i) => {
         const fora = (c.obras || []).filter(o => o.k === e.k && o.cima === !i);
@@ -3445,15 +3442,14 @@
     /* v5.21 · a ponte pronta: o tabuleiro de margem a margem, o guarda-corpo e a estrada que segue até Curitiba */
     if(p.pronta){
       const S = V.cid.sul, yF = S ? S.y0 : V.cid.H, tt = Math.max(3, 1.05 / V.k);
-      ctx.fillStyle = pad(ctx, 'terra'); ctx.fillRect(e.x0, e.y1, RUA, p.t - e.y1); ctx.fillRect(e.x0, p.b, RUA, yF - p.b);
-      ctx.fillStyle = pad(ctx, 'rua'); ctx.fillRect(e.x0 + 16, e.y1, RUA - 32, p.t - e.y1); ctx.fillRect(e.x0 + 16, p.b, RUA - 32, yF - p.b);
+      ctx.fillStyle = pad(ctx, 'rua'); ctx.fillRect(e.x0, e.y1, RUA, p.t - e.y1); ctx.fillRect(e.x0, p.b, RUA, yF - p.b);
       [.58, .82].forEach((f, i) => { const y = p.t + (p.b - p.t) * f, w = Math.sin(t * 2 + i) * 2; ctx.fillStyle = 'rgba(255,255,255,.45)'; ctx.fillRect(p.x - 14 + w, y + 6, 28, 3); });
       const y0 = p.t - 10, y1 = p.b + 10;
-      ctx.fillStyle = 'rgba(15,40,80,.35)'; ctx.fillRect(p.x - 38, y0 + 10, 76, y1 - y0);
-      ctx.fillStyle = '#B8BDC4'; ctx.fillRect(p.x - 42, y0, 84, y1 - y0); ctx.fillStyle = pad(ctx, 'rua'); ctx.fillRect(p.x - 32, y0, 64, y1 - y0);
+      ctx.fillStyle = 'rgba(15,40,80,.35)'; ctx.fillRect(p.x - RUA / 2 - 4, y0 + 10, RUA + 8, y1 - y0);
+      ctx.fillStyle = '#B8BDC4'; ctx.fillRect(p.x - RUA / 2 - 8, y0, RUA + 16, y1 - y0); ctx.fillStyle = pad(ctx, 'rua'); ctx.fillRect(p.x - RUA / 2, y0, RUA, y1 - y0);
       ctx.fillStyle = 'rgba(242,236,84,.85)'; for(let y = Math.ceil(e.y1 / 36) * 36; y < yF; y += 36) ctx.fillRect(e.x - tt / 2, y, tt, 18);
-      ctx.fillStyle = '#E2412E'; ctx.fillRect(p.x - 44, y0, 4, y1 - y0); ctx.fillRect(p.x + 40, y0, 4, y1 - y0);
-      ctx.fillStyle = PAPEL; for(let y = y0 + 6; y < y1; y += 14){ ctx.fillRect(p.x - 44, y, 4, 6); ctx.fillRect(p.x + 40, y, 4, 6); }
+      const gx = RUA / 2 + 8; ctx.fillStyle = '#E2412E'; ctx.fillRect(p.x - gx, y0, 4, y1 - y0); ctx.fillRect(p.x + gx - 4, y0, 4, y1 - y0);
+      ctx.fillStyle = PAPEL; for(let y = y0 + 6; y < y1; y += 14){ ctx.fillRect(p.x - gx, y, 4, 6); ctx.fillRect(p.x + gx - 4, y, 4, 6); }
       return;
     }
     ctx.fillStyle = pad(ctx, 'terra'); ctx.fillRect(e.x0, e.y1, RUA, p.t - e.y1);
