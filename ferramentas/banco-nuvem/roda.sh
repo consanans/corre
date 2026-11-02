@@ -213,6 +213,10 @@ testa teste512.sql 13
 delta delta-v513.sql 'delta v5.13 ok'
 delta delta-v513.sql 'delta v5.13 ok'
 testa teste513.sql 4
+# v5.19: Cambé abriu; as missões e os bicos que cruzam a BR-369 pagam
+delta delta-v519.sql 'delta v5.19 ok'
+delta delta-v519.sql 'delta v5.19 ok'
+testa teste519.sql 5
 . "$AQUI/virada343.sh"
 if grep -q 'FALHOU\|ERROR' $D/saida; then echo "deu FALHOU ou erro (acima)"; exit 1; fi
 echo "tudo ok: $(grep -c '^ok:' $D/saida) checagens"

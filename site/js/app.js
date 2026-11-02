@@ -794,7 +794,13 @@
     /* v4.14: a barragem do Igapó 1, onde o lago vira o ribeirão que desce até o Arthur Thomas */
     ['Barragem do Igapó', 'verso', 'Onde o lago vira ribeirão, rumo ao Arthur Thomas', 'barragem represa ribeirao cambezinho vertedouro igapo'],
     /* v5.17: as saídas da cidade (a estrada pela roça até a cancela EM BREVE) */
-    ['Saída pra Cambé', 'carro', 'A estrada pro oeste e os lotes em obra', 'cambe obra lote loteamento pedreiro saida estrada rodovia br 369 oeste'],
+    /* v5.19: Cambé abriu (a estrada liga as duas cidades) */
+    ['Cambé', 'verso', 'A cidade vizinha, pela BR-369: a Fonte Luminosa, o Zezão e o Danziger Hof', 'cambe cidade vizinha oeste br 369 nova dantzig'],
+    ['Fonte Luminosa', 'verso', 'A fonte de 1963 no centro de Cambé, que acende de noite', 'fonte luminosa cambe praca agua'],
+    ['Parque Zezão', 'verso', 'O cartão-postal de Cambé: o riacho e o anfiteatro', 'zezao parque cambe riacho anfiteatro'],
+    ['Danziger Hof', 'verso', 'As casas dos colonos de Danzig, em Cambé', 'danziger hof danzig dantzig colonos alemaes historia cambe'],
+    ['Centro Cultural de Cambé', 'verso', 'O Museu Histórico e a biblioteca de Cambé', 'museu historico cambe centro cultural biblioteca'],
+    ['Paróquia Santo Antônio', 'verso', 'A igreja do centro de Cambé', 'igreja paroquia santo antonio cambe'],
     ['Saída pra Ibiporã', 'carro', 'A estrada pro leste e os lotes em obra', 'ibipora obra lote loteamento pedreiro saida estrada rodovia br 369 leste'],
     ['Saída pra São Paulo', 'carro', 'Uns 540 km pela BR-369: em obra', 'sao paulo sp saida estrada rodovia br 369 capital'],
     ['Saída pra Curitiba', 'carro', 'Desce até o Tibagi: a ponte tá em obra', 'curitiba saida estrada rodovia pr 445 br 376 ponte sul'],
