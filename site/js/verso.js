@@ -7785,7 +7785,8 @@
     const b = C.$('cvr-veic'); if(!b) return;
     const a = veicAcao(), chave = a ? a.k + a.txt : '';
     b.hidden = !a; V.veicOn = !!a;
-    if(a && b.dataset.k !== chave){ b.dataset.k = chave; b.innerHTML = `${ico('carro')} ${esc(a.txt)}`; }
+    /* v5.26: no teclado, a tecla do lado (o Thales: "no botão de descer do patinete coloca (G)"); no toque não tem tecla */
+    if(a && b.dataset.k !== chave){ b.dataset.k = chave; b.innerHTML = `${ico('carro')} ${esc(a.txt)}${V.pad ? '' : ' <span class="cvr-tecla">(G)</span>'}`; }
     if(!a) b.dataset.k = '';
   }
   function veicFaz(){

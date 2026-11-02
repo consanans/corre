@@ -6180,3 +6180,6 @@ label.sl-v small{color:var(--muted)}
 .cvr-briga.cvr-veic,.escuro .cvr-briga.cvr-veic{background:#FFFFFF;color:var(--tinta);box-shadow:4px 4px 0 var(--yellow)}
 .cvr-veic .ic{color:var(--tinta)}
 .ctl-on .cvr-briga.cvr-veic::before{content:var(--ctl-lt,"LT");background:var(--tinta);color:#FFFFFF}
+/* v5.26 · a tecla do botão do veículo, "(G)"; com o controle ligado vale a letra do gatilho, então ela some */
+.cvr-tecla{opacity:.7}
+.ctl-on .cvr-tecla{display:none}
