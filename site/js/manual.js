@@ -6,21 +6,21 @@
   'use strict';
   const C = window.Corre, { esc, ico } = C;
   /* sobe esse número a cada atualização: quem já viu recebe de novo, abrindo nas novidades */
-  const VERSAO = '5.19';
+  const VERSAO = '5.21';
   const K = 'corre-manual-visto';
 
   /* O que tem de novo: só o que é super relevante pra galera (o Thales, v3.67). No máximo 8, o mais novo em cima, uma ou
      duas frases cada, no jeito de quem conta pro amigo. Conserto, acabamento e detalhe técnico não entram aqui (moram no
      CLAUDE.md); novidade grande que chega empurra a mais velha pra fora */
   const NOVIDADES = [
-    ['verso', 'Cambé abriu no Correverso', 'Segue a BR-369 pro oeste e chega em Cambé: a Fonte Luminosa de 1963 (de noite ela acende colorida), a Paróquia Santo Antônio, o Museu, o Danziger Hof com as casas dos colonos de Danzig e o Parque Zezão. No Trampo, missões que vão e voltam entre as duas cidades: a cuca de Cambé, a fuga pela BR-369, a transferência de ambulância, o segredo de Nova Dantzig e o racha Londrina x Cambé.'],
-    ['carro', 'Correverso: rouba carro e a cidade cresce', 'Chegou perto de um carro na rua, o botão branco do veículo (ou a tecla G) vira Roubar o carro: o motorista cai, grita e você sai dirigindo, com duas estrelas da polícia na cola. Pra sair do carro, o mesmo botão. Ele também sobe e desce da tua bike, moto ou skate, pra andar a pé. E a cidade vai crescer: tem estrada saindo pra Ibiporã, São Paulo e Curitiba, com loteamento em obra e pedreiro trabalhando. Em breve fica pronto.'],
+    ['aviao', 'Ibiporã, Curitiba e avião entre as cidades', 'Pela BR-369 pro leste chega em Ibiporã: o Museu do Café na estação de trem de 1936, o Cine Teatro Zanelli, a capela e o Parque Florestal. A ponte do Tibagi ficou pronta: do outro lado tem Curitiba, com a Rua XV, a Ópera de Arame, o Jardim Botânico e a estação-tubo. E o teco-teco voa entre as quatro cidades: do Aeroporto de Londrina, do Afonso Pena e dos campos de pouso de Cambé e Ibiporã.'],
+    ['verso', 'Cambé abriu no Correverso', 'Segue a BR-369 pro oeste e chega em Cambé: a Fonte Luminosa de 1963 (de noite ela acende colorida), a Paróquia Santo Antônio, o Museu, o Danziger Hof com as casas dos colonos de Danzig e o Parque Zezão. No Trampo, missões que vão e voltam entre as cidades: a cuca de Cambé, a fuga pela BR-369, o café de Ibiporã, as três igrejas e o racha Londrina x Cambé.'],
+    ['carro', 'Correverso: rouba carro e anda a pé', 'Chegou perto de um carro na rua, o botão branco do veículo (ou a tecla G) vira Roubar o carro: o motorista cai, grita e você sai dirigindo, com duas estrelas da polícia na cola. Pra sair do carro, o mesmo botão. Ele também sobe e desce da tua bike, moto ou skate, pra andar a pé.'],
     ['star', 'Natal caprichado no Correverso', 'As casas da cidade se enfeitaram: presente na porta, pisca-pisca no contorno, estrela no alto e, em várias, o Papai Noel subindo pela sacada, a casa embrulhada de laço, as renas de luz ou o presépio no jardim. De noite, olha pro céu: o trenó do Papai Noel passa de tempo em tempo.'],
     ['home', 'Sala do Cliente no Studio Cria', 'Cada marca ganha um link fixo pro teu cliente guardar. Lá ele aprova os posts do jeito que ficam no Instagram, manda fotos e vídeos, conta as datas importantes (que viram tarefa no teu Caderninho), vê o que saiu no mês e abre a cobrança. Tudo sem conta, e o teu celular avisa quando chega coisa.'],
     ['raio', 'Pista de skate do Zerão, agora gigante', 'A pista 3D da placa SKATE do Zerão ficou gigante, com espaço pra embalar e virar entre um obstáculo e outro: rampa grande de 2,8 m no fundo, rampas nas laterais e na frente, escadaria com corrimão e hubba pra descer no grind, caixote, rampa de pulo com vão, bordas, barras e manual pad. Espaço pula; no ar, as setas fazem a manobra e dá pra emendar combo.'],
     ['magia', 'Studio Cria: pague pelas redes que você toca', 'Agora o plano do Studio Cria vai de 2 a 100 redes sociais: R$ 59,90 com 2 e R$ 10 por rede a mais (da 21ª em diante, R$ 5). Pra quem cuida de muitos clientes, cada um entra no plano. Uma rede segue de graça.'],
     ['ingresso', 'Muralzim: os eventos de Londrina, com ingresso', 'O Mapa do Correverso ganhou o Muralzim, o mural de lambe-lambe dos eventos da cidade. Quem organiza divulga de graça e pode vender ingresso pelo Corre: o dinheiro cai na conta dele na hora, e quem compra recebe o ingresso com QR no celular.'],
-    ['eye', 'O post do jeito que vai sair no Instagram', 'No Studio Cria, o post aparece do jeito que fica no feed do Instagram, e o cliente vê a mesma prévia no link de aprovação, com um campo pra dizer o que mudar.'],
   ];
   /* cada página: o que é, pra que serve no teu dia, e o botão que leva lá */
   const PAGINAS = [

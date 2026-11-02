@@ -13,10 +13,12 @@
   /* ---------- números da cidade ---------- */
   const PX = 3;                       /* cada pixel do mundo vira um quadradinho de 3x3 na tela */
   /* v4.14: 17 quarteirões de largura (a planta de Londrina, PLANTA, mais embaixo) */
-  const LW = 300, LH = 270, RUA = 96, COLS = 24, TOPO = 360, CALC = 12;
+  const LW = 300, LH = 270, RUA = 96, COLS = 31, TOPO = 360, CALC = 12;
   /* v5.19: as 7 colunas da esquerda são Cambé (e a roça entre as duas cidades); Londrina começa na OESTE. O sorteio de
      cada quarteirão de Londrina usa a coluna de antes (c - OESTE), pra cidade não mudar de cara */
   const OESTE = 7, ck = (c, r) => (c - OESTE) + ',' + r;
+  /* v5.21: e as 7 da direita, Ibiporã (Londrina vai da coluna OESTE até a OESTE + 16) */
+  const LESTE = 7, LONDRINA_C = 17;
   const R_ABRE = 150, R_FECHA = 230, VEL = 170, PORTA_R = 58, AV_S = 1.2;
   const ICE = [{ urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] }];
   /* quem tem dois quarteirões: quem fez o Corre */
@@ -2073,32 +2075,34 @@
        g Delegacia, b Bombeiros, h Hospital do Corre, q Aquário; d são os dois quarteirões do @consanans
      v5.19 · Cambé, nas 7 colunas da esquerda, ligada pela BR-369 (a rua deitada 4): S a Paróquia Santo Antônio, f a
      Fonte Luminosa, u o Centro Cultural (o Museu Histórico e a biblioteca), D o Parque Histórico Danziger Hof e Y o
-     Parque Zezão (o cartão-postal de lá, no fundo do vale). Os fatos são do guia da Viaje Paraná e do IBGE */
+     Parque Zezão (o cartão-postal de lá, no fundo do vale). Os fatos são do guia da Viaje Paraná e do IBGE
+     v5.21 · Ibiporã, nas 7 colunas da direita, ligada pela BR-369 (a rua deitada 6): M o Museu do Café (a estação de
+     trem de 1936), I o Cine Teatro Padre José Zanelli, K uma capela do Circuito das Capelas e P o Parque Florestal */
   const PLANTA = [
-    '.............#####......',
-    '............##EE###.....',
-    '.##........###EE####....',
-    '#Sf#......###########...',
-    '#u##....#############...',
-    '#DYY....#######hmb###...',
-    '.##.....######ddat####..',
-    '.......#######pkcg#####.',
-    '........#####FFBB######.',
-    '........#qLL###ZZ#######',
-    '........##LLl##ZZ##AAA##',
-    '........####lLLZZ##AAA##',
-    '........#GGGGLLL#####CC#',
-    '.........######LLL#TTCC#',
-    '..........######LLlTT...',
-    '...........#######lTT...'
+    '.............#####.............',
+    '............##EE###............',
+    '.##........###EE####...........',
+    '#Sf#......###########......##..',
+    '#u##....#############......#K#.',
+    '#DYY....#######hmb###......MI#.',
+    '.##.....######ddat####.....#PP.',
+    '.......#######pkcg#####....##..',
+    '........#####FFBB######........',
+    '........#qLL###ZZ#######.......',
+    '........##LLl##ZZ##AAA##.......',
+    '........####lLLZZ##AAA##.......',
+    '........#GGGGLLL#####CC#.......',
+    '.........######LLL#TTCC#.......',
+    '..........######LLlTT..........',
+    '...........#######lTT..........'
   ];
   /* as ruas com nome (a de verdade no mesmo lugar): a Av. Higienópolis é a rua em pé 8 (desce do Centro pela esquerda do
      Zerão e passa por cima do lago, entre o Igapó 2 e o 1); a Leste-Oeste, a rua deitada 5 (a linha do trem de antes, na
      porta do Museu Histórico, que era a estação); a Av. Bandeirantes, a deitada 10 (do Zerão pro lado do Aeroporto) */
   const AV_HIGI = 8 + OESTE, AV_LO = 5, AV_BAND = 10;
   /* v5.19: os quarteirões especiais de Cambé (o Parque Zezão é lugar grande, nas REGIOES) */
-  const LETRA_K = { S: 'santo', f: 'fonte', u: 'cultura', D: 'danziger' };
-  const NOME_K = { santo: 'Paróquia Santo Antônio', fonte: 'Fonte Luminosa', cultura: 'Centro Cultural de Cambé', danziger: 'Danziger Hof' };
+  const LETRA_K = { S: 'santo', f: 'fonte', u: 'cultura', D: 'danziger', M: 'cafe', I: 'zanelli', K: 'capela' };
+  const NOME_K = { santo: 'Paróquia Santo Antônio', fonte: 'Fonte Luminosa', cultura: 'Centro Cultural de Cambé', danziger: 'Danziger Hof', cafe: 'Museu do Café', zanelli: 'Cine Teatro Zanelli', capela: 'Capela de Ibiporã' };
   const LETRA_C = { p: 'praca', k: 'catedral', c: 'concha', t: 'teatro', m: 'museu', a: 'arte', g: 'delegacia', b: 'bombeiros', h: 'hospital', q: 'aquario' };
   const CENTRO = {}; let DOIS = null;
   PLANTA.forEach((l, r) => [...l].forEach((ch, c) => { if(LETRA_C[ch]) CENTRO[LETRA_C[ch]] = [c, r]; else if(ch === 'd' && !DOIS) DOIS = { c, r }; }));
@@ -2135,7 +2139,8 @@
     pelaLetra('aeroporto', 'Aeroporto de Londrina', 'A'),
     pelaLetra('acel', 'ACEL', 'C'),
     pelaLetra('arthur', 'Parque Arthur Thomas', 'T'),
-    pelaLetra('zezao', 'Parque Zezão', 'Y')
+    pelaLetra('zezao', 'Parque Zezão', 'Y'),
+    pelaLetra('florestal', 'Parque Florestal de Ibiporã', 'P')
   ];
   /* o quarteirão é desse lugar? (o lago vai quarteirão por quarteirão; os outros são retângulos) */
   const daReg = (g, c, r) => g.cel ? g.cel.has(c + ',' + r) : c >= g.c0 && c <= g.c1 && r >= g.r0 && r <= g.r1;
@@ -2198,7 +2203,7 @@
      barragem) e o Inglaterra */
   function bairro(c, r){
     /* v5.19: as colunas de Cambé (as de Londrina são contadas do jeito de antes) */
-    c -= OESTE; if(c < 0) return 'Cambé';
+    c -= OESTE; if(c < 0) return 'Cambé'; if(c >= LONDRINA_C) return 'Ibiporã';
     if(r <= 2) return 'Zona Norte';
     if(r <= 4) return c <= 6 ? 'Vila Nova' : 'Vila Casoni';
     if(r <= 7) return c <= 2 ? 'Jardim Bandeirantes' : c <= 6 ? 'Presidente' : c <= 10 ? 'Centro' : 'Vila Brasil';
@@ -2213,11 +2218,13 @@
      fim. A placa é sem verde (a de estrada de verdade é verde) */
   const SAIDAS = [
     /* v5.19: a de Cambé abriu (o Thales: "faz o 3", Cambé de verdade): a estrada liga as duas cidades, sem cancela */
-    { k: 'cambe', nome: 'Cambé', placa: 'CAMBE', km: 12, s: 4, lado: -1, aberta: true, txt: 'Cambé fica a uns 12 km daqui, pela BR-369. Segue a estrada que você chega.' },
-    { k: 'ibipora', nome: 'Ibiporã', placa: 'IBIPORA', km: 15, s: 6, lado: 1, obra: true, txt: 'Ibiporã fica a uns 15 km daqui, pela BR-369. A estrada ainda tá em obra: logo o Correverso chega lá.' },
+    { k: 'cambe', nome: 'Cambé', placa: 'CAMBE', km: 12, s: 4, lado: -1, aberta: true, faixa: [4, 7], txt: 'Cambé fica a uns 12 km daqui, pela BR-369. Segue a estrada que você chega.' },
+    /* v5.21: Ibiporã abriu também; a de São Paulo agora sai de Ibiporã (a BR-369 segue pra leste) */
+    { k: 'ibipora', nome: 'Ibiporã', placa: 'IBIPORA', km: 15, s: 6, lado: 1, aberta: true, faixa: [OESTE + 15, OESTE + LONDRINA_C + 2], txt: 'Ibiporã fica a uns 15 km daqui, pela BR-369. Segue a estrada que você chega.' },
     { k: 'sp', nome: 'São Paulo', placa: 'SAO PAULO', km: 540, s: 8, lado: 1, txt: 'São Paulo fica a uns 540 km daqui, pela BR-369 até Ourinhos e depois pelas rodovias de lá. Ainda tá longe, mas o Correverso vai.' },
     /* Curitiba é pro sul: a estrada desce pela rua em pé i até o Tibagi e acaba na ponte em obra */
-    { k: 'curitiba', nome: 'Curitiba', placa: 'CURITIBA', km: 380, i: 15 + OESTE, eixo: 'v', lado: 1, txt: 'Curitiba fica a uns 380 km daqui, pela PR-445 e pela BR-376. A ponte do Tibagi ainda tá em obra: logo o Correverso desce pra lá.' }
+    /* v5.21: a ponte do Tibagi ficou pronta: do outro lado do rio, Curitiba */
+    { k: 'curitiba', nome: 'Curitiba', placa: 'CURITIBA', km: 380, i: 15 + OESTE, eixo: 'v', lado: 1, aberta: true, txt: 'Curitiba fica a uns 380 km daqui, pela PR-445 e pela BR-376. No Correverso, é só atravessar a ponte do Tibagi.' }
   ];
   /* v5.17 · os pedreiros das obras de Cambé e de Ibiporã (o lote da casa: o pedreiro e o servente; o da betoneira: quem
      mexe a massa e quem manda). Capacete amarelo; o do mestre é branco */
@@ -2257,7 +2264,7 @@
     }
     const ehRoca = (c, r) => c < 0 || r < 0 || c >= COLS || r >= rows || roca[r][c];
     /* v3.75: embaixo da última rua corre o Rio Tibagi, de ponta a ponta (a cidade cresce pra baixo e ele desce junto) */
-    const W = RUA + COLS * (LW + RUA), yRio = TOPO + rows * (LH + RUA), H = yRio + RIO_H;
+    const W = RUA + COLS * (LW + RUA), yRio = TOPO + rows * (LH + RUA), H = yRio + RIO_H + SUL_H;
     const grade = Array.from({ length: rows }, () => Array(COLS).fill(null));
     for(let r = 0; r < rows; r++) for(let c = 0; c < COLS; c++) if(roca[r][c]) grade[r][c] = { t: 'roca' };
     const K = { arv: [], bancos: [], zonas: [], sol: [], lugares: [], decor: [], quiosques: [], trucks: [], barracas: [], postes: [], torneio: null };
@@ -2323,7 +2330,7 @@
     /* v5.19 · Cambé: os quarteirões especiais (a fonte, a igreja, o museu, o Danziger Hof) e o Parque Zezão */
     const cambe = {};
     PLANTA.forEach((l, r) => [...l].forEach((ch, cc) => { const k = LETRA_K[ch]; if(!k) return; const o = lotXY(cc, r); grade[r][cc] = { t: 'cambe', k }; cambe[k] = { k, c: cc, r, x: o.x, y: o.y, base: o.y + LH - 34 }; }));
-    montaCambe(cambe, K); cambe.zezao = montaZezao(RG('zezao'), K, rng(hash('zezao')));
+    montaCambe(cambe, K); cambe.zezao = montaZezao(RG('zezao'), K, rng(hash('zezao'))); cambe.florestal = montaFlorestal(RG('florestal'), K, rng(hash('florestal')));
     regs.forEach(R => { if(R.tem) blocosDe(R.tem, R.c0, R.r0, R.c1, R.r1, (x, y, w, h) => K.zonas.push({ nome: R.nome, x, y, w, h })); else K.zonas.push({ nome: R.nome, x: R.x - 10, y: R.y - 10, w: R.w + 20, h: R.h + 20 }); });
     /* postes nas esquinas e na beira dos lugares grandes (na roça não tem; na rua da beira dela, sim) */
     const naoLote = (c, r) => c < 0 || c >= COLS || !grade[r][c] || grade[r][c].t === 'reg' || grade[r][c].t === 'roca';
@@ -2361,9 +2368,14 @@
         const x = ruaX(d.i), dentro = y => naArea(x, y, ehRoca);
         let y0 = yRio; while(y0 > TOPO && dentro(y0 - 1)) y0 -= 4;
         const cq = rio.colEm(x), dk = Math.round((cq.b - cq.t) * .38), by = cq.t - 34;
-        const e = Object.assign({ x0: x - RUA / 2, x1: x + RUA / 2, y0, y1: yRio, x, by, ponte: { x, t: cq.t, b: cq.b, dk } }, d);
+        const e = Object.assign({ x0: x - RUA / 2, x1: x + RUA / 2, y0, y1: yRio, x, by, ponte: { x, t: cq.t, b: cq.b, dk, pronta: !!d.aberta } }, d);
         estradas.push(e);
         K.decor.push({ tipo: 'saida', x: x + RUA / 2 + 34, y: y0 + 60, e });
+        if(d.aberta){
+          K.zonas.push({ nome: 'Ponte do Tibagi', x: x - RUA / 2 - 20, y: cq.t - 40, w: RUA + 40, h: cq.b - cq.t + 80 }, { nome: 'Estrada pra Curitiba', x: x - RUA / 2 - 20, y: y0, w: RUA + 40, h: cq.t - 40 - y0 });
+          K.lugares.push({ nome: 'Estrada pra Curitiba', x, y: cq.t - 70 }, { nome: 'Ponte do Tibagi', x, y: cq.t - 20 });
+          return;
+        }
         K.decor.push({ tipo: 'placa2', x: x - RUA / 2 - 50, y: by - 6, txt: 'EM BREVE', s: 2, fundo: AMARELO, h: 30 });
         K.decor.push({ tipo: 'placa', x: x + RUA / 2 + 40, y: by - 2, txt: 'PONTE EM OBRA', fundo: LARANJA, h: 26 });
         [-30, 0, 30].forEach((dx, i) => K.decor.push({ tipo: 'cancela', x: x + dx, y: by, i }));
@@ -2377,13 +2389,17 @@
         /* v5.19 · a BR-369 aberta: o pedaço de roça entre Cambé e Londrina, sem cancela. Na ponta de Londrina, a placa
            de Cambé; na de Cambé, a placa de Londrina e o letreiro de boas-vindas */
         const y = ruaY(d.s), dentro = x => naArea(x, y, ehRoca);
-        let x0 = 0; while(x0 < W && !dentro(x0)) x0 += 4; let x1 = x0; while(x1 < W && dentro(x1)) x1 += 4;
+        /* a faixa diz em que colunas a estrada pode estar (entre a cidade vizinha e Londrina) */
+        let x0 = lotXY(d.faixa[0], 0).x, x1 = lotXY(d.faixa[1], 0).x + LW;
+        while(x0 < x1 && !dentro(x0)) x0 += 4; while(x1 > x0 && !dentro(x1 - 1)) x1 -= 4;
         const e = Object.assign({ x0, x1, y0: y - RUA / 2, y1: y + RUA / 2, y }, d); estradas.push(e);
-        K.decor.push({ tipo: 'saida', x: x1 - 46, y: e.y0 + 6, e });
-        K.decor.push({ tipo: 'saida', x: x0 + 46, y: e.y1 + 50, e: { placa: 'LONDRINA', km: d.km, lado: 1 } });
-        K.decor.push({ tipo: 'portalCambe', x: x0 + 190, y: e.y0 + 2 }); K.sol.push({ x: x0 + 190 - 74, y: e.y0 - 10, w: 148, h: 10 });
-        K.zonas.push({ nome: 'BR-369, entre Londrina e Cambé', x: x0, y: e.y0 - 20, w: x1 - x0, h: RUA + 40 });
-        K.lugares.push({ nome: 'Estrada pra Cambé', x: (x0 + x1) / 2, y });
+        /* do lado de Londrina, a placa da cidade vizinha; do lado dela, a de Londrina e o letreiro de boas-vindas */
+        const lx = d.lado < 0 ? x1 : x0, vx = d.lado < 0 ? x0 : x1;
+        K.decor.push({ tipo: 'saida', x: lx + d.lado * 46, y: e.y0 + 6, e });
+        K.decor.push({ tipo: 'saida', x: vx - d.lado * 46, y: e.y1 + 50, e: { placa: 'LONDRINA', km: d.km, lado: -d.lado } });
+        K.decor.push({ tipo: 'portalCambe', x: vx - d.lado * 190, y: e.y0 + 2, txt: d.placa }); K.sol.push({ x: vx - d.lado * 190 - 74, y: e.y0 - 10, w: 148, h: 10 });
+        K.zonas.push({ nome: 'BR-369, entre Londrina e ' + d.nome, x: x0, y: e.y0 - 20, w: x1 - x0, h: RUA + 40 });
+        K.lugares.push({ nome: 'Estrada pra ' + d.nome, x: (x0 + x1) / 2, y });
         return;
       }
       const y = ruaY(d.s), dentro = x => naArea(x, y, ehRoca);
@@ -2428,10 +2444,23 @@
         K.zonas.push({ nome: 'Loteamento em obra', x: o.x, y: o.y, w: LW, h: LH });
       });
     });
+    /* v5.21 · Curitiba, do outro lado do Tibagi (e a mata da margem sai da frente da estrada) */
+    const sul = montaCuritiba(K, W, yRio, rio, estradas.find(e => e.eixo === 'v'));
+    if(sul) for(let i = K.arv.length - 1; i >= 0; i--){ const a = K.arv[i]; if(a.y > yRio && Math.abs(a.x - sul.rx) < 80) K.arv.splice(i, 1); }
+    /* v5.21 · os campos de pouso de Cambé e de Ibiporã (o avião vai de cidade em cidade): um quarteirão de roça do lado
+       da cidade, com a pista de terra, a biruta e o hangar; dá pra andar nele */
+    const campos = CAMPOS.map(d => { if(d.r >= rows || !roca[d.r][d.c]) return null; const o = lotXY(d.c, d.r);
+      const a = Object.assign({}, d, { x: o.x, y: o.y, vaga: { x: o.x + 60, y: o.y + 70 }, pista: { x: o.x + 14, y: o.y + 150, w: LW - 28, h: 40 }, chega: { x: o.x + LW / 2, y: o.y + LH + 10 } });
+      K.decor.push({ tipo: 'hangar', x: o.x + 210, y: o.y + 110 }); K.sol.push({ x: o.x + 166, y: o.y + 84, w: 88, h: 26 });
+      K.decor.push({ tipo: 'biruta', x: o.x + LW - 24, y: o.y + 60, t2: 0 });
+      K.decor.push({ tipo: 'placa', x: o.x + 110, y: o.y + LH - 24, txt: 'CAMPO DE POUSO', fundo: AMARELO, h: 24 });
+      K.zonas.push({ nome: d.nome, x: o.x, y: o.y, w: LW, h: LH }); K.lugares.push({ nome: d.nome, x: a.chega.x, y: a.chega.y });
+      return a; }).filter(Boolean);
+    const ehCampo = (c, r) => campos.some(o => o.c === c && o.r === r);
     for(let r = 0; r < rows; r++) for(let c = 0; c < COLS; c++){
       if(!roca[r][c]) continue; const q = rng(hash('roca' + ck(c, r))), o = lotXY(c, r);
       rocaI[c + ',' + r] = { t: pega(ROCA_T, q), deitado: q() < .5, sd: Math.floor(q() * 1e6) };
-      if(ehSitio(c, r) || ehObra(c, r)) continue;
+      if(ehSitio(c, r) || ehObra(c, r) || ehCampo(c, r)) continue;
       if(q() < .45) K.arv.push({ x: Math.round(o.x + 40 + q() * (LW - 80)), y: Math.round(o.y + 50 + q() * (LH - 80)), cor: pega(IPES, q), mata: true, roca: true });
       if(q() < .14) K.decor.push({ tipo: 'silo', x: Math.round(o.x + 70 + q() * (LW - 140)), y: Math.round(o.y + 120 + q() * (LH - 150)) });
     }
@@ -2448,7 +2477,7 @@
         if(fecha && ini >= 0){ if(i - ini >= 3) trechos.push({ s, x0: ruaX(ini) + 20, x1: ruaX(i) - 20, n: i - ini }); ini = -1; }
       }
     }
-    return { W, H, rows, grade, ehRoca, rocaI, casas, dois, vazios, enche, muros, sitios, estradas, obras, praca, centro, cambe, regs, lago, zerao, bosque, gleba: glebaR.torres, glebaR, estadio, feira, aeroporto, acel, arthur, rio, trechos,
+    return { W, H, rows, grade, ehRoca, rocaI, casas, dois, vazios, enche, muros, sitios, estradas, obras, campos, sul, praca, centro, cambe, regs, lago, zerao, bosque, gleba: glebaR.torres, glebaR, estadio, feira, aeroporto, acel, arthur, rio, trechos,
       arv: K.arv, bancos: K.bancos, zonas: K.zonas, sol: K.sol, lugares: K.lugares, torneio: K.torneio, decor: K.decor, quiosques: K.quiosques, trucks: K.trucks, barracas: K.barracas, postes: K.postes };
   }
   /* v4.14: as lavouras da roça */
@@ -2497,11 +2526,15 @@
     santo: 'A Paróquia Santo Antônio fica no centro de Cambé e é um dos lugares mais visitados da cidade.',
     cultura: 'O Centro Cultural de Cambé abriu em 1º de novembro de 1990 pra guardar o Museu Histórico (de 1985) e a biblioteca pública. O museu tem fotos, documentos e peças dos povos indígenas do norte do Paraná.',
     danziger: 'Em janeiro de 1932 chegaram as primeiras famílias de Danzig (hoje Gdańsk, na Polônia) e fundaram Nova Dantzig. Na guerra, em 1943, o nome virou Cambé, o do ribeirão. Em 1947 a cidade se separou de Londrina. As duas casas de madeira do parque, a dos Tkotz e a dos Zifchak, foram trazidas pra cá pela prefeitura.',
+    cafe: 'O trem chegou em Ibiporã em 1934 e a estação abriu em 1936. Hoje a estação velha é o Museu do Café, que conta a história do café no norte do Paraná.',
+    zanelli: 'O Cine Teatro Padre José Zanelli é o palco principal de Ibiporã: cinema, teatro, show e formatura.',
+    capela: 'Ibiporã tem o Circuito das Capelas: 24 capelas espalhadas pelo município, cada uma com a sua história. Ibiporã, em tupi, quer dizer terra bonita.',
+    florestal: 'O Parque Florestal de Ibiporã foi criado em 1980 e tem uns 74 hectares de mata. A cidade nasceu em 1934 e virou município em 1947.',
     zezao: 'O Parque Zezão fica no meio de Cambé, no fundo do vale: mata, gramado, o riacho, as trilhas, o parquinho e o anfiteatro com arquibancada. É o cartão-postal da cidade. Londrina tem o Zerão; Cambé tem o Zezão.'
   };
   function montaCambe(cb, K){
     const placas = cb.placas = [];
-    const placa = (k, x, y) => { K.decor.push({ tipo: 'placa', x, y, txt: { fonte: 'FONTE LUMINOSA', santo: 'PAROQUIA', cultura: 'MUSEU', danziger: 'DANZIGER HOF' }[k], fundo: PAPEL, h: 26 }); placas.push({ x, y, titulo: NOME_K[k], txt: TXT_K[k] }); };
+    const placa = (k, x, y) => { K.decor.push({ tipo: 'placa', x, y, txt: { fonte: 'FONTE LUMINOSA', santo: 'PAROQUIA', cultura: 'MUSEU', danziger: 'DANZIGER HOF', cafe: 'MUSEU DO CAFE', zanelli: 'CINE TEATRO', capela: 'CAPELA' }[k], fundo: PAPEL, h: 26 }); placas.push({ x, y, titulo: NOME_K[k], txt: TXT_K[k] }); };
     Object.keys(LETRA_K).forEach(ch => { const o = cb[LETRA_K[ch]]; if(!o) return; K.zonas.push({ nome: NOME_K[o.k], x: o.x - 20, y: o.y - 20, w: LW + 40, h: LH + 40 }); });
     const f = cb.fonte;
     if(f){ const cx = f.x + LW / 2, cy = f.y + LH / 2 + 6; f.cx = cx; f.cy = cy;
@@ -2520,6 +2553,74 @@
       [[dz.x + 40, dz.y + 40], [dz.x + 92, dz.y + 24], [dz.x + LW - 30, dz.y + 46]].forEach(([x, y], i) => K.arv.push({ x, y, cor: [LILAS, AMARELO, ROSA][i], g: i === 1 }));
       K.bancos.push({ x: dz.x + 150, y: dz.base + 22, lugar: 'Danziger Hof' });
       K.lugares.push({ nome: NOME_K.danziger, x: dz.x + LW / 2, y: dz.base + 40 }); placa('danziger', dz.x + 150, dz.y + 56); }
+    /* v5.21 · Ibiporã: a estação (o Museu do Café, com a plataforma e os trilhos na frente), o cinema e a capela */
+    const mc = cb.cafe;
+    if(mc){ K.sol.push({ x: mc.x + 20, y: mc.base - 40, w: 260, h: 40 }); arvRua(K, mc, rng(hash('cafe')), .8); K.lugares.push({ nome: NOME_K.cafe, x: mc.x + LW / 2, y: mc.base + 30 }, { nome: 'Ibiporã', x: mc.x + LW / 2, y: mc.base + 30 }); placa('cafe', mc.x + 26, mc.base + 18); }
+    const zn = cb.zanelli;
+    if(zn){ K.sol.push({ x: zn.x + 30, y: zn.base - 40, w: 240, h: 40 }); arvRua(K, zn, rng(hash('zanelli')), .7); K.lugares.push({ nome: NOME_K.zanelli, x: zn.x + LW / 2, y: zn.base + 30 }); placa('zanelli', zn.x + LW - 26, zn.base + 18); }
+    const cp = cb.capela;
+    if(cp){ K.sol.push({ x: cp.x + 100, y: cp.base - 36, w: 100, h: 36 }); [[cp.x + 50, cp.y + 70], [cp.x + LW - 50, cp.y + 70], [cp.x + 50, cp.y + LH - 30], [cp.x + LW - 50, cp.y + LH - 30]].forEach(([x, y], i) => K.arv.push({ x, y, cor: [ROSA, AMARELO, LILAS, '#F4F1EA'][i] }));
+      K.bancos.push({ x: cp.x + 70, y: cp.base + 12, lugar: 'Capela de Ibiporã' }, { x: cp.x + LW - 70, y: cp.base + 12, lugar: 'Capela de Ibiporã' });
+      K.lugares.push({ nome: NOME_K.capela, x: cp.x + LW / 2, y: cp.base + 30 }); placa('capela', cp.x + LW / 2 + 80, cp.base - 40); }
+  }
+  /* v5.21 · o Parque Florestal de Ibiporã: dois quarteirões de mata (ipê, flamboyant e jacarandá bem juntos) com a
+     trilha em volta e o mirante de madeira no meio */
+  function montaFlorestal(R, K, q){
+    if(!R) return null;
+    const f = { R, cx: R.x + R.w / 2, cy: R.y + R.h / 2 };
+    const trilha = (x, y) => Math.abs(y - (R.y + 40)) < 26 || Math.abs(y - (R.y + R.h - 34)) < 26 || Math.abs(x - (R.x + 34)) < 26 || Math.abs(x - (R.x + R.w - 34)) < 26 || Math.hypot(x - f.cx, y - f.cy) < 60 || Math.abs(x - f.cx) < 22;
+    for(let y = R.y + 70; y < R.y + R.h - 50; y += 40) for(let x = R.x + 60; x < R.x + R.w - 50; x += 44){ const jx = x + (q() - .5) * 26, jy = y + (q() - .5) * 18; if(trilha(jx, jy) || q() < .12) continue; K.arv.push({ x: Math.round(jx), y: Math.round(jy), cor: pega(IPES, q), g: q() < .45, mata: true }); }
+    K.decor.push({ tipo: 'mirante', x: f.cx, y: f.cy + 20 }); K.sol.push({ x: f.cx - 22, y: f.cy + 8, w: 44, h: 12 });
+    [[R.x + 90, R.y + 30], [R.x + R.w - 90, R.y + 30]].forEach(([x, y]) => K.bancos.push({ x, y, lugar: 'Parque Florestal' }));
+    K.decor.push({ tipo: 'placa', x: f.cx + 60, y: R.y + R.h - 8, txt: 'PARQUE FLORESTAL', fundo: PAPEL, h: 26 });
+    f.placa = { x: f.cx + 60, y: R.y + R.h - 8, titulo: 'Parque Florestal de Ibiporã', txt: TXT_K.florestal };
+    K.lugares.push({ nome: 'Parque Florestal de Ibiporã', x: f.cx, y: R.y + R.h - 30 });
+    return f;
+  }
+  /* ---------- v5.21 · Curitiba, do outro lado do Tibagi ----------
+     O Thales: "faça Ibiporã e Curitiba" e "opção de voar de avião entre todas as cidades". Curitiba fica a uns 380 km;
+     no Correverso, atravessando a ponte do Tibagi (pronta agora), embaixo do rio: duas fileiras de seis quarteirões em
+     volta da estrada, com a Rua XV de Novembro (o calçadão de 1972, o primeiro do Brasil), a Ópera de Arame (1992, os
+     tubos de aço em cima do lago da pedreira), o Jardim Botânico (1991, a estufa de ferro e vidro), a estação-tubo com
+     o biarticulado passando e o Aeroporto Afonso Pena (em São José dos Pinhais). O resto vira cidade (prédio e loja) */
+  const CWB = { 0: ['predio', 'ruaxv', 'opera', 'predio', 'loja', 'predio'], 1: ['loja', 'jardim', 'botanico', 'predio', 'loja', 'afonso'] };
+  const NOME_CWB = { ruaxv: 'Rua XV de Novembro', opera: 'Ópera de Arame', botanico: 'Jardim Botânico', jardim: 'Jardim Botânico', afonso: 'Aeroporto Afonso Pena' };
+  const TXT_CWB = {
+    ruaxv: 'A Rua XV de Novembro virou calçadão em 1972: a primeira rua só de pedestre do Brasil. O Calçadão de Londrina veio cinco anos depois, em 1977.',
+    opera: 'A Ópera de Arame é de 1992: um teatro de tubos de aço e cobertura transparente, em cima do lago de uma pedreira antiga.',
+    botanico: 'O Jardim Botânico de Curitiba abriu em 1991. A estufa de ferro e vidro é o cartão-postal da cidade.',
+    tubo: 'A estação-tubo é de Curitiba: a gente paga antes de entrar e o ônibus para colado na porta, no mesmo nível. O biarticulado leva até uns 250 passageiros.',
+    afonso: 'O aeroporto de Curitiba é o Afonso Pena, em São José dos Pinhais, do lado da capital.'
+  };
+  /* os campos de pouso de Cambé e de Ibiporã (o avião vai de cidade em cidade) */
+  const CAMPOS = [{ k: 'cambe', nome: 'Campo de pouso de Cambé', cidade: 'Cambé', c: 1, r: 1 }, { k: 'ibipora', nome: 'Campo de pouso de Ibiporã', cidade: 'Ibiporã', c: OESTE + LONDRINA_C + 4, r: 2 }];
+  function montaCuritiba(K, W, yRio, rio, est){
+    if(!est) return null;
+    const c0 = est.i - 3, ySul = yRio + RIO_H, S = { rx: est.x, c0, x0: ruaX(c0) - RUA / 2, x1: ruaX(c0 + 6) + RUA / 2, y0: ySul, y1: ySul + RUA + 2 * QQ, blocos: [], enche: [], placas: [] };
+    const placa = (k, x, y, txt) => { K.decor.push({ tipo: 'placa', x, y, txt, fundo: PAPEL, h: 26 }); S.placas.push({ x, y, titulo: k === 'tubo' ? 'Estação-tubo' : NOME_CWB[k], txt: TXT_CWB[k] }); };
+    for(let j = 0; j < 2; j++) for(let i = 0; i < 6; i++){
+      const t = CWB[j][i], x = lotXY(c0 + i, 0).x, y = ySul + RUA + j * QQ, sd = hash('cwb' + i + ',' + j), q = rng(sd);
+      const b = { t, i, j, x, y, base: y + LH - 34 }; S.blocos.push(b);
+      if(t === 'predio' || t === 'loja'){ const f = { id: 'cwb' + i + ',' + j, t, c: c0 + i, r: 900 + j, x, y, sd, sul: true }; montaEnche(f, K, q); S.enche.push(f); b.f = f; continue; }
+      S[t] = b;
+      if(t === 'ruaxv'){ [[x + 50, y + 70], [x + LW - 50, y + 70], [x + 50, y + LH - 50], [x + LW - 50, y + LH - 50]].forEach(([fx, fy], k2) => { K.decor.push({ tipo: 'canteiro', x: fx, y: fy, cor: [ROSA, AMARELO, LILAS, LARANJA][k2] }); K.sol.push({ x: fx - 22, y: fy - 8, w: 44, h: 10 }); });
+        [[x + LW / 2 - 60, y + LH / 2], [x + LW / 2 + 60, y + LH / 2]].forEach(([bx, by]) => K.bancos.push({ x: bx, y: by, lugar: 'Rua XV de Novembro' }));
+        placa('ruaxv', x + LW / 2, y + 40, 'RUA XV'); K.lugares.push({ nome: 'Rua XV de Novembro', x: x + LW / 2, y: y + LH / 2 + 40 }, { nome: 'Curitiba', x: x + LW / 2, y: y + LH / 2 + 40 }); }
+      if(t === 'opera'){ K.sol.push({ x: x + 40, y: b.base - 70, w: 220, h: 70 }); placa('opera', x + LW - 40, b.base + 16, 'OPERA DE ARAME'); K.lugares.push({ nome: 'Ópera de Arame', x: x + LW / 2, y: b.base + 30 }); }
+      if(t === 'botanico'){ b.base = y + LH - 110; K.sol.push({ x: x + 50, y: b.base - 40, w: 200, h: 40 }); placa('botanico', x + 40, y + LH - 18, 'JARDIM BOTANICO'); K.lugares.push({ nome: 'Jardim Botânico', x: x + LW / 2, y: y + LH - 30 }); }
+      if(t === 'jardim'){ [[x + 40, y + 40], [x + LW - 40, y + 40], [x + 40, y + LH - 30], [x + LW - 40, y + LH - 30]].forEach(([ax, ay], k2) => K.arv.push({ x: ax, y: ay, cor: [ROSA, LILAS, AMARELO, '#F4F1EA'][k2] }));
+        K.bancos.push({ x: x + LW / 2, y: y + LH / 2 + 50, lugar: 'Jardim Botânico' }); }
+      if(t === 'afonso'){ b.a = { k: 'curitiba', nome: 'Aeroporto Afonso Pena', cidade: 'Curitiba', vaga: { x: x + 70, y: y + 82 }, pista: { x: x + 14, y: y + 170, w: LW - 28, h: 44 }, chega: { x: x + LW / 2, y: y + LH + 10 } };
+        K.sol.push({ x: x + 150, y: y + 90, w: 130, h: 40 }); K.decor.push({ tipo: 'biruta', x: x + 24, y: y + 140 }); placa('afonso', x + 210, y + LH - 18, 'AFONSO PENA'); K.lugares.push({ nome: 'Aeroporto Afonso Pena', x: x + LW / 2, y: y + LH + 10 }); }
+    }
+    /* a estação-tubo na rua de cima, do lado da estrada, e o biarticulado que vai e volta na rua de baixo */
+    S.tubo = { x: S.rx + 120, y: ySul + RUA / 2 + 10 }; K.decor.push({ tipo: 'tubo', x: S.tubo.x, y: S.tubo.y }); K.sol.push({ x: S.tubo.x - 50, y: S.tubo.y - 12, w: 100, h: 12 });
+    S.placas.push({ x: S.tubo.x + 70, y: S.tubo.y + 4, titulo: 'Estação-tubo', txt: TXT_CWB.tubo }); K.lugares.push({ nome: 'Estação-tubo', x: S.tubo.x, y: S.tubo.y + 26 });
+    K.decor.push({ tipo: 'biarticulado', x: (S.x0 + S.x1) / 2, y: S.y1 - RUA / 2 + 18, x0: S.x0 + 140, x1: S.x1 - 140 });
+    K.decor.push({ tipo: 'portalCambe', x: S.rx + 130, y: ySul - 4, txt: 'CURITIBA' }); K.sol.push({ x: S.rx + 130 - 74, y: ySul - 16, w: 148, h: 10 });
+    ['ruaxv', 'opera', 'botanico', 'jardim', 'afonso'].forEach(k => { const b = S[k]; if(b) K.zonas.push({ nome: NOME_CWB[k], x: b.x - 10, y: b.y - 10, w: LW + 20, h: LH + 20 }); });
+    K.zonas.push({ nome: 'Curitiba', x: S.x0, y: S.y0, w: S.x1 - S.x0, h: S.y1 - S.y0 });
+    return S;
   }
   /* o Parque Zezão: dois quarteirões no fundo do vale, o riacho atravessando com a pontinha de madeira, o anfiteatro de
      arquibancada em meia-lua, o parquinho, as trilhas e a mata (sem verde: ipê, como em todo canto) */
@@ -2951,6 +3052,8 @@
      A água é feita de colunas de 12 px, como o Igapó; pedra, píer e barco amarrado são o que o barquinho não atravessa.
      Perto das pedras a água corre (a corredeira), e é ali que a piapara grande gosta de ficar. */
   const RIO_H = 640;
+  /* v5.21: Curitiba, do outro lado do Tibagi: duas fileiras de quarteirões embaixo do rio */
+  const SUL_H = RUA + 2 * (LH + RUA) + 40;
   function montaRio(W, y0, K){
     const B = 12, n = Math.ceil(W / B), q = rng(hash('tibagi'));
     /* v5.19: a curva do rio é contada a partir de Londrina (com Cambé à esquerda, ele não muda de cara) */
@@ -2971,7 +3074,7 @@
       return p;
     };
     /* v5.19: os portos ficam onde eram (contados a partir de Londrina, que começa na coluna OESTE) */
-    const OX = OESTE * PQ, emL = f => (OX + (W - OX) * f) / W;
+    const OX = OESTE * PQ, WL = RUA + LONDRINA_C * PQ, emL = f => (OX + WL * f) / W;
     const P1 = porto(emL(.37), 'Porto do Tibagi', 'porto'), P2 = porto(emL(.79), 'Prainha do Tibagi', 'prainha');
     /* o barracão do porto (barco, isca, colete), na margem, do lado esquerdo do píer */
     R.barracao = { x: P1.xp - 142, base: P1.t - 22 }; K.sol.push({ x: R.barracao.x - 76, y: R.barracao.base - 26, w: 152, h: 26 });
@@ -3004,15 +3107,24 @@
   /* o barco (como o boneco) é desenhado em pontos da tela: no mundo, o tamanho dele muda com o zoom. Por isso a vaga do
      amarrado e a do barco de quem sai remando são contadas na hora, encostadas no píer */
   const amarradoXY = a => ({ x: a.p.x - 20 / V.k - 3, y: a.p.t + a.dy, lado: a.lado });
-  const naRio = (x, y) => { const r = V.cid && V.cid.rio; if(!r || y < r.y0 + 20) return false; if(y <= r.colEm(x).t + 6) return false; for(const p of r.piers) if(x > p.x + 4 && x < p.x + p.w - 4 && y > p.y && y < p.y + p.h) return false; return true; };
+  const naRio = (x, y) => { const r = V.cid && V.cid.rio; if(!r || y < r.y0 + 20) return false; const q = r.colEm(x); if(y <= q.t + 6) return false;
+    /* v5.21: a água acaba na outra margem (lá quem barra é o naSul) e a ponte pronta é chão */
+    if(y >= q.b - 6) return false;
+    const e = (V.cid.estradas || []).find(o => o.eixo === 'v' && o.ponte && o.ponte.pronta); if(e && Math.abs(x - e.ponte.x) < 38) return false;
+    for(const p of r.piers) if(x > p.x + 4 && x < p.x + p.w - 4 && y > p.y && y < p.y + p.h) return false; return true; };
   const zonaDe = (x, y) => { const c = V.cid, z = c.zonas.find(z => x >= z.x && x <= z.x + z.w && y >= z.y && y <= z.y + z.h); if(z) return z.nome; return bairro(clamp(Math.floor((x - RUA / 2) / (LW + RUA)), 0, COLS - 1), clamp(Math.floor((y - TOPO + RUA / 2) / (LH + RUA)), 0, c.rows - 1)); };
   /* v4.14: na roça ninguém anda (a rua da beira, sim; a do meio de dois quarteirões de roça, não). A beira do Tibagi
      (embaixo da última rua) não é roça */
   const naEstrada = (x, y) => (V.cid.estradas || []).some(e => y >= e.y0 && y < e.y1 && x >= e.x0 - 2 && x < e.x1 + 2);
   const naObra = (x, y) => (V.cid.obras || []).some(o => x >= o.x && x < o.x + LW && y >= o.y && y < o.y + LH);
-  const naRoca = (x, y) => { const c = V.cid; return !!c && !!c.ehRoca && y < (c.rio ? c.rio.y0 : c.H) && naArea(x, y, c.ehRoca) && !naEstrada(x, y) && !naObra(x, y); };
+  /* v5.21: o campo de pouso é roça, mas dá pra andar */
+  const naCampo = (x, y) => (V.cid.campos || []).some(o => x >= o.x - 2 && x < o.x + LW + 2 && y >= o.y - 2 && y < o.y + LH + 2);
+  const naRoca = (x, y) => { const c = V.cid; return !!c && !!c.ehRoca && y < (c.rio ? c.rio.y0 : c.H) && naArea(x, y, c.ehRoca) && !naEstrada(x, y) && !naObra(x, y) && !naCampo(x, y); };
+  /* v5.21: do outro lado do Tibagi só se anda na estrada que sai da ponte e em Curitiba */
+  const naSul = (x, y) => { const c = V.cid, r = c.rio, S = c.sul; if(!r || y < r.y0 + 20) return false; if(y <= r.colEm(x).b - 6) return false;
+    if(!S) return true; if(x > S.x0 && x < S.x1 && y > S.y0 && y < S.y1) return false; return !(Math.abs(x - S.rx) < RUA / 2 - 10 && y < S.y0 + 20); };
   /* o lugar grande num ponto (pelo quarteirão; a rua em volta conta como dele) */
-  const regDe = (x, y) => { const c = V.cid, cc = clamp(Math.floor((x - RUA / 2) / PQ), 0, COLS - 1), rr = clamp(Math.floor((y - TOPO + RUA / 2) / QQ), 0, c.rows - 1), g = c.grade[rr] && c.grade[rr][cc]; return g && g.t === 'reg' ? g.R : null; };
+  const regDe = (x, y) => { const c = V.cid; if(c.rio && y > c.rio.y0) return null; const cc = clamp(Math.floor((x - RUA / 2) / PQ), 0, COLS - 1), rr = clamp(Math.floor((y - TOPO + RUA / 2) / QQ), 0, c.rows - 1), g = c.grade[rr] && c.grade[rr][cc]; return g && g.t === 'reg' ? g.R : null; };
   const naAgua = (x, y) => { const l = V.cid.lago; if(!l || x < l.x0 || x >= l.x1) return false; const c = l.cols[Math.floor((x - l.x0) / l.B)]; if(!c || y <= c.t + 6 || y >= c.b - 2) return false; for(const s of l.secos) if(x > s.x + 4 && x < s.x + s.w - 4 && y > s.y && y < s.y + s.h) return false; return true; };
 
   /* ---------- colisão e portas ---------- */
@@ -3059,8 +3171,11 @@
     (c.sitios || []).forEach(d => P.push({ x: d.x, y: d.y + 24, tipo: 'jogo', jogo: 'geada' }));
     /* v5.17: na cancela de cada saída, ler a placa */
     (c.estradas || []).forEach(e => { if(!e.aberta) P.push(e.eixo === 'v' ? { x: e.x, y: e.by - 30, tipo: 'placa', titulo: 'Saída pra ' + e.nome, txt: e.txt } : { x: e.bx - e.lado * 44, y: e.y + 4, tipo: 'placa', titulo: 'Saída pra ' + e.nome, txt: e.txt }); });
+    /* v5.21: o embarque de cada campo de pouso e as placas de Curitiba */
+    aerosVoo().forEach(a => { if(a.k !== 'londrina') P.push({ x: a.vaga.x, y: a.vaga.y + 20, tipo: 'aeroporto', a }); });
+    if(c.sul) c.sul.placas.forEach(o => P.push({ x: o.x, y: o.y + 6, tipo: 'placa', titulo: o.titulo, txt: o.txt }));
     /* v5.19: as placas de ler de Cambé (a fonte, a igreja, o museu, o Danziger Hof e o Zezão) */
-    if(c.cambe){ (c.cambe.placas || []).forEach(o => P.push({ x: o.x, y: o.y + 6, tipo: 'placa', titulo: o.titulo, txt: o.txt })); const z = c.cambe.zezao; if(z && z.placa) P.push({ x: z.placa.x, y: z.placa.y + 6, tipo: 'placa', titulo: z.placa.titulo, txt: z.placa.txt }); }
+    if(c.cambe){ (c.cambe.placas || []).forEach(o => P.push({ x: o.x, y: o.y + 6, tipo: 'placa', titulo: o.titulo, txt: o.txt })); [c.cambe.zezao, c.cambe.florestal].forEach(z => { if(z && z.placa) P.push({ x: z.placa.x, y: z.placa.y + 6, tipo: 'placa', titulo: z.placa.titulo, txt: z.placa.txt }); }); }
     if(c.zerao && c.zerao.gude) P.push({ x: c.zerao.gude.x, y: c.zerao.gude.y + 20, tipo: 'jogo', jogo: 'gude' });
     /* o aquário: na porta, o jogo */
     if(c.centro.aquario) P.push({ x: c.centro.aquario.x + LW / 2, y: c.centro.aquario.base + 8, tipo: 'aquario', jogo: 'killer' });
@@ -3134,7 +3249,7 @@
   /* v4.14: as coisas sólidas vão numa grade de 256 px (a cidade cresceu e olhar uma por uma a cada passo pesava) */
   const SOL_G = 256;
   function gradeSol(L){ const G = new Map(); L.forEach(s => { for(let gy = Math.floor(s.y / SOL_G); gy <= Math.floor((s.y + s.h + 4) / SOL_G); gy++) for(let gx = Math.floor((s.x - 8) / SOL_G); gx <= Math.floor((s.x + s.w + 8) / SOL_G); gx++){ const k = gy * 4096 + gx; let a = G.get(k); if(!a) G.set(k, a = []); a.push(s); } }); return G; }
-  const bate = (x, y) => { if(x < 14 || y < TOPO - 70 || x > V.cid.W - 14 || y > V.cid.H - 14) return true; if(naAgua(x, y) || naRio(x, y) || naParque(x, y) || naRoca(x, y)) return true;
+  const bate = (x, y) => { if(x < 14 || y < TOPO - 70 || x > V.cid.W - 14 || y > V.cid.H - 14) return true; if(naAgua(x, y) || naRio(x, y) || naParque(x, y) || naRoca(x, y) || naSul(x, y)) return true;
     const L = V.solG ? V.solG.get(Math.floor(y / SOL_G) * 4096 + Math.floor(x / SOL_G)) : V.sol; if(L) for(const s of L) if(x > s.x - 8 && x < s.x + s.w + 8 && y > s.y && y < s.y + s.h + 4) return true; return false; };
   function mover(o, dx, dy){ if(!dx && !dy) return; if(!bate(o.x + dx, o.y)) o.x += dx; if(!bate(o.x, o.y + dy)) o.y += dy; }
 
@@ -3213,7 +3328,42 @@
       if(R.tem) blocosDe(R.tem, R.c0, R.r0, R.c1, R.r1, (x, y, w, h) => ctx.fillRect(x - CALC, y - CALC, w + CALC * 2, h + CALC * 2)); else ctx.fillRect(R.x - CALC, R.y - CALC, R.w + CALC * 2, R.h + CALC * 2);
       CHAO[R.k](ctx, R, vx, vy, vw, vh); });
     if(c.rio) chaoRio(ctx, vx, vy, vw, vh);
+    if(c.sul) chaoSul(ctx, vx, vy, vw, vh);
   }
+  /* v5.21 · o chão de Curitiba: a lavoura em volta, o asfalto das ruas com a faixa, a calçada e cada quarteirão (a Rua XV
+     de petit-pavé com os canteiros, o lago da pedreira da Ópera de Arame, o jardim francês do Botânico, o pátio e a
+     pista do Afonso Pena). Os campos de pouso de Cambé e de Ibiporã também são desenhados aqui */
+  function chaoSul(ctx, vx, vy, vw, vh){
+    const c = V.cid, S = c.sul, u = 1 / V.k, t = Math.max(3, 1.05 / V.k);
+    (c.campos || []).forEach(a => { if(a.x > vx + vw + 10 || a.x + LW < vx - 10 || a.y > vy + vh + 10 || a.y + LH < vy - 10) return;
+      ctx.fillStyle = pad(ctx, 'gramado'); ctx.fillRect(a.x, a.y, LW, LH); capim(ctx, { x: a.x, y: a.y, w: LW, h: LH }, vx, vy, vw, vh);
+      ctx.fillStyle = pad(ctx, 'terra'); ctx.fillRect(a.pista.x, a.pista.y, a.pista.w, a.pista.h); ctx.fillRect(a.vaga.x - 26, a.vaga.y - 20, 52, a.pista.y - a.vaga.y + 22); ctx.fillRect(a.x + LW / 2 - 16, a.pista.y + a.pista.h, 32, LH - (a.pista.y - a.y) - a.pista.h);
+      ctx.fillStyle = 'rgba(255,255,255,.6)'; for(let x = a.pista.x + 10; x < a.pista.x + a.pista.w - 10; x += 30) ctx.fillRect(x, a.pista.y + a.pista.h / 2 - 1, 16, 2 * u); });
+    if(!S || S.y0 > vy + vh || c.H < vy) return;
+    ctx.fillStyle = pad(ctx, 'trigo'); ctx.fillRect(Math.max(0, vx), S.y0, vw, c.H - S.y0);
+    ctx.fillStyle = 'rgba(120,82,24,.3)'; for(let y = Math.ceil(S.y0 / 12) * 12; y < c.H; y += 12) ctx.fillRect(Math.max(0, vx), y, vw, 3);
+    ctx.fillStyle = pad(ctx, 'calcada'); ctx.fillRect(S.x0 - CALC, S.y0, S.x1 - S.x0 + CALC * 2, S.y1 - S.y0 + CALC);
+    ctx.fillStyle = pad(ctx, 'rua'); ctx.fillRect(S.x0, S.y0, S.x1 - S.x0, S.y1 - S.y0);
+    ctx.fillStyle = 'rgba(242,236,84,.85)';
+    for(let j = 0; j < 3; j++){ const y = S.y0 + RUA / 2 + j * QQ; for(let x = Math.ceil(S.x0 / 36) * 36; x < S.x1; x += 36) ctx.fillRect(x, y - t / 2, 18, t); }
+    for(let i = 0; i <= 6; i++){ const x = ruaX(S.c0 + i); for(let y = Math.ceil(S.y0 / 36) * 36; y < S.y1; y += 36) ctx.fillRect(x - t / 2, y, t, 18); }
+    S.blocos.forEach(b => { const o = { x: b.x, y: b.y }; if(o.x > vx + vw + 20 || o.x + LW < vx - 20 || o.y > vy + vh + 20 || o.y + LH < vy - 20) return;
+      ctx.fillStyle = pad(ctx, 'calcada'); ctx.fillRect(o.x - CALC, o.y - CALC, LW + CALC * 2, LH + CALC * 2);
+      if(b.f) return chaoLote(ctx, { t: 'enche', f: b.f }, o, vx, vy, vw, vh);
+      const cx = o.x + LW / 2, cy = o.y + LH / 2;
+      if(b.t === 'ruaxv'){ ctx.fillStyle = pad(ctx, 'praca'); ctx.fillRect(o.x, o.y, LW, LH); ctx.fillStyle = pad(ctx, 'mosaico'); ctx.fillRect(cx - 60, o.y, 120, LH); return; }
+      if(b.t === 'opera'){ ctx.fillStyle = pad(ctx, '#8C9097'); ctx.fillRect(o.x, o.y, LW, LH); ctx.fillStyle = 'rgba(40,44,52,.25)'; for(let k = 0; k < 9; k++) ctx.fillRect(o.x + (k * 37) % LW, o.y + (k * 53) % 120, 26, 10);
+        ctx.fillStyle = pad(ctx, 'gramado'); ctx.fillRect(o.x + 16, o.y + LH - 70, LW - 32, 70); oval(ctx, cx, o.y + LH - 40, 120, 34, 'agua'); ctx.fillStyle = '#B5824A'; ctx.fillRect(cx - 8, o.y + LH - 74, 16, 74); return; }
+      if(b.t === 'botanico' || b.t === 'jardim'){ ctx.fillStyle = pad(ctx, 'gramado'); ctx.fillRect(o.x, o.y, LW, LH); capim(ctx, { x: o.x, y: o.y, w: LW, h: LH }, vx, vy, vw, vh);
+        const y0 = b.t === 'botanico' ? b.base + 6 : o.y + 30, h = b.t === 'botanico' ? o.y + LH - y0 - 12 : LH - 60;
+        ctx.fillStyle = pad(ctx, 'praca'); ctx.fillRect(cx - 14, y0, 28, h); ctx.fillRect(o.x + 20, y0 + h / 2 - 12, LW - 40, 24);
+        [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([sx, sy], k2) => { ctx.fillStyle = [ROSA, LILAS, AMARELO, LARANJA][k2]; const bx = cx + sx * 70, by = y0 + h / 2 + sy * h / 4; ctx.beginPath(); ctx.moveTo(bx, by - 18); ctx.lineTo(bx + 40, by); ctx.lineTo(bx, by + 18); ctx.lineTo(bx - 40, by); ctx.closePath(); ctx.fill(); });
+        return; }
+      if(b.t === 'afonso'){ const a = b.a; ctx.fillStyle = pad(ctx, 'concreto'); ctx.fillRect(o.x, o.y, LW, LH); ctx.fillStyle = pad(ctx, 'rua'); ctx.fillRect(a.pista.x, a.pista.y, a.pista.w, a.pista.h);
+        ctx.fillStyle = 'rgba(255,255,255,.75)'; for(let x = a.pista.x + 10; x < a.pista.x + a.pista.w - 10; x += 30) ctx.fillRect(x, a.pista.y + a.pista.h / 2 - 1, 16, 2 * u); ctx.fillStyle = '#F2C230'; ctx.fillRect(a.vaga.x - 1, a.vaga.y, 2 * u, a.pista.y - a.vaga.y); return; }
+    });
+  }
+  
   /* ---------- v4.14 · a roça em volta da cidade ----------
      Cada quarteirão de roça é uma lavoura (a terra roxa lavrada, o trigo, a palhada da soja colhida, o milho seco), com
      as linhas do plantio deitadas ou em pé; a rua entre dois quarteirões de roça vira lavoura também. Onde ela encosta
@@ -3292,6 +3442,20 @@
   function ponteObra(ctx, t, vx, vy, vw, vh){
     const e = (V.cid.estradas || []).find(x => x.eixo === 'v'); if(!e) return;
     const p = e.ponte, u = 1 / V.k; if(p.x + 80 < vx || p.x - 80 > vx + vw || p.b < vy || e.y1 > vy + vh) return;
+    /* v5.21 · a ponte pronta: o tabuleiro de margem a margem, o guarda-corpo e a estrada que segue até Curitiba */
+    if(p.pronta){
+      const S = V.cid.sul, yF = S ? S.y0 : V.cid.H, tt = Math.max(3, 1.05 / V.k);
+      ctx.fillStyle = pad(ctx, 'terra'); ctx.fillRect(e.x0, e.y1, RUA, p.t - e.y1); ctx.fillRect(e.x0, p.b, RUA, yF - p.b);
+      ctx.fillStyle = pad(ctx, 'rua'); ctx.fillRect(e.x0 + 16, e.y1, RUA - 32, p.t - e.y1); ctx.fillRect(e.x0 + 16, p.b, RUA - 32, yF - p.b);
+      [.58, .82].forEach((f, i) => { const y = p.t + (p.b - p.t) * f, w = Math.sin(t * 2 + i) * 2; ctx.fillStyle = 'rgba(255,255,255,.45)'; ctx.fillRect(p.x - 14 + w, y + 6, 28, 3); });
+      const y0 = p.t - 10, y1 = p.b + 10;
+      ctx.fillStyle = 'rgba(15,40,80,.35)'; ctx.fillRect(p.x - 38, y0 + 10, 76, y1 - y0);
+      ctx.fillStyle = '#B8BDC4'; ctx.fillRect(p.x - 42, y0, 84, y1 - y0); ctx.fillStyle = pad(ctx, 'rua'); ctx.fillRect(p.x - 32, y0, 64, y1 - y0);
+      ctx.fillStyle = 'rgba(242,236,84,.85)'; for(let y = Math.ceil(e.y1 / 36) * 36; y < yF; y += 36) ctx.fillRect(e.x - tt / 2, y, tt, 18);
+      ctx.fillStyle = '#E2412E'; ctx.fillRect(p.x - 44, y0, 4, y1 - y0); ctx.fillRect(p.x + 40, y0, 4, y1 - y0);
+      ctx.fillStyle = PAPEL; for(let y = y0 + 6; y < y1; y += 14){ ctx.fillRect(p.x - 44, y, 4, 6); ctx.fillRect(p.x + 40, y, 4, 6); }
+      return;
+    }
     ctx.fillStyle = pad(ctx, 'terra'); ctx.fillRect(e.x0, e.y1, RUA, p.t - e.y1);
     ctx.fillStyle = pad(ctx, 'rua'); ctx.fillRect(e.x0 + 16, e.y1, RUA - 32, e.by - e.y1 + 4);
     ctx.fillStyle = 'rgba(242,236,84,.85)'; const tt = Math.max(3, 1.05 / V.k); for(let y = Math.ceil(e.y1 / 36) * 36; y < e.by - 8; y += 36) ctx.fillRect(e.x - tt / 2, y, tt, 18);
@@ -3332,6 +3496,13 @@
     }
   }
   const CHAO = {
+    /* v5.21 · o Parque Florestal: o chão de folha seca debaixo da mata, a trilha de terra em volta e até o mirante */
+    florestal(ctx, R, vx, vy, vw, vh){
+      const f = V.cid.cambe && V.cid.cambe.florestal; if(!f) return;
+      ctx.fillStyle = pad(ctx, 'gramado'); ctx.fillRect(R.x, R.y, R.w, R.h); ctx.fillStyle = 'rgba(110,60,30,.22)'; ctx.fillRect(R.x + 50, R.y + 62, R.w - 100, R.h - 120); capim(ctx, R, vx, vy, vw, vh);
+      ctx.fillStyle = pad(ctx, 'terra'); ctx.fillRect(R.x + 20, R.y + 28, R.w - 40, 24); ctx.fillRect(R.x + 20, R.y + R.h - 46, R.w - 40, 24); ctx.fillRect(R.x + 20, R.y + 28, 24, R.h - 50); ctx.fillRect(R.x + R.w - 44, R.y + 28, 24, R.h - 50);
+      ctx.fillRect(f.cx - 11, R.y + 28, 22, R.h - 50); oval(ctx, f.cx, f.cy + 10, 56, 44, 'terra');
+    },
     /* v5.19 · o Parque Zezão: o gramado do vale (mais escuro no fundo), as trilhas de terra, o riacho com a pontinha de
        madeira, a arquibancada do anfiteatro em meia-lua e a areia do parquinho */
     zezao(ctx, R, vx, vy, vw, vh){
@@ -4796,11 +4967,27 @@
       case 'portalCambe': { const h = 54, w = 148;
         ctx.fillStyle = 'rgba(15,18,24,.22)'; ctx.fillRect(d.x - w / 2, d.y - 2, w, 6);
         bloco(ctx, d.x - w / 2, d.y - h, 14, h, 'concreto'); bloco(ctx, d.x + w / 2 - 14, d.y - h, 14, h, 'concreto');
-        const pb = ptBase(ctx, d.x, d.y - h), bw = Math.max(pixLarg('CAMBE', 3), pixLarg('BEM-VINDO A', 1)) + 20, bh = 34;
+        const pb = ptBase(ctx, d.x, d.y - h), bw = Math.max(pixLarg(d.txt || 'CAMBE', 3), pixLarg('BEM-VINDO A', 1)) + 20, bh = 34;
         ctx.save(); naBase(ctx); const x0 = pb[0] - Math.floor(bw / 2), y0 = pb[1] - bh;
         ctx.fillStyle = INK; ctx.fillRect(x0 - 3, y0 - 3, bw + 6, bh + 6); ctx.fillStyle = PAPEL; ctx.fillRect(x0, y0, bw, bh); ctx.fillStyle = LARANJA; ctx.fillRect(x0, y0 + bh - 4, bw, 4); ctx.fillStyle = AZUL_PLACA; ctx.fillRect(x0, y0, bw, 3); ctx.restore();
-        pixTxt(ctx, 'BEM-VINDO A', d.x, d.y - h - (bh - 6) * u, 1, INK); pixTxt(ctx, 'CAMBE', d.x, d.y - h - 14 * u, 3, AZUL_PLACA);
+        pixTxt(ctx, 'BEM-VINDO A', d.x, d.y - h - (bh - 6) * u, 1, INK); pixTxt(ctx, d.txt || 'CAMBE', d.x, d.y - h - 14 * u, 3, AZUL_PLACA);
         luz(d.x, d.y - h - 10, 70, .45); break; }
+      /* v5.21 · Curitiba e os campos de pouso: o canteiro da Rua XV, a estação-tubo, o biarticulado, o hangar e a biruta */
+      case 'canteiro': { ctx.fillStyle = 'rgba(15,18,24,.18)'; ctx.fillRect(d.x - 22, d.y - 2, 44, 4); bloco(ctx, d.x - 20, d.y - 10, 40, 10, 'concreto');
+        for(let i = 0; i < 6; i++){ ctx.fillStyle = i % 2 ? d.cor : PAPEL; ctx.fillRect(d.x - 17 + i * 6, d.y - 15 - (i % 3) * 2, 5, 5); } break; }
+      case 'tubo': { ctx.fillStyle = 'rgba(15,18,24,.22)'; ctx.fillRect(d.x - 52, d.y - 2, 104, 6); bloco(ctx, d.x - 50, d.y - 8, 100, 8, 'concreto');
+        ctx.fillStyle = 'rgba(200,225,245,.8)'; ctx.beginPath(); ctx.moveTo(d.x - 46, d.y - 8); ctx.lineTo(d.x - 46, d.y - 30); ctx.quadraticCurveTo(d.x, d.y - 48, d.x + 46, d.y - 30); ctx.lineTo(d.x + 46, d.y - 8); ctx.closePath(); ctx.fill(); traco(ctx, INK, 2);
+        ctx.fillStyle = '#9AA0A8'; for(let x = d.x - 40; x <= d.x + 40; x += 16) ctx.fillRect(x, d.y - 38, 2, 30); ctx.fillStyle = '#E2412E'; ctx.fillRect(d.x - 46, d.y - 20, 6, 12); pixPlaca(ctx, 'TUBO', d.x, d.y - 52, { fundo: PAPEL }); luz(d.x, d.y - 20, 70, .6); break; }
+      case 'biarticulado': { const L = d.x1 - d.x0, f = (t * 60 / L) % 2, x = d.x0 + (f < 1 ? f : 2 - f) * L, dir = f < 1 ? 1 : -1;
+        ctx.fillStyle = 'rgba(15,18,24,.22)'; ctx.fillRect(x - 84, d.y - 2, 168, 6);
+        [-56, 0, 56].forEach((dx, i) => { bloco(ctx, x + dx - 26, d.y - 26, 52, 22, '#D7262E'); ctx.fillStyle = 'rgba(214,232,248,.9)'; ctx.fillRect(x + dx - 22, d.y - 22, 44, 8); ctx.fillStyle = INK; ctx.fillRect(x + dx - 16, d.y - 4, 7, 5); ctx.fillRect(x + dx + 9, d.y - 4, 7, 5); });
+        ctx.fillStyle = '#2B2F38'; ctx.fillRect(x - 31, d.y - 24, 6, 20); ctx.fillRect(x + 25, d.y - 24, 6, 20); ctx.fillStyle = AMARELO; ctx.fillRect(x + dir * 80 - 2, d.y - 14, 4, 4); luz(x + dir * 84, d.y - 12, 50, .6); break; }
+      case 'hangar': { ctx.fillStyle = 'rgba(15,18,24,.22)'; ctx.fillRect(d.x - 46, d.y - 2, 92, 6); ctx.fillStyle = pad(ctx, 'zinco'); ctx.beginPath(); ctx.moveTo(d.x - 44, d.y); ctx.lineTo(d.x - 44, d.y - 30); ctx.quadraticCurveTo(d.x, d.y - 56, d.x + 44, d.y - 30); ctx.lineTo(d.x + 44, d.y); ctx.closePath(); ctx.fill(); traco(ctx, INK, 2);
+        ctx.fillStyle = '#2B2F38'; ctx.fillRect(d.x - 24, d.y - 26, 48, 26); break; }
+      case 'biruta': biruta(ctx, d, t); break;
+      /* v5.21 · o mirante de madeira no meio do Parque Florestal */
+      case 'mirante': { ctx.fillStyle = 'rgba(15,18,24,.22)'; ctx.fillRect(d.x - 26, d.y - 2, 52, 6); ctx.fillStyle = '#6B4A32'; [-18, 14].forEach(dx => ctx.fillRect(d.x + dx, d.y - 70, 5, 70));
+        ctx.fillStyle = '#8C5A2E'; for(let y = d.y - 10; y > d.y - 66; y -= 10) ctx.fillRect(d.x - 18, y, 37, 3); ctx.fillStyle = '#B5824A'; ctx.fillRect(d.x - 26, d.y - 76, 52, 8); ctx.fillStyle = '#7B3B28'; ctx.beginPath(); ctx.moveTo(d.x - 30, d.y - 76); ctx.lineTo(d.x, d.y - 98); ctx.lineTo(d.x + 30, d.y - 76); ctx.closePath(); ctx.fill(); break; }
       /* v5.19 · a concha do palco do anfiteatro do Zezão */
       case 'palco': { ctx.fillStyle = 'rgba(15,18,24,.22)'; ctx.fillRect(d.x - 40, d.y - 2, 80, 6);
         ctx.fillStyle = pad(ctx, 'branco'); ctx.beginPath(); ctx.ellipse(d.x, d.y - 6, 38, 46, 0, Math.PI, Math.PI * 2); ctx.closePath(); ctx.fill(); traco(ctx, INK, 2);
@@ -5161,6 +5348,79 @@
     };
     casa(x0 + 8, '#B3793F', '#8E4B2B'); casa(x0 + 176, '#C99A5E', '#6B3A22');
     pixPlaca(ctx, 'TKOTZ', x0 + 66, base - 84, { fundo: PAPEL }); pixPlaca(ctx, 'ZIFCHAK', x0 + 234, base - 84, { fundo: PAPEL });
+    return { cv, W: W + M * 2, H, M, base };
+  }
+  /* v5.21 · Ibiporã: a estação de trem (o Museu do Café: tijolo, a plataforma coberta, o relógio e os trilhos na frente),
+     o Cine Teatro Zanelli (a fachada com o letreiro e a marquise iluminada) e a capela branca do sino */
+  function spriteCafe(k){
+    const W = LW, M = 20, H = 260, base = H - M, { cv, ctx } = folha(W + M * 2, H, k), x0 = M, cx = x0 + W / 2;
+    ctx.fillStyle = 'rgba(15,18,24,.22)'; ctx.fillRect(x0 + 10, base - 2, W - 20, 10);
+    bloco(ctx, x0 + 30, base - 96, 240, 96, '#B5522E'); ctx.fillStyle = 'rgba(255,255,255,.12)'; for(let y = base - 90; y < base; y += 8) ctx.fillRect(x0 + 30, y, 240, 1);
+    ctx.fillStyle = pad(ctx, '#7B3B28'); ctx.beginPath(); ctx.moveTo(x0 + 18, base - 96); ctx.lineTo(x0 + 50, base - 128); ctx.lineTo(x0 + 250, base - 128); ctx.lineTo(x0 + 282, base - 96); ctx.closePath(); ctx.fill(); traco(ctx, INK, 2);
+    [0, 1, 2, 3, 4].forEach(i => { if(i === 2) return; const wx = x0 + 44 + i * 46; vidro(ctx, wx, base - 76, 26, 40, true, 13); ctx.fillStyle = '#F4F1EA'; ctx.fillRect(wx - 3, base - 80, 32, 4); });
+    ctx.beginPath(); ctx.rect(cx - 16, base - 62, 32, 62); forma(ctx, '#6B4A32', 2);
+    bloco(ctx, cx - 22, base - 158, 44, 30, '#B5522E'); ctx.beginPath(); ctx.arc(cx, base - 143, 11, 0, Math.PI * 2); forma(ctx, PAPEL, 2); ctx.fillStyle = INK; ctx.fillRect(cx - 1, base - 151, 2, 8); ctx.fillRect(cx - 1, base - 144, 7, 2);
+    /* a plataforma coberta na frente */
+    ctx.fillStyle = '#5E646C'; [x0 + 26, x0 + 274].forEach(x => ctx.fillRect(x, base - 40, 4, 40)); ctx.fillStyle = '#8E4B2B'; ctx.fillRect(x0 + 20, base - 44, 262, 6);
+    pixPlaca(ctx, 'MUSEU DO CAFE', cx, base - 112, { fundo: PAPEL });
+    return { cv, W: W + M * 2, H, M, base };
+  }
+  function spriteZanelli(k){
+    const W = LW, M = 20, H = 250, base = H - M, { cv, ctx } = folha(W + M * 2, H, k), x0 = M, cx = x0 + W / 2;
+    ctx.fillStyle = 'rgba(15,18,24,.22)'; ctx.fillRect(x0 + 24, base - 2, W - 48, 10);
+    bloco(ctx, x0 + 40, base - 150, 220, 150, '#E8D7C3');
+    ctx.fillStyle = '#C9A24A'; for(let x = x0 + 56; x < x0 + 250; x += 24) ctx.fillRect(x, base - 146, 6, 90);
+    ctx.fillStyle = pad(ctx, '#1B1D22'); ctx.fillRect(cx - 80, base - 76, 160, 22);
+    ctx.fillStyle = AMARELO; for(let x = cx - 76; x < cx + 80; x += 8) ctx.fillRect(x, base - 76, 3, 3), ctx.fillRect(x, base - 57, 3, 3);
+    pixTxt(ctx, 'CINE TEATRO', cx, base - 65, 1, AMARELO);
+    vidro(ctx, cx - 50, base - 48, 100, 48, true, 25);
+    ctx.fillStyle = '#7B3B28'; ctx.fillRect(x0 + 50, base - 40, 30, 40); ctx.fillRect(x0 + 220, base - 40, 30, 40); ctx.fillStyle = PAPEL; ctx.fillRect(x0 + 54, base - 36, 22, 30); ctx.fillRect(x0 + 224, base - 36, 22, 30); ctx.fillStyle = ROSA; ctx.fillRect(x0 + 57, base - 32, 16, 12); ctx.fillStyle = AZUL; ctx.fillRect(x0 + 227, base - 32, 16, 12);
+    pixPlaca(ctx, 'ZANELLI', cx, base - 166, { fundo: PAPEL });
+    return { cv, W: W + M * 2, H, M, base };
+  }
+  function spriteCapela(k){
+    const W = LW, M = 20, H = 240, base = H - M, { cv, ctx } = folha(W + M * 2, H, k), x0 = M, cx = x0 + W / 2;
+    ctx.fillStyle = 'rgba(15,18,24,.22)'; ctx.fillRect(cx - 60, base - 2, 120, 8);
+    bloco(ctx, cx - 50, base - 70, 100, 70, 'branco');
+    ctx.fillStyle = pad(ctx, AZUL_PLACA); ctx.beginPath(); ctx.moveTo(cx - 58, base - 70); ctx.lineTo(cx, base - 118); ctx.lineTo(cx + 58, base - 70); ctx.closePath(); ctx.fill(); traco(ctx, INK, 2);
+    bloco(ctx, cx - 12, base - 160, 24, 46, 'branco'); ctx.fillStyle = '#2A3442'; ctx.fillRect(cx - 6, base - 152, 12, 16); ctx.fillStyle = '#C9A24A'; ctx.fillRect(cx - 4, base - 142, 8, 6);
+    ctx.fillStyle = INK; ctx.fillRect(cx - 1, base - 184, 3, 24); ctx.fillRect(cx - 8, base - 176, 17, 3);
+    ctx.beginPath(); ctx.moveTo(cx - 14, base); ctx.lineTo(cx - 14, base - 34); ctx.arc(cx, base - 34, 14, Math.PI, 0); ctx.lineTo(cx + 14, base); ctx.closePath(); forma(ctx, '#6B4A32', 2);
+    vidro(ctx, cx - 40, base - 52, 16, 26, true, 16); vidro(ctx, cx + 24, base - 52, 16, 26, true, 16);
+    return { cv, W: W + M * 2, H, M, base };
+  }
+  /* v5.21 · Curitiba: a Ópera de Arame (a cúpula de tubos de aço com a cobertura transparente e a passarela em cima do
+     lago), a estufa do Jardim Botânico (o ferro branco, o vidro e as três cúpulas) e o terminal do Afonso Pena */
+  function spriteOpera(k){
+    const W = LW, M = 20, H = 260, base = H - M, { cv, ctx } = folha(W + M * 2, H, k), x0 = M, cx = x0 + W / 2;
+    ctx.fillStyle = 'rgba(15,18,24,.22)'; ctx.fillRect(x0 + 30, base - 2, W - 60, 10);
+    ctx.fillStyle = 'rgba(200,225,245,.55)'; ctx.beginPath(); ctx.ellipse(cx, base - 10, 110, 150, 0, Math.PI, Math.PI * 2); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = '#E8D7C3'; ctx.lineWidth = 3; for(let i = 1; i < 9; i++){ const a = Math.PI + i * Math.PI / 9; ctx.beginPath(); ctx.moveTo(cx, base - 10); ctx.lineTo(cx + Math.cos(a) * 110, base - 10 + Math.sin(a) * 150); ctx.stroke(); }
+    for(let r = 40; r <= 150; r += 28){ ctx.beginPath(); ctx.ellipse(cx, base - 10, r * 110 / 150, r, 0, Math.PI, Math.PI * 2); ctx.stroke(); }
+    ctx.beginPath(); ctx.ellipse(cx, base - 10, 110, 150, 0, Math.PI, Math.PI * 2); traco(ctx, INK, 2);
+    ctx.fillStyle = '#C9A24A'; ctx.fillRect(cx - 4, base - 168, 8, 20);
+    bloco(ctx, x0 + 40, base - 12, 220, 12, '#E8D7C3');
+    pixPlaca(ctx, 'OPERA DE ARAME', cx, base - 182, { fundo: PAPEL });
+    return { cv, W: W + M * 2, H, M, base };
+  }
+  function spriteEstufa(k){
+    const W = LW, M = 20, H = 230, base = H - M, { cv, ctx } = folha(W + M * 2, H, k), x0 = M, cx = x0 + W / 2;
+    ctx.fillStyle = 'rgba(15,18,24,.22)'; ctx.fillRect(x0 + 40, base - 2, W - 80, 10);
+    const vid = (x, y, w, h) => { ctx.fillStyle = 'rgba(214,232,248,.85)'; ctx.fillRect(x, y, w, h); ctx.fillStyle = '#F4F1EA'; for(let xx = x; xx <= x + w; xx += 12) ctx.fillRect(xx, y, 2, h); for(let yy = y; yy <= y + h; yy += 14) ctx.fillRect(x, yy, w, 2); ctx.beginPath(); ctx.rect(x, y, w, h); traco(ctx, INK, 2); };
+    const cup = (x, y, r) => { ctx.fillStyle = 'rgba(214,232,248,.85)'; ctx.beginPath(); ctx.arc(x, y, r, Math.PI, 0); ctx.closePath(); ctx.fill(); ctx.strokeStyle = '#F4F1EA'; ctx.lineWidth = 2; for(let i = 1; i < 6; i++){ const a = Math.PI + i * Math.PI / 6; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + Math.cos(a) * r, y + Math.sin(a) * r); ctx.stroke(); } ctx.beginPath(); ctx.arc(x, y, r, Math.PI, 0); traco(ctx, INK, 2); };
+    vid(x0 + 50, base - 60, 200, 60); cup(x0 + 85, base - 60, 30); cup(x0 + 215, base - 60, 30);
+    vid(cx - 36, base - 110, 72, 50); cup(cx, base - 110, 44);
+    ctx.fillStyle = '#F4F1EA'; ctx.fillRect(cx - 2, base - 170, 4, 18); ctx.beginPath(); ctx.arc(cx, base - 172, 5, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.rect(cx - 12, base - 30, 24, 30); forma(ctx, '#F4F1EA', 2);
+    pixPlaca(ctx, 'JARDIM BOTANICO', cx, base - 192, { fundo: PAPEL });
+    return { cv, W: W + M * 2, H, M, base };
+  }
+  function spriteAfonso(k){
+    const W = LW, M = 20, H = 200, base = H - M, { cv, ctx } = folha(W + M * 2, H, k), x0 = M;
+    ctx.fillStyle = 'rgba(15,18,24,.22)'; ctx.fillRect(x0 + 146, base - 2, 136, 8);
+    bloco(ctx, x0 + 150, base - 46, 130, 46, 'branco'); vidro(ctx, x0 + 158, base - 38, 114, 22, true, 19);
+    bloco(ctx, x0 + 254, base - 96, 20, 50, 'concreto'); ctx.fillStyle = 'rgba(214,232,248,.9)'; ctx.fillRect(x0 + 250, base - 110, 28, 14); ctx.beginPath(); ctx.rect(x0 + 250, base - 110, 28, 14); traco(ctx, INK, 2);
+    pixPlaca(ctx, 'AFONSO PENA', x0 + 205, base - 60, { fundo: PAPEL });
     return { cv, W: W + M * 2, H, M, base };
   }
   /* Concha Acústica: a concha branca sobre o palco, com os degraus na frente */
@@ -6352,7 +6612,7 @@
     const ce = c.centro, FZ = { teatro: spriteTeatro, concha: spriteConcha, catedral: spriteCatedral, museu: spriteMuseu, arte: spriteArte, aquario: spriteAquario, delegacia: spriteDelegacia, bombeiros: spriteBombeiros, hospital: spriteHospital };
     Object.keys(FZ).forEach(nm => { const o = ce[nm]; if(vis(o.x + LW / 2, o.base, nm === 'catedral' ? 520 : 340)){ sprite('c:' + nm, () => FZ[nm](k), o.x, o.base); luz(o.x + LW / 2, o.base - (nm === 'concha' ? 90 : 20), nm === 'concha' ? 190 : 130, nm === 'concha' ? .75 : .55); } });
     /* v5.19 · Cambé: a igreja, o Centro Cultural e as casas do Danziger Hof */
-    const cb = c.cambe || {}, FK = { santo: spriteSanto, cultura: spriteCultura, danziger: spriteDanziger };
+    const cb = c.cambe || {}, FK = { santo: spriteSanto, cultura: spriteCultura, danziger: spriteDanziger, cafe: spriteCafe, zanelli: spriteZanelli, capela: spriteCapela };
     Object.keys(FK).forEach(nm => { const o = cb[nm]; if(o && vis(o.x + LW / 2, o.base, 420)){ sprite('k:' + nm, () => FK[nm](k), o.x, o.base); luz(o.x + LW / 2, o.base - 20, 130, .55); } });
     /* os degraus da Concha */
     if(vis(ce.concha.x + LW / 2, ce.concha.base + 80, 300)) [0, 1, 2].forEach(i => L.push({ y: ce.concha.base + 34 + i * 30, f: () => bloco(ctx, ce.concha.x + 40, ce.concha.base + 34 + i * 30 - 14, 220, 14, 'concreto') }));
@@ -6371,6 +6631,15 @@
       if(vis(ae.biruta.x, ae.biruta.y, 120)) L.push({ y: ae.biruta.y, f: () => biruta(ctx, ae.biruta, t) });
       if(!V.voo && vis(ae.vaga.x, ae.vaga.y, 180)) L.push({ y: ae.vaga.y, f: () => desenhaAviao(ctx, ae.vaga.x, ae.vaga.y, 0, 1, t, false, true) });
     }
+    /* v5.21 · Curitiba (os prédios, a Ópera, a estufa, o aeroporto) e o teco-teco parado em cada campo de pouso */
+    const SL = c.sul;
+    if(SL){
+      SL.enche.forEach(f => { if(vis(f.x + LW / 2, f.base, 360)){ sprite(f.id, () => f.t === 'predio' ? spritePredio(f, k) : spriteLoja(f, k), f.t === 'predio' ? f.px : f.x, f.base); if(f.t === 'loja') luz(f.x + LW / 2, f.base - 20, 100, .7); } });
+      if(SL.opera && vis(SL.opera.x + LW / 2, SL.opera.base, 360)){ sprite('cwb:opera', () => spriteOpera(k), SL.opera.x, SL.opera.base); luz(SL.opera.x + LW / 2, SL.opera.base - 40, 170, .8); }
+      if(SL.botanico && vis(SL.botanico.x + LW / 2, SL.botanico.base, 360)){ sprite('cwb:bot', () => spriteEstufa(k), SL.botanico.x, SL.botanico.base); luz(SL.botanico.x + LW / 2, SL.botanico.base - 40, 170, .8); }
+      const af = SL.afonso; if(af && vis(af.x + LW / 2, af.y + 130, 360)){ sprite('cwb:afonso', () => spriteAfonso(k), af.x, af.y + 130); luz(af.x + 215, af.y + 110, 110, .7); }
+    }
+    aerosVoo().forEach(a => { if(a.k === 'londrina' || (V.voo && V.voo.de === a.k)) return; if(vis(a.vaga.x, a.vaga.y, 180)) L.push({ y: a.vaga.y, f: () => desenhaAviao(ctx, a.vaga.x, a.vaga.y, 0, 1, t, false, true) }); });
     /* v3.57: a ACEL (sede, portal, placar e as torres de luz) */
     const ac = c.acel;
     if(ac){
@@ -6451,7 +6720,7 @@
       ctx.fillStyle = cor; ctx.fillRect(X(o.x), Y(o.y), Math.round(LW / S), Math.round(LH / S));
       if(g && g.t === 'casa' && g.h.id === meu){ ctx.fillStyle = INK; ctx.fillRect(X(o.x) + 4, Y(o.y) + 4, Math.round(LW / S) - 8, Math.round(LH / S) - 8); ctx.fillStyle = AMARELO; ctx.fillRect(X(o.x) + 6, Y(o.y) + 6, Math.round(LW / S) - 12, Math.round(LH / S) - 12); }
     }
-    c.regs.forEach(R => { ctx.fillStyle = { lago: '#D9C27F', zerao: '#D9C27F', bosque: '#B8964C', gleba: '#DCCFB6', estadio: '#A4A8AE', feira: '#F2D8A7', aeroporto: '#CDBB86', acel: '#D9C27F', arthur: '#9C7E3E', zezao: '#B8964C' }[R.k] || '#E6DECD';
+    c.regs.forEach(R => { ctx.fillStyle = { lago: '#D9C27F', zerao: '#D9C27F', bosque: '#B8964C', gleba: '#DCCFB6', estadio: '#A4A8AE', feira: '#F2D8A7', aeroporto: '#CDBB86', acel: '#D9C27F', arthur: '#9C7E3E', zezao: '#B8964C', florestal: '#9C7E3E' }[R.k] || '#E6DECD';
       if(R.tem) blocosDe(R.tem, R.c0, R.r0, R.c1, R.r1, (x, y, w, h) => ctx.fillRect(X(x), Y(y), Math.ceil(w / S), Math.ceil(h / S))); else ctx.fillRect(X(R.x), Y(R.y), Math.round(R.w / S), Math.round(R.h / S)); });
     if(c.acel){ const a = c.acel, h = a.hp; ctx.fillStyle = '#A4553A'; ctx.beginPath(); ctx.moveTo(X(h.x), Y(h.y + 6)); a.bases.forEach(b => ctx.lineTo(X(b.x) + (b.x > h.x ? 2 : b.x < h.x ? -2 : 0), Y(b.y) - (b.x === h.x ? 2 : 0))); ctx.closePath(); ctx.fill();
       ctx.strokeStyle = '#2B2F38'; ctx.lineWidth = 2; ctx.beginPath(); a.cerca.forEach((p, i) => (i ? ctx.lineTo(X(p.x), Y(p.y)) : ctx.moveTo(X(p.x), Y(p.y)))); ctx.stroke(); }
@@ -6460,6 +6729,11 @@
     /* v3.75: o Rio Tibagi embaixo, de ponta a ponta, com os dois píeres */
     const rio = c.rio; if(rio){ ctx.fillStyle = '#D9C27F'; ctx.fillRect(0, Y(rio.y0), cv.width, Math.ceil(RIO_H / S)); ctx.fillStyle = '#9C7E3E'; rio.cols.forEach(q => ctx.fillRect(X(q.x), Y(q.b), 1, Math.max(1, Math.round((rio.y0 + RIO_H - q.b) / S))));
       ctx.fillStyle = '#2F7FC1'; rio.cols.forEach(q => ctx.fillRect(X(q.x), Y(q.t), 1, Math.max(1, Math.round((q.b - q.t) / S)))); ctx.fillStyle = '#8E5B33'; rio.piers.forEach(p => ctx.fillRect(X(p.xp) - 1, Y(p.y), 3, Math.max(2, Math.round(p.h / S)))); }
+    /* v5.21 · Curitiba do outro lado do rio, a ponte e os campos de pouso */
+    if(c.sul){ const SS = c.sul; ctx.fillStyle = '#C9A95E'; ctx.fillRect(0, Y(SS.y0), cv.width, cv.height - Y(SS.y0));
+      ctx.fillStyle = '#2B2F38'; ctx.fillRect(X(SS.x0), Y(SS.y0), Math.round((SS.x1 - SS.x0) / S), Math.round((SS.y1 - SS.y0) / S)); ctx.fillRect(X(SS.rx - 32), Y(rio ? rio.y0 : SS.y0), Math.max(2, Math.round(64 / S)), Y(SS.y0) - Y(rio ? rio.y0 : SS.y0));
+      SS.blocos.forEach(b => { ctx.fillStyle = b.f ? (COR_E[b.f.t] || '#E6DECD') : '#F4F1EA'; ctx.fillRect(X(b.x), Y(b.y), Math.round(LW / S), Math.round(LH / S)); }); }
+    (c.campos || []).forEach(a => { ctx.fillStyle = '#D9C27F'; ctx.fillRect(X(a.x), Y(a.y), Math.round(LW / S), Math.round(LH / S)); ctx.fillStyle = '#A4553A'; ctx.fillRect(X(a.pista.x), Y(a.pista.y), Math.round(a.pista.w / S), Math.max(2, Math.round(a.pista.h / S))); });
     /* v3.82: o lago e o ribeirão do Arthur Thomas */
     if(c.arthur){ const a = c.arthur; ctx.fillStyle = '#2F7FC1'; a.lago.cols.forEach(q => ctx.fillRect(X(q.x), Y(q.t), 1, Math.max(1, Math.round((q.b - q.t) / S)))); ctx.strokeStyle = '#2F7FC1'; ctx.lineWidth = 1; a.riachos.forEach(r => { ctx.beginPath(); r.pts.forEach((q, i) => i ? ctx.lineTo(X(q.x), Y(q.y)) : ctx.moveTo(X(q.x), Y(q.y))); ctx.stroke(); }); }
     const l = c.lago; ctx.fillStyle = '#C9D0D8'; l.bandas[0][1].forEach(q => ctx.fillRect(X(q.x), Y(q.t), 1, Math.max(1, Math.round((q.b - q.t) / S))));
@@ -6476,6 +6750,8 @@
     const rot = [['LAGO IGAPO', l.rotulo ? l.rotulo.x : l.x + l.w / 2, l.rotulo ? l.rotulo.y : l.y + l.h / 2], ['ZERAO', z.cx, z.cy], ['BOSQUE', c.bosque.cx, c.bosque.cy], ['CENTRO', c.centro.catedral.x + LW + RUA / 2, c.centro.arte.y + LH / 2], ['ESTADIO', c.estadio.campo.x + c.estadio.campo.w / 2, c.estadio.campo.y + c.estadio.campo.h / 2], ['GLEBA', c.glebaR.R.x + c.glebaR.R.w / 2, c.glebaR.R.y + LH / 2]].concat(c.feira ? [['FEIRA', c.feira.R.x + c.feira.R.w / 2, c.feira.R.y + c.feira.R.h + 30]] : []).concat(c.aeroporto ? [['AEROPORTO', c.aeroporto.R.x + c.aeroporto.R.w / 2, c.aeroporto.R.y + 120]] : []).concat(c.acel ? [['ACEL', c.acel.hp.x, c.acel.hp.y - 250]] : []).concat(c.arthur ? [['ARTHUR THOMAS', c.arthur.R.x + c.arthur.R.w / 2, c.arthur.R.y + 300]] : []).concat(rio ? [['RIO TIBAGI', c.W * .55, rio.cyF(c.W * .55)]] : [])
       /* v5.17: o nome de cada saída na beira, em cima da estrada, com a seta pra fora */
       .concat(c.cambe && c.cambe.fonte ? [['CAMBE', c.cambe.fonte.x + LW / 2, c.cambe.fonte.y + LH / 2]] : [])
+      .concat(c.cambe && c.cambe.cafe ? [['IBIPORA', c.cambe.cafe.x + LW / 2, c.cambe.cafe.y + LH / 2]] : [])
+      .concat(c.sul ? [['CURITIBA', (c.sul.x0 + c.sul.x1) / 2, c.sul.y1 - 30]] : [])
       .concat((c.estradas || []).filter(e => !e.aberta).map(e => { if(e.eixo === 'v') return [e.placa + ' ↓', e.x, e.y0 + 8 * S]; const tx = e.lado < 0 ? '< ' + e.placa : e.placa + ' >', m = (pixLarg(tx, 1) / 2 + 4) * S; return [tx, e.lado < 0 ? m : c.W - m, e.y - 11 * S]; }));
     /* v4.14: os nomes dos bairros (letra escura miúda) só onde não encostam no nome de um lugar */
     mapaBairros(ctx, c, X, Y, rot.map(([t, x, y]) => ({ x: X(x), y: Y(y), w: pixLarg(t, 1) + 8, h: 11 })).concat(c.regs.filter(R => !R.tem).map(R => ({ x: X(R.x + R.w / 2), y: Y(R.y + R.h / 2), w: R.w / S + 4, h: R.h / S + 4 }))));
@@ -6490,7 +6766,7 @@
   function mapaBairros(ctx, c, X, Y, ocupa){
     if(!c.bairros){ const soma = {};
       for(let r = 0; r < c.rows; r++) for(let cc = 0; cc < COLS; cc++){ const g = c.grade[r][cc]; if(!g || g.t === 'roca' || g.t === 'reg' || g.t === 'centro' || g.t === 'cambe' || g.t === 'dois') continue; const nm = bairro(cc, r), o = lotXY(cc, r), a = soma[nm] || (soma[nm] = { x: 0, y: 0, n: 0 }); a.x += o.x + LW / 2; a.y += o.y + LH / 2; a.n++; }
-      c.bairros = Object.keys(soma).filter(nm => soma[nm].n >= 3 && !['Centro', 'Aeroporto', 'Gleba Palhano', 'Cambé'].includes(nm)).map(nm => ({ nm, x: soma[nm].x / soma[nm].n, y: soma[nm].y / soma[nm].n })).sort((a, b) => b.nm.length - a.nm.length); }
+      c.bairros = Object.keys(soma).filter(nm => soma[nm].n >= 3 && !['Centro', 'Aeroporto', 'Gleba Palhano', 'Cambé', 'Ibiporã'].includes(nm)).map(nm => ({ nm, x: soma[nm].x / soma[nm].n, y: soma[nm].y / soma[nm].n })).sort((a, b) => b.nm.length - a.nm.length); }
     const tomados = ocupa.slice(), bate2 = (a, b) => Math.abs(a.x - b.x) * 2 < a.w + b.w && Math.abs(a.y - b.y) * 2 < a.h + b.h;
     c.bairros.forEach(b => { const q = { x: X(b.x), y: Y(b.y), w: pixLarg(b.nm, 1) + 6, h: 9 }; if(q.x - q.w / 2 < 2 || q.x + q.w / 2 > ctx.canvas.width - 2 || tomados.some(o => bate2(o, q))) return; tomados.push(q);
       /* um contorno claro em volta (a letra escura em cima da rua escura sumia) */
@@ -6724,6 +7000,7 @@
       /* v3.82: no Arthur Thomas, madeira nos pontilhões, na barragem e nos decks; pedra na praça; o resto é terra */
       if(R.k === 'arthur'){ const a = c.arthur; if(!a) return 'terra'; const d = a.deck; if(a.secos.some(s => x > s.x && x < s.x + s.w && y > s.y && y < s.y + s.h) || (x > d.x && x < d.x + d.w && y > d.y && y < d.y + d.h)) return 'madeira'; const pr = a.praca; return x > pr.x && x < pr.x + pr.w && y < pr.y + pr.h ? 'pedra' : 'terra'; }
       if(R.k === 'zerao' || R.k === 'lago') return 'grama';
+      if(R.k === 'florestal') return 'terra';
       /* v5.19: no Zezão, a pontinha é madeira; o resto, grama */
       if(R.k === 'zezao'){ const z = c.cambe && c.cambe.zezao; return z && Math.abs(x - z.ponte.x) < 16 && Math.abs(y - z.riacho(x)) < 20 ? 'madeira' : 'grama'; }
       if(R.k === 'acel'){ const a = c.acel; return a && x > a.hp.x - 34 && x < a.hp.x + 34 && y > a.hp.y + 28 ? 'pedra' : 'grama'; }
@@ -6752,12 +7029,12 @@
     const g = c.grade[Math.floor((y - TOPO) / (LH + RUA))], f = g && g[Math.floor((x - RUA) / (LW + RUA))];
     /* v3.82: o rio é lido antes (o verde usava ele uma linha antes de existir: fora do verde, dava erro e o ambiente parava) */
     const lg = c.lago, rio = c.rio, ar = c.arthur;
-    const verde = (R && /bosque|zerao|lago|acel|arthur|zezao/.test(R.k)) || !!(f && f.t === 'enche' && /pracinha|bosquinho/.test(f.f.t)) || (rio && y > rio.y0 - 20);
+    const verde = (R && /bosque|zerao|lago|acel|arthur|zezao|florestal/.test(R.k)) || !!(f && f.t === 'enche' && /pracinha|bosquinho/.test(f.f.t)) || (rio && y > rio.y0 - 20);
     /* v4.14: perto da água do lago (o lago é torto: olha a coluna de água ali) */
     const qa = lg && x > lg.x0 - 120 && x < lg.x1 + 120 ? lg.cols[clamp(Math.floor((x - lg.x0) / lg.B), 0, lg.cols.length - 1)] : null;
     const beira = rio && y > rio.y0 - 60, agua = (qa && y > qa.t - 200 && y < qa.b + 200) || beira ? 1 : 0;
     const gente = Math.max(perto({ x: c.praca.cx, y: c.praca.cy }, 700), c.feira ? perto({ x: c.feira.R.x + c.feira.R.w / 2, y: c.feira.R.y + c.feira.R.h / 2 }, 600) : 0, perto(c.centro.concha ? { x: c.centro.concha.x + LW / 2, y: c.centro.concha.base + 60 } : null, 420) * .7);
-    const trafego = rio && y > rio.y0 + 60 ? .2 : R ? ({ lago: .3, bosque: .4, zerao: .55, aeroporto: .45, acel: .5, arthur: .15, zezao: .3 }[R.k] || .7) : 1;
+    const trafego = rio && y > rio.y0 + 60 ? .2 : R ? ({ lago: .3, bosque: .4, zerao: .55, aeroporto: .45, acel: .5, arthur: .15, zezao: .3, florestal: .15 }[R.k] || .7) : 1;
     const aguaAr = ar ? Math.max(perto({ x: (ar.lago.x0 + ar.lago.x1) / 2, y: ar.R.y + 690 }, 330), perto({ x: ar.salto.x, y: ar.salto.y1 }, 260)) : 0;
     /* v4.0: de noite menos trânsito e passarinho, mais grilo onde tem mato; com chuva, o som dela */
     const cu = ceuAgora(), ch = cu.clima.f * (cu.clima.tipo === 'chuva' ? 1 : cu.clima.tipo === 'garoa' ? .45 : 0);
@@ -7664,6 +7941,29 @@
         T.hud = `${pos}º lugar`;
       } } }
   );
+  /* v5.21 · as missões que juntam Ibiporã e Curitiba: o café de Ibiporã que atravessa as três cidades, as três igrejas
+     (a capela de Ibiporã, a Catedral de Londrina e a Paróquia de Cambé) e o pinhão da Rua XV (bico) */
+  MISSOES.push(
+    { u: 'motoboy', def: { k: 'cafe', missao: true, como: 'de moto', nome: 'Café de Ibiporã', veic: 'moto', vcor: 6, pontos: 8, desc: 'De moto: busca o café no Museu do Café, em Ibiporã, e entrega na Feira do Corre, em Londrina, e na Fonte Luminosa, em Cambé. As três cidades pela BR-369, cada entrega com o seu relógio.',
+      monta: () => {
+        const mc = emCambe('Museu do Café'), fe = livre(lugarNome('Feira do Corre')), fo = emCambe('Fonte Luminosa'); if(!mc || !fe || !fo) return null;
+        const pz = (a, b, f) => Math.round(f + Math.hypot(b.x - a.x, b.y - a.y) / 150);
+        return [Object.assign(mc, { rotulo: 'o Museu do Café, em Ibiporã', acao: 'Pegar o café', dur: 1.5, item: 'caixa', prazo: 40 }),
+          Object.assign(fe, { rotulo: 'a Feira do Corre, em Londrina', acao: 'Entregar', dur: 1, prazo: pz(mc, fe, 16), efeito: 'brilho' }),
+          Object.assign(fo, { rotulo: 'a Fonte Luminosa, em Cambé', acao: 'Entregar', dur: 1, prazo: pz(fe, fo, 16), tira: true, efeito: 'brilho' })];
+      },
+      comeca(T){ const e = V.eu, et = T.etapas[0]; et.prazo = Math.round(22 + Math.hypot(et.x - e.x, et.y - e.y) / 150); T.ate = Date.now() + et.prazo * 1000; },
+      bateu(T, k){ if(k !== 'carro' || T.i < 1) return; T.ate -= 6000; C.toast('O café voou da garupa! −6 s', 1800); } } },
+    { u: 'super', def: { k: 'capelas', missao: true, como: 'de patinete', nome: 'As três igrejas', veic: 'patinete', pontos: 7, tempo: 420, desc: 'De patinete: toca o sino da capela de Ibiporã, da Catedral de Londrina e da Paróquia Santo Antônio, em Cambé, antes do relógio acabar. As três cidades, uma atrás da outra.',
+      monta: () => {
+        const cp = emCambe('Capela de Ibiporã'), ca = livre(portaCivica('catedral')), sa = emCambe('Paróquia Santo Antônio'); if(!cp || !ca || !sa) return null;
+        const sino = { t: 'tempo', n: 3, e: 3, per: .9, faixa: .26, verbo: 'Blém!', dica: 'Puxa a corda do sino quando o ponteiro passar na faixa rosa.' };
+        return [Object.assign(cp, { rotulo: 'a capela de Ibiporã', acao: 'Tocar o sino', efeito: 'brilho', jogo: Object.assign({}, sino) }),
+          Object.assign(ca, { rotulo: 'a Catedral de Londrina', acao: 'Tocar o sino', efeito: 'brilho', jogo: Object.assign({}, sino) }),
+          Object.assign(sa, { rotulo: 'a Paróquia Santo Antônio, em Cambé', acao: 'Tocar o sino', efeito: 'brilho', jogo: Object.assign({}, sino) })];
+      } } }
+  );
+  TAREFAS.chef.push({ k: 'pinhao', nome: 'Pinhão da Rua XV', desc: 'Em Curitiba, do outro lado da ponte do Tibagi: busca o pinhão cozido na Rua XV e traz pra Feira do Corre, em Londrina.', pontos: 1, monta: () => { const r = emCambe('Rua XV de Novembro'), fe = livre(lugarNome('Feira do Corre')); return r && fe ? [Object.assign(r, { rotulo: 'a Rua XV, em Curitiba', acao: 'Pegar o pinhão', dur: 2, item: 'caixa' }), Object.assign(fe, { rotulo: 'a Feira do Corre, em Londrina', acao: 'Entregar o pinhão', dur: 1.5, tira: true })] : null; } });
   /* os bicos de Cambé (0,03 cada, como todo bico) */
   TAREFAS.rei.push({ k: 'nacoes', nome: 'Festa das Nações', desc: 'Em Cambé, a Festa das Nações junta os povos que fizeram a cidade (comida, dança e música). Vai até a Fonte Luminosa e abre a festa.', pontos: 1, monta: () => { const f = emCambe('Fonte Luminosa'); return f ? [Object.assign(f, { rotulo: 'a Fonte Luminosa, em Cambé', acao: 'Abrir a festa', dur: 6, efeito: 'brilho' })] : null; } });
   TAREFAS.cientista.push({ k: 'riacho', nome: 'Água do Zezão', desc: 'Coleta uma amostra do riacho do Parque Zezão, em Cambé, e traz pro Aquário do Igapó, em Londrina, pra comparar com a água do lago.', pontos: 1, monta: () => { const z = V.cid.cambe && V.cid.cambe.zezao, aq = livre(portaCivica('aquario')); if(!z || !aq) return null; const p = livre({ x: z.ponte.x, y: z.riacho(z.ponte.x) - 30 }); return p ? [Object.assign(p, { rotulo: 'o riacho do Zezão, em Cambé', acao: 'Coletar a amostra', dur: 3, item: 'amostra' }), Object.assign(aq, { rotulo: 'o Aquário do Igapó, em Londrina', acao: 'Entregar no Aquário', dur: 1.5, tira: true })] : null; } });
@@ -7951,7 +8251,19 @@
         'Show no anfiteatro? Chego cedo pra pegar o degrau de cima.', 'Desce o vale correndo, sobe andando. Ninguém sobe correndo.'] },
     { nome: 'Zé do Prumo', onde: 'Estrada pra Cambé', voz: 150, av: { pele: 4, cabelo: 'curto', barba: 'cavanhaque', roupa: 'regata', corRoupa: 4, corCalca: 1 },
       frases: ['Falei que era em breve. Ficou pronta!', 'Essa estrada eu fiz no prumo. A curva é culpa do mapa.', 'Agora dá pra ir de Londrina a Cambé sem pedir licença pra cancela.',
-        'Fui pedreiro na obra, agora sou fiscal de estrada. Por conta própria.'] }
+        'Fui pedreiro na obra, agora sou fiscal de estrada. Por conta própria.'] },
+    /* v5.21 · a gente de Ibiporã e de Curitiba (a Dona Rose era a mestre da obra de Ibiporã, na 5.17) */
+    { nome: 'Seu Bento', onde: 'Museu do Café', voz: 140, av: { pele: 2, cabelo: 'curto', corCabelo: 4, barba: 'barba', topo: 'bone', roupa: 'jaqueta', corRoupa: 3, corCalca: 1 },
+      frases: ['O trem chegou aqui em 1934. A estação só abriu em 1936. Eu não era nascido, mas conto como se fosse.', 'Hoje a estação é o Museu do Café. Já foi o lugar mais importante da cidade.', 'Ibiporã quer dizer terra bonita. Olha em volta e me diz se não é.',
+        'Café coado no pano, que nem antigamente. Máquina é pra apressado.'] },
+    { nome: 'Dona Rose', onde: 'Estrada pra Ibiporã', voz: 230, av: { pele: 1, cabelo: 'longo', corCabelo: 1, oculos: 'grau', roupa: 'jaqueta', corRoupa: 6, corCalca: 1 },
+      frases: ['Eu falei que ficava pronto. Ficou.', 'Estrada lisinha até Londrina. Pode vir que eu conferi no prumo.', 'De Ibiporã dá pra seguir pra São Paulo. Mas essa ainda é em breve, viu.'] },
+    { nome: 'Seu Ademir', onde: 'Rua XV de Novembro', voz: 160, av: { pele: 0, cabelo: 'curto', corCabelo: 4, oculos: 'grau', roupa: 'jaqueta', corRoupa: 0, corCalca: 3 },
+      frases: ['Leva casaco. Curitiba faz as quatro estações num dia só.', 'A Rua XV virou calçadão em 1972. O de Londrina veio depois. Só digo isso.', 'Aqui é vina, lá em Londrina é salsicha. Cada um com o seu erro.',
+        'Ônibus aqui é no tubo: paga antes e entra no mesmo nível. Organização.', 'Atravessou a ponte do Tibagi a pé? Coragem, hein.'] },
+    { nome: 'Bruna', onde: 'Ópera de Arame', voz: 290, av: { pele: 3, cabelo: 'cacheado', corCabelo: 0, roupa: 'moletom', corRoupa: 5, corCalca: 0, tenis: 1 },
+      frases: ['A Ópera de Arame é de 1992. Tubo de aço em cima do lago da pedreira.', 'Show aqui com chuva no teto transparente é outra coisa.', 'Jardim Botânico de manhã, Ópera de noite. É o roteiro.',
+        'Vim de Londrina de avião. Saí no Afonso Pena de paraquedas. Normal.'] }
   ];
   /* v4.10: os papos do porto (sempre o Seu Pedro abre, a Dona Maria fecha) */
   const PAPOS_PORTO = [
@@ -9196,17 +9508,30 @@
   function altVoo(o){ if(!o) return 0; if(o === V.eu){ const v = V.voo; return v ? v.alt : 0; } return o.vo === 1 ? VOO_ALT * .9 : o.pq ? 70 : 0; }
   const precoVoo = () => Number(C.correal && C.correal.precos && C.correal.precos.voo) || 0.05;
   const destinosVoo = () => { const vistos = new Set(['Aeroporto']); return lugares().filter(l => { if(vistos.has(l.nome)) return false; vistos.add(l.nome); return true; }); };
-  function aeroportoSheet(){
-    const preco = precoVoo(), saldo = C.correal.saldo, L = destinosVoo();
-    C.sheet(`<div class="form cvr-aero"><div class="sheet-head"><h2>${ico('aviao')} Aeroporto de Londrina</h2><button type="button" class="cbtn plain" data-close aria-label="Fechar">${ico('x')}</button></div>
-      <p>O teco-teco do Corre decola daqui, cruza a cidade por cima e te solta de paraquedas onde você escolher. Cada voo sai por <b>${C.correalTxt(preco)}</b>; você tem <b class="num" data-correal-saldo>${saldo == null ? '…' : C.correalFmt(saldo)}</b>.</p>
-      <p class="lbl-s">Pra onde?</p>
-      <div class="cvr-lugares cvr-aero-l">${L.map((l, i) => `<button type="button" class="btn sm" data-act="cvr-voar" data-i="${i}">${ico('aviao')} ${esc(l.nome)}</button>`).join('')}</div>
+  /* v5.21 · de onde o avião sai: o Aeroporto de Londrina, os campos de pouso de Cambé e de Ibiporã e o Afonso Pena, em
+     Curitiba (o Thales: "opção de voar de avião entre todas as cidades"). Cada um com a vaga, a pista e onde se chega */
+  function aerosVoo(){
+    const c = V.cid; if(!c) return []; const L = [], ae = c.aeroporto;
+    if(ae) L.push({ k: 'londrina', nome: 'Aeroporto de Londrina', cidade: 'Londrina', vaga: ae.vaga, pista: ae.pista, chega: ae.porta ? { x: ae.porta.x, y: ae.porta.y + 30 } : { x: ae.vaga.x, y: ae.vaga.y + 60 } });
+    (c.campos || []).forEach(a => L.push(a)); if(c.sul && c.sul.afonso && c.sul.afonso.a) L.push(c.sul.afonso.a);
+    return L;
+  }
+  function aeroportoSheet(de){
+    const A = aerosVoo(), a = de || A[0]; if(!a) return;
+    const preco = precoVoo(), saldo = C.correal.saldo, cid = A.filter(x => x.k !== a.k).map(x => ({ nome: x.cidade, x: x.chega.x, y: x.chega.y, cidade: true })), L = cid.concat(destinosVoo());
+    V.vooDe = a; V.vooL = L;
+    const bt = (l, i) => `<button type="button" class="btn sm" data-act="cvr-voar" data-i="${i}">${ico('aviao')} ${esc(l.nome)}</button>`;
+    C.sheet(`<div class="form cvr-aero"><div class="sheet-head"><h2>${ico('aviao')} ${esc(a.nome)}</h2><button type="button" class="cbtn plain" data-close aria-label="Fechar">${ico('x')}</button></div>
+      <p>O teco-teco do Corre decola daqui e te solta de paraquedas onde você escolher: em outra cidade ou num lugar do mapa. Cada voo sai por <b>${C.correalTxt(preco)}</b>; você tem <b class="num" data-correal-saldo>${saldo == null ? '…' : C.correalFmt(saldo)}</b>.</p>
+      <p class="lbl-s">Outra cidade</p>
+      <div class="cvr-lugares cvr-aero-l">${cid.map(bt).join('')}</div>
+      <p class="lbl-s">Um lugar do mapa</p>
+      <div class="cvr-lugares cvr-aero-l">${L.slice(cid.length).map((l, i) => bt(l, i + cid.length)).join('')}</div>
       <p class="fine">Correal não é dinheiro: se ganha fazendo trampo no Correverso (centavos por tarefa, até ${C.correalFmt(C.correal.teto)} por dia). O voo é passeio; o app sempre pergunta antes de descontar.</p></div>`);
     C.correalCarrega().catch(() => {});
   }
   async function voar(i){
-    const d = destinosVoo()[i]; if(!d || V.voo || !V.vivo) return;
+    const d = (V.vooL || destinosVoo())[i], de = V.vooDe; if(!d || V.voo || !V.vivo) return;
     await C.correalCarrega().catch(() => {});
     const preco = precoVoo(), saldo = Number(C.correal.saldo) || 0;
     if(!C.correalCobre(saldo, preco)){ C.toast(`O voo sai por ${C.correalTxt(preco)} e você tem ${C.correalFmt(saldo)}. Faz um trampo no Correverso e volta.`, 4200); return; }
@@ -9216,12 +9541,12 @@
     if(!r || !r.ok){ if(r && r.saldo != null) C.correalSet(r.saldo); C.toast(r && r.preco == null ? 'O voo ainda não tá liberado no servidor.' : 'Não deu: o saldo não cobre o voo.', 3600); return; }
     C.correalSet(r.saldo); correalUI(false); C.closeSheet();
     if(C.versoSom) C.versoSom.moeda();
-    decola(d);
+    decola(d, de);
   }
-  function decola(d){
-    const a = V.cid.aeroporto, e = V.eu; if(!a || !e || V.voo) return;
+  function decola(d, de){
+    const a = de || V.cid.aeroporto, e = V.eu; if(!a || !e || V.voo) return;
     const alvo = pertoLivre(d.x, d.y) || { x: d.x, y: d.y };
-    V.voo = { fase: 'embarca', t: 0, x: a.vaga.x, y: a.vaga.y, alt: 0, dir: 1, x0: a.vaga.x, y0: a.vaga.y, pistaY: a.pista.y + a.pista.h / 2 + 10, fim: a.pista.x + a.pista.w - 160, ate: { x: alvo.x, y: alvo.y, nome: d.nome } };
+    V.voo = { de: de ? de.k : 'londrina', fase: 'embarca', t: 0, x: a.vaga.x, y: a.vaga.y, alt: 0, dir: 1, x0: a.vaga.x, y0: a.vaga.y, pistaY: a.pista.y + a.pista.h / 2 + 10, fim: a.pista.x + a.pista.w - 160, ate: { x: alvo.x, y: alvo.y, nome: d.nome } };
     saiDoBarco(); e.sit = false; e.pesca = null; e.item = null; V.alvo = null; V.porta = null; V.portaT = null; portaUI();
     e.x = a.vaga.x; e.y = a.vaga.y; e.mov = true;
     if(V.pad) V.pad.solta();
@@ -9309,7 +9634,7 @@
     if(x - hl < 10 || x + hl > r.W - 10) return true;
     for(const dx of boia ? [0] : [-hl, -hl / 2, 0, hl / 2, hl]){ const c = r.colEm(x + dx); if(y - cima < c.t + 4 || y + baixo > c.b - 3) return true; }
     for(const p of r.piers) if(x + hl > p.x - 2 && x - hl < p.x + p.w + 2 && y - cima < p.y + p.h + 4 && y + baixo > p.y) return true;
-    { const e = (V.cid.estradas || []).find(q => q.eixo === 'v'); if(e){ const p = e.ponte; if(Math.abs(x - p.x) < 44 + hl && y - cima < p.t + p.dk + 6) return true; for(const f of [.58, .82]){ const py = p.t + (p.b - p.t) * f; if(Math.abs(x - p.x) < 12 + hl && Math.abs(y - py) < 12) return true; } } }
+    { const e = (V.cid.estradas || []).find(q => q.eixo === 'v'); if(e){ const p = e.ponte; if(!p.pronta && Math.abs(x - p.x) < 44 + hl && y - cima < p.t + p.dk + 6) return true; for(const f of [.58, .82]){ const py = p.t + (p.b - p.t) * f; if(Math.abs(x - p.x) < 12 + hl && Math.abs(y - py) < 12) return true; } } }
     for(const p of r.pedras){ const dx = (x - p.x) / (p.r + hl * .85), dy = (y - p.y) / (p.r * .7 + (boia ? 2 : 8)); if(dx * dx + dy * dy < 1) return true; }
     if(!boia) for(const a0 of r.amarrados){ const a = amarradoXY(a0); if(Math.abs(x - a.x) < hl * 2 && Math.abs(y - a.y) < 11 / V.k) return true; }
     return false;
@@ -9771,7 +10096,7 @@
     if(V.eu && V.eu.barco){ rioAperta(); return; }
     if(V.eu && V.eu.sit){ V.eu.sit = false; V.eu.pesca = null; portaUI(); enviaPos(true); return; }
     const p = V.porta; if(!p) return;
-    if(p.tipo === 'aeroporto'){ aeroportoSheet(); return; }
+    if(p.tipo === 'aeroporto'){ aeroportoSheet(p.a); return; }
     /* v3.45: barraca com lugar (o Hórus) é porta: entra na construção 3D, e a ferramenta tá lá dentro. Desligada, segue
        pro balcão de sempre (que manda ligar) */
     if(p.tipo === 'barraca'){ if(p.b.id === 'manual' && !(p.b.lugar && C.casa && C.casa.LUGARES && C.casa.LUGARES[p.b.lugar])){ if(C.manual) C.manual.abrir(); return; }

@@ -217,6 +217,10 @@ testa teste513.sql 4
 delta delta-v519.sql 'delta v5.19 ok'
 delta delta-v519.sql 'delta v5.19 ok'
 testa teste519.sql 5
+# v5.21: Ibiporã e Curitiba (as missões novas pagam)
+delta delta-v521.sql 'delta v5.21 ok'
+delta delta-v521.sql 'delta v5.21 ok'
+testa teste521.sql 3
 . "$AQUI/virada343.sh"
 if grep -q 'FALHOU\|ERROR' $D/saida; then echo "deu FALHOU ou erro (acima)"; exit 1; fi
 echo "tudo ok: $(grep -c '^ok:' $D/saida) checagens"
