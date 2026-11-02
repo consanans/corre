@@ -2580,7 +2580,7 @@
   /* ---------- v5.21 · Curitiba, do outro lado do Tibagi ----------
      O Thales: "faça Ibiporã e Curitiba" e "opção de voar de avião entre todas as cidades"; e na 5.22: "transforme
      Curitiba em 10x maior e cada coisa no seu lugar proporcionalmente à cidade". No Correverso ela fica do outro lado da
-     ponte do Tibagi (a de verdade, a uns 380 km): 12 x 10 quarteirões, o norte pra cima, cada quarteirão uns 1,3 km.
+     ponte do Tibagi (a de verdade, a uns 380 km): uns 110 quarteirões numa planta de 14 x 12 com o contorno solto, o norte pra cima, cada quarteirão uns 1,3 km.
      A estrada que sai da ponte vira o eixo norte-sul (a canaleta do biarticulado) e chega no Centro. Cada lugar fica
      na direção e na distância do Centro de verdade (contadas da Rua XV): o Museu Oscar Niemeyer e o Couto Pereira ao
      norte, a Ópera de Arame e o Tanguá mais acima, o Bosque Alemão e Santa Felicidade a noroeste, o Barigui e a Torre
@@ -2592,17 +2592,20 @@
        S Passeio Público      P Torre Panorâmica     K Catedral             X Rua XV de Novembro
        U Prédio Histórico da UFPR                    Z Arena da Baixada     R Rodoferroviária e Mercado Municipal
        J Jardim Botânico      Y Aeroporto Afonso Pena                       #  cidade */
+  /* v5.23: e com o contorno solto (o Thales: "deixe Curitiba menos quadrada no mapa"): onde tem ponto é roça */
   const PLANTA_CWB = [
-    '####T#######',
-    '#F###O######',
-    '####A#######',
-    '######MC####',
-    '##B##L#S####',
-    '###P#KXU####',
-    '####Z##RJ###',
-    '############',
-    '############',
-    '###########Y'
+    '....######....',
+    '..###T####....',
+    '.#F###O####...',
+    '.####A######..',
+    '..#####MC####.',
+    '..#B##L#S####.',
+    '.###P#KXU#####',
+    '..###Z##RJ###.',
+    '..##########..',
+    '...#########..',
+    '...####..###..',
+    '....##...##Y..'
   ];
   const LETRA_CWB = { T: 'tangua', O: 'opera', F: 'santafe', A: 'alemao', M: 'oscar', C: 'coxa', B: 'barigui', L: 'largo', S: 'passeio', P: 'torre', K: 'catedral', X: 'ruaxv', U: 'ufpr', Z: 'arena', R: 'rodo', J: 'botanico', Y: 'afonso' };
   const NOME_CWB = { ruaxv: 'Rua XV de Novembro', opera: 'Ópera de Arame', botanico: 'Jardim Botânico', afonso: 'Aeroporto Afonso Pena', tangua: 'Parque Tanguá', santafe: 'Santa Felicidade', alemao: 'Bosque Alemão',
@@ -2633,16 +2636,17 @@
   const CAMPOS = [{ k: 'cambe', nome: 'Campo de pouso de Cambé', cidade: 'Cambé', c: 1, r: 1 }, { k: 'ibipora', nome: 'Campo de pouso de Ibiporã', cidade: 'Ibiporã', c: OESTE + LONDRINA_C + 4, r: 2 }];
   function montaCuritiba(K, W, yRio, rio, est){
     if(!est) return null;
-    const NC = PLANTA_CWB[0].length, NR = PLANTA_CWB.length, c0 = est.i - 6, ySul = yRio + RIO_H;
+    const NC = PLANTA_CWB[0].length, NR = PLANTA_CWB.length, c0 = est.i - 7, ySul = yRio + RIO_H;
     const S = { rx: est.x, c0, nc: NC, nr: NR, x0: ruaX(c0) - RUA / 2, x1: ruaX(c0 + NC) + RUA / 2, y0: ySul, y1: ySul + RUA + NR * QQ, blocos: [], enche: [], placas: [], bancos: [] };
     const placa = (k, x, y) => { K.decor.push({ tipo: 'placa', x, y, txt: PLACA_CWB[k], fundo: PAPEL, h: 26 }); S.placas.push({ x, y, titulo: k === 'tubo' ? 'Estação-tubo' : NOME_CWB[k], txt: TXT_CWB[k] }); };
     const arvs = (b, L) => L.forEach(([dx, dy], i) => K.arv.push({ x: b.x + dx, y: b.y + dy, cor: [ROSA, AMARELO, LILAS, '#F4F1EA', LARANJA][i % 5], g: i % 3 === 0 }));
     for(let j = 0; j < NR; j++) for(let i = 0; i < NC; i++){
       const ch = PLANTA_CWB[j][i], t = LETRA_CWB[ch], x = lotXY(c0 + i, 0).x, y = ySul + RUA + j * QQ, sd = hash('cwb' + i + ',' + j), q = rng(sd);
+      if(ch === '.') continue;
       const b = { t: t || '', i, j, x, y, base: y + LH - 34 }; S.blocos.push(b);
       if(!t){
         /* a cidade: prédio e loja perto do Centro, pracinha e bosquinho mais longe */
-        const d = Math.hypot(i - 6, j - 5), r = q(), tp = d < 2.6 ? (r < .6 ? 'predio' : 'loja') : d < 4.6 ? (r < .35 ? 'predio' : r < .65 ? 'loja' : r < .82 ? 'bosquinho' : 'pracinha') : (r < .2 ? 'predio' : r < .4 ? 'loja' : r < .8 ? 'bosquinho' : 'pracinha');
+        const d = Math.hypot(i - 7, j - 6), r = q(), tp = d < 2.6 ? (r < .6 ? 'predio' : 'loja') : d < 4.6 ? (r < .35 ? 'predio' : r < .65 ? 'loja' : r < .82 ? 'bosquinho' : 'pracinha') : (r < .2 ? 'predio' : r < .4 ? 'loja' : r < .8 ? 'bosquinho' : 'pracinha');
         const f = { id: 'cwb' + i + ',' + j, t: tp, c: c0 + i, r: 900 + j, x, y, sd, sul: true }; montaEnche(f, K, q); S.enche.push(f); b.f = f; continue;
       }
       S[t] = b; const cx = x + LW / 2, cy = y + LH / 2;
@@ -2675,18 +2679,20 @@
       }
     }
     /* as estações-tubo na rua do meio (a leste-oeste) e o biarticulado indo e voltando nela */
-    const yTubo = ySul + RUA / 2 + 5 * QQ + 10;
-    [-3, 0, 3].forEach((d, n) => { const tx = ruaX(c0 + 6 + d) + (d >= 0 ? 150 : -150); K.decor.push({ tipo: 'tubo', x: tx, y: yTubo }); K.sol.push({ x: tx - 50, y: yTubo - 12, w: 100, h: 12 }); if(n === 1){ S.tubo = { x: tx, y: yTubo }; S.placas.push({ x: tx + 70, y: yTubo + 4, titulo: 'Estação-tubo', txt: TXT_CWB.tubo }); K.lugares.push({ nome: 'Estação-tubo', x: tx, y: yTubo + 26 }); } });
-    K.decor.push({ tipo: 'biarticulado', x: (S.x0 + S.x1) / 2, y: yTubo + 26, x0: S.x0 + 140, x1: S.x1 - 140 });
+    const yTubo = ySul + RUA / 2 + 6 * QQ + 10;
+    [-3, 0, 3].forEach((d, n) => { const tx = ruaX(c0 + 7 + d) + (d >= 0 ? 150 : -150); K.decor.push({ tipo: 'tubo', x: tx, y: yTubo }); K.sol.push({ x: tx - 50, y: yTubo - 12, w: 100, h: 12 }); if(n === 1){ S.tubo = { x: tx, y: yTubo }; S.placas.push({ x: tx + 70, y: yTubo + 4, titulo: 'Estação-tubo', txt: TXT_CWB.tubo }); K.lugares.push({ nome: 'Estação-tubo', x: tx, y: yTubo + 26 }); } });
+    K.decor.push({ tipo: 'biarticulado', x: (S.x0 + S.x1) / 2, y: yTubo + 26, x0: ruaX(c0 + 2) + 80, x1: ruaX(c0 + NC - 1) - 80 });
     K.decor.push({ tipo: 'portalCambe', x: S.rx + 130, y: ySul - 4, txt: 'CURITIBA' }); K.sol.push({ x: S.rx + 130 - 74, y: ySul - 16, w: 148, h: 10 });
     K.zonas.push({ nome: 'Curitiba', x: S.x0, y: S.y0, w: S.x1 - S.x0, h: S.y1 - S.y0 });
     /* v5.23 · a roça em volta de Curitiba (o Thales: "coloque roça do lado de Curitiba onde tá marrom"): cada pedaço do
        tamanho de um quarteirão é uma lavoura (terra roxa, trigo, palhada, milho), com ipê e silo de vez em quando. Ninguém
        anda nela (como a de Londrina) */
     S.roca = [];
+    /* tem(i, j): o quarteirão de Curitiba é cidade? (i e j contados da planta) */
+    S.tem = (i, j) => i >= 0 && j >= 0 && i < NC && j < NR && PLANTA_CWB[j][i] !== '.';
     for(let c = 0; c < COLS; c++) for(let j = 0; j <= NR; j++){
-      const x = ruaX(c), y = ySul + j * QQ, w = PQ, h = Math.min(QQ, ySul + SUL_H - y); if(h <= 0) continue;
-      if(c >= c0 && c < c0 + NC && j < NR) continue;
+      const x = ruaX(c), y = ySul + RUA / 2 + j * QQ - (j ? 0 : RUA / 2), w = PQ, h = Math.min(QQ + (j ? 0 : RUA / 2), ySul + SUL_H - y); if(h <= 0) continue;
+      if(S.tem(c - c0, j)) continue;
       const q = rng(hash('rocaSul' + c + ',' + j)), r = { x, y, w, h, t: pega(ROCA_T, q), deitado: q() < .5, sd: Math.floor(q() * 1e6) }; S.roca.push(r);
       if(Math.abs(x + w / 2 - est.x) < PQ && j === 0) continue;
       if(q() < .5) K.arv.push({ x: Math.round(x + 50 + q() * (w - 100)), y: Math.round(y + 50 + q() * (h - 80)), cor: pega(IPES, q), mata: true, roca: true });
@@ -3125,7 +3131,7 @@
      Perto das pedras a água corre (a corredeira), e é ali que a piapara grande gosta de ficar. */
   const RIO_H = 640;
   /* v5.21: Curitiba, do outro lado do Tibagi (v5.22: 10 fileiras de quarteirões embaixo do rio) */
-  const SUL_H = RUA + 10 * (LH + RUA) + 40;
+  const SUL_H = RUA + 12 * (LH + RUA) + 40;
   function montaRio(W, y0, K){
     const B = 12, n = Math.ceil(W / B), q = rng(hash('tibagi'));
     /* v5.19: a curva do rio é contada a partir de Londrina (com Cambé à esquerda, ele não muda de cara) */
@@ -3194,7 +3200,12 @@
   const naRoca = (x, y) => { const c = V.cid; return !!c && !!c.ehRoca && y < (c.rio ? c.rio.y0 : c.H) && naArea(x, y, c.ehRoca) && !naEstrada(x, y) && !naObra(x, y) && !naCampo(x, y); };
   /* v5.21: do outro lado do Tibagi só se anda na estrada que sai da ponte e em Curitiba */
   const naSul = (x, y) => { const c = V.cid, r = c.rio, S = c.sul; if(!r || y < r.y0 + 20) return false; if(y <= r.colEm(x).b - 6) return false;
-    if(!S) return true; if(x > S.x0 && x < S.x1 && y > S.y0 && y < S.y1) return false; return !(Math.abs(x - S.rx) < RUA / 2 - 10 && y < S.y0 + 20); };
+    if(!S) return true;
+    /* v5.23: em Curitiba só se anda nos quarteirões de cidade e nas ruas em volta deles (a roça barra) */
+    if(x > S.x0 && x < S.x1 && y > S.y0 && y < S.y1){ const bx0 = lotXY(S.c0, 0).x, i = Math.floor((x - bx0 + RUA) / PQ), j = Math.floor((y - S.y0) / QQ);
+      for(let di = -1; di <= 0; di++) for(let dj = -1; dj <= 0; dj++){ const ii = i + di, jj = j + dj; if(!S.tem(ii, jj)) continue; const bx = bx0 + ii * PQ, by = S.y0 + RUA + jj * QQ; if(x > bx - RUA + 2 && x < bx + LW + RUA - 2 && y > by - RUA + 2 && y < by + LH + RUA - 2) return false; }
+      return true; }
+    return !(Math.abs(x - S.rx) < RUA / 2 - 10 && y < S.y0 + 20); };
   /* o lugar grande num ponto (pelo quarteirão; a rua em volta conta como dele) */
   const regDe = (x, y) => { const c = V.cid; if(c.rio && y > c.rio.y0) return null; const cc = clamp(Math.floor((x - RUA / 2) / PQ), 0, COLS - 1), rr = clamp(Math.floor((y - TOPO + RUA / 2) / QQ), 0, c.rows - 1), g = c.grade[rr] && c.grade[rr][cc]; return g && g.t === 'reg' ? g.R : null; };
   const naAgua = (x, y) => { const l = V.cid.lago; if(!l || x < l.x0 || x >= l.x1) return false; const c = l.cols[Math.floor((x - l.x0) / l.B)]; if(!c || y <= c.t + 6 || y >= c.b - 2) return false; for(const s of l.secos) if(x > s.x + 4 && x < s.x + s.w - 4 && y > s.y && y < s.y + s.h) return false; return true; };
@@ -3418,15 +3429,19 @@
       if(r.deitado) for(let yy = Math.ceil(iy0 / per) * per; yy < iy1; yy += per) ctx.fillRect(ix0, yy, ix1 - ix0, Math.min(lar, iy1 - yy)); else for(let xx = Math.ceil(ix0 / per) * per; xx < ix1; xx += per) ctx.fillRect(xx, iy0, Math.min(lar, ix1 - xx), iy1 - iy0);
       if(r.t !== 'palhada'){ const q = rng(r.sd); ctx.fillStyle = r.t === 'arado' ? 'rgba(40,12,6,.45)' : 'rgba(255,236,170,.5)'; for(let i = 0; i < 70; i++){ const px = r.x + q() * r.w, py = r.y + q() * r.h; if(px > ix0 && px < ix1 && py > iy0 && py < iy1) ctx.fillRect(sn(px), sn(py), u * 2, u * 2); } }
       ctx.fillStyle = 'rgba(90,58,34,.35)'; ctx.fillRect(ix0, r.y, ix1 - ix0, 2 * u); ctx.fillRect(r.x, iy0, 2 * u, iy1 - iy0); });
-    /* a cerca de arame e o capim em volta da cidade, onde a roça encosta nela */
-    { const fx0 = S.x0 - CALC - 16, fx1 = S.x1 + CALC + 16, fy1 = S.y1 + CALC + 16; ctx.fillStyle = '#CDB070'; ctx.fillRect(fx0, S.y0, 16, fy1 - S.y0); ctx.fillRect(fx1 - 16, S.y0, 16, fy1 - S.y0); ctx.fillRect(fx0, fy1 - 16, fx1 - fx0, 16);
-      ctx.fillStyle = '#5A3A22'; ctx.fillRect(fx0 + 4, S.y0, u, fy1 - S.y0); ctx.fillRect(fx1 - 5, S.y0, u, fy1 - S.y0); ctx.fillRect(fx0, fy1 - 5, fx1 - fx0, u);
-      for(let y = S.y0 + 6; y < fy1; y += 24){ ctx.fillRect(fx0 + 3, y, 3, 9); ctx.fillRect(fx1 - 6, y, 3, 9); } for(let x = fx0 + 6; x < fx1; x += 24) ctx.fillRect(x, fy1 - 11, 3, 9); }
-    ctx.fillStyle = pad(ctx, 'calcada'); ctx.fillRect(S.x0 - CALC, S.y0, S.x1 - S.x0 + CALC * 2, S.y1 - S.y0 + CALC);
-    ctx.fillStyle = pad(ctx, 'rua'); ctx.fillRect(S.x0, S.y0, S.x1 - S.x0, S.y1 - S.y0);
+    /* v5.23: a cidade tem contorno: a rua é só em volta dos quarteirões de cidade (entre dois de roça, é lavoura), com a
+       faixa no meio; a cerca de arame fica do lado da roça, onde ela encosta na rua */
+    ctx.fillStyle = pad(ctx, 'rua'); S.blocos.forEach(b => { if(b.x - RUA > vx + vw || b.x + LW + RUA < vx || b.y - RUA > vy + vh || b.y + LH + RUA < vy) return; ctx.fillRect(b.x - RUA, b.y - RUA, LW + 2 * RUA, LH + 2 * RUA); });
     ctx.fillStyle = 'rgba(242,236,84,.85)';
-    for(let j = 0; j <= S.nr; j++){ const y = S.y0 + RUA / 2 + j * QQ; for(let x = Math.ceil(S.x0 / 36) * 36; x < S.x1; x += 36) ctx.fillRect(x, y - t / 2, 18, t); }
-    for(let i = 0; i <= S.nc; i++){ const x = ruaX(S.c0 + i); for(let y = Math.ceil(S.y0 / 36) * 36; y < S.y1; y += 36) ctx.fillRect(x - t / 2, y, t, 18); }
+    S.blocos.forEach(b => { if(b.x - RUA > vx + vw || b.x + LW + RUA < vx || b.y - RUA > vy + vh || b.y + LH + RUA < vy) return;
+      [b.y - RUA / 2, b.y + LH + RUA / 2].forEach(y => { for(let x = Math.ceil((b.x - RUA) / 36) * 36; x < b.x + LW + RUA; x += 36) ctx.fillRect(x, y - t / 2, 18, t); });
+      [b.x - RUA / 2, b.x + LW + RUA / 2].forEach(x => { for(let y = Math.ceil((b.y - RUA) / 36) * 36; y < b.y + LH + RUA; y += 36) ctx.fillRect(x - t / 2, y, t, 18); }); });
+    (S.roca || []).forEach(r => { if(r.x > vx + vw + 20 || r.x + r.w < vx - 20 || r.y > vy + vh + 20 || r.y + r.h < vy - 20) return;
+      const ci = Math.round((r.x + RUA / 2 - lotXY(S.c0, 0).x) / PQ), cj = Math.round((r.y - S.y0 - RUA / 2 + (r.y === S.y0 ? RUA / 2 : 0)) / QQ);
+      const ox = lotXY(S.c0 + ci, 0).x, oy = S.y0 + RUA + cj * QQ;
+      [[S.tem(ci, cj - 1), ox - 4, oy - 6, LW + 8, 0], [S.tem(ci, cj + 1), ox - 4, oy + LH + 6, LW + 8, 0], [S.tem(ci - 1, cj), ox - 6, oy - 4, 0, LH + 8], [S.tem(ci + 1, cj), ox + LW + 6, oy - 4, 0, LH + 8]].forEach(([cerca, x, y, w, h], k2) => { if(!cerca) return;
+        ctx.fillStyle = '#CDB070'; ctx.fillRect(x - (w ? 0 : 5), y - (h ? 0 : 5), w || 10, h || 10); ctx.fillStyle = '#5A3A22';
+        if(w){ ctx.fillRect(x, y, w, u); for(let px = x + 6; px < x + w; px += 24) ctx.fillRect(px, y - 4, 3, 9); } else { ctx.fillRect(x, y, u, h); for(let py = y + 6; py < y + h; py += 24) ctx.fillRect(x - 1, py, 3, 9); } }); });
     S.blocos.forEach(b => { const o = { x: b.x, y: b.y }; if(o.x > vx + vw + 20 || o.x + LW < vx - 20 || o.y > vy + vh + 20 || o.y + LH < vy - 20) return;
       ctx.fillStyle = pad(ctx, 'calcada'); ctx.fillRect(o.x - CALC, o.y - CALC, LW + CALC * 2, LH + CALC * 2);
       if(b.f) return chaoLote(ctx, { t: 'enche', f: b.f }, o, vx, vy, vw, vh);
@@ -6951,7 +6966,7 @@
     /* v5.21 · Curitiba do outro lado do rio, a ponte e os campos de pouso */
     if(c.sul){ const SS = c.sul, COR_RS = { arado: '#7E4330', trigo: '#BE9D55', palhada: '#AE9562', milho: '#9C7D4A' }; ctx.fillStyle = '#C9A95E'; ctx.fillRect(0, Y(SS.y0), cv.width, cv.height - Y(SS.y0));
       (SS.roca || []).forEach(r => { ctx.fillStyle = COR_RS[r.t] || '#AE9562'; ctx.fillRect(X(r.x), Y(r.y), Math.ceil(r.w / S), Math.ceil(r.h / S)); });
-      ctx.fillStyle = '#2B2F38'; ctx.fillRect(X(SS.x0), Y(SS.y0), Math.round((SS.x1 - SS.x0) / S), Math.round((SS.y1 - SS.y0) / S)); ctx.fillRect(X(SS.rx - 32), Y(rio ? rio.y0 : SS.y0), Math.max(2, Math.round(64 / S)), Y(SS.y0) - Y(rio ? rio.y0 : SS.y0));
+      ctx.fillStyle = '#2B2F38'; SS.blocos.forEach(b => ctx.fillRect(X(b.x - RUA), Y(b.y - RUA), Math.round((LW + 2 * RUA) / S), Math.round((LH + 2 * RUA) / S))); ctx.fillRect(X(SS.rx - 32), Y(rio ? rio.y0 : SS.y0), Math.max(2, Math.round(64 / S)), Y(SS.y0) - Y(rio ? rio.y0 : SS.y0));
       SS.blocos.forEach(b => { ctx.fillStyle = b.f ? (COR_E[b.f.t] || '#E6DECD') : '#F4F1EA'; ctx.fillRect(X(b.x), Y(b.y), Math.round(LW / S), Math.round(LH / S)); }); }
     (c.campos || []).forEach(a => { ctx.fillStyle = '#D9C27F'; ctx.fillRect(X(a.x), Y(a.y), Math.round(LW / S), Math.round(LH / S)); ctx.fillStyle = '#A4553A'; ctx.fillRect(X(a.pista.x), Y(a.pista.y), Math.round(a.pista.w / S), Math.max(2, Math.round(a.pista.h / S))); });
     /* v3.82: o lago e o ribeirão do Arthur Thomas */
