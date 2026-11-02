@@ -1650,7 +1650,7 @@
   function meta(){
     const me = C.st.me || {}, pub = me.visibilidade === 'publico';
     /* v4.11: na missão, quem passa te vê no veículo emprestado */
-    const vm = V.eu && veicMissao(), m = { sid, av: V.eu ? (vm ? Object.assign({}, V.eu.av, { veiculo: vm.veic, vcor: vm.vcor }) : V.roubo ? Object.assign({}, V.eu.av, { veiculo: V.roubo.veic, vcor: V.roubo.vcor }) : V.eu.av) : avLimpo(me.verso, me.id), mic: V.mic, x: V.eu ? Math.round(V.eu.x) : 0, y: V.eu ? Math.round(V.eu.y) : 0 };
+    const vm = V.eu && veicMissao(), m = { sid, av: V.eu ? (vm ? Object.assign({}, V.eu.av, { veiculo: vm.veic, vcor: vm.vcor }) : V.roubo ? Object.assign({}, V.eu.av, { veiculo: V.roubo.veic, vcor: V.roubo.vcor }) : V.ape ? Object.assign({}, V.eu.av, { veiculo: '', skate: false }) : V.eu.av) : avLimpo(me.verso, me.id), mic: V.mic, x: V.eu ? Math.round(V.eu.x) : 0, y: V.eu ? Math.round(V.eu.y) : 0 };
     const pt = minhaPatente(); if(pt) m.pt = pt;
     /* v3.75: de barco no Tibagi, e a maior piapara do dia (centésimos de kg) */
     if(V.eu && V.eu.barco){ m.bc = 1; m.bl = V.eu.barco.lado < 0 ? -1 : 1; }
@@ -6576,7 +6576,7 @@
   /* o veículo de alguém: o da garagem (ou o skate de antes da garagem) */
   const veiculoDe = o => { const av = o && o.av; if(!av) return ''; if(!o.barco && !o.sit && naPistaSkate(o.x, o.y)) return 'skate';
     /* v4.11: na missão, o veículo emprestado (a viatura, a moto do rush...) */
-    if(o === V.eu && !o.barco && !o.sit){ const T = veicMissao(); if(T) return T.veic; if(V.roubo) return V.roubo.veic; } return av.veiculo && C.veiculos && C.veiculos.porK(av.veiculo) ? av.veiculo : av.skate ? 'skate' : ''; };
+    if(o === V.eu && !o.barco && !o.sit){ const T = veicMissao(); if(T) return T.veic; if(V.roubo) return V.roubo.veic; if(V.ape) return ''; } return av.veiculo && C.veiculos && C.veiculos.porK(av.veiculo) ? av.veiculo : av.skate ? 'skate' : ''; };
   const veiculoInfo = o => { const k = veiculoDe(o); return k && C.veiculos ? C.veiculos.porK(k) : null; };
   const MIC_B = ['01110', '01110', '01110', '10001', '01110', '00100', '01110'];
   /* v3.76 · o balão de fala comprida (os moradores): quebra em linhas de até 24 letras (no máximo 4), numa caixa só,
@@ -7229,18 +7229,47 @@
     if(C.versoSom && C.versoSom.gta) C.versoSom.gta('empurra');
     if(C.controle) C.controle.treme(260, Math.min(1, .5 + forca * .4));
   }
+  /* v5.20: o botão preto (e o F) é só de empurrar; roubar, entrar e sair do carro e subir e descer do veículo foram pro
+     botão do veículo (e o G) */
   function brigaUI(){
     const b = C.$('cvr-briga'); if(!b) return;
-    const r = quemEmpurro(), car = !r && carroPerto(), larga = !r && !car && !!V.roubo && !!V.eu && !V.eu.barco && !V.voo;
-    b.hidden = !r && !car && !larga;
+    const r = quemEmpurro();
+    b.hidden = !r;
     if(r) b.innerHTML = `${ico('raio')} Empurrar ${esc(String(r.nome || '').slice(0, 18))}`;
-    else if(car) b.innerHTML = `${ico('carro')} Roubar o carro`;
-    else if(larga) b.innerHTML = `${ico('carro')} Largar o carro`;
-    V.brigaOn = !!(r || car || larga); V.brigaSid = r ? r.sid : car ? 'carro' : larga ? 'larga' : ''; pilhaUI();
+    V.brigaOn = !!r; V.brigaSid = r ? r.sid : ''; veicUI(); pilhaUI();
   }
-  const temBriga = () => !!(quemEmpurro() || carroPerto() || (V.roubo && V.eu && !V.eu.barco && !V.voo));
-  /* o botão preto (e o F): empurrar quem tá perto; senão roubar o carro; no carro roubado, largar ele */
-  function briga(){ if(quemEmpurro()) return empurra(); if(carroPerto()) return roubaCarro(); if(V.roubo) largaCarro(); }
+  const temBriga = () => !!quemEmpurro();
+  function briga(){ if(quemEmpurro()) empurra(); }
+  /* ---------- v5.20 · o botão do veículo (o Thales: "coloque um botão e tecla pra abrir carro, roubar, subir e descer
+     do equipamento") ----------
+     Um botão só, que muda com o que tá do lado: no carro roubado, "Sair do carro"; perto de um carro da rua, "Roubar o
+     carro" (ou "Entrar no carro", no que alguém largou); no teu veículo da garagem, "Descer" (você anda a pé, e os
+     outros te veem a pé) e, a pé, "Subir" de novo. Tecla G, ou o LT do controle. Na missão o veículo é dela: não aparece */
+  const NO_VEIC = { skate: 'no skate', patinete: 'no patinete', bike: 'na bike', scooter: 'na scooter', moto: 'na moto', naked: 'na moto', carro: 'no carro' };
+  const meuVeic = () => { const av = V.eu && V.eu.av; if(!av) return ''; return av.veiculo && C.veiculos && C.veiculos.porK(av.veiculo) ? av.veiculo : av.skate ? 'skate' : ''; };
+  function veicAcao(){
+    const e = V.eu; if(!e || !V.vivo || V.voo || e.barco || e.sit || veicMissao()) return null;
+    if(V.roubo) return { k: 'larga', txt: 'Sair do carro' };
+    const car = carroPerto(true); if(car) return { k: 'rouba', txt: car.parado ? 'Entrar no carro' : 'Roubar o carro' };
+    const vk = meuVeic(); if(!vk || naPistaSkate(e.x, e.y)) return null;
+    const vi = C.veiculos.porK(vk), no = NO_VEIC[vi.tipo] || 'no veículo', carro = vi.tipo === 'carro';
+    return V.ape ? { k: 'sobe', txt: carro ? 'Entrar no carro' : 'Subir ' + no, vk } : { k: 'desce', txt: carro ? 'Sair do carro' : 'Descer ' + no.replace(/^na /, 'da ').replace(/^no /, 'do '), vk };
+  }
+  function veicUI(){
+    const b = C.$('cvr-veic'); if(!b) return;
+    const a = veicAcao(), chave = a ? a.k + a.txt : '';
+    b.hidden = !a; V.veicOn = !!a;
+    if(a && b.dataset.k !== chave){ b.dataset.k = chave; b.innerHTML = `${ico('carro')} ${esc(a.txt)}`; }
+    if(!a) b.dataset.k = '';
+  }
+  function veicFaz(){
+    const a = veicAcao(), e = V.eu; if(!a || !e) return;
+    const agora = Date.now(); if(agora - (V.veicT || 0) < 350) return; V.veicT = agora;
+    if(a.k === 'larga') largaCarro();
+    else if(a.k === 'rouba') roubaCarro();
+    else { V.ape = a.k === 'desce'; if(C.versoSom && C.versoSom.gta) C.versoSom.gta('empurra', .35); if(C.controle) C.controle.treme(60, .3); anunciar(); }
+    padRotulo(); veicUI(); brigaUI(); portaUI();
+  }
 
   /* ---------- v5.17 · roubar carro (o Thales: "adicionar poder roubar carros também") ----------
      A pé, perto de um carro da rua (o que para na tua frente ou um que alguém largou), o botão preto vira "Roubar o
@@ -7254,14 +7283,16 @@
     (C.veiculos ? C.veiculos.CORES : []).forEach(([, h], i) => { const b = rgb(h), d = (a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2 + (a[2] - b[2]) ** 2; if(d < bd){ bd = d; bi = i; } });
     return bi;
   };
-  function carroPerto(){
-    const e = V.eu; if(!e || V.roubo || e.barco || V.voo || e.sit || veiculoDe(e) || (e.tonto && e.tonto > Date.now()) || (V.tarefa && V.tarefa.def.missao)) return null;
+  function carroPerto(montado){
+    const e = V.eu; if(!e || V.roubo || e.barco || V.voo || e.sit || (!montado && veiculoDe(e)) || (e.tonto && e.tonto > Date.now()) || (V.tarefa && V.tarefa.def.missao)) return null;
     let best = null, md = 1e9; for(const c of V.carros || []){ const dx = Math.abs(c.x - e.x), dy = Math.abs(c.y - e.y); if(dx < 46 && dy < 34 && dx + dy < md){ md = dx + dy; best = c; } }
     return best;
   }
   function roubaCarro(){
-    const e = V.eu, car = carroPerto(); if(!car || !e) return;
+    const e = V.eu, car = carroPerto(true); if(!car || !e) return;
     const agora = Date.now(); if(agora - (V.empT || 0) < 450) return; V.empT = agora;
+    /* v5.20: quem tava de bike, moto ou skate desce dele pra entrar no carro (largou o carro, tá a pé) */
+    V.ape = !!meuVeic();
     V.carros.splice(V.carros.indexOf(car), 1);
     if(!car.parado){
       const n = (V.vitN = (V.vitN || 0) + 1), r = { sid: 'npc-vit-' + n, bot: true, npc: true, nome: 'Motorista', av: avLimpo({ pele: n % 6, cabelo: sorteio(['curto', 'raspado', 'coque', 'cacheado']), roupa: sorteio(['camiseta', 'jaqueta']), corRoupa: n % 8 }, 'vit' + n),
@@ -7277,7 +7308,7 @@
     if(C.versoSom && C.versoSom.gta) C.versoSom.gta('empurra');
     if(C.controle) C.controle.treme(160, .6);
     procura(2, 'roubou um carro');
-    if(!V.rouboDica){ V.rouboDica = true; C.toast('Carro roubado: duas estrelas. Despista a polícia. Pra largar, o mesmo botão (ou F).', 4200); }
+    if(!V.rouboDica){ V.rouboDica = true; C.toast('Carro roubado: duas estrelas. Despista a polícia. Pra sair do carro, o mesmo botão (ou G).', 4200); }
     anunciar(); brigaUI(); portaUI();
   }
   function largaCarro(){
@@ -7398,7 +7429,7 @@
     if(vi && vi.tipo === 'carro' && e.mov && e.travou){ e.raspaT = (e.raspaT || 0) + dt; if(e.raspaT > .2 && agora > (e.batT || 0)){ e.batT = agora + 1300; e.raspaT = 0; bateu('parede', e.x - (e.dir === 'dir' ? -20 : e.dir === 'esq' ? 20 : 0), e.y - (e.dir === 'baixo' ? -20 : e.dir === 'cima' ? 20 : 0)); } }
     else e.raspaT = 0;
     passoPilotos(dt); passoProc(dt); passoMoedas(dt); passoVitimas(dt);
-    if(temBriga() !== !!V.brigaOn || (V.brigaOn && agora > (V.brigaT || 0))){ V.brigaT = agora + 250; brigaUI(); }
+    if(temBriga() !== !!V.brigaOn || !!veicAcao() !== !!V.veicOn || ((V.brigaOn || V.veicOn) && agora > (V.brigaT || 0))){ V.brigaT = agora + 250; brigaUI(); }
   }
   function bateu(k, fx, fy){
     if(C.versoSom && C.versoSom.gta) C.versoSom.gta('batida', k === 'parede' ? .5 : 1);
@@ -8595,12 +8626,17 @@
      posição de verdade do amarelo (no celular o texto pode quebrar em duas linhas); sem o amarelo, o Empurrar fica no
      lugar dele */
   function pilhaUI(){
-    const b = C.$('cvr-briga'), p = C.$('cvr-porta'), st = C.$('cvr-stage'); if(!b || !p || !st) return;
-    if(b.hidden){ b.style.bottom = b.style.minWidth = ''; return; }
-    if(p.hidden){ b.style.minWidth = ''; b.style.bottom = getComputedStyle(p).bottom; return; }
-    const rp = p.getBoundingClientRect(), rs = st.getBoundingClientRect();
-    if(!rp.height) return;
-    b.style.bottom = Math.round(rs.bottom - rp.top + 8) + 'px'; b.style.minWidth = rp.width.toFixed(1) + 'px';
+    const p = C.$('cvr-porta'), st = C.$('cvr-stage'); if(!p || !st) return;
+    /* v5.20: a pilha de baixo pra cima: o amarelo, o Empurrar e o do veículo, cada um colado no de baixo */
+    let base = p.hidden ? null : p;
+    for(const b of [C.$('cvr-briga'), C.$('cvr-veic')]){
+      if(!b) continue;
+      if(b.hidden){ b.style.bottom = b.style.minWidth = ''; continue; }
+      if(!base){ b.style.minWidth = ''; b.style.bottom = getComputedStyle(p).bottom; base = b; continue; }
+      const rp = base.getBoundingClientRect(), rs = st.getBoundingClientRect();
+      if(!rp.height){ base = b; continue; }
+      b.style.bottom = Math.round(rs.bottom - rp.top + 8) + 'px'; b.style.minWidth = rp.width.toFixed(1) + 'px'; base = b;
+    }
   }
   function portaTexto(){
     const b = C.$('cvr-porta'); if(!b) return;
@@ -8811,6 +8847,7 @@
       <div class="cvr-proc" id="cvr-proc" role="status" hidden></div><div class="cvr-preso" id="cvr-preso" aria-hidden="true" hidden></div>
       <div class="cvr-mj" id="cvr-mj" hidden></div><div class="cvr-mj cvr-rio" id="cvr-rio" hidden></div><div class="cvr-mj cvr-sk" id="cvr-sk" hidden></div>
       <button type="button" class="cvr-briga" id="cvr-briga" data-act="cvr-briga" hidden></button>
+      <button type="button" class="cvr-briga cvr-veic" id="cvr-veic" data-act="cvr-veic" hidden></button>
       <button type="button" class="cvr-porta" id="cvr-porta" data-act="cvr-porta" hidden></button>
       <div class="cvr-bar"><button type="button" class="cvr-b mic" id="cvr-mic" data-act="cvr-mic" aria-pressed="false"></button><button type="button" class="cvr-b" data-act="cvr-avatar" title="Avatar" aria-label="Avatar">${ico('eu')}<span>Avatar</span></button><button type="button" class="cvr-b" data-act="cvr-garagem" title="Garagem: como você anda pela cidade" aria-label="Garagem">${ico('carro')}<span>Garagem</span></button><button type="button" class="cvr-b" data-act="cvr-casa" title="Voltar pra casa" aria-label="Voltar pra casa">${ico('home')}<span>Pra casa</span></button><button type="button" class="cvr-b" data-act="cvr-mapa" title="Mapa" aria-label="Mapa">${ico('mapa')}<span>Mapa</span></button><button type="button" class="cvr-b" data-act="cvr-falar" title="Falar uma frase" aria-label="Falar uma frase" aria-expanded="false">${ico('chat')}<span>Falar</span></button><button type="button" class="cvr-b" data-act="cvr-gente" title="Quem tá na cidade" aria-label="Quem tá na cidade">${ico('gente')}<span>Gente</span></button><button type="button" class="cvr-b" data-act="cvr-trampo" title="Trampo: as tarefas do teu uniforme" aria-label="Trampo">${ico('raio')}<span>Trampo</span></button></div>
       <div class="cvr-falas" id="cvr-falas" hidden>${FALAS.map((f, i) => `<button type="button" data-act="cvr-fala" data-i="${i}">${esc(f)}</button>`).join('')}</div>`;
@@ -9017,7 +9054,7 @@
     V.peers = new Map();
     const r = V.rede; V.rede = null; if(r) tenta(() => r.sair());
     tenta(() => { removeEventListener('keydown', tecla); removeEventListener('keyup', tecla); removeEventListener('blur', soltar); removeEventListener('resize', tamanhoTela); removeEventListener('hashchange', aoSairDaRota); removeEventListener('pagehide', sair); });
-    V.teclas.clear(); V.remotos = new Map(); V.bots = []; V.moradores = []; V.carros = []; V.bolas = []; V.tarefa = null; V.portaT = null; V.porta = null; V.roubo = null; V.vitimas = [];
+    V.teclas.clear(); V.remotos = new Map(); V.bots = []; V.moradores = []; V.carros = []; V.bolas = []; V.tarefa = null; V.portaT = null; V.porta = null; V.roubo = null; V.vitimas = []; V.ape = false;
     tenta(desmontaBalcao);
   }
   const TECLAS = new Set(['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'a', 'd', 'w', 's']);
@@ -9053,6 +9090,8 @@
     else if(e.type === 'keydown' && k === 'b' && !e.repeat){ buzina(); }
     /* v4.11: F empurra (só aparece com alguém empurrável do lado) */
     else if(e.type === 'keydown' && k === 'f' && !e.repeat && V.brigaOn){ e.preventDefault(); briga(); }
+    /* v5.20: G entra, sai, rouba, sobe e desce (o botão do veículo) */
+    else if(e.type === 'keydown' && k === 'g' && !e.repeat && V.veicOn){ e.preventDefault(); veicFaz(); }
     else if(e.type === 'keydown' && (k === 'Enter' || k === 'e') && V.porta){ e.preventDefault(); abrePorta(); }
   }
   /* ---------- v3.40 · pular e buzinar ---------- */
@@ -9076,7 +9115,7 @@
   /* o botão da direita do controle: Pular, ou Buzinar de moto e de carro */
   function padRotulo(){ if(!V.pad) return; if(V.eu && V.eu.barco){ const f = V.rio && V.rio.fase; V.pad.rotulo('peixe', !f ? 'Pescar' : f === 'espera' ? 'Puxar' : f === 'fisgou' ? 'Puxa!' : f === 'briga' ? 'Segura' : 'Pescar'); return; } const vi = veiculoInfo(V.eu); if(vi && vi.botao === 'buzina') V.pad.rotulo('buzina', 'Buzinar'); else V.pad.rotulo('up', 'Pular'); }
   /* trocou de veículo na garagem (ou pegou o skate em casa): o boneco troca na hora e todo mundo vê */
-  function trocaVeiculo(){ const me = C.st.me; if(!V.eu || !me) return; V.eu.av = avLimpo(me.verso, me.id); padRotulo(); anunciar(); }
+  function trocaVeiculo(){ const me = C.st.me; if(!V.eu || !me) return; V.eu.av = avLimpo(me.verso, me.id); V.ape = false; padRotulo(); anunciar(); }
   /* a miniatura da garagem: o teu boneco no veículo, de lado */
   function miniVeiculo(cv, k, ci){
     const ctx = cv.getContext('2d'); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, cv.width, cv.height);
@@ -10200,6 +10239,7 @@
     'cvr-ir-lugar': el => { const l = lugares()[Number(el.dataset.i)]; if(!l) return; const p = pertoLivre(l.x, l.y); if(p){ teleporta(p.x, p.y); if(l.nome === 'Papai Noel do Igapó') olhaNoel(7000); } },
     'cvr-porta': () => abrePorta(),
     'cvr-briga': () => briga(),
+    'cvr-veic': () => veicFaz(),
     'cvr-mj-seta': el => mjSeta(el.dataset.d),
     'cvr-mj-larga': () => mjLarga(),
     'cvr-falar': el => { const m = C.$('cvr-falas'); if(!m) return; m.hidden = !m.hidden; el.setAttribute('aria-expanded', String(!m.hidden)); },

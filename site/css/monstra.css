@@ -6176,3 +6176,7 @@ label.sl-v small{color:var(--muted)}
 .sl-pe{margin-top:14px;flex-wrap:wrap}
 .sl-badge{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 6px;margin-left:4px;border-radius:999px;background:var(--yellow);color:var(--tinta);font-size:12px;font-weight:900}
 .sl-badge[hidden]{display:none}
+/* v5.20 · o botão do veículo (entrar, sair, roubar, subir e descer), em cima do Empurrar: branco com a sombra amarela */
+.cvr-briga.cvr-veic,.escuro .cvr-briga.cvr-veic{background:#FFFFFF;color:var(--tinta);box-shadow:4px 4px 0 var(--yellow)}
+.cvr-veic .ic{color:var(--tinta)}
+.ctl-on .cvr-briga.cvr-veic::before{content:var(--ctl-lt,"LT");background:var(--tinta);color:#FFFFFF}

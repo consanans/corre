@@ -34,7 +34,7 @@
   const tipoDe = id => { id = id || ''; return /xbox|045e|xinput/i.test(id) ? 'xbox' : /054c|playstation|dualsense|dualshock|^wireless controller/i.test(id) ? 'ps' : /057e|nintendo|pro controller|joy-?con/i.test(id) ? 'nin' : 'xbox'; };
   const MORTA = .2, MORTA_D = .14;
   /* o código de tecla de cada uma (os jogos da moldura leem o e.code; o Elo Perdido lê o e.key) */
-  const CODE = { ' ': 'Space', Enter: 'Enter', Escape: 'Escape', ArrowUp: 'ArrowUp', ArrowDown: 'ArrowDown', ArrowLeft: 'ArrowLeft', ArrowRight: 'ArrowRight', f: 'KeyF', e: 'KeyE', q: 'KeyQ' };
+  const CODE = { ' ': 'Space', Enter: 'Enter', Escape: 'Escape', ArrowUp: 'ArrowUp', ArrowDown: 'ArrowDown', ArrowLeft: 'ArrowLeft', ArrowRight: 'ArrowRight', f: 'KeyF', e: 'KeyE', q: 'KeyQ', g: 'KeyG' };
   const KC = { ' ': 32, Enter: 13, Escape: 27, ArrowLeft: 37, ArrowUp: 38, ArrowRight: 39, ArrowDown: 40, f: 70, e: 69, q: 81 };
   const SETA = { CIMA: 'ArrowUp', BAIXO: 'ArrowDown', ESQ: 'ArrowLeft', DIR: 'ArrowRight' };
 
@@ -172,7 +172,7 @@
   addEventListener('focusout', e => { if(e.target && e.target.classList) e.target.classList.remove('ctl-foco'); }, true);
   function poeTipo(t){
     if(t === G.tipo) return; G.tipo = t; const N = NOMES[t], s = document.documentElement.style;
-    s.setProperty('--ctl-a', JSON.stringify(N.A)); s.setProperty('--ctl-x', JSON.stringify(N.X)); s.setProperty('--ctl-y', JSON.stringify(N.Y));
+    s.setProperty('--ctl-a', JSON.stringify(N.A)); s.setProperty('--ctl-x', JSON.stringify(N.X)); s.setProperty('--ctl-y', JSON.stringify(N.Y)); s.setProperty('--ctl-lt', JSON.stringify(N.LT));
     document.documentElement.dataset.ctl = t;
   }
 
@@ -249,6 +249,8 @@
     setas(d, quer);
     const MAPA = { A: ' ', X: 'Enter', Y: 'f', B: 'Escape' };
     if(casa){ MAPA.LB = 'q'; MAPA.RB = 'e'; }
+    /* v5.20: na cidade, o LT é o G (o botão do veículo: entrar, sair, roubar, subir e descer) */
+    else MAPA.LT = 'g';
     for(const n in MAPA){ if(desceu(n)) aperta(n, d, MAPA[n]); else if(subiu(n)) solta(n); }
     if(!casa){
       /* na cidade, LB/RB e o analógico direito mudam o zoom (devagar no analógico, e guarda no aparelho só de vez em quando) */
@@ -270,6 +272,7 @@
       [k(N.A), 'Pular, pescar, derrapar no kart'],
       [k(N.X), 'O botão amarelo: entrar, trocar ideia, sentar'],
       [k(N.Y), 'Empurrar; no kart, usar o item'],
+      [k(N.LT), 'Na cidade: entrar e sair do carro, roubar, subir e descer do veículo'],
       [k(N.B), 'Voltar e fechar'],
       [k(N.LB) + k(N.RB), 'Câmera no 3D; zoom na cidade'],
       [k(N.RT) + k(N.LT), 'Acelerar e frear na corrida'],
