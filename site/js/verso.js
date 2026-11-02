@@ -2578,47 +2578,104 @@
     return f;
   }
   /* ---------- v5.21 · Curitiba, do outro lado do Tibagi ----------
-     O Thales: "faça Ibiporã e Curitiba" e "opção de voar de avião entre todas as cidades". Curitiba fica a uns 380 km;
-     no Correverso, atravessando a ponte do Tibagi (pronta agora), embaixo do rio: duas fileiras de seis quarteirões em
-     volta da estrada, com a Rua XV de Novembro (o calçadão de 1972, o primeiro do Brasil), a Ópera de Arame (1992, os
-     tubos de aço em cima do lago da pedreira), o Jardim Botânico (1991, a estufa de ferro e vidro), a estação-tubo com
-     o biarticulado passando e o Aeroporto Afonso Pena (em São José dos Pinhais). O resto vira cidade (prédio e loja) */
-  const CWB = { 0: ['predio', 'ruaxv', 'opera', 'predio', 'loja', 'predio'], 1: ['loja', 'jardim', 'botanico', 'predio', 'loja', 'afonso'] };
-  const NOME_CWB = { ruaxv: 'Rua XV de Novembro', opera: 'Ópera de Arame', botanico: 'Jardim Botânico', jardim: 'Jardim Botânico', afonso: 'Aeroporto Afonso Pena' };
+     O Thales: "faça Ibiporã e Curitiba" e "opção de voar de avião entre todas as cidades"; e na 5.22: "transforme
+     Curitiba em 10x maior e cada coisa no seu lugar proporcionalmente à cidade". No Correverso ela fica do outro lado da
+     ponte do Tibagi (a de verdade, a uns 380 km): 12 x 10 quarteirões, o norte pra cima, cada quarteirão uns 1,3 km.
+     A estrada que sai da ponte vira o eixo norte-sul (a canaleta do biarticulado) e chega no Centro. Cada lugar fica
+     na direção e na distância do Centro de verdade (contadas da Rua XV): o Museu Oscar Niemeyer e o Couto Pereira ao
+     norte, a Ópera de Arame e o Tanguá mais acima, o Bosque Alemão e Santa Felicidade a noroeste, o Barigui e a Torre
+     Panorâmica a oeste, a Arena da Baixada a sudoeste, a Rodoferroviária e o Jardim Botânico a sudeste e o Afonso
+     Pena no canto (o de verdade fica em São José dos Pinhais, bem mais longe). O resto vira cidade: prédio e loja perto
+     do Centro, pracinha e bosquinho mais longe.
+       T Parque Tanguá        O Ópera de Arame       F Santa Felicidade     A Bosque Alemão
+       M Museu Oscar Niemeyer C Couto Pereira        B Parque Barigui       L Largo da Ordem
+       S Passeio Público      P Torre Panorâmica     K Catedral             X Rua XV de Novembro
+       U Prédio Histórico da UFPR                    Z Arena da Baixada     R Rodoferroviária e Mercado Municipal
+       J Jardim Botânico      Y Aeroporto Afonso Pena                       #  cidade */
+  const PLANTA_CWB = [
+    '####T#######',
+    '#F###O######',
+    '####A#######',
+    '######MC####',
+    '##B##L#S####',
+    '###P#KXU####',
+    '####Z##RJ###',
+    '############',
+    '############',
+    '###########Y'
+  ];
+  const LETRA_CWB = { T: 'tangua', O: 'opera', F: 'santafe', A: 'alemao', M: 'oscar', C: 'coxa', B: 'barigui', L: 'largo', S: 'passeio', P: 'torre', K: 'catedral', X: 'ruaxv', U: 'ufpr', Z: 'arena', R: 'rodo', J: 'botanico', Y: 'afonso' };
+  const NOME_CWB = { ruaxv: 'Rua XV de Novembro', opera: 'Ópera de Arame', botanico: 'Jardim Botânico', afonso: 'Aeroporto Afonso Pena', tangua: 'Parque Tanguá', santafe: 'Santa Felicidade', alemao: 'Bosque Alemão',
+    oscar: 'Museu Oscar Niemeyer', coxa: 'Couto Pereira', barigui: 'Parque Barigui', largo: 'Largo da Ordem', passeio: 'Passeio Público', torre: 'Torre Panorâmica', catedral: 'Catedral de Curitiba', ufpr: 'Prédio Histórico da UFPR', arena: 'Arena da Baixada', rodo: 'Rodoferroviária' };
+  const PLACA_CWB = { ruaxv: 'RUA XV', opera: 'OPERA DE ARAME', botanico: 'JARDIM BOTANICO', afonso: 'AFONSO PENA', tangua: 'PARQUE TANGUA', santafe: 'SANTA FELICIDADE', alemao: 'BOSQUE ALEMAO', oscar: 'MUSEU OSCAR NIEMEYER',
+    coxa: 'COUTO PEREIRA', barigui: 'PARQUE BARIGUI', largo: 'LARGO DA ORDEM', passeio: 'PASSEIO PUBLICO', torre: 'TORRE PANORAMICA', catedral: 'CATEDRAL', ufpr: 'UFPR', arena: 'ARENA DA BAIXADA', rodo: 'RODOFERROVIARIA' };
   const TXT_CWB = {
     ruaxv: 'A Rua XV de Novembro virou calçadão em 1972: a primeira rua só de pedestre do Brasil. O Calçadão de Londrina veio cinco anos depois, em 1977.',
-    opera: 'A Ópera de Arame é de 1992: um teatro de tubos de aço e cobertura transparente, em cima do lago de uma pedreira antiga.',
-    botanico: 'O Jardim Botânico de Curitiba abriu em 1991. A estufa de ferro e vidro é o cartão-postal da cidade.',
+    opera: 'A Ópera de Arame é de 1992: um teatro de tubos de aço e cobertura transparente, em cima do lago de uma pedreira antiga, no Abranches, ao norte do Centro.',
+    botanico: 'O Jardim Botânico de Curitiba abriu em 1991, a sudeste do Centro. A estufa de ferro e vidro é o cartão-postal da cidade.',
     tubo: 'A estação-tubo é de Curitiba: a gente paga antes de entrar e o ônibus para colado na porta, no mesmo nível. O biarticulado leva até uns 250 passageiros.',
-    afonso: 'O aeroporto de Curitiba é o Afonso Pena, em São José dos Pinhais, do lado da capital.'
+    afonso: 'O aeroporto de Curitiba é o Afonso Pena, em São José dos Pinhais, do lado da capital.',
+    tangua: 'O Parque Tanguá nasceu de duas pedreiras antigas, no norte da cidade: a cascata, o túnel na rocha e o mirante lá em cima.',
+    santafe: 'Santa Felicidade é o bairro dos imigrantes italianos, a noroeste: os restaurantes de massa, frango e polenta, um do lado do outro.',
+    alemao: 'O Bosque Alemão homenageia os imigrantes alemães: tem o Oratório de Bach, a Torre dos Filósofos e a Trilha de João e Maria.',
+    oscar: 'O Museu Oscar Niemeyer, no Centro Cívico, ganhou em 2002 o prédio em forma de olho, em cima de uma torre amarela. Todo mundo chama de Museu do Olho.',
+    coxa: 'O Couto Pereira é o estádio do Coritiba, no Alto da Glória, logo ao norte do Centro.',
+    barigui: 'O Parque Barigui, a oeste, é de 1972: o lago, a pista de caminhada e as capivaras, que são as donas do lugar.',
+    largo: 'O Largo da Ordem é o Setor Histórico: as casas antigas, a Igreja da Ordem (a mais antiga de Curitiba, de 1737), o Relógio das Flores e a feirinha de domingo.',
+    passeio: 'O Passeio Público é de 1886, o primeiro parque público de Curitiba, com o lago, as pontes e o portão na frente.',
+    torre: 'A Torre Panorâmica, nas Mercês, tem uns 110 metros e o mirante lá em cima: dá pra ver a cidade inteira.',
+    catedral: 'A Catedral Basílica de Nossa Senhora da Luz, na Praça Tiradentes, foi inaugurada em 1893, no estilo neogótico.',
+    ufpr: 'O Prédio Histórico da UFPR, na Praça Santos Andrade, é o símbolo da Universidade Federal do Paraná, criada em 1912.',
+    arena: 'A Arena da Baixada é o estádio do Athletico, no Água Verde, a sudoeste do Centro. Foi sede da Copa de 2014.',
+    rodo: 'A Rodoferroviária junta a rodoviária e a estação de trem. Do lado, o Mercado Municipal, de 1958.'
   };
   /* os campos de pouso de Cambé e de Ibiporã (o avião vai de cidade em cidade) */
   const CAMPOS = [{ k: 'cambe', nome: 'Campo de pouso de Cambé', cidade: 'Cambé', c: 1, r: 1 }, { k: 'ibipora', nome: 'Campo de pouso de Ibiporã', cidade: 'Ibiporã', c: OESTE + LONDRINA_C + 4, r: 2 }];
   function montaCuritiba(K, W, yRio, rio, est){
     if(!est) return null;
-    const c0 = est.i - 3, ySul = yRio + RIO_H, S = { rx: est.x, c0, x0: ruaX(c0) - RUA / 2, x1: ruaX(c0 + 6) + RUA / 2, y0: ySul, y1: ySul + RUA + 2 * QQ, blocos: [], enche: [], placas: [] };
-    const placa = (k, x, y, txt) => { K.decor.push({ tipo: 'placa', x, y, txt, fundo: PAPEL, h: 26 }); S.placas.push({ x, y, titulo: k === 'tubo' ? 'Estação-tubo' : NOME_CWB[k], txt: TXT_CWB[k] }); };
-    for(let j = 0; j < 2; j++) for(let i = 0; i < 6; i++){
-      const t = CWB[j][i], x = lotXY(c0 + i, 0).x, y = ySul + RUA + j * QQ, sd = hash('cwb' + i + ',' + j), q = rng(sd);
-      const b = { t, i, j, x, y, base: y + LH - 34 }; S.blocos.push(b);
-      if(t === 'predio' || t === 'loja'){ const f = { id: 'cwb' + i + ',' + j, t, c: c0 + i, r: 900 + j, x, y, sd, sul: true }; montaEnche(f, K, q); S.enche.push(f); b.f = f; continue; }
-      S[t] = b;
-      if(t === 'ruaxv'){ [[x + 50, y + 70], [x + LW - 50, y + 70], [x + 50, y + LH - 50], [x + LW - 50, y + LH - 50]].forEach(([fx, fy], k2) => { K.decor.push({ tipo: 'canteiro', x: fx, y: fy, cor: [ROSA, AMARELO, LILAS, LARANJA][k2] }); K.sol.push({ x: fx - 22, y: fy - 8, w: 44, h: 10 }); });
-        [[x + LW / 2 - 60, y + LH / 2], [x + LW / 2 + 60, y + LH / 2]].forEach(([bx, by]) => K.bancos.push({ x: bx, y: by, lugar: 'Rua XV de Novembro' }));
-        placa('ruaxv', x + LW / 2, y + 40, 'RUA XV'); K.lugares.push({ nome: 'Rua XV de Novembro', x: x + LW / 2, y: y + LH / 2 + 40 }, { nome: 'Curitiba', x: x + LW / 2, y: y + LH / 2 + 40 }); }
-      if(t === 'opera'){ K.sol.push({ x: x + 40, y: b.base - 70, w: 220, h: 70 }); placa('opera', x + LW - 40, b.base + 16, 'OPERA DE ARAME'); K.lugares.push({ nome: 'Ópera de Arame', x: x + LW / 2, y: b.base + 30 }); }
-      if(t === 'botanico'){ b.base = y + LH - 110; K.sol.push({ x: x + 50, y: b.base - 40, w: 200, h: 40 }); placa('botanico', x + 40, y + LH - 18, 'JARDIM BOTANICO'); K.lugares.push({ nome: 'Jardim Botânico', x: x + LW / 2, y: y + LH - 30 }); }
-      if(t === 'jardim'){ [[x + 40, y + 40], [x + LW - 40, y + 40], [x + 40, y + LH - 30], [x + LW - 40, y + LH - 30]].forEach(([ax, ay], k2) => K.arv.push({ x: ax, y: ay, cor: [ROSA, LILAS, AMARELO, '#F4F1EA'][k2] }));
-        K.bancos.push({ x: x + LW / 2, y: y + LH / 2 + 50, lugar: 'Jardim Botânico' }); }
-      if(t === 'afonso'){ b.a = { k: 'curitiba', nome: 'Aeroporto Afonso Pena', cidade: 'Curitiba', vaga: { x: x + 70, y: y + 82 }, pista: { x: x + 14, y: y + 170, w: LW - 28, h: 44 }, chega: { x: x + LW / 2, y: y + LH + 10 } };
-        K.sol.push({ x: x + 150, y: y + 90, w: 130, h: 40 }); K.decor.push({ tipo: 'biruta', x: x + 24, y: y + 140 }); placa('afonso', x + 210, y + LH - 18, 'AFONSO PENA'); K.lugares.push({ nome: 'Aeroporto Afonso Pena', x: x + LW / 2, y: y + LH + 10 }); }
+    const NC = PLANTA_CWB[0].length, NR = PLANTA_CWB.length, c0 = est.i - 6, ySul = yRio + RIO_H;
+    const S = { rx: est.x, c0, nc: NC, nr: NR, x0: ruaX(c0) - RUA / 2, x1: ruaX(c0 + NC) + RUA / 2, y0: ySul, y1: ySul + RUA + NR * QQ, blocos: [], enche: [], placas: [], bancos: [] };
+    const placa = (k, x, y) => { K.decor.push({ tipo: 'placa', x, y, txt: PLACA_CWB[k], fundo: PAPEL, h: 26 }); S.placas.push({ x, y, titulo: k === 'tubo' ? 'Estação-tubo' : NOME_CWB[k], txt: TXT_CWB[k] }); };
+    const arvs = (b, L) => L.forEach(([dx, dy], i) => K.arv.push({ x: b.x + dx, y: b.y + dy, cor: [ROSA, AMARELO, LILAS, '#F4F1EA', LARANJA][i % 5], g: i % 3 === 0 }));
+    for(let j = 0; j < NR; j++) for(let i = 0; i < NC; i++){
+      const ch = PLANTA_CWB[j][i], t = LETRA_CWB[ch], x = lotXY(c0 + i, 0).x, y = ySul + RUA + j * QQ, sd = hash('cwb' + i + ',' + j), q = rng(sd);
+      const b = { t: t || '', i, j, x, y, base: y + LH - 34 }; S.blocos.push(b);
+      if(!t){
+        /* a cidade: prédio e loja perto do Centro, pracinha e bosquinho mais longe */
+        const d = Math.hypot(i - 6, j - 5), r = q(), tp = d < 2.6 ? (r < .6 ? 'predio' : 'loja') : d < 4.6 ? (r < .35 ? 'predio' : r < .65 ? 'loja' : r < .82 ? 'bosquinho' : 'pracinha') : (r < .2 ? 'predio' : r < .4 ? 'loja' : r < .8 ? 'bosquinho' : 'pracinha');
+        const f = { id: 'cwb' + i + ',' + j, t: tp, c: c0 + i, r: 900 + j, x, y, sd, sul: true }; montaEnche(f, K, q); S.enche.push(f); b.f = f; continue;
+      }
+      S[t] = b; const cx = x + LW / 2, cy = y + LH / 2;
+      K.zonas.push({ nome: NOME_CWB[t], x: x - 10, y: y - 10, w: LW + 20, h: LH + 20 });
+      const lugar = (dy) => K.lugares.push({ nome: NOME_CWB[t], x: cx, y: dy });
+      switch(t){
+        case 'ruaxv': [[x + 50, y + 70], [x + LW - 50, y + 70], [x + 50, y + LH - 50], [x + LW - 50, y + LH - 50]].forEach(([fx, fy], k2) => { K.decor.push({ tipo: 'canteiro', x: fx, y: fy, cor: [ROSA, AMARELO, LILAS, LARANJA][k2] }); K.sol.push({ x: fx - 22, y: fy - 8, w: 44, h: 10 }); });
+          [[cx - 60, cy], [cx + 60, cy]].forEach(([bx, by]) => K.bancos.push({ x: bx, y: by, lugar: 'Rua XV de Novembro' }));
+          placa('ruaxv', cx, y + 40); lugar(cy + 40); K.lugares.push({ nome: 'Curitiba', x: cx, y: cy + 40 }); break;
+        case 'opera': K.sol.push({ x: x + 40, y: b.base - 70, w: 220, h: 70 }); placa('opera', x + LW - 40, b.base + 16); lugar(b.base + 30); break;
+        case 'botanico': b.base = y + LH - 110; K.sol.push({ x: x + 50, y: b.base - 40, w: 200, h: 40 }); placa('botanico', x + 40, y + LH - 18); lugar(y + LH - 30); break;
+        case 'afonso': b.a = { k: 'curitiba', nome: 'Aeroporto Afonso Pena', cidade: 'Curitiba', vaga: { x: x + 70, y: y + 82 }, pista: { x: x + 14, y: y + 170, w: LW - 28, h: 44 }, chega: { x: cx, y: y + LH + 10 } }; b.sb = y + 130;
+          K.sol.push({ x: x + 150, y: y + 90, w: 130, h: 40 }); K.decor.push({ tipo: 'biruta', x: x + 24, y: y + 140 }); placa('afonso', x + 210, y + LH - 18); lugar(y + LH + 10); break;
+        case 'catedral': K.sol.push({ x: x + 70, y: b.base - 44, w: 160, h: 44 }); arvs(b, [[40, LH - 30], [LW - 40, LH - 30]]); placa('catedral', x + 40, b.base + 18); lugar(b.base + 34); break;
+        case 'largo': K.sol.push({ x: x + 30, y: b.base - 40, w: 130, h: 40 }); K.decor.push({ tipo: 'relogioFlores', x: x + 220, y: y + LH - 70 }); K.sol.push({ x: x + 190, y: y + LH - 86, w: 60, h: 18 });
+          placa('largo', x + 220, y + 40); lugar(b.base + 34); break;
+        case 'ufpr': K.sol.push({ x: x + 40, y: b.base - 44, w: 220, h: 44 }); placa('ufpr', x + LW - 30, b.base + 18); lugar(b.base + 34); break;
+        case 'oscar': K.sol.push({ x: x + 120, y: b.base - 30, w: 60, h: 30 }, { x: x + 20, y: b.base - 26, w: 90, h: 26 }); placa('oscar', x + 60, y + 40); lugar(b.base + 34); break;
+        case 'coxa': case 'arena': K.sol.push({ x: x + 24, y: b.base - 50, w: 252, h: 50 }); placa(t, x + LW / 2, b.base + 18); lugar(b.base + 36); break;
+        case 'torre': K.sol.push({ x: cx - 16, y: b.base - 20, w: 32, h: 20 }); arvs(b, [[40, 60], [LW - 40, 60], [50, LH - 40]]); placa('torre', cx + 70, b.base + 10); lugar(b.base + 30); break;
+        case 'rodo': K.sol.push({ x: x + 14, y: b.base - 40, w: 272, h: 40 }); placa('rodo', x + 50, b.base + 18); lugar(b.base + 34); break;
+        case 'santafe': K.sol.push({ x: x + 150, y: b.base - 40, w: 130, h: 40 }, { x: x + 18, y: b.base - 14, w: 10, h: 14 }, { x: x + 112, y: b.base - 14, w: 10, h: 14 }); placa('santafe', x + 215, y + 40); lugar(b.base + 34); break;
+        case 'alemao': K.sol.push({ x: cx - 30, y: b.base - 120, w: 60, h: 26 }); arvs(b, [[40, 50], [90, 120], [LW - 40, 50], [LW - 80, 130], [50, LH - 40], [LW - 50, LH - 40]]); placa('alemao', cx, b.base + 10); lugar(b.base + 30); break;
+        case 'tangua': K.sol.push({ x: x, y: y, w: LW, h: 110 }); K.decor.push({ tipo: 'cascata', x: cx, y: y + 112 }); arvs(b, [[40, 150], [LW - 40, 160]]); K.bancos.push({ x: cx - 70, y: y + LH - 40, lugar: 'Parque Tanguá' }, { x: cx + 70, y: y + LH - 40, lugar: 'Parque Tanguá' }); placa('tangua', cx, y + LH - 14); lugar(y + LH - 30); break;
+        case 'barigui': arvs(b, [[30, 40], [LW - 30, 40], [30, LH - 30], [LW - 30, LH - 30]]); [[cx - 50, y + LH - 70], [cx + 40, y + 70]].forEach(([bx, by]) => K.decor.push({ tipo: 'capivara', x: bx, y: by })); K.bancos.push({ x: cx + 90, y: y + LH - 44, lugar: 'Parque Barigui' }); placa('barigui', x + 60, y + 30); lugar(y + LH - 20); break;
+        case 'passeio': arvs(b, [[40, 50], [LW - 40, 50], [40, LH - 40], [LW - 40, LH - 40], [cx - x, 40]]); K.decor.push({ tipo: 'portaoPasseio', x: cx, y: y + LH - 6 }); K.sol.push({ x: cx - 60, y: y + LH - 14, w: 30, h: 10 }, { x: cx + 30, y: y + LH - 14, w: 30, h: 10 }); K.bancos.push({ x: cx - 80, y: cy - 10, lugar: 'Passeio Público' }); placa('passeio', x + LW - 50, y + 30); lugar(y + LH + 10); break;
+      }
     }
-    /* a estação-tubo na rua de cima, do lado da estrada, e o biarticulado que vai e volta na rua de baixo */
-    S.tubo = { x: S.rx + 120, y: ySul + RUA / 2 + 10 }; K.decor.push({ tipo: 'tubo', x: S.tubo.x, y: S.tubo.y }); K.sol.push({ x: S.tubo.x - 50, y: S.tubo.y - 12, w: 100, h: 12 });
-    S.placas.push({ x: S.tubo.x + 70, y: S.tubo.y + 4, titulo: 'Estação-tubo', txt: TXT_CWB.tubo }); K.lugares.push({ nome: 'Estação-tubo', x: S.tubo.x, y: S.tubo.y + 26 });
-    K.decor.push({ tipo: 'biarticulado', x: (S.x0 + S.x1) / 2, y: S.y1 - RUA / 2 + 18, x0: S.x0 + 140, x1: S.x1 - 140 });
+    /* as estações-tubo na rua do meio (a leste-oeste) e o biarticulado indo e voltando nela */
+    const yTubo = ySul + RUA / 2 + 5 * QQ + 10;
+    [-3, 0, 3].forEach((d, n) => { const tx = ruaX(c0 + 6 + d) + (d >= 0 ? 150 : -150); K.decor.push({ tipo: 'tubo', x: tx, y: yTubo }); K.sol.push({ x: tx - 50, y: yTubo - 12, w: 100, h: 12 }); if(n === 1){ S.tubo = { x: tx, y: yTubo }; S.placas.push({ x: tx + 70, y: yTubo + 4, titulo: 'Estação-tubo', txt: TXT_CWB.tubo }); K.lugares.push({ nome: 'Estação-tubo', x: tx, y: yTubo + 26 }); } });
+    K.decor.push({ tipo: 'biarticulado', x: (S.x0 + S.x1) / 2, y: yTubo + 26, x0: S.x0 + 140, x1: S.x1 - 140 });
     K.decor.push({ tipo: 'portalCambe', x: S.rx + 130, y: ySul - 4, txt: 'CURITIBA' }); K.sol.push({ x: S.rx + 130 - 74, y: ySul - 16, w: 148, h: 10 });
-    ['ruaxv', 'opera', 'botanico', 'jardim', 'afonso'].forEach(k => { const b = S[k]; if(b) K.zonas.push({ nome: NOME_CWB[k], x: b.x - 10, y: b.y - 10, w: LW + 20, h: LH + 20 }); });
     K.zonas.push({ nome: 'Curitiba', x: S.x0, y: S.y0, w: S.x1 - S.x0, h: S.y1 - S.y0 });
     return S;
   }
@@ -3052,8 +3109,8 @@
      A água é feita de colunas de 12 px, como o Igapó; pedra, píer e barco amarrado são o que o barquinho não atravessa.
      Perto das pedras a água corre (a corredeira), e é ali que a piapara grande gosta de ficar. */
   const RIO_H = 640;
-  /* v5.21: Curitiba, do outro lado do Tibagi: duas fileiras de quarteirões embaixo do rio */
-  const SUL_H = RUA + 2 * (LH + RUA) + 40;
+  /* v5.21: Curitiba, do outro lado do Tibagi (v5.22: 10 fileiras de quarteirões embaixo do rio) */
+  const SUL_H = RUA + 10 * (LH + RUA) + 40;
   function montaRio(W, y0, K){
     const B = 12, n = Math.ceil(W / B), q = rng(hash('tibagi'));
     /* v5.19: a curva do rio é contada a partir de Londrina (com Cambé à esquerda, ele não muda de cara) */
@@ -3345,8 +3402,8 @@
     ctx.fillStyle = pad(ctx, 'calcada'); ctx.fillRect(S.x0 - CALC, S.y0, S.x1 - S.x0 + CALC * 2, S.y1 - S.y0 + CALC);
     ctx.fillStyle = pad(ctx, 'rua'); ctx.fillRect(S.x0, S.y0, S.x1 - S.x0, S.y1 - S.y0);
     ctx.fillStyle = 'rgba(242,236,84,.85)';
-    for(let j = 0; j < 3; j++){ const y = S.y0 + RUA / 2 + j * QQ; for(let x = Math.ceil(S.x0 / 36) * 36; x < S.x1; x += 36) ctx.fillRect(x, y - t / 2, 18, t); }
-    for(let i = 0; i <= 6; i++){ const x = ruaX(S.c0 + i); for(let y = Math.ceil(S.y0 / 36) * 36; y < S.y1; y += 36) ctx.fillRect(x - t / 2, y, t, 18); }
+    for(let j = 0; j <= S.nr; j++){ const y = S.y0 + RUA / 2 + j * QQ; for(let x = Math.ceil(S.x0 / 36) * 36; x < S.x1; x += 36) ctx.fillRect(x, y - t / 2, 18, t); }
+    for(let i = 0; i <= S.nc; i++){ const x = ruaX(S.c0 + i); for(let y = Math.ceil(S.y0 / 36) * 36; y < S.y1; y += 36) ctx.fillRect(x - t / 2, y, t, 18); }
     S.blocos.forEach(b => { const o = { x: b.x, y: b.y }; if(o.x > vx + vw + 20 || o.x + LW < vx - 20 || o.y > vy + vh + 20 || o.y + LH < vy - 20) return;
       ctx.fillStyle = pad(ctx, 'calcada'); ctx.fillRect(o.x - CALC, o.y - CALC, LW + CALC * 2, LH + CALC * 2);
       if(b.f) return chaoLote(ctx, { t: 'enche', f: b.f }, o, vx, vy, vw, vh);
@@ -3354,11 +3411,27 @@
       if(b.t === 'ruaxv'){ ctx.fillStyle = pad(ctx, 'praca'); ctx.fillRect(o.x, o.y, LW, LH); ctx.fillStyle = pad(ctx, 'mosaico'); ctx.fillRect(cx - 60, o.y, 120, LH); return; }
       if(b.t === 'opera'){ ctx.fillStyle = pad(ctx, '#8C9097'); ctx.fillRect(o.x, o.y, LW, LH); ctx.fillStyle = 'rgba(40,44,52,.25)'; for(let k = 0; k < 9; k++) ctx.fillRect(o.x + (k * 37) % LW, o.y + (k * 53) % 120, 26, 10);
         ctx.fillStyle = pad(ctx, 'gramado'); ctx.fillRect(o.x + 16, o.y + LH - 70, LW - 32, 70); oval(ctx, cx, o.y + LH - 40, 120, 34, 'agua'); ctx.fillStyle = '#B5824A'; ctx.fillRect(cx - 8, o.y + LH - 74, 16, 74); return; }
-      if(b.t === 'botanico' || b.t === 'jardim'){ ctx.fillStyle = pad(ctx, 'gramado'); ctx.fillRect(o.x, o.y, LW, LH); capim(ctx, { x: o.x, y: o.y, w: LW, h: LH }, vx, vy, vw, vh);
-        const y0 = b.t === 'botanico' ? b.base + 6 : o.y + 30, h = b.t === 'botanico' ? o.y + LH - y0 - 12 : LH - 60;
+      if(b.t === 'botanico'){ ctx.fillStyle = pad(ctx, 'gramado'); ctx.fillRect(o.x, o.y, LW, LH); capim(ctx, { x: o.x, y: o.y, w: LW, h: LH }, vx, vy, vw, vh);
+        const y0 = b.base + 6, h = o.y + LH - y0 - 12;
         ctx.fillStyle = pad(ctx, 'praca'); ctx.fillRect(cx - 14, y0, 28, h); ctx.fillRect(o.x + 20, y0 + h / 2 - 12, LW - 40, 24);
         [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([sx, sy], k2) => { ctx.fillStyle = [ROSA, LILAS, AMARELO, LARANJA][k2]; const bx = cx + sx * 70, by = y0 + h / 2 + sy * h / 4; ctx.beginPath(); ctx.moveTo(bx, by - 18); ctx.lineTo(bx + 40, by); ctx.lineTo(bx, by + 18); ctx.lineTo(bx - 40, by); ctx.closePath(); ctx.fill(); });
         return; }
+      /* v5.22 · os parques e as praças de Curitiba */
+      if(b.t === 'tangua'){ ctx.fillStyle = pad(ctx, 'gramado'); ctx.fillRect(o.x, o.y, LW, LH); capim(ctx, { x: o.x, y: o.y, w: LW, h: LH }, vx, vy, vw, vh);
+        ctx.fillStyle = pad(ctx, '#8C9097'); ctx.fillRect(o.x, o.y, LW, 110); ctx.fillStyle = 'rgba(40,44,52,.3)'; for(let k = 0; k < 14; k++) ctx.fillRect(o.x + (k * 41) % LW, o.y + (k * 29) % 100, 30, 8);
+        oval(ctx, cx, o.y + 150, 110, 34, 'agua'); ctx.fillStyle = pad(ctx, 'praca'); ctx.fillRect(o.x + 20, o.y + LH - 54, LW - 40, 24); return; }
+      if(b.t === 'barigui'){ ctx.fillStyle = pad(ctx, 'gramado'); ctx.fillRect(o.x, o.y, LW, LH); capim(ctx, { x: o.x, y: o.y, w: LW, h: LH }, vx, vy, vw, vh);
+        oval(ctx, cx, cy + 6, 116, 74, 'agua'); ctx.strokeStyle = pad(ctx, 'terra'); ctx.lineWidth = 14; ctx.beginPath(); ctx.ellipse(cx, cy + 6, 132, 92, 0, 0, Math.PI * 2); ctx.stroke(); return; }
+      if(b.t === 'passeio'){ ctx.fillStyle = pad(ctx, 'gramado'); ctx.fillRect(o.x, o.y, LW, LH); capim(ctx, { x: o.x, y: o.y, w: LW, h: LH }, vx, vy, vw, vh);
+        oval(ctx, cx + 40, cy - 10, 70, 44, 'agua'); ctx.fillStyle = pad(ctx, 'terra'); ctx.fillRect(cx - 12, cy + 30, 24, LH / 2 - 30); ctx.fillRect(o.x + 20, cy + 40, LW - 40, 20);
+        ctx.fillStyle = '#B5824A'; ctx.fillRect(cx + 34, cy - 56, 12, 92); return; }
+      if(b.t === 'largo'){ ctx.fillStyle = pad(ctx, 'mosaico'); ctx.fillRect(o.x, o.y, LW, LH); ctx.fillStyle = pad(ctx, 'praca'); ctx.fillRect(o.x + 170, o.y + 60, LW - 180, LH - 70); oval(ctx, o.x + 220, o.y + LH - 74, 34, 22, 'gramado');
+        [[0, ROSA], [1, AMARELO], [2, LILAS], [3, LARANJA]].forEach(([n, cor]) => { const a = n * Math.PI / 2; ctx.fillStyle = cor; ctx.fillRect(o.x + 220 + Math.cos(a) * 24 - 5, o.y + LH - 74 + Math.sin(a) * 15 - 4, 10, 8); }); return; }
+      if(b.t === 'alemao'){ ctx.fillStyle = pad(ctx, 'gramado'); ctx.fillRect(o.x, o.y, LW, LH); ctx.fillStyle = 'rgba(110,60,30,.2)'; ctx.fillRect(o.x, o.y, LW, LH); capim(ctx, { x: o.x, y: o.y, w: LW, h: LH }, vx, vy, vw, vh);
+        ctx.fillStyle = pad(ctx, 'terra'); ctx.fillRect(cx - 12, b.base - 94, 24, LH - (b.base - 94 - o.y)); return; }
+      if(b.t === 'oscar'){ ctx.fillStyle = pad(ctx, 'concreto'); ctx.fillRect(o.x, o.y, LW, LH); oval(ctx, cx + 30, o.y + 70, 90, 30, 'agua'); ctx.fillStyle = pad(ctx, 'gramado'); ctx.fillRect(o.x + 10, o.y + LH - 60, LW - 20, 50); return; }
+      if(b.t === 'torre' || b.t === 'santafe'){ ctx.fillStyle = pad(ctx, b.t === 'torre' ? 'gramado' : 'praca'); ctx.fillRect(o.x, o.y, LW, LH); if(b.t === 'torre') capim(ctx, { x: o.x, y: o.y, w: LW, h: LH }, vx, vy, vw, vh); return; }
+      if(b.t === 'coxa' || b.t === 'arena' || b.t === 'rodo' || b.t === 'ufpr' || b.t === 'catedral'){ ctx.fillStyle = pad(ctx, 'praca'); ctx.fillRect(o.x, o.y, LW, LH); return; }
       if(b.t === 'afonso'){ const a = b.a; ctx.fillStyle = pad(ctx, 'concreto'); ctx.fillRect(o.x, o.y, LW, LH); ctx.fillStyle = pad(ctx, 'rua'); ctx.fillRect(a.pista.x, a.pista.y, a.pista.w, a.pista.h);
         ctx.fillStyle = 'rgba(255,255,255,.75)'; for(let x = a.pista.x + 10; x < a.pista.x + a.pista.w - 10; x += 30) ctx.fillRect(x, a.pista.y + a.pista.h / 2 - 1, 16, 2 * u); ctx.fillStyle = '#F2C230'; ctx.fillRect(a.vaga.x - 1, a.vaga.y, 2 * u, a.pista.y - a.vaga.y); return; }
     });
@@ -4981,6 +5054,11 @@
       case 'hangar': { ctx.fillStyle = 'rgba(15,18,24,.22)'; ctx.fillRect(d.x - 46, d.y - 2, 92, 6); ctx.fillStyle = pad(ctx, 'zinco'); ctx.beginPath(); ctx.moveTo(d.x - 44, d.y); ctx.lineTo(d.x - 44, d.y - 30); ctx.quadraticCurveTo(d.x, d.y - 56, d.x + 44, d.y - 30); ctx.lineTo(d.x + 44, d.y); ctx.closePath(); ctx.fill(); traco(ctx, INK, 2);
         ctx.fillStyle = '#2B2F38'; ctx.fillRect(d.x - 24, d.y - 26, 48, 26); break; }
       case 'biruta': biruta(ctx, d, t); break;
+      /* v5.22 · Curitiba: a cascata do Tanguá, as capivaras do Barigui, o portão do Passeio Público e o Relógio das Flores */
+      case 'cascata': { ctx.fillStyle = 'rgba(214,232,248,.85)'; ctx.fillRect(d.x - 12, d.y - 70, 24, 70); ctx.fillStyle = PAPEL; for(let k2 = 0; k2 < 6; k2++){ const f = (t * 1.4 + k2 / 6) % 1; ctx.fillRect(d.x - 10 + (k2 % 3) * 8, d.y - 70 + f * 70, 3, 8); } ctx.fillStyle = 'rgba(255,255,255,.6)'; ctx.fillRect(d.x - 20, d.y - 4, 40, 6); break; }
+      case 'capivara': { const bob = Math.sin(t * 1.3 + d.x) > .7 ? 1 : 0; ctx.fillStyle = 'rgba(15,18,24,.22)'; ctx.fillRect(d.x - 16, d.y - 1, 32, 4); ctx.fillStyle = '#8A5A3A'; ctx.fillRect(d.x - 14, d.y - 14, 26, 13); ctx.fillRect(d.x + 8, d.y - 18 + bob, 12, 11); ctx.fillStyle = '#6B4227'; ctx.fillRect(d.x + 9, d.y - 20 + bob, 3, 3); ctx.fillStyle = INK; ctx.fillRect(d.x + 15, d.y - 15 + bob, 2, 2); ctx.fillStyle = '#6B4227'; ctx.fillRect(d.x - 12, d.y - 2, 4, 2); ctx.fillRect(d.x + 4, d.y - 2, 4, 2); break; }
+      case 'portaoPasseio': { [-46, 46].forEach(dx => { bloco(ctx, d.x + dx - 8, d.y - 56, 16, 56, '#D8C8B0'); ctx.fillStyle = '#5E646C'; ctx.fillRect(d.x + dx - 10, d.y - 60, 20, 6); }); ctx.fillStyle = '#2B2F38'; for(let x = d.x - 36; x <= d.x + 36; x += 8) ctx.fillRect(x, d.y - 46, 2, 40); ctx.fillRect(d.x - 38, d.y - 48, 76, 3); break; }
+      case 'relogioFlores': { ctx.fillStyle = PAPEL; ctx.fillRect(d.x - 1, d.y - 10, 2, 10); const a = t * .5; ctx.fillStyle = INK; ctx.fillRect(d.x + Math.cos(a) * 10 - 1, d.y - 4 + Math.sin(a) * 6 - 1, 3, 3); break; }
       /* v5.21 · o mirante de madeira no meio do Parque Florestal */
       case 'mirante': { ctx.fillStyle = 'rgba(15,18,24,.22)'; ctx.fillRect(d.x - 26, d.y - 2, 52, 6); ctx.fillStyle = '#6B4A32'; [-18, 14].forEach(dx => ctx.fillRect(d.x + dx, d.y - 70, 5, 70));
         ctx.fillStyle = '#8C5A2E'; for(let y = d.y - 10; y > d.y - 66; y -= 10) ctx.fillRect(d.x - 18, y, 37, 3); ctx.fillStyle = '#B5824A'; ctx.fillRect(d.x - 26, d.y - 76, 52, 8); ctx.fillStyle = '#7B3B28'; ctx.beginPath(); ctx.moveTo(d.x - 30, d.y - 76); ctx.lineTo(d.x, d.y - 98); ctx.lineTo(d.x + 30, d.y - 76); ctx.closePath(); ctx.fill(); break; }
@@ -5419,6 +5497,95 @@
     pixPlaca(ctx, 'AFONSO PENA', x0 + 205, base - 60, { fundo: PAPEL });
     return { cv, W: W + M * 2, H, M, base };
   }
+  /* v5.22 · os lugares de Curitiba (cada um no jeito do de verdade, em blocos, sem verde) */
+  function spriteCatCwb(k){
+    const W = LW, M = 20, H = 330, base = H - M, { cv, ctx } = folha(W + M * 2, H, k), x0 = M, cx = x0 + W / 2;
+    ctx.fillStyle = 'rgba(15,18,24,.22)'; ctx.fillRect(x0 + 60, base - 2, 180, 10);
+    bloco(ctx, cx - 60, base - 110, 120, 110, '#D8C8B0'); ctx.fillStyle = pad(ctx, '#D8C8B0'); ctx.beginPath(); ctx.moveTo(cx - 60, base - 110); ctx.lineTo(cx, base - 160); ctx.lineTo(cx + 60, base - 110); ctx.closePath(); ctx.fill(); traco(ctx, INK, 2);
+    [-1, 1].forEach(sd => { const tx = cx + sd * 78 - 18; bloco(ctx, tx, base - 200, 36, 200, '#D8C8B0'); ctx.fillStyle = '#2A3442'; ctx.fillRect(tx + 10, base - 180, 16, 30); ctx.beginPath(); ctx.moveTo(tx + 10, base - 180); ctx.lineTo(tx + 18, base - 192); ctx.lineTo(tx + 26, base - 180); ctx.fill();
+      ctx.fillStyle = pad(ctx, '#5E646C'); ctx.beginPath(); ctx.moveTo(tx - 2, base - 200); ctx.lineTo(tx + 18, base - 270); ctx.lineTo(tx + 38, base - 200); ctx.closePath(); ctx.fill(); traco(ctx, INK, 2); ctx.fillStyle = INK; ctx.fillRect(tx + 17, base - 292, 3, 22); ctx.fillRect(tx + 11, base - 284, 15, 3); });
+    ctx.beginPath(); ctx.arc(cx, base - 120, 16, 0, Math.PI * 2); forma(ctx, '#7FA7D6', 2);
+    ctx.beginPath(); ctx.moveTo(cx - 18, base); ctx.lineTo(cx - 18, base - 50); ctx.lineTo(cx, base - 72); ctx.lineTo(cx + 18, base - 50); ctx.lineTo(cx + 18, base); ctx.closePath(); forma(ctx, '#6B4A32', 2);
+    return { cv, W: W + M * 2, H, M, base };
+  }
+  function spriteLargo(k){
+    const W = LW, M = 20, H = 250, base = H - M, { cv, ctx } = folha(W + M * 2, H, k), x0 = M, cx = x0 + 95;
+    ctx.fillStyle = 'rgba(15,18,24,.22)'; ctx.fillRect(x0 + 26, base - 2, 140, 8);
+    bloco(ctx, x0 + 30, base - 90, 130, 90, 'branco'); ctx.fillStyle = pad(ctx, '#B5562F'); ctx.beginPath(); ctx.moveTo(x0 + 24, base - 90); ctx.lineTo(x0 + 95, base - 130); ctx.lineTo(x0 + 166, base - 90); ctx.closePath(); ctx.fill(); traco(ctx, INK, 2);
+    ctx.fillStyle = '#7B3B28'; [x0 + 30, x0 + 156].forEach(x => ctx.fillRect(x, base - 90, 4, 90)); ctx.fillRect(x0 + 30, base - 4, 130, 4);
+    bloco(ctx, x0 + 150, base - 160, 30, 160, 'branco'); ctx.fillStyle = '#2A3442'; ctx.fillRect(x0 + 158, base - 146, 14, 18); ctx.fillStyle = pad(ctx, '#B5562F'); ctx.beginPath(); ctx.moveTo(x0 + 146, base - 160); ctx.lineTo(x0 + 165, base - 186); ctx.lineTo(x0 + 184, base - 160); ctx.closePath(); ctx.fill(); traco(ctx, INK, 2);
+    ctx.fillStyle = INK; ctx.fillRect(x0 + 164, base - 204, 3, 18); ctx.fillRect(x0 + 158, base - 198, 15, 3);
+    ctx.beginPath(); ctx.rect(cx - 14, base - 46, 28, 46); forma(ctx, '#6B4A32', 2); vidro(ctx, x0 + 46, base - 70, 18, 28, true, 18); vidro(ctx, x0 + 126, base - 70, 18, 28, true, 18);
+    return { cv, W: W + M * 2, H, M, base };
+  }
+  function spriteOlho(k){
+    const W = LW, M = 20, H = 260, base = H - M, { cv, ctx } = folha(W + M * 2, H, k), x0 = M, cx = x0 + 150;
+    ctx.fillStyle = 'rgba(15,18,24,.22)'; ctx.fillRect(x0 + 16, base - 2, 260, 10);
+    bloco(ctx, x0 + 20, base - 50, 100, 50, 'branco'); vidro(ctx, x0 + 26, base - 40, 88, 20, true, 22);
+    bloco(ctx, cx - 26, base - 120, 52, 120, '#F2C230');
+    ctx.fillStyle = 'rgba(30,36,46,.9)'; ctx.beginPath(); ctx.moveTo(cx - 110, base - 160); ctx.quadraticCurveTo(cx, base - 236, cx + 110, base - 160); ctx.quadraticCurveTo(cx, base - 108, cx - 110, base - 160); ctx.closePath(); ctx.fill(); traco(ctx, INK, 2);
+    ctx.fillStyle = 'rgba(214,232,248,.55)'; ctx.beginPath(); ctx.moveTo(cx - 90, base - 162); ctx.quadraticCurveTo(cx, base - 220, cx + 90, base - 162); ctx.quadraticCurveTo(cx, base - 186, cx - 90, base - 162); ctx.closePath(); ctx.fill();
+    pixPlaca(ctx, 'MUSEU DO OLHO', cx, base - 30, { fundo: PAPEL });
+    return { cv, W: W + M * 2, H, M, base };
+  }
+  const spriteEstadioCwb = (c1, c2, nome) => k => {
+    const W = LW, M = 20, H = 200, base = H - M, { cv, ctx } = folha(W + M * 2, H, k), x0 = M, cx = x0 + W / 2;
+    ctx.fillStyle = 'rgba(15,18,24,.22)'; ctx.fillRect(x0 + 20, base - 2, W - 40, 10);
+    ctx.fillStyle = c2; ctx.beginPath(); ctx.ellipse(cx, base - 70, 130, 70, 0, 0, Math.PI * 2); ctx.fill(); traco(ctx, INK, 2);
+    ctx.fillStyle = c1; for(let r = 0; r < 4; r++){ ctx.beginPath(); ctx.ellipse(cx, base - 70, 124 - r * 10, 64 - r * 6, 0, 0, Math.PI * 2); ctx.lineWidth = 3; ctx.strokeStyle = r % 2 ? c1 : c2; ctx.stroke(); }
+    ctx.fillStyle = pad(ctx, 'gramado'); ctx.beginPath(); ctx.ellipse(cx, base - 70, 80, 36, 0, 0, Math.PI * 2); ctx.fill(); ctx.strokeStyle = 'rgba(255,255,255,.8)'; ctx.lineWidth = 2; ctx.strokeRect(cx - 50, base - 92, 100, 44); ctx.beginPath(); ctx.moveTo(cx, base - 92); ctx.lineTo(cx, base - 48); ctx.stroke();
+    bloco(ctx, x0 + 30, base - 24, W - 60, 24, c1);
+    return { cv, W: W + M * 2, H, M, base };
+  };
+  function spriteTorrePan(k){
+    const W = LW, M = 20, H = 470, base = H - M, { cv, ctx } = folha(W + M * 2, H, k), x0 = M, cx = x0 + W / 2;
+    ctx.fillStyle = 'rgba(15,18,24,.22)'; ctx.fillRect(cx - 30, base - 2, 60, 8);
+    bloco(ctx, cx - 14, base - 380, 28, 380, 'concreto'); ctx.fillStyle = 'rgba(0,0,0,.1)'; for(let y = base - 370; y < base; y += 30) ctx.fillRect(cx - 14, y, 28, 2);
+    bloco(ctx, cx - 40, base - 380, 80, 40, 'branco'); vidro(ctx, cx - 34, base - 372, 68, 22, true, 17);
+    ctx.fillStyle = '#5E646C'; ctx.fillRect(cx - 2, base - 440, 4, 60); ctx.fillStyle = '#E2412E'; ctx.fillRect(cx - 4, base - 446, 8, 6);
+    pixPlaca(ctx, 'TORRE PANORAMICA', cx, base - 20, { fundo: PAPEL });
+    return { cv, W: W + M * 2, H, M, base };
+  }
+  function spriteRodo(k){
+    const W = LW, M = 20, H = 170, base = H - M, { cv, ctx } = folha(W + M * 2, H, k), x0 = M;
+    ctx.fillStyle = 'rgba(15,18,24,.22)'; ctx.fillRect(x0 + 10, base - 2, W - 20, 10);
+    bloco(ctx, x0 + 14, base - 46, 272, 46, 'concreto'); vidro(ctx, x0 + 22, base - 38, 256, 18, true, 32);
+    ctx.fillStyle = pad(ctx, 'branco'); ctx.beginPath(); ctx.moveTo(x0 + 10, base - 46); ctx.quadraticCurveTo(x0 + 150, base - 92, x0 + 290, base - 46); ctx.closePath(); ctx.fill(); traco(ctx, INK, 2);
+    pixPlaca(ctx, 'RODOFERROVIARIA', x0 + 150, base - 100, { fundo: PAPEL });
+    return { cv, W: W + M * 2, H, M, base };
+  }
+  function spriteUfpr(k){
+    const W = LW, M = 20, H = 260, base = H - M, { cv, ctx } = folha(W + M * 2, H, k), x0 = M, cx = x0 + W / 2;
+    ctx.fillStyle = 'rgba(15,18,24,.22)'; ctx.fillRect(x0 + 36, base - 2, W - 72, 10);
+    bloco(ctx, x0 + 40, base - 100, 220, 100, '#EFE6D2'); ctx.fillStyle = pad(ctx, 'concreto'); ctx.fillRect(x0 + 30, base - 10, 240, 10); ctx.fillRect(x0 + 36, base - 16, 228, 6);
+    ctx.fillStyle = '#F4F1EA'; for(let x = cx - 70; x <= cx + 70; x += 28){ ctx.fillRect(x - 5, base - 96, 10, 80); ctx.fillStyle = 'rgba(0,0,0,.12)'; ctx.fillRect(x + 3, base - 96, 2, 80); ctx.fillStyle = '#F4F1EA'; }
+    ctx.fillStyle = pad(ctx, '#EFE6D2'); ctx.beginPath(); ctx.moveTo(cx - 90, base - 100); ctx.lineTo(cx, base - 130); ctx.lineTo(cx + 90, base - 100); ctx.closePath(); ctx.fill(); traco(ctx, INK, 2);
+    ctx.fillStyle = '#9AA0A8'; ctx.beginPath(); ctx.arc(cx, base - 150, 26, Math.PI, 0); ctx.closePath(); ctx.fill(); traco(ctx, INK, 2); ctx.fillStyle = '#5E646C'; ctx.fillRect(cx - 2, base - 190, 4, 16);
+    pixPlaca(ctx, 'UFPR', cx, base - 112, { fundo: PAPEL });
+    return { cv, W: W + M * 2, H, M, base };
+  }
+  function spriteSantaFe(k){
+    const W = LW, M = 20, H = 220, base = H - M, { cv, ctx } = folha(W + M * 2, H, k), x0 = M;
+    ctx.fillStyle = 'rgba(15,18,24,.22)'; ctx.fillRect(x0 + 10, base - 2, W - 20, 8);
+    [x0 + 18, x0 + 112].forEach(x => bloco(ctx, x, base - 90, 12, 90, '#B5822E'));
+    ctx.fillStyle = '#7B3B28'; ctx.beginPath(); ctx.moveTo(x0 + 14, base - 90); ctx.quadraticCurveTo(x0 + 70, base - 126, x0 + 126, base - 90); ctx.lineTo(x0 + 126, base - 80); ctx.quadraticCurveTo(x0 + 70, base - 116, x0 + 14, base - 80); ctx.closePath(); ctx.fill(); traco(ctx, INK, 2);
+    bloco(ctx, x0 + 150, base - 80, 130, 80, '#E8D7C3'); ctx.fillStyle = pad(ctx, '#B5562F'); ctx.beginPath(); ctx.moveTo(x0 + 144, base - 80); ctx.lineTo(x0 + 215, base - 112); ctx.lineTo(x0 + 286, base - 80); ctx.closePath(); ctx.fill(); traco(ctx, INK, 2);
+    [x0 + 162, x0 + 248].forEach(x => vidro(ctx, x, base - 60, 22, 32, true, 22)); ctx.beginPath(); ctx.rect(x0 + 203, base - 46, 24, 46); forma(ctx, '#6B4A32', 2);
+    ctx.fillStyle = '#E2412E'; for(let x = x0 + 150; x < x0 + 280; x += 16) ctx.fillRect(x, base - 80, 8, 6); ctx.fillStyle = PAPEL; for(let x = x0 + 158; x < x0 + 280; x += 16) ctx.fillRect(x, base - 80, 8, 6);
+    pixPlaca(ctx, 'SANTA FELICIDADE', x0 + 70, base - 134, { fundo: PAPEL }); pixTxt(ctx, 'CANTINA', x0 + 215, base - 92, 1, INK);
+    return { cv, W: W + M * 2, H, M, base };
+  }
+  function spriteOratorio(k){
+    const W = LW, M = 20, H = 320, base = H - M, { cv, ctx } = folha(W + M * 2, H, k), x0 = M, cx = x0 + W / 2, b2 = base - 94;
+    ctx.fillStyle = 'rgba(15,18,24,.22)'; ctx.fillRect(cx - 36, b2 - 2, 72, 8);
+    ctx.fillStyle = pad(ctx, '#6B4A32'); ctx.fillRect(cx - 30, b2 - 60, 60, 60); ctx.fillStyle = 'rgba(0,0,0,.25)'; for(let x = cx - 26; x < cx + 30; x += 8) ctx.fillRect(x, b2 - 60, 2, 60); ctx.beginPath(); ctx.rect(cx - 30, b2 - 60, 60, 60); traco(ctx, INK, 2);
+    ctx.fillStyle = pad(ctx, '#3A2A1E'); ctx.beginPath(); ctx.moveTo(cx - 38, b2 - 58); ctx.lineTo(cx, b2 - 140); ctx.lineTo(cx + 38, b2 - 58); ctx.closePath(); ctx.fill(); traco(ctx, INK, 2);
+    vidro(ctx, cx - 10, b2 - 46, 20, 30, true, 20); ctx.fillStyle = INK; ctx.fillRect(cx - 1, b2 - 160, 3, 20); ctx.fillRect(cx - 7, b2 - 152, 15, 3);
+    pixPlaca(ctx, 'ORATORIO DE BACH', cx, b2 - 176, { fundo: PAPEL });
+    return { cv, W: W + M * 2, H, M, base };
+  }
+  const SPR_CWB = { opera: k => spriteOpera(k), botanico: k => spriteEstufa(k), afonso: k => spriteAfonso(k), catedral: spriteCatCwb, largo: spriteLargo, oscar: spriteOlho,
+    coxa: spriteEstadioCwb('#EEEBE4', '#1B1D22', 'COUTO PEREIRA'), arena: spriteEstadioCwb('#D7262E', '#1B1D22', 'ARENA DA BAIXADA'), torre: spriteTorrePan, rodo: spriteRodo, ufpr: spriteUfpr, santafe: spriteSantaFe, alemao: spriteOratorio };
   /* Concha Acústica: a concha branca sobre o palco, com os degraus na frente */
   function spriteConcha(k){
     const W = LW, M = 20, H = 300, base = H - M, { cv, ctx } = folha(W + M * 2, H, k), x0 = M, cx = x0 + W / 2;
@@ -6630,10 +6797,8 @@
     /* v5.21 · Curitiba (os prédios, a Ópera, a estufa, o aeroporto) e o teco-teco parado em cada campo de pouso */
     const SL = c.sul;
     if(SL){
-      SL.enche.forEach(f => { if(vis(f.x + LW / 2, f.base, 360)){ sprite(f.id, () => f.t === 'predio' ? spritePredio(f, k) : spriteLoja(f, k), f.t === 'predio' ? f.px : f.x, f.base); if(f.t === 'loja') luz(f.x + LW / 2, f.base - 20, 100, .7); } });
-      if(SL.opera && vis(SL.opera.x + LW / 2, SL.opera.base, 360)){ sprite('cwb:opera', () => spriteOpera(k), SL.opera.x, SL.opera.base); luz(SL.opera.x + LW / 2, SL.opera.base - 40, 170, .8); }
-      if(SL.botanico && vis(SL.botanico.x + LW / 2, SL.botanico.base, 360)){ sprite('cwb:bot', () => spriteEstufa(k), SL.botanico.x, SL.botanico.base); luz(SL.botanico.x + LW / 2, SL.botanico.base - 40, 170, .8); }
-      const af = SL.afonso; if(af && vis(af.x + LW / 2, af.y + 130, 360)){ sprite('cwb:afonso', () => spriteAfonso(k), af.x, af.y + 130); luz(af.x + 215, af.y + 110, 110, .7); }
+      SL.enche.forEach(f => { if((f.t === 'predio' || f.t === 'loja') && vis(f.x + LW / 2, f.base, 360)){ sprite(f.id, () => f.t === 'predio' ? spritePredio(f, k) : spriteLoja(f, k), f.t === 'predio' ? f.px : f.x, f.base); if(f.t === 'loja') luz(f.x + LW / 2, f.base - 20, 100, .7); } });
+      SL.blocos.forEach(b => { const fz = SPR_CWB[b.t], bb = b.sb || b.base; if(fz && vis(b.x + LW / 2, bb, b.t === 'torre' ? 600 : 400)){ sprite('cwb:' + b.t, () => fz(k), b.x, bb); luz(b.x + LW / 2, bb - 40, 150, .7); } });
     }
     aerosVoo().forEach(a => { if(a.k === 'londrina' || (V.voo && V.voo.de === a.k)) return; if(vis(a.vaga.x, a.vaga.y, 180)) L.push({ y: a.vaga.y, f: () => desenhaAviao(ctx, a.vaga.x, a.vaga.y, 0, 1, t, false, true) }); });
     /* v3.57: a ACEL (sede, portal, placar e as torres de luz) */
@@ -6747,7 +6912,7 @@
       /* v5.17: o nome de cada saída na beira, em cima da estrada, com a seta pra fora */
       .concat(c.cambe && c.cambe.fonte ? [['CAMBE', c.cambe.fonte.x + LW / 2, c.cambe.fonte.y + LH / 2]] : [])
       .concat(c.cambe && c.cambe.cafe ? [['IBIPORA', c.cambe.cafe.x + LW / 2, c.cambe.cafe.y + LH / 2]] : [])
-      .concat(c.sul ? [['CURITIBA', (c.sul.x0 + c.sul.x1) / 2, c.sul.y1 - 30]] : [])
+      .concat(c.sul && c.sul.ruaxv ? [['CURITIBA', c.sul.ruaxv.x + LW / 2, c.sul.ruaxv.y + LH / 2]] : [])
       .concat((c.estradas || []).filter(e => !e.aberta).map(e => { if(e.eixo === 'v') return [e.placa + ' ↓', e.x, e.y0 + 8 * S]; const tx = e.lado < 0 ? '< ' + e.placa : e.placa + ' >', m = (pixLarg(tx, 1) / 2 + 4) * S; return [tx, e.lado < 0 ? m : c.W - m, e.y - 11 * S]; }));
     /* v4.14: os nomes dos bairros (letra escura miúda) só onde não encostam no nome de um lugar */
     mapaBairros(ctx, c, X, Y, rot.map(([t, x, y]) => ({ x: X(x), y: Y(y), w: pixLarg(t, 1) + 8, h: 11 })).concat(c.regs.filter(R => !R.tem).map(R => ({ x: X(R.x + R.w / 2), y: Y(R.y + R.h / 2), w: R.w / S + 4, h: R.h / S + 4 }))));
