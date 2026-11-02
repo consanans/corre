@@ -354,6 +354,35 @@ async function renova(admin: any) {
   return n;
 }
 
+/* torre · uma vez por dia, os números de cada conta conectada (seguidores, posts e o engajamento dos últimos 25)
+   vão pra corre_ig_numeros, que só o painel do Thales lê. Só leitura na Meta; conta que falhar tenta na próxima volta */
+async function numeros(admin: any, ate: number) {
+  const hoje = new Date(Date.now() - 3 * 3600e3).toISOString().slice(0, 10);
+  const { data: L, error } = await admin.from('corre_ig_contas').select('id,username').eq('status', 'ok').limit(100);
+  if (error || !L?.length) return 0;
+  const { data: F } = await admin.from('corre_ig_numeros').select('conta').eq('dia', hoje);
+  const feitas = new Set((F || []).map((x: any) => x.conta));
+  let n = 0;
+  for (const c of L) {
+    if (feitas.has(c.id) || Date.now() > ate) continue;
+    try {
+      const { data: t } = await admin.from('corre_ig_tokens').select('token').eq('conta', c.id).maybeSingle();
+      if (!t) continue;
+      const tok = await decifra(t.token);
+      const me = await igapi('me?fields=followers_count,follows_count,media_count', tok);
+      const md = await igapi('me/media?fields=like_count,comments_count&limit=25', tok).catch(() => ({ data: [] }));
+      const M = (md as any).data || [];
+      const soma = (k: string) => M.reduce((s: number, x: any) => s + (Number(x[k]) || 0), 0);
+      await admin.from('corre_ig_numeros').upsert({
+        conta: c.id, dia: hoje, seguidores: Number(me.followers_count) || 0, seguindo: Number(me.follows_count) || 0,
+        posts: Number(me.media_count) || 0, curtidas: soma('like_count'), comentarios: soma('comments_count'), amostra: M.length, em: agora(),
+      }, { onConflict: 'conta,dia' });
+      n++;
+    } catch (e: any) { console.error('numeros:', c.username, e?.code, e?.message); }
+  }
+  return n;
+}
+
 /* ---------- Meta: desautorização e exclusão de dados (signed_request) ---------- */
 async function assinatura(sr: string) {
   const [sig, payload] = String(sr || '').split('.');
@@ -412,6 +441,7 @@ Deno.serve(async (req) => {
     let renovadas = 0;
     try { renovadas = await renova(admin); } catch (e: any) { console.error('renova:', e?.message); }
     try { await explicaRecusas(admin); } catch (e: any) { console.error('recusas:', e?.message); }
+    try { await numeros(admin, ate); } catch (e: any) { console.error('numeros:', e?.message); }
     /* v3.55: a resposta não leva o detalhe dos posts (quem chama a fila pode ser qualquer um, e o post é de outra pessoa);
        o detalhe fica só no log da função */
     if (out.length) console.log('fila:', JSON.stringify(out));

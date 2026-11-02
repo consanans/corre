@@ -239,6 +239,10 @@ Deno.serve(async (req) => {
     const { data: ing, error: eg } = await admin.rpc('corre_ingresso_alvos', {});
     if (eg) { if (!/corre_ingresso_alvos/.test(eg.message || '')) console.warn('[push] ingresso', eg.message); }
     else if (Array.isArray(ing)) L.push(...ing);
+    /* 01/11/2026: e o briefing de branding que um cliente acabou de mandar, pro fundador (sem o briefing.sql, nada) */
+    const { data: bri, error: eb } = await admin.rpc('corre_briefing_alvos', {});
+    if (eb) { if (!/corre_briefing_alvos/.test(eb.message || '')) console.warn('[push] briefing', eb.message); }
+    else if (Array.isArray(bri)) L.push(...bri);
     if (!L.length) return json({ ok: true, pessoas: 0, entregues: 0 });
     const r = await manda(admin, v, await lista(admin, L, 'high'));
     console.log('[push] pedidos', JSON.stringify({ pessoas: L.length, entregues: r.ok, saiu: r.mortos }));
