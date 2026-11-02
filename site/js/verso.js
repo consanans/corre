@@ -2080,15 +2080,15 @@
      trem de 1936), I o Cine Teatro Padre José Zanelli, K uma capela do Circuito das Capelas e P o Parque Florestal */
   const PLANTA = [
     '.............#####.............',
-    '............##EE###............',
-    '.##........###EE####...........',
-    '#Sf#......###########......##..',
-    '#u##....#############......#K#.',
-    '#DYY....#######hmb###......MI#.',
-    '.##.....######ddat####.....#PP.',
-    '.......#######pkcg#####....##..',
-    '........#####FFBB######........',
-    '........#qLL###ZZ#######.......',
+    '..##........##EE###............',
+    '####.......###EE####.......#.##',
+    '#Sf#......###########......####',
+    '#u##....#############......#K##',
+    '#DYY#...#######hmb###......MI##',
+    '####....######ddat####.....#PP#',
+    '.###...#######pkcg#####....##..',
+    '..##....#####FFBB######....##..',
+    '........#qLL###ZZ#######....#..',
     '........##LLl##ZZ##AAA##.......',
     '........####lLLZZ##AAA##.......',
     '........#GGGGLLL#####CC#.......',
@@ -2299,7 +2299,8 @@
     /* v4.26 · os muros de grafite (o Spray): o muro do fundo de umas quadras do bairro, até 4, espalhados (a 3 quarteirões
        um do outro no mínimo), na ordem de um sorteio fixo; sem quadra que chegue, entra o fundo de uma feira. O muro fica
        em cima da quadra (a cerca dela começa 30 px pra dentro) e a porta é no pé dele, do lado da quadra */
-    const muros = [], sorteiaM = tp => enche.filter(f => f.t === tp).sort((a, b) => hash('muro' + a.id) - hash('muro' + b.id));
+    /* v5.27: só os de Londrina entram no sorteio (Cambé e Ibiporã cresceram, e os muros de antes não mudam de lugar) */
+    const muros = [], sorteiaM = tp => enche.filter(f => f.t === tp && f.c >= OESTE && f.c < OESTE + LONDRINA_C).sort((a, b) => hash('muro' + a.id) - hash('muro' + b.id));
     for(const f of [...sorteiaM('quadra'), ...sorteiaM('feira')]){
       if(muros.length >= 4) break; if(muros.some(m => Math.abs(m.c - f.c) + Math.abs(m.r - f.r) < 3)) continue;
       const m = { tipo: 'muroSpray', x: f.x + LW / 2, y: f.y + 26, w: LW - 60, c: f.c, r: f.r, sd: f.sd, i: muros.length }; muros.push(m); f.muro = m;
