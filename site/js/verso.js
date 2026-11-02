@@ -2626,7 +2626,7 @@
     torre: 'A Torre Panorâmica, nas Mercês, tem uns 110 metros e o mirante lá em cima: dá pra ver a cidade inteira.',
     catedral: 'A Catedral Basílica de Nossa Senhora da Luz, na Praça Tiradentes, foi inaugurada em 1893, no estilo neogótico.',
     ufpr: 'O Prédio Histórico da UFPR, na Praça Santos Andrade, é o símbolo da Universidade Federal do Paraná, criada em 1912.',
-    arena: 'A Arena da Baixada é o estádio do Athletico, no Água Verde, a sudoeste do Centro. Foi sede da Copa de 2014.',
+    arena: 'A Arena da Baixada é a casa do Athletico, no Água Verde, a sudoeste do Centro. Abriu em 1999, foi sede da Copa de 2014 e em 2015 ganhou o teto retrátil, o primeiro da América do Sul. O gramado é sintético desde 2016 e cabem uns 42 mil. Quando chove no Correverso, o teto fecha.',
     rodo: 'A Rodoferroviária junta a rodoviária e a estação de trem. Do lado, o Mercado Municipal, de 1958.'
   };
   /* os campos de pouso de Cambé e de Ibiporã (o avião vai de cidade em cidade) */
@@ -2661,7 +2661,10 @@
           placa('largo', x + 220, y + 40); lugar(b.base + 34); break;
         case 'ufpr': K.sol.push({ x: x + 40, y: b.base - 44, w: 220, h: 44 }); placa('ufpr', x + LW - 30, b.base + 18); lugar(b.base + 34); break;
         case 'oscar': K.sol.push({ x: x + 120, y: b.base - 30, w: 60, h: 30 }, { x: x + 20, y: b.base - 26, w: 90, h: 26 }); placa('oscar', x + 60, y + 40); lugar(b.base + 34); break;
-        case 'coxa': case 'arena': K.sol.push({ x: x + 24, y: b.base - 50, w: 252, h: 50 }); placa(t, x + LW / 2, b.base + 18); lugar(b.base + 36); break;
+        case 'coxa': K.sol.push({ x: x + 24, y: b.base - 50, w: 252, h: 50 }); placa(t, x + LW / 2, b.base + 18); lugar(b.base + 36); break;
+        /* v5.22 · a Arena da Baixada como ela é: a caixa retangular do quarteirão inteiro, a fachada vermelha e preta e o
+           teto retrátil (desenhada a cada quadro, no decor 'arenaCwb', porque o teto abre e fecha) */
+        case 'arena': K.decor.push({ tipo: 'arenaCwb', x: cx, y: b.base, top: y + 22 }); K.sol.push({ x: x + 12, y: y + 22, w: LW - 24, h: b.base - y - 22 }); placa(t, x + 40, b.base + 18); lugar(b.base + 36); break;
         case 'torre': K.sol.push({ x: cx - 16, y: b.base - 20, w: 32, h: 20 }); arvs(b, [[40, 60], [LW - 40, 60], [50, LH - 40]]); placa('torre', cx + 70, b.base + 10); lugar(b.base + 30); break;
         case 'rodo': K.sol.push({ x: x + 14, y: b.base - 40, w: 272, h: 40 }); placa('rodo', x + 50, b.base + 18); lugar(b.base + 34); break;
         case 'santafe': K.sol.push({ x: x + 150, y: b.base - 40, w: 130, h: 40 }, { x: x + 18, y: b.base - 14, w: 10, h: 14 }, { x: x + 112, y: b.base - 14, w: 10, h: 14 }); placa('santafe', x + 215, y + 40); lugar(b.base + 34); break;
@@ -2677,6 +2680,18 @@
     K.decor.push({ tipo: 'biarticulado', x: (S.x0 + S.x1) / 2, y: yTubo + 26, x0: S.x0 + 140, x1: S.x1 - 140 });
     K.decor.push({ tipo: 'portalCambe', x: S.rx + 130, y: ySul - 4, txt: 'CURITIBA' }); K.sol.push({ x: S.rx + 130 - 74, y: ySul - 16, w: 148, h: 10 });
     K.zonas.push({ nome: 'Curitiba', x: S.x0, y: S.y0, w: S.x1 - S.x0, h: S.y1 - S.y0 });
+    /* v5.23 · a roça em volta de Curitiba (o Thales: "coloque roça do lado de Curitiba onde tá marrom"): cada pedaço do
+       tamanho de um quarteirão é uma lavoura (terra roxa, trigo, palhada, milho), com ipê e silo de vez em quando. Ninguém
+       anda nela (como a de Londrina) */
+    S.roca = [];
+    for(let c = 0; c < COLS; c++) for(let j = 0; j <= NR; j++){
+      const x = ruaX(c), y = ySul + j * QQ, w = PQ, h = Math.min(QQ, ySul + SUL_H - y); if(h <= 0) continue;
+      if(c >= c0 && c < c0 + NC && j < NR) continue;
+      const q = rng(hash('rocaSul' + c + ',' + j)), r = { x, y, w, h, t: pega(ROCA_T, q), deitado: q() < .5, sd: Math.floor(q() * 1e6) }; S.roca.push(r);
+      if(Math.abs(x + w / 2 - est.x) < PQ && j === 0) continue;
+      if(q() < .5) K.arv.push({ x: Math.round(x + 50 + q() * (w - 100)), y: Math.round(y + 50 + q() * (h - 80)), cor: pega(IPES, q), mata: true, roca: true });
+      if(q() < .16 && h > 200) K.decor.push({ tipo: 'silo', x: Math.round(x + 80 + q() * (w - 160)), y: Math.round(y + 130 + q() * (h - 160)) });
+    }
     return S;
   }
   /* o Parque Zezão: dois quarteirões no fundo do vale, o riacho atravessando com a pontinha de madeira, o anfiteatro de
@@ -3397,8 +3412,16 @@
       ctx.fillStyle = pad(ctx, 'terra'); ctx.fillRect(a.pista.x, a.pista.y, a.pista.w, a.pista.h); ctx.fillRect(a.vaga.x - 26, a.vaga.y - 20, 52, a.pista.y - a.vaga.y + 22); ctx.fillRect(a.x + LW / 2 - 16, a.pista.y + a.pista.h, 32, LH - (a.pista.y - a.y) - a.pista.h);
       ctx.fillStyle = 'rgba(255,255,255,.6)'; for(let x = a.pista.x + 10; x < a.pista.x + a.pista.w - 10; x += 30) ctx.fillRect(x, a.pista.y + a.pista.h / 2 - 1, 16, 2 * u); });
     if(!S || S.y0 > vy + vh || c.H < vy) return;
-    ctx.fillStyle = pad(ctx, 'trigo'); ctx.fillRect(Math.max(0, vx), S.y0, vw, c.H - S.y0);
-    ctx.fillStyle = 'rgba(120,82,24,.3)'; for(let y = Math.ceil(S.y0 / 12) * 12; y < c.H; y += 12) ctx.fillRect(Math.max(0, vx), y, vw, 3);
+    /* v5.23 · a roça em volta: cada pedaço uma lavoura, com as linhas do plantio e os torrões (a cerca vem depois) */
+    (S.roca || []).forEach(r => { const ix0 = Math.max(r.x, vx - 4), ix1 = Math.min(r.x + r.w, vx + vw + 4), iy0 = Math.max(r.y, vy - 4), iy1 = Math.min(r.y + r.h, vy + vh + 4); if(ix0 >= ix1 || iy0 >= iy1) return;
+      const [cor, per, lar] = ROCA_LINHA[r.t]; ctx.fillStyle = pad(ctx, r.t); ctx.fillRect(ix0, iy0, ix1 - ix0, iy1 - iy0); ctx.fillStyle = cor;
+      if(r.deitado) for(let yy = Math.ceil(iy0 / per) * per; yy < iy1; yy += per) ctx.fillRect(ix0, yy, ix1 - ix0, Math.min(lar, iy1 - yy)); else for(let xx = Math.ceil(ix0 / per) * per; xx < ix1; xx += per) ctx.fillRect(xx, iy0, Math.min(lar, ix1 - xx), iy1 - iy0);
+      if(r.t !== 'palhada'){ const q = rng(r.sd); ctx.fillStyle = r.t === 'arado' ? 'rgba(40,12,6,.45)' : 'rgba(255,236,170,.5)'; for(let i = 0; i < 70; i++){ const px = r.x + q() * r.w, py = r.y + q() * r.h; if(px > ix0 && px < ix1 && py > iy0 && py < iy1) ctx.fillRect(sn(px), sn(py), u * 2, u * 2); } }
+      ctx.fillStyle = 'rgba(90,58,34,.35)'; ctx.fillRect(ix0, r.y, ix1 - ix0, 2 * u); ctx.fillRect(r.x, iy0, 2 * u, iy1 - iy0); });
+    /* a cerca de arame e o capim em volta da cidade, onde a roça encosta nela */
+    { const fx0 = S.x0 - CALC - 16, fx1 = S.x1 + CALC + 16, fy1 = S.y1 + CALC + 16; ctx.fillStyle = '#CDB070'; ctx.fillRect(fx0, S.y0, 16, fy1 - S.y0); ctx.fillRect(fx1 - 16, S.y0, 16, fy1 - S.y0); ctx.fillRect(fx0, fy1 - 16, fx1 - fx0, 16);
+      ctx.fillStyle = '#5A3A22'; ctx.fillRect(fx0 + 4, S.y0, u, fy1 - S.y0); ctx.fillRect(fx1 - 5, S.y0, u, fy1 - S.y0); ctx.fillRect(fx0, fy1 - 5, fx1 - fx0, u);
+      for(let y = S.y0 + 6; y < fy1; y += 24){ ctx.fillRect(fx0 + 3, y, 3, 9); ctx.fillRect(fx1 - 6, y, 3, 9); } for(let x = fx0 + 6; x < fx1; x += 24) ctx.fillRect(x, fy1 - 11, 3, 9); }
     ctx.fillStyle = pad(ctx, 'calcada'); ctx.fillRect(S.x0 - CALC, S.y0, S.x1 - S.x0 + CALC * 2, S.y1 - S.y0 + CALC);
     ctx.fillStyle = pad(ctx, 'rua'); ctx.fillRect(S.x0, S.y0, S.x1 - S.x0, S.y1 - S.y0);
     ctx.fillStyle = 'rgba(242,236,84,.85)';
@@ -5054,6 +5077,41 @@
       case 'hangar': { ctx.fillStyle = 'rgba(15,18,24,.22)'; ctx.fillRect(d.x - 46, d.y - 2, 92, 6); ctx.fillStyle = pad(ctx, 'zinco'); ctx.beginPath(); ctx.moveTo(d.x - 44, d.y); ctx.lineTo(d.x - 44, d.y - 30); ctx.quadraticCurveTo(d.x, d.y - 56, d.x + 44, d.y - 30); ctx.lineTo(d.x + 44, d.y); ctx.closePath(); ctx.fill(); traco(ctx, INK, 2);
         ctx.fillStyle = '#2B2F38'; ctx.fillRect(d.x - 24, d.y - 26, 48, 26); break; }
       case 'biruta': biruta(ctx, d, t); break;
+      /* v5.22 · a Arena da Baixada (o Thales: "faça a Arena da Baixada realmente como ela é"): o prédio retangular de
+         cantos chanfrados, a fachada escura de aletas com a pele vermelha que acende de noite e o letreiro; vista de
+         cima, a cobertura em volta, as quatro arquibancadas coladas no campo (vermelho e preto, o caldeirão), o gramado
+         sintético (dourado, como toda grama do Correverso) e o teto retrátil: duas lonas que correm sobre o campo e
+         fecham quando chove (e abrem quando o tempo firma) */
+      case 'arenaCwb': {
+        const cl = V.ceu && V.ceu.clima, chove = !!(cl && cl.tipo !== 'sol' && cl.f > .2), nt = V.ceu ? V.ceu.escuro : 0;
+        const agoraA = performance.now(), dtA = d.abT ? Math.min(.5, (agoraA - d.abT) / 1000) : 0; d.abT = agoraA;
+        d.ab = d.ab == null ? (chove ? 0 : 1) : clamp(d.ab + (chove ? -1 : 1) * dtA / 3, 0, 1);
+        const by = d.y, FH = 62, x0 = d.x - 138, x1 = d.x + 138, yt = d.top, yr = by - FH, ch = 18, RED = '#D7262E', PRE = '#1B1D22';
+        ctx.fillStyle = 'rgba(15,18,24,.25)'; ctx.fillRect(x0 - 4, by - 2, x1 - x0 + 8, 10);
+        /* a cobertura vista de cima (cantos chanfrados) */
+        const caixa = (a, b2, c2, e2, cc) => { ctx.beginPath(); ctx.moveTo(a + cc, b2); ctx.lineTo(c2 - cc, b2); ctx.lineTo(c2, b2 + cc); ctx.lineTo(c2, e2); ctx.lineTo(a, e2); ctx.lineTo(a, b2 + cc); ctx.closePath(); };
+        caixa(x0, yt, x1, yr, ch); ctx.fillStyle = '#C9CED6'; ctx.fill(); traco(ctx, INK, 2);
+        /* as arquibancadas: quatro lados, fileiras vermelhas e pretas */
+        const ax0 = x0 + 16, ax1 = x1 - 16, ay0 = yt + 12, ay1 = yr - 4;
+        for(let k2 = 0; k2 < 5; k2++){ ctx.fillStyle = k2 % 2 ? PRE : RED; caixa(ax0 + k2 * 6, ay0 + k2 * 4, ax1 - k2 * 6, ay1 - k2 * 2, Math.max(2, 10 - k2 * 2)); ctx.fill(); }
+        /* o campo */
+        const px0 = ax0 + 32, px1 = ax1 - 32, py0 = ay0 + 22, py1 = ay1 - 12, pw = px1 - px0, ph = py1 - py0;
+        ctx.fillStyle = '#C9A95E'; ctx.fillRect(px0, py0, pw, ph); ctx.fillStyle = 'rgba(255,255,255,.12)'; for(let x = px0; x < px1; x += 24) ctx.fillRect(x, py0, 12, ph);
+        ctx.strokeStyle = 'rgba(255,255,255,.85)'; ctx.lineWidth = Math.max(1, u * 1.5); ctx.strokeRect(px0 + 4, py0 + 4, pw - 8, ph - 8); ctx.beginPath(); ctx.moveTo(d.x, py0 + 4); ctx.lineTo(d.x, py1 - 4); ctx.stroke();
+        ctx.beginPath(); ctx.arc(d.x, (py0 + py1) / 2, Math.min(16, ph / 4), 0, Math.PI * 2); ctx.stroke(); ctx.strokeRect(px0 + 4, (py0 + py1) / 2 - ph / 4, 18, ph / 2); ctx.strokeRect(px1 - 22, (py0 + py1) / 2 - ph / 4, 18, ph / 2);
+        /* o teto retrátil: as duas lonas correm do lado pro meio */
+        const fecha = (1 - d.ab) * (pw / 2 + 6);
+        if(fecha > 1){ ctx.fillStyle = 'rgba(232,236,242,.94)'; ctx.fillRect(px0 - 6, py0 - 6, fecha, ph + 12); ctx.fillRect(px1 + 6 - fecha, py0 - 6, fecha, ph + 12);
+          ctx.fillStyle = 'rgba(120,128,140,.35)'; for(let x = px0 - 6 + 14; x < px0 - 6 + fecha; x += 14) ctx.fillRect(x, py0 - 6, u * 1.5, ph + 12); for(let x = px1 + 6 - 14; x > px1 + 6 - fecha; x -= 14) ctx.fillRect(x, py0 - 6, u * 1.5, ph + 12); }
+        ctx.fillStyle = '#9AA0A8'; ctx.fillRect(px0 - 8, py0 - 10, pw + 16, 4); ctx.fillRect(px0 - 8, py1 + 6, pw + 16, 4);
+        /* a fachada: as aletas escuras, a pele vermelha (acesa de noite) e o letreiro */
+        ctx.fillStyle = PRE; ctx.beginPath(); ctx.moveTo(x0, yr); ctx.lineTo(x1, yr); ctx.lineTo(x1, by); ctx.lineTo(x0, by); ctx.closePath(); ctx.fill(); traco(ctx, INK, 2);
+        ctx.fillStyle = nt > .35 ? RED : '#8E1C22'; ctx.fillRect(x0 + 6, yr + 6, x1 - x0 - 12, 26);
+        ctx.fillStyle = 'rgba(0,0,0,.35)'; for(let x = x0 + 10; x < x1 - 6; x += 10) ctx.fillRect(x, yr + 6, 3, FH - 6);
+        ctx.fillStyle = '#2A3442'; [x0 + 30, d.x - 18, x1 - 66].forEach(x => ctx.fillRect(x, by - 22, 36, 22));
+        pixTxt(ctx, 'ARENA DA BAIXADA', d.x, yr + 19, 1, '#FFFFFF');
+        if(nt > .35){ luz(d.x, yr + 18, 210, .9); luz(x0 + 20, yr + 10, 90, .6); luz(x1 - 20, yr + 10, 90, .6); }
+        break; }
       /* v5.22 · Curitiba: a cascata do Tanguá, as capivaras do Barigui, o portão do Passeio Público e o Relógio das Flores */
       case 'cascata': { ctx.fillStyle = 'rgba(214,232,248,.85)'; ctx.fillRect(d.x - 12, d.y - 70, 24, 70); ctx.fillStyle = PAPEL; for(let k2 = 0; k2 < 6; k2++){ const f = (t * 1.4 + k2 / 6) % 1; ctx.fillRect(d.x - 10 + (k2 % 3) * 8, d.y - 70 + f * 70, 3, 8); } ctx.fillStyle = 'rgba(255,255,255,.6)'; ctx.fillRect(d.x - 20, d.y - 4, 40, 6); break; }
       case 'capivara': { const bob = Math.sin(t * 1.3 + d.x) > .7 ? 1 : 0; ctx.fillStyle = 'rgba(15,18,24,.22)'; ctx.fillRect(d.x - 16, d.y - 1, 32, 4); ctx.fillStyle = '#8A5A3A'; ctx.fillRect(d.x - 14, d.y - 14, 26, 13); ctx.fillRect(d.x + 8, d.y - 18 + bob, 12, 11); ctx.fillStyle = '#6B4227'; ctx.fillRect(d.x + 9, d.y - 20 + bob, 3, 3); ctx.fillStyle = INK; ctx.fillRect(d.x + 15, d.y - 15 + bob, 2, 2); ctx.fillStyle = '#6B4227'; ctx.fillRect(d.x - 12, d.y - 2, 4, 2); ctx.fillRect(d.x + 4, d.y - 2, 4, 2); break; }
@@ -5585,7 +5643,7 @@
     return { cv, W: W + M * 2, H, M, base };
   }
   const SPR_CWB = { opera: k => spriteOpera(k), botanico: k => spriteEstufa(k), afonso: k => spriteAfonso(k), catedral: spriteCatCwb, largo: spriteLargo, oscar: spriteOlho,
-    coxa: spriteEstadioCwb('#EEEBE4', '#1B1D22', 'COUTO PEREIRA'), arena: spriteEstadioCwb('#D7262E', '#1B1D22', 'ARENA DA BAIXADA'), torre: spriteTorrePan, rodo: spriteRodo, ufpr: spriteUfpr, santafe: spriteSantaFe, alemao: spriteOratorio };
+    coxa: spriteEstadioCwb('#EEEBE4', '#1B1D22', 'COUTO PEREIRA'), torre: spriteTorrePan, rodo: spriteRodo, ufpr: spriteUfpr, santafe: spriteSantaFe, alemao: spriteOratorio };
   /* Concha Acústica: a concha branca sobre o palco, com os degraus na frente */
   function spriteConcha(k){
     const W = LW, M = 20, H = 300, base = H - M, { cv, ctx } = folha(W + M * 2, H, k), x0 = M, cx = x0 + W / 2;
@@ -6891,7 +6949,8 @@
     const rio = c.rio; if(rio){ ctx.fillStyle = '#D9C27F'; ctx.fillRect(0, Y(rio.y0), cv.width, Math.ceil(RIO_H / S)); ctx.fillStyle = '#9C7E3E'; rio.cols.forEach(q => ctx.fillRect(X(q.x), Y(q.b), 1, Math.max(1, Math.round((rio.y0 + RIO_H - q.b) / S))));
       ctx.fillStyle = '#2F7FC1'; rio.cols.forEach(q => ctx.fillRect(X(q.x), Y(q.t), 1, Math.max(1, Math.round((q.b - q.t) / S)))); ctx.fillStyle = '#8E5B33'; rio.piers.forEach(p => ctx.fillRect(X(p.xp) - 1, Y(p.y), 3, Math.max(2, Math.round(p.h / S)))); }
     /* v5.21 · Curitiba do outro lado do rio, a ponte e os campos de pouso */
-    if(c.sul){ const SS = c.sul; ctx.fillStyle = '#C9A95E'; ctx.fillRect(0, Y(SS.y0), cv.width, cv.height - Y(SS.y0));
+    if(c.sul){ const SS = c.sul, COR_RS = { arado: '#7E4330', trigo: '#BE9D55', palhada: '#AE9562', milho: '#9C7D4A' }; ctx.fillStyle = '#C9A95E'; ctx.fillRect(0, Y(SS.y0), cv.width, cv.height - Y(SS.y0));
+      (SS.roca || []).forEach(r => { ctx.fillStyle = COR_RS[r.t] || '#AE9562'; ctx.fillRect(X(r.x), Y(r.y), Math.ceil(r.w / S), Math.ceil(r.h / S)); });
       ctx.fillStyle = '#2B2F38'; ctx.fillRect(X(SS.x0), Y(SS.y0), Math.round((SS.x1 - SS.x0) / S), Math.round((SS.y1 - SS.y0) / S)); ctx.fillRect(X(SS.rx - 32), Y(rio ? rio.y0 : SS.y0), Math.max(2, Math.round(64 / S)), Y(SS.y0) - Y(rio ? rio.y0 : SS.y0));
       SS.blocos.forEach(b => { ctx.fillStyle = b.f ? (COR_E[b.f.t] || '#E6DECD') : '#F4F1EA'; ctx.fillRect(X(b.x), Y(b.y), Math.round(LW / S), Math.round(LH / S)); }); }
     (c.campos || []).forEach(a => { ctx.fillStyle = '#D9C27F'; ctx.fillRect(X(a.x), Y(a.y), Math.round(LW / S), Math.round(LH / S)); ctx.fillStyle = '#A4553A'; ctx.fillRect(X(a.pista.x), Y(a.pista.y), Math.round(a.pista.w / S), Math.max(2, Math.round(a.pista.h / S))); });
