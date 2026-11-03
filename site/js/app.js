@@ -1729,6 +1729,8 @@
     if(!st.user && /^houzi\//.test(h)){ try{ localStorage.setItem('corre-volta', location.hash); }catch(e){} }
     /* v4.41: o app.corresocial.com/studio sem login: depois de entrar com o Google, volta pro Corre Studio */
     if(!st.user && h === 'dia'){ try{ localStorage.setItem('corre-volta', '#/dia'); }catch(e){} }
+    /* v5.34: o QR do Natal (app.corresocial.com/noel) sem login: depois de entrar, vai direto pra foto com o Papai Noel */
+    if(!st.user && h === 'noel'){ try{ localStorage.setItem('corre-volta', '#/noel'); }catch(e){} }
     /* v4.29 · "Quantos clientes tem pra você" (app.corresocial.com/clientes): abre sem login */
     if(h === 'clientes' && C.views.clientes){ if(await precisaPerfil(location.hash)) return; window.scrollTo(0, 0); return C.views.clientes(app); }
     /* v4.17 · o link de aprovação do Studio: o cliente abre sem login */
@@ -1745,7 +1747,7 @@
     if(!st.me) return st.meErro ? viewSemRede() : viewOnboarding();
     /* voltou do login do Google: leva pra onde a pessoa tava (ex.: o pedido do Mural) */
     let volta = ''; try{ volta = localStorage.getItem('corre-volta') || ''; if(volta) localStorage.removeItem('corre-volta'); }catch(e){}
-    if(volta && /^#\/((mural|muralzim|p|msg|g|houzi)\/|@[a-z0-9_.]{3,24}$|grupos$|houzi$|dia$)/.test(volta) && volta !== location.hash){ location.hash = volta; return; }
+    if(volta && /^#\/((mural|muralzim|p|msg|g|houzi)\/|@[a-z0-9_.]{3,24}$|grupos$|houzi$|dia$|noel$)/.test(volta) && volta !== location.hash){ location.hash = volta; return; }
     /* v4.29: entrou pelo "levar pro meu Hórus" da página dos clientes: volta pra ela, que leva sozinha */
     if(C.clientes && C.clientes.leva() && h !== 'monta'){ location.hash = '#/clientes'; return; }
     /* já tem perfil: convite de link não vale mais (só quem acabou de entrar segue quem chamou) */
@@ -1754,6 +1756,24 @@
     /* v4.41: quem fixou "abrir o Corre direto aqui" cai no Corre Studio na primeira página da abertura (o link de um
        post, de um perfil ou de um aviso abre o que foi pedido; depois disso, a Rede é um toque) */
     if(!ABRIU.ja){ ABRIU.ja = true; if(!h && abreNoStudio()){ try{ history.replaceState(null, '', location.pathname + location.search + '#/dia'); }catch(e){} return viewDia(); } }
+    /* v5.34 · o QR code do Natal (app.corresocial.com/noel): abre o Correverso, leva até o Papai Noel do Igapó e já abre o
+       Lambe-Lambe do Noel (a foto). Fora do Natal, a barraquinha não monta: avisa. Espera a cidade ficar pronta e a folha
+       do boneco (primeira vez) fechar, como a busca */
+    if(h === 'noel'){
+      try{ history.replaceState(null, '', location.pathname + location.search + '#/verso'); }catch(e){}
+      const t0 = Date.now();
+      const tenta = () => {
+        if(location.hash !== '#/verso') return;
+        const V = C.verso, sh = $('sheet');
+        if(V && V.natal && !V.natal()){ toast('O Lambe-Lambe do Noel abre no Natal, de 15 de outubro ao Dia de Reis. Até lá, passeia pela cidade!', 5200); return; }
+        const r = (!sh || sh.hidden) && V && V.irPara ? V.irPara('Papai Noel do Igapó') : false;
+        if(r === true){ setTimeout(() => { if(location.hash === '#/verso' && C.verso.fotoNoel) C.verso.fotoNoel(); }, 900); return; }
+        if(r === null){ toast('Não achei o Papai Noel nesta cidade agora.'); return; }
+        if(Date.now() - t0 < 60000) setTimeout(tenta, 350);
+      };
+      setTimeout(tenta, 350);
+      return route();
+    }
     if(h === 'editar') return viewEdit();
     /* o aviso no celular de "seguidores novos" abre o sino por cima do Início */
     if(h === 'avisos'){ try{ history.replaceState(null, '', location.pathname + location.search + '#/'); }catch(e){} await viewHome(); if(C.avisos) C.avisos.abrir(); return; }
