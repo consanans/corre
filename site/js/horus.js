@@ -133,11 +133,16 @@
     const sujo = PRIV_K.some(k => k in velho);
     if(Object.keys(pub).length || sujo){ const cur = Object.assign({}, velho, pub); PRIV_K.forEach(k => { delete cur[k]; }); await C.saveMe({ horus: cur }); }
   }
-  const ALL_N = Object.values(PRE).flatMap(p => p.nichos || []);
+  /* v5.32: os do catálogo também (o lead de um nicho que saiu da lista continua com o nome certo) */
+  const ALL_N = Object.values(PRE).flatMap(p => p.nichos || []).concat((window.CORRE_HORUS_NICHOS || {}).lista || []);
   const nichoOf = l => { const c = cfg(); return c.nichos.find(n => n.k === l.nicho) || Object.assign({ hook: '', valor: '', gancho: '' }, ALL_N.find(n => n.k === l.nicho) || {}, { k: l.nicho || '', prio: 'warm' }, { n: (ALL_N.find(n => n.k === l.nicho) || {}).n || l.nicho || 'Sem nicho' }); };
   function guessNicho(txt){
     const c = cfg();
-    for(const n of c.nichos){ if(n.re){ try{ if(new RegExp(n.re, 'i').test(txt)) return n.k; }catch(e){} } }
+    /* v5.32: com o catálogo, mais de um nicho pode bater ("pizz" do Restaurantes e "pizzaria" das Pizzarias): ganha o
+       que bateu o pedaço mais comprido (o mais específico); no empate, o primeiro da lista, como antes */
+    let melhor = '', tam = 0;
+    for(const n of c.nichos){ if(n.re){ try{ const m = String(txt).match(new RegExp(n.re, 'gi')); const t = m ? Math.max(...m.map(x => x.length)) : 0; if(t > tam){ tam = t; melhor = n.k; } }catch(e){} } }
+    if(melhor) return melhor;
     const o = c.nichos.find(n => /outro/i.test(n.k)); return (o || c.nichos[c.nichos.length - 1] || {}).k || '';
   }
 
@@ -772,7 +777,7 @@
       <div class="fld"><label for="hc-pre">Começar de um modelo</label><div class="seguir-row"><select class="inp" id="hc-pre">${Object.entries(PRE).map(([k, p]) => `<option value="${k}"${(C.st.me.horus || {}).preset === k ? ' selected' : ''}>${esc(p.nome)}</option>`).join('')}</select><button type="button" class="btn sm" id="hc-apply">Usar modelo</button></div><span class="hint">Troca nichos e mensagens pelos do modelo. Teus leads não mudam.</span></div>
       <h3 class="hz-sub">Faro</h3><p class="hint">Que sinais mostram que a empresa precisa do que você vende? Eles esquentam o lead e entram na mensagem pelo {sinal}.</p>
       <div class="hz-chips hc-faro" role="group" aria-label="Sinais que contam">${Object.entries(SINAIS).map(([k, x]) => `<label class="hz-chip light"><input type="checkbox" value="${k}"${c.faro.includes(k) ? ' checked' : ''}> ${esc(x.n)}</label>`).join('')}</div>
-      <h3 class="hz-sub">Nichos</h3><div id="hc-nichos">${nichos.map(nichoHTML).join('')}</div><button type="button" class="btn sm" id="hc-addn">${ico('plus')} Nicho</button>
+      <h3 class="hz-sub">Nichos</h3><div id="hc-nichos">${nichos.map(nichoHTML).join('')}</div><div class="seguir-row hz-ni-bts">${C.horusCatalogo ? `<button type="button" class="btn sm pri" id="hc-cat">${ico('lupa')} Catálogo: ${(window.CORRE_HORUS_NICHOS || { lista: [] }).lista.length} nichos</button>` : ''}<button type="button" class="btn sm" id="hc-addn">${ico('plus')} Nicho</button></div>
       <h3 class="hz-sub">Mensagens</h3><p class="hint">Use {oi} {eu} {empresa} {nicho} {hook} {valor} {gancho} {oferta} {link} {cidade} {minha_cidade} {sinal}. O Hórus troca por cada empresa: {cidade} é a cidade da empresa, {minha_cidade} é a tua, e o {oi} segue o horário de lá.</p>
       ${TPL.map(([k, n, d]) => `<div class="fld"><label for="ht-${k}">${n} <small>${d}</small></label><textarea class="inp" id="ht-${k}" rows="4" maxlength="1200">${esc(c.tpl[k] || '')}</textarea></div>`).join('')}
       <div class="acts sticky"><button type="submit" class="btn pri">Salvar ajustes</button></div></form>`);
@@ -781,6 +786,13 @@
     const redraw = () => { syncN(); box.innerHTML = nichos.map(nichoHTML).join(''); };
     box.addEventListener('click', e => { const d = e.target.closest('[data-ni-del]'); if(d){ syncN(); nichos.splice(+d.dataset.niDel, 1); box.innerHTML = nichos.map(nichoHTML).join(''); } });
     C.$('hc-addn').addEventListener('click', () => { syncN(); nichos.forEach(n => delete n._open); nichos.push({ k: 'n' + Date.now().toString(36), n: '', prio: 'warm', hook: '', valor: '', gancho: '', re: '', _open: true }); box.innerHTML = nichos.map(nichoHTML).join(''); const last = box.querySelector('details:last-child input'); if(last) last.focus(); });
+    /* v5.32: o catálogo de nichos (horus-nichos.js) abre por cima, sem perder o que já foi mexido aqui; até 30 no total */
+    const cat = C.$('hc-cat');
+    if(cat) cat.addEventListener('click', () => {
+      syncN();
+      C.horusCatalogo({ ja: nichos.map(n => n.k), cabe: 30 - nichos.filter(n => String(n.n || '').trim()).length,
+        fim: L => { if(!L.length) return; nichos.forEach(n => delete n._open); nichos.push(...L.map(n => Object.assign({}, n))); box.innerHTML = nichos.map(nichoHTML).join(''); C.toast(`${L.length === 1 ? '1 nicho entrou' : L.length + ' nichos entraram'}. Salva pra valer.`); } });
+    });
     C.$('hc-apply').addEventListener('click', () => {
       const p = PRE[C.$('hc-pre').value]; if(!p) return;
       nichos = p.nichos.map(n => Object.assign({}, n)); box.innerHTML = nichos.map(nichoHTML).join('');

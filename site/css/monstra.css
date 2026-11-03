@@ -6224,3 +6224,24 @@ label.sl-v small{color:var(--muted)}
 .cart-compra > .ic{flex:none;width:20px;height:20px}
 .cart-compra > span{flex:1 1 220px}
 @media (max-width:400px){ .cp-bts .btn{flex-basis:100%} .cp-pacs{grid-template-columns:1fr} .cp-pac-c{flex-direction:row;flex-wrap:wrap;align-items:baseline;justify-content:space-between;text-align:left} .cp-pac-c small{flex-basis:100%} }
+/* v5.32 · o catálogo de nichos do Hórus: a janela por cima de Ajustar, a busca, os ramos e a lista pra marcar */
+.hz-cat-dlg{max-width:min(620px,calc(100vw - 24px));max-height:calc(100dvh - 24px)}
+.hz-cat{max-height:calc(100dvh - 24px);overflow:hidden;gap:10px}
+.hz-cat-cab{display:flex;align-items:center;gap:8px}
+.hz-cat-cab h2{display:flex;align-items:center;gap:8px;flex:1;min-width:0}
+.hz-cat-cab h2 .ic{width:22px;height:22px;flex:none}
+.hz-cat-ramos{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;scrollbar-width:thin}
+.hz-cat-ramos .hz-chip{flex:none;white-space:nowrap;font-size:13px}
+.hz-cat-l{flex:1;min-height:180px;overflow-y:auto;margin:0;padding:0;list-style:none;border:2px solid var(--line);border-radius:14px}
+.hz-cat-l li + li{border-top:1px solid var(--line)}
+.hz-cat-i{display:flex;align-items:center;gap:10px;padding:9px 12px;cursor:pointer}
+.hz-cat-i input{width:20px;height:20px;flex:none;accent-color:var(--ink)}
+.hz-cat-i span{display:flex;flex-direction:column;min-width:0}
+.hz-cat-i b{font-size:15px;font-weight:750}
+.hz-cat-i small{font-size:12.5px;color:var(--muted)}
+.hz-cat-i:hover{background:var(--paper-2)}
+.hz-cat-i.tem{opacity:.6;cursor:default}
+.hz-cat-vazio{padding:16px;color:var(--muted);font-size:14px}
+.hz-cat-pe{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:2px}
+.hz-cat-n{font-size:13.5px;color:var(--muted)}
+.hz-ni-bts{gap:8px;flex-wrap:wrap}

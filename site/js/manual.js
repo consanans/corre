@@ -6,13 +6,14 @@
   'use strict';
   const C = window.Corre, { esc, ico } = C;
   /* sobe esse número a cada atualização: quem já viu recebe de novo, abrindo nas novidades */
-  const VERSAO = '5.31';
+  const VERSAO = '5.32';
   const K = 'corre-manual-visto';
 
   /* O que tem de novo: só o que é super relevante pra galera (o Thales, v3.67). No máximo 8, o mais novo em cima, uma ou
      duas frases cada, no jeito de quem conta pro amigo. Conserto, acabamento e detalhe técnico não entram aqui (moram no
      CLAUDE.md); novidade grande que chega empurra a mais velha pra fora */
   const NOVIDADES = [
+    ['eye', 'Hórus com 343 nichos prontos', 'No Ajustar do Hórus, o Catálogo traz 343 tipos de negócio pra caçar: de pizzaria a dentista, de oficina a imobiliária, em 22 ramos. Procura, marca e pronto: cada um já vem com as palavras que acham ele no mapa e a mensagem do ramo.'],
     ['correal', 'Pacotes de correal', 'Acabou o correal pra usar a IA? Agora dá pra comprar: 5 correais por R$ 9,90, 10 por R$ 19,90 ou 25 por R$ 49,90, no Pix ou no cartão, e cai na hora. Compra na Carteira ou quando a IA avisar que acabou. O de sempre continua: no trampo do Correverso, correal se ganha de graça.'],
     ['aviao', 'Ibiporã, Curitiba e avião entre as cidades', 'Pela BR-369 pro leste chega em Ibiporã: o Museu do Café na estação de trem de 1936, o Cine Teatro Zanelli, a capela e o Parque Florestal. Seguindo a estrada pro sul tem Curitiba, grandona, com cada lugar no canto certo: a Rua XV e a Catedral no Centro, o Museu do Olho, a Ópera de Arame, o Barigui com as capivaras, Santa Felicidade, a Arena da Baixada, o Couto Pereira e o Jardim Botânico. E o teco-teco voa entre as quatro cidades: do Aeroporto de Londrina, do Afonso Pena e dos campos de pouso de Cambé e Ibiporã.'],
     ['verso', 'Cambé abriu no Correverso', 'Segue a BR-369 pro oeste e chega em Cambé: a Fonte Luminosa de 1963 (de noite ela acende colorida), a Paróquia Santo Antônio, o Museu, o Danziger Hof com as casas dos colonos de Danzig e o Parque Zezão. No Trampo, missões que vão e voltam entre as cidades: a cuca de Cambé, a fuga pela BR-369, o café de Ibiporã, as três igrejas e o racha Londrina x Cambé.'],
@@ -20,7 +21,6 @@
     ['star', 'Natal caprichado no Correverso', 'As casas da cidade se enfeitaram: presente na porta, pisca-pisca no contorno, estrela no alto e, em várias, o Papai Noel subindo pela sacada, a casa embrulhada de laço, as renas de luz ou o presépio no jardim. De noite, olha pro céu: o trenó do Papai Noel passa de tempo em tempo.'],
     ['home', 'Sala do Cliente no Studio Cria', 'Cada marca ganha um link fixo pro teu cliente guardar. Lá ele aprova os posts do jeito que ficam no Instagram, manda fotos e vídeos, conta as datas importantes (que viram tarefa no teu Caderninho), vê o que saiu no mês e abre a cobrança. Tudo sem conta, e o teu celular avisa quando chega coisa.'],
     ['raio', 'Pista de skate do Zerão, agora gigante', 'A pista 3D da placa SKATE do Zerão ficou gigante, com espaço pra embalar e virar entre um obstáculo e outro: rampa grande de 2,8 m no fundo, rampas nas laterais e na frente, escadaria com corrimão e hubba pra descer no grind, caixote, rampa de pulo com vão, bordas, barras e manual pad. Espaço pula; no ar, as setas fazem a manobra e dá pra emendar combo.'],
-    ['magia', 'Studio Cria: pague pelas redes que você toca', 'Agora o plano do Studio Cria vai de 2 a 100 redes sociais: R$ 59,90 com 2 e R$ 10 por rede a mais (da 21ª em diante, R$ 5). Pra quem cuida de muitos clientes, cada um entra no plano. Uma rede segue de graça.'],
   ];
   /* cada página: o que é, pra que serve no teu dia, e o botão que leva lá */
   const PAGINAS = [
