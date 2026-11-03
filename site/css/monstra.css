@@ -6183,3 +6183,15 @@ label.sl-v small{color:var(--muted)}
 /* v5.26 · a tecla do botão do veículo, "(G)"; com o controle ligado vale a letra do gatilho, então ela some */
 .cvr-tecla{opacity:.7}
 .ctl-on .cvr-tecla{display:none}
+/* v5.30 · o Ateliê com as tuas separadas: o atalho em três partes (As tuas, Sem dinheiro, Pago) e a parte das tuas em rosa */
+.lj-nav{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.lj-s-tuas{--lj-s:#FFB3DA}
+.lj-aba-tuas[aria-current="true"]{background:#FFB3DA}
+.lj-aba b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lj-aba .lj-ct{display:none}
+/* as fileiras do avatar (as tuas e as de comprar) moram numa caixa que o JS refaz: pra grade do avatar, ela não existe */
+#cvr-av-loja{display:contents}
+/* o título das fileiras com o ícone do lado (o .lbl-s é coluna: o ícone subia e o texto centralizava) */
+.cvr-av-loja .lbl-s{flex-direction:row;align-self:flex-start}
+@media (max-width:640px){ .lj-aba small{display:none} .lj-nav .lj-aba{min-height:46px} }
+@media (max-width:480px){ .lj-aba{gap:6px;padding:8px 9px} .lj-aba > .ic{display:none} .lj-aba b{font-size:13.5px} .lj-aba .lj-n{padding:1px 6px} .lj-aba .lj-lg{display:none} .lj-aba .lj-ct{display:inline} }

@@ -10533,18 +10533,24 @@
     if(s != null) d = C.correalCobre(s, p) ? `Você tem ${C.correalTxt(s)}. Pergunta antes de descontar.` : `Você tem ${C.correalTxt(s)}: faltam ${C.correalFmt(Math.max(0, Math.round((p - Number(s)) * 100) / 100))}. Junta no trampo do Correverso.`;
     return bt(' pri', 'cvr-lj-compra', `${ico('correal')} Comprar por ${C.correalTxt(p)}`, `Comprar ${x[1]} por ${C.correalTxt(p)}, sem dinheiro`) + dica(d);
   }
-  const pintaLoja = () => document.querySelectorAll('.lj-card[data-k]').forEach(el => {
-    const k = el.dataset.k, a = el.querySelector('.lj-acao'), f = el.querySelector('.lj-ficha');
-    if(a) a.innerHTML = acaoLoja(k); if(f) f.innerHTML = fichaLoja(k); el.classList.toggle('tua', tenhoSkin(k));
-  });
+  /* v5.30 · as tuas separadas das que faltam comprar (o Thales: "nas skins deixa separado as que são de posse do usuário e as
+     outras que tão pra comprar ainda"): no alto a parte As tuas (comprou, mora ali, com Vestir e Tirar), e o Sem dinheiro e
+     o Pago só com o que falta comprar. Comprou ou desistiu com a folha aberta, a skin muda de parte na hora */
+  const pintaLoja = () => {
+    const raiz = C.$('lj-corpo');
+    if(raiz && [...raiz.querySelectorAll('.lj-card[data-k]')].some(el => tenhoSkin(el.dataset.k) !== !!el.closest('#lj-s-tuas'))){
+      const veio = [...raiz.querySelectorAll('.lj-card[data-k]')].filter(el => tenhoSkin(el.dataset.k) && !el.closest('#lj-s-tuas')).map(el => el.dataset.k);
+      refazLoja(veio[0]);
+    }
+    document.querySelectorAll('.lj-card[data-k]').forEach(el => {
+      const k = el.dataset.k, a = el.querySelector('.lj-acao'), f = el.querySelector('.lj-ficha');
+      if(a) a.innerHTML = acaoLoja(k); if(f) f.innerHTML = fichaLoja(k); el.classList.toggle('tua', tenhoSkin(k));
+    });
+  };
   const quietoLj = () => !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
-  async function lojaSheet(parte){
-    const me = C.st.me; if(!me){ C.toast('Entra no Corre pra abrir o Ateliê.'); return; }
-    /* a aba guardada da 5.05 não vale mais */
-    try{ localStorage.removeItem('corre-lj-aba'); }catch(e){}
-    const tenhoLoja = k => LJ.minhas.has(k), loja = !!(C.naLoja && C.naLoja());
-    /* coleção fora da vitrine (ou o app da loja) só mostra as que a pessoa tem: na primeira abertura, espera saber quais */
-    if(LJ.ok === null && (loja || Object.keys(COLECAO).some(c => !COLECAO[c].on()))) await carregaLoja();
+  /* o miolo da folha (o atalho e as três partes), refeito quando uma skin muda de dono */
+  function corpoLoja(){
+    const loja = !!(C.naLoja && C.naLoja()), falta = k => !tenhoSkin(k);
     const card = x => { const real = ehReal(x[0]); return `<li class="lj-card lj-${x[3]} ${real ? 'lj-pago' : 'lj-livre'}" data-k="${x[0]}">
       <p class="lj-faixa">${real ? `${ico('cartao')} Pago · dinheiro de verdade` : `${ico('correal')} Sem dinheiro · é correal`}</p>
       <canvas class="lj-cv" width="32" height="34" data-k="${x[0]}" aria-hidden="true"></canvas>
@@ -10552,46 +10558,71 @@
       <dl class="lj-ficha">${fichaLoja(x[0])}</dl><div class="lj-acao">${acaoLoja(x[0])}</div></li>`; };
     const doGrupo = (r, so) => SKINS_LOJA.filter(x => x[3] === r && (!so || so(x[0])));
     const grupo = (r, t, so) => { const L = doGrupo(r, so); return L.length ? `<h4 class="lj-g lj-g-${r}">${t}</h4><ul class="lj-l">${L.map(card).join('')}</ul>` : ''; };
-    /* as coleções de época: na vitrine (e não no app da Play), todas; fora dela, só as que a pessoa tem. A que tá na vitrine vem primeiro */
-    const vende = c => COLECAO[c].on() && !loja, ord = ['natal', 'halloween'].sort((a, b) => vende(b) - vende(a));
-    /* v5.08: a edição de ouro (o Midas) vem antes das coleções e fica à venda o ano inteiro; no app da Play, só se for tua */
-    const real = (loja ? grupo('ouro', `${RARIDADE.ouro} · da tua coleção`, tenhoLoja) : grupo('ouro', `${ico('star')} Edição de ouro · à venda o ano inteiro`))
-      + ord.map(c => vende(c) ? grupo(c, `${ico('star')} ${RARIDADE[c]} · na vitrine até ${COLECAO[c].ate}`) : grupo(c, `${RARIDADE[c]} · da tua coleção`, tenhoLoja)).join('');
-    const nReal = doGrupo('ouro', loja ? tenhoLoja : null).length + ord.reduce((n, c) => n + doGrupo(c, vende(c) ? null : tenhoLoja).length, 0), nCorreal = ['lendaria', 'rara', 'estilo'].reduce((n, r) => n + doGrupo(r).length, 0);
-    const salta = (k, ic, t, d, n) => `<button type="button" class="lj-aba lj-aba-${k}" data-vai="${k}" aria-current="false" aria-label="${t}, ${d}: ${n} fantasias">${ico(ic)}<span><b>${t}</b><small>${d}</small></span><i class="lj-n" aria-hidden="true">${n}</i></button>`;
+    /* as tuas: todas as compradas, de qualquer parte; a que tá vestindo vem primeiro */
+    const av = C.st.me ? avLimpo(C.st.me.verso, C.st.me.id) : null, veste = av && !av.personagem ? av.skin : '';
+    const tuas = SKINS_LOJA.filter(x => tenhoSkin(x[0])).sort((a, b) => (b[0] === veste) - (a[0] === veste));
+    /* as coleções de época só aparecem pra comprar na vitrine (e não no app da Play); fora dela, quem tem acha nas tuas */
+    const vende = c => COLECAO[c].on() && !loja, ord = ['natal', 'halloween'].filter(vende);
+    /* v5.08: a edição de ouro (o Midas) vem antes das coleções e fica à venda o ano inteiro; no app da Play não se vende */
+    const real = (loja ? '' : grupo('ouro', `${ico('star')} Edição de ouro · à venda o ano inteiro`, falta))
+      + ord.map(c => grupo(c, `${ico('star')} ${RARIDADE[c]} · na vitrine até ${COLECAO[c].ate}`, falta)).join('');
+    const nReal = (loja ? 0 : doGrupo('ouro', falta).length) + ord.reduce((n, c) => n + doGrupo(c, falta).length, 0), nCorreal = ['lendaria', 'rara', 'estilo'].reduce((n, r) => n + doGrupo(r, falta).length, 0);
+    /* no celular, três lado a lado: o nome curto (curto) entra no lugar do inteiro */
+    const salta = (k, ic, t, d, n, curto) => `<button type="button" class="lj-aba lj-aba-${k}" data-vai="${k}" aria-current="false" aria-label="${t}, ${d}: ${n} fantasias">${ico(ic)}<span><b>${curto ? `<span class="lj-lg">${t}</span><span class="lj-ct" aria-hidden="true">${curto}</span>` : t}</b><small>${d}</small></span><i class="lj-n" aria-hidden="true">${n}</i></button>`;
     const secao = (k, ic, t, sub, corpo) => `<section class="lj-s lj-s-${k}" id="lj-s-${k}" aria-labelledby="lj-h-${k}"><header class="lj-s-cab"><span class="lj-s-ic">${ico(ic)}</span><div><h3 id="lj-h-${k}">${t}</h3><p>${sub}</p></div></header>${corpo}</section>`;
-    C.sheet(`<div class="form lj"><div class="sheet-head"><h2>${ico('star')} Ateliê do Corre</h2><button type="button" class="cbtn plain" data-close aria-label="Fechar">${ico('x')}</button></div>
-      <nav class="lj-nav" aria-label="As duas partes do Ateliê">${salta('correal', 'correal', 'Sem dinheiro', 'com correal', nCorreal)}${salta('real', 'cartao', 'Pago', 'dinheiro de verdade', nReal)}</nav>
+    return `<nav class="lj-nav" aria-label="As partes do Ateliê">${salta('tuas', 'check', 'As tuas', 'já compradas', tuas.length)}${salta('correal', 'correal', 'Sem dinheiro', 'com correal', nCorreal, 'Correal')}${salta('real', 'cartao', 'Pago', 'dinheiro de verdade', nReal)}</nav>
+      ${secao('tuas', 'check', 'As tuas', 'As que você já comprou: são tuas pra sempre. Toca em Vestir pra trocar de roupa, na cidade e dentro das casas.',
+        tuas.length ? `<ul class="lj-l">${tuas.map(card).join('')}</ul>` : `<p class="lj-vazio">Você ainda não comprou nenhuma. As do Ateliê ficam aqui embaixo: sem dinheiro, com o correal do trampo, ou pagas.</p>`)}
       ${secao('correal', 'correal', 'Sem dinheiro: com correal', `Correal é a moeda do Correverso: você ganha fazendo trampo na cidade (até ${C.correalFmt(C.correal.teto)} por dia). Não é dinheiro: não se compra e não vira real. Você tem <b class="num" data-correal-saldo>${C.correal.saldo == null ? '…' : C.correalFmt(C.correal.saldo)}</b> <span data-correal-unid>${C.correalUnid(C.correal.saldo || 0)}</span>.`,
-        `${grupo('lendaria', 'Lendárias · com brilho')}${grupo('rara', 'Raras')}${grupo('estilo', 'Estilo')}
+        `${nCorreal ? `${grupo('lendaria', 'Lendárias · com brilho', falta)}${grupo('rara', 'Raras', falta)}${grupo('estilo', 'Estilo', falta)}` : '<p class="lj-vazio">Você já tem todas as de correal. Olha lá em cima, nas tuas.</p>'}
         <p class="fine">O Ateliê sempre pergunta antes de descontar o correal. Os 14 uniformes do teu avatar seguem de graça.</p>`)}
-      ${secao('real', 'cartao', 'Pago: com dinheiro de verdade', loja ? 'As fantasias pagas não estão à venda no app. Aqui aparecem as que você já tem.' : 'No Pix ou no cartão, uma vez só: não é assinatura e não renova. Comprou, é tua pra sempre, o ano inteiro. A edição de ouro fica à venda o ano todo; as coleções, só na época delas.',
-        `${real || `<p class="lj-vazio">${loja ? 'Você ainda não tem fantasia comprada em dinheiro.' : 'As coleções pagas chegam na época delas: o Halloween em outubro e o Natal de 15 de outubro até o Dia de Reis.'}</p>`}
-        ${loja ? '' : '<p class="fine">Pagamento único, pelo Asaas. Desistindo em até 7 dias do pagamento, volta tudo e a fantasia sai. Veja os <a href="termos.html#skins" target="_blank" rel="noopener">Termos de uso</a>.</p>'}`)}</div>`, 'wide lj-sheet');
-    /* o atalho grudado no alto: leva pra parte e acende a que tá na tela */
-    const pn = document.querySelector('#sheet .panel'), secs = ['correal', 'real'].map(k => C.$('lj-s-' + k)).filter(Boolean), bts = [...document.querySelectorAll('.lj-nav [data-vai]')];
+      ${secao('real', 'cartao', 'Pago: com dinheiro de verdade', loja ? 'As fantasias pagas não estão à venda no app. As que você já tem ficam nas tuas.' : 'No Pix ou no cartão, uma vez só: não é assinatura e não renova. Comprou, é tua pra sempre, o ano inteiro. A edição de ouro fica à venda o ano todo; as coleções, só na época delas.',
+        `${real || `<p class="lj-vazio">${loja ? 'Aqui no app não tem fantasia paga à venda.' : 'Agora não tem nenhuma paga pra comprar. As coleções chegam na época delas: o Halloween em outubro e o Natal de 15 de outubro até o Dia de Reis.'}</p>`}
+        ${loja ? '' : '<p class="fine">Pagamento único, pelo Asaas. Desistindo em até 7 dias do pagamento, volta tudo e a fantasia sai. Veja os <a href="termos.html#skins" target="_blank" rel="noopener">Termos de uso</a>.</p>'}`)}`;
+  }
+  /* o atalho grudado no alto: leva pra parte e acende a que tá na tela */
+  function ligaNavLoja(){
+    const pn = document.querySelector('#sheet .panel'), secs = ['tuas', 'correal', 'real'].map(k => C.$('lj-s-' + k)).filter(Boolean), bts = [...document.querySelectorAll('.lj-nav [data-vai]')];
     const marca = () => {
-      if(!pn || !pn.isConnected) return;
-      const lim = pn.getBoundingClientRect().top + 110; let at = 'correal';
+      if(!pn || !pn.isConnected || !secs[0] || !secs[0].isConnected) return;
+      const lim = pn.getBoundingClientRect().top + 110; let at = 'tuas';
       secs.forEach(s => { if(s.getBoundingClientRect().top <= lim) at = s.id.slice(5); });
       if(pn.scrollTop > 8 && pn.scrollTop + pn.clientHeight >= pn.scrollHeight - 4) at = 'real';
       bts.forEach(b => b.setAttribute('aria-current', String(b.dataset.vai === at)));
     };
-    const vai = (k, liso) => { const s = C.$('lj-s-' + k); if(s) s.scrollIntoView({ block: 'start', behavior: liso && !quietoLj() ? 'smooth' : 'auto' }); };
-    bts.forEach(b => b.addEventListener('click', () => { vai(b.dataset.vai, true); b.setAttribute('aria-current', 'true'); bts.filter(o => o !== b).forEach(o => o.setAttribute('aria-current', 'false')); }));
-    if(pn) pn.addEventListener('scroll', marca, { passive: true });
-    /* a folha põe o foco no primeiro botão (o de fechar, lá em cima) 30 ms depois de abrir: o pulo vem depois dele */
-    if(parte === 'real') setTimeout(() => { vai('real'); marca(); }, 60);
+    bts.forEach(b => b.addEventListener('click', () => { vaiLoja(b.dataset.vai, true); b.setAttribute('aria-current', 'true'); bts.filter(o => o !== b).forEach(o => o.setAttribute('aria-current', 'false')); }));
+    if(pn){ if(pn._ljMarca) pn.removeEventListener('scroll', pn._ljMarca); pn._ljMarca = marca; pn.addEventListener('scroll', marca, { passive: true }); }
     marca();
+    return marca;
+  }
+  const vaiLoja = (k, liso) => { const s = C.$('lj-s-' + k); if(s) s.scrollIntoView({ block: 'start', behavior: liso && !quietoLj() ? 'smooth' : 'auto' }); };
+  /* comprou com a folha aberta: refaz as partes e mostra a que acabou de chegar nas tuas */
+  function refazLoja(veio){
+    const raiz = C.$('lj-corpo'); if(!raiz) return;
+    raiz.innerHTML = corpoLoja(); ligaNavLoja();
+    const el = veio && raiz.querySelector(`#lj-s-tuas .lj-card[data-k="${veio}"]`);
+    if(el) el.scrollIntoView({ block: 'nearest', behavior: quietoLj() ? 'auto' : 'smooth' });
+  }
+  async function lojaSheet(parte){
+    const me = C.st.me; if(!me){ C.toast('Entra no Corre pra abrir o Ateliê.'); return; }
+    /* a aba guardada da 5.05 não vale mais */
+    try{ localStorage.removeItem('corre-lj-aba'); }catch(e){}
+    /* pra separar as tuas, a folha espera saber quais a pessoa tem (só na primeira abertura; depois fica guardado) */
+    if(LJ.ok === null || LJ.uid !== (C.uid() || '')) await carregaLoja();
+    C.sheet(`<div class="form lj"><div class="sheet-head"><h2>${ico('star')} Ateliê do Corre</h2><button type="button" class="cbtn plain" data-close aria-label="Fechar">${ico('x')}</button></div>
+      <div id="lj-corpo">${corpoLoja()}</div></div>`, 'wide lj-sheet');
+    const marca = ligaNavLoja();
+    /* a folha põe o foco no primeiro botão (o de fechar, lá em cima) 30 ms depois de abrir: o pulo vem depois dele */
+    if(parte === 'real' || parte === 'correal' || parte === 'tuas') setTimeout(() => { vaiLoja(parte); marca(); }, 60);
     carregaLoja().then(pintaLoja); C.correalCarrega().then(pintaLoja).catch(() => {});
-    /* o provador: cada skin no teu boneco, girando devagar */
-    const cvs = [...document.querySelectorAll('.lj-cv')], base = avLimpo(me.verso, me.id), dirs = ['baixo', 'dir', 'cima', 'esq'];
+    /* o provador: cada skin no teu boneco, girando devagar (os cartões podem ser refeitos: procura a cada volta) */
+    const raiz = C.$('lj-corpo'), base = avLimpo(me.verso, me.id), dirs = ['baixo', 'dir', 'cima', 'esq'];
     let ult = 0, f = 0;
     const roda = ts => {
-      if(!cvs.length || !cvs[0].isConnected) return;
+      if(!raiz.isConnected) return;
       if(ts - ult > 120){
         ult = ts; f++;
-        cvs.forEach((cv, i) => { const av = Object.assign({}, base, { personagem: '', skin: cv.dataset.k }); miniAvatar(cv, av, dirs[(Math.floor(f / 12) + i) % 4], f * .8); });
+        raiz.querySelectorAll('.lj-cv').forEach((cv, i) => { const av = Object.assign({}, base, { personagem: '', skin: cv.dataset.k }); miniAvatar(cv, av, dirs[(Math.floor(f / 12) + i) % 4], f * .8); });
       }
       requestAnimationFrame(roda);
     };
@@ -10703,7 +10734,7 @@
     const f = C.$('lj-pg');
     if(f){ f.innerHTML = `<div class="sheet-head"><h2>${ico('check')} É tua!</h2><button type="button" class="cbtn plain" data-close aria-label="Fechar">${ico('x')}</button></div>
       <div class="lj-pg-topo"><canvas class="lj-pg-cv" width="32" height="34" aria-hidden="true"></canvas><div><p class="lj-pg-preco"><b>${esc(x[1])}</b></p><p class="note">Pagamento confirmado${demo ? ' (demonstração: nada foi cobrado)' : ''}. Ela fica no teu armário pra sempre.</p></div></div>
-      <div class="acts"><button type="button" class="btn pri" data-act="cvr-lj-veste-fecha" data-k="${k}">${ico('star')} Vestir agora</button><button type="button" class="btn" data-act="cvr-loja" data-aba="real">Voltar pro Ateliê</button></div>`;
+      <div class="acts"><button type="button" class="btn pri" data-act="cvr-lj-veste-fecha" data-k="${k}">${ico('star')} Vestir agora</button><button type="button" class="btn" data-act="cvr-loja" data-aba="tuas">Ver as tuas no Ateliê</button></div>`;
       giraPrevia(f.querySelector('.lj-pg-cv'), k); }
     C.toast(`Pagamento confirmado: a skin ${x[1]} é tua.`, 3600);
   }
@@ -10728,14 +10759,20 @@
     const me = C.st.me; let av = avLimpo(me.verso, me.id); const armario = deOnde === 'armario';
     const sw = (k, L) => `<div class="cvr-sw" role="radiogroup">${L.map((c, i) => `<button type="button" role="radio" data-k="${k}" data-v="${i}" aria-checked="${av[k] === i}" style="--c:${c}" aria-label="${k} ${i + 1}"></button>`).join('')}</div>`;
     const ch = (k, L) => `<div class="cvr-ch" role="radiogroup">${L.map(([v, n]) => `<button type="button" role="radio" data-k="${k}" data-s="${v}" aria-checked="${av[k] === v}">${n}</button>`).join('')}</div>`;
-    /* v3.66: as skins do Ateliê, com o cadeado e o preço de quem ainda não tem */
-    const chLoja = () => `<div class="cvr-ch cvr-ch-loja" role="radiogroup">${SKINS_LOJA.filter(x => (!foraDeEpoca(x[0]) || LJ.minhas.has(x[0]) || av.skin === x[0]) && !(ehReal(x[0]) && C.naLoja && C.naLoja() && !LJ.minhas.has(x[0]))).map(x => `<button type="button" role="radio" data-k="skin" data-s="${x[0]}" data-loja="${x[0]}" aria-checked="${av.skin === x[0]}">${tenhoSkin(x[0]) ? '' : ico('lock')}${esc(x[1])}${tenhoSkin(x[0]) ? '' : `<i>${ehReal(x[0]) ? reais(precoReal(x[0])) : C.correalTxt(precoSkin(x[0]))}</i>`}</button>`).join('')}</div>`;
+    /* v3.66: as skins do Ateliê, com o cadeado e o preço de quem ainda não tem. v5.30: em duas fileiras, as tuas e as
+       que faltam comprar (a que você tá provando sem ter fica nas de comprar, marcada) */
+    const chip = x => { const tem = tenhoSkin(x[0]); return `<button type="button" role="radio" data-k="skin" data-s="${x[0]}" data-loja="${x[0]}" aria-checked="${av.skin === x[0]}">${tem ? '' : ico('lock')}${esc(x[1])}${tem ? '' : `<i>${ehReal(x[0]) ? reais(precoReal(x[0])) : C.correalTxt(precoSkin(x[0]))}</i>`}</button>`; };
+    const lojaAv = () => {
+      const tuas = SKINS_LOJA.filter(x => tenhoSkin(x[0])), comprar = SKINS_LOJA.filter(x => !tenhoSkin(x[0]) && (!foraDeEpoca(x[0]) || av.skin === x[0]) && !(ehReal(x[0]) && C.naLoja && C.naLoja()));
+      return `<div class="fld cvr-av-loja cvr-av-tuas"><span class="lbl-s">${ico('check')} As tuas, do Ateliê</span>${tuas.length ? `<div class="cvr-ch cvr-ch-loja" role="radiogroup" aria-label="As tuas">${tuas.map(chip).join('')}</div>` : `<small class="fine">${LJ.ok === null ? 'Conferindo as tuas…' : 'Você ainda não comprou nenhuma.'}</small>`}</div>
+        ${comprar.length ? `<div class="fld cvr-av-loja cvr-av-comprar"><span class="lbl-s">${ico('lock')} Pra comprar</span><div class="cvr-ch cvr-ch-loja" role="radiogroup" aria-label="Pra comprar">${comprar.map(chip).join('')}</div><small class="fine">Toca pra provar. A que tem cadeado se compra na hora de salvar: as de Natal, de Halloween e a de ouro são pagas, em dinheiro (R$); as outras são sem dinheiro, com correal. <button type="button" class="lnk" data-act="cvr-loja">Abrir o Ateliê</button></small></div>` : ''}`;
+    };
     C.sheet(`<div class="form cvr-av"><div class="sheet-head"><h2>${primeira ? 'Monta teu avatar' : armario ? 'O armário' : 'Teu avatar'}</h2><button type="button" class="cbtn plain" data-close aria-label="Fechar">${ico('x')}</button></div>
       <div class="cvr-av-cols"><div class="cvr-av-prev"><canvas id="cvr-prev" width="32" height="34" aria-label="Prévia do avatar"></canvas><div class="acts"><button type="button" class="btn sm" id="cvr-gira">Girar</button><button type="button" class="btn sm" id="cvr-sorte">Sortear</button></div></div>
       <div class="cvr-av-f">
         <div class="fld"><span class="lbl-s">Personagem</span>${ch('personagem', PERSONAGENS)}<small class="fine">Escolhe um e anda pela cidade como ele. "Você mesmo" usa o boneco montado aqui embaixo.</small></div>
         <div class="fld"><span class="lbl-s">Uniforme</span>${ch('skin', SKINS)}<small class="fine">Vai por cima do teu boneco (pele, cabelo e barba ficam). Na cidade e dentro das casas.</small></div>
-        <div class="fld cvr-av-loja"><span class="lbl-s">${ico('star')} Do Ateliê</span>${chLoja()}<small class="fine">Toca pra provar. A que tem cadeado se compra na hora de salvar: as de Natal e de Halloween são pagas, em dinheiro (R$); as outras são sem dinheiro, com correal. <button type="button" class="lnk" data-act="cvr-loja">Abrir o Ateliê</button></small></div>
+        <div id="cvr-av-loja">${lojaAv()}</div>
         <div class="fld"><span class="lbl-s">Pele</span>${sw('pele', PELES)}</div>
         <div class="fld"><span class="lbl-s">Cabelo</span>${ch('cabelo', CABELOS)}${sw('corCabelo', CAB_CORES)}</div>
         <div class="fld"><span class="lbl-s">Barba</span>${ch('barba', BARBAS)}</div>
@@ -10754,8 +10791,8 @@
     document.querySelector('.cvr-av').addEventListener('click', e => { const b = e.target.closest('[data-k]'); if(!b) return; av[b.dataset.k] = b.dataset.s != null ? b.dataset.s : Number(b.dataset.v); marca(); });
     C.$('cvr-gira').addEventListener('click', () => { di = (di + 1) % 4; });
     C.$('cvr-sorte').addEventListener('click', () => { av = avPadrao(Math.random()); marca(); });
-    /* a fileira do Ateliê pinta o cadeado de novo quando o banco responde o que a pessoa tem */
-    carregaLoja().then(() => document.querySelectorAll('.cvr-av [data-loja]').forEach(b => { const k = b.dataset.loja, x = LOJA[k]; b.innerHTML = `${tenhoSkin(k) ? '' : ico('lock')}${esc(x[1])}${tenhoSkin(k) ? '' : `<i>${ehReal(k) ? reais(precoReal(k)) : C.correalTxt(precoSkin(k))}</i>`}`; }));
+    /* as fileiras do Ateliê se refazem quando o banco responde o que a pessoa tem */
+    carregaLoja().then(() => { const el = C.$('cvr-av-loja'); if(el && el.isConnected) el.innerHTML = lojaAv(); });
     C.$('cvr-av-ok').addEventListener('click', async ev => {
       const bt = ev.currentTarget; if(bt.disabled) return; bt.disabled = true;
       /* v3.66: provou uma skin do Ateliê que não é tua: compra antes (o banco tiraria ela do avatar) */
