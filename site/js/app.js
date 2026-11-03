@@ -740,7 +740,7 @@
       ['mural', 'Pedidos de serviço: quem faz o quê', 'pedido pedidos servico freela trabalho quem faz contratar'],
       ['muralzim', 'Os eventos de Londrina e o ingresso vendido aqui', 'evento eventos agenda show shows festa balada teatro rolê role ingresso ingressos ticket feira oficina londrina o que fazer'],
       ['corre', 'Do orçamento ao dinheiro na conta', 'vendas venda grana dinheiro financeiro caixa receita despesa orcamento lucro'],
-      ['carteira', 'Teu saldo de correal', 'correal saldo moeda'],
+      ['carteira', 'Teu saldo de correal', 'correal saldo moeda comprar pacote'],
       ['planos', 'Assinaturas e faturas', 'assinatura assinar pagar pagamento fatura plano preco pix boleto cartao'],
       ['lojinha', 'Como tá o Corre: gente, uso, planos e IA', 'painel dashboard numeros metricas estatistica dados lojinha crescimento usuarios'],
       ['banca', 'As manchetes do teu assunto', 'noticias noticia manchetes jornal'],

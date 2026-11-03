@@ -686,8 +686,8 @@
   const HOUZI_EX = {"spec":{"v":1,"territorio":"editorial","amostra":1,"nome":"Grão Torto","tagline":"café de esquina","nicho":"cafe","cidade":"Londrina, PR","desde":"2021","pers":[0.35,0.55,0.55,0.35,0.2],"modo":"branding","campos":["cafe","rua"],"logo":{"arranjo":"wordmark","caixa":"titulo","track":0.005,"efeito":"","gesto":"troca","tagline":true,"corTexto":"texto","trocaPor":"ideia"},"simbolo":{"tipo":"ideia","icone":"xicara","ideia":"grao","estilo":"linha","seed":84829},"tipo":{"display":"lora-bolditalic","texto":"lora-regular"},"cores":{"p":"#2B2B2E","s":"#D8D4CB","a":"#B8913A","ink":"#161618","paper":"#F6F2EA","fundo":"paper","esquema":"receita","receita":"Grafite e Ouro"},"textura":"papel","aplic":["revista","sacola","cartao","instagram","copo","fachada"],"seed":273184829,"descr":"Café de bairro, torra própria"},"voz":{"conceito":"Grão Torto é o café que trata cada detalhe como página de revista.","manifesto":"Grão Torto acredita que pressa é inimiga do bom. Por isso cada café é pensado como uma página de revista: com respiro, com ritmo, com intenção. É pra quem acorda cedo que repara. Que lê a legenda inteira. Que volta pela segunda vez.","taglines":["Grão Torto. Pra ler devagar.","A pausa boa do dia, com tempo.","O detalhe é a história.","Feito com atenção em Londrina.","Menos, e melhor."],"e":["calma","precisa","elegante"],"nao_e":["barulhenta","apressada","exagerada"],"fala":["Pensado com calma, feito pra durar.","Nem tudo precisa ser pra ontem.","A pausa boa do dia, no detalhe."],"nao_fala":["IMPERDÍVEL!!!","Só hoje, corre!","O melhor do Brasil."],"bio":"café de esquina · Café em Londrina. Chama no direct.","wa":"Olá, que bom ter você aqui. Aqui é o Grão Torto. Me conta o que procura e eu te ajudo com calma.","ia":false}};
   function demoApi(){
     const KEY = 'corre-demo-v2', mem = {};
-    const T = ['corre_perfis', 'corre_portfolio', 'corre_destaques', 'corre_stories', 'corre_insta', 'corre_contas', 'corre_lancamentos', 'corre_rolo_salvos', 'corre_leads', 'corre_posts', 'corre_feed', 'corre_curtidas', 'corre_comentarios', 'corre_seguindo', 'corre_story_curtidas', 'corre_visitas', 'corre_estilo', 'corre_produtos', 'corre_mural', 'corre_mural_propostas', 'corre_vendas', 'corre_refs', 'corre_lead_fotos', 'corre_mural_chat', 'corre_verso_bloq', 'corre_votos', 'corre_salvos', 'corre_recomendacoes', 'corre_feed_vistas', 'corre_avisos_lidos', 'corre_conversas', 'corre_conversa_membros', 'corre_mensagens', 'corre_push', 'corre_push_pref', 'corre_grupos', 'corre_grupo_membros', 'corre_houzi_marcas', 'corre_correal', 'corre_correal_log', 'corre_tarefa_vez', 'corre_ig_contas', 'corre_houzi_privado', 'corre_assinaturas', 'corre_asaas_clientes', 'corre_skins', 'corre_bio_conta', 'corre_convites', 'corre_ativo_dia', 'corre_skin_pedidos', 'corre_aprovacoes', 'corre_caderno', 'corre_atendente', 'corre_atende_conversas', 'corre_piloto', 'corre_piloto_log', 'corre_entidades', 'corre_doacao_conta', 'corre_nascimento', 'corre_sala_material', 'corre_sala_pedidos'];
-    const PRIV = ['corre_contas', 'corre_lancamentos', 'corre_rolo_salvos', 'corre_leads', 'corre_posts', 'corre_visitas', 'corre_estilo', 'corre_produtos', 'corre_mural', 'corre_mural_propostas', 'corre_vendas', 'corre_refs', 'corre_lead_fotos', 'corre_verso_bloq', 'corre_votos', 'corre_salvos', 'corre_feed_vistas', 'corre_avisos_lidos', 'corre_push', 'corre_push_pref', 'corre_correal', 'corre_correal_log', 'corre_tarefa_vez', 'corre_ig_contas', 'corre_houzi_privado', 'corre_assinaturas', 'corre_asaas_clientes', 'corre_skins', 'corre_bio_conta', 'corre_convites', 'corre_ativo_dia', 'corre_skin_pedidos', 'corre_aprovacoes', 'corre_caderno', 'corre_atendente', 'corre_atende_conversas', 'corre_piloto', 'corre_piloto_log', 'corre_nascimento', 'corre_sala_material', 'corre_sala_pedidos'];
+    const T = ['corre_perfis', 'corre_portfolio', 'corre_destaques', 'corre_stories', 'corre_insta', 'corre_contas', 'corre_lancamentos', 'corre_rolo_salvos', 'corre_leads', 'corre_posts', 'corre_feed', 'corre_curtidas', 'corre_comentarios', 'corre_seguindo', 'corre_story_curtidas', 'corre_visitas', 'corre_estilo', 'corre_produtos', 'corre_mural', 'corre_mural_propostas', 'corre_vendas', 'corre_refs', 'corre_lead_fotos', 'corre_mural_chat', 'corre_verso_bloq', 'corre_votos', 'corre_salvos', 'corre_recomendacoes', 'corre_feed_vistas', 'corre_avisos_lidos', 'corre_conversas', 'corre_conversa_membros', 'corre_mensagens', 'corre_push', 'corre_push_pref', 'corre_grupos', 'corre_grupo_membros', 'corre_houzi_marcas', 'corre_correal', 'corre_correal_log', 'corre_tarefa_vez', 'corre_ig_contas', 'corre_houzi_privado', 'corre_assinaturas', 'corre_asaas_clientes', 'corre_skins', 'corre_bio_conta', 'corre_convites', 'corre_ativo_dia', 'corre_skin_pedidos', 'corre_correal_pedidos', 'corre_aprovacoes', 'corre_caderno', 'corre_atendente', 'corre_atende_conversas', 'corre_piloto', 'corre_piloto_log', 'corre_entidades', 'corre_doacao_conta', 'corre_nascimento', 'corre_sala_material', 'corre_sala_pedidos'];
+    const PRIV = ['corre_contas', 'corre_lancamentos', 'corre_rolo_salvos', 'corre_leads', 'corre_posts', 'corre_visitas', 'corre_estilo', 'corre_produtos', 'corre_mural', 'corre_mural_propostas', 'corre_vendas', 'corre_refs', 'corre_lead_fotos', 'corre_verso_bloq', 'corre_votos', 'corre_salvos', 'corre_feed_vistas', 'corre_avisos_lidos', 'corre_push', 'corre_push_pref', 'corre_correal', 'corre_correal_log', 'corre_tarefa_vez', 'corre_ig_contas', 'corre_houzi_privado', 'corre_assinaturas', 'corre_asaas_clientes', 'corre_skins', 'corre_bio_conta', 'corre_convites', 'corre_ativo_dia', 'corre_skin_pedidos', 'corre_correal_pedidos', 'corre_aprovacoes', 'corre_caderno', 'corre_atendente', 'corre_atende_conversas', 'corre_piloto', 'corre_piloto_log', 'corre_nascimento', 'corre_sala_material', 'corre_sala_pedidos'];
     const now = () => new Date().toISOString();
     const inH = h => new Date(Date.now() + h * 36e5).toISOString();
     /* o mesmo do corre_tarefa_valor (delta-v338 + delta-v3391: 3 tarefas por uniforme) */
@@ -1136,6 +1136,8 @@
       d.t.corre_assinaturas.push({ id: rid(), dono: u, produto: prod, nivel: 1, valor: prod === 'houzi' ? 29.90 : 9.90, status: 'teste', teste_ate: new Date(Date.now() + 30 * 864e5).toISOString(), pago_ate: null, asaas_assinatura: null, link: '', created_at: now(), updated_at: now() });
     };
     /* v3.66 · o preço de uma skin da loja no demo, em centavos (0 = não é da loja). A vitrine mora no verso.js */
+    /* v5.31: os pacotes de correal da demonstração (os mesmos do corre_correal_pacotes: pacote, correais, reais) */
+    const CP_DEMO = [['p5', 5, 9.9], ['p10', 10, 19.9], ['p25', 25, 49.9]];
     const skinPrecoDemo = k => { const x = ((C.verso && C.verso.SKINS_LOJA) || []).find(s => s[0] === k); return x ? centDe(x[2]) : 0; };
     /* v4.13: os preços em real das 8 de Halloween (o mesmo do corre_skins_reais). v5.05: e as 12 de Natal */
     const skinReaisDemo = () => ({ abobora: 14.90, saci: 14.90, bruxa: 9.90, esqueleto: 9.90, lobisomem: 9.90, lencol: 5.90, mortovivo: 5.90, gatopreto: 5.90,
@@ -1927,6 +1929,15 @@
         if(n === 'corre_flags') return Object.assign({}, window.CORRE_DEMO_FLAGS || {});
         /* ---- v3.66: a loja de skins (mesma conta do delta-v366.sql: o preço é o da vitrine, o cadeado é o da carteira,
            comprar de novo não cobra, saldo curto não mexe em nada) ---- */
+        /* v5.31: os pacotes de correal (delta-v531.sql): os pacotes e as compras dos últimos 40 dias */
+        if(n === 'corre_correal_loja'){
+          const eu = uidOf(d); if(!eu) throw { message: 'permission denied', code: '42501' };
+          d.t.corre_correal_pedidos = d.t.corre_correal_pedidos || [];
+          const w = d.t.corre_correal.find(x => x.dono === eu), ate = x => plMais(hojeBR(new Date(Date.parse(x.pago_em))), 7);
+          return { pacotes: CP_DEMO.map(([pacote, correal, reais]) => ({ pacote, correal, reais })), saldo: w ? w.saldo : 0,
+            pedidos: d.t.corre_correal_pedidos.filter(x => x.dono === eu && x.status !== 'cancelada' && Date.now() - Date.parse(x.criado) < 40 * 864e5).sort((x, y) => y.criado.localeCompare(x.criado))
+              .map(x => Object.assign({}, x, { link: x.status === 'pendente' ? x.link : '', desiste: x.status === 'paga' && !x.desistiu_em && hojeBR() <= ate(x) ? ate(x) : null })) };
+        }
         if(n === 'corre_skins_minhas' || n === 'corre_skin_compra'){
           const eu = uidOf(d); if(!eu) throw { message: 'permission denied', code: '42501' };
           d.t.corre_skins = d.t.corre_skins || [];
@@ -2607,6 +2618,38 @@
         const d = read(), u = uidOf(d), B = b || {}, prod = String(B.produto || '');
         if(!u) throw { code: 'login', status: 401 };
         if(B.acao === 'asaas'){ if(!plFund(d, u)) throw { code: 'fundador', status: 403 }; return { ok: true, ambiente: 'demo', webhook: 'criado' }; }
+        /* v5.31: os pacotes de correal, como a função (a compra da demonstração já sai paga, sem cobrar; a desistência
+           devolve o que não foi gasto) */
+        if(String(B.acao || '').startsWith('correal-')){
+          d.t.corre_correal_pedidos = d.t.corre_correal_pedidos || [];
+          let w = d.t.corre_correal.find(x => x.dono === u);
+          if(B.acao === 'correal-confere') return { ok: true, pagos: [], demo: true };
+          if(B.acao === 'correal-desistir'){
+            const nao = motivo => ({ ok: true, pode: false, motivo, demo: true }), p = d.t.corre_correal_pedidos.find(x => x.id === B.pedido && x.dono === u);
+            if(!p || p.status !== 'paga') return nao(p && (p.status === 'estornada' || p.status === 'devolvendo') ? 'devolvido' : 'sem_pagamento');
+            if(p.desistiu_em) return nao('ja');
+            const dia = hojeBR(new Date(Date.parse(p.pago_em))), ate = plMais(dia, 7);
+            if(hojeBR() > ate) return nao('prazo');
+            const tiraC = Math.min(centDe(w ? w.saldo : 0), centDe(p.correal)); if(tiraC <= 0) return nao('gasto');
+            const v = Math.round(p.valor * tiraC / centDe(p.correal) * 100) / 100;
+            if(B.ver) return { ok: true, pode: true, valor: v, correal: tiraC / 100, total: p.valor, pago_em: dia, ate, demo: true };
+            w.saldo = (centDe(w.saldo) - tiraC) / 100; Object.assign(p, { status: 'estornada', desistiu_em: now(), volta_correal: tiraC / 100, volta_valor: v });
+            write(d); return { ok: true, devolvido: v, correal: tiraC / 100, saldo: w.saldo, demo: true };
+          }
+          if(B.acao !== 'correal-comprar') throw { code: 'acao', status: 400 };
+          if(!/^\d{4}-\d{2}-\d{2}$/.test(String(B.termos || ''))) throw { code: 'termos', status: 400 };
+          const k = CP_DEMO.find(x => x[0] === B.pacote); if(!k) throw { code: 'pacote', status: 400 };
+          if(B.forma !== 'pix' && B.forma !== 'cartao') throw { code: 'forma', status: 400 };
+          if(!d.t.corre_asaas_clientes.some(c => c.dono === u)){
+            if(String(B.nome || '').replace(/\s+/g, ' ').trim().length < 3) throw { code: 'nome', status: 400 };
+            if(!C.docOk(B.doc)) throw { code: 'doc', status: 400 };
+            d.t.corre_asaas_clientes.push({ dono: u, cliente: 'cus_demo_' + rid().slice(0, 8), created_at: now() });
+          }
+          if(!w){ w = { dono: u, saldo: 0, ganho: 0, gasto: 0, updated_at: now() }; d.t.corre_correal.push(w); }
+          const p = { id: rid(), dono: u, pacote: k[0], correal: k[1], valor: k[2], forma: B.forma, status: 'paga', asaas_cobranca: 'pay_demo_' + rid().slice(0, 8), link: '', termos: B.termos, criado: now(), pago_em: now(), desistiu_em: null };
+          d.t.corre_correal_pedidos.push(p); w.saldo = (centDe(w.saldo) + centDe(k[1])) / 100; w.updated_at = now();
+          write(d); return { ok: true, ja: true, pedido: p.id, valor: k[2], correal: k[1], link: '', demo: true };
+        }
         /* v4.13: as skins em real, como a função (sem Asaas: a compra da demonstração já sai paga, sem cobrar) */
         if(String(B.acao || '').startsWith('skin-')){
           d.t.corre_skin_pedidos = d.t.corre_skin_pedidos || []; d.t.corre_skins = d.t.corre_skins || [];
@@ -2763,7 +2806,15 @@
       if(e && e.correal != null) C.correalSet(e.correal);
       if(!(e && e.code === 'limite' && centDe(e.preco) > 0) || o.auto === false) throw e;
       const saldo = Number(e.correal) || 0, preco = Number(e.preco);
-      if(!C.correalCobre(saldo, preco)){ e.semCorreal = true; throw e; }
+      if(!C.correalCobre(saldo, preco)){
+        e.semCorreal = true;
+        /* v5.31: acabou o correal: oferece o pacote ali mesmo (a janela abre por cima, sem fechar o que a pessoa fazia) */
+        if(C.correalPodeComprar && C.correalPodeComprar() && C.correalCompra && o.auto !== true){
+          const sim = await C.confirma({ ico: 'correal', titulo: 'Acabou o correal', texto: `${o.oque ? `Gerar ${esc(o.oque)}` : 'Continuar'} sai por <b>${C.correalTxt(preco)}</b> e você tem <b>${C.correalFmt(saldo)}</b>. Dá pra comprar um pacote de correal (5 por R$ 9,90) ou ganhar fazendo trampo no Correverso.`, sim: 'Comprar correal', nao: 'Agora não' });
+          if(sim){ e.comprando = true; C.correalCompra(); } else e.recusou = true;
+        }
+        throw e;
+      }
       if(o.auto !== true){
         const sim = await C.confirma({ ico: 'correal', titulo: 'Acabou o grátis de hoje', texto: `${o.oque ? `Gerar ${esc(o.oque)}` : 'Continuar'} sai por <b>${C.correalTxt(preco)}</b>. Você tem <b>${C.correalFmt(saldo)}</b>.`, sim: `Usar ${C.correalTxt(preco)}`, nao: 'Agora não' });
         if(!sim){ e.recusou = true; throw e; }
@@ -2774,8 +2825,10 @@
   };
   /* a mensagem do limite: com o preço e o saldo quando a função já fala correal */
   C.limiteMsg = (e, oque) => {
+    /* v5.31: escolheu comprar correal: a janela tá aberta; depois que cair, é só pedir de novo */
+    if(e && e.comprando) return 'Assim que o correal cair na carteira, é só pedir de novo.';
     if(e && e.recusou) return 'Tudo bem. O grátis de hoje acabou; amanhã tem mais (ou usa correal quando quiser).';
-    if(e && e.preco != null) return `Acabou o grátis de hoje${oque ? ` (${oque})` : ''}. Cada pedido a mais sai por ${C.correalTxt(e.preco)} e você tem ${C.correalFmt(Number(e.correal) || 0)}. Correal se ganha fazendo tarefa no Correverso: centavos por tarefa, até ${C.correalFmt(C.correal.teto)} por dia.`;
+    if(e && e.preco != null) return `Acabou o grátis de hoje${oque ? ` (${oque})` : ''}. Cada pedido a mais sai por ${C.correalTxt(e.preco)} e você tem ${C.correalFmt(Number(e.correal) || 0)}. Correal se ganha fazendo tarefa no Correverso (centavos por tarefa, até ${C.correalFmt(C.correal.teto)} por dia)${C.correalPodeComprar && C.correalPodeComprar() ? ' ou se compra em pacote, na Carteira' : ''}.`;
     return `Hoje já deu o limite${oque ? ` de ${oque}` : ''}. Amanhã tem mais.`;
   };
   /* ---------------- v3.60 · os planos ----------------

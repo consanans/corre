@@ -526,7 +526,7 @@
   };
   /* v3.72: a versão dos Termos de uso que a pessoa aceita ao assinar (a mesma do data-versao do termos.html; a função
      anota). Mudou algo importante nos termos, sobe as duas juntas */
-  const TERMOS_V = '2026-10-30';
+  const TERMOS_V = '2026-11-03';
   /* v4.13: as skins de Halloween em real (o Ateliê, no verso.js) aceitam a mesma versão */
   C.TERMOS_V = TERMOS_V;
   /* v3.72: o que dá pra desistir com devolução (o direito de arrependimento, 7 dias do primeiro pagamento). Quem diz é a
@@ -790,4 +790,159 @@
       }catch(err){ C.toast(erroTxt(err)); if(el.isConnected) el.disabled = false; }
     }
   });
+})();
+/* v5.31 · OS PACOTES DE CORREAL (o Thales: "pra quem tá fora do Correverso e estiver acabando a moeda pra usar IA, vamo
+   fazer pacote de comprar correal, só que cada correal deve custar uns 2 reais"). Pagamento único, no Pix ou no cartão,
+   pelo Asaas, como as skins pagas; os pacotes e os preços moram no banco (corre_correal_pacotes) e a função "pagamento"
+   cobra. Abre numa janela por cima de tudo (um <dialog>, não a folha), pra não fechar o que a pessoa tava fazendo na IA.
+   Fica fora do app da Google Play (C.naLoja: lá moeda só pelo pagamento do Google). Sem o delta-v531.sql, a janela diz
+   que tá chegando. Desistir: até 7 dias do pagamento, volta em real o que não foi gasto */
+(function(){
+  'use strict';
+  const C = window.Corre, esc = C.esc, ico = C.ico;
+  const CP = { loja: null, dlg: null, t: 0 };
+  const reais = v => 'R$ ' + Number(v).toFixed(2).replace('.', ',');
+  const ddmm = d => d ? String(d).slice(8, 10) + '/' + String(d).slice(5, 7) : '';
+  const corr = n => `${Number(n).toLocaleString('pt-BR')} ${Number(n) === 1 ? 'correal' : 'correais'}`;
+  /* quantas imagens com IA o pacote paga (a conta que a pessoa entende) */
+  const imagens = n => { const p = Number(C.correal && C.correal.precos && C.correal.precos.imagem) || .1; return Math.floor(n / p + 1e-9); };
+  const pode = () => !(C.naLoja && C.naLoja()) && !!C.uid();
+  C.correalPodeComprar = pode;
+  /* o Asaas recusou o Pix (conta em aprovação): o botão do Pix apaga por 6 horas, como nas skins */
+  const PIX_OFF = 'corre-pix-off';
+  const pixOff = () => { try{ return Date.now() - Number(localStorage.getItem(PIX_OFF) || 0) < 6 * 3600e3; }catch(e){ return false; } };
+  const ERRO = { termos: 'Marca que leu e aceita os Termos de uso pra comprar.', nome: 'Escreve teu nome completo (ou a razão social).', doc: 'Esse CPF ou CNPJ não confere.',
+    forma: 'Escolhe Pix ou cartão.', pacote: 'Escolhe um pacote.', login: 'Entra de novo no Corre e tenta outra vez.',
+    config: 'A compra de correal ainda não tá ligada. Tenta daqui a pouco.', banco: 'A compra de correal ainda não tá ligada. Tenta daqui a pouco.', nofn: 'A compra de correal ainda não tá ligada. Tenta daqui a pouco.',
+    pix: 'O Pix ainda não tá liberado: a conta do Corre no Asaas tá em aprovação. Por enquanto, paga no cartão.' };
+  const pixRecusado = e => !!(e && e.code === 'asaas' && /\bpix\b/i.test(String(e.detalhe || '')));
+  const erroTxt = e => pixRecusado(e) ? ERRO.pix : (e && e.code === 'asaas' && e.detalhe) ? 'O Asaas recusou: ' + e.detalhe : (e && (ERRO[e.code] || (e.status === 404 && ERRO.nofn))) || C.errMsg(e, 'Não deu pra falar com o pagamento agora.');
+  const NAO_DESISTE = { prazo: 'Passou dos 7 dias do pagamento: o correal fica contigo.', ja: 'A desistência dessa compra já foi pedida.', devolvido: 'Essa compra já foi devolvida.',
+    gasto: 'Os correais dessa compra já foram usados: não sobrou nada pra devolver.', sem_pagamento: 'Não achei o pagamento dessa compra.' };
+  const abaNova = () => { if(C.DEMO) return null; try{ return window.open('', '_blank'); }catch(e){ return null; } };
+  const leva = (w, link) => { if(!w) return false; if(!link){ try{ w.close(); }catch(e){} return false; } try{ w.opener = null; w.location.href = link; return true; }catch(e){ return false; } };
+  async function carrega(){
+    try{ const r = await C.api.rpc('corre_correal_loja', {}); CP.loja = r && Array.isArray(r.pacotes) && r.pacotes.length ? r : false; if(r && r.saldo != null) C.correalSet(r.saldo); }
+    catch(e){ CP.loja = false; }
+    return CP.loja;
+  }
+  const fecha = () => { const d = CP.dlg; CP.dlg = null; clearInterval(CP.t); if(d){ try{ d.close(); }catch(e){} d.remove(); } };
+  /* a janela: escolhe o pacote, o nome e o documento na primeira compra, o aceite e Pix ou cartão */
+  async function abre(o){
+    o = o || {};
+    if(!C.uid()){ C.toast('Entra no Corre pra comprar correal.'); return; }
+    if(C.naLoja && C.naLoja()){ C.toast('No app da loja não dá pra comprar correal. Ganha fazendo trampo no Correverso.', 4200); return; }
+    fecha();
+    const [L] = await Promise.all([carrega(), C.correalCarrega().catch(() => {}), C.acesso ? null : (C.acessoCarrega ? C.acessoCarrega().catch(() => null) : null)]);
+    if(!L){ C.toast('A compra de correal tá chegando no Corre. Por enquanto, ganha fazendo trampo no Correverso.', 4600); return; }
+    const d = document.createElement('dialog'); d.className = 'dlg cp-dlg'; CP.dlg = d;
+    document.body.appendChild(d);
+    d.addEventListener('close', () => { if(CP.dlg === d) fecha(); });
+    d.addEventListener('cancel', e => { e.stopPropagation(); });
+    pintaEscolha(o.pacote || 'p10');
+    try{ d.showModal(); }catch(e){ d.setAttribute('open', ''); }
+    const pri = d.querySelector('input[name="cp-pac"]:checked'); if(pri) pri.focus();
+  }
+  const cab = t => `<div class="cp-cab"><h2>${ico('correal')} ${t}</h2><button type="button" class="cbtn plain" data-cp="x" aria-label="Fechar">${ico('x')}</button></div>`;
+  function pintaEscolha(pac){
+    const d = CP.dlg, L = CP.loja; if(!d || !L) return;
+    pac = pac || (d.querySelector('input[name="cp-pac"]:checked') || {}).value || 'p10';
+    const A = C.acesso || {}, s = C.correal.saldo, off = pixOff();
+    const tuas = (L.pedidos || []).filter(p => p.status === 'pendente' || p.status === 'paga' || p.status === 'devolvendo' || p.status === 'estornada').slice(0, 6);
+    d.innerHTML = `<form class="dlg-c cp" novalidate>${cab('Comprar correal')}
+      <p>Correal paga a IA depois do grátis do dia, os voos e o Ateliê. Você tem <b class="num" data-correal-saldo>${s == null ? '…' : C.correalFmt(s)}</b> <span data-correal-unid>${C.correalUnid(s || 0)}</span>.</p>
+      <fieldset class="cp-pacs"><legend class="lbl-s">O pacote</legend>${L.pacotes.map(k => `<label class="cp-pac"><input type="radio" name="cp-pac" value="${esc(k.pacote)}"${k.pacote === pac ? ' checked' : ''}><span class="cp-pac-c"><b>${corr(k.correal)}</b><i class="num">${reais(k.reais)}</i><small>dá ${imagens(k.correal)} imagens com IA</small></span></label>`).join('')}</fieldset>
+      ${A.cliente ? '' : `<div class="fld"><label for="cp-nome">Nome completo ou razão social</label><input class="inp" id="cp-nome" maxlength="100" autocomplete="name" value="${esc((C.st.me && C.st.me.nome) || '')}"></div>
+      <div class="fld"><label for="cp-doc">CPF ou CNPJ</label><input class="inp" id="cp-doc" inputmode="numeric" maxlength="18" autocomplete="off" aria-describedby="cp-doc-h"><span class="hint" id="cp-doc-h">Vai só pro Asaas, que emite a cobrança. O Corre não guarda.</span></div>`}
+      <label class="pl-aceite"><input type="checkbox" id="cp-termos"><span>Li e aceito os <a href="termos.html#pacotes" target="_blank" rel="noopener">Termos de uso</a>. Pagamento único, não renova. Desistindo em até 7 dias, recebo de volta o que não usei.</span></label>
+      <p class="fine cp-erro" role="alert" hidden></p>
+      <div class="acts cp-bts">${off ? `<button type="button" class="btn" data-forma="pix" disabled title="${esc(ERRO.pix)}">${ico('raio')} Pix em breve</button><button type="button" class="btn pri" data-forma="cartao">${ico('cartao')} Pagar no cartão</button>`
+        : `<button type="button" class="btn pri" data-forma="pix">${ico('raio')} Pagar no Pix</button><button type="button" class="btn" data-forma="cartao">${ico('cartao')} Pagar no cartão</button>`}</div>
+      ${tuas.length ? `<details class="cp-tuas"><summary>Tuas compras de correal</summary><ul>${tuas.map(p => `<li><span><b>${corr(p.correal)}</b> · ${reais(p.valor)} · ${ddmm(String(p.criado).slice(0, 10))}</span>${
+        p.status === 'pendente' ? `<span class="cp-st">esperando o pagamento${p.link ? ` · <a href="${esc(p.link)}" target="_blank" rel="noopener">abrir a fatura</a>` : ''}</span>`
+        : p.status === 'paga' ? (p.desiste ? `<button type="button" class="lnk" data-cp="desiste" data-id="${esc(p.id)}">Desistir até ${ddmm(p.desiste)}</button>` : '<span class="cp-st">paga</span>')
+        : `<span class="cp-st">devolvida${p.volta_valor ? ` (${reais(p.volta_valor)})` : ''}</span>`}</li>`).join('')}</ul></details>` : ''}
+      <p class="fine">Correal continua sendo a moeda do Corre: não se vende, não passa pra ninguém e não vira dinheiro. Pagamento pelo Asaas.</p></form>`;
+    d.querySelector('[data-cp="x"]').addEventListener('click', fecha);
+    d.querySelectorAll('[data-forma]').forEach(b => b.addEventListener('click', () => paga(b.dataset.forma, b)));
+    d.querySelectorAll('[data-cp="desiste"]').forEach(b => b.addEventListener('click', () => desiste(b.dataset.id, b)));
+  }
+  async function paga(forma, bt){
+    const d = CP.dlg; if(!d) return;
+    const f = d.querySelector('form'), er = f.querySelector('.cp-erro'), mostra = t => { er.textContent = t; er.hidden = !t; };
+    const pac = (f.querySelector('input[name="cp-pac"]:checked') || {}).value;
+    if(!pac){ mostra(ERRO.pacote); return; }
+    if(!f.querySelector('#cp-termos').checked){ mostra(ERRO.termos); f.querySelector('#cp-termos').focus(); return; }
+    const body = { acao: 'correal-comprar', pacote: pac, forma, termos: C.TERMOS_V }, nm = f.querySelector('#cp-nome'), dc = f.querySelector('#cp-doc');
+    if(nm){ body.nome = nm.value.replace(/\s+/g, ' ').trim(); if(body.nome.length < 3){ mostra(ERRO.nome); nm.focus(); return; } }
+    if(dc){ body.doc = C.docOk(dc.value); if(!body.doc){ mostra(ERRO.doc); dc.focus(); return; } }
+    mostra('');
+    /* a aba da fatura abre ainda no toque (depois de esperar a resposta, o navegador bloqueia) */
+    const w = abaNova(), antes = Number(C.correal.saldo) || 0;
+    f.querySelectorAll('button').forEach(b => { b.disabled = true; }); bt.textContent = 'Abrindo a fatura…';
+    let r = null;
+    try{ r = await C.api.fn('pagamento', body); }
+    catch(e){
+      leva(w, '');
+      if(pixRecusado(e)){ try{ localStorage.setItem(PIX_OFF, String(Date.now())); }catch(x){} }
+      pintaEscolha(pac); const f2 = CP.dlg && CP.dlg.querySelector('form'); if(f2){ const e2 = f2.querySelector('.cp-erro'); e2.textContent = erroTxt(e); e2.hidden = false; }
+      return;
+    }
+    if(C.acessoCarrega && !(C.acesso && C.acesso.cliente)) C.acessoCarrega().catch(() => {});
+    /* já pago (a fatura de antes tinha sido paga, ou o demo): o correal já caiu */
+    if(r && (r.ja || r.pagou)){ leva(w, ''); await C.correalCarrega().catch(() => {}); caiu(Math.max(0, (Number(C.correal.saldo) || 0) - antes), r.demo); return; }
+    const foi = leva(w, r && r.link);
+    espera(r || {}, foi, antes);
+  }
+  /* esperando o pagamento: confere sozinho de 8 em 8 s (e quando a pessoa volta pra aba do Corre); o "Já paguei" confere na hora */
+  function espera(r, foi, antes){
+    const d = CP.dlg; if(!d) return;
+    d.innerHTML = `<div class="dlg-c cp">${cab('Falta pagar')}
+      <p class="lj-pg-st">${ico('clock')} Esperando o pagamento de <b>${reais(r.valor)}</b> (${corr(r.correal)}).</p>
+      <p>${foi ? 'A fatura abriu numa aba nova.' : 'Abre a fatura pra pagar.'} No Pix cai em segundos; no cartão, quando aprovar. Pode fechar aqui: pagou, o correal cai sozinho.</p>
+      <div class="acts">${r.link ? `<a class="btn${foi ? '' : ' pri'}" href="${esc(r.link)}" target="_blank" rel="noopener">${ico('ext')} Abrir a fatura</a>` : ''}<button type="button" class="btn${foi ? ' pri' : ''}" data-cp="ja">Já paguei</button></div></div>`;
+    d.querySelector('[data-cp="x"]').addEventListener('click', fecha);
+    const confere = async manual => {
+      if(CP.dlg !== d) return;
+      try{ await C.api.fn('pagamento', { acao: 'correal-confere' }); }catch(e){}
+      await C.correalCarrega().catch(() => {});
+      const ganhou = (Number(C.correal.saldo) || 0) - antes;
+      if(ganhou > 0.004){ caiu(ganhou); return; }
+      if(manual) C.toast('Ainda não apareceu o pagamento. No Pix leva uns segundos; confere de novo já já.', 4200);
+    };
+    d.querySelector('[data-cp="ja"]').addEventListener('click', () => confere(true));
+    const t0 = Date.now();
+    CP.t = setInterval(() => { if(Date.now() - t0 > 10 * 60e3){ clearInterval(CP.t); return; } if(!document.hidden) confere(false); }, 8000);
+    const volta = () => { if(!document.hidden) confere(false); };
+    document.addEventListener('visibilitychange', volta);
+    d.addEventListener('close', () => document.removeEventListener('visibilitychange', volta), { once: true });
+  }
+  function caiu(n, demo){
+    const d = CP.dlg; clearInterval(CP.t);
+    if(C.versoSom && C.versoSom.moeda) try{ C.versoSom.moeda(); }catch(e){}
+    if(!d){ C.toast(`Caiu: +${C.correalFmt(n)} na carteira.`); return; }
+    d.innerHTML = `<div class="dlg-c cp">${cab('Caiu!')}
+      <p class="cp-caiu"><b class="num">+${C.correalFmt(n)}</b> ${C.correalUnid(n)}</p>
+      <p>Agora você tem <b class="num" data-correal-saldo>${C.correalFmt(C.correal.saldo || 0)}</b> <span data-correal-unid>${C.correalUnid(C.correal.saldo || 0)}</span>.${demo ? ' (Demonstração: nada foi cobrado.)' : ''} É só tentar de novo o que você tava fazendo.</p>
+      <div class="acts"><button type="button" class="btn pri" data-cp="ok">Beleza</button></div></div>`;
+    d.querySelector('[data-cp="x"]').addEventListener('click', fecha);
+    d.querySelector('[data-cp="ok"]').addEventListener('click', fecha);
+  }
+  /* desistir em 7 dias: pergunta quanto volta, confirma, e o que não foi usado sai do saldo */
+  async function desiste(id, bt){
+    bt.disabled = true;
+    let v = null; try{ v = await C.api.fn('pagamento', { acao: 'correal-desistir', pedido: id, ver: true }); }catch(e){ bt.disabled = false; C.toast(erroTxt(e)); return; }
+    if(!v || !v.pode){ C.toast(NAO_DESISTE[v && v.motivo] || NAO_DESISTE.sem_pagamento, 4600); await carrega(); pintaEscolha(); return; }
+    const tudo = Number(v.valor) >= Number(v.total) - 0.005;
+    const sim = await C.confirma({ ico: 'correal', titulo: 'Desistir da compra', texto: `Volta <b>${reais(v.valor)}</b>${tudo ? '' : ` (de ${reais(v.total)}: os correais que você já usou não voltam)`} e <b>${C.correalFmt(v.correal)}</b> ${C.correalUnid(v.correal)} saem da carteira. Dá até ${ddmm(v.ate)}.`, sim: 'Desistir e receber de volta', nao: 'Ficar com eles' });
+    if(!sim){ bt.disabled = false; return; }
+    try{
+      const r = await C.api.fn('pagamento', { acao: 'correal-desistir', pedido: id }) || {};
+      if(!r.ok || r.pode === false){ C.toast(NAO_DESISTE[r.motivo] || 'Não deu pra desistir agora. Escreve pro contato@houzirecords.com.br.', 4800); bt.disabled = false; return; }
+      await Promise.all([C.correalCarrega().catch(() => {}), carrega()]); pintaEscolha();
+      C.toast(`Pronto: ${reais(r.devolvido)} tão voltando${r.demo ? ' (demonstração: nada foi cobrado)' : ' (no Pix, pra conta que pagou; no cartão, na fatura)'}.`, 5200);
+    }catch(e){ bt.disabled = false; C.toast(erroTxt(e), 4800); }
+  }
+  C.correalCompra = abre;
+  C.acts['correal-compra'] = el => abre({ pacote: el && el.dataset ? el.dataset.pacote : '' });
 })();

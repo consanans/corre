@@ -26,6 +26,7 @@
 //  8. v5.09: o Muralzim, o ingresso vendido de verdade com a divisão do Asaas (a parte do organizador cai na conta Asaas
 //     dele, a taxa do Corre fica na Houzi). acao "org-conta", "org-carteira", "org-ver", "ingresso-comprar",
 //     "ingresso-pix", "ingresso-confere", "ingresso-desistir" e "evento-cancelar" (ver o bloco do Muralzim).
+//  9. v5.31: os pacotes de correal (acao "correal-comprar", "correal-confere" e "correal-desistir"; ver o bloco do correal).
 //
 // Segredos (Supabase > Edge Functions > Secrets):
 //   ASAAS_API_KEY        a chave da API do Asaas (Asaas > Integrações > Chave de API). É o único obrigatório.
@@ -187,6 +188,14 @@ async function aviso(req: Request, admin: any) {
       : tipo === 'PAYMENT_OVERDUE' || tipo === 'PAYMENT_DELETED' ? ['corre_skin_cai', { p_cobranca: String(pg.id) }] : null;
     if (f) { const { error } = await admin.rpc(f[0], f[1]); if (error) { console.error('aviso/skin:', error.message); return json({ erro: 'banco' }, 500); } }
   }
+  /* v5.31: o pacote de correal (externalReference "correal:dono:pacote"): pagou, o correal cai no saldo; o dinheiro
+     voltou sem ser pelo app, sai o que ainda tiver; venceu sem pagar, cancela */
+  if (pg?.id && !subId && /^correal:/.test(String(pg.externalReference || ''))) {
+    const f: [string, Record<string, unknown>] | null = tipo === 'PAYMENT_CONFIRMED' || tipo === 'PAYMENT_RECEIVED' ? ['corre_cp_paga', { p_cobranca: String(pg.id), p_valor: Number(pg.value) || 0 }]
+      : ['PAYMENT_REFUNDED', 'PAYMENT_CHARGEBACK_REQUESTED', 'PAYMENT_CHARGEBACK_DISPUTE'].includes(tipo) ? ['corre_cp_volta', { p_cobranca: String(pg.id) }]
+      : tipo === 'PAYMENT_OVERDUE' || tipo === 'PAYMENT_DELETED' ? ['corre_cp_cai', { p_cobranca: String(pg.id) }] : null;
+    if (f) { const { error } = await admin.rpc(f[0], f[1]); if (error) { console.error('aviso/correal:', error.message); return json({ erro: 'banco' }, 500); } }
+  }
   /* v5.09: o ingresso do Muralzim (externalReference "ing:pedido"): pagou, os ingressos valem (ou, se o lugar acabou
      ou o evento foi cancelado, o dinheiro volta); o dinheiro voltou, deixam de valer; venceu sem pagar, os lugares voltam */
   if (pg?.id && !subId && /^ing:/.test(String(pg.externalReference || ''))) {
@@ -245,6 +254,7 @@ Deno.serve(async (req) => {
   const acao = String(body?.acao || ''), produto = String(body?.produto || '');
   if (acao === 'asaas') return await ligaAsaas(user, SB_URL);
   if (acao.startsWith('skin-')) { if (!env('ASAAS_API_KEY')) return json({ erro: 'config' }, 503); return await skin(acao, body, user, admin); }
+  if (acao.startsWith('correal-')) { if (!env('ASAAS_API_KEY')) return json({ erro: 'config' }, 503); return await pacoteCorreal(acao, body, user, admin); }
   /* v5.09: o Muralzim (a conta de recebimento de quem vende e o ingresso) */
   if (acao.startsWith('org-') || acao.startsWith('ingresso-') || acao === 'evento-cancelar') {
     if (!env('ASAAS_API_KEY')) return json({ erro: 'config' }, 503);
@@ -474,6 +484,102 @@ async function skin(acao: string, body: any, user: any, admin: any) {
     if (e && e.banco) { console.error('skin/banco:', e.banco); return json({ erro: 'banco' }, 503); }
     if (e && e.msg) { console.error('asaas/skin:', e.status, e.msg); return json({ erro: 'asaas', detalhe: e.msg }, 502); }
     console.error('skin:', e?.message || e); return json({ erro: 'rede' }, 502);
+  }
+}
+
+/* ---------- v5.31 · os pacotes de correal ----------
+   O Thales: "pra quem tá fora do Correverso e estiver acabando a moeda pra usar IA, vamo fazer pacote de comprar
+   correal, só que cada correal deve custar uns 2 reais". Pagamento único, no Pix ou no cartão, como as skins pagas. Os
+   pacotes e os preços moram no banco (corre_correal_pacotes, delta-v531.sql); aqui só o texto da fatura.
+     acao "correal-comprar" { pacote, forma: pix|cartao, termos, nome?, doc? }: cria a cobrança avulsa e devolve o link
+       da fatura. A do mesmo pacote esperando pagamento na mesma forma devolve a mesma fatura; noutra forma, apaga a de
+       antes no Asaas (e se ela já foi paga, o correal cai em vez de cobrar de novo).
+     acao "correal-confere": olha no Asaas as que esperam pagamento (se o aviso não chegou, o correal chega assim).
+     acao "correal-desistir" { pedido, ver? }: até 7 dias do pagamento (CDC, art. 49), devolve em real o que NÃO foi
+       gasto (proporcional: sobrou 3 de 5, volta 3/5 do valor) e esses correais saem do saldo. O banco separa e tira do
+       saldo antes; o Asaas devolve; se ele recusar, o correal volta. Uma vez por compra; com "ver", só diz quanto volta.
+   O aviso do Asaas (?asaas=aviso) põe o correal quando paga (externalReference "correal:"). */
+async function pacoteCorreal(acao: string, body: any, user: any, admin: any) {
+  try {
+    if (acao === 'correal-confere') {
+      const L = (await rpc(admin, 'corre_cp_abertos', { p_dono: user.id })) || [], pagos: number[] = [];
+      for (const p of L) {
+        const c = await asaas(`/payments/${encodeURIComponent(p.cobranca)}`).catch(() => null);
+        if (!c) continue;
+        if (PAGO.includes(c.status)) { const r = await rpc(admin, 'corre_cp_paga', { p_cobranca: p.cobranca, p_valor: Number(c.value) || 0 }); if (r?.ok && !r.ja) pagos.push(Number(p.correal) || 0); }
+        else if (DEVOLVIDO.includes(c.status)) await rpc(admin, 'corre_cp_volta', { p_cobranca: p.cobranca });
+        else if (c.deleted) await rpc(admin, 'corre_cp_cai', { p_cobranca: p.cobranca });
+      }
+      return json({ ok: true, pagos });
+    }
+
+    if (acao === 'correal-desistir') {
+      const nao = (motivo: string) => json({ ok: true, pode: false, motivo });
+      const id = String(body?.pedido || '');
+      if (!UUID.test(id)) return json({ erro: 'pedido' }, 400);
+      const p = await rpc(admin, 'corre_cp_ver', { p_dono: user.id, p_id: id });
+      if (!p || p.status !== 'paga') return nao(p?.status === 'estornada' || p?.status === 'devolvendo' ? 'devolvido' : 'sem_pagamento');
+      if (p.desistiu_em) return nao('ja');
+      const c = await asaas(`/payments/${encodeURIComponent(p.asaas_cobranca)}`);
+      if (DEVOLVIDO.includes(c?.status)) return nao('devolvido');
+      if (!PAGO.includes(c?.status)) return nao('sem_pagamento');
+      const dia = diaPago(c), ate = maisDias(dia, PRAZO_DESISTE);
+      if (hojeBR() > ate) return nao('prazo');
+      const v = await rpc(admin, 'corre_cp_desiste', { p_dono: user.id, p_id: id, p_ver: !!body?.ver });
+      if (!v?.pode) return nao(String(v?.motivo || 'sem_pagamento'));
+      if (body?.ver) return json({ ok: true, pode: true, valor: Number(v.valor), correal: Number(v.correal), total: Number(v.total), pago_em: dia, ate });
+      /* o correal já saiu do saldo (corre_cp_desiste); agora o dinheiro. Devolveu tudo: o estorno inteiro; parte: só o valor */
+      const parcial = Number(v.valor) < Number(v.total) - 0.005;
+      try {
+        await asaas(`/payments/${encodeURIComponent(p.asaas_cobranca)}/refund`, 'POST', parcial ? { value: Number(v.valor), description: 'Desistência em 7 dias (CDC, art. 49): o correal que não foi usado' } : { description: 'Desistência em 7 dias (CDC, art. 49)' });
+      } catch (e) {
+        /* o Asaas recusou: o correal volta pro saldo e nada mudou */
+        await admin.rpc('corre_cp_desfaz', { p_id: id });
+        throw e;
+      }
+      const { error } = await admin.rpc('corre_cp_devolvido', { p_id: id });
+      if (error) console.error('correal-desistir/banco:', error.message);
+      return json({ ok: true, devolvido: Number(v.valor), correal: Number(v.correal), saldo: v.saldo });
+    }
+
+    if (acao !== 'correal-comprar') return json({ erro: 'acao' }, 400);
+    const termos = String(body?.termos || '');
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(termos)) return json({ erro: 'termos' }, 400);
+    const k = String(body?.pacote || ''), forma = String(body?.forma || '');
+    if (!/^p[0-9]{1,3}$/.test(k)) return json({ erro: 'pacote' }, 400);
+    if (forma !== 'pix' && forma !== 'cartao') return json({ erro: 'forma' }, 400);
+    const pode = await rpc(admin, 'corre_cp_pode', { p_dono: user.id, p_pacote: k });
+    const valor = Number(pode?.reais) || 0, qto = Number(pode?.correal) || 0;
+    if (!(valor > 0) || !(qto > 0)) return json({ erro: 'pacote' }, 400);
+    /* uma fatura em aberto por pacote: a mesma forma devolve a mesma fatura; outra forma apaga a de antes */
+    const pend = pode.pendente;
+    if (pend?.cobranca) {
+      const c = await asaas(`/payments/${encodeURIComponent(pend.cobranca)}`).catch(() => null);
+      if (c && PAGO.includes(c.status)) { await rpc(admin, 'corre_cp_paga', { p_cobranca: pend.cobranca, p_valor: Number(c.value) || 0 }); return json({ ok: true, ja: true, pagou: true }); }
+      if (c && !c.deleted && c.status === 'PENDING' && pend.forma === forma && pend.link) return json({ ok: true, link: pend.link, pedido: pend.id, valor, correal: qto, mesma: true });
+      if (c && !c.deleted && ['PENDING', 'OVERDUE'].includes(c.status)) await asaas(`/payments/${encodeURIComponent(pend.cobranca)}`, 'DELETE').catch((e: any) => { if (e?.status !== 404) throw e; });
+    }
+    const cliente = await clienteDe(admin, user, body);
+    if (cliente instanceof Response) return cliente;
+    const pg = await asaas('/payments', 'POST', {
+      customer: cliente, billingType: forma === 'pix' ? 'PIX' : 'CREDIT_CARD', value: valor, dueDate: maisDias(hojeBR(), 1),
+      description: `Corre · Pacote de ${qto} correais (a moeda do Corre, pra IA e o Correverso). Pagamento único.`, externalReference: `correal:${user.id}:${k}`,
+    });
+    const cob = String(pg?.id || '');
+    if (!cob) return json({ erro: 'asaas', detalhe: 'O Asaas não devolveu a cobrança.' }, 502);
+    const link = String(pg.invoiceUrl || '');
+    const { data: r, error } = await admin.rpc('corre_cp_novo', { p_dono: user.id, p_pacote: k, p_forma: forma, p_cobranca: cob, p_link: link, p_termos: termos });
+    if (error || !r?.ok) {
+      /* o banco não guardou: a cobrança que acabou de nascer sai do Asaas, senão ela ficaria sem dono no Corre */
+      console.error('correal/banco:', error?.message || r?.motivo);
+      await asaas(`/payments/${encodeURIComponent(cob)}`, 'DELETE').catch(() => null);
+      return json({ erro: 'banco' }, 500);
+    }
+    return json({ ok: true, link, pedido: r.id, valor, correal: qto });
+  } catch (e: any) {
+    if (e && e.banco) { console.error('correal/banco:', e.banco); return json({ erro: 'banco' }, 503); }
+    if (e && e.msg) { console.error('asaas/correal:', e.status, e.msg); return json({ erro: 'asaas', detalhe: e.msg }, 502); }
+    console.error('correal:', e?.message || e); return json({ erro: 'rede' }, 502);
   }
 }
 
