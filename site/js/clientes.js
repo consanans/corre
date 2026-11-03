@@ -13,7 +13,9 @@
   const K_LEVA = 'corre-clientes-leva', K_ULT = 'corre-clientes-ult';
   const Z = () => C.horus && C.horus._, T = () => C.horusTurbo;
   const NICHOS = () => (T() && T().NICHOS_ABERTOS) || [];
-  const nomeN = k => (NICHOS().find(n => n[0] === k) || [k, k])[1];
+  /* v5.32: além dos 16 em botão, o catálogo de nichos do Hórus (horus-nichos.js) numa lista por ramo */
+  const CAT = () => window.CORRE_HORUS_NICHOS || { grupos: {}, lista: [] };
+  const nomeN = k => (NICHOS().find(n => n[0] === k) || [k, (CAT().lista.find(n => n.k === k) || { n: k }).n])[1];
   const ls = { get(k){ try{ return JSON.parse(localStorage.getItem(k) || 'null'); }catch(e){ return null; } }, set(k, v){ try{ if(v == null) localStorage.removeItem(k); else localStorage.setItem(k, JSON.stringify(v)); }catch(e){} } };
   const fmt = n => Number(n || 0).toLocaleString('pt-BR');
   const lugar = (o, comBairro) => `${comBairro && o.bairro ? o.bairro + ', ' : ''}${o.cidade}${o.uf ? '/' + o.uf : ''}`;
@@ -70,7 +72,8 @@
     if(!cid && me.cidade && z){ const p = z.parseLugar(me.cidade); cid = p.cidade; uf = uf || p.uf; }
     return `<form class="card cl-f" id="cl-f" novalidate>
       <fieldset class="cl-fs"><legend>Quem você quer atender?</legend>
-        <div class="cl-nichos" role="radiogroup" aria-label="Ramo">${NICHOS().map(([k, n]) => `<label class="cl-n"><input type="radio" name="cl-k" value="${esc(k)}"${o.k === k ? ' checked' : ''}><span>${esc(n)}</span></label>`).join('')}</div></fieldset>
+        <div class="cl-nichos" role="radiogroup" aria-label="Ramo">${NICHOS().map(([k, n]) => `<label class="cl-n"><input type="radio" name="cl-k" value="${esc(k)}"${o.k === k ? ' checked' : ''}><span>${esc(n)}</span></label>`).join('')}</div>
+        ${CAT().lista.length ? `<div class="fld cl-mais"><label for="cl-outro">Ou outro dos ${CAT().lista.length} tipos de negócio</label><select class="inp" id="cl-outro"><option value="">Escolhe aqui…</option>${Object.entries(CAT().grupos).map(([g, nome]) => `<optgroup label="${esc(nome)}">${CAT().lista.filter(n => n.g === g).map(n => `<option value="${esc(n.k)}"${o.k === n.k ? ' selected' : ''}>${esc(n.n)}</option>`).join('')}</optgroup>`).join('')}</select></div>` : ''}</fieldset>
       <div class="cl-onde">
         <div class="fld"><label for="cl-uf">Estado</label><select class="inp" id="cl-uf"><option value="">UF</option>${(z ? z.UFS : []).map(([k, n]) => `<option value="${k}"${uf === k ? ' selected' : ''}>${k} · ${esc(n)}</option>`).join('')}</select></div>
         <div class="fld"><label for="cl-cid">Cidade</label><input class="inp" id="cl-cid" maxlength="60" value="${esc(cid || '')}" placeholder="Londrina" autocomplete="address-level2"></div>
@@ -116,6 +119,11 @@
       <div id="cl-res" aria-live="polite">${resultado()}</div>
     </main>`;
     $('cl-f').addEventListener('submit', e => { e.preventDefault(); conta(); });
+    /* um ou outro: escolheu na lista, os botões desmarcam; marcou um botão, a lista volta pro começo */
+    $('cl-f').addEventListener('change', e => {
+      if(e.target.id === 'cl-outro' && e.target.value) document.querySelectorAll('input[name="cl-k"]').forEach(r => { r.checked = false; });
+      else if(e.target.name === 'cl-k' && $('cl-outro')) $('cl-outro').value = '';
+    });
     contaSobe();
   }
   /* o número grande sobe contando (sem animação pra quem pediu menos movimento) */
@@ -127,7 +135,7 @@
     requestAnimationFrame(f);
   }
   function leForm(){
-    const k = (document.querySelector('input[name="cl-k"]:checked') || {}).value || '';
+    const k = (document.querySelector('input[name="cl-k"]:checked') || {}).value || ($('cl-outro') || {}).value || '';
     return { k, uf: $('cl-uf').value, cidade: $('cl-cid').value.trim(), bairro: $('cl-b').value.trim() };
   }
   async function conta(o){

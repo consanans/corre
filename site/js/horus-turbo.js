@@ -128,7 +128,9 @@
     const A = H.auto, c = Z.cfg(); if(A.busy) return;
     const P = praca(), onde = Z.lugarTxt(P.cidade, P.uf);
     if(!P.cidade){ C.toast('Escolhe o estado e a cidade da caça.'); return; }
-    const nichos = A.n ? c.nichos.filter(n => n.k === A.n) : c.nichos.filter(n => osmDe(n).length || palavras(n.re));
+    /* v5.32: o nicho pode vir do catálogo (horus-nichos.js) sem estar na lista da pessoa */
+    const doCat = A.n && !c.nichos.some(n => n.k === A.n) ? catDe(A.n) : null;
+    const nichos = A.n ? (doCat ? [doCat] : c.nichos.filter(n => n.k === A.n)) : c.nichos.filter(n => osmDe(n).length || palavras(n.re));
     if(!nichos.length){ C.toast('Esse nicho não tem filtro no mapa. Coloca "palavras que identificam" em Ajustar.'); return; }
     A.busy = true; A.st = `Achando ${A.b ? A.b + ' em ' : ''}${onde} no mapa…`; Z.paintCaca();
     try{
@@ -151,6 +153,8 @@
       H.rows = marcaRepetidas(rows.slice(0, 300)); H.assunto = A.n ? (nichos[0].n || '') : 'mapa';
       const fone = H.rows.filter(r => r.ph).length, dups = H.rows.filter(r => r.dup).length;
       A.st = H.rows.length ? `${H.rows.length} achadas no mapa · ${fone} com telefone${dups ? ` · ${dups} já estavam no radar` : ''}.` : 'O mapa não tem empresas desse nicho aí. Tenta outro bairro, outro nicho ou "Colar lista".';
+      /* caçou um nicho do catálogo e achou: ele entra na lista da pessoa (cabendo nos 30), pra mensagem, placar e Mesa */
+      if(doCat && H.rows.length && c.nichos.length < 30){ try{ await Z.saveCfg({ nichos: c.nichos.concat([doCat]) }); A.st += ` ${doCat.n} entrou nos teus nichos.`; }catch(e){} }
     }catch(e){
       H.rows = null;
       A.st = e && e.code === 'ocupado' ? 'O mapa tá ocupado agora. Tenta de novo em um minuto.' : e && e.code === 'bairro' ? `Não achei o bairro "${A.b}" em ${onde}. Confere o nome ou deixa em branco pra cidade toda.` : e && e.code === 'cidade' ? `Não achei ${onde} no mapa. Confere a cidade em Ajustar.` : (e && e.name === 'AbortError') ? 'O mapa demorou demais. Tenta um bairro ou um nicho só.' : 'Não deu pra falar com o mapa agora. Confere a internet e tenta de novo.';
@@ -197,10 +201,12 @@
   TT.NICHOS_ABERTOS = NICHOS_ABERTOS;
   TT.amostra = async function(o){
     const k = String(o.k || ''), cidade = String(o.cidade || '').trim(), uf = String(o.uf || '').toUpperCase(), bairro = String(o.bairro || '').trim();
-    if(!OSM[k]) throw { code: 'nicho' };
+    /* v5.32: além dos 16 de sempre, qualquer nicho do catálogo (pelo filtro do mapa e pelas palavras do nome) */
+    const alvo = OSM[k] ? { k, re: '' } : catDe(k);
+    if(!alvo) throw { code: 'nicho' };
     if(!cidade) throw { code: 'cidade' };
     const { area } = await areaDe(cidade, uf, bairro);
-    const parts = consulta({ k, re: '' }, area).join('');
+    const parts = consulta(alvo, area).join('');
     const els = await overpass(`[out:json][timeout:30];(${parts})->.a;.a out count;.a out center tags 1500;`);
     const cont = els.find(e => e.type === 'count'), total = cont && cont.tags ? Number(cont.tags.total) || 0 : 0;
     const ddd = await Z.dddDe(cidade, uf).catch(() => ''), P = { cidade, uf, ddd };
@@ -215,20 +221,29 @@
   /* a caça de um nicho numa praça, direto pro radar (até max, as de celular primeiro). Quem chama já conferiu o login */
   TT.cacaNicho = async function(o){
     const k = String(o.k || ''), cidade = String(o.cidade || '').trim(), uf = String(o.uf || '').toUpperCase(), max = Math.max(1, Math.min(60, o.max || 20));
-    if(!OSM[k] || !cidade) throw { code: 'nicho' };
+    const alvo = OSM[k] ? { k, re: '' } : catDe(k);
+    if(!alvo || !cidade) throw { code: 'nicho' };
     if(!H.loaded) await Z.load();
     const { area } = await areaDe(cidade, uf, String(o.bairro || '').trim());
-    const els = await overpass(`[out:json][timeout:30];(${consulta({ k, re: '' }, area).join('')});out center tags 600;`);
+    const els = await overpass(`[out:json][timeout:30];(${consulta(alvo, area).join('')});out center tags 600;`);
     const ddd = await Z.dddDe(cidade, uf).catch(() => ''), P = { cidade, uf, ddd }, vistos = new Set(), rows = [];
     els.forEach(e => { const id = e.type + e.id; if(vistos.has(id)) return; vistos.add(id); const r = linhaDe(e, k, P); if(r && r.ph) rows.push(r); });
     const novas = marcaRepetidas(rows).filter(r => !r.dup).sort((a, b) => (b.ph.wa ? 1 : 0) - (a.ph.wa ? 1 : 0) || (b.insta ? 1 : 0) - (a.insta ? 1 : 0)).slice(0, max);
     if(novas.length){ const antes = H.assunto; H.assunto = o.assunto || 'garimpo'; try{ await Z.addRows(novas, o.fonte || 'caca'); }finally{ H.assunto = antes; } await Z.load(); }
     return { lidas: rows.length, novas: novas.length, wa: novas.filter(r => r.ph.wa).length };
   };
+  /* v5.32: o catálogo de nichos (343, horus-nichos.js) também no "Nicho" da caça: os teus em cima, o resto por ramo */
+  const CAT = () => window.CORRE_HORUS_NICHOS || { grupos: {}, lista: [] };
+  const catDe = k => { const n = CAT().lista.find(x => x.k === k); return n ? { k: n.k, n: n.n, prio: n.prio, re: n.re, osm: n.osm, hook: n.hook, valor: n.valor, gancho: n.gancho } : null; };
+  const opcoesNicho = (c, A) => {
+    const meus = new Set(c.nichos.map(n => n.k)), op = n => `<option value="${esc(n.k)}"${A.n === n.k ? ' selected' : ''}>${esc(n.n)}</option>`, K = CAT();
+    const ramos = Object.entries(K.grupos).map(([g, nome]) => { const L = K.lista.filter(n => n.g === g && !meus.has(n.k)); return L.length ? `<optgroup label="${esc(nome)}">${L.map(op).join('')}</optgroup>` : ''; }).join('');
+    return `<option value="">Todos os teus nichos</option>${ramos ? `<optgroup label="Os teus">${c.nichos.map(op).join('')}</optgroup>${ramos}` : c.nichos.map(op).join('')}`;
+  };
   TT.cacaAuto = function(){
     const c = Z.cfg(), A = H.auto;
     return `<div class="hz-auto">
-      <div class="hz-auto-f"><div class="fld"><label class="hz-lbl" for="hz-an">Nicho</label><select class="hz-in" id="hz-an"><option value="">Todos os nichos</option>${c.nichos.map(n => `<option value="${esc(n.k)}"${A.n === n.k ? ' selected' : ''}>${esc(n.n)}</option>`).join('')}</select></div>
+      <div class="hz-auto-f"><div class="fld"><label class="hz-lbl" for="hz-an">Nicho</label><select class="hz-in" id="hz-an">${opcoesNicho(c, A)}</select></div>
         <div class="fld"><label class="hz-lbl" for="hz-ab">Bairro <small>opcional</small></label><input class="hz-in" id="hz-ab" value="${esc(A.b)}" placeholder="Centro, Jardins…" autocomplete="off"></div>
         <button type="button" class="hz-btn pri" data-act="hz-auto"${A.busy ? ' disabled' : ''}>${ico('pin')} ${A.busy ? 'Caçando…' : 'Caçar no mapa'}</button></div>
       <p class="hz-auto-st" aria-live="polite">${esc(A.st || '')}</p>
