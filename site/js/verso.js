@@ -4243,11 +4243,14 @@
      O de verdade (LondriNatal 2025): 27 metros, 15 toneladas, uns 450 mil pontos de LED, em pé numa balsa presa por
      quatro âncoras no Lago Igapó 2; acendeu em 30/11/2025 e o Guinness confirmou o recorde em 5/12 (o de antes era o de
      Águeda, em Portugal, com 21 m). Pelas fotos que o Thales mandou ("o papai noel é em formato de cone, árvore de
-     Natal"): o corpo é um cone vermelho com arabescos brancos, os lados e os braços (verdes no de verdade, dourados
-     aqui, que verde não entra no Corre), as luvas de ouro segurando o painel do coração, a barba, o gorro caído pro lado,
-     os dois arcos escuros no pé e os presentes na balsa. Em volta, no lago: as árvores de luz, os presentes boiando e os
+     Natal"): o corpo é um cone vermelho com arabescos brancos, os lados e os braços (verdes no de verdade; dourados
+     aqui até a 5.34, verde claro desde a 5.35, a pedido do Thales), as luvas de ouro segurando o painel do coração, a
+     barba, o gorro caído pro lado, os dois arcos escuros no pé e os presentes na balsa. Em volta, no lago: as árvores de luz, os presentes boiando e os
      cisnes; na orla, o letreiro #EU ❤ LONDRINA e os postes curvos de luz. E os fogos, de tempo em tempo */
-  const NOEL = { V: '#D42A35', VE: '#9E1C26', L: '#E3A934', LE: '#B37A1E', B: '#F6F3EC', BE: '#D7D2C8', P: '#F1C19B', K: '#17181D' };
+  /* v5.35 · o manto verde claro, como o de verdade (o Thales: "coloca só o manto do papai noel verde vai" e "verde claro"): os
+     lados do corpo e os braços (M e ME). É a segunda exceção ao "nada de verde", depois do cabelo do Coringa; o resto
+     do Noel segue igual (o painel vermelho, as luvas e os presentes dourados) */
+  const NOEL = { V: '#D42A35', VE: '#9E1C26', L: '#E3A934', LE: '#B37A1E', M: '#9BE08F', ME: '#6DB862', B: '#F6F3EC', BE: '#D7D2C8', P: '#F1C19B', K: '#17181D' };
   const NOEL_W = 520, NOEL_ESQ = 260, NOEL_TOPO = 532, NOEL_BAIXO = 40;
   /* o sino do corpo (lados dourados) e o painel vermelho do meio, do ombro (-330) até a balsa (-22) */
   const sinoNoel = (ctx, a, b) => { ctx.beginPath(); ctx.moveTo(-a, -330); ctx.quadraticCurveTo(-a - 40, -150, -b, -22); ctx.lineTo(b, -22); ctx.quadraticCurveTo(a + 40, -150, a, -330); ctx.closePath(); };
@@ -4261,7 +4264,7 @@
     ctx.strokeStyle = 'rgba(30,34,42,.8)'; ctx.lineWidth = 2; [[-180, -236, 30], [-150, -178, 36], [150, 178, 36], [180, 236, 30]].forEach(([a, b, d]) => { ctx.beginPath(); ctx.moveTo(a, -6); ctx.lineTo(b, d); ctx.stroke(); });
     ret(-198, -24, 396, 24, '#2B2F38'); ctx.fillStyle = '#4A4E56'; for(let x = -190; x < 190; x += 46) ctx.fillRect(x, -8, 32, 3);
     /* o corpo: o sino dourado, o painel vermelho com a sombra e os pontinhos de LED, e o pelo branco nas bordas */
-    sinoNoel(ctx, 72, 178); forma(ctx, NOEL.L); ctx.save(); sinoNoel(ctx, 72, 178); ctx.clip(); ctx.fillStyle = NOEL.LE; ctx.fillRect(110, -340, 120, 330); ctx.restore();
+    sinoNoel(ctx, 72, 178); forma(ctx, NOEL.M); ctx.save(); sinoNoel(ctx, 72, 178); ctx.clip(); ctx.fillStyle = NOEL.ME; ctx.fillRect(110, -340, 120, 330); ctx.restore();
     sinoNoel(ctx, 44, 120); ctx.fillStyle = NOEL.VE; ctx.fill(); ctx.save(); sinoNoel(ctx, 44, 120); ctx.clip();
     ctx.fillStyle = NOEL.V; ctx.beginPath(); ctx.ellipse(-24, -170, 120, 210, 0, 0, Math.PI * 2); ctx.fill();
     ctx.fillStyle = 'rgba(255,190,190,.3)'; for(let y = -326; y < -24; y += 10) for(let x = -124 + (Math.abs(y / 10) % 2 ? 5 : 0); x < 124; x += 10) ctx.fillRect(x, y, 2, 2);
@@ -4277,7 +4280,7 @@
     [[-172, 30, 26], [-140, 24, 20], [116, 26, 22], [146, 30, 28]].forEach(([x, w, h], i) => { ret(x, -22 - h, w, h, i % 2 ? '#FFB347' : NOEL.L, 2); ctx.fillStyle = NOEL.V; ctx.fillRect(x + w / 2 - 2, -22 - h, 4, h); ctx.fillRect(x, -22 - h / 2 - 2, w, 4); });
     /* os braços dourados descendo do ombro, as luvas de ouro e o painel do coração no meio */
     ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-    [-1, 1].forEach(l => { ctx.beginPath(); ctx.moveTo(l * 66, -328); ctx.lineTo(l * 100, -286); ctx.lineTo(l * 84, -246); risco(INK, 39); risco(NOEL.L, 34); });
+    [-1, 1].forEach(l => { ctx.beginPath(); ctx.moveTo(l * 66, -328); ctx.lineTo(l * 100, -286); ctx.lineTo(l * 84, -246); risco(INK, 39); risco(NOEL.M, 34); });
     ctx.lineCap = 'butt'; ctx.lineJoin = 'miter';
     ret(-64, -300, 128, 96, NOEL.B, 2.4); ret(-56, -292, 112, 80, '#BFE3FF', 1.6);
     ctx.beginPath(); ctx.moveTo(0, -224); ctx.bezierCurveTo(-46, -252, -40, -290, -16, -284); ctx.quadraticCurveTo(-4, -282, 0, -270); ctx.quadraticCurveTo(4, -282, 16, -284); ctx.bezierCurveTo(40, -290, 46, -252, 0, -224); ctx.closePath(); forma(ctx, NOEL.V, 2);
@@ -6984,7 +6987,7 @@
     const l = c.lago; ctx.fillStyle = '#C9D0D8'; l.bandas[0][1].forEach(q => ctx.fillRect(X(q.x), Y(q.t), 1, Math.max(1, Math.round((q.b - q.t) / S))));
     ctx.fillStyle = '#2F7FC1'; l.cols.forEach(q => ctx.fillRect(X(q.x), Y(q.t), 1, Math.max(1, Math.round((q.b - q.t) / S))));
     /* v3.87: no Natal, o Papai Noel em pé na balsa, no meio do lago */
-    if(l.noel && natal()){ const nx = X(l.noel.x), ny = Y(l.noel.y); ctx.fillStyle = '#2B2F38'; ctx.fillRect(nx - 9, ny - 2, 19, 3); ctx.fillStyle = '#E3A934'; [[-8, 17], [-7, 15], [-6, 13], [-5, 11], [-5, 11], [-4, 9]].forEach(([d, w], i) => ctx.fillRect(nx + d, ny - 3 - i * 2, w, 2));
+    if(l.noel && natal()){ const nx = X(l.noel.x), ny = Y(l.noel.y); ctx.fillStyle = '#2B2F38'; ctx.fillRect(nx - 9, ny - 2, 19, 3); ctx.fillStyle = NOEL.M; [[-8, 17], [-7, 15], [-6, 13], [-5, 11], [-5, 11], [-4, 9]].forEach(([d, w], i) => ctx.fillRect(nx + d, ny - 3 - i * 2, w, 2));
       ctx.fillStyle = '#D42A35'; [[-5, 11], [-5, 11], [-4, 9], [-4, 9], [-3, 7], [-3, 7]].forEach(([d, w], i) => ctx.fillRect(nx + d, ny - 3 - i * 2, w, 2)); ctx.fillStyle = '#F6F3EC'; ctx.fillRect(nx - 3, ny - 18, 7, 4); ctx.fillStyle = '#F1C19B'; ctx.fillRect(nx - 2, ny - 20, 5, 2); ctx.fillStyle = '#D42A35'; ctx.fillRect(nx - 2, ny - 24, 5, 3); ctx.fillStyle = '#F6F3EC'; ctx.fillRect(nx - 3, ny - 21, 7, 1); ctx.fillRect(nx + 3, ny - 24, 2, 2); }
     const z = c.zerao; ctx.strokeStyle = '#A4553A'; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(X(z.cx), Y(z.cy), z.rx / S - 1, z.ry / S - 1, 0, 0, Math.PI * 2); ctx.stroke();
     if(z.skate){ const s = z.skate; ctx.fillStyle = '#A4A8AE'; ctx.fillRect(X(s.x0), Y(s.y0), Math.round((s.x1 - s.x0 - 30) / S), Math.round((s.y1 - s.y0 - 50) / S)); ctx.fillStyle = '#6A7078'; ctx.fillRect(X(s.bowl.x) - 2, Y(s.bowl.y) - 1, 4, 3); }
