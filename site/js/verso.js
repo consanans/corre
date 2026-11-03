@@ -8512,7 +8512,11 @@
         'Ônibus aqui é no tubo: paga antes e entra no mesmo nível. Organização.', 'Veio de Londrina a pé pela estrada? Coragem, hein.'] },
     { nome: 'Bruna', onde: 'Ópera de Arame', voz: 290, av: { pele: 3, cabelo: 'cacheado', corCabelo: 0, roupa: 'moletom', corRoupa: 5, corCalca: 0, tenis: 1 },
       frases: ['A Ópera de Arame é de 1992. Tubo de aço em cima do lago da pedreira.', 'Show aqui com chuva no teto transparente é outra coisa.', 'Jardim Botânico de manhã, Ópera de noite. É o roteiro.',
-        'Vim de Londrina de avião. Saí no Afonso Pena de paraquedas. Normal.'] }
+        'Vim de Londrina de avião. Saí no Afonso Pena de paraquedas. Normal.'] },
+    /* v5.29 · o Lorenzo, cabeludinho de boné vermelho (a cor do boné é a da camiseta), na porta da Arena da Baixada (o Thales pediu); é ele que fez o Killer Ocean do Aquário */
+    { nome: 'Lorenzo', onde: 'Arena da Baixada', voz: 340, av: { pele: 1, cabelo: 'longo', corCabelo: 1, topo: 'bone', oculos: 'nada', roupa: 'camiseta', corRoupa: 7, corCalca: 0, tenis: 1 },
+      frases: ['Eu fiz o Killer Ocean, sabia? Tá lá no Aquário do Igapó.', 'Quando chove, o teto da Arena fecha. Eu fico olhando ele fechar.', 'Furacão! Hoje tem jogo?',
+        'Cabelo grande dá sorte. Pelo menos é o que eu falo pro barbeiro.', 'Bora bater um pênalti? A porta é aqui do lado.', 'Vermelho e preto na veia.'] }
   ];
   /* v4.10: os papos do porto (sempre o Seu Pedro abre, a Dona Maria fecha) */
   const PAPOS_PORTO = [
